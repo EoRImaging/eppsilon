@@ -1,6 +1,6 @@
 pro fhd_data_plots, healpix=healpix, refresh_dft = refresh_dft, refresh_ps = refresh_ps, refresh_binning = refresh_binning, $
-                    no_weighting = no_weighting, $
-                    std_power = std_power, no_kzero = no_kzero, no_weighted_averaging = no_weighted_averaging, $
+                    no_weighting = no_weighting, std_power = std_power, no_kzero = no_kzero, $
+                    no_weighted_averaging = no_weighted_averaging, $
                     data_range = data_range, plot_weights = plot_weights, slice_nobin = slice_nobin, linear_kpar = linear_kpar, $
                     plot_uvf = plot_uvf, uvf_data_range = uvf_data_range, uvf_type = uvf_type, baseline_axis = baseline_axis, $
                     plot_wedge_line = plot_wedge_line, grey_scale = grey_scale, pub = pub
@@ -21,9 +21,7 @@ pro fhd_data_plots, healpix=healpix, refresh_dft = refresh_dft, refresh_ps = ref
   if n_elements(no_weighted_averaging) gt 0 and not keyword_set(no_weighted_averaging) and keyword_set(no_weighting) then $
      message, 'Cannot set no_weighted_averaging=0 and no_weighting=1'
 
-  ;;froot = base_path() + 'power_spectrum/fhd_data/'
-  ;;datafilebase = 'multi_freq_residuals_cube'
-  froot = base_path('data') + 'fhd_ps_data/'
+   froot = base_path('data') + 'fhd_ps_data/'
   if keyword_set(healpix) then datafilebase = 'multi_freq_residuals_cube_healpix' else datafilebase = 'multi_freq_residuals_cube_20k'
   datafile = froot + datafilebase + '.sav'
   

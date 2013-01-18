@@ -834,16 +834,11 @@ pro fhd_3dps, datafile, datavar, weightfile, weightvar, frequencies, max_baselin
   
   save, file = savefile_lin, power, weights, kperp_edges, kpar_edges, bins_per_decade, kperp_lambda_conv
 
- 
-  plotfile_path = base_path() + 'power_spectrum/plots/'
-  plotfile = plotfile_path + savefilebase + fadd + '_kspace_power'
-  weight_plotfile = plotfile_path + savefilebase + fadd + '_kspace_weights'
-
   if not keyword_set(quiet) then begin
      kpower_2d_plots, savefile, kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
-                      data_range = data_range, pub = pub, plotfile = plotfile
+                      data_range = data_range
      kpower_2d_plots, savefile, /plot_weights, kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
-                      pub = pub, plotfile = weight_plotfile, window_num = 2, title = 'Weights'
+                      window_num = 2, title = 'Weights'
   endif
 
   ;; now do slices    
@@ -890,7 +885,7 @@ pro fhd_3dps, datafile, datavar, weightfile, weightvar, frequencies, max_baselin
   
   if not keyword_set(quiet) then begin
      kpower_2d_plots, yslice_binned_savefile, kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
-                      data_range = data_range, pub = pub, window_num = 3, title = 'XZ plane'
+                      data_range = data_range, window_num = 3, title = 'XZ plane'
   endif
 
 
@@ -916,15 +911,14 @@ pro fhd_3dps, datafile, datavar, weightfile, weightvar, frequencies, max_baselin
      
   if not keyword_set(quiet) then begin
      kpower_2d_plots, xslice_binned_savefile, kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
-                      data_range = data_range, pub = pub, window_num = 4, title = 'YZ plane'
+                      data_range = data_range, window_num = 4, title = 'YZ plane'
   endif
 
 
 
 
   print, 'Binning to 1D power spectrum'
-  plotfile = plotfile_path + savefilebase + fadd + '_1d_power'
-
+ 
   bins_per_decade = 10d
   if keyword_set(no_weighting) then $
      power_1d = kspace_rebinning_1d(power_3d, kx_mpc, ky_mpc, kz_mpc, k_edges_mpc, bins = bins_per_decade, $
