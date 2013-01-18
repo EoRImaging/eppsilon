@@ -1,4 +1,5 @@
-pro fhd_data_plots, healpix=healpix, refresh_dft = refresh_dft, refresh_ps = refresh_ps, refresh_binning = refresh_binning, $
+pro fhd_data_plots, datafile, plot_path = plot_path, healpix=healpix, refresh_dft = refresh_dft, refresh_ps = refresh_ps, $
+                    refresh_binning = refresh_binning, $
                     no_weighting = no_weighting, std_power = std_power, no_kzero = no_kzero, $
                     no_weighted_averaging = no_weighted_averaging, $
                     data_range = data_range, plot_weights = plot_weights, slice_nobin = slice_nobin, linear_kpar = linear_kpar, $
@@ -21,9 +22,18 @@ pro fhd_data_plots, healpix=healpix, refresh_dft = refresh_dft, refresh_ps = ref
   if n_elements(no_weighted_averaging) gt 0 and not keyword_set(no_weighted_averaging) and keyword_set(no_weighting) then $
      message, 'Cannot set no_weighted_averaging=0 and no_weighting=1'
 
-   froot = base_path('data') + 'fhd_ps_data/'
-  if keyword_set(healpix) then datafilebase = 'multi_freq_residuals_cube_healpix' else datafilebase = 'multi_freq_residuals_cube_20k'
-  datafile = froot + datafilebase + '.sav'
+  ftest = file_test(datafile)
+  if datafile_test eq 0 then message, 'datafile not found'
+
+  temp = strpos(datafile, '/', /reverse_search)
+  froot = strmid(datafile, 0, temp+1)
+  infilebase = strmid(datafile, temp+1)
+  temp2 = strpos(infilebase, '.', /reverse_search)
+  datafilebase = strmid(infilebase, 0, temp2)
+
+  ;; froot = base_path('data') + 'fhd_ps_data/'
+  ;; if keyword_set(healpix) then datafilebase = 'multi_freq_residuals_cube_healpix' else datafilebase ='multi_freq_residuals_cube_20k'
+  ;; datafile = froot + datafilebase + '.sav'
   
   file_obj = obj_new('idl_savefile', datafile)
   varnames = file_obj->names()
@@ -66,7 +76,7 @@ pro fhd_data_plots, healpix=healpix, refresh_dft = refresh_dft, refresh_ps = ref
   fadd = ''
   if keyword_set(std_power) then fadd = fadd + '_sp'
   if keyword_set(no_weighting) then fadd = fadd + '_nowt'
- 
+  
   fadd_2dbin = ''
   wt_fadd_2dbin = ''
   ;;if keyword_set(fill_holes) then fadd_2dbin = fadd_2dbin + '_nohole'
@@ -109,7 +119,7 @@ pro fhd_data_plots, healpix=healpix, refresh_dft = refresh_dft, refresh_ps = ref
            pixel_varname = 'hpx_inds'
            hpx_dftsetup_savefile = froot + 'multi_freq_residuals_cube_healpix_dftsetup.idlsave'
            weight_savefilebase = froot + datafilebase + wt_file_labels + fadd
-         
+           
            weight_refresh = intarr(nfiles)
            if keyword_set(refresh_dft) then begin
               temp = sort(weight_ind)
@@ -160,7 +170,7 @@ pro fhd_data_plots, healpix=healpix, refresh_dft = refresh_dft, refresh_ps = ref
      wedge_amp = wedge_factor * source_dist
   endif else wedge_amp = 0d
 
-  ;if n_elements(data_range) eq 0 then data_range = [1e13, 1e20]
+                                ;if n_elements(data_range) eq 0 then data_range = [1e13, 1e20]
 
   if nfiles eq 1 then begin
      kpower_2d_plots, savefiles_2d, kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
@@ -238,18 +248,18 @@ pro fhd_data_plots, healpix=healpix, refresh_dft = refresh_dft, refresh_ps = ref
   nweights = n_elements(weight_labels)
 
   if nweights eq 1 then begin
-    kpower_2d_plots, savefiles_2d[0], /plot_weights, kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
-                     pub = pub, plotfile = weight_plotfile_2d, title = 'Weights ' + weight_labels, window_num = 2, $
-                     grey_scale = grey_scale, plot_wedge_line = plot_wedge_line, wedge_amp = wedge_amp, baseline_axis = baseline_axis
- endif else begin
-       
+     kpower_2d_plots, savefiles_2d[0], /plot_weights, kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
+                      pub = pub, plotfile = weight_plotfile_2d, title = 'Weights ' + weight_labels, window_num = 2, $
+                      grey_scale = grey_scale, plot_wedge_line = plot_wedge_line, wedge_amp = wedge_amp, baseline_axis = baseline_axis
+  endif else begin
+     
      nrow = ceil(sqrt(nweights))
      ncol = ceil(nweights / double(nrow))
      positions = fltarr(4, ncol*nrow)
 
      col_val = reverse(reform(rebin(indgen(ncol), ncol, nrow), ncol*nrow))
      row_val = reform(rebin(reform(indgen(nrow), 1, nrow), ncol, nrow), ncol*nrow)
-    
+     
      
      if keyword_set(pub) then begin
         xmargin = 0.025
@@ -294,13 +304,13 @@ pro fhd_data_plots, healpix=healpix, refresh_dft = refresh_dft, refresh_ps = ref
         pson, file = weight_plotfile_2d, /eps
      endif
      
-    for i=0, nweights-1 do begin
-       wh = where(weight_ind eq i, count)
-       if count eq 0 then stop
-       kpower_2d_plots, savefiles_2d[wh[i]], /plot_weights, multi_pos = positions[*,i], multi_aspect = multi_aspect, $
-                        kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, pub = pub, $
-                        title = 'Weights ' + weight_labels[i], grey_scale = grey_scale, plot_wedge_line = plot_wedge_line, $
-                        wedge_amp = wedge_amp, baseline_axis = baseline_axis
+     for i=0, nweights-1 do begin
+        wh = where(weight_ind eq i, count)
+        if count eq 0 then stop
+        kpower_2d_plots, savefiles_2d[wh[i]], /plot_weights, multi_pos = positions[*,i], multi_aspect = multi_aspect, $
+                         kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, pub = pub, $
+                         title = 'Weights ' + weight_labels[i], grey_scale = grey_scale, plot_wedge_line = plot_wedge_line, $
+                         wedge_amp = wedge_amp, baseline_axis = baseline_axis
      endfor
      
      if keyword_set(pub) then begin
