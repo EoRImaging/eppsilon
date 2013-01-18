@@ -1,4 +1,0 @@
-PS
-==
-
-power spectrum
