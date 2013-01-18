@@ -3,7 +3,7 @@ pro fhd_3dps, datafile, datavar, weightfile, weightvar, frequencies, max_baselin
               savefilebase = savefilebase_in, weight_savefilebase = weight_savefilebase_in, refresh = refresh, $
               dft_refresh_data = dft_refresh_data, dft_refresh_weight = dft_refresh_weight, no_weighting = no_weighting, $
               std_power = std_power, no_kzero = no_kzero, no_weighted_averaging = no_weighted_averaging, input_units = input_units, $
-              fill_holes = fill_holes, clean_type = clean_type, quiet = quiet
+              fill_holes = fill_holes, quiet = quiet;, clean_type = clean_type
 
   if n_params() ne 6 then message, 'Wrong number of parameters passed. Required parameters are: datafile (string), ' + $
                                  'datavar (string), weightfile (string), weightvar (string), ' + $
@@ -26,11 +26,11 @@ pro fhd_3dps, datafile, datavar, weightfile, weightvar, frequencies, max_baselin
 
   if n_elements(fill_holes) eq 0 then fill_holes = 0
 
-  clean_type_enum = ['hmf', 'iterate', 'fit']
-  if n_elements(clean_type) ne 0 then begin
-     wh = where(clean_type_enum eq clean_type, count)
-     if count eq 0 then message, 'Clean type not recognized'
-  endif
+  ;; clean_type_enum = ['hmf', 'iterate', 'fit']
+  ;; if n_elements(clean_type) ne 0 then begin
+  ;;    wh = where(clean_type_enum eq clean_type, count)
+  ;;    if count eq 0 then message, 'Clean type not recognized'
+  ;; endif
 
   if n_elements(savefilebase_in) eq 0 then begin
      temp = strpos(datafile, '/', /reverse_search)
@@ -52,7 +52,7 @@ pro fhd_3dps, datafile, datavar, weightfile, weightvar, frequencies, max_baselin
 
   save_file = froot + savefilebase + '_power.idlsave'
 
-  if n_elements(clean_type) ne 0 then if clean_type ne 'fit' then model_save = froot + savefilebase + '_modeluv.idlsave'
+  ;;if n_elements(clean_type) ne 0 then if clean_type ne 'fit' then model_save = froot + savefilebase + '_modeluv.idlsave'
 
   test_save = file_test(save_file) *  (1 - file_test(save_file, /zero_length))
   if test_save eq 0 or keyword_set(refresh) then begin
@@ -268,278 +268,278 @@ pro fhd_3dps, datafile, datavar, weightfile, weightvar, frequencies, max_baselin
      
      print, 'sum(data_cube^2)*z_delta (after weighting):', total(abs(data_cube)^2d)*z_mpc_delta
 
-     if n_elements(clean_type) ne 0 then begin
+     ;; if n_elements(clean_type) ne 0 then begin
 
-        if clean_type eq 'fit' then begin
-           print, max(abs(data_cube))
+     ;;    if clean_type eq 'fit' then begin
+     ;;       print, max(abs(data_cube))
 
-           ;; first subtract off k0
-           k0_real = total(real_part(data_cube), 3, /nan) / n_freq_contrib
-           if count_nofreq gt 0 then k0_real[wh_nofreq]=0      
-           k0_imag = total(imaginary(data_cube), 3, /nan) / n_freq_contrib
-           if count_nofreq gt 0 then k0_imag[wh_nofreq]=0
+     ;;       ;; first subtract off k0
+     ;;       k0_real = total(real_part(data_cube), 3, /nan) / n_freq_contrib
+     ;;       if count_nofreq gt 0 then k0_real[wh_nofreq]=0      
+     ;;       k0_imag = total(imaginary(data_cube), 3, /nan) / n_freq_contrib
+     ;;       if count_nofreq gt 0 then k0_imag[wh_nofreq]=0
 
-           pred_cube = rebin(k0_real, n_kx, n_ky, n_kz) + complex(0,1) * rebin(k0_imag, n_kx, n_ky, n_kz)
-           if count_wt0 gt 0 then pred_cube[wh_wt0] = 0
-           undefine, k0_real
-           undefine, k0_imaginary
+     ;;       pred_cube = rebin(k0_real, n_kx, n_ky, n_kz) + complex(0,1) * rebin(k0_imag, n_kx, n_ky, n_kz)
+     ;;       if count_wt0 gt 0 then pred_cube[wh_wt0] = 0
+     ;;       undefine, k0_real
+     ;;       undefine, k0_imaginary
 
-           new_cube = data_cube - temporary(pred_cube)
-           print, max(abs(new_cube))
+     ;;       new_cube = data_cube - temporary(pred_cube)
+     ;;       print, max(abs(new_cube))
 
-           ;; then fit linear term and subtract it off
-           ;; restore response to linear ramp
-           x_savefile = froot + 'sim_' + array + '_' + 'xcom.idlsave'
-           test_com_file = file_test(x_savefile)  *  (1 - file_test(x_savefile, /zero_length))
-           if test_com_file eq 0 then sim_uv_com
-           restore, x_savefile
-           undefine, uv_x_in
+     ;;       ;; then fit linear term and subtract it off
+     ;;       ;; restore response to linear ramp
+     ;;       x_savefile = froot + 'sim_' + array + '_' + 'xcom.idlsave'
+     ;;       test_com_file = file_test(x_savefile)  *  (1 - file_test(x_savefile, /zero_length))
+     ;;       if test_com_file eq 0 then sim_uv_com
+     ;;       restore, x_savefile
+     ;;       undefine, uv_x_in
 
-           com_mean = total(uv_x_com, 3) / n_freq_contrib
-           if count_nofreq gt 0 then com_mean[wh_nofreq] = 0
-           x_com_norm = temporary(uv_x_com) - rebin(com_mean, n_kx, n_ky, n_kz)
-           undefine, com_mean
-           if count_wt0 gt 0 then x_com_norm[wh_wt0]=0
+     ;;       com_mean = total(uv_x_com, 3) / n_freq_contrib
+     ;;       if count_nofreq gt 0 then com_mean[wh_nofreq] = 0
+     ;;       x_com_norm = temporary(uv_x_com) - rebin(com_mean, n_kx, n_ky, n_kz)
+     ;;       undefine, com_mean
+     ;;       if count_wt0 gt 0 then x_com_norm[wh_wt0]=0
 
-           ;; fit amplitude of linear term
-           lin_amp_weights = total(x_com_norm^2d, 3)
-           if count_nofreq gt 0 then lin_amp_weights[wh_nofreq] = 0
-           real_lin_amp = total(real_part(new_cube) * x_com_norm,3) / lin_amp_weights
-           imag_lin_amp = total(imaginary(new_cube) * x_com_norm,3) / lin_amp_weights
-           if count_nofreq gt 0 then begin
-              real_lin_amp[wh_nofreq] = 0
-              imag_lin_amp[wh_nofreq] = 0
-           endif
-           pred_cube = x_com_norm * (rebin(real_lin_amp, n_kx, n_ky, n_kz) + complex(0,1) * rebin(imag_lin_amp, n_kx, n_ky, n_kz))
-           if count_wt0 gt 0 then pred_cube[wh_wt0] = 0
-           undefine, real_lin_amp
-           undefine, imag_lin_amp
+     ;;       ;; fit amplitude of linear term
+     ;;       lin_amp_weights = total(x_com_norm^2d, 3)
+     ;;       if count_nofreq gt 0 then lin_amp_weights[wh_nofreq] = 0
+     ;;       real_lin_amp = total(real_part(new_cube) * x_com_norm,3) / lin_amp_weights
+     ;;       imag_lin_amp = total(imaginary(new_cube) * x_com_norm,3) / lin_amp_weights
+     ;;       if count_nofreq gt 0 then begin
+     ;;          real_lin_amp[wh_nofreq] = 0
+     ;;          imag_lin_amp[wh_nofreq] = 0
+     ;;       endif
+     ;;       pred_cube = x_com_norm * (rebin(real_lin_amp, n_kx, n_ky, n_kz) + complex(0,1) * rebin(imag_lin_amp, n_kx, n_ky, n_kz))
+     ;;       if count_wt0 gt 0 then pred_cube[wh_wt0] = 0
+     ;;       undefine, real_lin_amp
+     ;;       undefine, imag_lin_amp
 
-           new_cube = temporary(new_cube) - temporary(pred_cube)
-           print, max(abs(new_cube))
+     ;;       new_cube = temporary(new_cube) - temporary(pred_cube)
+     ;;       print, max(abs(new_cube))
 
            
-           ;; now fit & subtract off 2nd derivative term
-           ;; restore response to x^2 ramp
-           x_savefile = froot + 'sim_' + array + '_' + 'xcurv.idlsave'
-           test_com_file = file_test(x_savefile)  *  (1 - file_test(x_savefile, /zero_length))
-           if test_com_file eq 0 then sim_uv_com
-           restore, x_savefile
-           undefine, uv_x_in
+     ;;       ;; now fit & subtract off 2nd derivative term
+     ;;       ;; restore response to x^2 ramp
+     ;;       x_savefile = froot + 'sim_' + array + '_' + 'xcurv.idlsave'
+     ;;       test_com_file = file_test(x_savefile)  *  (1 - file_test(x_savefile, /zero_length))
+     ;;       if test_com_file eq 0 then sim_uv_com
+     ;;       restore, x_savefile
+     ;;       undefine, uv_x_in
            
-           com_curv_mean = total(uv_x_com, 3) / n_freq_contrib
-           if count_nofreq gt 0 then com_curv_mean[wh_nofreq] = 0
-           x_com_curv_norm = temporary(uv_x_com) - rebin(com_curv_mean, n_kx, n_ky, n_kz)
-           undefine, com_curv_mean
-           if count_wt0 gt 0 then x_com_curv_norm[wh_wt0]=0
+     ;;       com_curv_mean = total(uv_x_com, 3) / n_freq_contrib
+     ;;       if count_nofreq gt 0 then com_curv_mean[wh_nofreq] = 0
+     ;;       x_com_curv_norm = temporary(uv_x_com) - rebin(com_curv_mean, n_kx, n_ky, n_kz)
+     ;;       undefine, com_curv_mean
+     ;;       if count_wt0 gt 0 then x_com_curv_norm[wh_wt0]=0
 
-           ;; subtract off linear term from x^2 response
-           curv_lin_amp = total(x_com_curv_norm * x_com_norm,3) / lin_amp_weights
-           if count_nofreq gt 0 then curv_lin_amp[wh_nofreq] = 0
-           x_com_curv_norm = x_com_curv_norm - x_com_norm * rebin(curv_lin_amp, n_kx, n_ky, n_kz)
-           undefine, curv_lin_amp
+     ;;       ;; subtract off linear term from x^2 response
+     ;;       curv_lin_amp = total(x_com_curv_norm * x_com_norm,3) / lin_amp_weights
+     ;;       if count_nofreq gt 0 then curv_lin_amp[wh_nofreq] = 0
+     ;;       x_com_curv_norm = x_com_curv_norm - x_com_norm * rebin(curv_lin_amp, n_kx, n_ky, n_kz)
+     ;;       undefine, curv_lin_amp
 
-           ;; fit amplitude of curvature term
-           curv_amp_weights = total(x_com_curv_norm^2d, 3)
-           if count_nofreq gt 0 then curv_amp_weights[wh_nofreq] = 0
-           real_curv_amp = total(real_part(new_cube) * x_com_curv_norm,3) / curv_amp_weights
-           imag_curv_amp = total(imaginary(new_cube) * x_com_curv_norm,3) / curv_amp_weights
-           if count_nofreq gt 0 then begin
-              real_curv_amp[wh_nofreq] = 0
-              imag_curv_amp[wh_nofreq] = 0
-           endif
-           pred_cube = x_com_curv_norm * (rebin(real_curv_amp, n_kx, n_ky, n_kz) + $
-                                          complex(0,1) * rebin(imag_curv_amp, n_kx, n_ky, n_kz))
-           if count_wt0 gt 0 then pred_cube[wh_wt0] = 0
-           undefine, real_curv_amp
-           undefine, imag_curv_amp
+     ;;       ;; fit amplitude of curvature term
+     ;;       curv_amp_weights = total(x_com_curv_norm^2d, 3)
+     ;;       if count_nofreq gt 0 then curv_amp_weights[wh_nofreq] = 0
+     ;;       real_curv_amp = total(real_part(new_cube) * x_com_curv_norm,3) / curv_amp_weights
+     ;;       imag_curv_amp = total(imaginary(new_cube) * x_com_curv_norm,3) / curv_amp_weights
+     ;;       if count_nofreq gt 0 then begin
+     ;;          real_curv_amp[wh_nofreq] = 0
+     ;;          imag_curv_amp[wh_nofreq] = 0
+     ;;       endif
+     ;;       pred_cube = x_com_curv_norm * (rebin(real_curv_amp, n_kx, n_ky, n_kz) + $
+     ;;                                      complex(0,1) * rebin(imag_curv_amp, n_kx, n_ky, n_kz))
+     ;;       if count_wt0 gt 0 then pred_cube[wh_wt0] = 0
+     ;;       undefine, real_curv_amp
+     ;;       undefine, imag_curv_amp
 
-           new_cube = temporary(new_cube) - temporary(pred_cube)
-           print, max(abs(new_cube))
+     ;;       new_cube = temporary(new_cube) - temporary(pred_cube)
+     ;;       print, max(abs(new_cube))
 
-           undefine, x_com_norm
-           undefine, lin_amp_weights
-           undefine, x_com_curv_norm
-           undefine, curv_amp_weights
+     ;;       undefine, x_com_norm
+     ;;       undefine, lin_amp_weights
+     ;;       undefine, x_com_curv_norm
+     ;;       undefine, curv_amp_weights
 
-           ;; ;; restore response to linear ramp
-           ;; x_savefile = froot + 'sim_' + array + '_' + 'xcom.idlsave'
-           ;; test_com_file = file_test(x_savefile)  *  (1 - file_test(x_savefile, /zero_length))
-           ;; if test_com_file eq 0 then sim_uv_com
-           ;; restore, x_savefile
-           ;; undefine, uv_x_in
+     ;;       ;; ;; restore response to linear ramp
+     ;;       ;; x_savefile = froot + 'sim_' + array + '_' + 'xcom.idlsave'
+     ;;       ;; test_com_file = file_test(x_savefile)  *  (1 - file_test(x_savefile, /zero_length))
+     ;;       ;; if test_com_file eq 0 then sim_uv_com
+     ;;       ;; restore, x_savefile
+     ;;       ;; undefine, uv_x_in
 
-           ;; com_mean = total(uv_x_com, 3) / n_freq_contrib
-           ;; if count_nofreq gt 0 then com_mean[wh_nofreq] = 0
-           ;; x_com_norm = temporary(uv_x_com) - rebin(com_mean, n_kx, n_ky, n_kz)
-           ;; if count_wt0 gt 0 then x_com_norm[wh_wt0]=0
+     ;;       ;; com_mean = total(uv_x_com, 3) / n_freq_contrib
+     ;;       ;; if count_nofreq gt 0 then com_mean[wh_nofreq] = 0
+     ;;       ;; x_com_norm = temporary(uv_x_com) - rebin(com_mean, n_kx, n_ky, n_kz)
+     ;;       ;; if count_wt0 gt 0 then x_com_norm[wh_wt0]=0
            
-           ;; ;; figure out local phase slope in uv_x_com and compare with
-           ;; ;; slope in k0 to determine amplitude of x_com_norm
-           ;; meas_len = 3 ;; optimized, > 1 b/c of antenna size
-           ;; com_slope = (shift(com_mean, [-1*meas_len,0]) - shift(com_mean, [meas_len,0])) / (2d*meas_len)
-           ;; ;;undefine, com_mean
+     ;;       ;; ;; figure out local phase slope in uv_x_com and compare with
+     ;;       ;; ;; slope in k0 to determine amplitude of x_com_norm
+     ;;       ;; meas_len = 3 ;; optimized, > 1 b/c of antenna size
+     ;;       ;; com_slope = (shift(com_mean, [-1*meas_len,0]) - shift(com_mean, [meas_len,0])) / (2d*meas_len)
+     ;;       ;; ;;undefine, com_mean
 
-           ;; ;; restore response to x^2 ramp
-           ;; x_savefile = froot + 'sim_' + array + '_' + 'xcurv.idlsave'
-           ;; test_com_file = file_test(x_savefile)  *  (1 - file_test(x_savefile, /zero_length))
-           ;; if test_com_file eq 0 then sim_uv_com
-           ;; restore, x_savefile
-           ;; undefine, uv_x_in
+     ;;       ;; ;; restore response to x^2 ramp
+     ;;       ;; x_savefile = froot + 'sim_' + array + '_' + 'xcurv.idlsave'
+     ;;       ;; test_com_file = file_test(x_savefile)  *  (1 - file_test(x_savefile, /zero_length))
+     ;;       ;; if test_com_file eq 0 then sim_uv_com
+     ;;       ;; restore, x_savefile
+     ;;       ;; undefine, uv_x_in
            
-           ;; com_curv_mean = total(uv_x_com, 3) / n_freq_contrib
-           ;; if count_nofreq gt 0 then com_curv_mean[wh_nofreq] = 0
-           ;; x_com_curv_norm = temporary(uv_x_com) - rebin(com_curv_mean, n_kx, n_ky, n_kz)
-           ;; if count_wt0 gt 0 then x_com_curv_norm[wh_wt0]=0
+     ;;       ;; com_curv_mean = total(uv_x_com, 3) / n_freq_contrib
+     ;;       ;; if count_nofreq gt 0 then com_curv_mean[wh_nofreq] = 0
+     ;;       ;; x_com_curv_norm = temporary(uv_x_com) - rebin(com_curv_mean, n_kx, n_ky, n_kz)
+     ;;       ;; if count_wt0 gt 0 then x_com_curv_norm[wh_wt0]=0
 
-           ;; ;; subtract off linear term from x^2 response
-           ;; com_curv_slope = (shift(com_curv_mean, [-1*meas_len,0]) - shift(com_curv_mean, [meas_len,0])) / (2d*meas_len)
-           ;; com_curv = (shift(com_curv_mean, [-1*meas_len,0]) + shift(com_curv_mean, [meas_len,0]) - 2d * com_curv_mean) /meas_len^2d
-           ;; undefine, com_curv_mean
-           ;; lin_amp = temporary(com_curv_slope) / com_slope
-           ;; if count_nofreq gt 0 then lin_amp[wh_nofreq] = 0
-           ;; x_com_curv_norm = x_com_curv_norm - x_com_norm * rebin(lin_amp, n_kx,n_ky,n_kz)
+     ;;       ;; ;; subtract off linear term from x^2 response
+     ;;       ;; com_curv_slope = (shift(com_curv_mean, [-1*meas_len,0]) - shift(com_curv_mean, [meas_len,0])) / (2d*meas_len)
+     ;;       ;; com_curv = (shift(com_curv_mean, [-1*meas_len,0]) + shift(com_curv_mean, [meas_len,0]) - 2d * com_curv_mean) /meas_len^2d
+     ;;       ;; undefine, com_curv_mean
+     ;;       ;; lin_amp = temporary(com_curv_slope) / com_slope
+     ;;       ;; if count_nofreq gt 0 then lin_amp[wh_nofreq] = 0
+     ;;       ;; x_com_curv_norm = x_com_curv_norm - x_com_norm * rebin(lin_amp, n_kx,n_ky,n_kz)
 
-           ;; undefine, lin_amp
-           ;; if count_wt0 gt 0 then x_com_curv_norm[wh_wt0]=0
+     ;;       ;; undefine, lin_amp
+     ;;       ;; if count_wt0 gt 0 then x_com_curv_norm[wh_wt0]=0
 
-           ;; k0_real = total(real_part(data_cube), 3, /nan) / n_freq_contrib
-           ;; if count_nofreq gt 0 then k0_real[wh_nofreq]=0      
-           ;; k0_real_slope = (shift(k0_real, [-1*meas_len,0]) - shift(k0_real, [meas_len,0])) / (2d*meas_len)
-           ;; k0_real_curv = (shift(k0_real, [-1*meas_len,0]) + shift(k0_real, [meas_len,0]) + 2d * k0_real) / meas_len^2d
+     ;;       ;; k0_real = total(real_part(data_cube), 3, /nan) / n_freq_contrib
+     ;;       ;; if count_nofreq gt 0 then k0_real[wh_nofreq]=0      
+     ;;       ;; k0_real_slope = (shift(k0_real, [-1*meas_len,0]) - shift(k0_real, [meas_len,0])) / (2d*meas_len)
+     ;;       ;; k0_real_curv = (shift(k0_real, [-1*meas_len,0]) + shift(k0_real, [meas_len,0]) + 2d * k0_real) / meas_len^2d
 
-           ;; ;;real_lin_amp = temporary(k0_real_slope) / com_slope
-           ;; real_lin_amp = k0_real_slope / com_slope
-           ;; if count_nofreq gt 0 then real_lin_amp[wh_nofreq] = 0
-           ;; ;;real_curv_amp = temporary(k0_real_curv) / com_curv
-           ;; real_curv_amp = k0_real_curv / com_curv
-           ;; if count_nofreq gt 0 then real_curv_amp[wh_nofreq] = 0
+     ;;       ;; ;;real_lin_amp = temporary(k0_real_slope) / com_slope
+     ;;       ;; real_lin_amp = k0_real_slope / com_slope
+     ;;       ;; if count_nofreq gt 0 then real_lin_amp[wh_nofreq] = 0
+     ;;       ;; ;;real_curv_amp = temporary(k0_real_curv) / com_curv
+     ;;       ;; real_curv_amp = k0_real_curv / com_curv
+     ;;       ;; if count_nofreq gt 0 then real_curv_amp[wh_nofreq] = 0
 
-           ;; real_cube = rebin(k0_real, n_kx,n_ky,n_kz) + x_com_norm * rebin(real_lin_amp, n_kx,n_ky,n_kz) ;;+ $
-           ;;             ;;x_com_curv_norm * rebin(real_curv_amp, n_kx,n_ky,n_kz)
-           ;; if count_wt0 gt 0 then real_cube[wh_wt0]=0
+     ;;       ;; real_cube = rebin(k0_real, n_kx,n_ky,n_kz) + x_com_norm * rebin(real_lin_amp, n_kx,n_ky,n_kz) ;;+ $
+     ;;       ;;             ;;x_com_curv_norm * rebin(real_curv_amp, n_kx,n_ky,n_kz)
+     ;;       ;; if count_wt0 gt 0 then real_cube[wh_wt0]=0
 
-           ;; undefine, real_lin_amp
-           ;; undefine, real_curve_amp
+     ;;       ;; undefine, real_lin_amp
+     ;;       ;; undefine, real_curve_amp
 
-           ;; k0_imag = total(imaginary(data_cube), 3, /nan) / n_freq_contrib
-           ;; if count_nofreq gt 0 then k0_imag[wh_nofreq]=0
+     ;;       ;; k0_imag = total(imaginary(data_cube), 3, /nan) / n_freq_contrib
+     ;;       ;; if count_nofreq gt 0 then k0_imag[wh_nofreq]=0
         
-           ;; k0_imag_slope = (shift(k0_imag, [-1*meas_len,0]) - shift(k0_imag, [meas_len,0])) / (2d*meas_len)
-           ;; k0_imag_curv = (shift(k0_imag, [-1*meas_len,0]) + shift(k0_imag, [meas_len,0]) + 2d * k0_imag) / meas_len^2d
+     ;;       ;; k0_imag_slope = (shift(k0_imag, [-1*meas_len,0]) - shift(k0_imag, [meas_len,0])) / (2d*meas_len)
+     ;;       ;; k0_imag_curv = (shift(k0_imag, [-1*meas_len,0]) + shift(k0_imag, [meas_len,0]) + 2d * k0_imag) / meas_len^2d
 
-           ;; imag_lin_amp = k0_imag_slope / com_slope
-           ;; if count_nofreq gt 0 then imag_lin_amp[wh_nofreq] = 0
-           ;; imag_curv_amp = k0_imag_curv / com_curv
-           ;; if count_nofreq gt 0 then imag_curv_amp[wh_nofreq] = 0
+     ;;       ;; imag_lin_amp = k0_imag_slope / com_slope
+     ;;       ;; if count_nofreq gt 0 then imag_lin_amp[wh_nofreq] = 0
+     ;;       ;; imag_curv_amp = k0_imag_curv / com_curv
+     ;;       ;; if count_nofreq gt 0 then imag_curv_amp[wh_nofreq] = 0
 
-           ;; imag_cube = rebin(k0_imag, n_kx,n_ky,n_kz) + x_com_norm * rebin(imag_lin_amp, n_kx,n_ky,n_kz) ;;+ $
-           ;;             ;;x_com_curv_norm * rebin(imag_curv_amp, n_kx,n_ky,n_kz)
-           ;; if count_wt0 gt 0 then imag_cube[wh_wt0]=0
+     ;;       ;; imag_cube = rebin(k0_imag, n_kx,n_ky,n_kz) + x_com_norm * rebin(imag_lin_amp, n_kx,n_ky,n_kz) ;;+ $
+     ;;       ;;             ;;x_com_curv_norm * rebin(imag_curv_amp, n_kx,n_ky,n_kz)
+     ;;       ;; if count_wt0 gt 0 then imag_cube[wh_wt0]=0
 
-           ;; pred_cube = real_cube + complex(0,1) * imag_cube
+     ;;       ;; pred_cube = real_cube + complex(0,1) * imag_cube
        
-           ;; new_cube = data_cube - temporary(pred_cube)
-           ;; new_cube = data_cube * exp(dcomplex(0, -1d) * pred_phase)
+     ;;       ;; new_cube = data_cube - temporary(pred_cube)
+     ;;       ;; new_cube = data_cube * exp(dcomplex(0, -1d) * pred_phase)
            
-        endif else begin
-           ;; remove the contribution to the power from the edges of the antennas
-           ;; by calculating the response (xfer fn) based on the k0 mode
+     ;;    endif else begin
+     ;;       ;; remove the contribution to the power from the edges of the antennas
+     ;;       ;; by calculating the response (xfer fn) based on the k0 mode
            
-           ;; sorted_mask = sort_nd(temporary(mask) * dindgen(n_kx, n_ky, n_kz), 3)
+     ;;       ;; sorted_mask = sort_nd(temporary(mask) * dindgen(n_kx, n_ky, n_kz), 3)
            
-           ;; ;; unwrap phases: blantantly cribbed from JD Smith's phunwrap
-           ;; ;; have to sort by mask so that unmeasured values between real values don't screw up wrapping detection
-           ;; phases = atan(data_cube[sorted_mask],/phase)
-           ;; delta_phase = phases - shift(phases, [0,0,1])
-           ;; delta_phase[*,*,0] = 0
-           ;; p = 2d*!dpi * (fix((delta_phase GT !dpi) EQ 1) - fix((delta_phase LT (-1)*!dpi) EQ 1))
-           ;; undefine, delta_phase
-           ;; r = total(temporary(p), /cumulative, 3)
-           ;; new_phase = temporary(phases) - temporary(r)
+     ;;       ;; ;; unwrap phases: blantantly cribbed from JD Smith's phunwrap
+     ;;       ;; ;; have to sort by mask so that unmeasured values between real values don't screw up wrapping detection
+     ;;       ;; phases = atan(data_cube[sorted_mask],/phase)
+     ;;       ;; delta_phase = phases - shift(phases, [0,0,1])
+     ;;       ;; delta_phase[*,*,0] = 0
+     ;;       ;; p = 2d*!dpi * (fix((delta_phase GT !dpi) EQ 1) - fix((delta_phase LT (-1)*!dpi) EQ 1))
+     ;;       ;; undefine, delta_phase
+     ;;       ;; r = total(temporary(p), /cumulative, 3)
+     ;;       ;; new_phase = temporary(phases) - temporary(r)
            
-           ;; ;; undo sorting to get back to actual ordering
-           ;; unwrapped_phases = new_phase[sort_nd(sorted_mask, 3)]
-           ;; undefine, new_phase
-           ;; if count_wt0 gt 0 then unwrapped_phases[wh_wt0]=0
+     ;;       ;; ;; undo sorting to get back to actual ordering
+     ;;       ;; unwrapped_phases = new_phase[sort_nd(sorted_mask, 3)]
+     ;;       ;; undefine, new_phase
+     ;;       ;; if count_wt0 gt 0 then unwrapped_phases[wh_wt0]=0
            
-           ;; k0_phase_est = total(unwrapped_phases, 3, /nan) / n_freq_contrib ;; this is the k0 mode, faster than taking fft
-           ;; undefine, unwrapped_phases
-           ;; if count_nofreq gt 0 then k0_phase_est[wh_nofreq]=0
+     ;;       ;; k0_phase_est = total(unwrapped_phases, 3, /nan) / n_freq_contrib ;; this is the k0 mode, faster than taking fft
+     ;;       ;; undefine, unwrapped_phases
+     ;;       ;; if count_nofreq gt 0 then k0_phase_est[wh_nofreq]=0
            
-           k0_est = total(data_cube, 3, /nan) / n_freq_contrib
-           if count_nofreq gt 0 then k0_est[wh_nofreq]=0      
+     ;;       k0_est = total(data_cube, 3, /nan) / n_freq_contrib
+     ;;       if count_nofreq gt 0 then k0_est[wh_nofreq]=0      
 
 
-           nloop = 0
-           sig = 0
-           if clean_type eq 'iterate' then loop_max = 5 else loop_max = 1
-           while sig eq 0 do begin
+     ;;       nloop = 0
+     ;;       sig = 0
+     ;;       if clean_type eq 'iterate' then loop_max = 5 else loop_max = 1
+     ;;       while sig eq 0 do begin
               
-              if nloop eq 0 then begin
-                 ;; model_uv = exp(complex(0,1) * k0_phase_est)
-                 model_uv = k0_est / conv_factor
+     ;;          if nloop eq 0 then begin
+     ;;             ;; model_uv = exp(complex(0,1) * k0_phase_est)
+     ;;             model_uv = k0_est / conv_factor
 
-                 print, max(abs(model_uv) * conv_factor)
-                 model_elems = model_uv
-              endif else begin
-                 print, max(abs(uv_est) * conv_factor)
-                 model_uv = model_uv + uv_est
-                 model_elems = [[[model_elems]],[[uv_est]]]
-              endelse
+     ;;             print, max(abs(model_uv) * conv_factor)
+     ;;             model_elems = model_uv
+     ;;          endif else begin
+     ;;             print, max(abs(uv_est) * conv_factor)
+     ;;             model_uv = model_uv + uv_est
+     ;;             model_elems = [[[model_elems]],[[uv_est]]]
+     ;;          endelse
               
-              model_response = sim_xfer_apply(model_uv, t32 = t32, define_baselines = define_baselines, $
-                                              baseline_spacing = baseline_spacing, baseline_layout = baseline_layout, $
-                                              fine_res = fine_res, use_outliers = use_outliers)
+     ;;          model_response = sim_xfer_apply(model_uv, t32 = t32, define_baselines = define_baselines, $
+     ;;                                          baseline_spacing = baseline_spacing, baseline_layout = baseline_layout, $
+     ;;                                          fine_res = fine_res, use_outliers = use_outliers)
               
-              ;; divide by weights & apply factors
-              model_response = model_response * conv_factor * sigma2_cube
-              if count_wt0 ne 0 then model_response[wh_wt0] = 0
+     ;;          ;; divide by weights & apply factors
+     ;;          model_response = model_response * conv_factor * sigma2_cube
+     ;;          if count_wt0 ne 0 then model_response[wh_wt0] = 0
               
-              ;; subtract off the contribution
-              new_cube = data_cube - model_response
+     ;;          ;; subtract off the contribution
+     ;;          new_cube = data_cube - model_response
               
-              nloop = nloop+1
-              if nloop eq loop_max then sig = 1 else begin
+     ;;          nloop = nloop+1
+     ;;          if nloop eq loop_max then sig = 1 else begin
 
-                 ;; ;; unwrap phases: blantantly cribbed from JD Smith's phunwrap
-                 ;; ;; have to sort by mask so that unmeasured values between real values don't screw up wrapping detection
-                 ;; phases = atan(new_cube[sorted_mask],/phase)
-                 ;; delta_phase = phases - shift(phases, [0,0,1])
-                 ;; delta_phase[*,*,0] = 0
-                 ;; p = 2d*!dpi * (fix((delta_phase GT !dpi) EQ 1) - fix((delta_phase LT (-1)*!dpi) EQ 1))
-                 ;; undefine, delta_phase
-                 ;; r = total(temporary(p), /cumulative, 3)
-                 ;; new_phase = temporary(phases) - temporary(r)
+     ;;             ;; ;; unwrap phases: blantantly cribbed from JD Smith's phunwrap
+     ;;             ;; ;; have to sort by mask so that unmeasured values between real values don't screw up wrapping detection
+     ;;             ;; phases = atan(new_cube[sorted_mask],/phase)
+     ;;             ;; delta_phase = phases - shift(phases, [0,0,1])
+     ;;             ;; delta_phase[*,*,0] = 0
+     ;;             ;; p = 2d*!dpi * (fix((delta_phase GT !dpi) EQ 1) - fix((delta_phase LT (-1)*!dpi) EQ 1))
+     ;;             ;; undefine, delta_phase
+     ;;             ;; r = total(temporary(p), /cumulative, 3)
+     ;;             ;; new_phase = temporary(phases) - temporary(r)
                  
-                 ;; ;; undo sorting to get back to actual ordering
-                 ;; unwrapped_phases = new_phase[sort_nd(sorted_mask, 3)]
-                 ;; undefine, new_phase
-                 ;; if count_wt0 gt 0 then unwrapped_phases[wh_wt0]=0
+     ;;             ;; ;; undo sorting to get back to actual ordering
+     ;;             ;; unwrapped_phases = new_phase[sort_nd(sorted_mask, 3)]
+     ;;             ;; undefine, new_phase
+     ;;             ;; if count_wt0 gt 0 then unwrapped_phases[wh_wt0]=0
 
-                 ;; res_k0_phase = total(temporary(unwrapped_phases), 3, /nan) / n_freq_contrib
-                 ;; if count_nofreq gt 0 then res_k0_phase[wh_nofreq]=0
+     ;;             ;; res_k0_phase = total(temporary(unwrapped_phases), 3, /nan) / n_freq_contrib
+     ;;             ;; if count_nofreq gt 0 then res_k0_phase[wh_nofreq]=0
 
-                 ;; uv_est = (abs(new_cube)/(conv_factor*fudge_factor)) * exp(complex(0,1) * res_k0_phase)
-                 ;; if count_nofreq gt 0 then uv_est[wh_nofreq] = 0
+     ;;             ;; uv_est = (abs(new_cube)/(conv_factor*fudge_factor)) * exp(complex(0,1) * res_k0_phase)
+     ;;             ;; if count_nofreq gt 0 then uv_est[wh_nofreq] = 0
 
-                 uv_est = total(new_cube, 3, /nan) / n_freq_contrib
-                 if count_nofreq gt 0 then uv_est[wh_nofreq]=0      
+     ;;             uv_est = total(new_cube, 3, /nan) / n_freq_contrib
+     ;;             if count_nofreq gt 0 then uv_est[wh_nofreq]=0      
 
-                 uv_est = uv_est / conv_factor
-              endelse
-           endwhile
-           save, file = model_save, model_elems
+     ;;             uv_est = uv_est / conv_factor
+     ;;          endelse
+     ;;       endwhile
+     ;;       save, file = model_save, model_elems
            
-           uv_est = 0
-           model_uv = 0
-           model_elems = 0
-        endelse
+     ;;       uv_est = 0
+     ;;       model_uv = 0
+     ;;       model_elems = 0
+     ;;    endelse
 
-        print, minmax(abs(data_cube))
-        print, minmax(abs(new_cube))
-        data_cube = temporary(new_cube)
-     endif
+     ;;    print, minmax(abs(data_cube))
+     ;;    print, minmax(abs(new_cube))
+     ;;    data_cube = temporary(new_cube)
+     ;; endif
 
      ;; save some slices of the data cube (post cleaning)
      uf_savefile = froot + savefilebase + '_uf_plane.idlsave'
