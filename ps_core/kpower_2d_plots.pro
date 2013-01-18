@@ -230,16 +230,17 @@ pro kpower_2d_plots, power_savefile, multi_pos = multi_pos, multi_aspect = multi
 
   ;; Work out plot & colorbar positions
   ;; in units of plot area (incl. margins)
-  if n_elements(cb_size) eq 0 then cb_size = 0.025 else cb_size = cb_size_in
+  if n_elements(cb_size_in) eq 0 then cb_size = 0.025 else cb_size = cb_size_in
   if n_elements(margin_in) lt 4 then begin
      margin = [0.15, 0.15, 0.02, 0.1] 
      if keyword_set(baseline_axis) and not keyword_set(no_title) then $
         if n_elements(multi_pos) gt 0 then margin[3] = 0.15 else margin[3] = 0.15
   endif else margin = margin_in
 
-  if n_elements(cb_margin_in) lt 2 then cb_margin = [0.08, 0.02] else cb_margin = cb_margin_in
- 
-  if n_elements(multi_pos) gt 0 then cb_margin[0] = 0.18
+  if n_elements(cb_margin_in) lt 2 then begin
+     cb_margin = [0.08, 0.02] 
+     if n_elements(multi_pos) gt 0 then cb_margin[0] = 0.18
+  endif else cb_margin = cb_margin_in 
   
   plot_pos = [margin[0], margin[1], (1-cb_margin[1]-cb_size-cb_margin[0]-margin[2]), (1-margin[3])]
   cb_pos = [(1-cb_margin[1]-cb_size), margin[1], (1-cb_margin[1]), (1-margin[3])]
@@ -354,7 +355,7 @@ pro kpower_2d_plots, power_savefile, multi_pos = multi_pos, multi_aspect = multi
 
   endif else begin
      thick = 1
-     if n_elements(charsize) eq 0 then charsize=1 else charsize = charsize_in
+     if n_elements(charsize_in) eq 0 then charsize=1 else charsize = charsize_in
      if n_elements(multi_pos) eq 0 then begin
         perp_char = '!9' + string(120B) + '!X'
 

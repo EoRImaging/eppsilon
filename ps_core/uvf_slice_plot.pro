@@ -1,7 +1,8 @@
 pro uvf_slice_plot, slice_savefile, multi_pos = multi_pos, multi_aspect = multi_aspect, plot_xrange = plot_xrange, $
                     plot_yrange = plot_yrange, data_range = data_range, type = type, pub = pub, plotfile = plotfile, $
                     window_num = window_num, title = title, grey_scale = grey_scale, baseline_axis = baseline_axis, mark_0 = mark_0, $
-                    image_space = image_space
+                    image_space = image_space, color_0amp = color_0amp, $
+                    charsize = charsize_in, cb_size = cb_size_in, margin=margin_in, cb_margin = cb_margin_in
 
   if n_elements(window_num) eq 0 then window_num = 1
 
@@ -97,11 +98,23 @@ pro uvf_slice_plot, slice_savefile, multi_pos = multi_pos, multi_aspect = multi_
   endif
 
   case type of
-     'abs': plot_slice = abs(uvf_slice)
-     'phase': plot_slice = atan(uvf_slice, /phase)
-     'real': plot_slice = real_part(uvf_slice)
-     'imaginary':  plot_slice = imaginary(uvf_slice)
-  endcase
+     'abs': begin
+        plot_slice = abs(uvf_slice)
+        cb_title = 'Magnitude'
+     end
+     'phase': begin
+        plot_slice = atan(uvf_slice, /phase)
+        cb_title = 'Phase (degrees)'
+     end
+     'real': begin
+        plot_slice = real_part(uvf_slice)
+        cb_title = 'Real Part'
+     end
+     'imaginary':  begin
+        plot_slice = imaginary(uvf_slice)
+        cb_title = 'Imaginary Part'       
+     end
+ endcase
 
   xarr_edges = [xarr - xdelta/2, max(xarr) + xdelta/2]
   yarr_edges = [yarr - ydelta/2, max(yarr) + ydelta/2]
@@ -110,37 +123,58 @@ pro uvf_slice_plot, slice_savefile, multi_pos = multi_pos, multi_aspect = multi_
 
   if keyword_set(grey_scale) then begin
      cgloadct, 0, /reverse
-     color_range = [0, 255]
      background_color = 'white'
      annotate_color = 'black'
   endif else begin
      cgloadct, 25, /brewer, /reverse
-     color_range = [0, 255]
      background_color = 'white'
      annotate_color = 'black'
   endelse
-  n_colors = color_range[1] - color_range[0]
+  n_colors = 256
   
   if n_elements(data_range) eq 0 then if not keyword_set(all_zero) then data_range = minmax(plot_slice) else data_range = [-1*!pi, !pi]
 
   slice_plot = congrid(plot_slice, n_x_plot*10, n_y_plot * 10)
      
-  slice_plot_norm = (slice_plot-data_range[0])*n_colors/(data_range[1]-data_range[0]) + color_range[0]
+  slice_plot_norm = (slice_plot-data_range[0])*n_colors/(data_range[1]-data_range[0])
  
+  tvlct, r2, g2, b2, /get
+  plot_dims = size(slice_plot_norm, /dimension)
+  slice_plot_norm_rgb = bytarr(3, plot_dims[0], plot_dims[1])
+  slice_plot_norm_rgb[0,*,*] = r2[slice_plot_norm]
+  slice_plot_norm_rgb[1,*,*] = g2[slice_plot_norm]
+  slice_plot_norm_rgb[2,*,*] = b2[slice_plot_norm]
+
+  if keyword_set(color_0amp) then begin
+     wh_0amp = where(abs(slice_plot) eq 0, count_0amp)
+     if count_0amp ne 0 then begin
+
+        for i=0, 2 do begin
+           temp = slice_plot_norm_rgb[i,*,*]
+           temp[wh_0amp] = 255
+           slice_plot_norm_rgb[i,*,*] = temp
+        endfor
+
+     endif
+  endif
+
   ;; Work out plot & colorbar positions
   ;; in units of plot area (incl. margins)
-  cb_size = 0.025
-  margin1 = [0.15, 0.15]
-  margin2 = [0.02, 0.1]
-  cb_margin1 = 0.1
-  cb_margin2 = 0.02
-  if keyword_set(baseline_axis) then if (n_elements(multi_pos) gt 0 and keyword_set(pub)) then margin2[1] = 0.3 else margin2[1] = 0.15
+  if n_elements(cb_size_in) eq 0 then cb_size = 0.025 else cb_size = cb_size_in
+  if n_elements(margin_in) lt 4 then begin
+     margin = [0.15, 0.15, 0.02, 0.1]
+     if keyword_set(baseline_axis) then if (n_elements(multi_pos) gt 0 and keyword_set(pub)) then $
+        margin[3] = 0.3 else margin[3] = 0.15
+     if keyword_set(baseline_axis) and slice_axis eq 2 then margin[2] = 0.1
+  endif else margin = margin_in
 
-  if n_elements(multi_pos) gt 0 then cb_margin1 = 0.12
-  if keyword_set(baseline_axis) and slice_axis eq 2 then margin2[0] = 0.1
+  if n_elements(cb_margin_in) lt 2 then begin
+     cb_margin = [0.08, 0.02] 
+     if n_elements(multi_pos) gt 0 then cb_margin[0] = 0.18
+  endif else cb_margin = cb_margin_in 
 
-  plot_pos = [margin1[0], margin1[1], (1-cb_margin2-cb_size-cb_margin1-margin2[0]), (1-margin2[1])]
-  cb_pos = [(1-cb_margin2-cb_size), margin1[1], (1-cb_margin2), (1-margin2[1])]
+  plot_pos = [margin[0], margin[1], (1-cb_margin[1]-cb_size-cb_margin[0]-margin[2]), (1-margin[3])]
+  cb_pos = [(1-cb_margin[1]-cb_size), margin[1], (1-cb_margin[1]), (1-margin[3])]
 
   plot_aspect = (plot_pos[3] - plot_pos[1]) / (plot_pos[2] - plot_pos[0])
 
@@ -245,7 +279,12 @@ pro uvf_slice_plot, slice_savefile, multi_pos = multi_pos, multi_aspect = multi_
      thick = 3
      xthick = 3
      ythick = 3
-     charsize = 2
+      if n_elements(charsize_in) eq 0 then begin
+        if n_elements(multi_pos) gt 0 then begin
+           min_len = min([multi_xlen, multi_ylen])
+           charsize = 5d * min_len
+        endif else charsize = 2
+     endif else charsize = charsize_in
      font = 1
      
      if n_elements(multi_pos) eq 0 then begin
@@ -255,7 +294,7 @@ pro uvf_slice_plot, slice_savefile, multi_pos = multi_pos, multi_aspect = multi_
   
   endif else begin
      thick = 1
-     charsize=1
+     if n_elements(charsize_in) eq 0 then charsize=1 else charsize = charsize_in
      if n_elements(multi_pos) eq 0 then begin
         if windowavailable(window_num) then begin 
            wset, window_num
@@ -307,7 +346,7 @@ pro uvf_slice_plot, slice_savefile, multi_pos = multi_pos, multi_aspect = multi_
         xrange = minmax(plot_xarr), yrange = minmax(plot_yarr), thick = thick, charthick = charthick, xthick = xthick, $
           ythick = ythick, charsize = charsize, font = font, noerase = no_erase, background = background_color, $
           axiscolor = annotate_color
-  cgimage, slice_plot_norm, /nointerp,/overplot,/noerase
+  cgimage, slice_plot_norm_rgb, /nointerp,/overplot,/noerase
 
   if keyword_set(mark_0) then begin
      cgplot, /overplot, plot_yarr * 0d, plot_yarr, color=annotate_color, psym=-0, thick = thick
@@ -347,8 +386,11 @@ pro uvf_slice_plot, slice_savefile, multi_pos = multi_pos, multi_aspect = multi_
              charthick = charthick, xthick = xthick, ythick = ythick, charsize = charsize, font = font, ystyle = 1, $
              color = annotate_color
 
-  cgcolorbar, color = annotate_color, /vertical, position = cb_pos, bottom = color_range[0], ncolors = n_colors+1, $
-              charsize = charsize, font = font, range = data_range
+  if type eq 'phase' then cb_range = data_range * 180/!dpi else cb_range = data_range
+
+
+  cgcolorbar, color = annotate_color, /vertical, position = cb_pos, charsize = charsize, font = font, minrange = cb_range[0], $
+              maxrange = cb_range[1], title = cb_title, minor=5
 
   if keyword_set(pub) and n_elements(multi_pos) eq 0 then begin
      psoff

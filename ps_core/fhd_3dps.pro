@@ -947,15 +947,15 @@ pro fhd_3dps, datafile, datavar, weightfile, weightvar, frequencies, max_baselin
   savefile = froot + savefilebase + fadd + '_1dkpower.idlsave'
   save, file = savefile, power, weights, k_edges, bins_per_decade
 
-  eor_file_1d = base_path() + 'power_spectrum/eor_data/eor_power_1d.idlsave'
-  file_arr = [savefile, eor_file_1d]
-  if keyword_set(eor_only) then begin
-     if keyword_set(eor_test) then names_arr = 'Input EoR' else names_arr = 'Simulated EoR'
-  endif else names_arr = 'Simulation PS'
-  names_arr = [names_arr, 'EoR signal']
-  colors_arr = [0, 254]
+  ;; eor_file_1d = base_path() + 'power_spectrum/eor_data/eor_power_1d.idlsave'
+  ;; file_arr = [savefile, eor_file_1d]
+  ;; if keyword_set(eor_only) then begin
+  ;;    if keyword_set(eor_test) then names_arr = 'Input EoR' else names_arr = 'Simulated EoR'
+  ;; endif else names_arr = 'Simulation PS'
+  ;; names_arr = [names_arr, 'EoR signal']
+  ;; colors_arr = [0, 254]
 
-    if not keyword_set(quiet) then begin
-       kpower_1d_plots, file_arr, window_num = 5, names = names_arr, colors = colors_arr
-    endif
+  ;;   if not keyword_set(quiet) then begin
+  ;;      kpower_1d_plots, file_arr, window_num = 5, names = names_arr, colors = colors_arr
+  ;;   endif
 end

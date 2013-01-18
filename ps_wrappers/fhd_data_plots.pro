@@ -21,8 +21,9 @@ pro fhd_data_plots, healpix=healpix, refresh_dft = refresh_dft, refresh_ps = ref
   if n_elements(no_weighted_averaging) gt 0 and not keyword_set(no_weighted_averaging) and keyword_set(no_weighting) then $
      message, 'Cannot set no_weighted_averaging=0 and no_weighting=1'
 
-  froot = base_path() + 'power_spectrum/fhd_data/'
+  ;;froot = base_path() + 'power_spectrum/fhd_data/'
   ;;datafilebase = 'multi_freq_residuals_cube'
+  froot = base_path('data') + 'fhd_ps_data/'
   if keyword_set(healpix) then datafilebase = 'multi_freq_residuals_cube_healpix' else datafilebase = 'multi_freq_residuals_cube_20k'
   datafile = froot + datafilebase + '.sav'
   
@@ -138,7 +139,7 @@ pro fhd_data_plots, healpix=healpix, refresh_dft = refresh_dft, refresh_ps = ref
   kperp_plot_range = [6e-3, min([max(kperp_edges[wh_good_kperp+1]),1.5e-1])]
 
   plot_folder = 'fhd_data/'
-  plotfile_path = base_path() + 'power_spectrum/plots/' + plot_folder
+  plotfile_path = base_path('plots') + 'power_spectrum/' + plot_folder
   plotfile_base = plotfile_path + datafilebase + fadd
 
   plot_fadd = ''
