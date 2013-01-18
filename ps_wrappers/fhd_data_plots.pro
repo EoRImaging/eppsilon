@@ -117,7 +117,7 @@ pro fhd_data_plots, datafile, plot_path = plot_path, healpix=healpix, refresh_df
         if keyword_set(healpix) then begin
            pixelfile = datafile
            pixel_varname = 'hpx_inds'
-           hpx_dftsetup_savefile = froot + 'multi_freq_residuals_cube_healpix_dftsetup.idlsave'
+           hpx_dftsetup_savefile = froot + datafilebase + '_dftsetup.idlsave'
            weight_savefilebase = froot + datafilebase + wt_file_labels + fadd
            
            weight_refresh = intarr(nfiles)
@@ -146,8 +146,9 @@ pro fhd_data_plots, datafile, plot_path = plot_path, healpix=healpix, refresh_df
   kperp_plot_range = [min(kperp_edges[wh_good_kperp]), max(kperp_edges[wh_good_kperp+1])]
   kperp_plot_range = [6e-3, min([max(kperp_edges[wh_good_kperp+1]),1.5e-1])]
 
-  plot_folder = 'fhd_data/'
-  plotfile_path = base_path('plots') + 'power_spectrum/' + plot_folder
+  if n_elements(plot_path) ne 0 then plotfile_path = plot_path else plotfile_path = froot
+  ;; plot_folder = 'fhd_data/'
+  ;; plotfile_path = base_path('plots') + 'power_spectrum/' + plot_folder
   plotfile_base = plotfile_path + datafilebase + fadd
 
   plot_fadd = ''
