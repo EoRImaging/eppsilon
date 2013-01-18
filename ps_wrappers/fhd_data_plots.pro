@@ -22,7 +22,7 @@ pro fhd_data_plots, datafile, plot_path = plot_path, healpix=healpix, refresh_df
   if n_elements(no_weighted_averaging) gt 0 and not keyword_set(no_weighted_averaging) and keyword_set(no_weighting) then $
      message, 'Cannot set no_weighted_averaging=0 and no_weighting=1'
 
-  ftest = file_test(datafile)
+  datafile_test = file_test(datafile)
   if datafile_test eq 0 then message, 'datafile not found'
 
   temp = strpos(datafile, '/', /reverse_search)
