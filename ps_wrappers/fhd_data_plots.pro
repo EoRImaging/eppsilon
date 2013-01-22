@@ -1,5 +1,6 @@
-pro fhd_data_plots, datafile, plot_path = plot_path, healpix=healpix, refresh_dft = refresh_dft, refresh_ps = refresh_ps, $
-                    refresh_binning = refresh_binning, $
+pro fhd_data_plots, datafile, save_path = save_path, plot_path = plot_path, healpix=healpix, $
+                    refresh_dft = refresh_dft, $
+                    refresh_ps = refresh_ps, refresh_binning = refresh_binning, $
                     no_weighting = no_weighting, std_power = std_power, no_kzero = no_kzero, $
                     no_weighted_averaging = no_weighted_averaging, $
                     data_range = data_range, plot_weights = plot_weights, slice_nobin = slice_nobin, linear_kpar = linear_kpar, $
@@ -26,10 +27,12 @@ pro fhd_data_plots, datafile, plot_path = plot_path, healpix=healpix, refresh_df
   if datafile_test eq 0 then message, 'datafile not found'
 
   temp = strpos(datafile, '/', /reverse_search)
-  froot = strmid(datafile, 0, temp+1)
   infilebase = strmid(datafile, temp+1)
   temp2 = strpos(infilebase, '.', /reverse_search)
   datafilebase = strmid(infilebase, 0, temp2)
+
+  if n_elements(save_path) eq 0 then froot = save_path else froot = strmid(datafile, 0, temp+1)
+
 
   ;; froot = base_path('data') + 'fhd_ps_data/'
   ;; if keyword_set(healpix) then datafilebase = 'multi_freq_residuals_cube_healpix' else datafilebase ='multi_freq_residuals_cube_20k'
