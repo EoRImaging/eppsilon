@@ -31,7 +31,7 @@ pro fhd_data_plots, datafile, save_path = save_path, plot_path = plot_path, heal
   temp2 = strpos(infilebase, '.', /reverse_search)
   datafilebase = strmid(infilebase, 0, temp2)
 
-  if n_elements(save_path) eq 0 then froot = save_path else froot = strmid(datafile, 0, temp+1)
+  if n_elements(save_path) ne 0 then froot = save_path else froot = strmid(datafile, 0, temp+1)
 
 
   ;; froot = base_path('data') + 'fhd_ps_data/'
