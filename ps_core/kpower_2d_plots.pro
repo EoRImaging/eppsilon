@@ -228,6 +228,16 @@ pro kpower_2d_plots, power_savefile, multi_pos = multi_pos, multi_aspect = multi
      
   power_log_norm = (power_log-log_data_range[0])*n_colors/(log_data_range[1]-log_data_range[0]) + color_range[0]
 
+
+  if n_elements(multi_pos) eq 4 then begin
+     ;; work out positions scaled to the area allowed in multi_pos with proper aspect ratio
+     multi_xlen = (multi_pos[2]-multi_pos[0])
+     multi_ylen = (multi_pos[3]-multi_pos[1])
+     multi_center = [multi_pos[0] + multi_xlen/2d, multi_pos[1] + multi_ylen/2d]
+
+     min_len = min([multi_xlen, multi_ylen])
+  endif
+
   ;; Work out plot & colorbar positions
   ;; in units of plot area (incl. margins)
   if n_elements(cb_size_in) eq 0 then cb_size = 0.025 else cb_size = cb_size_in
@@ -239,7 +249,7 @@ pro kpower_2d_plots, power_savefile, multi_pos = multi_pos, multi_aspect = multi
 
   if n_elements(cb_margin_in) lt 2 then begin
      cb_margin = [0.08, 0.02] 
-     if n_elements(multi_pos) gt 0 then cb_margin[0] = 0.18
+     if n_elements(multi_pos) gt 0 then cb_margin[0] = 0.08/multi_xlen
   endif else cb_margin = cb_margin_in 
   
   plot_pos = [margin[0], margin[1], (1-cb_margin[1]-cb_size-cb_margin[0]-margin[2]), (1-margin[3])]
@@ -271,10 +281,6 @@ pro kpower_2d_plots, power_savefile, multi_pos = multi_pos, multi_aspect = multi
   endelse
   
   if n_elements(multi_pos) eq 4 then begin
-     ;; work out positions scaled to the area allowed in multi_pos with proper aspect ratio
-     multi_xlen = (multi_pos[2]-multi_pos[0])
-     multi_ylen = (multi_pos[3]-multi_pos[1])
-     multi_center = [multi_pos[0] + multi_xlen/2d, multi_pos[1] + multi_ylen/2d]
      
      new_aspect = aspect_ratio/multi_aspect
      if new_aspect gt 1 then begin
@@ -338,7 +344,6 @@ pro kpower_2d_plots, power_savefile, multi_pos = multi_pos, multi_aspect = multi
      ythick = 3
      if n_elements(charsize_in) eq 0 then begin
         if n_elements(multi_pos) gt 0 then begin
-           min_len = min([multi_xlen, multi_ylen])
            charsize = 5d * min_len
         endif else charsize = 2
      endif else charsize = charsize_in
