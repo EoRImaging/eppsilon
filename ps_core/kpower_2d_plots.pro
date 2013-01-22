@@ -354,7 +354,11 @@ pro kpower_2d_plots, power_savefile, multi_pos = multi_pos, multi_aspect = multi
      ;;Device, /ISOLATIN1, Set_Font='Symbol', /TT_Font
 
   endif else begin
+     charthick = 1
      thick = 1
+     xthick = 1
+     ythick = 1
+     font = -1
      if n_elements(charsize_in) eq 0 then charsize=1 else charsize = charsize_in
      if n_elements(multi_pos) eq 0 then begin
         perp_char = '!9' + string(120B) + '!X'
@@ -391,10 +395,19 @@ pro kpower_2d_plots, power_savefile, multi_pos = multi_pos, multi_aspect = multi
 
   if keyword_set(no_title) or keyword_set(baseline_axis) then initial_title = '' else initial_title = plot_title
 
-  cgplot, plot_kperp, plot_kpar, /xlog, /ylog, /nodata, xstyle=5, ystyle=5, title = initial_title, $
-          position = plot_pos, thick = thick, charthick = charthick, xthick = xthick, ythick = ythick, charsize = charsize, $
-          font = font, noerase = no_erase, axiscolor = annotate_color, background = background_color
-  cgimage, power_log_norm, /nointerp,/overplot,/noerase
+  ;;cgplot, plot_kperp, plot_kpar, /xlog, /ylog, /nodata, xstyle=5, ystyle=5, title = initial_title, $
+  ;;        position = plot_pos, thick = thick, charthick = charthick, xthick = xthick, ythick = ythick, charsize = charsize, $
+  ;;        font = font, noerase = no_erase, axiscolor = annotate_color, background = background_color
+
+  ;;cgimage, power_log_norm, /nointerp,/overplot,/noerase
+
+  axkeywords = {xlog: 1, ylog: 1, xstyle: 5, ystyle: 5, thick: thick, charthick: charthick, xthick: xthick, ythick: ythick, $
+                charsize: charsize, font: font} 
+  cgimage, power_log_norm, /nointerp, xrange = minmax(plot_kperp), yrange = minmax(plot_kpar), $
+           title=initial_title, position = plot_pos, noerase = no_erase, color = annotate_color, background = background_color, $
+           axkeywords = axkeywords, /axes
+           
+
 
   if keyword_set(plot_wedge_line) then $
      cgplot, /overplot, plot_kperp, plot_kperp * wedge_amp, color = annotate_color, thick = thick+1, psym=-0, linestyle = 2

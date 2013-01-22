@@ -203,8 +203,8 @@ pro fhd_data_plots, datafile, save_path = save_path, plot_path = plot_path, heal
      positions[2,*] = (col_val+1)/double(ncol)-xmargin
      positions[3,*] = (row_val+1)/double(nrow)-ymargin
      
-     max_ysize = 1200
-     max_xsize = 1800
+     max_ysize = 600
+     max_xsize = 900
      if nfiles gt 9 then begin
         multi_aspect =0.9 
         xsize = round((max_ysize/nrow) * ncol/multi_aspect)
