@@ -26,8 +26,9 @@ function discrete_ft_2d_fast, locations1, locations2, data, k1, k2, timing = tim
   ;; y_exp = exp(-1*dcomplex(0,1)*rebin(rebin(reform(k2, 1, n_k2), n_pts, n_k2)*rebin(locations2, n_pts, n_k2), n_pts, n_k2, n_slices))
   ;; x_exp = exp(-1*dcomplex(0,1)*rebin(rebin(reform(k1, 1, n_k1), n_pts, n_k1)*rebin(locations1, n_pts, n_k1), n_pts, n_k1, n_slices))
 
+  ;; want progress reports every so often + first 5 steps
   nprogsteps = 20
-  progress_steps = round(n_k1 * findgen(nprogsteps) / double(nprogsteps))
+  progress_steps = [indgen(5)+1, round(n_k1 * findgen(nprogsteps) / double(nprogsteps))]
   times = dblarr(n_k1)
 
   time_preloop = systime(1) - time0
@@ -37,9 +38,11 @@ function discrete_ft_2d_fast, locations1, locations2, data, k1, k2, timing = tim
      ;;generate a vector of x_exp values and a 2d array of y_exp values
      wh = where(progress_steps eq i, count)
      if count gt 0 then begin
+        ave_t = mean(times[0:i-1])
         print, 'progress: on loop ' + strsplit(string(i), /extract) + ' of ' + strsplit(string(n_k1), /extract) + $
-               ' (~ ' + strsplit(string(round(100d*i/n_k1)), /extract) + '% done)'
-        if i gt 0 then print, 'average time per loop: ' + strsplit(string(mean(times[0:i-1])), /extract)
+               ' (~ ' + strsplit(string(round(100d*i/n_k1)), /extract) + '% done) approx. time remaining: ' + $
+               strsplit(string(ave_t*(n_k1-i)))
+        if i gt 0 then print, 'average time per loop: ' + strsplit(string(mean(ave_t)), /extract)
      endif
 
      temp=systime(1)
