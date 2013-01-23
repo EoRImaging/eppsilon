@@ -34,7 +34,6 @@ function discrete_ft_2d_fast, locations1, locations2, data, k1, k2, timing = tim
 
   if mem_param lt 2 then begin
      y_exp = complex_rebin(reform(y_exp, n_pts, n_k2, 1), n_pts, n_k2, n_slices)
-     x_exp = complex_rebin(reform(x_exp, n_pts, n_k1, 1), n_pts, n_k1, n_slices)
   endif
 
   ;; want progress reports every so often + first 5 steps
@@ -64,8 +63,12 @@ function discrete_ft_2d_fast, locations1, locations2, data, k1, k2, timing = tim
         for k=0, n_slices-1 do begin
            ft[i,*,k] = matrix_multiply(data[*,k]*x_exp[*,i], y_exp)
         endfor
-     endif else ft[i,*,*] = transpose(matrix_multiply(data*x_exp[*,i,*], y_exp, /atranspose))
+     endif else begin
+        x_exp_loop = complex_rebin(reform(x_exp[*,i], n_pts, 1), n_pts, n_slices)
 stop
+        ft[i,*,*] = transpose(matrix_multiply(data*x_exp_loop, y_exp, /atranspose))
+     endelse
+
      times[i] = systime(1) - temp
      ;; print, 'average time per loop: ' + strsplit(string(mean(times[0:i])), /extract)
      ;; time_complete = mean(times[0:i])*n_k1 + time_preloop
