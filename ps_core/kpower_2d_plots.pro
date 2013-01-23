@@ -1,4 +1,4 @@
-pro kpower_2d_plots, power_savefile, multi_pos = multi_pos, multi_aspect = multi_aspect, plot_weights = plot_weights, $
+pro kpower_2d_plots, power_savefile, multi_pos = multi_pos, multi_size = multi_size, plot_weights = plot_weights, $
                      kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, data_range = data_range, $
                      color_profile = color_profile, log_cut_val = log_cut_val, pub = pub, plotfile = plotfile, no_title = no_title, $
                      window_num = window_num, title = title, norm_2d = norm_2d, norm_factor = norm_factor, grey_scale = grey_scale, $
@@ -13,10 +13,15 @@ pro kpower_2d_plots, power_savefile, multi_pos = multi_pos, multi_aspect = multi
      if multi_pos[2] le multi_pos[0] or multi_pos[3] le multi_pos[1] then $
         message, 'In multi_pos, x1 must be greater than x0 and y1 must be greater than y0 '
 
-     if n_elements(multi_aspect) eq 0 then begin
-        print, 'No aspect ratio for multi_pos supplied. Assuming aspect = 1'
-        multi_aspect = 1
-     endif else if n_elements(multi_aspect) gt 1 then message, 'too many elements in multi_aspect'
+     case n_elements(multi_size) of 
+        0: begin
+           print, 'No size for multi_pos supplied. Assuming size = [500, 500]'
+           multi_size = [500, 500]
+        end
+        1: multi_size = intarr(2) + multi_size
+        2: ;; nothing
+        else: message, 'too many elements in multi_size'
+     endcase
   endif
 
   color_profile_enum = ['log_cut', 'sym_log', 'abs']
@@ -236,6 +241,7 @@ pro kpower_2d_plots, power_savefile, multi_pos = multi_pos, multi_aspect = multi
      multi_center = [multi_pos[0] + multi_xlen/2d, multi_pos[1] + multi_ylen/2d]
 
      min_len = min([multi_xlen, multi_ylen])
+     min_size = min(multi_size)
   endif
 
   ;; Work out plot & colorbar positions
@@ -252,7 +258,7 @@ pro kpower_2d_plots, power_savefile, multi_pos = multi_pos, multi_aspect = multi
 
   if n_elements(cb_margin_in) lt 2 then begin
      cb_margin = [0.08, 0.02] 
-     if n_elements(multi_pos) gt 0 then cb_margin[0] = 0.13/multi_xlen
+     if n_elements(multi_pos) gt 0 then cb_margin[0] = 0.18/multi_xlen
   endif else cb_margin = cb_margin_in 
   
   plot_pos = [margin[0], margin[1], (1-cb_margin[1]-cb_size-cb_margin[0]-margin[2]), (1-margin[3])]
@@ -284,7 +290,7 @@ pro kpower_2d_plots, power_savefile, multi_pos = multi_pos, multi_aspect = multi
   endelse
   
   if n_elements(multi_pos) eq 4 then begin
-     
+     multi_aspect = multi_size[1]/multi_size[0]
      new_aspect = aspect_ratio/multi_aspect
      if new_aspect gt 1 then begin
         y_factor = 1.
@@ -347,9 +353,10 @@ pro kpower_2d_plots, power_savefile, multi_pos = multi_pos, multi_aspect = multi
      ythick = 3
      if n_elements(charsize_in) eq 0 then begin
         if n_elements(multi_pos) gt 0 then begin
-           charsize = 5d * min_len
+           charsize = 1.2d * (min_size/500d)
         endif else charsize = 2
      endif else charsize = charsize_in
+
      font = 1
      ;;perp_char = '!Z(22A5)'
      ;;perp_char = '!Z(27C2)'

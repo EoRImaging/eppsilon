@@ -234,7 +234,7 @@ pro fhd_data_plots, datafile, save_path = save_path, plot_path = plot_path, heal
      endif
      
      for i=0, nfiles-1 do begin        
-        kpower_2d_plots, savefiles_2d[i], multi_pos = positions[*,i], multi_aspect = multi_aspect, $
+        kpower_2d_plots, savefiles_2d[i], multi_pos = positions[*,i], multi_size = [xsize, ysize], $
                          kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, data_range = data_range, pub = pub, $
                          title = titles[i], grey_scale = grey_scale, plot_wedge_line = plot_wedge_line, wedge_amp = wedge_amp, $
                          baseline_axis = baseline_axis
@@ -247,7 +247,7 @@ pro fhd_data_plots, datafile, save_path = save_path, plot_path = plot_path, heal
 
   endelse
 
-  weight_plotfile_2d = plotfile_path + 'weights/' + datafilebase + '_weights' + fadd + wt_fadd_2dbin + '_kspace' + $
+  weight_plotfile_2d = plotfile_path + datafilebase + '_weights' + fadd + wt_fadd_2dbin + '_kspace' + $
                        plot_fadd + '.eps'
   nweights = n_elements(weight_labels)
 
@@ -257,51 +257,38 @@ pro fhd_data_plots, datafile, save_path = save_path, plot_path = plot_path, heal
                       grey_scale = grey_scale, plot_wedge_line = plot_wedge_line, wedge_amp = wedge_amp, baseline_axis = baseline_axis
   endif else begin
      
-     nrow = ceil(sqrt(nweights))
-     ncol = ceil(nweights / double(nrow))
-     positions = fltarr(4, ncol*nrow)
+     wt_nrow = ceil(sqrt(nweights))
+     wt_ncol = ceil(nweights / double(nrow))
+     wt_positions = fltarr(4, wt_ncol*wt_nrow)
 
-     col_val = reverse(reform(rebin(indgen(ncol), ncol, nrow), ncol*nrow))
-     row_val = reform(rebin(reform(indgen(nrow), 1, nrow), ncol, nrow), ncol*nrow)
+     wt_col_val = reverse(reform(rebin(indgen(wt_ncol), wt_ncol, wt_nrow), wt_ncol*wt_nrow))
+     wt_row_val = reform(rebin(reform(indgen(wt_nrow), 1, wt_nrow), wt_ncol, wt_nrow), wt_ncol*wt_nrow)
+          
+     wt_positions[0,*] = wt_col_val/double(wt_ncol)+xmargin
+     wt_positions[1,*] = wt_row_val/double(wt_nrow)+ymargin
+     wt_positions[2,*] = (wt_col_val+1)/double(wt_ncol)-xmargin
+     wt_positions[3,*] = (wt_row_val+1)/double(wt_nrow)-ymargin
      
+     wt_xsize = xsize*wt_ncol/ncol
+     wt_ysize = ysize*wt_nrow/nrow
      
-     if keyword_set(pub) then begin
-        xmargin = 0.025
-        ymargin = 0.025
-     endif else begin
-        xmargin = 0.0125
-        ymargin = 0.0125
-     endelse
-     
-     positions[0,*] = col_val/double(ncol)+xmargin
-     positions[1,*] = row_val/double(nrow)+ymargin
-     positions[2,*] = (col_val+1)/double(ncol)-xmargin
-     positions[3,*] = (row_val+1)/double(nrow)-ymargin
-     
-     max_ysize = 1200
-     max_xsize = 1800
-     if nfiles gt 9 then begin
-        multi_aspect =0.9 
-        xsize = round((max_ysize/nrow) * ncol/multi_aspect)
-        ysize = max_ysize
-     endif else begin
-        if keyword_set(baseline_axis) then multi_aspect = 0.75 else multi_aspect =0.5
-        xsize = round((max_ysize/nrow) * ncol/multi_aspect)
-        ysize = max_ysize
+     if wt_xsize gt max_xsize then begin
+        factor = double(max_xsize) / wt_xsize
+        wt_xsize = max_xsize
+        wt_ysize = round(wt_ysize * factor)
+     endif
+     if wt_ysize gt max_ysize then begin
+        factor = double(max_ysize) / wt_ysize
+        wt_xsize = round(wt_xsize * factor)
+        wt_ysize = max_ysize
+     endif
 
-        if xsize gt max_xsize then begin
-           factor = double(max_xsize) / xsize
-           xsize = max_xsize
-           ysize = round(ysize * factor)
-        endif
-
-     endelse
      window_num = 2
      if windowavailable(window_num) then begin 
         wset, window_num
-        if !d.x_size ne xsize or !d.y_size ne ysize then make_win = 1 else make_win = 0
+        if !d.x_size ne wt_xsize or !d.y_size ne wt_ysize then make_win = 1 else make_win = 0
      endif else make_win = 1
-     if make_win eq 1 then window, window_num, xsize = xsize, ysize = ysize
+     if make_win eq 1 then window, window_num, xsize = wt_xsize, ysize = wt_ysize
      erase
      
      if keyword_set(pub) then begin
@@ -311,7 +298,7 @@ pro fhd_data_plots, datafile, save_path = save_path, plot_path = plot_path, heal
      for i=0, nweights-1 do begin
         wh = where(weight_ind eq i, count)
         if count eq 0 then stop
-        kpower_2d_plots, savefiles_2d[wh[i]], /plot_weights, multi_pos = positions[*,i], multi_aspect = multi_aspect, $
+        kpower_2d_plots, savefiles_2d[wh[i]], /plot_weights, multi_pos = wt_positions[*,i], multi_size = [wt_xsize, wt_ysize], $
                          kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, pub = pub, $
                          title = 'Weights ' + weight_labels[i], grey_scale = grey_scale, plot_wedge_line = plot_wedge_line, $
                          wedge_amp = wedge_amp, baseline_axis = baseline_axis
