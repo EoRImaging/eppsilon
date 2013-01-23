@@ -65,15 +65,11 @@ function discrete_ft_2d_fast, locations1, locations2, data, k1, k2, timing = tim
         endfor
      endif else begin
         x_exp_loop = rebin_complex(reform(x_exp[*,i], n_pts, 1), n_pts, n_slices)
-stop
         ft[i,*,*] = transpose(matrix_multiply(data*x_exp_loop, y_exp, /atranspose))
      endelse
 
      times[i] = systime(1) - temp
-     ;; print, 'average time per loop: ' + strsplit(string(mean(times[0:i])), /extract)
-     ;; time_complete = mean(times[0:i])*n_k1 + time_preloop
-     ;; print, 'projected completion time (hours): ' + strsplit(string(time_complete/3600d), /extract)
-     ;; stop
+ 
   endfor
 
   time1= systime(1)
