@@ -33,7 +33,7 @@ function discrete_ft_2d_fast, locations1, locations2, data, k1, k2, timing = tim
   y_exp = exp(-1*dcomplex(0,1)*matrix_multiply(locations2, k2, /btranspose))
 
   if mem_param lt 2 then begin
-     y_exp = complex_rebin(reform(y_exp, n_pts, n_k2, 1), n_pts, n_k2, n_slices)
+     y_exp = rebin_complex(reform(y_exp, n_pts, n_k2, 1), n_pts, n_k2, n_slices)
   endif
 
   ;; want progress reports every so often + first 5 steps
@@ -64,7 +64,7 @@ function discrete_ft_2d_fast, locations1, locations2, data, k1, k2, timing = tim
            ft[i,*,k] = matrix_multiply(data[*,k]*x_exp[*,i], y_exp)
         endfor
      endif else begin
-        x_exp_loop = complex_rebin(reform(x_exp[*,i], n_pts, 1), n_pts, n_slices)
+        x_exp_loop = rebin_complex(reform(x_exp[*,i], n_pts, 1), n_pts, n_slices)
 stop
         ft[i,*,*] = transpose(matrix_multiply(data*x_exp_loop, y_exp, /atranspose))
      endelse
