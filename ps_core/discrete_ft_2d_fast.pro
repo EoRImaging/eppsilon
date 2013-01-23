@@ -4,7 +4,14 @@
 ; k1 & k2 are kx/ky values to test at
 
 
-function discrete_ft_2d_fast, locations1, locations2, data, k1, k2, timing = timing
+function discrete_ft_2d_fast, locations1, locations2, data, k1, k2, timing = timing, mem_param = mem_param
+
+  ;; mem_param is trade-off between speed and memory usage. It
+  ;; essentially specifies how many loops to do (0-2). Defaut is 2
+  ;; (minimum memory usage)
+  if n_elements(mem_param) eq 0 then mem_param = 2
+  if (mem_param lt 0) or (mem_param) gt 2 then $
+     message, 'mem_param specifies how many loops to use, allowed values are 0-2'
 
   time0 = systime(1)
 
@@ -21,10 +28,14 @@ function discrete_ft_2d_fast, locations1, locations2, data, k1, k2, timing = tim
      'locations1 & 2 must have same number of elements as first dimension of data.'
 
   ft = dcomplex(dblarr(n_k1, n_k2, n_slices))
-  y_exp = exp(-1*dcomplex(0,1)*rebin(reform(k2, 1, n_k2), n_pts, n_k2)*rebin(locations2, n_pts, n_k2))
-  x_exp = exp(-1*dcomplex(0,1)*rebin(reform(k1, 1, n_k1), n_pts, n_k1)*rebin(locations1, n_pts, n_k1))
-  ;; y_exp = exp(-1*dcomplex(0,1)*rebin(rebin(reform(k2, 1, n_k2), n_pts, n_k2)*rebin(locations2, n_pts, n_k2), n_pts, n_k2, n_slices))
-  ;; x_exp = exp(-1*dcomplex(0,1)*rebin(rebin(reform(k1, 1, n_k1), n_pts, n_k1)*rebin(locations1, n_pts, n_k1), n_pts, n_k1, n_slices))
+
+  x_exp = exp(-1*dcomplex(0,1)*matrix_multiply(locations1, k1, /btranspose)
+  y_exp = exp(-1*dcomplex(0,1)*matrix_multiply(locations2, k2, /btranspose)
+
+  if mem_param lt 2 then begin
+     y_exp = complex_rebin(reform(y_exp, n_pts, n_k2, 1), n_pts, n_k2, n_slices)
+     x_exp = complex_rebin(reform(x_exp, n_pts, n_k1, 1), n_pts, n_k1, n_slices)
+  endif
 
   ;; want progress reports every so often + first 5 steps
   nprogsteps = 20
@@ -39,20 +50,22 @@ function discrete_ft_2d_fast, locations1, locations2, data, k1, k2, timing = tim
      wh = where(progress_steps eq i, count)
      if count gt 0 then begin
         ave_t = mean(times[0:i-1])
-        print, 'progress: on loop ' + strsplit(string(i), /extract) + ' of ' + strsplit(string(n_k1), /extract) + $
-               ' (~ ' + strsplit(string(round(100d*i/n_k1)), /extract) + '% done) approx. time remaining: ' + $
-               strsplit(string(ave_t*(n_k1-i)))
-        if i gt 0 then print, 'average time per loop: ' + strsplit(string(mean(ave_t)), /extract)
+        print, 'progress: on loop ' + number_formatter(i) + ' of ' + number_formatter(n_k1) + $
+               ' (~ ' + number_formatter(round(100d*i/n_k1)) + '% done)'
+        if i gt 0 then print, 'average time per loop: ' + number_formatter(mean(ave_t)) + '; approx. time remaining: ' + $
+               number_formatter(ave_t*(n_k1-i))
      endif
 
      temp=systime(1)
 
-     for k=0, n_slices-1 do begin
-        ft[i,*,k] = (data[*,k]*x_exp[*,i]) # y_exp
-     endfor
-
-     ;;ft[i,*,*] = (data*x_exp[*,i,*]) # y_exp
-
+     if mem_param eq 2 then begin
+        mm_time_tot=0
+        pnd_time_tot=0
+        for k=0, n_slices-1 do begin
+           ft[i,*,k] = matrix_multiply(data[*,k]*x_exp[*,i], y_exp)
+        endfor
+     endif else ft[i,*,*] = transpose(matrix_multiply(data*x_exp[*,i], y_exp, /atranspose))
+stop
      times[i] = systime(1) - temp
      ;; print, 'average time per loop: ' + strsplit(string(mean(times[0:i])), /extract)
      ;; time_complete = mean(times[0:i])*n_k1 + time_preloop

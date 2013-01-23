@@ -1,5 +1,5 @@
 pro fhd_data_plots, datafile, save_path = save_path, plot_path = plot_path, healpix=healpix, $
-                    refresh_dft = refresh_dft, $
+                    refresh_dft = refresh_dft, dft_mem_param = dft_mem_param, $
                     refresh_ps = refresh_ps, refresh_binning = refresh_binning, $
                     no_weighting = no_weighting, std_power = std_power, no_kzero = no_kzero, $
                     no_weighted_averaging = no_weighted_averaging, $
@@ -132,7 +132,7 @@ pro fhd_data_plots, datafile, save_path = save_path, plot_path = plot_path, heal
            fhd_3dps, datafile, data_varnames[i], datafile, weight_varnames[weight_ind[i]], frequencies, max_baseline, /healpix, $
                      nside = nside, pixelfile = pixelfile, pixelvar = pixel_varname, hpx_dftsetup_savefile = hpx_dftsetup_savefile, $
                      savefilebase = savefilebase[i], weight_savefilebase = weight_savefilebase[i], refresh = refresh_ps, $
-                     dft_refresh_data=refresh_dft, dft_refresh_weight=weight_refresh[i], $
+                     dft_refresh_data=refresh_dft, dft_refresh_weight=weight_refresh[i], dft_mem_param = dft_mem_param, $
                      no_weighting = no_weighting, std_power = std_power, no_kzero = no_kzero, $
                      no_weighted_averaging = no_weighted_averaging, /quiet
         endif else $

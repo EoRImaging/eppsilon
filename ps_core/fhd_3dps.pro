@@ -1,7 +1,8 @@
 pro fhd_3dps, datafile, datavar, weightfile, weightvar, frequencies, max_baseline, degpix = degpix, healpix=healpix, $
               nside = nside, pixelfile = pixelfile, pixelvar = pixelvar, hpx_dftsetup_savefile = hpx_dftsetup_savefile, $
               savefilebase = savefilebase_in, weight_savefilebase = weight_savefilebase_in, refresh = refresh, $
-              dft_refresh_data = dft_refresh_data, dft_refresh_weight = dft_refresh_weight, no_weighting = no_weighting, $
+              dft_refresh_data = dft_refresh_data, dft_refresh_weight = dft_refresh_weight, dft_mem_param = dft_mem_param, $
+              no_weighting = no_weighting, $
               std_power = std_power, no_kzero = no_kzero, no_weighted_averaging = no_weighted_averaging, input_units = input_units, $
               fill_holes = fill_holes, quiet = quiet;, clean_type = clean_type
 
@@ -191,7 +192,8 @@ pro fhd_3dps, datafile, datavar, weightfile, weightvar, frequencies, max_baselin
            ;; do FT.
            if test_uvf eq 0 or keyword_set(dft_refresh_data) then begin
               arr = temporary(data_cube)
-              transform = discrete_ft_2D_fast(new_pix_vec[*,0], new_pix_vec[*,1], arr, kx_rad_vals, ky_rad_vals, timing = ft_time)
+              transform = discrete_ft_2D_fast(new_pix_vec[*,0], new_pix_vec[*,1], arr, kx_rad_vals, ky_rad_vals, timing = ft_time, $
+                                             mem_param = dft_mem_param)
               print, "partially vectorized Discrete FT time: " + string(ft_time)
 
               data_cube = transform
@@ -202,7 +204,8 @@ pro fhd_3dps, datafile, datavar, weightfile, weightvar, frequencies, max_baselin
 
            if test_wt_uvf eq 0 or keyword_set(dft_refresh_weight) then begin
               arr = temporary(weights_cube)
-              transform = discrete_ft_2D_fast(new_pix_vec[*,0], new_pix_vec[*,1], arr, kx_rad_vals, ky_rad_vals, timing = ft_time)
+              transform = discrete_ft_2D_fast(new_pix_vec[*,0], new_pix_vec[*,1], arr, kx_rad_vals, ky_rad_vals, timing = ft_time, $
+                                             mem_param = dft_mem_param)
               print, "partially vectorized Discrete FT time: " + string(ft_time)
 
               weights_cube = transform
