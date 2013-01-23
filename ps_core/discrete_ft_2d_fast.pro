@@ -29,8 +29,8 @@ function discrete_ft_2d_fast, locations1, locations2, data, k1, k2, timing = tim
 
   ft = dcomplex(dblarr(n_k1, n_k2, n_slices))
 
-  x_exp = exp(-1*dcomplex(0,1)*matrix_multiply(locations1, k1, /btranspose)
-  y_exp = exp(-1*dcomplex(0,1)*matrix_multiply(locations2, k2, /btranspose)
+  x_exp = exp(-1*dcomplex(0,1)*matrix_multiply(locations1, k1, /btranspose))
+  y_exp = exp(-1*dcomplex(0,1)*matrix_multiply(locations2, k2, /btranspose))
 
   if mem_param lt 2 then begin
      y_exp = complex_rebin(reform(y_exp, n_pts, n_k2, 1), n_pts, n_k2, n_slices)
@@ -64,7 +64,7 @@ function discrete_ft_2d_fast, locations1, locations2, data, k1, k2, timing = tim
         for k=0, n_slices-1 do begin
            ft[i,*,k] = matrix_multiply(data[*,k]*x_exp[*,i], y_exp)
         endfor
-     endif else ft[i,*,*] = transpose(matrix_multiply(data*x_exp[*,i], y_exp, /atranspose))
+     endif else ft[i,*,*] = transpose(matrix_multiply(data*x_exp[*,i,*], y_exp, /atranspose))
 stop
      times[i] = systime(1) - temp
      ;; print, 'average time per loop: ' + strsplit(string(mean(times[0:i])), /extract)
