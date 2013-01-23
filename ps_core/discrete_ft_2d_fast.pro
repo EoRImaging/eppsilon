@@ -50,9 +50,9 @@ function discrete_ft_2d_fast, locations1, locations2, data, k1, k2, timing = tim
      if count gt 0 then begin
         ave_t = mean(times[0:i-1])
         t_left = ave_t*(n_k1-i)
-        if t_left lt 60 then t_left_str = number_formatter(t_left) + 's' $
-        else if t_left lt 3600 then t_left_str = number_formatter(t_left/60d) + 'm' $
-        else t_left_str = number_formatter(t_left/360d) + 'h'
+        if t_left lt 60 then t_left_str = number_formatter(t_left, format='(d8.2)') + ' sec' $
+        else if t_left lt 3600 then t_left_str = number_formatter(t_left/60d, format='(d8.2)') + ' min' $
+        else t_left_str = number_formatter(t_left/360d, format='(d8.2)') + ' hours'
 
         print, 'progress: on loop ' + number_formatter(i) + ' of ' + number_formatter(n_k1) + $
                ' (~ ' + number_formatter(round(100d*i/n_k1)) + '% done)'

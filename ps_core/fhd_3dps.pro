@@ -197,7 +197,6 @@ pro fhd_3dps, datafile, datavar, weightfile, weightvar, frequencies, max_baselin
               print, "partially vectorized Discrete FT time: " + string(ft_time)
 
               data_cube = transform
-              undefine, transform, new_pix_vec, arr
 
               save, file=uvf_data_savefile, kx_rad_vals, ky_rad_vals, data_cube
            endif else restore, uvf_data_savefile
@@ -209,10 +208,10 @@ pro fhd_3dps, datafile, datavar, weightfile, weightvar, frequencies, max_baselin
               print, "partially vectorized Discrete FT time: " + string(ft_time)
 
               weights_cube = transform
-              undefine, transform, new_pix_vec, arr
-
+ 
               save, file=uvf_weight_savefile, kx_rad_vals, ky_rad_vals, weights_cube
            endif else restore, uvf_weight_savefile
+           undefine, transform, new_pix_vec, arr
          
         endif else begin
            restore, uvf_weight_savefile
