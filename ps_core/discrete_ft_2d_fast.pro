@@ -49,17 +49,19 @@ function discrete_ft_2d_fast, locations1, locations2, data, k1, k2, timing = tim
      wh = where(progress_steps eq i, count)
      if count gt 0 then begin
         ave_t = mean(times[0:i-1])
+        t_left = ave_t*(n_k1-i)
+        if t_left lt 60 then t_left_str = number_formatter(t_left) + 's' $
+        else if t_left lt 3600 then t_left_str = number_formatter(t_left/60d) + 'm' $
+        else t_left_str = number_formatter(t_left/360d) + 'h'
+
         print, 'progress: on loop ' + number_formatter(i) + ' of ' + number_formatter(n_k1) + $
                ' (~ ' + number_formatter(round(100d*i/n_k1)) + '% done)'
-        if i gt 0 then print, 'average time per loop: ' + number_formatter(mean(ave_t)) + '; approx. time remaining: ' + $
-               number_formatter(ave_t*(n_k1-i))
+        if i gt 0 then print, 'average time per loop: ' + number_formatter(mean(ave_t)) + '; approx. time remaining: ' + t_left_str
      endif
 
      temp=systime(1)
 
      if mem_param eq 2 then begin
-        mm_time_tot=0
-        pnd_time_tot=0
         for k=0, n_slices-1 do begin
            ft[i,*,k] = matrix_multiply(data[*,k]*x_exp[*,i], y_exp)
         endfor
