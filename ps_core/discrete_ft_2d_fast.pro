@@ -43,16 +43,16 @@ function discrete_ft_2d_fast, locations1, locations2, data, k1, k2, timing = tim
 
   ;;for now require fchunk =1 or nfreq
   if fchunk eq 1 then mem_param=2 else if fchunk eq n_slices then mem_param=1 else stop
-
+stop
   if mem_param eq 2 then begin
     x_exp = exp(-1*dcomplex(0,1)*x_loc_k)
-    x_exp = exp(-1*dcomplex(0,1)*y_loc_k)
+    y_exp = exp(-1*dcomplex(0,1)*y_loc_k)
   endif else begin
      y_exp = exp(-1*dcomplex(0,1)*rebin(y_loc_k, n_pts, n_k2, fchunk_sizes[j]))
   endelse
 
   ;; want progress reports every so often + first 5 steps
-  nsteps = n_k1*n_chunks
+  nsteps = n_k1;;*n_chunks
   nprogsteps = 20
   progress_steps = [indgen(5)+1, round(nsteps * findgen(nprogsteps) / double(nprogsteps))]
   times = fltarr(nsteps)
