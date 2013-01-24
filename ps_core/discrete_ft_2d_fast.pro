@@ -31,7 +31,7 @@ function discrete_ft_2d_fast, locations1, locations2, data, k1, k2, timing = tim
 
   ft = complex(fltarr(n_k1, n_k2, n_slices))
 
-  x_loc_k = matrix_multiply(locations1, k1, /btranspose))
+  x_loc_k = matrix_multiply(locations1, k1, /btranspose)
   y_loc_k = matrix_multiply(locations2, k2, /btranspose)
 
   if fchunk gt 1 then begin
@@ -42,7 +42,7 @@ function discrete_ft_2d_fast, locations1, locations2, data, k1, k2, timing = tim
   endif
 
   ;;for now require fchunk =1 or nfreq
-  if fchunk eq 1 then mem_param=2 else if fchunk=n_slices then mem_param=1 else stop
+  if fchunk eq 1 then mem_param=2 else if fchunk eq n_slices then mem_param=1 else stop
 
   if mem_param eq 2 then begin
     x_exp = exp(-1*dcomplex(0,1)*x_loc_k)
