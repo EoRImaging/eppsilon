@@ -118,16 +118,16 @@ pro fhd_data_plots, datafile, save_path = save_path, plot_path = plot_path, heal
 
   n_cubes = npol*ntype
   type_pol_str = strarr(n_cubes)
-  for i=0, npol-1 do type_pol_str[ntype*i:i+ntype-1] = type_inc + '_' + pol_inc[i]
+  for i=0, npol-1 do type_pol_str[ntype*i:i*ntype+ntype-1] = type_inc + '_' + pol_inc[i]
   data_varnames = strupcase(type_pol_str + '_cube')
   weight_varnames = strupcase('weights_' + pol_inc + '_cube')
   weight_labels = strupcase(pol_inc)
   weight_ind = intarr(n_cubes)
-  for i=0, npol-1 do weight_labels[ntype*i:i+ntype-1] = i
+  for i=0, npol-1 do weight_ind[ntype*i:i*ntype+ntype-1] = i
   wt_file_labels = '_weights_' + strlowcase(weight_labels[weight_ind])
   file_labels = '_' + strlowcase(type_pol_str)
   titles = strarr(n_cubes)
-  for i=0, npol-1 do type_pol_str[ntype*i:i+ntype-1] = type_inc + ' ' + pol_inc[i]
+  for i=0, npol-1 do type_pol_str[ntype*i:i*ntype+ntype-1] = type_inc + ' ' + pol_inc[i]
 
 
 ;;   data_varnames = ['DIRTY_XX_CUBE', 'RES_XX_CUBE', 'MODEL_XX_CUBE', 'DIRTY_YY_CUBE', 'RES_YY_CUBE', 'MODEL_YY_CUBE']
