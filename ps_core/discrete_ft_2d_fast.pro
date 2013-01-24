@@ -48,7 +48,7 @@ stop
     x_exp = exp(-1*dcomplex(0,1)*x_loc_k)
     y_exp = exp(-1*dcomplex(0,1)*y_loc_k)
   endif else begin
-     y_exp = exp(-1*dcomplex(0,1)*rebin(y_loc_k, n_pts, n_k2, fchunk_sizes[j]))
+     y_exp = exp(-1*dcomplex(0,1)*rebin(y_loc_k, n_pts, n_k2, n_slices))
   endelse
 
   ;; want progress reports every so often + first 5 steps

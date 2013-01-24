@@ -1,7 +1,7 @@
 pro fhd_3dps, datafile, datavar, weightfile, weightvar, frequencies, max_baseline, degpix = degpix, healpix=healpix, $
               nside = nside, pixelfile = pixelfile, pixelvar = pixelvar, hpx_dftsetup_savefile = hpx_dftsetup_savefile, $
               savefilebase = savefilebase_in, weight_savefilebase = weight_savefilebase_in, refresh = refresh, $
-              dft_refresh_data = dft_refresh_data, dft_refresh_weight = dft_refresh_weight, dft_fchunk = dft_fchunks, $
+              dft_refresh_data = dft_refresh_data, dft_refresh_weight = dft_refresh_weight, dft_fchunk = dft_fchunk, $
               no_weighting = no_weighting, $
               std_power = std_power, no_kzero = no_kzero, no_weighted_averaging = no_weighted_averaging, input_units = input_units, $
               fill_oles = fill_holes, quiet = quiet;, clean_type = clean_type
