@@ -44,6 +44,12 @@ function discrete_ft_2d_fast, locations1, locations2, data, k1, k2, timing = tim
   ;;for now require fchunk =1 or nfreq
   if fchunk eq 1 then mem_param=2 else if fchunk=n_slices then mem_param=1 else stop
 
+  if mem_param eq 2 then begin
+    x_exp = exp(-1*dcomplex(0,1)*x_loc_k)
+    x_exp = exp(-1*dcomplex(0,1)*y_loc_k)
+  endif else begin
+     y_exp = exp(-1*dcomplex(0,1)*rebin(y_loc_k, n_pts, n_k2, fchunk_sizes[j]))
+  endelse
 
   ;; want progress reports every so often + first 5 steps
   nsteps = n_k1*n_chunks
@@ -77,7 +83,7 @@ function discrete_ft_2d_fast, locations1, locations2, data, k1, k2, timing = tim
            ft[i,*,k] = matrix_multiply(data[*,k]*x_exp[*,i], y_exp)
         endfor
      endif else begin
-        x_exp_loop = rebin_complex(reform(x_exp[*,i], n_pts, 1), n_pts, n_slices)
+        x_exp_loop = exp(-1*dcomplex(0,1)*rebin(x_loc_k[*,i], n_pts, n_slices))
         ft[i,*,*] = transpose(matrix_multiply(data*x_exp_loop, y_exp, /atranspose))
      endelse
 
