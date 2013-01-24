@@ -207,7 +207,7 @@ pro fhd_3dps, datafile, datavar, weightfile, weightvar, frequencies, max_baselin
                                              mem_param = dft_mem_param)
               print, "partially vectorized Discrete FT time: " + string(ft_time)
 
-              weights_cube = transform
+              weights_cube = abs(transform) ;; make weights real (amplitude)
  
               save, file=uvf_weight_savefile, kx_rad_vals, ky_rad_vals, weights_cube
            endif else restore, uvf_weight_savefile

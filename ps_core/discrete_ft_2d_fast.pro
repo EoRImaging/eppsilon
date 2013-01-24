@@ -30,11 +30,10 @@ function discrete_ft_2d_fast, locations1, locations2, data, k1, k2, timing = tim
   ft = dcomplex(dblarr(n_k1, n_k2, n_slices))
 
   x_exp = exp(-1*dcomplex(0,1)*matrix_multiply(locations1, k1, /btranspose))
-  y_exp = exp(-1*dcomplex(0,1)*matrix_multiply(locations2, k2, /btranspose))
 
   if mem_param lt 2 then begin
-     y_exp = rebin_complex(reform(y_exp, n_pts, n_k2, 1), n_pts, n_k2, n_slices)
-  endif
+     y_exp = exp(-1*dcomplex(0,1)*rebin(matrix_multiply(locations2, k2, /btranspose), n_pts, n_k2, n_slices))
+  endif else y_exp = exp(-1*dcomplex(0,1)*matrix_multiply(locations2, k2, /btranspose))
 
   ;; want progress reports every so often + first 5 steps
   nprogsteps = 20
