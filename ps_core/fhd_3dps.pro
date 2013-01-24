@@ -4,7 +4,7 @@ pro fhd_3dps, datafile, datavar, weightfile, weightvar, frequencies, max_baselin
               dft_refresh_data = dft_refresh_data, dft_refresh_weight = dft_refresh_weight, dft_mem_param = dft_mem_param, $
               no_weighting = no_weighting, $
               std_power = std_power, no_kzero = no_kzero, no_weighted_averaging = no_weighted_averaging, input_units = input_units, $
-              fill_holes = fill_holes, quiet = quiet;, clean_type = clean_type
+              fill_oles = fill_holes, quiet = quiet;, clean_type = clean_type
 
   if n_params() ne 6 then message, 'Wrong number of parameters passed. Required parameters are: datafile (string), ' + $
                                  'datavar (string), weightfile (string), weightvar (string), ' + $
@@ -194,10 +194,7 @@ pro fhd_3dps, datafile, datavar, weightfile, weightvar, frequencies, max_baselin
               arr = temporary(data_cube)
               transform = discrete_ft_2D_fast(new_pix_vec[*,0], new_pix_vec[*,1], arr, kx_rad_vals, ky_rad_vals, timing = ft_time, $
                                              mem_param = dft_mem_param)
-              print, "partially vectorized Discrete FT time: " + string(ft_time)
-
               data_cube = transform
-              undefine, transform, new_pix_vec, arr
 
               save, file=uvf_data_savefile, kx_rad_vals, ky_rad_vals, data_cube
            endif else restore, uvf_data_savefile
@@ -206,13 +203,12 @@ pro fhd_3dps, datafile, datavar, weightfile, weightvar, frequencies, max_baselin
               arr = temporary(weights_cube)
               transform = discrete_ft_2D_fast(new_pix_vec[*,0], new_pix_vec[*,1], arr, kx_rad_vals, ky_rad_vals, timing = ft_time, $
                                              mem_param = dft_mem_param)
-              print, "partially vectorized Discrete FT time: " + string(ft_time)
 
-              weights_cube = transform
-              undefine, transform, new_pix_vec, arr
-
+              weights_cube = abs(transform) ;; make weights real (amplitude)
+ 
               save, file=uvf_weight_savefile, kx_rad_vals, ky_rad_vals, weights_cube
            endif else restore, uvf_weight_savefile
+           undefine, transform, new_pix_vec, arr
          
         endif else begin
            restore, uvf_weight_savefile
@@ -256,7 +252,7 @@ pro fhd_3dps, datafile, datavar, weightfile, weightvar, frequencies, max_baselin
      if count_wt0 ne 0 then sigma2_cube[wh_wt0] = 0
      undefine, weights_cube
 
-     mask = dblarr(n_kx, n_ky, n_kz) + 1
+     mask = intarr(n_kx, n_ky, n_kz) + 1
      if count_wt0 gt 0 then mask[wh_wt0] = 0
      ;; n_pix_contrib = total(total(mask, 2), 1)
      n_freq_contrib = total(mask, 3)

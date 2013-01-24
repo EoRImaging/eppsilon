@@ -1,4 +1,4 @@
-pro fhd_data_plots, datafile, save_path = save_path, plot_path = plot_path, healpix=healpix, $
+pro fhd_data_plots, datafile, save_path = save_path, plot_path = plot_path, healpix=healpix, pol_inc = pol_inc, type_inc = type_inc, $
                     refresh_dft = refresh_dft, dft_mem_param = dft_mem_param, $
                     refresh_ps = refresh_ps, refresh_binning = refresh_binning, $
                     no_weighting = no_weighting, std_power = std_power, no_kzero = no_kzero, $
@@ -23,6 +23,28 @@ pro fhd_data_plots, datafile, save_path = save_path, plot_path = plot_path, heal
   if n_elements(no_weighted_averaging) gt 0 and not keyword_set(no_weighted_averaging) and keyword_set(no_weighting) then $
      message, 'Cannot set no_weighted_averaging=0 and no_weighting=1'
 
+  if n_elements(pol_inc) eq 0 then pol_inc = ['xx', 'yy']
+  pol_enum = ['xx', 'yy']
+  npol = n_elements(pol_inc)
+  pol_num = intarr(npol)
+  for i=0, npol-1 do begin
+     wh = where(pol_enum eq pol_inc[i], count)
+     if count eq 0 then message, 'pol ' + pol_inc[i] + ' not recognized.'
+     pol_num[i] = wh[0]
+  endfor
+  pol_inc = pol_enum[uniq(pol_inc, sort(pol_inc))]
+
+  if n_elements(type_inc) eq 0 then type_inc = ['dirty', 'model', 'res']
+  type_enum = ['dirty', 'model', 'res']
+  ntype = n_elements(type_inc)
+  type_num = intarr(ntype)
+  for i=0, npol-1 do begin
+     wh = where(type_enum eq type_inc[i], count)
+     if count eq 0 then message, 'type ' + type_inc[i] + ' not recognized.'
+     type_num[i] = wh[0]
+  endfor
+  type_inc = type_enum[uniq(type_inc, sort(type_inc))]
+
   datafile_test = file_test(datafile)
   if datafile_test eq 0 then message, 'datafile not found'
 
@@ -46,6 +68,7 @@ pro fhd_data_plots, datafile, save_path = save_path, plot_path = plot_path, heal
      wh_obs = where(strlowcase(varnames) eq 'obs_arr', count_obs)
      if count_obs ne 0 then begin
         file_obj->restore, 'obs_arr'
+stop
         n_obs = n_elements(obs_arr)
         max_baseline_vals = dblarr(n_obs)
         for i=0, n_obs-1 do begin
@@ -93,13 +116,27 @@ pro fhd_data_plots, datafile, save_path = save_path, plot_path = plot_path, heal
      wt_fadd_2dbin = wt_fadd_2dbin + '_linkpar'
   endif
 
-  data_varnames = ['DIRTY_XX_CUBE', 'RES_XX_CUBE', 'MODEL_XX_CUBE', 'DIRTY_YY_CUBE', 'RES_YY_CUBE', 'MODEL_YY_CUBE']
-  weight_varnames = ['WEIGHTS_XX_CUBE', 'WEIGHTS_YY_CUBE']
-  weight_labels = ['XX', 'YY']
-  weight_ind = [intarr(3), intarr(3)+1]
+  n_cubes = npol*ntype
+  type_pol_str = strarr(n_cubes)
+  for i=0, npol-1 do type_pol_str[ntype*i:i+ntype-1] = type_inc + '_' + pol_inc[i]
+  data_varnames = strupcase(type_pol_str + '_cube')
+  weight_varnames = strupcase('weights_' + pol_inc + '_cube')
+  weight_labels = strupcase(pol_inc)
+  weight_ind = intarr(n_cubes)
+  for i=0, npol-1 do weight_labels[ntype*i:i+ntype-1] = i
   wt_file_labels = '_weights_' + strlowcase(weight_labels[weight_ind])
-  file_labels = ['_dirty_xx', '_res_xx', '_model_xx', '_dirty_yy', '_res_yy', '_model_yy']
-  titles = ['dirty XX', 'residual XX', 'model XX', 'dirty YY', 'residual YY', 'model YY']
+  file_labels = '_' + strlowcase(type_pol_str)
+  titles = strarr(n_cubes)
+  for i=0, npol-1 do type_pol_str[ntype*i:i+ntype-1] = type_inc + ' ' + pol_inc[i]
+
+
+;;   data_varnames = ['DIRTY_XX_CUBE', 'RES_XX_CUBE', 'MODEL_XX_CUBE', 'DIRTY_YY_CUBE', 'RES_YY_CUBE', 'MODEL_YY_CUBE']
+;;   weight_varnames = ['WEIGHTS_XX_CUBE', 'WEIGHTS_YY_CUBE']
+;;   weight_labels = ['XX', 'YY']
+;;   weight_ind = [intarr(3), intarr(3)+1]
+;;   wt_file_labels = '_weights_' + strlowcase(weight_labels[weight_ind])
+;;   file_labels = ['_dirty_xx', '_res_xx', '_model_xx', '_dirty_yy', '_res_yy', '_model_yy']
+;;   titles = ['dirty XX', 'residual XX', 'model XX', 'dirty YY', 'residual YY', 'model YY']
 
   ;; data_varnames = ['DIRTY_XX_CUBE', 'RES_XX_CUBE', 'MODEL_XX_CUBE']
   ;; weight_varnames = ['WEIGHTS_XX_CUBE']
