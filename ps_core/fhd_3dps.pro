@@ -203,7 +203,8 @@ pro fhd_3dps, datafile, datavar, weightfile, weightvar, frequencies, max_baselin
               arr = temporary(weights_cube)
               transform = discrete_ft_2D_fast(new_pix_vec[*,0], new_pix_vec[*,1], arr, kx_rad_vals, ky_rad_vals, timing = ft_time, $
                                              mem_param = dft_mem_param)
-              weights_cube = transform
+
+              weights_cube = abs(transform) ;; make weights real (amplitude)
  
               save, file=uvf_weight_savefile, kx_rad_vals, ky_rad_vals, weights_cube
            endif else restore, uvf_weight_savefile
