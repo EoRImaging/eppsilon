@@ -6,6 +6,8 @@
 
 function discrete_ft_2d_fast, locations1, locations2, data, k1, k2, timing = timing, fchunk = fchunk
 
+  print, 'Beginning discrete 2D FT'
+
   time0 = systime(1)
 
   data_dims = size(data, /dimensions)
@@ -27,9 +29,9 @@ function discrete_ft_2d_fast, locations1, locations2, data, k1, k2, timing = tim
   if n_elements(locations1) ne n_pts or n_elements(locations2) ne n_pts then message, $
      'locations1 & 2 must have same number of elements as first dimension of data.'
 
-  ft = dcomplex(dblarr(n_k1, n_k2, n_slices))
+  ft = complex(fltarr(n_k1, n_k2, n_slices))
 
-  x_exp = exp(-1*dcomplex(0,1)*matrix_multiply(locations1, k1, /btranspose))
+  x_loc_k = matrix_multiply(locations1, k1, /btranspose))
   y_loc_k = matrix_multiply(locations2, k2, /btranspose)
 
   if fchunk gt 1 then begin
@@ -43,7 +45,7 @@ function discrete_ft_2d_fast, locations1, locations2, data, k1, k2, timing = tim
   nsteps = n_k1*n_chunks
   nprogsteps = 20
   progress_steps = [indgen(5)+1, round(nsteps * findgen(nprogsteps) / double(nprogsteps))]
-  times = dblarr(nsteps)
+  times = fltarr(nsteps)
 
   time_preloop = systime(1) - time0
   print, 'pre-loop time: ' + strsplit(string(time_preloop), /extract)
@@ -58,18 +60,19 @@ function discrete_ft_2d_fast, locations1, locations2, data, k1, k2, timing = tim
         if count gt 0 then begin
            ave_t = mean(times[0:this_step])
            t_left = ave_t*(nsteps-this_step)
-           if t_left lt 60 then t_left_str = number_formatter(t_left) + 's' $
-           else if t_left lt 3600 then t_left_str = number_formatter(t_left/60d) + 'm' $
-           else t_left_str = number_formatter(t_left/360d) + 'h'
+           if t_left lt 60 then t_left_str = number_formatter(t_left, format='(d8.2)') + ' sec' $
+           else if t_left lt 3600 then t_left_str = number_formatter(t_left/60d, format='(d8.2)') + ' min' $
+           else t_left_str = number_formatter(t_left/360d, format='(d8.2)') + ' hours'
            
            print, 'progress: on step ' + number_formatter(i*j) + ' of ' + number_formatter(nsteps) + $
                   ' (~ ' + number_formatter(round(100d*this_step/(nsteps))) + '% done)'
-           if i gt 0 then print, 'average time per loop: ' + number_formatter(mean(ave_t)) + '; approx. time remaining: ' + t_left_str
+           if i gt 0 then print, 'memory used: ' + memory(/current) + ' GB; mean loop time: ' + $
+                                 number_formatter(mean(ave_t), format='(d8.2)') + '; approx. time remaining: ' + t_left_str
         endif
 
         temp=systime(1)
 
-        x_exp_loop = rebin_complex(reform(x_exp[*,i], n_pts, 1), n_pts, fchunk_sizes[j]))
+        x_exp_loop = exp(-1*dcomplex(0,1)*rebin(x_loc_k[*,i], n_pts, fchunk_sizes[j]))
         ft[i,*,fchunk_edges[j]:fchunk_edges[j+1]] = transpose(matrix_multiply(data*x_exp_loop, y_exp, /atranspose))
 
         times[i*j] = systime(1) - temp
@@ -80,6 +83,12 @@ function discrete_ft_2d_fast, locations1, locations2, data, k1, k2, timing = tim
   time1 = systime(1)
   timing = time1-time0
   
+  if timing lt 60 then timing_str = number_formatter(timing, format='(d8.2)') + ' sec' $
+  else if timing lt 3600 then timing_str = number_formatter(timing/60, format='(d8.2)') + ' min' $
+  else timing_str= number_formatter(timing/3600, format='(d8.2)') + ' hours'
+
+  print, 'discrete 2D FT time: ' + timing_str
+
   return, ft
 end
 
