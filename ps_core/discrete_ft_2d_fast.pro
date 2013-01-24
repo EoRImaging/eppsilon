@@ -56,7 +56,8 @@ function discrete_ft_2d_fast, locations1, locations2, data, k1, k2, timing = tim
 
         print, 'progress: on loop ' + number_formatter(i) + ' of ' + number_formatter(n_k1) + $
                ' (~ ' + number_formatter(round(100d*i/n_k1)) + '% done)'
-        if i gt 0 then print, 'average time per loop: ' + number_formatter(mean(ave_t)) + '; approx. time remaining: ' + t_left_str
+        if i gt 0 then print, 'memory used: ' + memory(/current) + ' GB; mean loop time: ' + $
+                                 number_formatter(mean(ave_t), format='(d8.2)') + '; approx. time remaining: ' + t_left_str
      endif
 
      temp=systime(1)
