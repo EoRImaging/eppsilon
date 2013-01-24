@@ -41,65 +41,35 @@ function discrete_ft_2d_fast, locations1, locations2, data, k1, k2, timing = tim
      fchunk_edges = [0, total(fchunk_sizes, /cumulative)-1]
   endif
 
-  ;;for now require fchunk =1 or nfreq
-  ;; if fchunk eq 1 then mem_param=2 else if fchunk eq n_slices then mem_param=1 else stop
 
-  ;; if mem_param eq 2 then begin
-  ;;   x_exp = exp(-1*dcomplex(0,1)*x_loc_k)
-  ;;   y_exp = exp(-1*dcomplex(0,1)*y_loc_k)
-  ;; endif else begin
-  ;;    y_exp = exp(-1*dcomplex(0,1)*rebin(y_loc_k, n_pts, n_k2, n_slices))
-  ;; endelse
-
-  ;; want progress reports every so often + first 5 steps
-  nsteps = n_k1;;*n_chunks
+  ;; want progress reports every so often + on 3rd step
+  nsteps = n_k1*n_chunks
   nprogsteps = 20
-  progress_steps = [indgen(5)+1, round(nsteps * findgen(nprogsteps) / double(nprogsteps))]
-  times = fltarr(nsteps)
+  progress_steps = [3, round(nsteps * findgen(nprogsteps) / double(nprogsteps))]
+  inner_times = fltarr(nsteps)
+  outer_times = fltarr(n_chunks)
 
   time_preloop = systime(1) - time0
   print, 'pre-loop time: ' + strsplit(string(time_preloop), /extract)
 
-  ;; for i=0, n_k1-1 do begin
-  ;;    ;;generate a vector of x_exp values and a 2d array of y_exp values
-  ;;    wh = where(progress_steps eq i, count)
-  ;;    if count gt 0 then begin
-  ;;       ave_t = mean(times[0:i-1])
-  ;;       t_left = ave_t*(n_k1-i)
-  ;;       if t_left lt 60 then t_left_str = number_formatter(t_left) + 's' $
-  ;;       else if t_left lt 3600 then t_left_str = number_formatter(t_left/60d) + 'm' $
-  ;;       else t_left_str = number_formatter(t_left/3600d) + 'h'
-
-  ;;       print, 'progress: on loop ' + number_formatter(i) + ' of ' + number_formatter(n_k1) + $
-  ;;              ' (~ ' + number_formatter(round(100d*i/n_k1)) + '% done)'
-  ;;       if i gt 0 then print, 'memory used: ' + number_formatter(memory(/current)/1.e9, format='(d8.1)') + ' GB; mean loop time: ' + $
-  ;;                                number_formatter(mean(ave_t), format='(d8.2)') + '; approx. time remaining: ' + t_left_str
-  ;;    endif
-
-  ;;    temp=systime(1)
-
-  ;;    if mem_param eq 2 then begin
-  ;;       for k=0, n_slices-1 do begin
-  ;;          ft[i,*,k] = matrix_multiply(data[*,k]*x_exp[*,i], y_exp)
-  ;;       endfor
-  ;;    endif else begin
-  ;;       x_exp_loop = exp(-1*dcomplex(0,1)*rebin(x_loc_k[*,i], n_pts, n_slices))
-  ;;       ft[i,*,*] = transpose(matrix_multiply(data*x_exp_loop, y_exp, /atranspose))
-  ;;    endelse
-
-  ;;    times[i] = systime(1) - temp
-  ;; endfor
-
   for j=0, n_chunks-1 do begin
+     temp=systime(1)
      y_exp = exp(-1*dcomplex(0,1)*rebin(y_loc_k, n_pts, n_k2, fchunk_sizes[j]))
+     outer_times[j] = systime(1) - temp
+     ave_outer_t = mean(outer_times[0:j])
+     if ave_outer_t lt 60 then outer_t_str = number_formatter(ave_outer_t, format='(d8.2)') + ' sec' $
+     else if ave_outer_t lt 3600 then outer_t_str = number_formatter(ave_outer_t/60d, format='(d8.2)') + ' min' $
+     else outer_t_str = number_formatter(ave_outer_t/3600d, format='(d8.2)') + ' hours'
+
+     print, 'on freq. loop ' + number_formatter(j) + ' of ' + number_formatter(n_chunks) + '; ave freq rebin time: ' + outer_t_str
 
      for i=0, n_k1-1 do begin
         ;;generate a vector of x_exp values and a 2d array of y_exp values
         this_step = (i+1)*(j+1)-1
         wh = where(progress_steps eq this_step, count)
         if count gt 0 then begin
-           ave_t = mean(times[0:this_step])
-           t_left = ave_t*(nsteps-this_step)
+           ave_t = mean(inner_times[0:this_step-1])
+           t_left = ave_t*(nsteps-this_step) + ave_outer_t*(n_chunks-j-1)
            if t_left lt 60 then t_left_str = number_formatter(t_left, format='(d8.2)') + ' sec' $
            else if t_left lt 3600 then t_left_str = number_formatter(t_left/60d, format='(d8.2)') + ' min' $
            else t_left_str = number_formatter(t_left/3600d, format='(d8.2)') + ' hours'
@@ -107,7 +77,8 @@ function discrete_ft_2d_fast, locations1, locations2, data, k1, k2, timing = tim
            print, 'progress: on step ' + number_formatter(this_step) + ' of ' + number_formatter(nsteps) + $
                   ' (~ ' + number_formatter(round(100d*this_step/(nsteps))) + '% done)'
            if i gt 0 then print, 'memory used: ' + number_formatter(memory(/current)/1.e9, format='(d8.1)') + $
-                                 ' GB; approx. time remaining: ' + t_left_str
+                                 ' GB; ave step time: ' + number_formatter(ave_t, format='(d8.2)') + $
+                                 '; approx. time remaining: ' + t_left_str
         endif
 
         temp=systime(1)
@@ -115,7 +86,7 @@ function discrete_ft_2d_fast, locations1, locations2, data, k1, k2, timing = tim
         x_exp_loop = exp(-1*dcomplex(0,1)*rebin(x_loc_k[*,i], n_pts, fchunk_sizes[j]))
         ft[i,*,fchunk_edges[j]:fchunk_edges[j+1]] = transpose(matrix_multiply(data*x_exp_loop, y_exp, /atranspose))
 
-        times[this_step] = systime(1) - temp
+        inner_times[this_step] = systime(1) - temp
  
      endfor
   endfor
