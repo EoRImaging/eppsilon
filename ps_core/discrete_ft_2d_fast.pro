@@ -4,14 +4,7 @@
 ; k1 & k2 are kx/ky values to test at
 
 
-function discrete_ft_2d_fast, locations1, locations2, data, k1, k2, timing = timing, mem_param = mem_param
-
-  ;; mem_param is trade-off between speed and memory usage. It
-  ;; essentially specifies how many loops to do (0-2). Defaut is 2
-  ;; (minimum memory usage)
-  if n_elements(mem_param) eq 0 then mem_param = 2
-  if (mem_param lt 0) or (mem_param) gt 2 then $
-     message, 'mem_param specifies how many loops to use, allowed values are 0-2'
+function discrete_ft_2d_fast, locations1, locations2, data, k1, k2, timing = timing, fchunk = fchunk
 
   time0 = systime(1)
 
@@ -24,57 +17,67 @@ function discrete_ft_2d_fast, locations1, locations2, data, k1, k2, timing = tim
   n_pts = data_dims[0]
   if n_dims eq 1 then n_slices = 1 else n_slices = data_dims[1]
 
+  ;; fchunk is how many frequencies to process simultaneously.
+  ;; It allows trade-off between speed and memory usage.
+  ;; Defaut is 1 (minimum memory usage), max is number of f channels
+  if n_elements(fchunk) eq 0 then fchunk = 1 else fchunk = round(fchunk)
+  if (fchunk lt 0) or (fchunk) gt n_slices then $
+     message, 'fchunk specifies how many frequencies to process simultaneously. Allowed values are 0-' + number_formatter(n_slices)
+
   if n_elements(locations1) ne n_pts or n_elements(locations2) ne n_pts then message, $
      'locations1 & 2 must have same number of elements as first dimension of data.'
 
   ft = dcomplex(dblarr(n_k1, n_k2, n_slices))
 
   x_exp = exp(-1*dcomplex(0,1)*matrix_multiply(locations1, k1, /btranspose))
-  y_exp = exp(-1*dcomplex(0,1)*matrix_multiply(locations2, k2, /btranspose))
+  y_loc_k = matrix_multiply(locations2, k2, /btranspose)
 
-  if mem_param lt 2 then begin
-     y_exp = rebin_complex(reform(y_exp, n_pts, n_k2, 1), n_pts, n_k2, n_slices)
+  if fchunk gt 1 then begin
+     n_chunks = ceil(n_slices/fchunk)
+     fchunk_sizes = intarr(n_chunks) + fchunk
+     if n_chunks gt 1 then fchunk_sizes[n_chunks-1] = n_slices - total(fchunk_sizes[0:n_chunks-2])
+     fchunk_edges = [0, total(fchunk_sizes, /cumulative)-1]
   endif
 
   ;; want progress reports every so often + first 5 steps
+  nsteps = n_k1*n_chunks
   nprogsteps = 20
-  progress_steps = [indgen(5)+1, round(n_k1 * findgen(nprogsteps) / double(nprogsteps))]
-  times = dblarr(n_k1)
+  progress_steps = [indgen(5)+1, round(nsteps * findgen(nprogsteps) / double(nprogsteps))]
+  times = dblarr(nsteps)
 
   time_preloop = systime(1) - time0
   print, 'pre-loop time: ' + strsplit(string(time_preloop), /extract)
 
-  for i=0, n_k1-1 do begin
-     ;;generate a vector of x_exp values and a 2d array of y_exp values
-     wh = where(progress_steps eq i, count)
-     if count gt 0 then begin
-        ave_t = mean(times[0:i-1])
-        t_left = ave_t*(n_k1-i)
-        if t_left lt 60 then t_left_str = number_formatter(t_left) + 's' $
-        else if t_left lt 3600 then t_left_str = number_formatter(t_left/60d) + 'm' $
-        else t_left_str = number_formatter(t_left/360d) + 'h'
+  for j=0, n_chunks-1 do begin
+     y_exp = exp(-1*dcomplex(0,1)*rebin(y_loc_k, n_pts, n_k2, fchunk_sizes[j])
 
-        print, 'progress: on loop ' + number_formatter(i) + ' of ' + number_formatter(n_k1) + $
-               ' (~ ' + number_formatter(round(100d*i/n_k1)) + '% done)'
-        if i gt 0 then print, 'average time per loop: ' + number_formatter(mean(ave_t)) + '; approx. time remaining: ' + t_left_str
-     endif
+     for i=0, n_k1-1 do begin
+        ;;generate a vector of x_exp values and a 2d array of y_exp values
+        this_step = (i+1)*(j+1)-1
+        wh = where(progress_steps eq this_step, count)
+        if count gt 0 then begin
+           ave_t = mean(times[0:this_step])
+           t_left = ave_t*(nsteps-this_step)
+           if t_left lt 60 then t_left_str = number_formatter(t_left) + 's' $
+           else if t_left lt 3600 then t_left_str = number_formatter(t_left/60d) + 'm' $
+           else t_left_str = number_formatter(t_left/360d) + 'h'
+           
+           print, 'progress: on step ' + number_formatter(i*j) + ' of ' + number_formatter(nsteps) + $
+                  ' (~ ' + number_formatter(round(100d*this_step/(nsteps))) + '% done)'
+           if i gt 0 then print, 'average time per loop: ' + number_formatter(mean(ave_t)) + '; approx. time remaining: ' + t_left_str
+        endif
 
-     temp=systime(1)
+        temp=systime(1)
 
-     if mem_param eq 2 then begin
-        for k=0, n_slices-1 do begin
-           ft[i,*,k] = matrix_multiply(data[*,k]*x_exp[*,i], y_exp)
-        endfor
-     endif else begin
-        x_exp_loop = rebin_complex(reform(x_exp[*,i], n_pts, 1), n_pts, n_slices)
-        ft[i,*,*] = transpose(matrix_multiply(data*x_exp_loop, y_exp, /atranspose))
-     endelse
+        x_exp_loop = rebin_complex(reform(x_exp[*,i], n_pts, 1), n_pts, fchunk_sizes[j]))
+        ft[i,*,fchunk_edges[j]:fchunk_edges[j+1]] = transpose(matrix_multiply(data*x_exp_loop, y_exp, /atranspose))
 
-     times[i] = systime(1) - temp
+        times[i*j] = systime(1) - temp
  
+     endfor
   endfor
 
-  time1= systime(1)
+  time1 = systime(1)
   timing = time1-time0
   
   return, ft
