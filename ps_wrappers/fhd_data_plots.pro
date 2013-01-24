@@ -68,7 +68,7 @@ pro fhd_data_plots, datafile, save_path = save_path, plot_path = plot_path, heal
      wh_obs = where(strlowcase(varnames) eq 'obs_arr', count_obs)
      if count_obs ne 0 then begin
         file_obj->restore, 'obs_arr'
-stop
+        if size(obs_arr,/type) ne 10 then stop
         n_obs = n_elements(obs_arr)
         max_baseline_vals = dblarr(n_obs)
         for i=0, n_obs-1 do begin
