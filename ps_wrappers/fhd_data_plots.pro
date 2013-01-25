@@ -127,25 +127,7 @@ pro fhd_data_plots, datafile, save_path = save_path, plot_path = plot_path, heal
   wt_file_labels = '_weights_' + strlowcase(weight_labels[weight_ind])
   file_labels = '_' + strlowcase(type_pol_str)
   titles = strarr(n_cubes)
-  for i=0, npol-1 do type_pol_str[ntype*i:i*ntype+ntype-1] = type_inc + ' ' + pol_inc[i]
-
-
-;;   data_varnames = ['DIRTY_XX_CUBE', 'RES_XX_CUBE', 'MODEL_XX_CUBE', 'DIRTY_YY_CUBE', 'RES_YY_CUBE', 'MODEL_YY_CUBE']
-;;   weight_varnames = ['WEIGHTS_XX_CUBE', 'WEIGHTS_YY_CUBE']
-;;   weight_labels = ['XX', 'YY']
-;;   weight_ind = [intarr(3), intarr(3)+1]
-;;   wt_file_labels = '_weights_' + strlowcase(weight_labels[weight_ind])
-;;   file_labels = ['_dirty_xx', '_res_xx', '_model_xx', '_dirty_yy', '_res_yy', '_model_yy']
-;;   titles = ['dirty XX', 'residual XX', 'model XX', 'dirty YY', 'residual YY', 'model YY']
-
-  ;; data_varnames = ['DIRTY_XX_CUBE', 'RES_XX_CUBE', 'MODEL_XX_CUBE']
-  ;; weight_varnames = ['WEIGHTS_XX_CUBE']
-  ;; weight_labels = ['XX']
-  ;; weight_ind = [intarr(3)]
-  ;; wt_file_labels = '_weights_' + strlowcase(weight_labels[weight_ind])
-  ;; file_labels = ['_dirty_xx', '_res_xx', '_model_xx']
-  ;; titles = ['dirty XX', 'residual XX', 'model XX']
-
+  for i=0, npol-1 do titles[ntype*i:i*ntype+ntype-1] = type_inc + ' ' + pol_inc[i]
 
   savefilebase = froot + datafilebase + file_labels + fadd
   savefiles_2d = savefilebase + fadd_2dbin + '_2dkpower.idlsave'
@@ -211,142 +193,77 @@ pro fhd_data_plots, datafile, save_path = save_path, plot_path = plot_path, heal
      wedge_amp = wedge_factor * source_dist
   endif else wedge_amp = 0d
 
-                                ;if n_elements(data_range) eq 0 then data_range = [1e13, 1e20]
-
-  if nfiles eq 1 then begin
-     kpower_2d_plots, savefiles_2d, kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
-                      data_range = data_range, pub = pub, plotfile = plotfile_2d, title = titles, grey_scale = grey_scale, $
-                      plot_wedge_line = plot_wedge_line, wedge_amp = wedge_amp, baseline_axis = baseline_axis
+  nplots = nfiles + npol
+  
+  nrow = ntype + 1 ;; ntype + 1 for weights
+  ncol = npol
+  positions = fltarr(4, ncol*nrow)
+  
+  row_val = reverse(reform(rebin(indgen(nrow), nrow, ncol), ncol*nrow))
+  col_val = reform(rebin(reform(indgen(ncol), 1, ncol), nrow, ncol), ncol*nrow)
+  
+  positions[0,*] = col_val/double(ncol)
+  positions[1,*] = row_val/double(nrow)
+  positions[2,*] = (col_val+1)/double(ncol)
+  positions[3,*] = (row_val+1)/double(nrow)
+  
+  max_ysize = 600
+  max_xsize = 900
+  if nfiles gt 9 then begin
+     multi_aspect =0.9 
+     xsize = round((max_ysize/nrow) * ncol/multi_aspect)
+     ysize = max_ysize
   endif else begin
-
-     nrow = ceil(sqrt(nfiles))
-     ncol = ceil(nfiles / double(nrow))
-     positions = fltarr(4, ncol*nrow)
+     if keyword_set(baseline_axis) then multi_aspect = 0.75 else multi_aspect =0.5
+     xsize = round((max_ysize/nrow) * ncol/multi_aspect)
+     ysize = max_ysize
      
-     row_val = reverse(reform(rebin(indgen(nrow), nrow, ncol), ncol*nrow))
-     col_val = reform(rebin(reform(indgen(ncol), 1, ncol), nrow, ncol), ncol*nrow)
-     
-     
-     if keyword_set(pub) then begin
-        xmargin = 0.025
-        ymargin = 0.025
-     endif else begin
-        xmargin = 0.0125
-        ymargin = 0.0125
-     endelse
-     
-     positions[0,*] = col_val/double(ncol)+xmargin
-     positions[1,*] = row_val/double(nrow)+ymargin
-     positions[2,*] = (col_val+1)/double(ncol)-xmargin
-     positions[3,*] = (row_val+1)/double(nrow)-ymargin
-     
-     max_ysize = 600
-     max_xsize = 900
-     if nfiles gt 9 then begin
-        multi_aspect =0.9 
-        xsize = round((max_ysize/nrow) * ncol/multi_aspect)
-        ysize = max_ysize
-     endif else begin
-        if keyword_set(baseline_axis) then multi_aspect = 0.75 else multi_aspect =0.5
-        xsize = round((max_ysize/nrow) * ncol/multi_aspect)
-        ysize = max_ysize
-
-        if xsize gt max_xsize then begin
-           factor = double(max_xsize) / xsize
-           xsize = max_xsize
-           ysize = round(ysize * factor)
-        endif
-
-     endelse
-     window_num = 1
-     if windowavailable(window_num) then begin 
-        wset, window_num
-        if !d.x_size ne xsize or !d.y_size ne ysize then make_win = 1 else make_win = 0
-     endif else make_win = 1
-     if make_win eq 1 then window, window_num, xsize = xsize, ysize = ysize
-     erase
-     
-     if keyword_set(pub) then begin
-        pson, file = plotfile_2d, /eps
+     if xsize gt max_xsize then begin
+        factor = double(max_xsize) / xsize
+        xsize = max_xsize
+        ysize = round(ysize * factor)
      endif
      
-     for i=0, nfiles-1 do begin        
-        kpower_2d_plots, savefiles_2d[i], multi_pos = positions[*,i], multi_size = [xsize, ysize], $
+  endelse
+  window_num = 1
+  if windowavailable(window_num) then begin 
+     wset, window_num
+     if !d.x_size ne xsize or !d.y_size ne ysize then make_win = 1 else make_win = 0
+  endif else make_win = 1
+  if make_win eq 1 then window, window_num, xsize = xsize, ysize = ysize
+  erase
+  
+  if keyword_set(pub) then begin
+     pson, file = plotfile_2d, /eps
+  endif
+   
+  savefiles_2d_plot = strarr(nplots)
+  plot_weights = intarr(nplots)
+  plot_titles = strarr(nplots)
+  for i=0, npol-1 do begin
+     savefiles_2d_plot[i*(ntype+1):i*(ntype+1)+ntype-1] = savefiles_2d[i*ntype:i*ntype+ntype-1]
+     savefiles_2d_plot[i*(ntype+1)+ntype] = savefiles_2d[i*ntype]
+     plot_weights[i*(ntype+1)+ntype]=1
+     plot_titles[i*(ntype+1):i*(ntype+1)+ntype-1] = titles[i*ntype:i*ntype+ntype-1]
+     plot_titles[i*(ntype+1)+ntype] = 'weights ' + weight_labels[i]
+  endfor
+
+  for i=0, nplots-1 do begin
+
+     if plot_weights[i] eq 0 then $
+        kpower_2d_plots, savefiles_2d_plot[i], multi_pos = positions[*,i], multi_size = [xsize, ysize], $
                          kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, data_range = data_range, pub = pub, $
-                         title = titles[i], grey_scale = grey_scale, plot_wedge_line = plot_wedge_line, wedge_amp = wedge_amp, $
-                         baseline_axis = baseline_axis
-     endfor
-     
-     if keyword_set(pub) then begin
-        psoff
-        wdelete, window_num
-     endif
-
-  endelse
-
-  weight_plotfile_2d = plotfile_path + datafilebase + '_weights' + fadd + wt_fadd_2dbin + '_kspace' + $
-                       plot_fadd + '.eps'
-  nweights = n_elements(weight_labels)
-
-  if nweights eq 1 then begin
-     kpower_2d_plots, savefiles_2d[0], /plot_weights, kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
-                      pub = pub, plotfile = weight_plotfile_2d, title = 'Weights ' + weight_labels, window_num = 2, $
-                      grey_scale = grey_scale, plot_wedge_line = plot_wedge_line, wedge_amp = wedge_amp, baseline_axis = baseline_axis
-  endif else begin
-     
-     wt_nrow = ceil(sqrt(nweights))
-     wt_ncol = ceil(nweights / double(nrow))
-     wt_positions = fltarr(4, wt_ncol*wt_nrow)
-
-     wt_col_val = reverse(reform(rebin(indgen(wt_ncol), wt_ncol, wt_nrow), wt_ncol*wt_nrow))
-     wt_row_val = reform(rebin(reform(indgen(wt_nrow), 1, wt_nrow), wt_ncol, wt_nrow), wt_ncol*wt_nrow)
-          
-     wt_positions[0,*] = wt_col_val/double(wt_ncol)+xmargin
-     wt_positions[1,*] = wt_row_val/double(wt_nrow)+ymargin
-     wt_positions[2,*] = (wt_col_val+1)/double(wt_ncol)-xmargin
-     wt_positions[3,*] = (wt_row_val+1)/double(wt_nrow)-ymargin
-     
-     wt_xsize = xsize*wt_ncol/ncol
-     wt_ysize = ysize*wt_nrow/nrow
-     
-     if wt_xsize gt max_xsize then begin
-        factor = double(max_xsize) / wt_xsize
-        wt_xsize = max_xsize
-        wt_ysize = round(wt_ysize * factor)
-     endif
-     if wt_ysize gt max_ysize then begin
-        factor = double(max_ysize) / wt_ysize
-        wt_xsize = round(wt_xsize * factor)
-        wt_ysize = max_ysize
-     endif
-
-     window_num = 2
-     if windowavailable(window_num) then begin 
-        wset, window_num
-        if !d.x_size ne wt_xsize or !d.y_size ne wt_ysize then make_win = 1 else make_win = 0
-     endif else make_win = 1
-     if make_win eq 1 then window, window_num, xsize = wt_xsize, ysize = wt_ysize
-     erase
-     
-     if keyword_set(pub) then begin
-        pson, file = weight_plotfile_2d, /eps
-     endif
-     
-     for i=0, nweights-1 do begin
-        wh = where(weight_ind eq i, count)
-        if count eq 0 then stop
-        kpower_2d_plots, savefiles_2d[wh[i]], /plot_weights, multi_pos = wt_positions[*,i], multi_size = [wt_xsize, wt_ysize], $
+                         title = plot_titles[i], grey_scale = grey_scale, plot_wedge_line = plot_wedge_line, wedge_amp = wedge_amp, $
+                         baseline_axis = baseline_axis $
+     else kpower_2d_plots, savefiles_2d_plot[i], multi_pos = positions[*,i], multi_size = [xsize, ysize], /plot_weights, $
                          kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, pub = pub, $
-                         title = 'Weights ' + weight_labels[i], grey_scale = grey_scale, plot_wedge_line = plot_wedge_line, $
-                         wedge_amp = wedge_amp, baseline_axis = baseline_axis
-     endfor
+                         title = plot_titles[i], grey_scale = grey_scale, plot_wedge_line = plot_wedge_line, wedge_amp = wedge_amp, $
+                         baseline_axis = baseline_axis
+  endfor
      
-     if keyword_set(pub) then begin
-        psoff
-        wdelete, window_num
-     endif
-  endelse
-
-
+  if keyword_set(pub) then begin
+     psoff
+     wdelete, window_num
+  endif
 
 end
