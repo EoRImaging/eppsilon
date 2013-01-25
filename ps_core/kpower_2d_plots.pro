@@ -250,7 +250,7 @@ pro kpower_2d_plots, power_savefile, multi_pos = multi_pos, multi_size = multi_s
   if n_elements(margin_in) lt 4 then begin
      margin = [0.15, 0.15, 0.02, 0.1] 
      if keyword_set(baseline_axis) and not keyword_set(no_title) then $
-        if n_elements(multi_pos) gt 0 then margin[3] = 0.05/multi_ylen else margin[3] = 0.15
+        if n_elements(multi_pos) gt 0 then margin[3] = 0.07/multi_ylen else margin[3] = 0.15
      if n_elements(multi_pos) gt 0 then begin
         margin[0] = 0.13/multi_xlen
         margin[1] = 0.07/multi_ylen

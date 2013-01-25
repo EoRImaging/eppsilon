@@ -185,7 +185,7 @@ pro fhd_3dps, datafile, datavar, weightfile, weightvar, frequencies, max_baselin
            test_setup = file_test(hpx_dftsetup_savefile) *  (1 - file_test(hpx_dftsetup_savefile, /zero_length))
            if test_setup eq 0 then begin
               ;; figure out k values to calculate dft
-              healpix_setup_ft, pixel_nums, nside, new_pix_vec, limits, kx_rad_vals, ky_rad_vals
+              healpix_setup_ft, pixel_nums, nside, new_pix_vec, limits, kx_rad_vals, ky_rad_vals, /quiet
               save, file = hpx_dftsetup_savefile, new_pix_vec, limits, kx_rad_vals, ky_rad_vals
            endif else restore, hpx_dftsetup_savefile
 

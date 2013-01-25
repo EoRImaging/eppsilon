@@ -10,7 +10,7 @@ function get_rot_matrix, theta, phi, inverse = inverse
 end
 
 
-pro healpix_setup_ft, pixel_nums, nside, new_pix_vec, limits, kx_rad_vals, ky_rad_vals
+pro healpix_setup_ft, pixel_nums, nside, new_pix_vec, limits, kx_rad_vals, ky_rad_vals, quiet = quiet
 
   pix2vec_ring, nside, pixel_nums, pix_center_vec
   ;; find mid point (work in x/y because of possible jumps in phi)
@@ -54,13 +54,15 @@ pro healpix_setup_ft, pixel_nums, nside, new_pix_vec, limits, kx_rad_vals, ky_ra
   tvlct, r, g, b, /get
   loadct,39
 
-  if windowavailable(1) then wset, 1 else window, 1
-  surface, dist(5), /nodata, /save, xrange = [-1, 1], yrange = [-1, 1], zrange = [-1, 1], xtitle = 'x', ytitle = 'y'
-  plots, out_center_vec[*,0], out_center_vec[*,1], out_center_vec[*,2], psym = 4, color = 200, /T3D
-  plots, pix_center_vec[*,0], pix_center_vec[*,1], pix_center_vec[*,2], psym = 4, color = 254, /T3D
-  
-  plots, new_out_vec[*,0], new_out_vec[*,1], new_out_vec[*,2], psym = 4, color = 100, /T3D
-  plots, new_pix_vec[*,0], new_pix_vec[*,1], new_pix_vec[*,2], psym = 4, color = 75, /T3D
+  if not keyword_set(quiet) then begin
+     if windowavailable(1) then wset, 1 else window, 1
+     surface, dist(5), /nodata, /save, xrange = [-1, 1], yrange = [-1, 1], zrange = [-1, 1], xtitle = 'x', ytitle = 'y'
+     plots, out_center_vec[*,0], out_center_vec[*,1], out_center_vec[*,2], psym = 4, color = 200, /T3D
+     plots, pix_center_vec[*,0], pix_center_vec[*,1], pix_center_vec[*,2], psym = 4, color = 254, /T3D
+     
+     plots, new_out_vec[*,0], new_out_vec[*,1], new_out_vec[*,2], psym = 4, color = 100, /T3D
+     plots, new_pix_vec[*,0], new_pix_vec[*,1], new_pix_vec[*,2], psym = 4, color = 75, /T3D
+  endif
 
   pred_angle = healpix_rot(new_pix_vec[*,0], new_pix_vec[*,1])
   
@@ -80,15 +82,16 @@ pro healpix_setup_ft, pixel_nums, nside, new_pix_vec, limits, kx_rad_vals, ky_ra
      stop
   endif
   
-  if windowavailable(2) then wset, 2 else window, 2
-  plot, x_rot, y_rot, /nodata, xrange = minmax(x_out_rot), yrange = minmax(y_out_rot), color=0
-  oplot, x_out_rot, y_out_rot, psym = 3, color = 100
-  oplot, x_rot, y_rot, psym = 3, color = 75
+  if not keyword_set(quiet) then begin
+     if windowavailable(2) then wset, 2 else window, 2
+     plot, x_rot, y_rot, /nodata, xrange = minmax(x_out_rot), yrange = minmax(y_out_rot), color=0
+     oplot, x_out_rot, y_out_rot, psym = 3, color = 100
+     oplot, x_rot, y_rot, psym = 3, color = 75
   
-  x_range_plot = [lims[0], replicate(lims[2], 2), replicate(lims[0], 2)]
-  y_range_plot = [replicate(lims[1], 2), replicate(lims[3], 2), lims[1]]
-  oplot, x_range_plot, y_range_plot, psym = -3, color = 0
-
+     x_range_plot = [lims[0], replicate(lims[2], 2), replicate(lims[0], 2)]
+     y_range_plot = [replicate(lims[1], 2), replicate(lims[3], 2), lims[1]]
+     oplot, x_range_plot, y_range_plot, psym = -3, color = 0
+  endif
   ;; print, n_elements(pixels)
   ;; print, minmax(pixels)
   ;; print, theta0, phi0
