@@ -261,7 +261,7 @@ pro kpower_2d_plots, power_savefile, multi_pos = multi_pos, multi_size = multi_s
   endif else margin = margin_in
 
   if n_elements(cb_margin_in) lt 2 then begin
-     cb_margin = [0.08, 0.02] 
+     cb_margin = [0.13, 0.02] 
      if n_elements(multi_pos) gt 0 then cb_margin[0] = 0.15/multi_xlen
   endif else cb_margin = cb_margin_in 
   
