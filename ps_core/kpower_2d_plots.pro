@@ -252,13 +252,17 @@ pro kpower_2d_plots, power_savefile, multi_pos = multi_pos, multi_size = multi_s
      if keyword_set(baseline_axis) and not keyword_set(no_title) then $
         if n_elements(multi_pos) gt 0 then margin[3] = 0.05/multi_ylen else margin[3] = 0.15
      if n_elements(multi_pos) gt 0 then begin
-        margin[0] = 0.05/multi_xlen
+        margin[0] = 0.13/multi_xlen
+        margin[1] = 0.07/multi_ylen
+
+        ;;print, multi_xlen, multi_ylen
+        ;;print, margin
      endif
   endif else margin = margin_in
 
   if n_elements(cb_margin_in) lt 2 then begin
      cb_margin = [0.08, 0.02] 
-     if n_elements(multi_pos) gt 0 then cb_margin[0] = 0.18/multi_xlen
+     if n_elements(multi_pos) gt 0 then cb_margin[0] = 0.15/multi_xlen
   endif else cb_margin = cb_margin_in 
   
   plot_pos = [margin[0], margin[1], (1-cb_margin[1]-cb_size-cb_margin[0]-margin[2]), (1-margin[3])]
