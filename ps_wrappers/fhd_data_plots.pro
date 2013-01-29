@@ -54,12 +54,7 @@ pro fhd_data_plots, datafile, save_path = save_path, plot_path = plot_path, heal
   datafilebase = strmid(infilebase, 0, temp2)
 
   if n_elements(save_path) ne 0 then froot = save_path else froot = strmid(datafile, 0, temp+1)
-
-
-  ;; froot = base_path('data') + 'fhd_ps_data/'
-  ;; if keyword_set(healpix) then datafilebase = 'multi_freq_residuals_cube_healpix' else datafilebase ='multi_freq_residuals_cube_20k'
-  ;; datafile = froot + datafilebase + '.sav'
-  
+ 
   file_obj = obj_new('idl_savefile', datafile)
   varnames = file_obj->names()
   wh_obs = where(strlowcase(varnames) eq 'obs', count_obs)
