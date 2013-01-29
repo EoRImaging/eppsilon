@@ -8,7 +8,7 @@ pro fhd_3dps, datafile, datavar, weightfile, weightvar, frequencies, max_baselin
 
   if n_params() ne 6 then message, 'Wrong number of parameters passed. Required parameters are: datafile (string), ' + $
                                  'datavar (string), weightfile (string), weightvar (string), ' + $
-                                 'frequencies (float or double array), max_baseline (float or double)'
+                                 'freqencies (float or double array), max_baseline (float or double)'
 
   if keyword_set(healpix) and (keyword_set(dft_refresh_data) or keyword_set(dft_refresh_weight)) then refresh=1
 
@@ -89,8 +89,8 @@ pro fhd_3dps, datafile, datavar, weightfile, weightvar, frequencies, max_baselin
      freq_diff = frequencies - shift(frequencies, 1)
      freq_diff = freq_diff[1:*]
      
-     z0_freq = 1420.40 ;; MHz
-     redshifts = z0_freq/frequencies - 1
+     z0_freq = 1420.40d ;; MHz
+     redshifts = z0_freq/frequencies - 1d
      cosmology_measures, redshifts, comoving_dist_los = comov_dist_los
      
      comov_los_diff = comov_dist_los - shift(comov_dist_los, -1)
@@ -115,12 +115,12 @@ pro fhd_3dps, datafile, datavar, weightfile, weightvar, frequencies, max_baselin
         n_kz = n_freq
         
      endelse
-     kperp_lambda_conv = z_mpc_mean / (2d*!pi)
+     kperp_lambda_conv = z_mpc_mean / (2d*!dpi)
 
      z_mpc_length = max(comov_dist_los) - min(comov_dist_los) + z_mpc_delta
-     kz_mpc_range =  (2d*!pi) / (z_mpc_delta)
-     kz_mpc_delta = (2d*!pi) / z_mpc_length
-     kz_mpc = dindgen(round(kz_mpc_range / kz_mpc_delta)) * kz_mpc_delta - kz_mpc_range/2
+     kz_mpc_range =  (2d*!dpi) / (z_mpc_delta)
+     kz_mpc_delta = (2d*!dpi) / z_mpc_length
+     kz_mpc = dindgen(round(kz_mpc_range / kz_mpc_delta)) * kz_mpc_delta - kz_mpc_range/2d
      if n_elements(n_kz) ne 0 then begin
         if n_elements(kz_mpc) ne n_kz then stop
      endif else n_kz = n_elements(kz_mpc)
@@ -137,12 +137,13 @@ pro fhd_3dps, datafile, datavar, weightfile, weightvar, frequencies, max_baselin
         conv_factor = 2d * max_baseline^2d / (!dpi * 1.38)
      endif else conv_factor = 1d
 
-     data_cube = getvar_savefile(datafile, datavar) * conv_factor
+     ;; data and weights are floats, avoid increasing to doubles
+     data_cube = getvar_savefile(datafile, datavar) * float(conv_factor)
      if not keyword_set(no_weighting) then begin
         weights_cube = getvar_savefile(weightfile, weightvar)
         if max(abs(imaginary(weights_cube))) eq 0 then weights_cube = real_part(weights_cube) $
         else stop
-     endif else weights_cube = real_part(data_cube)*0d + 1d
+     endif else weights_cube = real_part(data_cube)*0. + 1.
         
      if keyword_set(healpix) then begin
         if n_elements(pixelfile) eq 0 or n_elements(pixelvar) eq 0 then message, $
@@ -578,8 +579,8 @@ pro fhd_3dps, datafile, datavar, weightfile, weightvar, frequencies, max_baselin
      data_ft = shift(data_ft, [0,0,n_kz/2])
      undefine, data_cube
 
-     print, 'full_ft^2d integral:', total(abs(data_ft)^2d)
-     print, 'full_ft^2d integral * 2pi*delta_k^2d:', total(abs(data_ft)^2d) * kz_mpc_delta * 2d * !dpi
+     print, 'full_ft^2 integral:', total(abs(data_ft)^2d)
+     print, 'full_ft^2 integral * 2pi*delta_k^2:', total(abs(data_ft)^2d) * kz_mpc_delta * 2d * !dpi
  
      ;; factor to go to eor theory FT convention
      ;; Only 1 factor of 2pi b/c only transforming along z

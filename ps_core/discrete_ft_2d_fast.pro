@@ -34,13 +34,10 @@ function discrete_ft_2d_fast, locations1, locations2, data, k1, k2, timing = tim
   x_loc_k = float(matrix_multiply(locations1, k1, /btranspose))
   y_loc_k = float(matrix_multiply(locations2, k2, /btranspose))
 
-  if fchunk gt 1 then begin
-     n_chunks = ceil(n_slices/fchunk)
-     fchunk_sizes = intarr(n_chunks) + fchunk
-     if n_chunks gt 1 then fchunk_sizes[n_chunks-1] = n_slices - total(fchunk_sizes[0:n_chunks-2])
-     fchunk_edges = [0, total(fchunk_sizes, /cumulative)-1]
-  endif
-
+  n_chunks = ceil(n_slices/float(fchunk))
+  fchunk_sizes = intarr(n_chunks) + fchunk
+  if n_chunks gt 1 then fchunk_sizes[n_chunks-1] = n_slices - total(fchunk_sizes[0:n_chunks-2])
+  fchunk_edges = [0, total(fchunk_sizes, /cumulative)]
 
   ;; want progress reports every so often + on 3rd step
   nsteps = n_k1*n_chunks
@@ -49,42 +46,40 @@ function discrete_ft_2d_fast, locations1, locations2, data, k1, k2, timing = tim
   inner_times = fltarr(nsteps)
   outer_times = fltarr(n_chunks)
 
+  y_exp = exp(-1.*complex(0,1)*rebin(y_loc_k, n_pts, n_k2, fchunk_sizes[0]))
+
   time_preloop = systime(1) - time0
   print, 'pre-loop time: ' + strsplit(string(time_preloop), /extract)
-
+   
   for j=0, n_chunks-1 do begin
      temp=systime(1)
-     y_exp = exp(-1*dcomplex(0,1)*rebin(y_loc_k, n_pts, n_k2, fchunk_sizes[j]))
-     outer_times[j] = systime(1) - temp
-     ave_outer_t = mean(outer_times[0:j])
-     if ave_outer_t lt 60 then outer_t_str = number_formatter(ave_outer_t, format='(d8.2)') + ' sec' $
-     else if ave_outer_t lt 3600 then outer_t_str = number_formatter(ave_outer_t/60d, format='(d8.2)') + ' min' $
-     else outer_t_str = number_formatter(ave_outer_t/3600d, format='(d8.2)') + ' hours'
-
-     print, 'on freq. loop ' + number_formatter(j) + ' of ' + number_formatter(n_chunks) + '; ave freq rebin time: ' + outer_t_str
-
+ 
+     if fchunk_sizes[j] ne fchunk_sizes[0] then y_exp = exp(-1.*complex(0,1)*rebin(y_loc_k, n_pts, n_k2, fchunk_sizes[j]))
+   
      for i=0, n_k1-1 do begin
         ;;generate a vector of x_exp values and a 2d array of y_exp values
-        this_step = (i+1)*(j+1)-1
+        this_step = j*n_k1 + i
         wh = where(progress_steps eq this_step, count)
         if count gt 0 then begin
-           ave_t = mean(inner_times[0:this_step-1])
-           t_left = ave_t*(nsteps-this_step) + ave_outer_t*(n_chunks-j-1)
-           if t_left lt 60 then t_left_str = number_formatter(t_left, format='(d8.2)') + ' sec' $
-           else if t_left lt 3600 then t_left_str = number_formatter(t_left/60d, format='(d8.2)') + ' min' $
-           else t_left_str = number_formatter(t_left/3600d, format='(d8.2)') + ' hours'
-           
            print, 'progress: on step ' + number_formatter(this_step) + ' of ' + number_formatter(nsteps) + $
                   ' (~ ' + number_formatter(round(100d*this_step/(nsteps))) + '% done)'
-           if i gt 0 then print, 'memory used: ' + number_formatter(memory(/current)/1.e9, format='(d8.1)') + $
-                                 ' GB; ave step time: ' + number_formatter(ave_t, format='(d8.2)') + $
-                                 '; approx. time remaining: ' + t_left_str
+           if this_step gt 0 then begin
+              ave_t = mean(inner_times[0:this_step-1])
+              t_left = ave_t*(nsteps-this_step)
+              if t_left lt 60 then t_left_str = number_formatter(t_left, format='(d8.2)') + ' sec' $
+              else if t_left lt 3600 then t_left_str = number_formatter(t_left/60d, format='(d8.2)') + ' min' $
+              else t_left_str = number_formatter(t_left/3600d, format='(d8.2)') + ' hours'
+              
+              print, 'memory used: ' + number_formatter(memory(/current)/1.e9, format='(d8.1)') + ' GB; ave step time: ' + $
+                     number_formatter(ave_t, format='(d8.2)') + '; approx. time remaining: ' + t_left_str
+
+           endif
         endif
 
         temp=systime(1)
 
-        x_exp_loop = exp(-1*dcomplex(0,1)*rebin(x_loc_k[*,i], n_pts, fchunk_sizes[j]))
-        ft[i,*,fchunk_edges[j]:fchunk_edges[j+1]] = transpose(matrix_multiply(data*x_exp_loop, y_exp, /atranspose))
+        x_exp_loop = exp(-1.*complex(0,1)*rebin(x_loc_k[*,i], n_pts, fchunk_sizes[j]))
+        ft[i,*,fchunk_edges[j]:fchunk_edges[j+1]-1] = transpose(matrix_multiply(data*x_exp_loop, y_exp, /atranspose))
 
         inner_times[this_step] = systime(1) - temp
  
