@@ -117,7 +117,9 @@ pro kpower_2d_plots, power_savefile, multi_pos = multi_pos, multi_size = multi_s
      power = power * norm_factor
   endif
 
-  if n_elements(data_range) eq 0 then data_range = minmax(power)
+  if n_elements(data_range) eq 0 then data_range = minmax(power) else if n_elements(data_range) ne 2 then $
+     message, 'data_range must be a 2 element vector'
+  if data_range[1] lt data_range[0] then message, 'data_range[0] must be less than data_range[1]'
   wh = where(power gt 0d, count)
   if count gt 0 then min_pos = min(power[wh]) else if data_range[0] gt 0 then min_pos = data_range[0] else $
      if data_range[1] gt 0 then min_pos = data_range[1]/10d else min_pos = 0.01d
@@ -233,7 +235,6 @@ pro kpower_2d_plots, power_savefile, multi_pos = multi_pos, multi_size = multi_s
      
   power_log_norm = (power_log-log_data_range[0])*n_colors/(log_data_range[1]-log_data_range[0]) + color_range[0]
 
-
   if n_elements(multi_pos) eq 4 then begin
      ;; work out positions scaled to the area allowed in multi_pos with proper aspect ratio
      multi_xlen = (multi_pos[2]-multi_pos[0])
@@ -268,6 +269,9 @@ pro kpower_2d_plots, power_savefile, multi_pos = multi_pos, multi_size = multi_s
   plot_pos = [margin[0], margin[1], (1-cb_margin[1]-cb_size-cb_margin[0]-margin[2]), (1-margin[3])]
   cb_pos = [(1-cb_margin[1]-cb_size), margin[1], (1-cb_margin[1]), (1-margin[3])]
   
+  plot_len = [plot_pos[2]-plot_pos[0], plot_pos[3] - plot_pos[1]]
+  if min(plot_len) le 0 then stop
+
   plot_aspect = (plot_pos[3] - plot_pos[1]) / (plot_pos[2] - plot_pos[0])
   
   kpar_length_log = max(kpar_log_edges) - min(kpar_log_edges)
@@ -424,9 +428,7 @@ pro kpower_2d_plots, power_savefile, multi_pos = multi_pos, multi_size = multi_s
                 charsize: charsize, font: font} 
   cgimage, power_log_norm, /nointerp, xrange = minmax(plot_kperp), yrange = minmax(plot_kpar), $
            title=initial_title, position = plot_pos, noerase = no_erase, color = annotate_color, background = background_color, $
-           axkeywords = axkeywords, /axes
-           
-
+           axkeywords = axkeywords, /axes          
 
   if keyword_set(plot_wedge_line) then $
      cgplot, /overplot, plot_kperp, plot_kperp * wedge_amp, color = annotate_color, thick = thick+1, psym=-0, linestyle = 2

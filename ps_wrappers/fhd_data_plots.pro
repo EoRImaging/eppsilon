@@ -260,10 +260,10 @@ pro fhd_data_plots, datafile, save_path = save_path, plot_path = plot_path, heal
      if make_win eq 1 then window, window_num, xsize = xsize, ysize = ysize
      erase
      
-    for i=0, nplots-1 do begin
-        
+     multi_size = [xsize/ncol, ysize/nrow]
+     for i=0, nplots-1 do begin     
         if plot_weights[i] eq 0 then $
-           kpower_2d_plots, savefiles_2d_plot[i], multi_pos = positions[*,i], multi_size = [xsize, ysize], $
+           kpower_2d_plots, savefiles_2d_plot[i], multi_pos = positions[*,i], multi_size = multi_size, $
                             kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, data_range = data_range, $
                             title = plot_titles[i], grey_scale = grey_scale, plot_wedge_line = plot_wedge_line, $
                             wedge_amp = wedge_amp, baseline_axis = baseline_axis $
