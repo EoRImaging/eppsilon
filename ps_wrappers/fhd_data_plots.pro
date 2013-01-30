@@ -43,7 +43,7 @@ pro fhd_data_plots, datafile, save_path = save_path, plot_path = plot_path, heal
      type_num[i] = wh[0]
   endfor
   type_inc = type_enum[type_num[uniq(type_num, sort(type_num))]]
-stop
+
   datafile_test = file_test(datafile)
   if datafile_test eq 0 then message, 'datafile not found'
 
