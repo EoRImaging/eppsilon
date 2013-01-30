@@ -5,6 +5,7 @@ pro healpix_test_wrapper
   
   datafile = '/data2/MWA/PowerSpectra/FHD_healpix_test/multi_freq_residuals_cube_healpix.sav'
 
-  fhd_data_plots, datafile, /healpix, dft_fchunk=24, plot_path = plot_path
+  fhd_data_plots, datafile, /healpix, dft_fchunk=24, plot_path = plot_path, /linear_kperp, /pub
+  ;;fhd_data_plots, datafile, /healpix, dft_fchunk=24, plot_path = plot_path, /linear_kperp, /refresh_binning
 
 end

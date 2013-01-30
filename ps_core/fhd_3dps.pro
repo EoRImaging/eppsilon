@@ -2,9 +2,9 @@ pro fhd_3dps, datafile, datavar, weightfile, weightvar, frequencies, max_baselin
               nside = nside, pixelfile = pixelfile, pixelvar = pixelvar, hpx_dftsetup_savefile = hpx_dftsetup_savefile, $
               savefilebase = savefilebase_in, weight_savefilebase = weight_savefilebase_in, refresh = refresh, $
               dft_refresh_data = dft_refresh_data, dft_refresh_weight = dft_refresh_weight, dft_fchunk = dft_fchunk, $
-              no_weighting = no_weighting, $
-              std_power = std_power, no_kzero = no_kzero, no_weighted_averaging = no_weighted_averaging, input_units = input_units, $
-              fill_oles = fill_holes, quiet = quiet;, clean_type = clean_type
+              no_weighting = no_weighting, std_power = std_power, no_kzero = no_kzero, linear_kpar = linear_kpar, $
+              linear_kperp = linear_kperp, linkperp_bin = linkperp_bin, no_weighted_averaging = no_weighted_averaging, $
+              input_units = input_units, fill_holes = fill_holes, quiet = quiet;, clean_type = clean_type
 
   if n_params() ne 6 then message, 'Wrong number of parameters passed. Required parameters are: datafile (string), ' + $
                                  'datavar (string), weightfile (string), weightvar (string), ' + $
@@ -783,18 +783,21 @@ pro fhd_3dps, datafile, datavar, weightfile, weightvar, frequencies, max_baselin
   if keyword_set(no_weighted_averaging) then fadd = fadd + '_nowtave'
   if keyword_set(no_kzero) then fadd = fadd + '_nok0'
   if keyword_set(fill_holes) then fadd = fadd + '_nohole'
+  if keyword_set(linear_kpar) then fadd = fadd + '_linkpar'
+  if keyword_set(linear_kperp) then fadd = fadd + '_linkperp'
 
   savefile = froot + savefilebase + fadd + '_2dkpower.idlsave'
-  savefile_lin = froot + savefilebase + fadd + '_linkpar_2dkpower.idlsave'
 
   print, 'Binning to 2D power spectrum'
 
   bins_per_decade = 8
   if keyword_set(no_weighting) then $
-     power_rebin = kspace_rebinning_2d(power_3D, kx_mpc, ky_mpc, kz_mpc, kperp_edges_mpc, kpar_edges_mpc, $
+     power_rebin = kspace_rebinning_2d(power_3D, kx_mpc, ky_mpc, kz_mpc, kperp_edges_mpc, kpar_edges_mpc, linear_kpar = linear_kpar, $
+                                       linear_kperp = linear_kperp, linkperp_bin = linkperp_bin, $
                                        binned_weights = binned_weights, bins = bins_per_decade, fill_holes = fill_holes) $
   else begin
-     power_rebin = kspace_rebinning_2d(power_3D, kx_mpc, ky_mpc, kz_mpc, kperp_edges_mpc, kpar_edges_mpc, $
+     power_rebin = kspace_rebinning_2d(power_3D, kx_mpc, ky_mpc, kz_mpc, kperp_edges_mpc, kpar_edges_mpc, linear_kpar = linear_kpar, $
+                                       linear_kperp = linear_kperp, linkperp_bin = linkperp_bin, $
                                        weights = weights_3d, binned_weights = binned_weights, bins = bins_per_decade, $
                                        fill_holes = fill_holes)
      if keyword_set(no_weighted_averaging) then $
@@ -812,27 +815,6 @@ pro fhd_3dps, datafile, datavar, weightfile, weightvar, frequencies, max_baselin
   kperp_plot_range = [min(kperp_edges[wh_good_kperp]), max(kperp_edges[wh_good_kperp+1])]
   
   save, file = savefile, power, weights, kperp_edges, kpar_edges, bins_per_decade, kperp_lambda_conv
-
-  ;; also bin with linear k_par
-
-  if keyword_set(no_weighting) then $
-     power_rebin = kspace_rebinning_2d(power_3D, kx_mpc, ky_mpc, kz_mpc, kperp_edges_mpc, kpar_edges_mpc, /linear_kpar, $
-                                       binned_weights = binned_weights, bins = bins_per_decade, fill_holes = fill_holes) $
-  else begin
-     power_rebin = kspace_rebinning_2d(power_3D, kx_mpc, ky_mpc, kz_mpc, kperp_edges_mpc, kpar_edges_mpc, /linear_kpar, $
-                                       weights = weights_3d, binned_weights = binned_weights, bins = bins_per_decade, $
-                                       fill_holes = fill_holes)
-     if keyword_set(no_weighted_averaging) then $
-        power_rebin = kspace_rebinning_2d(power_3D, kx_mpc, ky_mpc, kz_mpc, kperp_edges_mpc, kpar_edges_mpc, /linear_kpar, $
-                                          bins = bins_per_decade, fill_holes = fill_holes)
-  endelse
-  
-  power = power_rebin
-  kperp_edges = kperp_edges_mpc
-  kpar_edges = kpar_edges_mpc
-  weights = binned_weights
-  
-  save, file = savefile_lin, power, weights, kperp_edges, kpar_edges, bins_per_decade, kperp_lambda_conv
 
   if not keyword_set(quiet) then begin
      kpower_2d_plots, savefile, kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $

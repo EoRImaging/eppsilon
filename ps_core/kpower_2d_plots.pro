@@ -91,7 +91,7 @@ pro kpower_2d_plots, power_savefile, multi_pos = multi_pos, multi_size = multi_s
   
   ;; Check whether binning is log or not
   log_bins = [1, 1]
-  kperp_log_diffs = (alog10(kperp_edges) - shift(alog10(kperp_edges), 1))[1:*]
+  kperp_log_diffs = (alog10(kperp_edges) - shift(alog10(kperp_edges), 1))[2:*]
   if total(abs(kperp_log_diffs - kperp_log_diffs[0])) gt n_kperp*1e-15 then log_bins[0] = 0
   kpar_log_diffs = (alog10(kpar_edges) - shift(alog10(kpar_edges), 1))[2:*]
   if total(abs(kpar_log_diffs - kpar_log_diffs[0])) gt n_kpar*1e-15 then log_bins[1] = 0
@@ -298,7 +298,7 @@ pro kpower_2d_plots, power_savefile, multi_pos = multi_pos, multi_size = multi_s
   endelse
   
   if n_elements(multi_pos) eq 4 then begin
-     multi_aspect = multi_size[1]/multi_size[0]
+     multi_aspect = multi_size[1]/float(multi_size[0])
      new_aspect = aspect_ratio/multi_aspect
      if new_aspect gt 1 then begin
         y_factor = 1.

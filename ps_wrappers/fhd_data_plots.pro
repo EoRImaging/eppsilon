@@ -1,9 +1,8 @@
 pro fhd_data_plots, datafile, save_path = save_path, plot_path = plot_path, healpix=healpix, pol_inc = pol_inc, type_inc = type_inc, $
-                    refresh_dft = refresh_dft, dft_fchunk = dft_fchunk, $
-                    refresh_ps = refresh_ps, refresh_binning = refresh_binning, $
+                    refresh_dft = refresh_dft, dft_fchunk = dft_fchunk, refresh_ps = refresh_ps, refresh_binning = refresh_binning, $
                     no_weighting = no_weighting, std_power = std_power, no_kzero = no_kzero, $
-                    no_weighted_averaging = no_weighted_averaging, $
-                    data_range = data_range, plot_weights = plot_weights, slice_nobin = slice_nobin, linear_kpar = linear_kpar, $
+                    no_weighted_averaging = no_weighted_averaging, data_range = data_range, plot_weights = plot_weights, $
+                    slice_nobin = slice_nobin, linear_kpar = linear_kpar, linear_kperp = linear_kperp, linkperp_bin = linkperp_bin, $
                     plot_uvf = plot_uvf, uvf_data_range = uvf_data_range, uvf_type = uvf_type, baseline_axis = baseline_axis, $
                     plot_wedge_line = plot_wedge_line, grey_scale = grey_scale, pub = pub
 
@@ -110,6 +109,10 @@ pro fhd_data_plots, datafile, save_path = save_path, plot_path = plot_path, heal
      fadd_2dbin = fadd_2dbin + '_linkpar'
      wt_fadd_2dbin = wt_fadd_2dbin + '_linkpar'
   endif
+  if keyword_set(linear_kperp) then begin
+     fadd_2dbin = fadd_2dbin + '_linkperp'
+     wt_fadd_2dbin = wt_fadd_2dbin + '_linkperp'
+  endif
 
   n_cubes = npol*ntype
   type_pol_str = strarr(n_cubes)
@@ -130,6 +133,16 @@ pro fhd_data_plots, datafile, save_path = save_path, plot_path = plot_path, heal
 
   nfiles = n_elements(savefiles_2d)
   for i=0, nfiles-1 do begin
+
+     ;; for linear_kperp with specified binsize, have to check that binsize is right
+     if n_elements(linkperp_bin) ne 0 and test_save[i] gt 0 and not keyword_set(refresh_ps) and $
+        not keyword_set(refresh_binning) then begin
+        file_obj = obj_new('idl_savefile', savefiles_2d[i])
+        file_obj->restore, 'kperp_edges'
+        kperp_binsize = kperp_edges[1] - kperp_edges[0]
+        if abs(kperp_binsize - linkperp_bin) gt 0. then test_save[i]=0
+     endif
+
      if test_save[i] eq 0 or keyword_set(refresh_ps) or keyword_set(refresh_binning) then begin
         if keyword_set(healpix) then begin
            pixelfile = datafile
@@ -147,12 +160,13 @@ pro fhd_data_plots, datafile, save_path = save_path, plot_path = plot_path, heal
                      nside = nside, pixelfile = pixelfile, pixelvar = pixel_varname, hpx_dftsetup_savefile = hpx_dftsetup_savefile, $
                      savefilebase = savefilebase[i], weight_savefilebase = weight_savefilebase[i], refresh = refresh_ps, $
                      dft_refresh_data=refresh_dft, dft_refresh_weight=weight_refresh[i], dft_fchunk = dft_fchunk, $
-                     no_weighting = no_weighting, std_power = std_power, no_kzero = no_kzero, $
-                     no_weighted_averaging = no_weighted_averaging, /quiet
+                     no_weighting = no_weighting, std_power = std_power, no_kzero = no_kzero, linear_kpar = linear_kpar, $
+                     linear_kperp = linear_kperp, linkperp_bin = linkperp_bin, no_weighted_averaging = no_weighted_averaging, /quiet
         endif else $
            fhd_3dps, datafile, data_varnames[i], datafile, weight_varnames[weight_ind[i]], frequencies, max_baseline, $
                      degpix=obs.degpix, savefilebase = savefilebase[i], refresh = refresh_ps, no_weighting = no_weighting, $
-                     std_power = std_power, no_kzero = no_kzero, no_weighted_averaging = no_weighted_averaging, /quiet
+                     std_power = std_power, no_kzero = no_kzero, linear_kpar = linear_kpar, linear_kperp = linear_kperp, $
+                     linkperp_bin = linkperp_bin, no_weighted_averaging = no_weighted_averaging, /quiet
      endif
   endfor
 
@@ -262,7 +276,7 @@ pro fhd_data_plots, datafile, save_path = save_path, plot_path = plot_path, heal
                             kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, data_range = data_range, $
                             title = plot_titles[i], grey_scale = grey_scale, plot_wedge_line = plot_wedge_line, $
                             wedge_amp = wedge_amp, baseline_axis = baseline_axis $
-        else kpower_2d_plots, savefiles_2d_plot[i], multi_pos = positions[*,i], multi_size = [xsize, ysize], /plot_weights, $
+        else kpower_2d_plots, savefiles_2d_plot[i], multi_pos = positions[*,i], multi_size = multi_size, /plot_weights, $
                               kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
                               title = plot_titles[i], grey_scale = grey_scale, plot_wedge_line = plot_wedge_line, $
                               wedge_amp = wedge_amp, baseline_axis = baseline_axis
