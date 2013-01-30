@@ -152,8 +152,8 @@ pro fhd_data_plots, datafile, save_path = save_path, plot_path = plot_path, heal
            
            weight_refresh = intarr(nfiles)
            if keyword_set(refresh_dft) then begin
-              temp = sort(weight_ind)
-              weight_refresh[temp[where(weight_ind[temp]-shift(weight_ind[temp],1) ne 0)]] = 1
+              temp = weight_ind[uniq(weight_ind, sort(weight_ind))]
+              for j=0, n_elements(temp)-1 do weight_refresh[(where(weight_ind eq temp[j]))[0]] = 1
            endif
 
            fhd_3dps, datafile, data_varnames[i], datafile, weight_varnames[weight_ind[i]], frequencies, max_baseline, /healpix, $

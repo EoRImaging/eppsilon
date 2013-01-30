@@ -46,7 +46,8 @@ function discrete_ft_2d_fast, locations1, locations2, data, k1, k2, timing = tim
   inner_times = fltarr(nsteps)
   outer_times = fltarr(n_chunks)
 
-  y_exp = exp(-1.*complex(0,1)*rebin(y_loc_k, n_pts, n_k2, fchunk_sizes[0]))
+  if fchunk_sizes[0] eq 1 then y_exp = reform(exp(-1.*complex(0,1)*y_loc_k), n_pts, n_k2, fchunk_sizes[0]) $
+  else y_exp = exp(-1.*complex(0,1)*rebin(y_loc_k, n_pts, n_k2, fchunk_sizes[0]))
 
   time_preloop = systime(1) - time0
   print, 'pre-loop time: ' + strsplit(string(time_preloop), /extract)
@@ -54,7 +55,9 @@ function discrete_ft_2d_fast, locations1, locations2, data, k1, k2, timing = tim
   for j=0, n_chunks-1 do begin
      temp=systime(1)
  
-     if fchunk_sizes[j] ne fchunk_sizes[0] then y_exp = exp(-1.*complex(0,1)*rebin(y_loc_k, n_pts, n_k2, fchunk_sizes[j]))
+     if fchunk_sizes[j] ne fchunk_sizes[0] then $
+        if fchunk_sizes[j] eq 1 then y_exp = reform(exp(-1.*complex(0,1)*y_loc_k), n_pts, n_k2, fchunk_sizes[j]) $
+        else y_exp = exp(-1.*complex(0,1)*rebin(y_loc_k, n_pts, n_k2, fchunk_sizes[j]))
    
      for i=0, n_k1-1 do begin
         ;;generate a vector of x_exp values and a 2d array of y_exp values
@@ -78,8 +81,12 @@ function discrete_ft_2d_fast, locations1, locations2, data, k1, k2, timing = tim
 
         temp=systime(1)
 
-        x_exp_loop = exp(-1.*complex(0,1)*rebin(x_loc_k[*,i], n_pts, fchunk_sizes[j]))
-        ft[i,*,fchunk_edges[j]:fchunk_edges[j+1]-1] = transpose(matrix_multiply(data*x_exp_loop, y_exp, /atranspose))
+        if fchunk_sizes[j] eq 1 then begin
+           term1 = reform(data[*,fchunk_edges[j]]*exp(-1.*complex(0,1)*x_loc_k[*,i]), n_pts, fchunk_sizes[j])
+        endif else begin
+           term1 = data[*,fchunk_edges[j]:fchunk_edges[j+1]-1] * exp(-1.*complex(0,1)*rebin(x_loc_k[*,i], n_pts, fchunk_sizes[j]))
+        endelse
+        ft[i,*,fchunk_edges[j]:fchunk_edges[j+1]-1] = transpose(matrix_multiply(term1, y_exp, /atranspose))
 
         inner_times[this_step] = systime(1) - temp
  
