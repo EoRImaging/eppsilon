@@ -31,19 +31,19 @@ pro fhd_data_plots, datafile, save_path = save_path, plot_path = plot_path, heal
      if count eq 0 then message, 'pol ' + pol_inc[i] + ' not recognized.'
      pol_num[i] = wh[0]
   endfor
-  pol_inc = pol_enum[uniq(pol_inc, sort(pol_inc))]
+  pol_inc = pol_enum[pol_num[uniq(pol_num, sort(pol_num))]]
 
   if n_elements(type_inc) eq 0 then type_inc = ['dirty', 'model', 'res']
   type_enum = ['dirty', 'model', 'res']
   ntype = n_elements(type_inc)
   type_num = intarr(ntype)
-  for i=0, npol-1 do begin
+  for i=0, ntype-1 do begin
      wh = where(type_enum eq type_inc[i], count)
      if count eq 0 then message, 'type ' + type_inc[i] + ' not recognized.'
      type_num[i] = wh[0]
   endfor
-  type_inc = type_enum[uniq(type_inc, sort(type_inc))]
-
+  type_inc = type_enum[type_num[uniq(type_num, sort(type_num))]]
+stop
   datafile_test = file_test(datafile)
   if datafile_test eq 0 then message, 'datafile not found'
 
