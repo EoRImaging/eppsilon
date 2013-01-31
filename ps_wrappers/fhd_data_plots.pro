@@ -60,36 +60,70 @@ pro fhd_data_plots, datafile, save_path = save_path, plot_path = plot_path, heal
      wh_obs = where(strlowcase(varnames) eq 'obs_arr', count_obs)
      if count_obs ne 0 then begin
         file_obj->restore, 'obs_arr'
-        if size(obs_arr,/type) ne 10 then stop
-        n_obs = n_elements(obs_arr)
-        max_baseline_vals = dblarr(n_obs)
-        for i=0, n_obs-1 do begin
-           if abs((*obs_arr[i]).degpix - (*obs_arr[0]).degpix) gt 0 then message, 'inconsistent degpix values in obs_arr'
-           if total(abs((*obs_arr[i]).fbin_i - (*obs_arr[0]).fbin_i)) gt 0 then message, 'inconsistent fbin_i values in obs_arr'
-           if total(abs((*obs_arr[i]).freq - (*obs_arr[0]).freq)) gt 0 then message, 'inconsistent freq values in obs_arr'
-           max_baseline_vals[i] = (*obs_arr[i]).max_baseline
-        endfor
+        if size(obs_arr,/type) eq 10 then begin
+           n_obs = n_elements(obs_arr)
+           for i=0, n_obs-1 do begin
+              if abs((*obs_arr[i]).degpix - (*obs_arr[0]).degpix) gt 0 then message, 'inconsistent degpix values in obs_arr'
+              if total(abs((*obs_arr[i]).fbin_i - (*obs_arr[0]).fbin_i)) gt 0 then message, 'inconsistent fbin_i values in obs_arr'
+              if total(abs((*obs_arr[i]).freq - (*obs_arr[0]).freq)) gt 0 then message, 'inconsistent freq values in obs_arr'
+              max_baseline_vals[i] = (*obs_arr[i]).max_baseline
+           endfor
 
-        wh_max = where(max_baseline_vals eq max(max_baseline_vals))
-        obs = *obs_arr[wh_max[0]]
+           max_baseline_lambda = max(max_baseline_vals)
+           degpix = (*obs_arr[0]).degpix
+           freq = (*obs_arr[0]).freq
+           fbin_i = (*obs_arr[0]).fbin_i
+
+       endif else begin
+           n_obs = n_elements(obs_arr)
+           max_baseline_lambda = max(obs_arr.max_baseline)
+
+           n_freq_vals = obs_arr.n_freq
+           if total(abs(obs_arr.n_freq - obs_arr[0].n_freq)) ne 0 then message, 'inconsistent number of frequencies in obs_arr'
+           n_freq = obs_arr[0].n_freq
+
+           degpix_vals = obs_arr.degpix
+           if total(abs(obs_arr.degpix - obs_arr[0].degpix)) ne 0 then message, 'inconsistent degpix values in obs_arr'
+           degpix = obs_arr[0].degpix
+
+           obs_tags = tag_names(obs_arr)
+           wh_freq = where(strlowcase(obs_tags) eq 'freq', count_freq)
+           if count_freq ne 0 then begin
+              freq_vals = obs_arr.freq
+              fbin_i_vals = obs_arr.fbin_i
+           endif else begin
+              freq_vals = dblarr(n_freq, n_obs)
+              fbin_i_vals = fltarr(n_freq, n_obs)
+              for i=0, n_obs-1 do begin
+                 freq_vals[*,i] = (*obs_arr[i].bin).freq
+                 fbin_i_vals[*,i] = (*obs_arr[i].bin).fbin_i
+              endfor
+           endelse
+           if total(abs(freq_vals - rebin(freq_vals[*,0], n_freq, n_obs))) ne 0 then message, 'inconsistent freq values in obs_arr'
+           freq = freq_vals[*,0]
+
+           if total(abs(fbin_i_vals - rebin(fbin_i_vals[*,0], n_freq, n_obs))) ne 0 then $
+              message, 'inconsistent fbin_i values in obs_arr'
+           fbin_i = fbin_i_vals[*,0]
+
+        endelse
+
      endif else message, 'no obs or obs_arr in datafile'
   endelse
   if keyword_set(healpix) then file_obj->restore, 'nside'
   obj_destroy, file_obj
   
-  n_freqbins = max(obs.fbin_i) + 1
+  n_freqbins = fbin_i + 1
   frequencies = dblarr(n_freqbins)
   for i=0, n_freqbins-1 do begin
-     wh = where(obs.fbin_i eq i, count)
+     wh = where(fbin_i eq i, count)
      if count eq 0 then stop
      
-     frequencies[i] = mean(obs.freq[wh]) / 1e6 ;; in MHz
+     frequencies[i] = mean(freq[wh]) / 1e6 ;; in MHz
   endfor
   
-  obs_tags = tag_names(obs)
-  wh_baseline = where(strlowcase(obs_tags) eq 'max_baseline', count_whbaseline)
   ;; the max baseline in the obs structure is given in wavelengths, need to convert using the maximum frequency
-  if count_whbaseline ne 0 then max_baseline = 3e8/max(obs.freq)*obs.max_baseline else max_baseline = 342.497
+  max_baseline = 3e8/max(freq)*max_baseline_lambda ;;else max_baseline = 342.497
   
   fadd = ''
   if keyword_set(std_power) then fadd = fadd + '_sp'
@@ -173,7 +207,7 @@ pro fhd_data_plots, datafile, save_path = save_path, plot_path = plot_path, heal
                      no_weighted_averaging = no_weighted_averaging, /quiet
         endif else $
            fhd_3dps, datafile, data_varnames[i], datafile, weight_varnames[weight_ind[i]], frequencies, max_baseline, $
-                     degpix=obs.degpix, savefilebase = savefilebase[i], refresh = refresh_ps, no_weighting = no_weighting, $
+                     degpix=degpix, savefilebase = savefilebase[i], refresh = refresh_ps, no_weighting = no_weighting, $
                      std_power = std_power, no_kzero = no_kzero, log_kpar = log_kpar, log_kperp = log_kperp, kpar_bin = kpar_bin, $
                      kperp_bin = kperp_bin, no_weighted_averaging = no_weighted_averaging, /quiet
      endif
