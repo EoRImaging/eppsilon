@@ -33,8 +33,12 @@ pro kpower_1d_plots, power_savefile, plot_weights = plot_weights, multi_pos = mu
   if n_elements(plotfile) eq 0 then plotfile = strsplit(power_savefile[0], '.idlsave', /regex, /extract) + '_1dkplot.eps' $
   else if strcmp(strmid(plotfile, strlen(plotfile)-4), '.eps', /fold_case) eq 0 then plotfile = plotfile + '.eps'
 
+  color_list = ['black', 'PBG5', 'red6', 'GRN3', 'PURPLE', 'ORANGE', 'TG2','TG8']
   
-  if n_elements(colors) eq 0 then colors = indgen(nfiles)*254/(nfiles-1)
+  if n_elements(colors) eq 0 then begin
+     if nfiles gt n_elements(color_list) then colors = indgen(nfiles)*254/(nfiles-1) $
+     else colors = color_list[indgen(nfiles)]
+  endif     
 
   if keyword_set(save_text) then begin
      text_filename = strsplit(plotfile, '.eps', /regex, /extract) + '.txt'
@@ -145,13 +149,15 @@ pro kpower_1d_plots, power_savefile, plot_weights = plot_weights, multi_pos = mu
   else ytitle = textoidl('P_k (mK^2 Mpc^3)', font = font)
   xtitle = textoidl('k (Mpc^{-1})', font = font)
 
-  plot, k_plot.(plot_order[0]), power_plot.(plot_order[0]), position = new_pos, /ylog, /xlog, xrange = xrange, yrange = yrange, $
+  cgplot, k_plot.(plot_order[0]), power_plot.(plot_order[0]), position = new_pos, /ylog, /xlog, xrange = xrange, yrange = yrange, $
         xstyle=1, ystyle=1, xtitle = xtitle, ytitle = ytitle, psym=10, xtickformat = 'exponent', ytickformat = 'exponent', $
         thick = thick, charthick = charthick, xthick = xthick, ythick = ythick, charsize = charsize, font = font, noerase = no_erase
-  for i=0, nfiles - 1 do oplot, k_plot.(plot_order[i]), power_plot.(plot_order[i]), psym=10, color = colors[i], thick = thick
-  if n_elements(names) ne 0 then $
-     al_legend, names, textcolor = colors, box = 0, /right,/bottom, charsize = legend_charsize, charthick = charthick
+  for i=0, nfiles - 1 do cgplot, /overplot, k_plot.(plot_order[i]), power_plot.(plot_order[i]), psym=10, color = colors[i], $
+                                 thick = thick
 
+  if log_bins gt 0 then bottom = 1 else bottom = 0
+  if n_elements(names) ne 0 then $
+     al_legend, names, textcolor = colors, box = 0, /right, bottom = bottom, charsize = legend_charsize, charthick = charthick
 
   if keyword_set(pub) and n_elements(multi_pos) eq 0 then begin
      psoff

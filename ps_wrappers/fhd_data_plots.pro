@@ -3,7 +3,8 @@ pro fhd_data_plots, datafile, save_path = save_path, plot_path = plot_path, heal
                     no_weighting = no_weighting, std_power = std_power, no_kzero = no_kzero, $
                     no_weighted_averaging = no_weighted_averaging, data_range = data_range, plot_weights = plot_weights, $
                     slice_nobin = slice_nobin, log_kpar = log_kpar, log_kperp = log_kperp, kpar_bin = kpar_bin, $
-                    kperp_bin = kperp_bin, plot_uvf = plot_uvf, uvf_data_range = uvf_data_range, uvf_type = uvf_type, $
+                    kperp_bin = kperp_bin, log_k1d = log_k1d, k1d_bin = k1d_bin, plot_uvf = plot_uvf, $
+                    uvf_data_range = uvf_data_range, uvf_type = uvf_type, $
                     baseline_axis = baseline_axis, plot_wedge_line = plot_wedge_line, grey_scale = grey_scale, pub = pub
 
   ;; default to absolute value for uvf plots
@@ -16,6 +17,7 @@ pro fhd_data_plots, datafile, save_path = save_path, plot_path = plot_path, heal
   if n_elements(plot_wedge_line) eq 0 then plot_wedge_line=1
 
   if keyword_set(healpix) and keyword_set(refresh_dft) then refresh_ps = 1
+  if keyword_set(refresh_ps) then refresh_binning = 1
 
   if n_elements(no_weighted_averaging) gt 0 and not keyword_set(no_weighted_averaging) and keyword_set(no_weighting) then $
      message, 'Cannot set no_weighted_averaging=0 and no_weighting=1'
@@ -62,6 +64,8 @@ pro fhd_data_plots, datafile, save_path = save_path, plot_path = plot_path, heal
         file_obj->restore, 'obs_arr'
         if size(obs_arr,/type) eq 10 then begin
            n_obs = n_elements(obs_arr)
+
+           max_baseline_vals = dblarr(n_obs)
            for i=0, n_obs-1 do begin
               if abs((*obs_arr[i]).degpix - (*obs_arr[0]).degpix) gt 0 then message, 'inconsistent degpix values in obs_arr'
               if total(abs((*obs_arr[i]).fbin_i - (*obs_arr[0]).fbin_i)) gt 0 then message, 'inconsistent fbin_i values in obs_arr'
@@ -113,7 +117,7 @@ pro fhd_data_plots, datafile, save_path = save_path, plot_path = plot_path, heal
   if keyword_set(healpix) then file_obj->restore, 'nside'
   obj_destroy, file_obj
   
-  n_freqbins = fbin_i + 1
+  n_freqbins = max(fbin_i) + 1
   frequencies = dblarr(n_freqbins)
   for i=0, n_freqbins-1 do begin
      wh = where(fbin_i eq i, count)
@@ -146,6 +150,9 @@ pro fhd_data_plots, datafile, save_path = save_path, plot_path = plot_path, heal
      wt_fadd_2dbin = wt_fadd_2dbin + '_logkperp'
   endif
 
+  fadd_1dbin = ''
+  if keyword_set(log_k) then fadd_1dbin = fadd_1dbin + '_logk'
+
   n_cubes = npol*ntype
   type_pol_str = strarr(n_cubes)
   for i=0, npol-1 do type_pol_str[ntype*i:i*ntype+ntype-1] = type_inc + '_' + pol_inc[i]
@@ -161,38 +168,54 @@ pro fhd_data_plots, datafile, save_path = save_path, plot_path = plot_path, heal
 
   savefilebase = froot + datafilebase + file_labels + fadd
   savefiles_2d = savefilebase + fadd_2dbin + '_2dkpower.idlsave'
-  test_save = file_test(savefiles_2d) *  (1 - file_test(savefiles_2d, /zero_length))
+  test_save_2d = file_test(savefiles_2d) *  (1 - file_test(savefiles_2d, /zero_length))
 
-  nfiles = n_elements(savefiles_2d)
-  for i=0, nfiles-1 do begin
+  savefiles_1d = savefilebase + fadd_1dbin + '_1dkpower.idlsave'
+  test_save_1d = file_test(savefiles_1d) *  (1 - file_test(savefiles_1d, /zero_length))
+
+  if keyword_set(refresh_binning) then begin
+     test_save_2d = test_save_2d*0
+     test_save_1d = test_save_1d*0
+  endif
+
+  for i=0, n_cubes-1 do begin
 
      ;; if binsizes are specified, check that binsize is right
-     if (n_elements(kperp_bin) ne 0 or n_elements(kpar_bin) ne 0) and test_save[i] gt 0 and not keyword_set(refresh_ps) and $
-        not keyword_set(refresh_binning) then begin
+     if (n_elements(kperp_bin) ne 0 or n_elements(kpar_bin) ne 0) and test_save_2d[i] gt 0 then begin
         file_obj = obj_new('idl_savefile', savefiles_2d[i])
         if n_elements(kpar_bin) ne 0 then begin
            kpar_bin_req = kpar_bin
            file_obj->restore, 'kpar_bin'
-           if abs(kpar_bin - kpar_bin_req) gt 0. then test_save[i]=0
+           if abs(kpar_bin - kpar_bin_req) gt 0. then test_save_2d[i]=0
            kpar_bin = kpar_bin_req
         endif
-        if test_save[i] gt 0 and n_elements(kpar_bin) ne 0 then begin
+        if test_save_2d[i] gt 0 and n_elements(kpar_bin) ne 0 then begin
            kperp_bin_req = kperp_bin
            file_obj->restore, 'kperp_bin'
-           if abs(kperp_binsize - kperp_bin_req) gt 0. then test_save[i]=0
+           if abs(kperp_binsize - kperp_bin_req) gt 0. then test_save_2d[i]=0
            kperp_bin = kperp_bin_req
         endif
         obj_destroy, file_obj
      endif
 
-     if test_save[i] eq 0 or keyword_set(refresh_ps) or keyword_set(refresh_binning) then begin
+     if n_elements(k1d_bin) ne 0 and test_save_1d[i] gt 0 then begin
+        file_obj = obj_new('idl_savefile', savefiles_1d[i])
+        k_bin_req = k_bin
+        file_obj->restore, 'k_bin'
+        if abs(k_bin - k_bin_req) gt 0. then test_save_1d[i]=0
+        k_bin = k_bin_req
+     endif
+
+     test = test_save_2d[i] * test_save_1d[i]
+
+     if test eq 0 then begin
         if keyword_set(healpix) then begin
            pixelfile = datafile
            pixel_varname = 'hpx_inds'
            hpx_dftsetup_savefile = froot + datafilebase + '_dftsetup.idlsave'
            weight_savefilebase = froot + datafilebase + wt_file_labels + fadd
            
-           weight_refresh = intarr(nfiles)
+           weight_refresh = intarr(n_cubes)
            if keyword_set(refresh_dft) then begin
               temp = weight_ind[uniq(weight_ind, sort(weight_ind))]
               for j=0, n_elements(temp)-1 do weight_refresh[(where(weight_ind eq temp[j]))[0]] = 1
@@ -229,7 +252,8 @@ pro fhd_data_plots, datafile, save_path = save_path, plot_path = plot_path, heal
   plot_fadd = ''
   if keyword_set(grey_scale) then plot_fadd = plot_fadd + '_grey'
 
-  plotfiles_2d = plotfile_base + fadd_2dbin + '_kspace_power' + plot_fadd + '.eps'
+  plotfiles_2d = plotfile_base + fadd_2dbin + '_2dkpower' + plot_fadd + '.eps'
+  plotfile_1d = plotfile_path + datafilebase + fadd + fadd_1dbin + '_1dkpower' + '.eps'
 
   if not keyword_set(slice_nobin) then slice_fadd = '_binned' else slice_fadd = ''
   yslice_plotfile = plotfile_base + '_xz_plane' + plot_fadd + slice_fadd + '.eps'
@@ -246,7 +270,7 @@ pro fhd_data_plots, datafile, save_path = save_path, plot_path = plot_path, heal
      wedge_amp = wedge_factor * source_dist
   endif else wedge_amp = 0d
 
-  nplots = nfiles + npol
+  nplots = n_cubes + npol
   
   savefiles_2d_plot = strarr(nplots)
   plot_weights = intarr(nplots)
@@ -289,7 +313,7 @@ pro fhd_data_plots, datafile, save_path = save_path, plot_path = plot_path, heal
      
      max_ysize = 1200
      max_xsize = 1800
-     if nfiles gt 9 then begin
+     if n_cubes gt 9 then begin
         multi_aspect =0.9 
         xsize = round((max_ysize/nrow) * ncol/multi_aspect)
         ysize = max_ysize
@@ -325,6 +349,19 @@ pro fhd_data_plots, datafile, save_path = save_path, plot_path = plot_path, heal
                               title = plot_titles[i], grey_scale = grey_scale, plot_wedge_line = plot_wedge_line, $
                               wedge_amp = wedge_amp, baseline_axis = baseline_axis
      endfor
+
+
+     ;; for i=0, npol-1 do begin
+     ;;    wh_pol = where(weight_ind eq i, count_pol)
+     ;;    if count_pol gt 0 then begin
+     ;;       file_arr = savefiles_1d[wh_pol]
+     ;;       kpower_1d_plots, file_arr, window_num = i+2, pub = pub, colors = colors, names = titles[wh_pol], delta = delta
+     ;;    endif
+     ;; endfor
+
   endelse
+
+  file_arr = savefiles_1d
+  kpower_1d_plots, file_arr, window_num = i+2, colors = colors, names = titles, delta = delta, pub = pub, plotfile = plotfile_1d
 
 end
