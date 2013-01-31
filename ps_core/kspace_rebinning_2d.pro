@@ -1,17 +1,33 @@
 
 
 function kspace_rebinning_2d, power_3d, kx_mpc, ky_mpc, kz_mpc, kperp_edges_mpc, kpar_edges_mpc, weights = weights, $
-                              binned_weights = weights_2d, bins_per_decade = bins_per_decade, edge_on_grid = edge_on_grid, $
-                              match_datta = match_datta, fill_holes = fill_holes, kx_lims = kx_lims, ky_lims = ky_lims, $
-                              linear_kpar = linear_kpar, linear_kperp = linear_kperp, linkperp_bin = linkperp_bin
+                              binned_weights = weights_2d, edge_on_grid = edge_on_grid, match_datta = match_datta, $
+                              fill_holes = fill_holes, kx_lims = kx_lims, ky_lims = ky_lims, $
+                              log_kpar = log_kpar, log_kperp = log_kperp, kperp_bin = kperp_bin, kpar_bin = kpar_bin
 
   if n_elements(fill_holes) eq 0 then fill_holes = 1
 
-  if n_elements(bins_per_decade) eq 0 then bins_per_decade = 10d
-  if bins_per_decade lt 1 or n_elements(bins_per_decade) ne 1 then begin
-     print, 'Number of kspace bins per decade must be a scalar greater than 1. Defaulting to 10.'
-     bins_per_decade = 10
-  endif
+  if n_elements(kpar_bin) gt 1 then message, 'kpar_bin must be a scalar because it specifies the linear bin size ' + $
+     'or the log bin size (bins per decade = 1/log bin size) if log_kpar keyword is set. '
+  if n_elements(kperp_bin) gt 1 then message, 'kperp_bin must be a scalar because it specifies the linear bin size ' + $
+     'or the log bin size (bins per decade = 1/log bin size) if log_kperp keyword is set. '
+
+  ;; for log binning, kpar/kperp_bins define log binsize (1/bins per decade). Default to 0.1 (10 bins per decade)
+  if keyword_set(log_kpar) then begin
+     if n_elements(kpar_bin) eq 0 then kpar_bin = 0.1d else if kpar_bin gt 1 then $
+        message, 'kpar_bin must be less than one if log_kpar keyword is set (so there will be > 1 bin per decade)'
+  endif else begin
+     ;; for linear binning default to kz binsize
+     if n_elements(kpar_bin) eq 0 then kpar_bin = kz_mpc[1]-kz_mpc[0]
+  endelse
+
+  if keyword_set(log_kperp) then begin
+     if n_elements(kperp_bin) eq 0 then kperp_bin = 0.1d else if kperp_bin gt 1 then $
+        message, 'kperp_bin must be less than one if log_kperp keyword is set (so there will be > 1 bin per decade)'
+  endif else begin
+     ;; for linear binning default to binsize = min(kx, ky binsize)
+     if n_elements(kperp_bin) eq 0 then kperp_bin = max([kx_mpc[1]-kx_mpc[0], ky_mpc[1]-ky_mpc[0]])
+  endelse
 
   dims = size(power_3d, /dimensions)
   input_type = size(power_3d, /type)
@@ -68,26 +84,24 @@ function kspace_rebinning_2d, power_3d, kx_mpc, ky_mpc, kz_mpc, kperp_edges_mpc,
      endelse
   endif else ky_mpc_use = ky_mpc
 
-  if keyword_set(linear_kperp) then begin
-     ;; bin in linear kperp. default binsize = min(kx, ky binsize)
-     if n_elements(kperp_lin_binsize) eq 0 then kperp_lin_binsize = min([kx_mpc_use[1]-kx_mpc_use[0], ky_mpc_use[1]-ky_mpc_use[0]])
+  if not keyword_set(log_kperp) then begin
 
      temp = sqrt(rebin(kx_mpc_use, n_kx, n_ky)^2 + rebin(reform(ky_mpc_use, 1, n_ky), n_kx, n_ky)^2)
-     if keyword_set(edge_on_grid) then kperp_min = floor(min(temp) / kperp_lin_binsize) * kperp_lin_binsize $
-     else kperp_min = floor((min(temp) + kperp_lin_binsize/2d) / kperp_lin_binsize) * kperp_lin_binsize - kperp_lin_binsize/2d
+     if keyword_set(edge_on_grid) then kperp_min = floor(min(temp) / kperp_bin) * kperp_bin $
+     else kperp_min = floor((min(temp) + kperp_bin/2d) / kperp_bin) * kperp_bin - kperp_bin/2d
 
      kperp_array = temp
 
      ;; Use histogram with reverse indicies to bin in kperp
-     kperp_hist = histogram(kperp_array, binsize = kperp_lin_binsize, min = kperp_min, omax = kperp_max, locations = lin_kperp_locs, $
+     kperp_hist = histogram(kperp_array, binsize = kperp_bin, min = kperp_min, omax = kperp_max, locations = lin_kperp_locs, $
                             reverse_indices = kperp_ri)
 
-     kperp_centers_mpc = lin_kperp_locs + kperp_lin_binsize/2d
-     kperp_edges_mpc = [lin_kperp_locs, max(lin_kperp_locs) + kperp_lin_binsize]
+     kperp_centers_mpc = lin_kperp_locs + kperp_bin/2d
+     kperp_edges_mpc = [lin_kperp_locs, max(lin_kperp_locs) + kperp_bin]
  
   endif else begin
      ;; bin in logarithmic k_perp space
-     kperp_log_binsize = 1d/bins_per_decade
+     kperp_log_binsize = kperp_bin
      temp = sqrt(rebin(kx_mpc_use, n_kx, n_ky)^2 + rebin(reform(ky_mpc_use, 1, n_ky), n_kx, n_ky)^2)
      
      ;; get min value, adjust so centers of bins will be on major grid. 
@@ -149,14 +163,26 @@ function kspace_rebinning_2d, power_3d, kx_mpc, ky_mpc, kz_mpc, kperp_edges_mpc,
 
   kpar_centers_mpc = kz_mpc
   kz_delta = kz_mpc[1] - kz_mpc[0]
-  if keyword_set(linear_kpar) then begin
-     kpar_edges_mpc = [kz_mpc[0] - kz_delta/2d, kz_mpc + kz_delta/2d]
+  if not keyword_set(log_kpar) then begin
+     
+     ;; kpar_edges_mpc = [kz_mpc[0] - kz_delta/2d, kz_mpc + kz_delta/2d]
 
-     weighted_power_2d = temporary(weighted_power_mid)
-     weights_2d = temporary(weights_mid)
+     ;; weighted_power_2d = temporary(weighted_power_mid)
+     ;; weights_2d = temporary(weights_mid)
+
+     if keyword_set(edge_on_grid) then kpar_min = floor(min(kz_mpc) / kpar_bin) * kpar_bin $
+     else kpar_min = floor((min(kz_mpc) + kpar_bin/2d) / kpar_bin) * kpar_bin - kpar_bin/2d
+
+     ;; Use histogram with reverse indicies to bin in kpar
+     kpar_hist = histogram(kz_mpc, binsize = kpar_bin, min = kpar_min, omax = kpar_max, locations = lin_kpar_locs, $
+                            reverse_indices = kpar_ri)
+
+     kpar_centers_mpc = lin_kpar_locs + kpar_bin/2d
+     kpar_edges_mpc = [lin_kpar_locs, max(lin_kpar_locs) + kpar_bin]
+
   endif else begin
      ;; now make kz bins logrithmic by resampling
-     kpar_log_binsize = 1d/bins_per_decade
+     kpar_log_binsize = kpar_bin
      
      ;; get min value, adjust so centers of bins will be on major grid
      if min(kz_mpc) gt 0 then begin
@@ -176,39 +202,37 @@ function kspace_rebinning_2d, power_3d, kx_mpc, ky_mpc, kz_mpc, kperp_edges_mpc,
      
      kpar_hist = histogram(kpar_arr, binsize = kpar_log_binsize, min = kpar_min, omax = kpar_max, locations = log_kpar_locs, $
                            reverse_indices = kpar_ri)
-     n_kpar = n_elements(kpar_hist)
      kpar_centers_mpc = 10^(log_kpar_locs + kpar_log_binsize/2d)
      kpar_edges_mpc = [10^(log_kpar_locs), 10^(max(log_kpar_locs) + kpar_log_binsize)]
      kz_mpc_edges = [kz_mpc, max(kz_mpc) + kz_mpc[1] - kz_mpc[0]] 
+  endelse
      
-     weighted_power_2d = make_array(n_kperp, n_kpar, type=input_type)
-     weights_2d = dblarr(n_kperp, n_kpar)
-     
-     
+  n_kpar = n_elements(kpar_hist)
+  weighted_power_2d = make_array(n_kperp, n_kpar, type=input_type)
+  weights_2d = dblarr(n_kperp, n_kpar)
 
-     for j=0, n_kpar-1 do begin
-        if kpar_hist[j] ne 0 then begin
-           weighted_power_2d[*,j] = total(reform(weighted_power_mid[*, kpar_ri[kpar_ri[j] : kpar_ri[j+1]-1]], n_kperp, kpar_hist[j]),2)
-           weights_2d[*, j] = total(reform(weights_mid[*, kpar_ri[kpar_ri[j] : kpar_ri[j+1]-1]], n_kperp, kpar_hist[j]), 2)
+  for j=0, n_kpar-1 do begin
+     if kpar_hist[j] ne 0 then begin
+        weighted_power_2d[*,j] = total(reform(weighted_power_mid[*, kpar_ri[kpar_ri[j] : kpar_ri[j+1]-1]], n_kperp, kpar_hist[j]),2)
+        weights_2d[*, j] = total(reform(weights_mid[*, kpar_ri[kpar_ri[j] : kpar_ri[j+1]-1]], n_kperp, kpar_hist[j]), 2)
+     endif
+  endfor
+  undefine, weighted_power_mid
+  undefine, weights_mid
+  
+  if keyword_set(fill_holes) then begin
+     wh = where(weights_2d eq 0, n0)
+     for j=0, n0-1 do begin
+        perp_ind = wh[j] mod n_kperp
+        par_ind = wh[j] / n_kperp
+        if par_ind ne 0 then begin
+           weighted_power_2d[perp_ind, par_ind] = weighted_power_2d[perp_ind, par_ind-1]
+           weights_2d[perp_ind, par_ind] = weights_2d[perp_ind, par_ind-1]
         endif
      endfor
-     undefine, weighted_power_mid
-     undefine, weights_mid
-
-     if keyword_set(fill_holes) then begin
-           wh = where(weights_2d eq 0, n0)
-           for j=0, n0-1 do begin
-              perp_ind = wh[j] mod n_kperp
-              par_ind = wh[j] / n_kperp
-              if par_ind ne 0 then begin
-                 weighted_power_2d[perp_ind, par_ind] = weighted_power_2d[perp_ind, par_ind-1]
-                 weights_2d[perp_ind, par_ind] = weights_2d[perp_ind, par_ind-1]
-              endif
-           endfor
-        endif
-
-  endelse     
-     
+  endif
+  
+  
   power_ave = weighted_power_2d/weights_2d
   wh = where(weights_2d eq 0, count)
   if count ne 0 then power_ave[wh] = 0d 

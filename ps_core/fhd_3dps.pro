@@ -2,9 +2,10 @@ pro fhd_3dps, datafile, datavar, weightfile, weightvar, frequencies, max_baselin
               nside = nside, pixelfile = pixelfile, pixelvar = pixelvar, hpx_dftsetup_savefile = hpx_dftsetup_savefile, $
               savefilebase = savefilebase_in, weight_savefilebase = weight_savefilebase_in, refresh = refresh, $
               dft_refresh_data = dft_refresh_data, dft_refresh_weight = dft_refresh_weight, dft_fchunk = dft_fchunk, $
-              no_weighting = no_weighting, std_power = std_power, no_kzero = no_kzero, linear_kpar = linear_kpar, $
-              linear_kperp = linear_kperp, linkperp_bin = linkperp_bin, no_weighted_averaging = no_weighted_averaging, $
-              input_units = input_units, fill_holes = fill_holes, quiet = quiet;, clean_type = clean_type
+              no_weighting = no_weighting, std_power = std_power, no_kzero = no_kzero, log_kpar = log_kpar, $
+              log_kperp = log_kperp, kperp_bin = kperp_bin, kpar_bin = kpar_bin, log_k1d = log_k1d, k1d_bin = k1d_bin, $
+              no_weighted_averaging = no_weighted_averaging, input_units = input_units, fill_holes = fill_holes, quiet = quiet
+;, clean_type = clean_type
 
   if n_params() ne 6 then message, 'Wrong number of parameters passed. Required parameters are: datafile (string), ' + $
                                  'datavar (string), weightfile (string), weightvar (string), ' + $
@@ -782,27 +783,27 @@ pro fhd_3dps, datafile, datavar, weightfile, weightvar, frequencies, max_baselin
   fadd = ''
   if keyword_set(no_weighted_averaging) then fadd = fadd + '_nowtave'
   if keyword_set(no_kzero) then fadd = fadd + '_nok0'
-  if keyword_set(fill_holes) then fadd = fadd + '_nohole'
-  if keyword_set(linear_kpar) then fadd = fadd + '_linkpar'
-  if keyword_set(linear_kperp) then fadd = fadd + '_linkperp'
 
-  savefile = froot + savefilebase + fadd + '_2dkpower.idlsave'
+  fadd_2d = ''
+  if keyword_set(fill_holes) then fadd_2d = fadd_2d + '_nohole'
+  if keyword_set(log_kpar) then fadd_2d = fadd_2d + '_logkpar'
+  if keyword_set(log_kperp) then fadd_2d = fadd_2d + '_logkperp'
+
+  savefile = froot + savefilebase + fadd + fadd_2d + '_2dkpower.idlsave'
 
   print, 'Binning to 2D power spectrum'
 
-  bins_per_decade = 8
   if keyword_set(no_weighting) then $
-     power_rebin = kspace_rebinning_2d(power_3D, kx_mpc, ky_mpc, kz_mpc, kperp_edges_mpc, kpar_edges_mpc, linear_kpar = linear_kpar, $
-                                       linear_kperp = linear_kperp, linkperp_bin = linkperp_bin, $
-                                       binned_weights = binned_weights, bins = bins_per_decade, fill_holes = fill_holes) $
+     power_rebin = kspace_rebinning_2d(power_3D, kx_mpc, ky_mpc, kz_mpc, kperp_edges_mpc, kpar_edges_mpc, log_kpar = log_kpar, $
+                                       log_kperp = log_kperp, kperp_bin = kperp_bin, kpar_bin = kpar_bin, $
+                                       binned_weights = binned_weights, fill_holes = fill_holes) $
   else begin
-     power_rebin = kspace_rebinning_2d(power_3D, kx_mpc, ky_mpc, kz_mpc, kperp_edges_mpc, kpar_edges_mpc, linear_kpar = linear_kpar, $
-                                       linear_kperp = linear_kperp, linkperp_bin = linkperp_bin, $
-                                       weights = weights_3d, binned_weights = binned_weights, bins = bins_per_decade, $
-                                       fill_holes = fill_holes)
+     power_rebin = kspace_rebinning_2d(power_3D, kx_mpc, ky_mpc, kz_mpc, kperp_edges_mpc, kpar_edges_mpc, log_kpar = log_kpar, $
+                                       log_kperp = log_kperp, kperp_bin = kperp_bin, kpar_bin = kpar_bin, $
+                                       weights = weights_3d, binned_weights = binned_weights, fill_holes = fill_holes)
      if keyword_set(no_weighted_averaging) then $
-        power_rebin = kspace_rebinning_2d(power_3D, kx_mpc, ky_mpc, kz_mpc, kperp_edges_mpc, kpar_edges_mpc, $
-                                       bins = bins_per_decade, fill_holes = fill_holes)
+        power_rebin = kspace_rebinning_2d(power_3D, kx_mpc, ky_mpc, kz_mpc, kperp_edges_mpc, kpar_edges_mpc, log_kpar = log_kpar, $
+                                       log_kperp = log_kperp, kperp_bin = kperp_bin, kpar_bin = kpar_bin, fill_holes = fill_holes)
   endelse
 
   power = power_rebin
@@ -814,7 +815,7 @@ pro fhd_3dps, datafile, datavar, weightfile, weightvar, frequencies, max_baselin
   if count eq 0 then stop
   kperp_plot_range = [min(kperp_edges[wh_good_kperp]), max(kperp_edges[wh_good_kperp+1])]
   
-  save, file = savefile, power, weights, kperp_edges, kpar_edges, bins_per_decade, kperp_lambda_conv
+  save, file = savefile, power, weights, kperp_edges, kpar_edges, kperp_bin, kpar_bin, kperp_lambda_conv
 
   if not keyword_set(quiet) then begin
      kpower_2d_plots, savefile, kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
@@ -844,84 +845,39 @@ pro fhd_3dps, datafile, datavar, weightfile, weightvar, frequencies, max_baselin
   zslice_power = kpower_slice(power_3d, kx_mpc, ky_mpc, kz_mpc, weights_3d, kperp_lambda_conv, slice_axis = 2, slice_inds = 1, $
                        slice_weights = zslice_weights, slice_savefile = zslice_savefile)
 
-  ;; also make binned versions of x & y slices
-  yslice_binned_savefile = froot + savefilebase + fadd + '_xz_plane_binned.idlsave'
-  if keyword_set(no_weighting) then $
-    yslice_power_rebin = kspace_rebinning_2d(yslice_power, kx_mpc, [ky_mpc[0]], kz_mpc, kperp_edges_mpc, kpar_edges_mpc, $
-                                             binned_weights = binned_weights, bins = bins_per_decade, fill_holes = fill_holes) $
-  else begin
-     yslice_power_rebin = kspace_rebinning_2d(yslice_power, kx_mpc, [ky_mpc[0]], kz_mpc, kperp_edges_mpc, kpar_edges_mpc, $
-                                              weights = yslice_weights, binned_weights = binned_weights, bins = bins_per_decade, $
-                                              fill_holes = fill_holes)
-     if keyword_set(no_weighted_averaging) then $
-          yslice_power_rebin = kspace_rebinning_2d(yslice_power, kx_mpc, [ky_mpc[0]], kz_mpc, kperp_edges_mpc, kpar_edges_mpc, $
-                                              bins = bins_per_decade, fill_holes = fill_holes)
-  endelse
-
-  power = yslice_power_rebin
-  kperp_edges = kperp_edges_mpc
-  kpar_edges = kpar_edges_mpc
-  weights = binned_weights
-  
-  save, file = yslice_binned_savefile, power, weights, kperp_edges, kpar_edges, bins_per_decade, kperp_lambda_conv
-  
-  if not keyword_set(quiet) then begin
-     kpower_2d_plots, yslice_binned_savefile, kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
-                      data_range = data_range, window_num = 3, title = 'XZ plane'
-  endif
-
-
-  xslice_binned_savefile = froot + savefilebase + fadd + '_yz_plane_binned.idlsave'
-  if keyword_set(no_weighting) then $
-    xslice_power_rebin = kspace_rebinning_2d(xslice_power, [kx_mpc[n_kx/2]], ky_mpc, kz_mpc, kperp_edges_mpc, kpar_edges_mpc, $
-                                             binned_weights = binned_weights, bins = bins_per_decade, fill_holes = fill_holes) $
-  else begin
-     xslice_power_rebin = kspace_rebinning_2d(xslice_power, [kx_mpc[n_kx/2]], ky_mpc, kz_mpc, kperp_edges_mpc, kpar_edges_mpc, $
-                                              weights = xslice_weights, binned_weights = binned_weights, bins = bins_per_decade, $
-                                              fill_holes = fill_holes)
-     if keyword_set(no_weighted_averaging) then $
-        xslice_power_rebin = kspace_rebinning_2d(xslice_power, [kx_mpc[n_kx/2]], ky_mpc, kz_mpc, kperp_edges_mpc, kpar_edges_mpc, $
-                                              bins = bins_per_decade, fill_holes = fill_holes)
-  endelse
-
-  power = xslice_power_rebin
-  kperp_edges = kperp_edges_mpc
-  kpar_edges = kpar_edges_mpc
-  weights = binned_weights
-  
-  save, file = xslice_binned_savefile, power, weights, kperp_edges, kpar_edges, bins_per_decade, kperp_lambda_conv
-     
-  if not keyword_set(quiet) then begin
-     kpower_2d_plots, xslice_binned_savefile, kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
-                      data_range = data_range, window_num = 4, title = 'YZ plane'
-  endif
-
-
 
 
   print, 'Binning to 1D power spectrum'
  
-  bins_per_decade = 10d
   if keyword_set(no_weighting) then $
-     power_1d = kspace_rebinning_1d(power_3d, kx_mpc, ky_mpc, kz_mpc, k_edges_mpc, bins = bins_per_decade, $
+     power_1d = kspace_rebinning_1d(power_3d, kx_mpc, ky_mpc, kz_mpc, k_edges_mpc, k_bin = k1d_bin, log_k = log_k1d, $
                                     binned_weights = weights_1d, mask = mask, pixelwise_mask = pixelwise_mask, k1_mask = k1_mask, $
                                     k2_mask = k2_mask,  k3_mask = k3_mask, edge_on_grid = edge_on_grid, match_datta = match_datta)$
   else begin
-     power_1d = kspace_rebinning_1d(power_3d, kx_mpc, ky_mpc, kz_mpc, k_edges_mpc, bins = bins_per_decade, weights = weights_3d, $
-                                    binned_weights = weights_1d, mask = mask, pixelwise_mask = pixelwise_mask, k1_mask = k1_mask, $
-                                    k2_mask = k2_mask,  k3_mask = k3_mask, edge_on_grid = edge_on_grid, match_datta = match_datta)
+     power_1d = kspace_rebinning_1d(power_3d, kx_mpc, ky_mpc, kz_mpc, k_edges_mpc, k_bin = k1d_bin, log_k = log_k1d, $
+                                    weights = weights_3d, binned_weights = weights_1d, mask = mask, pixelwise_mask = pixelwise_mask, $
+                                    k1_mask = k1_mask, k2_mask = k2_mask,  k3_mask = k3_mask, edge_on_grid = edge_on_grid, $
+                                    match_datta = match_datta)
      if keyword_set(no_weighted_averaging) then $
-        power_1d = kspace_rebinning_1d(power_3d, kx_mpc, ky_mpc, kz_mpc, k_edges_mpc, bins = bins_per_decade, mask = mask, $
-                                       pixelwise_mask = pixelwise_mask, k1_mask = k1_mask, $
-                                       k2_mask = k2_mask,  k3_mask = k3_mask, edge_on_grid = edge_on_grid, match_datta = match_datta)
+        power_1d = kspace_rebinning_1d(power_3d, kx_mpc, ky_mpc, kz_mpc, k_edges_mpc, k_bin = k1d_bin, log_k = log_k1d, mask = mask, $
+                                       pixelwise_mask = pixelwise_mask, k1_mask = k1_mask, k2_mask = k2_mask,  k3_mask = k3_mask, $
+                                       edge_on_grid = edge_on_grid, match_datta = match_datta)
   endelse
 
   power = power_1d
   weights = weights_1d
   k_edges = k_edges_mpc
+  k_bin = k1d_bin
 
-  savefile = froot + savefilebase + fadd + '_1dkpower.idlsave'
-  save, file = savefile, power, weights, k_edges, bins_per_decade
+  fadd_1d = ''
+  if keyword_set(log_k) then fadd_1d = fadd_1d + '_logk'
+
+  savefile = froot + savefilebase + fadd + fadd_1d + '_1dkpower.idlsave'
+  save, file = savefile, power, weights, k_edges, k_bin
+
+  if not keyword_set(quiet) then begin
+     kpower_1d_plots, savefile, window_num = 5
+  endif
 
   ;; eor_file_1d = base_path() + 'power_spectrum/eor_data/eor_power_1d.idlsave'
   ;; file_arr = [savefile, eor_file_1d]

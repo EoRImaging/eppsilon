@@ -1,24 +1,30 @@
 
 
-function kspace_rebinning_1d, power, k1_mpc, k2_mpc, k3_mpc, k_edges_mpc, bins_per_decade = bins_per_decade, weights = weights, $
+function kspace_rebinning_1d, power, k1_mpc, k2_mpc, k3_mpc, k_edges_mpc, k_bin = k_bin, log_k = log_k, weights = weights, $
                               binned_weights = weights_1d, mask = mask, pixelwise_mask = pixelwise_mask, k1_mask = k1_mask, $
                               k2_mask = k2_mask, k3_mask = k3_mask, edge_on_grid = edge_on_grid, match_datta = match_datta
-
-  if n_elements(bins_per_decade) eq 0 then bins_per_decade = 10d
-  if bins_per_decade lt 1 or n_elements(bins_per_decade) ne 1 then begin
-     print, 'Number of kspace bins per decade must be a scalar greater than 1. Defaulting to 10.'
-     bins_per_decade = 10
-  endif
-
-  ;; bin in logarithmic k space
-  k_log_binsize = 1d/bins_per_decade
-
 
   power_size = size(power, /dimensions)
   power_dim = n_elements(power_size)
   
   if power_dim lt 2 or power_dim gt 3 then $
      message, 'power array must be 2 or 3 dimensional and ordered (kperpendicular, kparallel) or (kx,ky,kz)'
+
+
+  if n_elements(k_bin) gt 1 then message, 'k_bin must be a scalar because it specifies the linear bin size ' + $
+     'or the log bin size (bins per decade = 1/log bin size) if log_k keyword is set. '
+
+  ;; for log binning, k_bins define log binsize (1/bins per decade). Default to 0.1 (10 bins per decade)
+  if keyword_set(log_k) then begin
+     if n_elements(k_bin) eq 0 then k_bin = 0.1d else if k_bin gt 1 then $
+        message, 'k_bin must be less than one if log_k keyword is set (so there will be > 1 bin per decade)'
+  endif else begin
+     ;; for linear binning default to min of (kx, ky, kz) binsize
+     if n_elements(k_bin) eq 0 then begin
+        if power_dim eq 3 then k_bin = max([k1_mpc[1]-k1_mpc[0], k2_mpc[1]-k2_mpc[0], k3_mpc[1]-k3_mpc[0]]) $
+        else k_bin = max([k1_mpc[1]-k1_mpc[0], k2_mpc[1]-k2_mpc[0]])
+     endif
+  endelse
 
 
   if n_elements(weights) ne 0 then begin
@@ -78,7 +84,6 @@ function kspace_rebinning_1d, power, k1_mpc, k2_mpc, k3_mpc, k_edges_mpc, bins_p
   endif
 
 
-
   if power_dim eq 3 then begin
 
      kx_mpc = k1_mpc
@@ -97,48 +102,58 @@ function kspace_rebinning_1d, power, k1_mpc, k2_mpc, k3_mpc, k_edges_mpc, bins_p
      temp = sqrt(rebin(kx_mpc^2d, n_kx, n_ky, n_kz) + rebin(reform(ky_mpc^2d, 1, n_ky), n_kx, n_ky, n_kz) + $
                  rebin(reform(kz_mpc^2d, 1, 1, n_kz), n_kx, n_ky, n_kz))
 
-     ;; get min value, adjust so centers of bins will be on major grid.
-     min_val = sqrt(min(kx_mpc^2d) + min(ky_mpc^2d) + min(kz_mpc^2d))
-     if min_val gt 0 then begin
-        min_non_zero = min_val
-        if keyword_set(edge_on_grid) then $
-           k_min = floor(alog10(min_non_zero) / k_log_binsize) * k_log_binsize $ 
-        else k_min = floor((alog10(min_non_zero) + k_log_binsize/2d) / k_log_binsize) * $
-                     k_log_binsize - k_log_binsize/2d
+     if not keyword_set(log_k) then begin
+
+        if keyword_set(edge_on_grid) then k_min = floor(min(temp) / k_bin) * k_bin $
+        else kperp_min = floor((min(temp) + k_bin/2d) / k_bin) * k_bin - k_bin/2d
+
+        ;; Use histogram with reverse indicies to bin in kperp
+        k_hist = histogram(temp, binsize = k_bin, min = k_min, omax = k_max, locations = lin_k_locs, $
+                               reverse_indices = k_ri)
+
      endif else begin
-        min_candidates = sqrt([min(kx_mpc[where(kx_mpc^2d ne 0)]^2d) + min(ky_mpc^2d) + min(kz_mpc^2d), $
-                               min(kx_mpc^2d) + min(ky_mpc[where(ky_mpc^2d ne 0)]^2d) + min(kz_mpc^2d), $
-                               min(kx_mpc^2d) + min(ky_mpc^2d) + min(kz_mpc[where(kz_mpc^2d ne 0)]^2d)])
-        min_non_zero = min(min_candidates)
+        ;; get min value, adjust so centers of bins will be on major grid.
+        min_val = sqrt(min(kx_mpc^2d) + min(ky_mpc^2d) + min(kz_mpc^2d))
+        if min_val gt 0 then begin
+           min_non_zero = min_val
+           if keyword_set(edge_on_grid) then $
+              k_min = floor(alog10(min_non_zero) / k_bin) * k_bin $ 
+           else k_min = floor((alog10(min_non_zero) + k_bin/2d) / k_bin) * $
+                        k_bin - k_bin/2d
+        endif else begin
+           min_candidates = sqrt([min(kx_mpc[where(kx_mpc^2d ne 0)]^2d) + min(ky_mpc^2d) + min(kz_mpc^2d), $
+                                  min(kx_mpc^2d) + min(ky_mpc[where(ky_mpc^2d ne 0)]^2d) + min(kz_mpc^2d), $
+                                  min(kx_mpc^2d) + min(ky_mpc^2d) + min(kz_mpc[where(kz_mpc^2d ne 0)]^2d)])
+           min_non_zero = min(min_candidates)
+           
+           ;; Add an extra bin to put the k=0 mode into.
+           if keyword_set(edge_on_grid) then $
+              k_min = floor(alog10(min_non_zero) / k_bin - 1) * k_bin $
+           else k_min = floor((alog10(min_non_zero) + k_bin/2d) / k_bin - 1) * $
+                        k_bin - k_bin/2d
+           ;; if keyword_set(match_datta) then begin
+           ;;    if keyword_set(edge_on_grid) then k_min = -3d $
+           ;;    else k_min = -3d - k_log_binsize/2d
+           ;; endif
+           
+           ;;Set 0 mode to bottom value so it doesn't get left out.
+           wh_kx_0 = where(kx_mpc^2d eq 0, nkx_0)
+           wh_ky_0 = where(ky_mpc^2d eq 0, nky_0)
+           wh_kz_0 = where(kz_mpc^2d eq 0, nkz_0)
 
-        ;; Add an extra bin to put the k=0 mode into.
-        if keyword_set(edge_on_grid) then $
-           k_min = floor(alog10(min_non_zero) / k_log_binsize - 1) * k_log_binsize $
-        else k_min = floor((alog10(min_non_zero) + k_log_binsize/2d) / k_log_binsize - 1) * $
-                     k_log_binsize - k_log_binsize/2d
-        ;; if keyword_set(match_datta) then begin
-        ;;    if keyword_set(edge_on_grid) then k_min = -3d $
-        ;;    else k_min = -3d - k_log_binsize/2d
-        ;; endif
-
-        ;;Set 0 mode to bottom value so it doesn't get left out.
-        wh_kx_0 = where(kx_mpc^2d eq 0, nkx_0)
-        wh_ky_0 = where(ky_mpc^2d eq 0, nky_0)
-        wh_kz_0 = where(kz_mpc^2d eq 0, nkz_0)
-
-        if nkx_0*nky_0*nkz_0 gt 1 then stop
+           if nkx_0*nky_0*nkz_0 gt 1 then stop
         
-        temp[wh_kx_0, wh_ky_0, wh_kz_0] = 10^k_min
+           temp[wh_kx_0, wh_ky_0, wh_kz_0] = 10^k_min
+        endelse
+
+        ;; calculate log kperp at each location in 1/Mpc.
+        k_array = alog10(temporary(temp))
+        
+        print, 'Histogramming array of log k values'
+        ;; Use histogram with reverse indicies to bin in log k (want even spacing in log space.)
+        k_hist = histogram(temporary(k_array), binsize = k_bin, min = k_min, omax = k_max, locations = log_k_locs, $
+                           reverse_indices = k_ri)
      endelse
-
-     ;; calculate log kperp at each location in 1/Mpc.
-     k_array = alog10(temporary(temp))
-
-     print, 'Histogramming array of log k values'
-     ;; Use histogram with reverse indicies to bin in log k (want even spacing in log space.)
-     k_hist = histogram(temporary(k_array), binsize = k_log_binsize, min = k_min, omax = k_max, locations = log_k_locs, $
-                        reverse_indices = k_ri)
-
      if n_elements(mask) ne 0 then begin
         if keyword_set(pixelwise_mask) then pixel_mask = mask $
         else begin
@@ -147,12 +162,12 @@ function kspace_rebinning_1d, power, k1_mpc, k2_mpc, k3_mpc, k_edges_mpc, bins_p
            wh_mask_gt0 = where(mask gt 0, n_gt0)
            for i=0, n_gt0 -1 do begin
               mask_inds = array_indices(mask, wh_mask_gt0[i])
-  
+              
               if mask_dim eq 3 then begin
                  x_inds = where(kx_mpc gt mask_kx_edges[mask_inds[0]] and kx_mpc lt mask_kx_edges[mask_inds[0]+1], nx_inds)
                  y_inds = where(ky_mpc gt mask_ky_edges[mask_inds[1]] and ky_mpc lt mask_ky_edges[mask_inds[1]+1], ny_inds)
                  z_inds = where(kz_mpc gt mask_kz_edges[mask_inds[2]] and kz_mpc lt mask_kz_edges[mask_inds[2]+1], nz_inds)
-          
+                 
                  if (nx_inds*ny_inds*nz_inds) ne 0 then begin
                     inds = rebin(x_inds, nx_inds, ny_inds, nz_inds) + $
                            rebin(reform(y_inds, 1, ny_inds), nx_inds, ny_inds, nz_inds)*n_kx + $
@@ -170,7 +185,7 @@ function kspace_rebinning_1d, power, k1_mpc, k2_mpc, k3_mpc, k_edges_mpc, bins_p
                     y_inds = reform(temp[1,*])
                     
                     z_inds = where(kz_mpc gt mask_kpar_edges[mask_inds[1]] and kz_mpc lt mask_kpar_edges[mask_inds[1]+1], nz_inds)
-
+                    
                     if nz_inds ne 0 then begin
                        for j=0, nperp_inds-1 do begin
                           if j eq 0 then inds = rebin([x_inds[j]], nz_inds) + rebin([y_inds[j]], nz_inds)*n_kx + z_inds*n_kx*n_ky $
@@ -185,7 +200,7 @@ function kspace_rebinning_1d, power, k1_mpc, k2_mpc, k3_mpc, k_edges_mpc, bins_p
            endfor
         endelse
      endif
-
+     
      n_k = n_elements(k_hist)
      power_1d = dblarr(n_k)
      weights_1d = dblarr(n_k)
@@ -221,33 +236,44 @@ function kspace_rebinning_1d, power, k1_mpc, k2_mpc, k3_mpc, k_edges_mpc, bins_p
      
      temp = rebin(kperp_mpc, n_kperp, n_kpar)^2 + rebin(reform(kpar_mpc, 1, n_kpar), n_kperp, n_kpar)^2
 
-     ;; get min value, adjust so centers of bins will be on major grid.
-     if min(temp) gt 0 then begin
-        min_non_zero = min(temp)
-        if keyword_set(edge_on_grid) then $
-           k_min = floor(alog10(min_non_zero) / k_log_binsize) * k_log_binsize $ 
-        else k_min = floor((alog10(min_non_zero) + k_log_binsize/2d) / k_log_binsize) * $
-                     k_log_binsize - k_log_binsize/2d
-     endif else begin
-        wh0 = where(temp eq 0, complement = wh_non0)
-        min_non_zero = min(temp[wh_non0])
-        ;; Add an extra bin to put the k=0 mode into.
-        if keyword_set(edge_on_grid) then $
-           k_min = floor(alog10(min_non_zero) / k_log_binsize - 1) * k_log_binsize $
-        else k_min = floor((alog10(min_non_zero) + k_log_binsize/2d) / k_log_binsize - 1) * $
-                     k_log_binsize - k_log_binsize/2d
+     if not keyword_set(log_k) then begin
 
-        ;;Set 0 mode to bottom value so it doesn't get left out.
-        temp[wh0] = 10^k_min
+        if keyword_set(edge_on_grid) then k_min = floor(min(temp) / k_bin) * k_bin $
+        else kperp_min = floor((min(temp) + k_bin/2d) / k_bin) * k_bin - k_bin/2d
+
+        ;; Use histogram with reverse indicies to bin in kperp
+        k_hist = histogram(temp, binsize = k_bin, min = k_min, omax = k_max, locations = lin_k_locs, $
+                               reverse_indices = k_ri)
+
+     endif else begin
+        ;; get min value, adjust so centers of bins will be on major grid.
+        if min(temp) gt 0 then begin
+           min_non_zero = min(temp)
+           if keyword_set(edge_on_grid) then $
+              k_min = floor(alog10(min_non_zero) / k_bin) * k_bin $ 
+           else k_min = floor((alog10(min_non_zero) + k_bin/2d) / k_bin) * $
+                        k_bin - k_bin/2d
+        endif else begin
+           wh0 = where(temp eq 0, complement = wh_non0)
+           min_non_zero = min(temp[wh_non0])
+           ;; Add an extra bin to put the k=0 mode into.
+           if keyword_set(edge_on_grid) then $
+              k_min = floor(alog10(min_non_zero) / k_bin - 1) * k_bin $
+           else k_min = floor((alog10(min_non_zero) + k_bin/2d) / k_bin - 1) * $
+                        k_bin - k_bin/2d
+           
+           ;;Set 0 mode to bottom value so it doesn't get left out.
+           temp[wh0] = 10^k_min
+        endelse
+        
+        ;; calculate log kperp at each location in 1/Mpc.
+        k_array = alog10(temporary(temp))
+        
+        ;; Use histogram with reverse indicies to bin in log k (want even spacing in log space.)
+        k_hist = histogram(temporary(k_array), binsize = k_bin, min = k_min, omax = k_max, locations = log_k_locs, $
+                           reverse_indices = k_ri)
      endelse
 
-     ;; calculate log kperp at each location in 1/Mpc.
-     k_array = alog10(temporary(temp))
-     
-     ;; Use histogram with reverse indicies to bin in log k (want even spacing in log space.)
-     k_hist = histogram(temporary(k_array), binsize = k_log_binsize, min = k_min, omax = k_max, locations = log_k_locs, $
-                        reverse_indices = k_ri)
-     
      if n_elements(mask) ne 0 then begin
         if keyword_set(pixelwise_mask) then pixel_mask = mask $
         else begin
@@ -293,8 +319,14 @@ function kspace_rebinning_1d, power, k1_mpc, k2_mpc, k3_mpc, k_edges_mpc, bins_p
           
   endelse
 
-  k_centers_mpc = 10^(log_k_locs + k_log_binsize/2d)
-  k_edges_mpc = [10^(log_k_locs), 10^(max(log_k_locs) + k_log_binsize)]
+  if keyword_set(log_k) then begin
+     k_centers_mpc = 10^(log_k_locs + k_bin/2d)
+     k_edges_mpc = [10^(log_k_locs), 10^(max(log_k_locs) + k_bin)]
+  endif else begin
+     k_centers_mpc = lin_k_locs + k_bin/2d
+     k_edges_mpc = [lin_k_locs, max(lin_k_locs) + k_bin]
+  endelse
+
 
   power_ave = power_1d/weights_1d
   wh = where(weights_1d eq 0, count)

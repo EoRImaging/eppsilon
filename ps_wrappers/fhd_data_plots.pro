@@ -2,17 +2,15 @@ pro fhd_data_plots, datafile, save_path = save_path, plot_path = plot_path, heal
                     refresh_dft = refresh_dft, dft_fchunk = dft_fchunk, refresh_ps = refresh_ps, refresh_binning = refresh_binning, $
                     no_weighting = no_weighting, std_power = std_power, no_kzero = no_kzero, $
                     no_weighted_averaging = no_weighted_averaging, data_range = data_range, plot_weights = plot_weights, $
-                    slice_nobin = slice_nobin, linear_kpar = linear_kpar, linear_kperp = linear_kperp, linkperp_bin = linkperp_bin, $
-                    plot_uvf = plot_uvf, uvf_data_range = uvf_data_range, uvf_type = uvf_type, baseline_axis = baseline_axis, $
-                    plot_wedge_line = plot_wedge_line, grey_scale = grey_scale, pub = pub
+                    slice_nobin = slice_nobin, log_kpar = log_kpar, log_kperp = log_kperp, kpar_bin = kpar_bin, $
+                    kperp_bin = kperp_bin, plot_uvf = plot_uvf, uvf_data_range = uvf_data_range, uvf_type = uvf_type, $
+                    baseline_axis = baseline_axis, plot_wedge_line = plot_wedge_line, grey_scale = grey_scale, pub = pub
 
   ;; default to absolute value for uvf plots
   if keyword_set(plot_uvf) and n_elements(uvf_type) eq 0 then uvf_type = 'abs'
 
   ;; default to including baseline axis
   if n_elements(baseline_axis) eq 0 then baseline_axis = 1
-  ;; default to linear kparallel bins
-  if n_elements(linear_kpar) eq 0 then linear_kpar = 1
 
   ;; default to plot wedge line
   if n_elements(plot_wedge_line) eq 0 then plot_wedge_line=1
@@ -105,13 +103,13 @@ pro fhd_data_plots, datafile, save_path = save_path, plot_path = plot_path, heal
      fadd_2dbin = fadd_2dbin + '_nok0'
      wt_fadd_2dbin = wt_fadd_2dbin + '_nok0'
   endif
-  if keyword_set(linear_kpar) then begin
-     fadd_2dbin = fadd_2dbin + '_linkpar'
-     wt_fadd_2dbin = wt_fadd_2dbin + '_linkpar'
+  if keyword_set(log_kpar) then begin
+     fadd_2dbin = fadd_2dbin + '_logkpar'
+     wt_fadd_2dbin = wt_fadd_2dbin + '_logkpar'
   endif
-  if keyword_set(linear_kperp) then begin
-     fadd_2dbin = fadd_2dbin + '_linkperp'
-     wt_fadd_2dbin = wt_fadd_2dbin + '_linkperp'
+  if keyword_set(log_kperp) then begin
+     fadd_2dbin = fadd_2dbin + '_logkperp'
+     wt_fadd_2dbin = wt_fadd_2dbin + '_logkperp'
   endif
 
   n_cubes = npol*ntype
@@ -134,13 +132,23 @@ pro fhd_data_plots, datafile, save_path = save_path, plot_path = plot_path, heal
   nfiles = n_elements(savefiles_2d)
   for i=0, nfiles-1 do begin
 
-     ;; for linear_kperp with specified binsize, have to check that binsize is right
-     if n_elements(linkperp_bin) ne 0 and test_save[i] gt 0 and not keyword_set(refresh_ps) and $
+     ;; if binsizes are specified, check that binsize is right
+     if (n_elements(kperp_bin) ne 0 or n_elements(kpar_bin) ne 0) and test_save[i] gt 0 and not keyword_set(refresh_ps) and $
         not keyword_set(refresh_binning) then begin
         file_obj = obj_new('idl_savefile', savefiles_2d[i])
-        file_obj->restore, 'kperp_edges'
-        kperp_binsize = kperp_edges[1] - kperp_edges[0]
-        if abs(kperp_binsize - linkperp_bin) gt 0. then test_save[i]=0
+        if n_elements(kpar_bin) ne 0 then begin
+           kpar_bin_req = kpar_bin
+           file_obj->restore, 'kpar_bin'
+           if abs(kpar_bin - kpar_bin_req) gt 0. then test_save[i]=0
+           kpar_bin = kpar_bin_req
+        endif
+        if test_save[i] gt 0 and n_elements(kpar_bin) ne 0 then begin
+           kperp_bin_req = kperp_bin
+           file_obj->restore, 'kperp_bin'
+           if abs(kperp_binsize - kperp_bin_req) gt 0. then test_save[i]=0
+           kperp_bin = kperp_bin_req
+        endif
+        obj_destroy, file_obj
      endif
 
      if test_save[i] eq 0 or keyword_set(refresh_ps) or keyword_set(refresh_binning) then begin
@@ -160,13 +168,14 @@ pro fhd_data_plots, datafile, save_path = save_path, plot_path = plot_path, heal
                      nside = nside, pixelfile = pixelfile, pixelvar = pixel_varname, hpx_dftsetup_savefile = hpx_dftsetup_savefile, $
                      savefilebase = savefilebase[i], weight_savefilebase = weight_savefilebase[i], refresh = refresh_ps, $
                      dft_refresh_data=refresh_dft, dft_refresh_weight=weight_refresh[i], dft_fchunk = dft_fchunk, $
-                     no_weighting = no_weighting, std_power = std_power, no_kzero = no_kzero, linear_kpar = linear_kpar, $
-                     linear_kperp = linear_kperp, linkperp_bin = linkperp_bin, no_weighted_averaging = no_weighted_averaging, /quiet
+                     no_weighting = no_weighting, std_power = std_power, no_kzero = no_kzero, log_kpar = log_kpar, $
+                     log_kperp = log_kperp, kpar_bin = kpar_bin, kperp_bin = kperp_bin, $
+                     no_weighted_averaging = no_weighted_averaging, /quiet
         endif else $
            fhd_3dps, datafile, data_varnames[i], datafile, weight_varnames[weight_ind[i]], frequencies, max_baseline, $
                      degpix=obs.degpix, savefilebase = savefilebase[i], refresh = refresh_ps, no_weighting = no_weighting, $
-                     std_power = std_power, no_kzero = no_kzero, linear_kpar = linear_kpar, linear_kperp = linear_kperp, $
-                     linkperp_bin = linkperp_bin, no_weighted_averaging = no_weighted_averaging, /quiet
+                     std_power = std_power, no_kzero = no_kzero, log_kpar = log_kpar, log_kperp = log_kperp, kpar_bin = kpar_bin, $
+                     kperp_bin = kperp_bin, no_weighted_averaging = no_weighted_averaging, /quiet
      endif
   endfor
 
@@ -174,8 +183,9 @@ pro fhd_data_plots, datafile, save_path = save_path, plot_path = plot_path, heal
   restore, savefiles_2d[0]
   wh_good_kperp = where(total(power, 2) gt 0, count)
   if count eq 0 then stop
-  kperp_plot_range = [min(kperp_edges[wh_good_kperp]), max(kperp_edges[wh_good_kperp+1])]
-  kperp_plot_range = [6e-3, min([max(kperp_edges[wh_good_kperp+1]),1.5e-1])]
+  ;;kperp_plot_range = [min(kperp_edges[wh_good_kperp]), max(kperp_edges[wh_good_kperp+1])]
+  kperp_plot_range = [6e-3, min([max(kperp_edges[wh_good_kperp+1]),1.1e-1])]
+  
 
   if n_elements(plot_path) ne 0 then plotfile_path = plot_path else plotfile_path = froot
   ;; plot_folder = 'fhd_data/'
@@ -243,8 +253,8 @@ pro fhd_data_plots, datafile, save_path = save_path, plot_path = plot_path, heal
      positions[2,*] = (col_val+1)/double(ncol)
      positions[3,*] = (row_val+1)/double(nrow)
      
-     max_ysize = 600
-     max_xsize = 900
+     max_ysize = 1200
+     max_xsize = 1800
      if nfiles gt 9 then begin
         multi_aspect =0.9 
         xsize = round((max_ysize/nrow) * ncol/multi_aspect)

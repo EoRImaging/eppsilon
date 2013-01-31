@@ -37,7 +37,8 @@ pro kpower_2d_plots, power_savefile, multi_pos = multi_pos, multi_size = multi_s
      weights1 = weights
      kperp1 = kperp_edges
      kpar1 = kpar_edges
-     bins1 = bins_per_decade
+     kpar_bin1 = kpar_bin
+     kperp_bin1 = kperp_bin
      
      restore, power_savefile[1]
      power2 = power

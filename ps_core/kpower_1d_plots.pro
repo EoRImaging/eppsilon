@@ -52,8 +52,13 @@ pro kpower_1d_plots, power_savefile, plot_weights = plot_weights, multi_pos = mu
         else message, 'No weights array included in this file'
      endif
      
+     log_bins = 1
+     k_log_diffs = (alog10(k_edges) - shift(alog10(k_edges), 1))[2:*]
+     if total(abs(k_log_diffs - k_log_diffs[0])) gt n_k*1e-15 then log_bins = 0
+
      if n_elements(k_centers) ne 0 then k_mid = k_centers $
-     else k_mid = 10^(alog10(k_edges[1:*]) - (1d/bins_per_decade)/2.)
+     else if log_bins then k_mid = 10^(alog10(k_edges[1:*]) - k_bin/2.) else k_mid = k_edges[1:*] - k_bin/2.
+
      theory_delta = (power * k_mid^3d / (2d*!pi^2d)) ^(1/2d)
 
      if keyword_set(save_text) then begin
@@ -84,12 +89,24 @@ pro kpower_1d_plots, power_savefile, plot_weights = plot_weights, multi_pos = mu
         power_plot = create_struct(tag, power)
         k_plot = create_struct(tag, k_mid)
   
-        if n_elements(data_range) eq 0 then yrange = minmax(power) else yrange = data_range
-        if n_elements(k_range) eq 0 then xrange = minmax(k_edges) else xrange = k_range
+        if n_elements(data_range) eq 0 then yrange = 10.^([floor(alog10(min(power))), ceil(alog10(max(power)))]) $
+        else yrange = data_range
+        if n_elements(k_range) eq 0 then begin
+           if min(k_edges gt 0) then xrange = minmax(k_edges) else begin
+              wh_gt0 = where(k_mid gt 0, count_gt0)
+              if count_gt0 gt 0 then xrange = [min(k_mid[wh_gt0]), max(k_edges)] else stop
+           endelse
+        endif else xrange = k_range
 
      endif else begin
-        if n_elements(data_range) eq 0 then yrange = minmax([yrange, power])
-        if n_elements(k_range) eq 0 then if n_elements(k_edges) gt 0 then xrange = minmax([xrange, k_edges])
+        if n_elements(data_range) eq 0 then yrange = minmax([yrange, 10.^([floor(alog10(min(power))), ceil(alog10(max(power)))])])
+        if n_elements(k_range) eq 0 then begin
+           if min(k_edges gt 0) then xrange_new = minmax(k_edges) else begin
+              wh_gt0 = where(k_mid gt 0, count_gt0)
+              if count_gt0 gt 0 then xrange_new = [min(k_mid[wh_gt0]), max(k_edges)] else stop
+           endelse
+           xrange = minmax([xrange, xrange_new])
+        endif else xrange = k_range
 
         power_plot = create_struct(tag, power, power_plot)
         k_plot = create_struct(tag, k_mid, k_plot)
@@ -129,9 +146,9 @@ pro kpower_1d_plots, power_savefile, plot_weights = plot_weights, multi_pos = mu
   xtitle = textoidl('k (Mpc^{-1})', font = font)
 
   plot, k_plot.(plot_order[0]), power_plot.(plot_order[0]), position = new_pos, /ylog, /xlog, xrange = xrange, yrange = yrange, $
-        xstyle=1, ystyle=1, xtitle = xtitle, ytitle = ytitle, psym=-3, xtickformat = 'exponent', ytickformat = 'exponent', $
+        xstyle=1, ystyle=1, xtitle = xtitle, ytitle = ytitle, psym=10, xtickformat = 'exponent', ytickformat = 'exponent', $
         thick = thick, charthick = charthick, xthick = xthick, ythick = ythick, charsize = charsize, font = font, noerase = no_erase
-  for i=0, nfiles - 1 do oplot, k_plot.(plot_order[i]), power_plot.(plot_order[i]), psym=-3, color = colors[i], thick = thick
+  for i=0, nfiles - 1 do oplot, k_plot.(plot_order[i]), power_plot.(plot_order[i]), psym=10, color = colors[i], thick = thick
   if n_elements(names) ne 0 then $
      al_legend, names, textcolor = colors, box = 0, /right,/bottom, charsize = legend_charsize, charthick = charthick
 
