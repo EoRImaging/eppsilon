@@ -150,8 +150,9 @@ pro kpower_1d_plots, power_savefile, plot_weights = plot_weights, multi_pos = mu
   xtitle = textoidl('k (Mpc^{-1})', font = font)
 
   cgplot, k_plot.(plot_order[0]), power_plot.(plot_order[0]), position = new_pos, /ylog, /xlog, xrange = xrange, yrange = yrange, $
-        xstyle=1, ystyle=1, xtitle = xtitle, ytitle = ytitle, psym=10, xtickformat = 'exponent', ytickformat = 'exponent', $
-        thick = thick, charthick = charthick, xthick = xthick, ythick = ythick, charsize = charsize, font = font, noerase = no_erase
+          xstyle=1, ystyle=1, axiscolor = 'black', xtitle = xtitle, ytitle = ytitle, psym=10, xtickformat = 'exponent', $
+          ytickformat = 'exponent', thick = thick, charthick = charthick, xthick = xthick, ythick = ythick, charsize = charsize, $
+          font = font, noerase = no_erase
   for i=0, nfiles - 1 do cgplot, /overplot, k_plot.(plot_order[i]), power_plot.(plot_order[i]), psym=10, color = colors[i], $
                                  thick = thick
 
