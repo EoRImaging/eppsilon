@@ -1,27 +1,21 @@
-pro kpower_2d_plots, power_savefile, multi_pos = multi_pos, multi_size = multi_size, plot_weights = plot_weights, ratio = ratio, $
-                     snr = snr, kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, data_range = data_range, $
-                     color_profile = color_profile, log_cut_val = log_cut_val, pub = pub, plotfile = plotfile, no_title = no_title, $
-                     window_num = window_num, title = title, norm_2d = norm_2d, norm_factor = norm_factor, grey_scale = grey_scale, $
-                     wedge_amp = wedge_amp, plot_wedge_line = plot_wedge_line, baseline_axis = baseline_axis, $
-                     no_units = no_units, charsize = charsize_in, cb_size = cb_size_in, margin=margin_in, cb_margin = cb_margin_in
+pro kpower_2d_plots, power_savefile, multi_pos = multi_pos, start_multi_params = start_multi_params, plot_weights = plot_weights, $
+                     ratio = ratio, snr = snr, kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
+                     data_range = data_range, color_profile = color_profile, log_cut_val = log_cut_val, pub = pub, $
+                     plotfile = plotfile, no_title = no_title, window_num = window_num, title = title, norm_2d = norm_2d, $
+                     norm_factor = norm_factor, grey_scale = grey_scale, wedge_amp = wedge_amp, plot_wedge_line = plot_wedge_line, $
+                     baseline_axis = baseline_axis, delay_axis = delay_axis,no_units = no_units, charsize = charsize_in, $
+                     cb_size = cb_size_in, margin=margin_in, cb_margin = cb_margin_in
 
   if n_elements(window_num) eq 0 then window_num = 1
  
+  if n_elements(start_multi_params) gt 0 and n_elements(multi_pos) gt 0 then message, 'If start_multi_params are passed, ' + $
+     'multi_pos cannot be passed because then it is used as an output to pass back the positions for future plots.'
+
   if n_elements(multi_pos) gt 0 then begin
      if n_elements(multi_pos) ne 4 then message, 'multi_pos must be a 4 element plot position vector'
      if max(multi_pos) gt 1 or min(multi_pos) lt 0 then message, 'multi_pos must be in normalized coordinates (between 0 & 1)'
      if multi_pos[2] le multi_pos[0] or multi_pos[3] le multi_pos[1] then $
         message, 'In multi_pos, x1 must be greater than x0 and y1 must be greater than y0 '
-
-     case n_elements(multi_size) of 
-        0: begin
-           print, 'No size for multi_pos supplied. Assuming size = [500, 500]'
-           multi_size = [500, 500]
-        end
-        1: multi_size = intarr(2) + multi_size
-        2: ;; nothing
-        else: message, 'too many elements in multi_size'
-     endcase
   endif
 
   color_profile_enum = ['log_cut', 'sym_log', 'abs']
@@ -62,7 +56,12 @@ pro kpower_2d_plots, power_savefile, multi_pos = multi_pos, multi_size = multi_s
 
      if keyword_set(snr) then begin
         if keyword_set(plot_weights) then message, 'Both snr and plot_weights keywords cannot be set at once.'
-        power = power * weights
+        power = (power - 1d/weights) * weights
+        wh_0 = where(weights eq 0, count_0)
+        if count_0 gt 0 then begin
+           stop
+           power[wh_0] = 0
+        endif
         plot_type = 'snr'
      endif
 
@@ -83,16 +82,39 @@ pro kpower_2d_plots, power_savefile, multi_pos = multi_pos, multi_size = multi_s
   if n_elements(kperp_plot_range) eq 0 then kperp_plot_range = minmax(kperp_edges)
   if n_elements(kpar_plot_range) eq 0 then kpar_plot_range = minmax(kpar_edges)
 
-  if n_elements(plotfile) eq 0 then begin
-     case plot_type of
-        'power': plotfile = strsplit(power_savefile, '.idlsave', /regex, /extract) + '_2dkpower.eps'
-        'ratio': plotfile = strsplit(power_savefile[0], '.idlsave', /regex, /extract) + '_ratio.eps
-        'weight': plotfile = strsplit(power_savefile, '.idlsave', /regex, /extract) + '_2dweight.eps'
-        'weight_ratio': plotfile = strsplit(power_savefile[0], '.idlsave', /regex, /extract) + '_weight_ratio.eps'
-        'snr': plotfile = strsplit(power_savefile, '.idlsave', /regex, /extract) + '_2dsnr.eps'
-     endcase
-  endif else if strcmp(strmid(plotfile, strlen(plotfile)-4), '.eps', /fold_case) eq 0 then plotfile = plotfile + '.eps'
+  units_str = ''
+  case plot_type of
+     'power': begin
+        units_str = textoidl(' (mK^2 Mpc^3)', font = font)
+        plot_title = textoidl('P_k', font = font)
+        plotfile_add = '_2dkpower.eps'
+     end
+     'ratio': begin
+         units_str = ''
+         plot_title = 'Power Ratio'
+         plotfile_add = '_ratio.eps'
+     end
+     'weight': begin
+         units_str = ''
+         plot_title = 'Weights'
+         plotfile_add = '_2dweight.eps'
+     end
+     'weight_ratio': begin
+         units_str = ''
+         plot_title = 'Weights Ratio'
+         plotfile_add = '_weight_ratio.eps'
+     end
+     'snr': begin
+         units_str = ''
+         plot_title = 'Signal/Noise (' + textoidl('P_k', font = font) + '*Weights)'
+         plotfile_add = '_2dsnr.eps'
+     end
+  endcase
+  if n_elements(plotfile) eq 0 then plotfile = strsplit(power_savefile[0], '.idlsave', /regex, /extract) + plotfile_add $
+  else if strcmp(strmid(plotfile, strlen(plotfile)-4), '.eps', /fold_case) eq 0 then plotfile = plotfile + '.eps'
   
+  if keyword_set(no_units) then units_str = ''
+
   wh_kperp_inrange = where(kperp_edges ge kperp_plot_range[0] and kperp_edges[1:*] le kperp_plot_range[1], n_kperp_plot)
   wh_kpar_inrange = where(kpar_edges ge kpar_plot_range[0] and kpar_edges[1:*] le kpar_plot_range[1], n_kpar_plot)
   
@@ -257,35 +279,36 @@ pro kpower_2d_plots, power_savefile, multi_pos = multi_pos, multi_size = multi_s
      
   power_log_norm = (power_log-log_data_range[0])*n_colors/(log_data_range[1]-log_data_range[0]) + color_range[0]
 
+  max_ysize = 1000
+  max_xsize = 1200
+  base_size = 600
+
   if n_elements(multi_pos) eq 4 then begin
      ;; work out positions scaled to the area allowed in multi_pos with proper aspect ratio
      multi_xlen = (multi_pos[2]-multi_pos[0])
      multi_ylen = (multi_pos[3]-multi_pos[1])
      multi_center = [multi_pos[0] + multi_xlen/2d, multi_pos[1] + multi_ylen/2d]
 
-     min_len = min([multi_xlen, multi_ylen])
-     min_size = min(multi_size)
+     multi_size = [!d.x_vsize*multi_xlen, !d.y_vsize*multi_ylen]
   endif
 
   ;; Work out plot & colorbar positions
   ;; in units of plot area (incl. margins)
   if n_elements(cb_size_in) eq 0 then cb_size = 0.025 else cb_size = cb_size_in
   if n_elements(margin_in) lt 4 then begin
-     margin = [0.15, 0.15, 0.02, 0.1] 
-     if keyword_set(baseline_axis) and not keyword_set(no_title) then $
-        if n_elements(multi_pos) gt 0 then margin[3] = 0.07/multi_ylen else margin[3] = 0.15
-     if n_elements(multi_pos) gt 0 then begin
-        margin[0] = 0.13/multi_xlen
-        margin[1] = 0.07/multi_ylen
-
-        ;;print, multi_xlen, multi_ylen
-        ;;print, margin
-     endif
-  endif else margin = margin_in
+     margin = [0.2, 0.15, 0.02, 0.1] 
+     if keyword_set(baseline_axis) and not keyword_set(no_title) then margin[3] = 0.15
+     if keyword_set(delay_axis) then margin[2] = 0.07
+   endif else margin = margin_in
 
   if n_elements(cb_margin_in) lt 2 then begin
-     cb_margin = [0.13, 0.02] 
-     if n_elements(multi_pos) gt 0 then cb_margin[0] = 0.15/multi_xlen
+     cb_margin = [0.2, 0.02] 
+     ;; if units_str ne '' then begin
+     ;;    cb_margin = [0.2, 0.02] 
+     ;; endif else begin
+     ;;    ;; no label on colorbar in this case
+     ;;    cb_margin = [0.1, 0.02] 
+     ;; endelse
   endif else cb_margin = cb_margin_in 
   
   plot_pos = [margin[0], margin[1], (1-cb_margin[1]-cb_size-cb_margin[0]-margin[2]), (1-margin[3])]
@@ -319,8 +342,61 @@ pro kpower_2d_plots, power_savefile, multi_pos = multi_pos, multi_size = multi_s
      x_factor = 1./aspect_ratio
   endelse
   
-  if n_elements(multi_pos) eq 4 then begin
+  if n_elements(multi_pos) eq 4 or n_elements(start_multi_params) gt 0 then begin
+     if n_elements(start_multi_params) gt 0 then begin
+        ;; calculate desired window size and positions for all plots
+        ncol = start_multi_params.ncol
+        nrow = start_multi_params.nrow
+
+        multi_pos = fltarr(4, ncol*nrow)
+     
+        row_val = reverse(reform(rebin(indgen(nrow), nrow, ncol), ncol*nrow))
+        col_val = reform(rebin(reform(indgen(ncol), 1, ncol), nrow, ncol), ncol*nrow)
+        
+        multi_pos[0,*] = col_val/double(ncol)
+        multi_pos[1,*] = row_val/double(nrow)
+        multi_pos[2,*] = (col_val+1)/double(ncol)
+        multi_pos[3,*] = (row_val+1)/double(nrow)
+
+        ;; define window size based on aspect ratio
+        base_size_use = base_size
+        xsize = round(base_size * x_factor * ncol)
+        ysize = round(base_size * y_factor * nrow)
+        while (ysize gt max_ysize) or (xsize gt max_xsize) do begin
+           base_size_use = base_size_use - 100
+           xsize = round(base_size_use * x_factor * ncol)
+           ysize = round(base_size_use * y_factor * nrow)
+        endwhile
+
+        ;; make or set window
+        if windowavailable(window_num) then begin 
+           wset, window_num
+           if !d.x_size ne xsize or !d.y_size ne ysize then make_win = 1 else make_win = 0
+        endif else make_win = 1
+        if make_win eq 1 then window, window_num, xsize = xsize, ysize = ysize
+        cgerase, background_color 
+
+        ;; if pub is set, start ps output
+        if keyword_set(pub) then pson, file = plotfile, /eps
+
+        ;; calculate multi_size & multi x/ylen not calculated earlier
+        multi_xlen = (multi_pos[2,0]-multi_pos[0,0])
+        multi_ylen = (multi_pos[3,0]-multi_pos[1,0])
+        multi_center = [multi_pos[0,0] + multi_xlen/2d, multi_pos[1,0] + multi_ylen/2d]
+   
+        ;; This print is necessary because for some reason the pixel
+        ;; size of the window changes after a print and without this
+        ;; statement the first plot has the wrong size. Awesome.
+        temp = [!d.x_vsize,!d.y_vsize]
+        print, temp
+        
+        multi_size = [!d.x_vsize*multi_xlen, !d.y_vsize*multi_ylen]
+
+        multi_pos_use = multi_pos[*,0]
+     endif else multi_pos_use = multi_pos
+
      multi_aspect = multi_size[1]/float(multi_size[0])
+
      new_aspect = aspect_ratio/multi_aspect
      if new_aspect gt 1 then begin
         y_factor = 1.
@@ -329,7 +405,7 @@ pro kpower_2d_plots, power_savefile, multi_pos = multi_pos, multi_size = multi_s
         y_factor = new_aspect
         x_factor = 1.
      endelse
-     
+ 
      new_xlen = multi_xlen*x_factor
      new_ylen = multi_ylen*y_factor
      new_multi = [multi_center[0] - new_xlen/2d, multi_center[1] - new_ylen*y_factor/2d, $
@@ -346,12 +422,11 @@ pro kpower_2d_plots, power_savefile, multi_pos = multi_pos, multi_size = multi_s
      
      no_erase = 1
   endif else begin
-     base_size = 600
      xsize = round(base_size * x_factor)
      ysize = round(base_size * y_factor)
      
      if not keyword_set(pub) then begin
-        while ysize gt 1100 do begin
+        while (ysize gt max_ysize) or (xsize gt max_xsize) do begin
            base_size = base_size - 100
            xsize = round(base_size * x_factor)
            ysize = round(base_size * y_factor)
@@ -363,16 +438,24 @@ pro kpower_2d_plots, power_savefile, multi_pos = multi_pos, multi_size = multi_s
   
   if not keyword_set(no_title) then begin
      xloc_title = (plot_pos[2] - plot_pos[0])/2. + plot_pos[0]
-     if n_elements(multi_pos) gt 0 then yloc_title = plot_pos[3] + 0.6* (multi_pos[3]-plot_pos[3]) $
+     if n_elements(multi_pos) gt 0 then yloc_title = plot_pos[3] + 0.6* (multi_pos_use[3]-plot_pos[3]) $
      else yloc_title = plot_pos[3] + 0.6* (1-plot_pos[3])
   endif
 
   if n_elements(multi_pos) gt 0 then begin
-     xloc_lambda = plot_pos[0] - 0.3* (plot_pos[0]-multi_pos[0])
-     yloc_lambda = plot_pos[3] + 0.15* (multi_pos[3]-plot_pos[3])
+     xloc_lambda = plot_pos[0] - 0.15* (plot_pos[0]-multi_pos_use[0])
+     yloc_lambda = plot_pos[3] + 0.15* (multi_pos_use[3]-plot_pos[3])
+
+     ;; xloc_delay = plot_pos[2] + 0.2* (multi_pos[2]-plot_pos[2])
+     ;; yloc_delay = (plot_pos[3] - plot_pos[1])/2d + plot_pos[1]
+     xloc_delay = plot_pos[2] + 0.15 * (multi_pos_use[2]-plot_pos[2])
+     yloc_delay = plot_pos[1] + 0.1* (plot_pos[1]-multi_pos_use[1])
   endif else begin
      xloc_lambda = plot_pos[0] - 0.1* (plot_pos[0]-0)
      yloc_lambda = plot_pos[3] + 0.1* (1-plot_pos[3])
+
+     xloc_delay = plot_pos[2] + 0.1*(1-plot_pos[2])
+     yloc_delay = plot_pos[1] +0.1*(plot_pos[1]-0)
   endelse
   if keyword_set(no_title) then xloc_lambda = (plot_pos[2] - plot_pos[0])/2d + plot_pos[0]
 
@@ -383,9 +466,10 @@ pro kpower_2d_plots, power_savefile, multi_pos = multi_pos, multi_size = multi_s
      ythick = 3
      if n_elements(charsize_in) eq 0 then begin
         if n_elements(multi_pos) gt 0 then begin
-           charsize = 1.2d * (min_size/500d)
+           charsize = 1.2d * (multi_size[0]/float(base_size))
         endif else charsize = 2
      endif else charsize = charsize_in
+print, charsize
 
      font = 1
      ;;perp_char = '!Z(22A5)'
@@ -404,7 +488,13 @@ pro kpower_2d_plots, power_savefile, multi_pos = multi_pos, multi_size = multi_s
      xthick = 1
      ythick = 1
      font = -1
-     if n_elements(charsize_in) eq 0 then charsize=1 else charsize = charsize_in
+     if n_elements(charsize_in) eq 0 then begin
+        if n_elements(multi_pos) gt 0 then begin
+           charsize = 2d * (multi_size[0]/float(base_size))
+        endif else charsize = 2
+     endif else charsize = charsize_in
+print, charsize
+
      if n_elements(multi_pos) eq 0 then begin
         perp_char = '!9' + string(120B) + '!X'
 
@@ -419,29 +509,6 @@ pro kpower_2d_plots, power_savefile, multi_pos = multi_pos, multi_size = multi_s
   plot_kperp = 10^kperp_log_edges
   plot_kpar = 10^kpar_log_edges
  
-  units_str = ''
-  case plot_type of
-     'power': begin
-        units_str = textoidl(' (mK^2 Mpc^3)', font = font)
-        plot_title = textoidl('P_k', font = font)
-     end
-     'ratio': begin
-         units_str = ''
-         plot_title = 'Power Ratio'
-     end
-     'weight': begin
-         units_str = ''
-         plot_title = 'Weights' 
-     end
-     'weight_ratio': begin
-         units_str = ''
-         plot_title = 'Weights Ratio'
-     end
-     'snr': begin
-         units_str = ''
-         plot_title = 'Signal/Noise (' + textoidl('P_k', font = font) + '*Weights)'
-     end
-  endcase
   if n_elements(title) ne 0 then plot_title = title
   if keyword_set(no_title) then undefine, plot_title
 
@@ -491,11 +558,20 @@ pro kpower_2d_plots, power_savefile, multi_pos = multi_pos, multi_size = multi_s
      cgaxis, xaxis=1, xrange = minmax(plot_kperp), xtickv = xticks, xtickname = replicate(' ', n_elements(xticks)), $
              charthick = charthick, xthick = xthick, ythick = ythick, charsize = charsize, font = font, xstyle = 1, $
              color = annotate_color
+  if keyword_set(delay_axis) then begin
+     min_delay_plot = 2d*alog10(delay_params[0]) - alog10(delay_params[0]*2) ;; in analogy with min kperp/par with 0 bins
+     cgaxis, yaxis=1, yrange = [min_delay_plot, delay_params[1]], ytickformat = 'exponent', charthick = charthick, xthick = xthick, $
+             ythick = ythick, charsize = charsize, font = font, ystyle = 1, color = annotate_color
 
-  cgaxis, yaxis=1, yrange = minmax(plot_kpar), ytickv = yticks, ytickname = replicate(' ', n_elements(yticks)), $
-          charthick = charthick, xthick = xthick, ythick = ythick, charsize = charsize, font = font, ystyle = 1, color = annotate_color
+     cgtext, xloc_delay, yloc_delay, '(ns)', /normal, alignment=0.5, charsize=charsize*0.9, $
+             color = annotate_color, font = font
 
-  tick_vals = loglevels(10d^log_data_range, coarse=2)
+  endif else $
+     cgaxis, yaxis=1, yrange = minmax(plot_kpar), ytickv = yticks, ytickname = replicate(' ', n_elements(yticks)), $
+             charthick = charthick, xthick = xthick, ythick = ythick, charsize = charsize, font = font, ystyle = 1, $
+             color = annotate_color
+
+  tick_vals = loglevels(10d^[ceil(log_data_range[0]), floor(log_data_range[1])], coarse=2)
 
   ;; want minor tick marks if there aren't very many loglevels.
   ;; unfortunately cgcolorbar can't do log minor tick marks
@@ -504,12 +580,14 @@ pro kpower_2d_plots, power_savefile, multi_pos = multi_pos, multi_size = multi_s
   ;; solution: add regular tickmarks without labels for the minor ones.
 
   if n_elements(tick_vals) lt 5 then begin
+     tick_vals_use = loglevels(10d^[floor(log_data_range[0]), ceil(log_data_range[1])], coarse=2)
+
      if n_elements(tick_vals) lt 2 then minor_multipliers = dindgen(8)+2 else minor_multipliers = (dindgen(4)+1)*2d
      n_minor_mult = n_elements(minor_multipliers)
-     n_major = n_elements(tick_vals)
+     n_major = n_elements(tick_vals_use)
 
      minor_tick_vals = reform(rebin(minor_multipliers, n_minor_mult, n_major), n_minor_mult*n_major) $
-                       * reform(rebin(reform(tick_vals, 1, n_major), n_minor_mult, n_major), n_minor_mult*n_major)
+                       * reform(rebin(reform(tick_vals_use, 1, n_major), n_minor_mult, n_major), n_minor_mult*n_major)
      wh_keep = where(minor_tick_vals gt 10^log_data_range[0] and minor_tick_vals lt 10^log_data_range[1], count_keep)
 
      if count_keep gt 0 then begin
@@ -573,10 +651,11 @@ pro kpower_2d_plots, power_savefile, multi_pos = multi_pos, multi_size = multi_s
      names = temp_names[order]
   endif
 
-  if (alog10(tick_vals[0]) - log_data_range[0]) gt 10^(-3d) then begin
+  if (alog10(tick_vals[0]) - log_data_range[0]) lt 10^(-3d) then begin
      cb_ticknames = [' ', names]
      cb_ticks = [color_range[0]-1, (alog10(tick_vals) - log_data_range[0]) * n_colors / $
                  (log_data_range[1] - log_data_range[0]) + color_range[0]] - color_range[0]
+
   endif else begin
      cb_ticknames = names
      cb_ticks = ((alog10(tick_vals) - log_data_range[0]) * (n_colors+1) / $
@@ -604,5 +683,5 @@ pro kpower_2d_plots, power_savefile, multi_pos = multi_pos, multi_size = multi_s
   endif
   
   tvlct, r, g, b
-  
+
  end

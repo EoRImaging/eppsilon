@@ -98,8 +98,9 @@ pro fhd_3dps, datafile, datavar, weightfile, weightvar, frequencies, max_baselin
      comov_los_diff = comov_los_diff[0:n_elements(comov_dist_los)-2]
      
      if max(freq_diff-freq_diff[0]) gt 1e-12 then begin
-        ;; frequencies are not evenly spaced, need to be careful about z_mpc_delta/mean
-        
+        ;; frequencies are not evenly spaced, need to be careful about z_mpc_delta/mean      
+
+        f_delta = freq_resolution
         nominal_freqs = dindgen(floor(((max(frequencies)-min(frequencies))/freq_resolution))+1)*freq_resolution + min(frequencies)
         nominal_z = z0_freq/nominal_freqs - 1
         comoving_distance_los, nominal_z, nominal_comov_dist_los
@@ -111,12 +112,16 @@ pro fhd_3dps, datafile, datavar, weightfile, weightvar, frequencies, max_baselin
         
      endif else begin
         
+        f_delta = freq_diff[0]
         z_mpc_delta = mean(comov_los_diff)
         z_mpc_mean = mean(comov_dist_los)
         n_kz = n_freq
         
      endelse
      kperp_lambda_conv = z_mpc_mean / (2d*!dpi)
+     delay_delta = 1e9/(n_freq*f_delta*1e6) ;; equivilent delay bin size for kparallel
+     delay_max = delay_delta * n_freq/2d ;; factor of 2 b/c of neg/positive
+     delay_params = [delay_delta, delay_max]     
 
      z_mpc_length = max(comov_dist_los) - min(comov_dist_los) + z_mpc_delta
      kz_mpc_range =  (2d*!dpi) / (z_mpc_delta)
@@ -544,24 +549,24 @@ pro fhd_3dps, datafile, datavar, weightfile, weightvar, frequencies, max_baselin
 
      ;; save some slices of the data cube (post cleaning)
      uf_savefile = froot + savefilebase + '_uf_plane.idlsave'
-     uf_slice = uvf_slice(data_cube, kx_mpc, ky_mpc, frequencies, kperp_lambda_conv, slice_axis = 1, slice_inds = n_ky/2, $
-                slice_savefile = uf_savefile)
+     uf_slice = uvf_slice(data_cube, kx_mpc, ky_mpc, frequencies, kperp_lambda_conv, delay_params, slice_axis = 1, $
+                          slice_inds = n_ky/2, slice_savefile = uf_savefile)
 
      vf_savefile = froot + savefilebase + '_vf_plane.idlsave'
-     vf_slice = uvf_slice(data_cube, kx_mpc, ky_mpc, frequencies, kperp_lambda_conv, slice_axis = 0, slice_inds = n_kx/2, $
-                slice_savefile = vf_savefile)
+     vf_slice = uvf_slice(data_cube, kx_mpc, ky_mpc, frequencies, kperp_lambda_conv, delay_params, slice_axis = 0, $
+                          slice_inds = n_kx/2, slice_savefile = vf_savefile)
 
      if max(abs(vf_slice)) eq 0 then begin
         nloop = 0
         while max(abs(vf_slice)) eq 0 do begin
            nloop = nloop+1
-           vf_slice = uvf_slice(data_cube, kx_mpc, ky_mpc, frequencies, kperp_lambda_conv, slice_axis = 0, $
+           vf_slice = uvf_slice(data_cube, kx_mpc, ky_mpc, frequencies, kperp_lambda_conv, delay_params, slice_axis = 0, $
                                 slice_inds = n_kx/2+nloop, slice_savefile = vf_savefile)
         endwhile
      endif
 
      uv_savefile = froot + savefilebase + '_uv_plane.idlsave'
-     uv_slice = uvf_slice(data_cube, kx_mpc, ky_mpc, frequencies, kperp_lambda_conv, slice_axis = 2, slice_inds = 0, $
+     uv_slice = uvf_slice(data_cube, kx_mpc, ky_mpc, frequencies, kperp_lambda_conv, delay_params, slice_axis = 2, slice_inds = 0, $
                 slice_savefile = uv_savefile)
 
      ;; need to cut uvf cubes in half because image is real -- we'll cut in v
@@ -762,7 +767,7 @@ pro fhd_3dps, datafile, datavar, weightfile, weightvar, frequencies, max_baselin
 
      endelse
 
-     save, file = save_file, power_3d, weights_3d, kx_mpc, ky_mpc, kz_mpc, kperp_lambda_conv, n_freq_contrib
+     save, file = save_file, power_3d, weights_3d, kx_mpc, ky_mpc, kz_mpc, kperp_lambda_conv, delay_params, n_freq_contrib
 
   endif else restore, save_file
 
@@ -815,7 +820,7 @@ pro fhd_3dps, datafile, datavar, weightfile, weightvar, frequencies, max_baselin
   if count eq 0 then stop
   kperp_plot_range = [min(kperp_edges[wh_good_kperp]), max(kperp_edges[wh_good_kperp+1])]
   
-  save, file = savefile, power, weights, kperp_edges, kpar_edges, kperp_bin, kpar_bin, kperp_lambda_conv
+  save, file = savefile, power, weights, kperp_edges, kpar_edges, kperp_bin, kpar_bin, kperp_lambda_conv, delay_params
 
   if not keyword_set(quiet) then begin
      kpower_2d_plots, savefile, kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
@@ -826,24 +831,24 @@ pro fhd_3dps, datafile, datavar, weightfile, weightvar, frequencies, max_baselin
 
   ;; now do slices    
   yslice_savefile = froot + savefilebase + '_xz_plane.idlsave'
-  yslice_power = kpower_slice(power_3d, kx_mpc, ky_mpc, kz_mpc, weights_3d, kperp_lambda_conv, slice_axis = 1, slice_inds = 0, $
-                       slice_weights = yslice_weights, slice_savefile = yslice_savefile)
+  yslice_power = kpower_slice(power_3d, kx_mpc, ky_mpc, kz_mpc, weights_3d, kperp_lambda_conv, delay_params, slice_axis = 1, $
+                              slice_inds = 0, slice_weights = yslice_weights, slice_savefile = yslice_savefile)
 
   xslice_savefile = froot + savefilebase + '_yz_plane.idlsave'
-  xslice_power = kpower_slice(power_3d, kx_mpc, ky_mpc, kz_mpc, weights_3d, kperp_lambda_conv, slice_axis = 0, slice_inds = n_kx/2, $
-                              slice_weights = xslice_weights, slice_savefile = xslice_savefile)
+  xslice_power = kpower_slice(power_3d, kx_mpc, ky_mpc, kz_mpc, weights_3d, kperp_lambda_conv, delay_params, slice_axis = 0, $
+                              slice_inds = n_kx/2, slice_weights = xslice_weights, slice_savefile = xslice_savefile)
   if max(xslice_power) eq 0 then begin
      nloop = 0
      while max(xslice_power) eq 0 do begin
          nloop = nloop+1
-         xslice_power = kpower_slice(power_3d, kx_mpc, ky_mpc, kz_mpc, weights_3d, kperp_lambda_conv, slice_axis = 0, $
+         xslice_power = kpower_slice(power_3d, kx_mpc, ky_mpc, kz_mpc, weights_3d, kperp_lambda_conv, delay_params, slice_axis = 0, $
                                      slice_inds = n_kx/2+nloop, slice_weights = xslice_weights, slice_savefile = xslice_savefile)
      endwhile
   endif
 
   zslice_savefile = froot + savefilebase + '_xy_plane.idlsave'
-  zslice_power = kpower_slice(power_3d, kx_mpc, ky_mpc, kz_mpc, weights_3d, kperp_lambda_conv, slice_axis = 2, slice_inds = 1, $
-                       slice_weights = zslice_weights, slice_savefile = zslice_savefile)
+  zslice_power = kpower_slice(power_3d, kx_mpc, ky_mpc, kz_mpc, weights_3d, kperp_lambda_conv, delay_params, slice_axis = 2, $
+                              slice_inds = 1, slice_weights = zslice_weights, slice_savefile = zslice_savefile)
 
 
 

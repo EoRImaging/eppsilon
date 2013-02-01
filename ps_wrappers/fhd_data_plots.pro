@@ -4,14 +4,15 @@ pro fhd_data_plots, datafile, save_path = save_path, plot_path = plot_path, heal
                     no_weighted_averaging = no_weighted_averaging, data_range = data_range, plot_weights = plot_weights, $
                     slice_nobin = slice_nobin, log_kpar = log_kpar, log_kperp = log_kperp, kpar_bin = kpar_bin, $
                     kperp_bin = kperp_bin, log_k1d = log_k1d, k1d_bin = k1d_bin, plot_uvf = plot_uvf, $
-                    uvf_data_range = uvf_data_range, uvf_type = uvf_type, baseline_axis = baseline_axis, $
+                    uvf_data_range = uvf_data_range, uvf_type = uvf_type, baseline_axis = baseline_axis, delay_axis = delay_axis, $
                     plot_wedge_line = plot_wedge_line, grey_scale = grey_scale, pub = pub
 
   ;; default to absolute value for uvf plots
   if keyword_set(plot_uvf) and n_elements(uvf_type) eq 0 then uvf_type = 'abs'
 
-  ;; default to including baseline axis
+  ;; default to including baseline axis & delay axis
   if n_elements(baseline_axis) eq 0 then baseline_axis = 1
+  if n_elements(delay_axis) eq 0 then delay_axis = 1
 
   ;; default to plot wedge line
   if n_elements(plot_wedge_line) eq 0 then plot_wedge_line=1
@@ -315,19 +316,19 @@ pro fhd_data_plots, datafile, save_path = save_path, plot_path = plot_path, heal
            kpower_2d_plots, savefiles_2d_use[i], /pub, plotfile = plotfiles_2d_use[i], $
                             kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, data_range = data_range, $
                             title = plot_titles[i], grey_scale = grey_scale, plot_wedge_line = plot_wedge_line, $
-                            wedge_amp = wedge_amp, baseline_axis = baseline_axis $
+                            wedge_amp = wedge_amp, baseline_axis = baseline_axis, delay_axis = delay_axis $
         else kpower_2d_plots, savefiles_2d_use[i], /plot_weights, plotfile = plotfiles_2d_use[i],$
                               kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, /pub, $
                               title = plot_titles[i], grey_scale = grey_scale, plot_wedge_line = plot_wedge_line, $
-                              wedge_amp = wedge_amp, baseline_axis = baseline_axis
+                              wedge_amp = wedge_amp, baseline_axis = baseline_axis, delay_axis = delay_axis
      endfor
 
      for i=0, n_cubes-1 do $
         kpower_2d_plots, savefiles_2d[i], /pub, /snr, plotfile = plotfiles_2d_ratio[i], $
                          kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, data_range = snr_range, $
-                         title = titles[i] + ' SNR (' + textoidl('P_k', font = font) + '*Weights)', $
+                         title = titles[i] + ' SNR (' + textoidl('P_k', font = font) + '*W-1)', $
                          grey_scale = grey_scale, plot_wedge_line = plot_wedge_line, $
-                         wedge_amp = wedge_amp, baseline_axis = baseline_axis
+                         wedge_amp = wedge_amp, baseline_axis = baseline_axis, delay_axis = delay_axis
      
 
 
@@ -335,81 +336,50 @@ pro fhd_data_plots, datafile, save_path = save_path, plot_path = plot_path, heal
 
      nrow = ntype + 1 ;; ntype + 1 for weights
      ncol = npol
-     positions = fltarr(4, ncol*nrow)
-     
-     row_val = reverse(reform(rebin(indgen(nrow), nrow, ncol), ncol*nrow))
-     col_val = reform(rebin(reform(indgen(ncol), 1, ncol), nrow, ncol), ncol*nrow)
-     
-     positions[0,*] = col_val/double(ncol)
-     positions[1,*] = row_val/double(nrow)
-     positions[2,*] = (col_val+1)/double(ncol)
-     positions[3,*] = (row_val+1)/double(nrow)
-     
-     max_ysize = 1200
-     max_xsize = 1800
-     if n_cubes gt 9 then begin
-        multi_aspect =0.9 
-        xsize = round((max_ysize/nrow) * ncol/multi_aspect)
-        ysize = max_ysize
-     endif else begin
-        if keyword_set(baseline_axis) then multi_aspect = 0.75 else multi_aspect =0.5
-        xsize = round((max_ysize/nrow) * ncol/multi_aspect)
-        ysize = max_ysize
-        
-        if xsize gt max_xsize then begin
-           factor = double(max_xsize) / xsize
-           xsize = max_xsize
-           ysize = round(ysize * factor)
-        endif
-        
-     endelse
+     start_multi_params = {ncol:ncol, nrow:nrow}
      window_num = 1
-     if windowavailable(window_num) then begin 
-        wset, window_num
-        if !d.x_size ne xsize or !d.y_size ne ysize then make_win = 1 else make_win = 0
-     endif else make_win = 1
-     if make_win eq 1 then window, window_num, xsize = xsize, ysize = ysize
-     erase
      
-     multi_size = [xsize/ncol, ysize/nrow]
-     for i=0, nplots-1 do begin     
+     for i=0, nplots-1 do begin
+        if i gt 0 then  pos_use = positions[*,i]
+
         if plot_weights[i] eq 0 then $
-           kpower_2d_plots, savefiles_2d_use[i], multi_pos = positions[*,i], multi_size = multi_size, $
-                            kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, data_range = data_range, $
+           kpower_2d_plots, savefiles_2d_use[i], multi_pos = pos_use, start_multi_params = start_multi_params, $
+                            kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, data_range = data_range,  $
                             title = plot_titles[i], grey_scale = grey_scale, plot_wedge_line = plot_wedge_line, $
-                            wedge_amp = wedge_amp, baseline_axis = baseline_axis $
-        else kpower_2d_plots, savefiles_2d_use[i], multi_pos = positions[*,i], multi_size = multi_size, /plot_weights, $
+                            wedge_amp = wedge_amp, baseline_axis = baseline_axis, delay_axis = delay_axis, window_num = window_num $
+        else kpower_2d_plots, savefiles_2d_use[i], multi_pos = pos_use, start_multi_params = start_multi_params, /plot_weights, $
                               kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
                               title = plot_titles[i], grey_scale = grey_scale, plot_wedge_line = plot_wedge_line, $
-                              wedge_amp = wedge_amp, baseline_axis = baseline_axis
+                              wedge_amp = wedge_amp, baseline_axis = baseline_axis, delay_axis = delay_axis, window_num = window_num 
+        if i eq 0 then begin
+           positions = pos_use
+           undefine, start_multi_params
+        endif
      endfor
+     undefine, positions, pos_use
+
+     ;; now plot SNR -- no separate weight plots
+     nrow = ntype
+     ncol = npol
+     start_multi_params = {ncol:ncol, nrow:nrow}
 
      window_num = 2
-     if windowavailable(window_num) then begin 
-        wset, window_num
-        if !d.x_size ne xsize or !d.y_size ne ysize then make_win = 1 else make_win = 0
-     endif else make_win = 1
-     if make_win eq 1 then window, window_num, xsize = xsize, ysize = ysize
-     erase
+ 
+     for i=0, n_cubes-1 do begin
+       if i gt 0 then  pos_use = positions[*,i]
 
-     for i=0, nplots-1 do begin     
-        if plot_weights[i] eq 0 then $
-           kpower_2d_plots, savefiles_2d_use[i], /snr, multi_pos = positions[*,i], multi_size = multi_size, $
-                            kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, data_range = snr_range, $
-                            title = plot_titles[i] + ' SNR (' + textoidl('P_k', font = font) + '*Weights)', grey_scale = grey_scale, $
-                            plot_wedge_line = plot_wedge_line, $
-                            wedge_amp = wedge_amp, baseline_axis = baseline_axis
+        kpower_2d_plots, savefiles_2d[i], /snr, multi_pos = pos_use, start_multi_params = start_multi_params, $
+                         kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, data_range = snr_range, $
+                         title = titles[i] + ' SNR (' + textoidl('P_k', font = font) + '*W-1)', grey_scale = grey_scale, $
+                         plot_wedge_line = plot_wedge_line, wedge_amp = wedge_amp, $
+                         baseline_axis = baseline_axis, delay_axis = delay_axis, window_num = window_num
+        if i eq 0 then begin
+           positions = pos_use
+           undefine, start_multi_params
+        endif
      endfor
 
-     ;; for i=0, npol-1 do begin
-     ;;    wh_pol = where(weight_ind eq i, count_pol)
-     ;;    if count_pol gt 0 then begin
-     ;;       file_arr = savefiles_1d[wh_pol]
-     ;;       kpower_1d_plots, file_arr, window_num = i+2, pub = pub, colors = colors, names = titles[wh_pol], delta = delta
-     ;;    endif
-     ;; endfor
-
-  endelse
+   endelse
 
   file_arr = savefiles_1d
   kpower_1d_plots, file_arr, window_num = 3, colors = colors, names = titles, delta = delta, pub = pub, plotfile = plotfile_1d

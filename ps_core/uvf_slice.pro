@@ -1,5 +1,5 @@
-function uvf_slice, uvf_cube, kx_mpc, ky_mpc, frequencies, kperp_lambda_conv, slice_axis = slice_axis, slice_inds = slice_inds, $
-               slice_savefile = slice_savefile
+function uvf_slice, uvf_cube, kx_mpc, ky_mpc, frequencies, kperp_lambda_conv, delay_params, slice_axis = slice_axis, $
+                    slice_inds = slice_inds, slice_savefile = slice_savefile
 
  
   dims = size(uvf_cube, /dimensions)
@@ -57,8 +57,8 @@ function uvf_slice, uvf_cube, kx_mpc, ky_mpc, frequencies, kperp_lambda_conv, sl
   endcase  
 
   if n_elements(slice_savefile) eq 1 then $
-     save, file = slice_savefile, uvf_slice, kperp_lambda_conv, slice_axis, slice_inds, xarr, yarr, slice_name, plane_name, $
-           plot_xname, plot_yname
+     save, file = slice_savefile, uvf_slice, kperp_lambda_conv, delay_params, slice_axis, slice_inds, xarr, yarr, slice_name, $
+           plane_name, plot_xname, plot_yname
 
   return, uvf_slice
 end
