@@ -4,8 +4,8 @@ pro fhd_data_plots, datafile, save_path = save_path, plot_path = plot_path, heal
                     no_weighted_averaging = no_weighted_averaging, data_range = data_range, plot_weights = plot_weights, $
                     slice_nobin = slice_nobin, log_kpar = log_kpar, log_kperp = log_kperp, kpar_bin = kpar_bin, $
                     kperp_bin = kperp_bin, log_k1d = log_k1d, k1d_bin = k1d_bin, plot_uvf = plot_uvf, $
-                    uvf_data_range = uvf_data_range, uvf_type = uvf_type, $
-                    baseline_axis = baseline_axis, plot_wedge_line = plot_wedge_line, grey_scale = grey_scale, pub = pub
+                    uvf_data_range = uvf_data_range, uvf_type = uvf_type, baseline_axis = baseline_axis, $
+                    plot_wedge_line = plot_wedge_line, grey_scale = grey_scale, pub = pub
 
   ;; default to absolute value for uvf plots
   if keyword_set(plot_uvf) and n_elements(uvf_type) eq 0 then uvf_type = 'abs'
@@ -66,14 +66,19 @@ pro fhd_data_plots, datafile, save_path = save_path, plot_path = plot_path, heal
            n_obs = n_elements(obs_arr)
 
            max_baseline_vals = dblarr(n_obs)
+           obs_radec_vals = dblarr(n_obs, 2)
+           zen_radec_vals = dblarr(n_obs, 2)
            for i=0, n_obs-1 do begin
               if abs((*obs_arr[i]).degpix - (*obs_arr[0]).degpix) gt 0 then message, 'inconsistent degpix values in obs_arr'
               if total(abs((*obs_arr[i]).fbin_i - (*obs_arr[0]).fbin_i)) gt 0 then message, 'inconsistent fbin_i values in obs_arr'
               if total(abs((*obs_arr[i]).freq - (*obs_arr[0]).freq)) gt 0 then message, 'inconsistent freq values in obs_arr'
               max_baseline_vals[i] = (*obs_arr[i]).max_baseline
+              obs_radec_vals[i, *] = [(*obs_arr[i]).obsra, (*obs_arr[i]).obsdec]
+              zen_radec_vals[i, *] = [(*obs_arr[i]).zenra, (*obs_arr[i]).zendec]              
            endfor
 
            max_baseline_lambda = max(max_baseline_vals)
+           
            degpix = (*obs_arr[0]).degpix
            freq = (*obs_arr[0]).freq
            fbin_i = (*obs_arr[0]).fbin_i
@@ -81,6 +86,11 @@ pro fhd_data_plots, datafile, save_path = save_path, plot_path = plot_path, heal
        endif else begin
            n_obs = n_elements(obs_arr)
            max_baseline_lambda = max(obs_arr.max_baseline)
+
+           obs_radec_vals = [[obs_arr.obsra],[obs_arr.obsdec]]
+           zen_radec_vals = [[obs_arr.zenra],[obs_arr.zendec]]
+           theta_vals = sqrt((obs_radec_vals[*,0] - zen_radec_vals[*,0])^2d + (obs_radec_vals[*,1] - zen_radec_vals[*,1])^2d)
+           max_theta = max(theta_vals)
 
            n_freq_vals = obs_arr.n_freq
            if total(abs(obs_arr.n_freq - obs_arr[0].n_freq)) ne 0 then message, 'inconsistent number of frequencies in obs_arr'
@@ -109,9 +119,12 @@ pro fhd_data_plots, datafile, save_path = save_path, plot_path = plot_path, heal
            if total(abs(fbin_i_vals - rebin(fbin_i_vals[*,0], n_freq, n_obs))) ne 0 then $
               message, 'inconsistent fbin_i values in obs_arr'
            fbin_i = fbin_i_vals[*,0]
-
         endelse
 
+       theta_vals = angle_difference(obs_radec_vals[*,1], obs_radec_vals[*,0], zen_radec_vals[*,1], zen_radec_vals[*,0], $
+                                     /degree, /nearest)
+       max_theta = max(theta_vals)
+       
      endif else message, 'no obs or obs_arr in datafile'
   endelse
   if keyword_set(healpix) then file_obj->restore, 'nside'
@@ -266,18 +279,27 @@ pro fhd_data_plots, datafile, save_path = save_path, plot_path = plot_path, heal
      mean_redshift = mean(redshifts)
 
      cosmology_measures, mean_redshift, wedge_factor = wedge_factor
+     ;; assume 20 degrees from pointing center to first null
      source_dist = 20d * !dpi / 180d
-     wedge_amp = wedge_factor * source_dist
+     fov_amp = wedge_factor * source_dist
+
+     ;; calculate angular distance to horizon
+     horizon_amp = wedge_factor * ((max_theta+90d) * !dpi / 180d)
+
+     wedge_amp = [fov_amp, horizon_amp]
   endif else wedge_amp = 0d
 
   nplots = n_cubes + npol
   
-  savefiles_2d_plot = strarr(nplots)
+  savefiles_2d_use = strarr(nplots)
+  plotfiles_2d_use = strarr(nplots)
   plot_weights = intarr(nplots)
   plot_titles = strarr(nplots)
   for i=0, npol-1 do begin
-     savefiles_2d_plot[i*(ntype+1):i*(ntype+1)+ntype-1] = savefiles_2d[i*ntype:i*ntype+ntype-1]
-     savefiles_2d_plot[i*(ntype+1)+ntype] = savefiles_2d[i*ntype]
+     savefiles_2d_use[i*(ntype+1):i*(ntype+1)+ntype-1] = savefiles_2d[i*ntype:i*ntype+ntype-1]
+     savefiles_2d_use[i*(ntype+1)+ntype] = savefiles_2d[i*ntype]
+     plotfiles_2d_use[i*(ntype+1):i*(ntype+1)+ntype-1] = plotfiles_2d[i*ntype:i*ntype+ntype-1]
+     plotfiles_2d_use[i*(ntype+1)+ntype] = plotfiles_2d_wt[i]
      plot_weights[i*(ntype+1)+ntype]=1
      plot_titles[i*(ntype+1):i*(ntype+1)+ntype-1] = titles[i*ntype:i*ntype+ntype-1]
      plot_titles[i*(ntype+1)+ntype] = 'weights ' + weight_labels[i]
