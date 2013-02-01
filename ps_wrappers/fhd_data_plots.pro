@@ -177,7 +177,7 @@ pro fhd_data_plots, datafile, save_path = save_path, plot_path = plot_path, heal
   wt_file_labels = '_weights_' + strlowcase(weight_labels[weight_ind])
   file_labels = '_' + strlowcase(type_pol_str)
   titles = strarr(n_cubes)
-  for i=0, npol-1 do titles[ntype*i:i*ntype+ntype-1] = type_inc + ' ' + pol_inc[i]
+  for i=0, npol-1 do titles[ntype*i:i*ntype+ntype-1] = type_inc + ' ' + strupcase(pol_inc[i])
 
   savefilebase = froot + datafilebase + file_labels + fadd
   savefiles_2d = savefilebase + fadd_2dbin + '_2dkpower.idlsave'
@@ -260,12 +260,15 @@ pro fhd_data_plots, datafile, save_path = save_path, plot_path = plot_path, heal
   if n_elements(plot_path) ne 0 then plotfile_path = plot_path else plotfile_path = froot
   ;; plot_folder = 'fhd_data/'
   ;; plotfile_path = base_path('plots') + 'power_spectrum/' + plot_folder
-  plotfile_base = plotfile_path + datafilebase + [file_labels, wt_file_labels[uniq(weight_ind, sort(weight_ind))]] + fadd
+  plotfile_base = plotfile_path + datafilebase + file_labels + fadd
+  plotfile_base_wt = plotfile_path + datafilebase + wt_file_labels[uniq(weight_ind, sort(weight_ind))] + fadd
 
   plot_fadd = ''
   if keyword_set(grey_scale) then plot_fadd = plot_fadd + '_grey'
 
   plotfiles_2d = plotfile_base + fadd_2dbin + '_2dkpower' + plot_fadd + '.eps'
+  plotfiles_2d_wt = plotfile_base_wt + fadd_2dbin + '_2d' + plot_fadd + '.eps'
+  plotfiles_2d_ratio = plotfile_base + fadd_2dbin + '_2dsnr' + plot_fadd + '.eps'
   plotfile_1d = plotfile_path + datafilebase + fadd + fadd_1dbin + '_1dkpower' + '.eps'
 
   if not keyword_set(slice_nobin) then slice_fadd = '_binned' else slice_fadd = ''
@@ -309,15 +312,24 @@ pro fhd_data_plots, datafile, save_path = save_path, plot_path = plot_path, heal
      for i=0, nplots-1 do begin
         
         if plot_weights[i] eq 0 then $
-           kpower_2d_plots, savefiles_2d_plot[i], /pub, plotfile = plotfiles_2d[i], $
+           kpower_2d_plots, savefiles_2d_use[i], /pub, plotfile = plotfiles_2d_use[i], $
                             kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, data_range = data_range, $
                             title = plot_titles[i], grey_scale = grey_scale, plot_wedge_line = plot_wedge_line, $
                             wedge_amp = wedge_amp, baseline_axis = baseline_axis $
-        else kpower_2d_plots, savefiles_2d_plot[i], /plot_weights, plotfile = plotfiles_2d[i],$
+        else kpower_2d_plots, savefiles_2d_use[i], /plot_weights, plotfile = plotfiles_2d_use[i],$
                               kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, /pub, $
                               title = plot_titles[i], grey_scale = grey_scale, plot_wedge_line = plot_wedge_line, $
                               wedge_amp = wedge_amp, baseline_axis = baseline_axis
      endfor
+
+     for i=0, n_cubes-1 do $
+        kpower_2d_plots, savefiles_2d[i], /pub, /snr, plotfile = plotfiles_2d_ratio[i], $
+                         kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, data_range = snr_range, $
+                         title = titles[i] + ' SNR (' + textoidl('P_k', font = font) + '*Weights)', $
+                         grey_scale = grey_scale, plot_wedge_line = plot_wedge_line, $
+                         wedge_amp = wedge_amp, baseline_axis = baseline_axis
+     
+
 
   endif else begin
 
@@ -362,16 +374,32 @@ pro fhd_data_plots, datafile, save_path = save_path, plot_path = plot_path, heal
      multi_size = [xsize/ncol, ysize/nrow]
      for i=0, nplots-1 do begin     
         if plot_weights[i] eq 0 then $
-           kpower_2d_plots, savefiles_2d_plot[i], multi_pos = positions[*,i], multi_size = multi_size, $
+           kpower_2d_plots, savefiles_2d_use[i], multi_pos = positions[*,i], multi_size = multi_size, $
                             kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, data_range = data_range, $
                             title = plot_titles[i], grey_scale = grey_scale, plot_wedge_line = plot_wedge_line, $
                             wedge_amp = wedge_amp, baseline_axis = baseline_axis $
-        else kpower_2d_plots, savefiles_2d_plot[i], multi_pos = positions[*,i], multi_size = multi_size, /plot_weights, $
+        else kpower_2d_plots, savefiles_2d_use[i], multi_pos = positions[*,i], multi_size = multi_size, /plot_weights, $
                               kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
                               title = plot_titles[i], grey_scale = grey_scale, plot_wedge_line = plot_wedge_line, $
                               wedge_amp = wedge_amp, baseline_axis = baseline_axis
      endfor
 
+     window_num = 2
+     if windowavailable(window_num) then begin 
+        wset, window_num
+        if !d.x_size ne xsize or !d.y_size ne ysize then make_win = 1 else make_win = 0
+     endif else make_win = 1
+     if make_win eq 1 then window, window_num, xsize = xsize, ysize = ysize
+     erase
+
+     for i=0, nplots-1 do begin     
+        if plot_weights[i] eq 0 then $
+           kpower_2d_plots, savefiles_2d_use[i], /snr, multi_pos = positions[*,i], multi_size = multi_size, $
+                            kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, data_range = snr_range, $
+                            title = plot_titles[i] + ' SNR (' + textoidl('P_k', font = font) + '*Weights)', grey_scale = grey_scale, $
+                            plot_wedge_line = plot_wedge_line, $
+                            wedge_amp = wedge_amp, baseline_axis = baseline_axis
+     endfor
 
      ;; for i=0, npol-1 do begin
      ;;    wh_pol = where(weight_ind eq i, count_pol)
@@ -384,6 +412,6 @@ pro fhd_data_plots, datafile, save_path = save_path, plot_path = plot_path, heal
   endelse
 
   file_arr = savefiles_1d
-  kpower_1d_plots, file_arr, window_num = i+2, colors = colors, names = titles, delta = delta, pub = pub, plotfile = plotfile_1d
+  kpower_1d_plots, file_arr, window_num = 3, colors = colors, names = titles, delta = delta, pub = pub, plotfile = plotfile_1d
 
 end

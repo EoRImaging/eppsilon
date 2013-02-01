@@ -1,8 +1,8 @@
-pro kpower_2d_plots, power_savefile, multi_pos = multi_pos, multi_size = multi_size, plot_weights = plot_weights, $
-                     kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, data_range = data_range, $
+pro kpower_2d_plots, power_savefile, multi_pos = multi_pos, multi_size = multi_size, plot_weights = plot_weights, ratio = ratio, $
+                     snr = snr, kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, data_range = data_range, $
                      color_profile = color_profile, log_cut_val = log_cut_val, pub = pub, plotfile = plotfile, no_title = no_title, $
                      window_num = window_num, title = title, norm_2d = norm_2d, norm_factor = norm_factor, grey_scale = grey_scale, $
-                     wedge_amp = wedge_amp, plot_wedge_line = plot_wedge_line, baseline_axis = baseline_axis, ratio = ratio, $
+                     wedge_amp = wedge_amp, plot_wedge_line = plot_wedge_line, baseline_axis = baseline_axis, $
                      no_units = no_units, charsize = charsize_in, cb_size = cb_size_in, margin=margin_in, cb_margin = cb_margin_in
 
   if n_elements(window_num) eq 0 then window_num = 1
@@ -47,18 +47,34 @@ pro kpower_2d_plots, power_savefile, multi_pos = multi_pos, multi_size = multi_s
         total(abs(size(power1,/dimension) - size(power2, /dimension))) ne 0 then $
            message, 'dimensions and kperp/kpar edges must be the same in both files'
 
-     power = power1 / power2
+     if keyword_set(plot_weights) then begin
+        power = weights1 / weights2
+        plot_type = 'ratio'
+     endif else begin
+        power = power1 / power2
+        plot_type = 'weight_ratio'
+     endelse
 
   endif else begin
      if n_elements(power_savefile) gt 1 then message, 'Only 1 file can be specified in power_savefile unless ratio keyword is set'
 
      restore, power_savefile
+
+     if keyword_set(snr) then begin
+        if keyword_set(plot_weights) then message, 'Both snr and plot_weights keywords cannot be set at once.'
+        power = power * weights
+        plot_type = 'snr'
+     endif
+
+     if keyword_set(plot_weights) then begin
+        power = weights
+        plot_type = 'weight'
+     endif
+     
+     if n_elements(plot_type) eq 0 then plot_type = 'power'
+
   endelse
 
-  if keyword_set(plot_weights) then begin
-     if n_elements(weights) ne 0 then if keyword_set(ratio) then power = weights1 / weights2 else power = weights $
-     else message, 'No weights array included in this file'
-  endif
 
   dims = size(power, /dimension)
   n_kperp = dims[0]
@@ -68,8 +84,13 @@ pro kpower_2d_plots, power_savefile, multi_pos = multi_pos, multi_size = multi_s
   if n_elements(kpar_plot_range) eq 0 then kpar_plot_range = minmax(kpar_edges)
 
   if n_elements(plotfile) eq 0 then begin
-     if keyword_set(ratio) then plotfile = strsplit(power_savefile[0], '.idlsave', /regex, /extract) + '_ratio.eps' $
-     else plotfile = strsplit(power_savefile, '.idlsave', /regex, /extract) + '_2dkplot.eps'
+     case plot_type of
+        'power': plotfile = strsplit(power_savefile, '.idlsave', /regex, /extract) + '_2dkpower.eps'
+        'ratio': plotfile = strsplit(power_savefile[0], '.idlsave', /regex, /extract) + '_ratio.eps
+        'weight': plotfile = strsplit(power_savefile, '.idlsave', /regex, /extract) + '_2dweight.eps'
+        'weight_ratio': plotfile = strsplit(power_savefile[0], '.idlsave', /regex, /extract) + '_weight_ratio.eps'
+        'snr': plotfile = strsplit(power_savefile, '.idlsave', /regex, /extract) + '_2dsnr.eps'
+     endcase
   endif else if strcmp(strmid(plotfile, strlen(plotfile)-4), '.eps', /fold_case) eq 0 then plotfile = plotfile + '.eps'
   
   wh_kperp_inrange = where(kperp_edges ge kperp_plot_range[0] and kperp_edges[1:*] le kperp_plot_range[1], n_kperp_plot)
@@ -399,19 +420,30 @@ pro kpower_2d_plots, power_savefile, multi_pos = multi_pos, multi_size = multi_s
   plot_kpar = 10^kpar_log_edges
  
   units_str = ''
-  if not keyword_set(ratio) and not keyword_set(no_units) then units_str = textoidl(' (mK^2 Mpc^3)', font = font)
- 
-  if not keyword_set(no_title) then begin
-     if keyword_set(ratio) then begin
-        if n_elements(title) ne 0 then plot_title = title else begin
-           if keyword_set(plot_weights) then plot_title = 'Weights Ratio' else plot_title = 'Power Ratio'
-        endelse
-     endif else begin
-        if n_elements(title) ne 0 then plot_title = title else begin
-           if keyword_set(plot_weights) then plot_title = 'Weights' else plot_title = textoidl('P_k', font = font)
-        endelse
-     endelse
-  endif
+  case plot_type of
+     'power': begin
+        units_str = textoidl(' (mK^2 Mpc^3)', font = font)
+        plot_title = textoidl('P_k', font = font)
+     end
+     'ratio': begin
+         units_str = ''
+         plot_title = 'Power Ratio'
+     end
+     'weight': begin
+         units_str = ''
+         plot_title = 'Weights' 
+     end
+     'weight_ratio': begin
+         units_str = ''
+         plot_title = 'Weights Ratio'
+     end
+     'snr': begin
+         units_str = ''
+         plot_title = 'Signal/Noise (' + textoidl('P_k', font = font) + '*Weights)'
+     end
+  endcase
+  if n_elements(title) ne 0 then plot_title = title
+  if keyword_set(no_title) then undefine, plot_title
 
   xtitle = textoidl('k_{perp} (Mpc^{-1})', font = font)
   xtitle = repstr(xtitle, 'perp', perp_char)
@@ -431,8 +463,14 @@ pro kpower_2d_plots, power_savefile, multi_pos = multi_pos, multi_size = multi_s
            title=initial_title, position = plot_pos, noerase = no_erase, color = annotate_color, background = background_color, $
            axkeywords = axkeywords, /axes          
 
-  if keyword_set(plot_wedge_line) then $
-     cgplot, /overplot, plot_kperp, plot_kperp * wedge_amp, color = annotate_color, thick = thick+1, psym=-0, linestyle = 2
+  if keyword_set(plot_wedge_line) then begin
+     n_lines = n_elements(wedge_amp)
+     sorted_amp = reverse(wedge_amp[sort(wedge_amp)])
+     if n_lines gt 1 then linestyles = [0, 2, 1] else linestyles=2
+
+     for i=0, n_lines-1 do cgplot, /overplot, plot_kperp, plot_kperp * sorted_amp[i], color = annotate_color, thick = thick+1, $
+                                   psym=-0, linestyle = linestyles[i]
+  endif
 
   cgaxis, xaxis=0, xtick_get = xticks, xtitle = xtitle, xrange = minmax(plot_kperp), $
         charthick = charthick, xthick = xthick, ythick = ythick, charsize = charsize, font = font, $
