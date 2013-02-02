@@ -1,4 +1,4 @@
-pro uvf_slice_plot, slice_savefile, multi_pos = multi_pos, multi_aspect = multi_aspect, plot_xrange = plot_xrange, $
+pro uvf_slice_plot, slice_savefile, multi_pos = multi_pos, start_multi_params = start_multi_params, plot_xrange = plot_xrange, $
                     plot_yrange = plot_yrange, data_range = data_range, type = type, pub = pub, plotfile = plotfile, $
                     window_num = window_num, title = title, grey_scale = grey_scale, baseline_axis = baseline_axis, mark_0 = mark_0, $
                     image_space = image_space, color_0amp = color_0amp, $
@@ -6,16 +6,14 @@ pro uvf_slice_plot, slice_savefile, multi_pos = multi_pos, multi_aspect = multi_
 
   if n_elements(window_num) eq 0 then window_num = 1
 
+  if n_elements(start_multi_params) gt 0 and n_elements(multi_pos) gt 0 then message, 'If start_multi_params are passed, ' + $
+     'multi_pos cannot be passed because then it is used as an output to pass back the positions for future plots.'
+
   if n_elements(multi_pos) gt 0 then begin
      if n_elements(multi_pos) ne 4 then message, 'multi_pos must be a 4 element plot position vector'
      if max(multi_pos) gt 1 or min(multi_pos) lt 0 then message, 'multi_pos must be in normalized coordinates (between 0 & 1)'
      if multi_pos[2] le multi_pos[0] or multi_pos[3] le multi_pos[1] then $
         message, 'In multi_pos, x1 must be greater than x0 and y1 must be greater than y0 '
-
-     if n_elements(multi_aspect) eq 0 then begin
-        print, 'No aspect ratio for multi_pos supplied. Assuming aspect = 1'
-        multi_aspect = 1
-     endif else if n_elements(multi_aspect) gt 1 then message, 'too many elements in multi_aspect'
   endif
 
   type_enum = ['abs', 'phase', 'real', 'imaginary']
@@ -34,19 +32,16 @@ pro uvf_slice_plot, slice_savefile, multi_pos = multi_pos, multi_aspect = multi_
 
   if max(abs(uvf_slice)) eq 0 then all_zero = 1
 
-  xdelta = xarr[1] - xarr[0]
-  ydelta = yarr[1] - yarr[0]
-
   if keyword_set(image_space) then begin
      old_xarr = xarr
-     old_xdelta = xdelta
+     old_xdelta = xarr[1] - xarr[0]
 
      xdelta = 1d/(kperp_lambda_conv * dims[0] * old_xdelta)
      xarr = (dindgen(dims[0])-dims[0]/2) * xdelta
 
      if slice_axis eq 2 then begin
         old_yarr = yarr
-        old_ydelta = ydelta
+        old_ydelta = yarr[1] - yarr[0]
         
         ydelta = 1d/(kperp_lambda_conv * dims[1] * old_ydelta)
         yarr = (dindgen(dims[1])-dims[1]/2) * ydelta
@@ -56,7 +51,15 @@ pro uvf_slice_plot, slice_savefile, multi_pos = multi_pos, multi_aspect = multi_
      old_slice = uvf_slice
      uvf_slice = image
 
-  endif
+  endif else begin
+     if keyword_set(hinv) then begin
+        xarr = xarr / hubble_param
+        yarr = yarr / hubble_param
+     endif
+
+     xdelta = xarr[1] - xarr[0]
+     ydelta = yarr[1] - yarr[0]
+  endelse
 
   xarr_edges = [xarr - xdelta/2, max(xarr) + xdelta/2]
   yarr_edges = [yarr - ydelta/2, max(yarr) + ydelta/2]
@@ -158,19 +161,30 @@ pro uvf_slice_plot, slice_savefile, multi_pos = multi_pos, multi_aspect = multi_
      endif
   endif
 
+
+  max_ysize = 1000
+  max_xsize = 1200
+  base_size = 600
+  if n_elements(multi_pos) eq 4 then begin
+     ;; work out positions scaled to the area allowed in multi_pos with proper aspect ratio
+     multi_xlen = (multi_pos[2]-multi_pos[0])
+     multi_ylen = (multi_pos[3]-multi_pos[1])
+     multi_center = [multi_pos[0] + multi_xlen/2d, multi_pos[1] + multi_ylen/2d]
+
+     multi_size = [!d.x_vsize*multi_xlen, !d.y_vsize*multi_ylen]
+  endif
+
   ;; Work out plot & colorbar positions
   ;; in units of plot area (incl. margins)
   if n_elements(cb_size_in) eq 0 then cb_size = 0.025 else cb_size = cb_size_in
   if n_elements(margin_in) lt 4 then begin
-     margin = [0.15, 0.15, 0.02, 0.1]
-     if keyword_set(baseline_axis) then if (n_elements(multi_pos) gt 0 and keyword_set(pub)) then $
-        margin[3] = 0.3 else margin[3] = 0.15
+     margin = [0.2, 0.15, 0.02, 0.1] 
+     if keyword_set(baseline_axis) and not keyword_set(no_title) then margin[3] = 0.15
      if keyword_set(baseline_axis) and slice_axis eq 2 then margin[2] = 0.1
-  endif else margin = margin_in
+   endif else margin = margin_in
 
   if n_elements(cb_margin_in) lt 2 then begin
-     cb_margin = [0.08, 0.02] 
-     if n_elements(multi_pos) gt 0 then cb_margin[0] = 0.18
+     cb_margin = [0.2, 0.02] 
   endif else cb_margin = cb_margin_in 
 
   plot_pos = [margin[0], margin[1], (1-cb_margin[1]-cb_size-cb_margin[0]-margin[2]), (1-margin[3])]
@@ -195,11 +209,60 @@ pro uvf_slice_plot, slice_savefile, multi_pos = multi_pos, multi_aspect = multi_
      x_factor = 1.
   endelse
   
-  if n_elements(multi_pos) eq 4 then begin
-     ;; work out positions scaled to the area allowed in multi_pos with proper aspect ratio
-     multi_xlen = (multi_pos[2]-multi_pos[0])
-     multi_ylen = (multi_pos[3]-multi_pos[1])
-     multi_center = [multi_pos[0] + multi_xlen/2d, multi_pos[1] + multi_ylen/2d]
+  if n_elements(multi_pos) eq 4 or n_elements(start_multi_params) gt 0 then begin
+     if n_elements(start_multi_params) gt 0 then begin
+        ;; calculate desired window size and positions for all plots
+        ncol = start_multi_params.ncol
+        nrow = start_multi_params.nrow
+
+        multi_pos = fltarr(4, ncol*nrow)
+     
+        row_val = reverse(reform(rebin(indgen(nrow), nrow, ncol), ncol*nrow))
+        col_val = reform(rebin(reform(indgen(ncol), 1, ncol), nrow, ncol), ncol*nrow)
+        
+        multi_pos[0,*] = col_val/double(ncol)
+        multi_pos[1,*] = row_val/double(nrow)
+        multi_pos[2,*] = (col_val+1)/double(ncol)
+        multi_pos[3,*] = (row_val+1)/double(nrow)
+
+        ;; define window size based on aspect ratio
+        base_size_use = base_size
+        xsize = round(base_size * x_factor * ncol)
+        ysize = round(base_size * y_factor * nrow)
+        while (ysize gt max_ysize) or (xsize gt max_xsize) do begin
+           base_size_use = base_size_use - 100
+           xsize = round(base_size_use * x_factor * ncol)
+           ysize = round(base_size_use * y_factor * nrow)
+        endwhile
+
+        ;; make or set window
+        if windowavailable(window_num) then begin 
+           wset, window_num
+           if !d.x_size ne xsize or !d.y_size ne ysize then make_win = 1 else make_win = 0
+        endif else make_win = 1
+        if make_win eq 1 then window, window_num, xsize = xsize, ysize = ysize
+        cgerase, background_color 
+
+        ;; if pub is set, start ps output
+        if keyword_set(pub) then pson, file = plotfile, /eps
+
+        ;; calculate multi_size & multi x/ylen not calculated earlier
+        multi_xlen = (multi_pos[2,0]-multi_pos[0,0])
+        multi_ylen = (multi_pos[3,0]-multi_pos[1,0])
+        multi_center = [multi_pos[0,0] + multi_xlen/2d, multi_pos[1,0] + multi_ylen/2d]
+   
+        ;; This print is necessary because for some reason the pixel
+        ;; size of the window changes after a print and without this
+        ;; statement the first plot has the wrong size. Awesome.
+        temp = [!d.x_vsize,!d.y_vsize]
+        print, temp
+        
+        multi_size = [!d.x_vsize*multi_xlen, !d.y_vsize*multi_ylen]
+
+        multi_pos_use = multi_pos[*,0]
+     endif else multi_pos_use = multi_pos
+
+     multi_aspect = multi_size[1]/float(multi_size[0])
      
      new_aspect = aspect_ratio/multi_aspect
      if new_aspect gt 1 then begin
@@ -226,12 +289,11 @@ pro uvf_slice_plot, slice_savefile, multi_pos = multi_pos, multi_aspect = multi_
      
      no_erase = 1
   endif else begin
-      base_size = 600
      xsize = round(base_size * x_factor)
      ysize = round(base_size * y_factor)
      
      if not keyword_set(pub) then begin
-        while ysize gt 1100 do begin
+        while (ysize gt max_ysize) or (xsize gt max_xsize) do begin
            base_size = base_size - 100
            xsize = round(base_size * x_factor)
            ysize = round(base_size * y_factor)
@@ -242,30 +304,16 @@ pro uvf_slice_plot, slice_savefile, multi_pos = multi_pos, multi_aspect = multi_
 
   if not keyword_set(no_title) then begin
      xloc_title = (plot_pos[2] - plot_pos[0])/2. + plot_pos[0]
-     if n_elements(multi_pos) gt 0 then yloc_title = plot_pos[3] + 0.8* (multi_pos[3]-plot_pos[3]) $
+     if n_elements(multi_pos) gt 0 then yloc_title = plot_pos[3] + 0.8* (multi_pos_use[3]-plot_pos[3]) $
      else yloc_title = plot_pos[3] + 0.6* (1-plot_pos[3])
   endif
 
-  ;; if n_elements(multi_pos) gt 0 then begin
-  ;;    xloc_lambda = plot_pos[0] - 0.1* (plot_pos[0]-multi_pos[0])
-  ;;    yloc_lambda = plot_pos[3] + 0.1* (multi_pos[3]-plot_pos[3])
-
-  ;;    xloc2_lambda = plot_pos[2] + 0.1* (multi_pos[2]-plot_pos[2])
-  ;;    yloc2_lambda = plot_pos[1] - 0.1* (plot_pos[1]-multi_pos[1])
-  ;; endif else begin
-  ;;    xloc_lambda = plot_pos[0] - 0.1* (plot_pos[0]-0)
-  ;;    yloc_lambda = plot_pos[3] + 0.1* (1-plot_pos[3])
-
-  ;;    xloc2_lambda = plot_pos[2] + 0.1* (1-plot_pos[2])
-  ;;    yloc2_lambda = plot_pos[1] - 0.1* (plot_pos[1]-0)
-  ;; endelse
-
   if n_elements(multi_pos) gt 0 then begin
-     xloc_lambda = plot_pos[0] - 0.1* (plot_pos[0]-multi_pos[0])
-     yloc_lambda = plot_pos[3] + 0.1* (multi_pos[3]-plot_pos[3])
+     xloc_lambda = plot_pos[0] - 0.1* (plot_pos[0]-multi_pos_use[0])
+     yloc_lambda = plot_pos[3] + 0.1* (multi_pos_use[3]-plot_pos[3])
 
-     xloc2_lambda = plot_pos[2] + 0.1* (multi_pos[2]-plot_pos[2])
-     yloc2_lambda = plot_pos[1] - 0.1* (plot_pos[1]-multi_pos[1])
+     xloc2_lambda = plot_pos[2] + 0.1* (multi_pos_use[2]-plot_pos[2])
+     yloc2_lambda = plot_pos[1] - 0.1* (plot_pos[1]-multi_pos_use[1])
   endif else begin
      xloc_lambda = (plot_pos[2] - plot_pos[0])/2d + plot_pos[0]
      yloc_lambda = plot_pos[3] + 0.3* (1-plot_pos[3])
@@ -279,10 +327,9 @@ pro uvf_slice_plot, slice_savefile, multi_pos = multi_pos, multi_aspect = multi_
      thick = 3
      xthick = 3
      ythick = 3
-      if n_elements(charsize_in) eq 0 then begin
+     if n_elements(charsize_in) eq 0 then begin
         if n_elements(multi_pos) gt 0 then begin
-           min_len = min([multi_xlen, multi_ylen])
-           charsize = 5d * min_len
+           charsize = 1.2d * (multi_size[0]/float(base_size))
         endif else charsize = 2
      endif else charsize = charsize_in
      font = 1
@@ -294,7 +341,12 @@ pro uvf_slice_plot, slice_savefile, multi_pos = multi_pos, multi_aspect = multi_
   
   endif else begin
      thick = 1
-     if n_elements(charsize_in) eq 0 then charsize=1 else charsize = charsize_in
+     if n_elements(charsize_in) eq 0 then begin
+        if n_elements(multi_pos) gt 0 then begin
+           charsize = 1.2d * (multi_size[0]/float(base_size))
+        endif else charsize = 2
+     endif else charsize = charsize_in
+
      if n_elements(multi_pos) eq 0 then begin
         if windowavailable(window_num) then begin 
            wset, window_num
@@ -362,10 +414,14 @@ pro uvf_slice_plot, slice_savefile, multi_pos = multi_pos, multi_aspect = multi_
           charthick = charthick, xthick = xthick, ythick = ythick, charsize = charsize, font = font, ystyle = 1, color = annotate_color
  
   if keyword_set(baseline_axis) then begin
-     cgaxis, xaxis=1, xrange = minmax(plot_xarr * kperp_lambda_conv), xthick = xthick, $
-             charthick = charthick, ythick = ythick, charsize = charsize, font = font, xstyle = 1, color = annotate_color
-
-    if not keyword_set(no_title) then cgtext, xloc_title, yloc_title, plot_title, /normal, alignment=0.5, charsize=1.2 * charsize, $
+     ;; baselines don't care about hinv -- take it back out.
+     if keyword_set(hinv) then baseline_range = minmax(plot_xarr * hubble_param * kperp_lambda_conv) $
+     else baseline_range = minmax(plot_xarr* kperp_lambda_conv)
+          
+     cgaxis, xaxis=1, xrange = baseline_range, xthick = xthick,  charthick = charthick, ythick = ythick, charsize = charsize, $
+             font = font, xstyle = 1, color = annotate_color
+     
+     if not keyword_set(no_title) then cgtext, xloc_title, yloc_title, plot_title, /normal, alignment=0.5, charsize=1.2 * charsize, $
                                                color = annotate_color, font = font
      cgtext, xloc_lambda, yloc_lambda, textoidl('(\lambda)', font = font), /normal, alignment=0.5, charsize=charsize, $
              color = annotate_color, font = font
@@ -376,8 +432,12 @@ pro uvf_slice_plot, slice_savefile, multi_pos = multi_pos, multi_aspect = multi_
              color = annotate_color
 
   if keyword_set(baseline_axis) and slice_axis eq 2 then begin
-     cgaxis, yaxis=1, yrange = minmax(plot_yarr * kperp_lambda_conv), xthick = xthick, $
-             charthick = charthick, ythick = ythick, charsize = charsize, font = font, ystyle = 1, color = annotate_color
+     ;; baselines don't care about hinv -- take it back out.
+     if keyword_set(hinv) then baseline_range = minmax(plot_yarr * hubble_param * kperp_lambda_conv) $
+     else baseline_range = minmax(plot_yarr* kperp_lambda_conv)
+          
+     cgaxis, yaxis=1, yrange = baseline_range, xthick = xthick, charthick = charthick, ythick = ythick, charsize = charsize, $
+             font = font, ystyle = 1, color = annotate_color
 
       cgtext, xloc2_lambda, yloc2_lambda, textoidl('(\lambda)', font = font), /normal, alignment=0.5, charsize=charsize, $
               color = annotate_color, font = font

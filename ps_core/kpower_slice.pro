@@ -1,7 +1,7 @@
 
 
-function kpower_slice, power_3d, kx_mpc, ky_mpc, kz_mpc, weights_3d, kperp_lambda_conv, delay_params, slice_axis = slice_axis, $
-                       slice_inds = slice_inds, slice_weights = weights, slice_savefile = slice_savefile
+function kpower_slice, power_3d, kx_mpc, ky_mpc, kz_mpc, weights_3d, kperp_lambda_conv, delay_params, hubble_param, $
+                       slice_axis = slice_axis, slice_inds = slice_inds, slice_weights = weights, slice_savefile = slice_savefile
  
   dims = size(power_3d, /dimensions)
   wt_dims = size(weights_3d, /dimensions)
@@ -64,8 +64,8 @@ function kpower_slice, power_3d, kx_mpc, ky_mpc, kz_mpc, weights_3d, kperp_lambd
   endcase  
 
   if n_elements(slice_savefile) eq 1 then $
-     save, file = slice_savefile, power, weights, kperp_lambda_conv, delay_params, slice_axis, slice_inds, xarr, yarr, slice_name, $
-           plane_name, plot_xname, plot_yname
+     save, file = slice_savefile, power, weights, kperp_lambda_conv, delay_params, hubble_param, slice_axis, slice_inds, xarr, yarr, $
+           slice_name, plane_name, plot_xname, plot_yname
 
   return, power
 

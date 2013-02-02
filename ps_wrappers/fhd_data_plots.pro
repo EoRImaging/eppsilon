@@ -5,7 +5,7 @@ pro fhd_data_plots, datafile, save_path = save_path, plot_path = plot_path, heal
                     slice_nobin = slice_nobin, log_kpar = log_kpar, log_kperp = log_kperp, kpar_bin = kpar_bin, $
                     kperp_bin = kperp_bin, log_k1d = log_k1d, k1d_bin = k1d_bin, plot_uvf = plot_uvf, $
                     uvf_data_range = uvf_data_range, uvf_type = uvf_type, baseline_axis = baseline_axis, delay_axis = delay_axis, $
-                    plot_wedge_line = plot_wedge_line, grey_scale = grey_scale, pub = pub
+                    hinv = hinv, plot_wedge_line = plot_wedge_line, grey_scale = grey_scale, pub = pub
 
   ;; default to absolute value for uvf plots
   if keyword_set(plot_uvf) and n_elements(uvf_type) eq 0 then uvf_type = 'abs'
@@ -13,6 +13,9 @@ pro fhd_data_plots, datafile, save_path = save_path, plot_path = plot_path, heal
   ;; default to including baseline axis & delay axis
   if n_elements(baseline_axis) eq 0 then baseline_axis = 1
   if n_elements(delay_axis) eq 0 then delay_axis = 1
+
+  ;; default to hinv
+  if n_elements(hinv) eq 0 then hinv = 1
 
   ;; default to plot wedge line
   if n_elements(plot_wedge_line) eq 0 then plot_wedge_line=1
@@ -256,6 +259,7 @@ pro fhd_data_plots, datafile, save_path = save_path, plot_path = plot_path, heal
   if count eq 0 then stop
   ;;kperp_plot_range = [min(kperp_edges[wh_good_kperp]), max(kperp_edges[wh_good_kperp+1])]
   kperp_plot_range = [6e-3, min([max(kperp_edges[wh_good_kperp+1]),1.1e-1])]
+  if keyword_set(hinv) then kperp_plot_range = kperp_plot_range / hubble_param
   
 
   if n_elements(plot_path) ne 0 then plotfile_path = plot_path else plotfile_path = froot
@@ -316,11 +320,11 @@ pro fhd_data_plots, datafile, save_path = save_path, plot_path = plot_path, heal
            kpower_2d_plots, savefiles_2d_use[i], /pub, plotfile = plotfiles_2d_use[i], $
                             kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, data_range = data_range, $
                             title = plot_titles[i], grey_scale = grey_scale, plot_wedge_line = plot_wedge_line, $
-                            wedge_amp = wedge_amp, baseline_axis = baseline_axis, delay_axis = delay_axis $
+                            wedge_amp = wedge_amp, baseline_axis = baseline_axis, delay_axis = delay_axis, hinv = hinv $
         else kpower_2d_plots, savefiles_2d_use[i], /plot_weights, plotfile = plotfiles_2d_use[i],$
                               kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, /pub, $
                               title = plot_titles[i], grey_scale = grey_scale, plot_wedge_line = plot_wedge_line, $
-                              wedge_amp = wedge_amp, baseline_axis = baseline_axis, delay_axis = delay_axis
+                              wedge_amp = wedge_amp, baseline_axis = baseline_axis, delay_axis = delay_axis, hinv = hinv
      endfor
 
      for i=0, n_cubes-1 do $
@@ -328,7 +332,7 @@ pro fhd_data_plots, datafile, save_path = save_path, plot_path = plot_path, heal
                          kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, data_range = snr_range, $
                          title = titles[i] + ' SNR (' + textoidl('P_k', font = font) + '*W-1)', $
                          grey_scale = grey_scale, plot_wedge_line = plot_wedge_line, $
-                         wedge_amp = wedge_amp, baseline_axis = baseline_axis, delay_axis = delay_axis
+                         wedge_amp = wedge_amp, baseline_axis = baseline_axis, delay_axis = delay_axis, hinv = hinv
      
 
 
@@ -345,11 +349,11 @@ pro fhd_data_plots, datafile, save_path = save_path, plot_path = plot_path, heal
         if plot_weights[i] eq 0 then $
            kpower_2d_plots, savefiles_2d_use[i], multi_pos = pos_use, start_multi_params = start_multi_params, $
                             kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, data_range = data_range,  $
-                            title = plot_titles[i], grey_scale = grey_scale, plot_wedge_line = plot_wedge_line, $
+                            title = plot_titles[i], grey_scale = grey_scale, plot_wedge_line = plot_wedge_line, hinv = hinv, $
                             wedge_amp = wedge_amp, baseline_axis = baseline_axis, delay_axis = delay_axis, window_num = window_num $
         else kpower_2d_plots, savefiles_2d_use[i], multi_pos = pos_use, start_multi_params = start_multi_params, /plot_weights, $
                               kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
-                              title = plot_titles[i], grey_scale = grey_scale, plot_wedge_line = plot_wedge_line, $
+                              title = plot_titles[i], grey_scale = grey_scale, plot_wedge_line = plot_wedge_line, hinv = hinv, $
                               wedge_amp = wedge_amp, baseline_axis = baseline_axis, delay_axis = delay_axis, window_num = window_num 
         if i eq 0 then begin
            positions = pos_use
@@ -372,7 +376,7 @@ pro fhd_data_plots, datafile, save_path = save_path, plot_path = plot_path, heal
                          kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, data_range = snr_range, $
                          title = titles[i] + ' SNR (' + textoidl('P_k', font = font) + '*W-1)', grey_scale = grey_scale, $
                          plot_wedge_line = plot_wedge_line, wedge_amp = wedge_amp, $
-                         baseline_axis = baseline_axis, delay_axis = delay_axis, window_num = window_num
+                         baseline_axis = baseline_axis, delay_axis = delay_axis, hinv = hinv, window_num = window_num
         if i eq 0 then begin
            positions = pos_use
            undefine, start_multi_params
@@ -382,6 +386,7 @@ pro fhd_data_plots, datafile, save_path = save_path, plot_path = plot_path, heal
    endelse
 
   file_arr = savefiles_1d
-  kpower_1d_plots, file_arr, window_num = 3, colors = colors, names = titles, delta = delta, pub = pub, plotfile = plotfile_1d
+  kpower_1d_plots, file_arr, window_num = 3, colors = colors, names = titles, delta = delta, hinv = hinv, pub = pub, $
+                   plotfile = plotfile_1d
 
 end

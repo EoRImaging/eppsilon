@@ -3,8 +3,8 @@ pro kpower_2d_plots, power_savefile, multi_pos = multi_pos, start_multi_params =
                      data_range = data_range, color_profile = color_profile, log_cut_val = log_cut_val, pub = pub, $
                      plotfile = plotfile, no_title = no_title, window_num = window_num, title = title, norm_2d = norm_2d, $
                      norm_factor = norm_factor, grey_scale = grey_scale, wedge_amp = wedge_amp, plot_wedge_line = plot_wedge_line, $
-                     baseline_axis = baseline_axis, delay_axis = delay_axis,no_units = no_units, charsize = charsize_in, $
-                     cb_size = cb_size_in, margin=margin_in, cb_margin = cb_margin_in
+                     baseline_axis = baseline_axis, delay_axis = delay_axis, no_units = no_units, hinv = hinv, $
+                     charsize = charsize_in, cb_size = cb_size_in, margin=margin_in, cb_margin = cb_margin_in
 
   if n_elements(window_num) eq 0 then window_num = 1
  
@@ -79,13 +79,21 @@ pro kpower_2d_plots, power_savefile, multi_pos = multi_pos, start_multi_params =
   n_kperp = dims[0]
   n_kpar = dims[1]
 
+  if keyword_set(hinv) then begin
+     kperp_edges = kperp_edges / hubble_param
+     kpar_edges = kpar_edges / hubble_param
+     if plot_type eq 'power' then power = power * (hubble_param)^3d
+  endif
+
   if n_elements(kperp_plot_range) eq 0 then kperp_plot_range = minmax(kperp_edges)
   if n_elements(kpar_plot_range) eq 0 then kpar_plot_range = minmax(kpar_edges)
 
   units_str = ''
   case plot_type of
      'power': begin
-        units_str = textoidl(' (mK^2 Mpc^3)', font = font)
+        if keyword_set(hinv) then units_str = textoidl(' (mK^2 h^{-3} Mpc^3)', font = font) $
+        else units_str = textoidl(' (mK^2 Mpc^3)', font = font)
+
         plot_title = textoidl('P_k', font = font)
         plotfile_add = '_2dkpower.eps'
      end
@@ -282,7 +290,6 @@ pro kpower_2d_plots, power_savefile, multi_pos = multi_pos, start_multi_params =
   max_ysize = 1000
   max_xsize = 1200
   base_size = 600
-
   if n_elements(multi_pos) eq 4 then begin
      ;; work out positions scaled to the area allowed in multi_pos with proper aspect ratio
      multi_xlen = (multi_pos[2]-multi_pos[0])
@@ -469,7 +476,6 @@ pro kpower_2d_plots, power_savefile, multi_pos = multi_pos, start_multi_params =
            charsize = 1.2d * (multi_size[0]/float(base_size))
         endif else charsize = 2
      endif else charsize = charsize_in
-print, charsize
 
      font = 1
      ;;perp_char = '!Z(22A5)'
@@ -493,7 +499,6 @@ print, charsize
            charsize = 2d * (multi_size[0]/float(base_size))
         endif else charsize = 2
      endif else charsize = charsize_in
-print, charsize
 
      if n_elements(multi_pos) eq 0 then begin
         perp_char = '!9' + string(120B) + '!X'
@@ -512,9 +517,11 @@ print, charsize
   if n_elements(title) ne 0 then plot_title = title
   if keyword_set(no_title) then undefine, plot_title
 
-  xtitle = textoidl('k_{perp} (Mpc^{-1})', font = font)
+  if keyword_set (hinv) then xtitle = textoidl('k_{perp} (h Mpc^{-1})', font = font) $
+  else xtitle = textoidl('k_{perp} (Mpc^{-1})', font = font)
   xtitle = repstr(xtitle, 'perp', perp_char)
-  ytitle = textoidl('k_{||} (Mpc^{-1})', font = font)
+  if keyword_set (hinv) then ytitle = textoidl('k_{||} (h Mpc^{-1})', font = font) $
+  else ytitle = textoidl('k_{||} (Mpc^{-1})', font = font)
 
   if keyword_set(no_title) or keyword_set(baseline_axis) then initial_title = '' else initial_title = plot_title
 
@@ -547,7 +554,11 @@ print, charsize
         charthick = charthick, xthick = xthick, ythick = ythick, charsize = charsize, font = font, $
         ytickformat = 'exponent', ystyle = 1, color = annotate_color
   if keyword_set(baseline_axis) then begin
-     cgaxis, xaxis=1, xrange = minmax(plot_kperp* kperp_lambda_conv), xtickformat = 'exponent', xthick = xthick, $
+     ;; baselines don't care about hinv -- take it back out.
+     if keyword_set(hinv) then baseline_range = minmax(plot_kperp * hubble_param * kperp_lambda_conv) $
+     else baseline_range = minmax(plot_kperp* kperp_lambda_conv)
+
+     cgaxis, xaxis=1, xrange = baseline_range, xtickformat = 'exponent', xthick = xthick, $
              charthick = charthick, ythick = ythick, charsize = charsize, font = font, xstyle = 1, color = annotate_color
 
      if not keyword_set(no_title) then cgtext, xloc_title, yloc_title, plot_title, /normal, alignment=0.5, charsize=1.2 * charsize, $

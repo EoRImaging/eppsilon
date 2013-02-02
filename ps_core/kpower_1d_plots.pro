@@ -2,7 +2,7 @@
 
 pro kpower_1d_plots, power_savefile, plot_weights = plot_weights, multi_pos = multi_pos, data_range = data_range, k_range = k_range, $
                      pub = pub, plotfile = plotfile, window_num = window_num, colors = colors, names = names, save_text = save_text, $
-                     delta = delta
+                     delta = delta, hinv = hinv
 
   if n_elements(window_num) eq 0 then window_num = 2
 
@@ -56,6 +56,12 @@ pro kpower_1d_plots, power_savefile, plot_weights = plot_weights, multi_pos = mu
         else message, 'No weights array included in this file'
      endif
      
+     if keyword_set(h_inv) then begin
+        k_edges = k_edges / hubble_param
+        if n_elements(k_centers) ne 0 then k_centers = k_centers / hubble_param
+        if not keyword_set(weights) then power = power * (hubble_param)^3d
+     endif
+
      log_bins = 1
      k_log_diffs = (alog10(k_edges) - shift(alog10(k_edges), 1))[2:*]
      if total(abs(k_log_diffs - k_log_diffs[0])) gt n_k*1e-15 then log_bins = 0
@@ -66,14 +72,16 @@ pro kpower_1d_plots, power_savefile, plot_weights = plot_weights, multi_pos = mu
      theory_delta = (power * k_mid^3d / (2d*!pi^2d)) ^(1/2d)
 
      if keyword_set(save_text) then begin
-        printf, lun,  text_labels[i]+ ' k'
+        if keyword_set(hinv) then printf, lun,  text_labels[i]+ ' k (h Mpc^-1)' $
+        else printf, lun,  text_labels[i]+ ' k (Mpc^-1)'
         printf, lun, transpose(k_mid)
         printf, lun, ''
         if keyword_set(delta) then begin 
            printf, lun,  text_labels[i]+ ' delta (sqrt(k^3 Pk/(2pi^2)) -- mk)'
            printf, lun, transpose(theory_delta)
         endif else begin
-           printf, lun,  text_labels[i]+ ' power (mk^2 Mpc^3)'
+           if keyword_set(hinv) then printf, lun, text_labels[i] + ' power (mk^2 h^-3 Mpc^3)' $
+           else printf, lun,  text_labels[i]+ ' power (mk^2 Mpc^3)'
            printf, lun, transpose(power)
         endelse
         printf, lun, ''
@@ -146,8 +154,12 @@ pro kpower_1d_plots, power_savefile, plot_weights = plot_weights, multi_pos = mu
   ;;plot, k_plot, power_plot, /ylog, /xlog, xrange = xrange, xstyle=1
   plot_order = sort(tag_names(power_plot))
   if keyword_set(delta) then ytitle = textoidl('(k^3 P_k /(2\pi^2))^{1/2} (mK)', font = font) $
-  else ytitle = textoidl('P_k (mK^2 Mpc^3)', font = font)
-  xtitle = textoidl('k (Mpc^{-1})', font = font)
+  else begin
+     if keyword_set(hinv) then ytitle = textoidl('P_k (mK^2 h^{-3} Mpc^3)', font = font) $
+     else ytitle = textoidl('P_k (mK^2 Mpc^3)', font = font)
+  endelse
+  if keyword_set(hinv) then xtitle = textoidl('k (h Mpc^{-1})', font = font) $
+  else xtitle = textoidl('k (Mpc^{-1})', font = font)
 
   cgplot, k_plot.(plot_order[0]), power_plot.(plot_order[0]), position = new_pos, /ylog, /xlog, xrange = xrange, yrange = yrange, $
           xstyle=1, ystyle=1, axiscolor = 'black', xtitle = xtitle, ytitle = ytitle, psym=10, xtickformat = 'exponent', $
