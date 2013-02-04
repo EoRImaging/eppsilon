@@ -591,7 +591,7 @@ pro kpower_2d_plots, power_savefile, multi_pos = multi_pos, start_multi_params =
   ;; solution: add regular tickmarks without labels for the minor ones.
 
   if n_elements(tick_vals) lt 5 then begin
-     tick_vals_use = loglevels(10d^[floor(log_data_range[0]), ceil(log_data_range[1])], coarse=2)
+     tick_vals_use = loglevels(10d^[floor(log_data_range[0]), ceil(log_data_range[1])], coarse=0)
 
      if n_elements(tick_vals) lt 2 then minor_multipliers = dindgen(8)+2 else minor_multipliers = (dindgen(4)+1)*2d
      n_minor_mult = n_elements(minor_multipliers)
