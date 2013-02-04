@@ -582,7 +582,7 @@ pro kpower_2d_plots, power_savefile, multi_pos = multi_pos, start_multi_params =
              charthick = charthick, xthick = xthick, ythick = ythick, charsize = charsize, font = font, ystyle = 1, $
              color = annotate_color
 
-  tick_vals = loglevels(10d^[ceil(log_data_range[0]), floor(log_data_range[1])], coarse=2)
+  tick_vals = loglevels(10d^[ceil(log_data_range[0]), floor(log_data_range[1])], coarse=0)
 
   ;; want minor tick marks if there aren't very many loglevels.
   ;; unfortunately cgcolorbar can't do log minor tick marks
