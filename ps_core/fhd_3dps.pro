@@ -502,10 +502,6 @@ pro fhd_3dps, datafile, datavar, weightfile, weightvar, frequencies, max_baselin
 
   endif else restore, save_file
 
-  test_fits = file_test(fits_savefile) *  (1 - file_test(fits_savefile, /zero_length))
-  if test_fits eq 0 then write_ps_fits, fits_savefile, power_3d, weights_3d, kx_mpc, ky_mpc, kz_mpc, kperp_lambda_conv, $
-                                        delay_params, hubble_param
-
   print, 'power integral:', total(power_3d)
 
   n_kx = n_elements(kx_mpc)
