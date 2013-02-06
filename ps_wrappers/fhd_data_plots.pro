@@ -74,8 +74,9 @@ pro fhd_data_plots, datafile, save_path = save_path, plot_path = plot_path, heal
            zen_radec_vals = dblarr(n_obs, 2)
            for i=0, n_obs-1 do begin
               if abs((*obs_arr[i]).degpix - (*obs_arr[0]).degpix) gt 0 then message, 'inconsistent degpix values in obs_arr'
-              if total(abs((*obs_arr[i]).fbin_i - (*obs_arr[0]).fbin_i)) gt 0 then message, 'inconsistent fbin_i values in obs_arr'
               if total(abs((*obs_arr[i]).freq - (*obs_arr[0]).freq)) gt 0 then message, 'inconsistent freq values in obs_arr'
+              if abs((*obs_arr[i]).n_freq - (*obs_arr[0]).n_freq) gt 0 then message, 'inconsistent n_freq values in obs_arr'
+
               max_baseline_vals[i] = (*obs_arr[i]).max_baseline
               obs_radec_vals[i, *] = [(*obs_arr[i]).obsra, (*obs_arr[i]).obsdec]
               zen_radec_vals[i, *] = [(*obs_arr[i]).zenra, (*obs_arr[i]).zendec]              
@@ -85,8 +86,7 @@ pro fhd_data_plots, datafile, save_path = save_path, plot_path = plot_path, heal
            
            degpix = (*obs_arr[0]).degpix
            freq = (*obs_arr[0]).freq
-           fbin_i = (*obs_arr[0]).fbin_i
-
+           n_freq = (*obs_arr[0]).n_freq
        endif else begin
            n_obs = n_elements(obs_arr)
            max_baseline_lambda = max(obs_arr.max_baseline)
@@ -106,24 +106,15 @@ pro fhd_data_plots, datafile, save_path = save_path, plot_path = plot_path, heal
 
            obs_tags = tag_names(obs_arr)
            wh_freq = where(strlowcase(obs_tags) eq 'freq', count_freq)
-           if count_freq ne 0 then begin
-              freq_vals = obs_arr.freq
-              fbin_i_vals = obs_arr.fbin_i
-           endif else begin
+           if count_freq ne 0 then freq_vals = obs_arr.freq $
+           else begin
               freq_vals = dblarr(n_freq, n_obs)
-              fbin_i_vals = fltarr(n_freq, n_obs)
-              for i=0, n_obs-1 do begin
-                 freq_vals[*,i] = (*obs_arr[i].bin).freq
-                 fbin_i_vals[*,i] = (*obs_arr[i].bin).fbin_i
-              endfor
+              for i=0, n_obs-1 do freq_vals[*,i] = (*obs_arr[i].bin).freq
            endelse
            if total(abs(freq_vals - rebin(freq_vals[*,0], n_freq, n_obs))) ne 0 then message, 'inconsistent freq values in obs_arr'
            freq = freq_vals[*,0]
 
-           if total(abs(fbin_i_vals - rebin(fbin_i_vals[*,0], n_freq, n_obs))) ne 0 then $
-              message, 'inconsistent fbin_i values in obs_arr'
-           fbin_i = fbin_i_vals[*,0]
-        endelse
+         endelse
 
        theta_vals = angle_difference(obs_radec_vals[*,1], obs_radec_vals[*,0], zen_radec_vals[*,1], zen_radec_vals[*,0], $
                                      /degree, /nearest)
@@ -132,17 +123,21 @@ pro fhd_data_plots, datafile, save_path = save_path, plot_path = plot_path, heal
      endif else message, 'no obs or obs_arr in datafile'
   endelse
   if keyword_set(healpix) then file_obj->restore, 'nside'
-  obj_destroy, file_obj
+
+  wh_navg = where(strlowcase(varnames) eq 'n_avg', count_obs)
+  if count_obs ne 0 then file_obj->restore, 'n_avg' else begin
+     print, 'no n_avg present, assuming n_avg=32'
+     n_avg = 32
+  endelse
+ 
+ obj_destroy, file_obj
   
-  n_freqbins = max(fbin_i) + 1
+  n_freqbins = n_freq / n_avg
   frequencies = dblarr(n_freqbins)
   for i=0, n_freqbins-1 do begin
-     wh = where(fbin_i eq i, count)
-     if count eq 0 then stop
-     
-     frequencies[i] = mean(freq[wh]) / 1e6 ;; in MHz
+     frequencies[i] = mean(freq[i*n_avg:i*n_avg+(n_avg-1)]) / 1e6 ;; in MHz
   endfor
-  
+
   ;; the max baseline in the obs structure is given in wavelengths, need to convert using the maximum frequency
   max_baseline = 3e8/max(freq)*max_baseline_lambda ;;else max_baseline = 342.497
   
