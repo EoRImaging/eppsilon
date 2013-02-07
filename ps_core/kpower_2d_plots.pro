@@ -357,8 +357,22 @@ pro kpower_2d_plots, power_savefile, multi_pos = multi_pos, start_multi_params =
 
         multi_pos = fltarr(4, ncol*nrow)
      
-        row_val = reverse(reform(rebin(indgen(nrow), nrow, ncol), ncol*nrow))
-        col_val = reform(rebin(reform(indgen(ncol), 1, ncol), nrow, ncol), ncol*nrow)
+        if tag_exist(start_multi_params, 'ordering') eq 0 then ordering = 'row' $
+        else ordering = start_multi_params.ordering
+
+        case ordering of
+           'col': begin
+              ;; col-major values
+              col_val = reform(rebin(reform(indgen(ncol), 1, ncol), nrow, ncol), ncol*nrow)
+              row_val = reverse(reform(rebin(indgen(nrow), nrow, ncol), ncol*nrow))
+           end
+           'row': begin
+              ;; row-major values
+              col_val = reform(rebin(indgen(ncol), ncol, nrow), ncol*nrow)
+              row_val = reverse(reform(rebin(reform(indgen(nrow), 1, nrow), ncol, nrow), ncol*nrow))
+           end
+           else: message, 'unrecognized ordering value in start_multi_params, use "col" or "row" '
+        endcase
         
         multi_pos[0,*] = col_val/double(ncol)
         multi_pos[1,*] = row_val/double(nrow)

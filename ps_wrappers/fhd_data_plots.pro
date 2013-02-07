@@ -333,9 +333,9 @@ pro fhd_data_plots, datafile, save_path = save_path, plot_path = plot_path, heal
 
   endif else begin
 
-     nrow = ntype + 1 ;; ntype + 1 for weights
-     ncol = npol
-     start_multi_params = {ncol:ncol, nrow:nrow}
+     ncol = ntype + 1 ;; ntype + 1 for weights
+     nrow = npol
+     start_multi_params = {ncol:ncol, nrow:nrow, ordering:'row'}
      window_num = 1
      
      for i=0, nplots-1 do begin
@@ -358,9 +358,9 @@ pro fhd_data_plots, datafile, save_path = save_path, plot_path = plot_path, heal
      undefine, positions, pos_use
 
      ;; now plot SNR -- no separate weight plots
-     nrow = ntype
-     ncol = npol
-     start_multi_params = {ncol:ncol, nrow:nrow}
+     nrow = npol
+     ncol = ntype
+     start_multi_params = {ncol:ncol, nrow:nrow, ordering:'row'}
 
      window_num = 2
  
