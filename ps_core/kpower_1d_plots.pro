@@ -94,31 +94,31 @@ pro kpower_1d_plots, power_savefile, plot_weights = plot_weights, multi_pos = mu
      if count gt 0 then begin
         power = power[wh_good]
         k_mid = k_mid[wh_good]
+        ;; now figure out k_edges. easy if they're contiguous
+        if total((wh_good - shift(wh_good,1))[1:*]) eq count_good-1 then k_edges = k_edges[wh_good, max(wh_good)+1] $
+        else print, 'Some zero-power bins exist between bins with power. Plot binning may be wrong.'
      endif
+
+     ;; extend arrays for plotting full histogram bins
+     if min(k_edges gt 0) then k_mid = [min(k_edges), k_mid, max(k_edges)] $
+     else k_mid = [10^(alog10(k_mid[0])-k_log_diffs[0]), k_mid, max(k_edges)]
+     power = [power[0], power, power[n_elements(power)-1]]
 
      tag = 'f' + strsplit(string(i),/extract)
      if i eq 0 then begin
-        power_plot = create_struct(tag, power)
-        k_plot = create_struct(tag, k_mid)
-  
         if n_elements(data_range) eq 0 then yrange = 10.^([floor(alog10(min(power))), ceil(alog10(max(power)))]) $
         else yrange = data_range
-        if n_elements(k_range) eq 0 then begin
-           if min(k_edges gt 0) then xrange = minmax(k_edges) else begin
-              wh_gt0 = where(k_mid gt 0, count_gt0)
-              if count_gt0 gt 0 then xrange = [min(k_mid[wh_gt0]), max(k_edges)] else stop
-           endelse
-        endif else xrange = k_range
+        if n_elements(k_range) eq 0 then xrange = minmax(k_mid) else xrange = k_range
+        
+        power_plot = create_struct(tag, power)
+        k_plot = create_struct(tag, k_mid)
 
      endif else begin
         if n_elements(data_range) eq 0 then yrange = minmax([yrange, 10.^([floor(alog10(min(power))), ceil(alog10(max(power)))])])
         if n_elements(k_range) eq 0 then begin
-           if min(k_edges gt 0) then xrange_new = minmax(k_edges) else begin
-              wh_gt0 = where(k_mid gt 0, count_gt0)
-              if count_gt0 gt 0 then xrange_new = [min(k_mid[wh_gt0]), max(k_edges)] else stop
-           endelse
+           xrange_new = minmax(k_mid) 
            xrange = minmax([xrange, xrange_new])
-        endif else xrange = k_range
+        endif
 
         power_plot = create_struct(tag, power, power_plot)
         k_plot = create_struct(tag, k_mid, k_plot)
