@@ -59,7 +59,7 @@ pro kpower_slice_plot, slice_savefile, multi_pos = multi_pos, start_multi_params
 
 
   if n_elements(plotfile) eq 0 then $
-      plotfile = base_path() + 'power_spectrum/plots/' + plane_name + ' plane.eps' $
+      plotfile = strsplit(slice_savefile, '.idlsave', /regex, /extract) + '.eps' $
    else if strcmp(strmid(plotfile, strlen(plotfile)-4), '.eps', /fold_case) eq 0 then plotfile = plotfile + '.eps'
   
   

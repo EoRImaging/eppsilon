@@ -85,10 +85,6 @@ pro uvf_slice_plot, slice_savefile, multi_pos = multi_pos, start_multi_params = 
   wh_x_inrange = where(xarr ge plot_xrange[0] and xarr + xdelta le plot_xrange[1], n_x_plot)
   wh_y_inrange = where(yarr ge plot_yrange[0] and yarr + ydelta le plot_yrange[1], n_y_plot)
 
-  if n_elements(plotfile) eq 0 then $
-      plotfile = base_path() + 'power_spectrum/plots/' + plane_name + ' plane.eps' $
-   else if strcmp(strmid(plotfile, strlen(plotfile)-4), '.eps', /fold_case) eq 0 then plotfile = plotfile + '.eps'
-    
   if n_x_plot eq 0 or n_y_plot eq 0 then message, 'No data in plot k range'
 
   if n_x_plot ne n_elements(xarr) then begin
@@ -104,20 +100,29 @@ pro uvf_slice_plot, slice_savefile, multi_pos = multi_pos, start_multi_params = 
      'abs': begin
         plot_slice = abs(uvf_slice)
         cb_title = 'Magnitude'
+        plotfile_fadd = '_abs.eps'
      end
      'phase': begin
         plot_slice = atan(uvf_slice, /phase)
         cb_title = 'Phase (degrees)'
+        plotfile_fadd = '_phase.eps'
      end
      'real': begin
         plot_slice = real_part(uvf_slice)
         cb_title = 'Real Part'
+        plotfile_fadd = '_real.eps'
      end
      'imaginary':  begin
         plot_slice = imaginary(uvf_slice)
         cb_title = 'Imaginary Part'       
+        plotfile_fadd = '_imaginary.eps'
      end
- endcase
+  endcase
+
+  if n_elements(plotfile) eq 0 then $
+     plotfile = strsplit(slice_savefile, '.idlsave', /regex, /extract) + plotfile_fadd $
+  else if strcmp(strmid(plotfile, strlen(plotfile)-4), '.eps', /fold_case) eq 0 then plotfile = plotfile + '.eps'
+    
 
   xarr_edges = [xarr - xdelta/2, max(xarr) + xdelta/2]
   yarr_edges = [yarr - ydelta/2, max(yarr) + ydelta/2]

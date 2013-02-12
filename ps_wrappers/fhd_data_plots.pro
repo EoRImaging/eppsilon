@@ -45,12 +45,11 @@ pro fhd_data_plots, datafile, save_path = save_path, plot_path = plot_path, pol_
   datafile_test = file_test(datafile)
   if datafile_test eq 0 then message, 'datafile not found'
 
-  temp = strpos(datafile, '/', /reverse_search)
-  infilebase = strmid(datafile, temp+1)
+  infilebase = file_basename(datafile)
   temp2 = strpos(infilebase, '.', /reverse_search)
   datafilebase = strmid(infilebase, 0, temp2)
 
-  if n_elements(save_path) ne 0 then froot = save_path else froot = strmid(datafile, 0, temp+1)
+  if n_elements(save_path) ne 0 then froot = save_path else froot = file_dirname(datafile, /mark_directory)
  
   file_obj = obj_new('idl_savefile', datafile)
   varnames = file_obj->names()
@@ -141,7 +140,7 @@ pro fhd_data_plots, datafile, save_path = save_path, plot_path = plot_path, pol_
      frequencies[i] = mean(freq[i*n_avg:i*n_avg+(n_avg-1)]) / 1e6 ;; in MHz
   endfor
 
-  if healpix and if n_elements(dft_fchunk) ne 0 then if dft_fchunck gt n_freqbins begin
+  if healpix and n_elements(dft_fchunk) ne 0 then if dft_fchunck gt n_freqbins then begin
      print, 'dft_fchunk is larger than the number of frequency slices, setting it to the number of slices -- ' + $
             number_formatter(n_freqbin)
      dft_fchunk = n_freqbin
@@ -268,8 +267,6 @@ pro fhd_data_plots, datafile, save_path = save_path, plot_path = plot_path, pol_
   
 
   if n_elements(plot_path) ne 0 then plotfile_path = plot_path else plotfile_path = froot
-  ;; plot_folder = 'fhd_data/'
-  ;; plotfile_path = base_path('plots') + 'power_spectrum/' + plot_folder
   plotfile_base = plotfile_path + datafilebase + file_labels + fadd
   plotfile_base_wt = plotfile_path + datafilebase + wt_file_labels[uniq(weight_ind, sort(weight_ind))] + fadd
 

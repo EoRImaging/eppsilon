@@ -35,21 +35,14 @@ pro fhd_3dps, datafile, datavar, weightfile, weightvar, frequencies, max_baselin
   ;; endif
 
   if n_elements(savefilebase_in) eq 0 then begin
-     temp = strpos(datafile, '/', /reverse_search)
-     froot = strmid(datafile, 0, temp+1)
-     infilebase = strmid(datafile, temp+1)
+     froot = file_dirname(datafile, /mark_directory)
+     infilebase = file_basename(datafile)
      temp2 = strpos(infilebase, '.', /reverse_search)
      savefilebase = strmid(infilebase, 0, temp2)
   endif else begin
-     temp = strpos(savefilebase_in, '/', /reverse_search)
-     if temp ne -1 then begin
-        froot = strmid(savefilebase_in, 0, temp+1)
-        savefilebase = strmid(savefilebase_in, temp+1)
-     endif else begin
-        temp = strpos(datafile, '/', /reverse_search)
-        froot = strmid(datafile, 0, temp+1)
-        savefilebase = savefilebase_in
-     endelse
+     temp = file_dirname(savefilebase_in, /mark_directory)
+     if temp ne '.' then froot = temp else froot = file_dirname(datafile, /mark_directory)
+     savefilebase = file_basename(savefilebase_in)
   endelse
 
   save_file = froot + savefilebase + '_power.idlsave'
@@ -165,13 +158,16 @@ pro fhd_3dps, datafile, datavar, weightfile, weightvar, frequencies, max_baselin
         test_uvf = file_test(uvf_data_savefile) *  (1 - file_test(uvf_data_savefile, /zero_length))
       
         if not keyword_set(no_weighting) then begin
-           if n_elements(weight_savefilebase_in) eq 0 then weight_savefilebase = savefilebase + '_weights' $
-           else begin
-              temp = strpos(weight_savefilebase_in, '/', /reverse_search)
-              if temp ne -1 then weight_savefilebase = strmid(weight_savefilebase_in, temp+1) $
-              else weight_savefilebase = weight_savefilebase_in
+           if n_elements(weight_savefilebase_in) eq 0 then begin
+              weight_savefilebase = savefilebase + '_weights'
+              wt_froot = froot
+           endif else begin
+              temp = file_dirname(weight_savefilebase_in, /mark_directory)
+              if temp ne '.' then wt_froot = froot else wt_froot = temp
+              weight_savefilebase = file_basename(weight_savefilebase_in)
            endelse
-           uvf_weight_savefile = froot + weight_savefilebase + '_uvf.idlsave'
+
+           uvf_weight_savefile = wt_froot + weight_savefilebase + '_uvf.idlsave'
            test_wt_uvf = file_test(uvf_weight_savefile) *  (1 - file_test(uvf_weight_savefile, /zero_length))
         endif        
 
