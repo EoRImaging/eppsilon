@@ -1,14 +1,10 @@
-pro fhd_data_plots, datafile, save_path = save_path, plot_path = plot_path, healpix=healpix, pol_inc = pol_inc, type_inc = type_inc, $
+pro fhd_data_plots, datafile, save_path = save_path, plot_path = plot_path, pol_inc = pol_inc, type_inc = type_inc, $
                     refresh_dft = refresh_dft, dft_fchunk = dft_fchunk, refresh_ps = refresh_ps, refresh_binning = refresh_binning, $
                     no_weighting = no_weighting, std_power = std_power, no_kzero = no_kzero, $
-                    no_weighted_averaging = no_weighted_averaging, data_range = data_range, plot_weights = plot_weights, $
+                    no_weighted_averaging = no_weighted_averaging, data_range = data_range, $
                     slice_nobin = slice_nobin, log_kpar = log_kpar, log_kperp = log_kperp, kpar_bin = kpar_bin, $
-                    kperp_bin = kperp_bin, log_k1d = log_k1d, k1d_bin = k1d_bin, plot_uvf = plot_uvf, $
-                    uvf_data_range = uvf_data_range, uvf_type = uvf_type, baseline_axis = baseline_axis, delay_axis = delay_axis, $
-                    hinv = hinv, plot_wedge_line = plot_wedge_line, grey_scale = grey_scale, pub = pub
-
-  ;; default to absolute value for uvf plots
-  if keyword_set(plot_uvf) and n_elements(uvf_type) eq 0 then uvf_type = 'abs'
+                    kperp_bin = kperp_bin, log_k1d = log_k1d, k1d_bin = k1d_bin, baseline_axis = baseline_axis, $
+                    delay_axis = delay_axis, hinv = hinv, plot_wedge_line = plot_wedge_line, grey_scale = grey_scale, pub = pub
 
   ;; default to including baseline axis & delay axis
   if n_elements(baseline_axis) eq 0 then baseline_axis = 1
@@ -20,8 +16,6 @@ pro fhd_data_plots, datafile, save_path = save_path, plot_path = plot_path, heal
   ;; default to plot wedge line
   if n_elements(plot_wedge_line) eq 0 then plot_wedge_line=1
 
-  if keyword_set(healpix) and keyword_set(refresh_dft) then refresh_ps = 1
-  if keyword_set(refresh_ps) then refresh_binning = 1
 
   if n_elements(no_weighted_averaging) gt 0 and not keyword_set(no_weighted_averaging) and keyword_set(no_weighting) then $
      message, 'Cannot set no_weighted_averaging=0 and no_weighting=1'
@@ -122,7 +116,16 @@ pro fhd_data_plots, datafile, save_path = save_path, plot_path = plot_path, heal
        
      endif else message, 'no obs or obs_arr in datafile'
   endelse
-  if keyword_set(healpix) then file_obj->restore, 'nside'
+  wh_nside = where(strlowcase(varnames) eq 'nside', count_nside)
+  if count_nside gt 1 then begin
+     file_obj->restore, 'nside'
+     healpix = 1
+
+     if keyword_set(refresh_dft) then refresh_ps = 1
+  endif else healpix = 0
+
+  if keyword_set(refresh_ps) then refresh_binning = 1
+
 
   wh_navg = where(strlowcase(varnames) eq 'n_avg', count_obs)
   if count_obs ne 0 then file_obj->restore, 'n_avg' else begin
@@ -271,10 +274,10 @@ pro fhd_data_plots, datafile, save_path = save_path, plot_path = plot_path, heal
   plotfiles_2d_ratio = plotfile_base + fadd_2dbin + '_2dsnr' + plot_fadd + '.eps'
   plotfile_1d = plotfile_path + datafilebase + fadd + fadd_1dbin + '_1dkpower' + '.eps'
 
-  if not keyword_set(slice_nobin) then slice_fadd = '_binned' else slice_fadd = ''
-  yslice_plotfile = plotfile_base + '_xz_plane' + plot_fadd + slice_fadd + '.eps'
-  xslice_plotfile = plotfile_base + '_yz_plane' + plot_fadd + slice_fadd + '.eps'
-  zslice_plotfile = plotfile_base + '_xy_plane' + plot_fadd + slice_fadd + '.eps'
+  ;; if not keyword_set(slice_nobin) then slice_fadd = '_binned' else slice_fadd = ''
+  ;; yslice_plotfile = plotfile_base + '_xz_plane' + plot_fadd + slice_fadd + '.eps'
+  ;; xslice_plotfile = plotfile_base + '_yz_plane' + plot_fadd + slice_fadd + '.eps'
+  ;; zslice_plotfile = plotfile_base + '_xy_plane' + plot_fadd + slice_fadd + '.eps'
 
   if keyword_set(plot_wedge_line) then begin
      z0_freq = 1420.40 ;; MHz
