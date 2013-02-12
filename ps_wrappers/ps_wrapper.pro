@@ -70,7 +70,7 @@ pro ps_wrapper
 
   pub = 1
 
-  fhd_data_plots, datafile, healpix=healpix, dft_fchunk=dft_fchunk, plot_path = plot_path, save_path = save_path, pol_inc = pol_inc, $
+  fhd_data_plots, datafile, dft_fchunk=dft_fchunk, plot_path = plot_path, save_path = save_path, pol_inc = pol_inc, $
                   type_inc = type_inc, refresh_dft = refresh_dft, refresh_ps = refresh_ps, refresh_binning = refresh_binning, $
                   log_kpar = log_kpar, log_kperp = log_kperp, kpar_bin = kpar_bin, kperp_bin = kperp_bin, log_k1d = log_k1d, $
                   k1d_bin = k1d_bin, data_range = data_range, baseline_axis = baseline_axis, delay_axis = delay_axis, $
