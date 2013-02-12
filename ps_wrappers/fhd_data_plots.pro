@@ -141,6 +141,13 @@ pro fhd_data_plots, datafile, save_path = save_path, plot_path = plot_path, pol_
      frequencies[i] = mean(freq[i*n_avg:i*n_avg+(n_avg-1)]) / 1e6 ;; in MHz
   endfor
 
+  if healpix and if n_elements(dft_fchunk) ne 0 then if dft_fchunck gt n_freqbins begin
+     print, 'dft_fchunk is larger than the number of frequency slices, setting it to the number of slices -- ' + $
+            number_formatter(n_freqbin)
+     dft_fchunk = n_freqbin
+  endif
+
+
   ;; the max baseline in the obs structure is given in wavelengths, need to convert using the maximum frequency
   max_baseline = 3e8/max(freq)*max_baseline_lambda ;;else max_baseline = 342.497
   
@@ -224,7 +231,7 @@ pro fhd_data_plots, datafile, save_path = save_path, plot_path = plot_path, pol_
      test = test_save_2d[i] * test_save_1d[i]
 
      if test eq 0 then begin
-        if keyword_set(healpix) then begin
+        if healpix then begin
            pixelfile = datafile
            pixel_varname = 'hpx_inds'
            hpx_dftsetup_savefile = froot + datafilebase + '_dftsetup.idlsave'
