@@ -487,7 +487,7 @@ pro kpower_2d_plots, power_savefile, multi_pos = multi_pos, start_multi_params =
      ythick = 3
      if n_elements(charsize_in) eq 0 then begin
         if n_elements(multi_pos) gt 0 then begin
-           charsize = 1.2d * (multi_size[0]/float(base_size))
+           charsize = 1.5d * (multi_size[0]/6500.)
         endif else charsize = 2
      endif else charsize = charsize_in
 

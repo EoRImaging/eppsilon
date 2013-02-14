@@ -183,13 +183,13 @@ pro uvf_slice_plot, slice_savefile, multi_pos = multi_pos, start_multi_params = 
   ;; in units of plot area (incl. margins)
   if n_elements(cb_size_in) eq 0 then cb_size = 0.025 else cb_size = cb_size_in
   if n_elements(margin_in) lt 4 then begin
-     margin = [0.2, 0.15, 0.02, 0.1] 
+     margin = [0.2, 0.15, 0.02, 0.15] 
      if keyword_set(baseline_axis) and not keyword_set(no_title) then margin[3] = 0.15
      if keyword_set(baseline_axis) and slice_axis eq 2 then margin[2] = 0.1
    endif else margin = margin_in
 
   if n_elements(cb_margin_in) lt 2 then begin
-     cb_margin = [0.2, 0.02] 
+     cb_margin = [0.15, 0.04] 
   endif else cb_margin = cb_margin_in 
 
   plot_pos = [margin[0], margin[1], (1-cb_margin[1]-cb_size-cb_margin[0]-margin[2]), (1-margin[3])]
@@ -334,7 +334,7 @@ pro uvf_slice_plot, slice_savefile, multi_pos = multi_pos, start_multi_params = 
      ythick = 3
      if n_elements(charsize_in) eq 0 then begin
         if n_elements(multi_pos) gt 0 then begin
-           charsize = 1.2d * (multi_size[0]/float(base_size))
+           charsize = 1.5d * (multi_size[0]/6500.)
         endif else charsize = 2
      endif else charsize = charsize_in
      font = 1
@@ -345,7 +345,11 @@ pro uvf_slice_plot, slice_savefile, multi_pos = multi_pos, start_multi_params = 
      endif
   
   endif else begin
+     charthick = 1
      thick = 1
+     xthick = 1
+     ythick = 1
+     font = -1
      if n_elements(charsize_in) eq 0 then begin
         if n_elements(multi_pos) gt 0 then begin
            charsize = 1.2d * (multi_size[0]/float(base_size))
@@ -399,11 +403,12 @@ pro uvf_slice_plot, slice_savefile, multi_pos = multi_pos, start_multi_params = 
 
   if keyword_set(baseline_axis) then initial_title = '' else initial_title = plot_title
 
-  cgplot, plot_xarr, plot_yarr, /nodata, xlog=xlog, ylog=ylog, xstyle=5, ystyle=5, title = initial_title, position = plot_pos, $
-        xrange = minmax(plot_xarr), yrange = minmax(plot_yarr), thick = thick, charthick = charthick, xthick = xthick, $
-          ythick = ythick, charsize = charsize, font = font, noerase = no_erase, background = background_color, $
-          axiscolor = annotate_color
-  cgimage, slice_plot_norm_rgb, /nointerp,/overplot,/noerase
+  axkeywords = {xstyle: 5, ystyle: 5, thick: thick, charthick: charthick, xthick: xthick, ythick: ythick, $
+                charsize: charsize, font: font} 
+
+  cgimage, slice_plot_norm_rgb, /nointerp, position = plot_pos, xrange = minmax(plot_xarr), yrange = minmax(plot_yarr), $
+           title = initial_title, noerase = no_erase, color = annotate_color, background = background_color, $
+           axkeywords = axkeywords, /axes
 
   if keyword_set(mark_0) then begin
      cgplot, /overplot, plot_yarr * 0d, plot_yarr, color=annotate_color, psym=-0, thick = thick
