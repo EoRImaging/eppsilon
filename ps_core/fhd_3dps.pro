@@ -606,7 +606,7 @@ pro fhd_3dps, datafile, datavar, weightfile, weightvar, frequencies, max_baselin
   if keyword_set(log_k) then fadd_1d = fadd_1d + '_logk'
 
   savefile = froot + savefilebase + fadd + fadd_1d + '_1dkpower.idlsave'
-  save, file = savefile, power, weights, k_edges, k_bin
+  save, file = savefile, power, weights, k_edges, k_bin, hubble_param
 
   if not keyword_set(quiet) then begin
      kpower_1d_plots, savefile, window_num = 5

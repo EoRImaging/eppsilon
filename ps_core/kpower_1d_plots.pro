@@ -63,11 +63,26 @@ pro kpower_1d_plots, power_savefile, plot_weights = plot_weights, multi_pos = mu
      endif
 
      log_bins = 1
-     k_log_diffs = (alog10(k_edges) - shift(alog10(k_edges), 1))[2:*]
+     if n_elements(k_centers) ne 0 then k_log_diffs = (alog10(k_centers) - shift(alog10(k_centers), 1))[2:*] $
+     else k_log_diffs = (alog10(k_edges) - shift(alog10(k_edges), 1))[2:*]
      if total(abs(k_log_diffs - k_log_diffs[0])) gt n_k*1e-15 then log_bins = 0
-
-     if n_elements(k_centers) ne 0 then k_mid = k_centers $
-     else if log_bins then k_mid = 10^(alog10(k_edges[1:*]) - k_bin/2.) else k_mid = k_edges[1:*] - k_bin/2.
+     
+     if n_elements(k_centers) ne 0 then begin
+        k_mid = k_centers 
+        if n_elements(k_edges) eq 0 then begin
+           if log_bins then begin
+              k_bin = alog10(k_centers[2])-alog10(k_centers[1])
+              k_edges = 10^([alog10(k_centers) - k_bin, alog10(max(k_centers)) + k_bin])
+           endif else begin
+              k_bin = k_centers[2] - k_centers[1]
+              k_edges = [k_centers - k_bin, max(k_centers) + k_bin]
+           endelse
+        endif
+     endif else begin
+        if n_elements(k_bin) eq 0 then $
+           if log_bins then k_bin = alog10(k_edges[2])-alog10(k_edges[1]) else k_bin = k_edges[2] - k_edges[1]
+        if log_bins then k_mid = 10^(alog10(k_edges[1:*]) - k_bin/2.) else k_mid = k_edges[1:*] - k_bin/2.
+     endelse
 
      theory_delta = (power * k_mid^3d / (2d*!pi^2d)) ^(1/2d)
 
@@ -92,12 +107,13 @@ pro kpower_1d_plots, power_savefile, plot_weights = plot_weights, multi_pos = mu
      wh = where(power eq 0, count, complement = wh_good, ncomplement = count_good)
      if count_good eq 0 then message, 'No non-zero power'
      if count gt 0 then begin
-        power = power[wh_good]
-        k_mid = k_mid[wh_good]
-        ;; now figure out k_edges. easy if they're contiguous
-        if total((wh_good - shift(wh_good,1))[1:*]) eq count_good-1 then k_edges = k_edges[wh_good, max(wh_good)+1] $
-        else print, 'Some zero-power bins exist between bins with power. Plot binning may be wrong.'
-     endif
+        ;; only want to drop 0 bins at the edges. 
+        wh_keep = indgen(max(wh_good) - min(wh_good) + 1) + min(wh_good)
+        
+        power = power[wh_keep]
+        k_mid = k_mid[wh_keep]
+        k_edges = k_edges[[wh_keep, max(wh_keep)+1]]
+     endif 
 
      ;; extend arrays for plotting full histogram bins
      if min(k_edges gt 0) then k_mid = [min(k_edges), k_mid, max(k_edges)] $

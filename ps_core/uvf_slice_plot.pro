@@ -1,8 +1,8 @@
 pro uvf_slice_plot, slice_savefile, multi_pos = multi_pos, start_multi_params = start_multi_params, plot_xrange = plot_xrange, $
                     plot_yrange = plot_yrange, data_range = data_range, type = type, pub = pub, plotfile = plotfile, $
                     window_num = window_num, title = title, grey_scale = grey_scale, baseline_axis = baseline_axis, mark_0 = mark_0, $
-                    image_space = image_space, color_0amp = color_0amp, $
-                    charsize = charsize_in, cb_size = cb_size_in, margin=margin_in, cb_margin = cb_margin_in
+                    image_space = image_space, color_0amp = color_0amp, charsize = charsize_in, cb_size = cb_size_in, $
+                    margin=margin_in, cb_margin = cb_margin_in
 
   if n_elements(window_num) eq 0 then window_num = 1
 
@@ -16,7 +16,7 @@ pro uvf_slice_plot, slice_savefile, multi_pos = multi_pos, start_multi_params = 
         message, 'In multi_pos, x1 must be greater than x0 and y1 must be greater than y0 '
   endif
 
-  type_enum = ['abs', 'phase', 'real', 'imaginary']
+  type_enum = ['abs', 'phase', 'real', 'imaginary', 'weights']
   if n_elements(type) eq 0 then if keyword_set(image_space) then type = 'real' else type = 'phase'
   wh = where(type_enum eq type, count)
   if count eq 0 then message, 'unknown type. Use one of: ' + type_enum
@@ -116,6 +116,12 @@ pro uvf_slice_plot, slice_savefile, multi_pos = multi_pos, start_multi_params = 
         plot_slice = imaginary(uvf_slice)
         cb_title = 'Imaginary Part'       
         plotfile_fadd = '_imaginary.eps'
+     end
+     'weights':begin
+        if size(uvf_slice, /type) ne 4 and size(uvf_slice, /type) ne 5 then message, 'weights slices must be floats or doubles'
+        plot_slice = uvf_slice / max(uvf_slice)
+        cb_title = 'Normalized Weights'
+        plotfile_add = '.eps'
      end
   endcase
 
@@ -381,11 +387,11 @@ pro uvf_slice_plot, slice_savefile, multi_pos = multi_pos, start_multi_params = 
      case slice_axis of 
         0:begin
            plot_xtitle = 'theta y (radians)'
-           plot_ytitle = plot_yname + ' (MHz)
+           plot_ytitle = plot_yname + ' (MHz)'
         end
         1: begin
            plot_xtitle = 'theta x (radians)'
-           plot_ytitle = plot_yname + ' (MHz)
+           plot_ytitle = plot_yname + ' (MHz)'
         end
         2: begin
            plot_xtitle = 'theta x (radians)'
