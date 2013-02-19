@@ -116,7 +116,7 @@ pro fhd_data_plots, datafile, save_path = save_path, plot_path = plot_path, pol_
      endif else message, 'no obs or obs_arr in datafile'
   endelse
   wh_nside = where(strlowcase(varnames) eq 'nside', count_nside)
-  if count_nside gt 1 then begin
+  if count_nside gt 0 then begin
      file_obj->restore, 'nside'
      healpix = 1
 
@@ -140,7 +140,7 @@ pro fhd_data_plots, datafile, save_path = save_path, plot_path = plot_path, pol_
      frequencies[i] = mean(freq[i*n_avg:i*n_avg+(n_avg-1)]) / 1e6 ;; in MHz
   endfor
 
-  if healpix and n_elements(dft_fchunk) ne 0 then if dft_fchunck gt n_freqbins then begin
+  if healpix and n_elements(dft_fchunk) ne 0 then if dft_fchunk gt n_freqbins then begin
      print, 'dft_fchunk is larger than the number of frequency slices, setting it to the number of slices -- ' + $
             number_formatter(n_freqbin)
      dft_fchunk = n_freqbin
