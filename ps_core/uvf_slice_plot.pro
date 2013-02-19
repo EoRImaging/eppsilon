@@ -501,7 +501,7 @@ pro uvf_slice_plot, slice_savefile, multi_pos = multi_pos, start_multi_params = 
 
 
   cgcolorbar, color = annotate_color, /vertical, position = cb_pos, charsize = charsize, font = font, minrange = cb_range[0], $
-              maxrange = cb_range[1], title = cb_title, minor=5
+              maxrange = cb_range[1], title = cb_title, minor=5, charthick = charthick, xthick = xthick, ythick = ythick
 
   if keyword_set(pub) and n_elements(multi_pos) eq 0 then begin
      psoff
