@@ -229,8 +229,11 @@ pro kpower_slice_plot, slice_savefile, multi_pos = multi_pos, start_multi_params
 
   if keyword_set(baseline_axis) and slice_axis eq 2 then margin[2] = 0.08
 
-  plot_pos = [margin1[0], margin1[1], (1-cb_margin2-cb_size-cb_margin1-margin2[0]), (1-margin2[1])]
-  cb_pos = [(1-cb_margin2-cb_size), margin1[1], (1-cb_margin2), (1-margin2[1])]
+  plot_pos = [margin[0], margin[1], (1-cb_margin[1]-cb_size-cb_margin[0]-margin[2]), (1-margin[3])]
+  cb_pos = [(1-cb_margin[1]-cb_size), margin[1], (1-cb_margin[1]), (1-margin[3])]
+
+  plot_len = [plot_pos[2]-plot_pos[0], plot_pos[3] - plot_pos[1]]
+  if min(plot_len) le 0 then stop
 
   plot_aspect = (plot_pos[3] - plot_pos[1]) / (plot_pos[2] - plot_pos[0])
 
@@ -400,7 +403,11 @@ pro kpower_slice_plot, slice_savefile, multi_pos = multi_pos, start_multi_params
      endif
     
   endif else begin
+     charthick = 1
      thick = 1
+     xthick = 1
+     ythick = 1
+     font = -1
      if n_elements(charsize_in) eq 0 then begin
         if n_elements(multi_pos) gt 0 then begin
            charsize = 1.2d * (multi_size[0]/float(base_size))
@@ -438,11 +445,11 @@ pro kpower_slice_plot, slice_savefile, multi_pos = multi_pos, start_multi_params
      plot_yarr = 10^(log_y_edges)
   endelse
 
-  cgplot, plot_xarr, plot_yarr, /nodata, xlog=xlog, ylog=ylog, xstyle=5, ystyle=5, title = initial_title, position = plot_pos, $
-          xrange = minmax(plot_xarr), yrange = minmax(plot_yarr), thick = thick, charthick = charthick, xthick = xthick, $
-          ythick = ythick, charsize = charsize, font = font, noerase = no_erase, background = background_color, color = annotate_color
-  
-  cgimage, power_log_norm, /nointerp,/overplot,/noerase
+  axkeywords = {xlog: xlog, ylog: ylog, xstyle: 5, ystyle: 5, thick: thick, charthick: charthick, xthick: xthick, ythick: ythick, $
+                charsize: charsize, font: font} 
+  cgimage, power_log_norm, /nointerp, xrange = minmax(plot_xarr), yrange = minmax(plot_yarr), $
+           title=initial_title, position = plot_pos, noerase = no_erase, color = annotate_color, background = background_color, $
+           axkeywords = axkeywords, /axes          
 
   if keyword_set(plot_wedge_line) then begin
      n_lines = n_elements(wedge_amp)
