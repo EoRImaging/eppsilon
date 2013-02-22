@@ -149,7 +149,7 @@ pro uvf_slice_plot, slice_savefile, multi_pos = multi_pos, start_multi_params = 
   
   if n_elements(data_range) eq 0 then if not keyword_set(all_zero) then data_range = minmax(plot_slice) else data_range = [-1*!pi, !pi]
 
-  slice_plot = congrid(plot_slice, n_x_plot*10, n_y_plot * 10)
+  if n_x_plot lt 100 or n_y_plot lt 100 then slice_plot = congrid(plot_slice, n_x_plot*10, n_y_plot * 10) else slice_plot = plot_slice
      
   slice_plot_norm = (slice_plot-data_range[0])*n_colors/(data_range[1]-data_range[0])
  

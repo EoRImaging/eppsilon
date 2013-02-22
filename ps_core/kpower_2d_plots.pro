@@ -303,7 +303,7 @@ pro kpower_2d_plots, power_savefile, multi_pos = multi_pos, start_multi_params =
   ;; in units of plot area (incl. margins)
   if n_elements(cb_size_in) eq 0 then cb_size = 0.025 else cb_size = cb_size_in
   if n_elements(margin_in) lt 4 then begin
-     margin = [0.2, 0.15, 0.02, 0.1] 
+     margin = [0.2, 0.17, 0.02, 0.1] 
      if keyword_set(baseline_axis) and not keyword_set(no_title) then margin[3] = 0.15
      if keyword_set(delay_axis) then margin[2] = 0.07
    endif else margin = margin_in
@@ -478,7 +478,6 @@ pro kpower_2d_plots, power_savefile, multi_pos = multi_pos, start_multi_params =
      xloc_delay = plot_pos[2] + 0.1*(1-plot_pos[2])
      yloc_delay = plot_pos[1] +0.1*(plot_pos[1]-0)
   endelse
-  if keyword_set(no_title) then xloc_lambda = (plot_pos[2] - plot_pos[0])/2d + plot_pos[0]
 
   if keyword_set(pub) then begin
      charthick = 3
@@ -572,13 +571,17 @@ pro kpower_2d_plots, power_savefile, multi_pos = multi_pos, start_multi_params =
      if keyword_set(hinv) then baseline_range = minmax(plot_kperp * hubble_param * kperp_lambda_conv) $
      else baseline_range = minmax(plot_kperp* kperp_lambda_conv)
 
-     cgaxis, xaxis=1, xrange = baseline_range, xtickformat = 'exponent', xthick = xthick, $
+     if keyword_set(no_title) then xtitle = textoidl('(\lambda)', font = font) else undefine, xtitle
+
+     cgaxis, xaxis=1, xrange = baseline_range, xtickformat = 'exponent', xthick = xthick, xtitle = xtitle, $
              charthick = charthick, ythick = ythick, charsize = charsize, font = font, xstyle = 1, color = annotate_color
 
-     if not keyword_set(no_title) then cgtext, xloc_title, yloc_title, plot_title, /normal, alignment=0.5, charsize=1.2 * charsize, $
-                                               color = annotate_color, font = font
-     cgtext, xloc_lambda, yloc_lambda, textoidl('(\lambda)', font = font), /normal, alignment=0.5, charsize=charsize, $
-             color = annotate_color, font = font
+     if not keyword_set(no_title) then begin
+        cgtext, xloc_title, yloc_title, plot_title, /normal, alignment=0.5, charsize=1.2 * charsize, $
+                color = annotate_color, font = font
+        cgtext, xloc_lambda, yloc_lambda, textoidl('(\lambda)', font = font), /normal, alignment=0.5, charsize=charsize, $
+                color = annotate_color, font = font
+     endif
   endif else $
      cgaxis, xaxis=1, xrange = minmax(plot_kperp), xtickv = xticks, xtickname = replicate(' ', n_elements(xticks)), $
              charthick = charthick, xthick = xthick, ythick = ythick, charsize = charsize, font = font, xstyle = 1, $
