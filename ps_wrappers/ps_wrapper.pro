@@ -4,8 +4,8 @@ pro ps_wrapper
  
   ;;datafile = '/data2/MWA/PowerSpectra/FHD_healpix_test/multi_freq_residuals_cube_healpix.sav'
   
-  datafile = '/data2/MWA/FHD/DATA/X16/EOR1/fhd_v5/Healpix/' + $
-             'Combined_obs_EOR1_P00_145_20110926193959-EOR1_P00_145_20110926200503_cube.sav'
+  datafile = '/data2/MWA/FHD/DATA/X16/EOR1/fhd_v8/Healpix/' + $
+             'Combined_obs_EOR1_P00_145_20110926193959-EOR1_P00_145_20110926200503_odd_cube.sav'
 
     
   ;; dft_fchunk applies only to Healpix datasets (it's ignored otherwise) and it specifies how many frequencies to process
@@ -17,7 +17,7 @@ pro ps_wrapper
   ;; The maximum value of this parameter is the number of frequency slices in the cube 
   ;;   (if its set too large it will be reduced to the maximum)
  
-  dft_fchunk = 24
+  dft_fchunk = 12
 
 
   ;; save_path specifies a location to save the power spectrum files. 
