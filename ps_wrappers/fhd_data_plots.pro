@@ -332,16 +332,14 @@ pro fhd_data_plots, datafile, save_path = save_path, plot_path = plot_path, pol_
                               kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis
      endfor
 
-     for i=0, n_cubes-1 do $
-        kpower_2d_plots, savefiles_2d[i], /pub, /snr, plotfile = plotfiles_2d_ratio[i], $
-                         kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, data_range = snr_range, $
-                         title = titles[i] + ' SNR (' + textoidl('P_k', font = font) + '*W-1)', $
-                         grey_scale = grey_scale, plot_wedge_line = plot_wedge_line, hinv = hinv, $
-                         wedge_amp = wedge_amp, baseline_axis = baseline_axis, delay_axis = delay_axis, $
-                            kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis
+     ;; for i=0, n_cubes-1 do $
+     ;;    kpower_2d_plots, savefiles_2d[i], /pub, /snr, plotfile = plotfiles_2d_ratio[i], $
+     ;;                     kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, data_range = snr_range, $
+     ;;                     title = titles[i] + ' SNR (' + textoidl('P_k', font = font) + '*W-1)', $
+     ;;                     grey_scale = grey_scale, plot_wedge_line = plot_wedge_line, hinv = hinv, $
+     ;;                     wedge_amp = wedge_amp, baseline_axis = baseline_axis, delay_axis = delay_axis, $
+     ;;                     kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis
      
-
-
   endif else begin
 
      ncol = ntype + 1 ;; ntype + 1 for weights
@@ -371,26 +369,26 @@ pro fhd_data_plots, datafile, save_path = save_path, plot_path = plot_path, pol_
      undefine, positions, pos_use
 
      ;; now plot SNR -- no separate weight plots
-     nrow = npol
-     ncol = ntype
-     start_multi_params = {ncol:ncol, nrow:nrow, ordering:'row'}
+     ;; nrow = npol
+     ;; ncol = ntype
+     ;; start_multi_params = {ncol:ncol, nrow:nrow, ordering:'row'}
 
-     window_num = 2
+     ;; window_num = 2
  
-     for i=0, n_cubes-1 do begin
-       if i gt 0 then  pos_use = positions[*,i]
+     ;; for i=0, n_cubes-1 do begin
+     ;;   if i gt 0 then  pos_use = positions[*,i]
 
-        kpower_2d_plots, savefiles_2d[i], /snr, multi_pos = pos_use, start_multi_params = start_multi_params, $
-                         kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, data_range = snr_range, $
-                         title = titles[i] + ' SNR (' + textoidl('P_k', font = font) + '*W-1)', grey_scale = grey_scale, $
-                         plot_wedge_line = plot_wedge_line, wedge_amp = wedge_amp, hinv = hinv, $
-                         baseline_axis = baseline_axis, delay_axis = delay_axis, kperp_linear_axis = kperp_linear_axis, $
-                         kpar_linear_axis = kpar_linear_axis, window_num = window_num
-        if i eq 0 then begin
-           positions = pos_use
-           undefine, start_multi_params
-        endif
-     endfor
+     ;;    kpower_2d_plots, savefiles_2d[i], /snr, multi_pos = pos_use, start_multi_params = start_multi_params, $
+     ;;                     kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, data_range = snr_range, $
+     ;;                     title = titles[i] + ' SNR (' + textoidl('P_k', font = font) + '*W-1)', grey_scale = grey_scale, $
+     ;;                     plot_wedge_line = plot_wedge_line, wedge_amp = wedge_amp, hinv = hinv, $
+     ;;                     baseline_axis = baseline_axis, delay_axis = delay_axis, kperp_linear_axis = kperp_linear_axis, $
+     ;;                     kpar_linear_axis = kpar_linear_axis, window_num = window_num
+     ;;    if i eq 0 then begin
+     ;;       positions = pos_use
+     ;;       undefine, start_multi_params
+     ;;    endif
+     ;; endfor
 
    endelse
 
