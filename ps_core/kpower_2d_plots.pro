@@ -3,8 +3,9 @@ pro kpower_2d_plots, power_savefile, multi_pos = multi_pos, start_multi_params =
                      data_range = data_range, color_profile = color_profile, log_cut_val = log_cut_val, pub = pub, $
                      plotfile = plotfile, no_title = no_title, window_num = window_num, title = title, norm_2d = norm_2d, $
                      norm_factor = norm_factor, grey_scale = grey_scale, wedge_amp = wedge_amp, plot_wedge_line = plot_wedge_line, $
-                     baseline_axis = baseline_axis, delay_axis = delay_axis, no_units = no_units, hinv = hinv, $
-                     charsize = charsize_in, cb_size = cb_size_in, margin=margin_in, cb_margin = cb_margin_in
+                     baseline_axis = baseline_axis, delay_axis = delay_axis, kperp_linear_axis = kperp_linear_axis, $
+                     kpar_linear_axis = kpar_linear_axis, no_units = no_units, hinv = hinv, charsize = charsize_in, $
+                     cb_size = cb_size_in, margin=margin_in, cb_margin = cb_margin_in
 
   if n_elements(window_num) eq 0 then window_num = 1
  
@@ -59,7 +60,6 @@ pro kpower_2d_plots, power_savefile, multi_pos = multi_pos, start_multi_params =
         power = (power - 1d/weights) * weights
         wh_0 = where(weights eq 0, count_0)
         if count_0 gt 0 then begin
-           stop
            power[wh_0] = 0
         endif
         plot_type = 'snr'
@@ -176,64 +176,101 @@ pro kpower_2d_plots, power_savefile, multi_pos = multi_pos, start_multi_params =
   if count gt 0 then min_pos = min(power[wh]) else if data_range[0] gt 0 then min_pos = data_range[0] else $
      if data_range[1] gt 0 then min_pos = data_range[1]/10d else min_pos = 0.01d
 
-  if total(log_bins) eq 2 then begin
-     ;; expand image array to prevent interpolation in postscript, normalize
-     power_plot = congrid(power, n_kperp*10, n_kpar*10)
-     kperp_log_edges = alog10(kperp_edges)
-     kpar_log_edges = alog10(kpar_edges)
-  endif else begin
-     ;; make a new image array to allow log axes
-     
-     if log_bins[0] eq 0 then begin
-        wh_kperp0 = where(kperp_edges lt 0, count_kperp0, complement = wh_kperp_good)
-        if count_kperp0 gt 1 then stop
-        
-        kperp_log_edges = alog10(kperp_edges)
-        if count_kperp0 eq 1 then begin
-           kperp_log_diffs = (kperp_log_edges[1:*] - shift(kperp_log_edges[1:*], 1))[1:*]
-           kperp_log_diffs = [kperp_log_diffs[0], kperp_log_diffs]
-           kperp_log_edges[wh_kperp0] = kperp_log_edges[wh_kperp0+1] - kperp_log_diffs[wh_kperp0]
-        endif
+  ;; check whether we need to have varying bin sizes (log/linear options don't match)
+  log_axes = [1,1]
+  if keyword_set(kperp_linear_axis) then log_axes[0] = 0
+  if keyword_set(kpar_linear_axis) then log_axes[1] = 0
 
-        image_kperp_delta = min(kperp_log_diffs)
+  if total(abs(log_bins-log_axes)) ne 0 then begin
+     ;; need to make a new image array with varying bin sizes
+     if log_bins[0] ne log_axes[0] then begin
+        if log_bins[0] eq 0 then begin
+           ;; linear binning, log axes
+           wh_kperp0 = where(kperp_edges lt 0, count_kperp0, complement = wh_kperp_good)
+           if count_kperp0 gt 1 then stop
+           
+           kperp_log_edges = alog10(kperp_edges)
+           if count_kperp0 eq 1 then begin
+              kperp_log_diffs = (kperp_log_edges[1:*] - shift(kperp_log_edges[1:*], 1))[1:*]
+              kperp_log_diffs = [kperp_log_diffs[0], kperp_log_diffs]
+              kperp_log_edges[wh_kperp0] = kperp_log_edges[wh_kperp0+1] - kperp_log_diffs[wh_kperp0]
+           endif
+
+           image_kperp_delta = min(kperp_log_diffs)
+           kperp_bin_widths = round(kperp_log_diffs / image_kperp_delta)
+        endif else begin
+           ;; log binning, linear axes
+           kperp_diffs = (kperp_edges[1:*] - shift(kperp_edges[1:*], 1))[1:*]
+           image_kperp_delta = min(kperp_diffs)/2d
+           kperp_bin_widths = round(kperp_diffs / image_kperp_delta) 
+        endelse
+        rebin_x = 1
      endif else begin
-        kperp_log_edges = alog10(kperp_edges)
-        image_kperp_delta = min(kperp_log_diffs)/10d
+        ;; axes and binning agree
+        if log_axes[0] eq 1 then kperp_log_edges = alog10(kperp_edges)
+        rebin_x = 0
      endelse
 
-     if log_bins[1] eq 0 then begin
-        wh_kpar0 = where(kpar_edges lt 0, count_kpar0, complement = wh_kpar_good)
-        if count_kpar0 gt 1 then stop
-        
-        kpar_log_edges = alog10(kpar_edges)
-        if count_kpar0 eq 1 then begin
-           kpar_log_diffs = (kpar_log_edges[1:*] - shift(kpar_log_edges[1:*], 1))[1:*]
-           kpar_log_diffs = [kpar_log_diffs[0], kpar_log_diffs]
-           kpar_log_edges[wh_kpar0] = kpar_log_edges[wh_kpar0+1] - kpar_log_diffs[wh_kpar0]
-        endif
-
-        image_kpar_delta = min(kpar_log_diffs)/2d
+     if log_bins[1] ne log_axes[1] then begin
+        if log_bins[1] eq 0 then begin
+           ;; linear binning, log axes
+           wh_kpar0 = where(kpar_edges lt 0, count_kpar0, complement = wh_kpar_good)
+           if count_kpar0 gt 1 then stop
+           
+           kpar_log_edges = alog10(kpar_edges)
+           if count_kpar0 eq 1 then begin
+              kpar_log_diffs = (kpar_log_edges[1:*] - shift(kpar_log_edges[1:*], 1))[1:*]
+              kpar_log_diffs = [kpar_log_diffs[0], kpar_log_diffs]
+              kpar_log_edges[wh_kpar0] = kpar_log_edges[wh_kpar0+1] - kpar_log_diffs[wh_kpar0]
+           endif
+           
+           image_kpar_delta = min(kpar_log_diffs)/2d
+           kpar_bin_widths = round(kpar_log_diffs / image_kpar_delta) 
+        endif else begin
+           ;; log binning, linear axes
+           kpar_diffs = (kpar_edges[1:*] - shift(kpar_edges[1:*], 1))[1:*]
+           image_kpar_delta = min(kpar_diffs)/2d
+           kpar_bin_widths = round(kpar_diffs / image_kpar_delta) 
+        endelse
+        rebin_y = 1
      endif else begin
-        kpar_log_edges = alog10(kpar_edges)
-        image_kpar_delta = min(kpar_log_diffs)/10d
+        if log_bins[1] eq 1 then kpar_log_edges = alog10(kpar_edges)
+        rebin_y = 0
+     endelse     
+
+     if rebin_x eq 1 then begin
+        ;; now get width for each input bin in image array
+        nkperp_image = total(kperp_bin_widths)
+
+        h_kperp = histogram(total(kperp_bin_widths,/cumulative)-1,binsize=1, min=0, reverse_indices=ri_kperp)
+        undefine, h_kperp
+        kperp_inds = ri_kperp[0:nkperp_image-1]-ri_kperp[0]
+     endif else begin
+        nkperp_image = n_kperp
+        kperp_inds = indgen(nkperp_image)
      endelse
 
-     ;; now get width for each input bin in image array
-     kperp_bin_widths = round(kperp_log_diffs / image_kperp_delta)
-     nkperp_image = total(kperp_bin_widths)
-     kpar_bin_widths = round(kpar_log_diffs / image_kpar_delta) 
-     nkpar_image = total(kpar_bin_widths)
-    
-     h_kperp = histogram(total(kperp_bin_widths,/cumulative)-1,binsize=1, min=0, reverse_indices=ri_kperp)
-     undefine, h_kperp
-     kperp_inds = rebin(ri_kperp[0:nkperp_image-1]-ri_kperp[0], nkperp_image, nkpar_image)
-     
-     h_kpar = histogram(total(kpar_bin_widths,/cumulative)-1,binsize=1, min=0, reverse_indices=ri_kpar)
-     undefine, h_kpar
-     kpar_inds = rebin(reform(ri_kpar[0:nkpar_image-1]-ri_kpar[0], 1, nkpar_image), nkperp_image, nkpar_image)
+     if rebin_y eq 1 then begin
+        nkpar_image = total(kpar_bin_widths)
+        
+        h_kpar = histogram(total(kpar_bin_widths,/cumulative)-1,binsize=1, min=0, reverse_indices=ri_kpar)
+        undefine, h_kpar
+        kpar_inds = rebin(reform(ri_kpar[0:nkpar_image-1]-ri_kpar[0], 1, nkpar_image), nkperp_image, nkpar_image)
+     endif else begin
+        nkpar_image = n_kpar
+        kpar_inds = rebin(reform(indgen(nkpar_image), 1, nkpar_image), nkperp_image, nkpar_image)
+     endelse
 
+     kperp_inds = rebin(kperp_inds, nkperp_image, nkpar_image)
      power_plot = power[kperp_inds, kpar_inds]
+  endif else begin
+     ;; axes & binning agree for both directions
+     ;; expand image array to prevent interpolation in postscript
+     power_plot = congrid(power, n_kperp*10, n_kpar*10)
+     if log_axes[0] eq 1 then kperp_log_edges = alog10(kperp_edges)
+     if log_axes[1] eq 1 then kpar_log_edges = alog10(kpar_edges)
   endelse
+
 
   case color_profile of
      'log_cut': begin
@@ -326,19 +363,25 @@ pro kpower_2d_plots, power_savefile, multi_pos = multi_pos, start_multi_params =
 
   plot_aspect = (plot_pos[3] - plot_pos[1]) / (plot_pos[2] - plot_pos[0])
   
-  kpar_length_log = max(kpar_log_edges) - min(kpar_log_edges)
-  if min(kperp_edges) le 0 then begin
-     wh_zero = where(kperp_edges eq 0, n_zero)
-     if n_zero ne 0 then stop
-     
-     wh_pos = where(kperp_edges ge 0, n_pos, complement = wh_neg, ncomplement = n_neg)
-     if n_neg gt 0 then neg_leng = max(alog10((-1)*kperp_edges[wh_neg])) - min(alog10((-1)*kperp_edges[wh_neg]))
-     if n_pos gt 0 then pos_leng = max(alog10(kperp_edges[wh_pos])) - min(alog10(kperp_edges[wh_pos]))
-     
-     kperp_length_log = neg_leng + pos_leng + pos_leng/(n_pos-1)
-     
-  endif else kperp_length_log = max(kperp_log_edges) - min(kperp_log_edges)
-  data_aspect = (kpar_length_log / kperp_length_log)
+  if log_axes[0] eq 0 then begin
+     kperp_length = max(kperp_edges) - min(kperp_edges)
+     kpar_length = max(kpar_edges) - min(kpar_edges)
+  endif else begin
+     if log_axes[1] eq 0 then kpar_length = alog10(max(kpar_edges)) - alog10(min(kpar_edges[where(kpar_edges gt 0)])) $
+     else kpar_length = max(kpar_log_edges) - min(kpar_log_edges)
+     if min(kperp_edges) le 0 then begin
+        wh_zero = where(kperp_edges eq 0, n_zero)
+        if n_zero ne 0 then stop
+        
+        wh_pos = where(kperp_edges ge 0, n_pos, complement = wh_neg, ncomplement = n_neg)
+        if n_neg gt 0 then neg_leng = max(alog10((-1)*kperp_edges[wh_neg])) - min(alog10((-1)*kperp_edges[wh_neg]))
+        if n_pos gt 0 then pos_leng = max(alog10(kperp_edges[wh_pos])) - min(alog10(kperp_edges[wh_pos]))
+        
+        kperp_length = neg_leng + pos_leng + pos_leng/(n_pos-1)
+        
+     endif else kperp_length = max(kperp_log_edges) - min(kperp_log_edges)
+  endelse
+  data_aspect = (kpar_length / kperp_length)
 
   aspect_ratio =  data_aspect /plot_aspect
   if aspect_ratio gt 1 then begin
@@ -524,8 +567,8 @@ pro kpower_2d_plots, power_savefile, multi_pos = multi_pos, start_multi_params =
         if make_win eq 1 then window, window_num, xsize = xsize, ysize = ysize
      endif
   endelse
-  plot_kperp = 10^kperp_log_edges
-  plot_kpar = 10^kpar_log_edges
+  if log_axes[0] eq 1 then plot_kperp = 10^kperp_log_edges else plot_kperp = kperp_edges
+  if log_axes[1] eq 1 then plot_kpar = 10^kpar_log_edges else plot_kpar = kpar_edges
  
   if n_elements(title) ne 0 then plot_title = title
   if keyword_set(no_title) then undefine, plot_title
@@ -544,8 +587,33 @@ pro kpower_2d_plots, power_savefile, multi_pos = multi_pos, start_multi_params =
 
   ;;cgimage, power_log_norm, /nointerp,/overplot,/noerase
 
-  axkeywords = {xlog: 1, ylog: 1, xstyle: 5, ystyle: 5, thick: thick, charthick: charthick, xthick: xthick, ythick: ythick, $
-                charsize: charsize, font: font} 
+  if log_axes[0] eq 1 then xtickformat = 'exponent' else begin
+     nticks = 5
+
+     log_size = round(min(alog10(plot_kperp)))    
+     xtick_width = round((max(plot_kperp) - min(plot_kperp))/(nticks-1.)/(10.^log_size))*(10.^log_size)
+     xtick_start = round(min(plot_kperp)/xtick_width)*(10.^log_size)
+     xticks_in = round((dindgen(nticks)*xtick_width + xtick_start)/(10.^log_size))*(10.^log_size)
+
+     x_nticks = nticks-1
+     n_minor = 4
+
+     if keyword_set(baseline_axis) then begin
+        if keyword_set(hinv) then baseline_range = minmax(plot_kperp * hubble_param * kperp_lambda_conv) $
+        else baseline_range = minmax(plot_kperp* kperp_lambda_conv)
+     
+        log_size2 = round(min(alog10(baseline_range)))    
+        xtick_width2 = round((max(baseline_range) - min(baseline_range))/(nticks-1.)/(10.^log_size2))*(10.^log_size2)
+        xtick_start2 = round(min(baseline_range)/xtick_width2)*(10.^log_size2)
+        xticks_in2 = round((dindgen(nticks)*xtick_width2 + xtick_start2)/(10.^log_size2))*(10.^log_size2)
+     endif
+
+  endelse
+  if log_axes[1] eq 1 then ytickformat = 'exponent'
+
+
+  axkeywords = {xlog: log_axes[0], ylog: log_axes[1], xstyle: 5, ystyle: 5, thick: thick, charthick: charthick, xthick: xthick, $
+                ythick: ythick, charsize: charsize, font: font} 
   cgimage, power_log_norm, /nointerp, xrange = minmax(plot_kperp), yrange = minmax(plot_kpar), $
            title=initial_title, position = plot_pos, noerase = no_erase, color = annotate_color, background = background_color, $
            axkeywords = axkeywords, /axes          
@@ -559,13 +627,13 @@ pro kpower_2d_plots, power_savefile, multi_pos = multi_pos, start_multi_params =
                                    psym=-0, linestyle = linestyles[i]
   endif
 
-  cgaxis, xaxis=0, xtick_get = xticks, xtitle = xtitle, xrange = minmax(plot_kperp), $
-        charthick = charthick, xthick = xthick, ythick = ythick, charsize = charsize, font = font, $
-        xtickformat = 'exponent', xstyle = 1, color = annotate_color
-
+  cgaxis, xaxis=0, xtick_get = xticks, xtickv = xticks_in, xticks = x_nticks, xminor=n_minor, xrange = minmax(plot_kperp), $
+        xtitle = xtitle, charthick = charthick, xthick = xthick, ythick = ythick, charsize = charsize, font = font, $
+        xtickformat = xtickformat, xstyle = 1, color = annotate_color
+ 
   cgaxis, yaxis=0, ytick_get = yticks, ytitle = ytitle, yrange = minmax(plot_kpar), $
         charthick = charthick, xthick = xthick, ythick = ythick, charsize = charsize, font = font, $
-        ytickformat = 'exponent', ystyle = 1, color = annotate_color
+        ytickformat = ytickformat, ystyle = 1, color = annotate_color
   if keyword_set(baseline_axis) then begin
      ;; baselines don't care about hinv -- take it back out.
      if keyword_set(hinv) then baseline_range = minmax(plot_kperp * hubble_param * kperp_lambda_conv) $
@@ -573,7 +641,8 @@ pro kpower_2d_plots, power_savefile, multi_pos = multi_pos, start_multi_params =
 
      if keyword_set(no_title) then xtitle = textoidl('(\lambda)', font = font) else undefine, xtitle
 
-     cgaxis, xaxis=1, xrange = baseline_range, xtickformat = 'exponent', xthick = xthick, xtitle = xtitle, $
+     cgaxis, xaxis=1, xtickv = xticks_in2, xticks = x_nticks, xminor=n_minor, xrange = baseline_range, xtickformat = xtickformat, $
+             xthick = xthick, xtitle = xtitle, $
              charthick = charthick, ythick = ythick, charsize = charsize, font = font, xstyle = 1, color = annotate_color
 
      if not keyword_set(no_title) then begin
@@ -588,7 +657,7 @@ pro kpower_2d_plots, power_savefile, multi_pos = multi_pos, start_multi_params =
              color = annotate_color
   if keyword_set(delay_axis) then begin
      min_delay_plot = 2d*alog10(delay_params[0]) - alog10(delay_params[0]*2) ;; in analogy with min kperp/par with 0 bins
-     cgaxis, yaxis=1, yrange = [min_delay_plot, delay_params[1]], ytickformat = 'exponent', charthick = charthick, xthick = xthick, $
+     cgaxis, yaxis=1, yrange = [min_delay_plot, delay_params[1]], ytickformat = ytickformat, charthick = charthick, xthick = xthick, $
              ythick = ythick, charsize = charsize, font = font, ystyle = 1, color = annotate_color
 
      cgtext, xloc_delay, yloc_delay, '(ns)', /normal, alignment=0.5, charsize=charsize*0.9, $
