@@ -1,8 +1,8 @@
 pro uvf_slice_plot, slice_savefile, multi_pos = multi_pos, start_multi_params = start_multi_params, plot_xrange = plot_xrange, $
                     plot_yrange = plot_yrange, data_range = data_range, type = type, pub = pub, plotfile = plotfile, $
-                    window_num = window_num, title = title, grey_scale = grey_scale, baseline_axis = baseline_axis, mark_0 = mark_0, $
-                    image_space = image_space, color_0amp = color_0amp, charsize = charsize_in, cb_size = cb_size_in, $
-                    margin=margin_in, cb_margin = cb_margin_in
+                    window_num = window_num, title = title, grey_scale = grey_scale, baseline_axis = baseline_axis, hinv = hinv, $
+                    mark_0 = mark_0, image_space = image_space, color_0amp = color_0amp, charsize = charsize_in, $
+                    cb_size = cb_size_in, margin = margin_in, cb_margin = cb_margin_in, no_title = no_title
 
   if n_elements(window_num) eq 0 then window_num = 1
 
@@ -27,6 +27,7 @@ pro uvf_slice_plot, slice_savefile, multi_pos = multi_pos, start_multi_params = 
   endif
 
   restore, slice_savefile
+
   dims = size(uvf_slice, /dimension)
   if n_elements(dims) gt 2 then uvf_slice = total(uvf_slice, slice_axis+1) / n_elements(slice_inds)
 
@@ -148,7 +149,7 @@ pro uvf_slice_plot, slice_savefile, multi_pos = multi_pos, start_multi_params = 
   
   if n_elements(data_range) eq 0 then if not keyword_set(all_zero) then data_range = minmax(plot_slice) else data_range = [-1*!pi, !pi]
 
-  slice_plot = congrid(plot_slice, n_x_plot*10, n_y_plot * 10)
+  if n_x_plot lt 100 or n_y_plot lt 100 then slice_plot = congrid(plot_slice, n_x_plot*10, n_y_plot * 10) else slice_plot = plot_slice
      
   slice_plot_norm = (slice_plot-data_range[0])*n_colors/(data_range[1]-data_range[0])
  
@@ -190,7 +191,7 @@ pro uvf_slice_plot, slice_savefile, multi_pos = multi_pos, start_multi_params = 
   if n_elements(cb_size_in) eq 0 then cb_size = 0.025 else cb_size = cb_size_in
   if n_elements(margin_in) lt 4 then begin
      margin = [0.2, 0.15, 0.02, 0.15] 
-     if keyword_set(baseline_axis) and not keyword_set(no_title) then margin[3] = 0.15
+     if keyword_set(baseline_axis) and not keyword_set(no_title) then margin[3] = 0.22
      if keyword_set(baseline_axis) and slice_axis eq 2 then margin[2] = 0.1
    endif else margin = margin_in
 
@@ -329,7 +330,7 @@ pro uvf_slice_plot, slice_savefile, multi_pos = multi_pos, start_multi_params = 
 
   if not keyword_set(no_title) then begin
      xloc_title = (plot_pos[2] - plot_pos[0])/2. + plot_pos[0]
-     if n_elements(multi_pos) gt 0 then yloc_title = plot_pos[3] + 0.8* (multi_pos_use[3]-plot_pos[3]) $
+     if n_elements(multi_pos) gt 0 then yloc_title = plot_pos[3] + 0.7* (multi_pos_use[3]-plot_pos[3]) $
      else yloc_title = plot_pos[3] + 0.6* (1-plot_pos[3])
   endif
 
@@ -394,6 +395,7 @@ pro uvf_slice_plot, slice_savefile, multi_pos = multi_pos, start_multi_params = 
         'phase': plot_title = 'Phase in ' + plane_name + ' plane'
         'real': plot_title = 'Real part of ' + plane_name + ' plane'
         'imaginary': plot_title = 'Imaginary part of ' + plane_name + ' plane'
+        'weights': plot_title = plane_name + ' plane weights'
      endcase
   endelse
 
@@ -413,9 +415,28 @@ pro uvf_slice_plot, slice_savefile, multi_pos = multi_pos, start_multi_params = 
         end
      endcase
   endif else begin
-     plot_xtitle = plot_xname + ' (Mpc!U-1!N)'
-     if slice_axis lt 2 then plot_ytitle = plot_yname + ' (MHz)' $
-     else plot_ytitle = plot_yname + ' (Mpc!U-1!N)'
+     case slice_axis of 
+        0:begin
+           if keyword_set (hinv) then plot_xtitle = textoidl('k_y (h Mpc^{-1})', font = font) $
+           else plot_xtitle = textoidl('k_y (Mpc^{-1})', font = font)
+           plot_ytitle = plot_yname + ' (MHz)'
+           baseline_xtitle = plot_xname + textoidl(' (\lambda)', font = font)
+        end
+        1: begin
+           if keyword_set (hinv) then plot_xtitle = textoidl('k_x (h Mpc^{-1})', font = font) $
+           else plot_xtitle = textoidl('k_x (Mpc^{-1})', font = font)
+           plot_ytitle = plot_yname + ' (MHz)'
+           baseline_xtitle = plot_xname + textoidl(' (\lambda)', font = font)
+       end
+        2: begin
+           if keyword_set (hinv) then plot_xtitle = textoidl('k_x (h Mpc^{-1})', font = font) $
+           else plot_xtitle = textoidl('k_x (Mpc^{-1})', font = font)
+           if keyword_set (hinv) then plot_ytitle = textoidl('k_y (h Mpc^{-1})', font = font) $
+           else plot_ytitle = textoidl('k_y (Mpc^{-1})', font = font)
+           baseline_xtitle = plot_xname + textoidl(' (\lambda)', font = font)
+           baseline_ytitle = plot_yname + textoidl(' (\lambda)', font = font)
+       end
+     endcase
   endelse
 
   plot_xarr = xarr_edges
@@ -449,12 +470,12 @@ pro uvf_slice_plot, slice_savefile, multi_pos = multi_pos, start_multi_params = 
      else baseline_range = minmax(plot_xarr* kperp_lambda_conv)
           
      cgaxis, xaxis=1, xrange = baseline_range, xthick = xthick,  charthick = charthick, ythick = ythick, charsize = charsize, $
-             font = font, xstyle = 1, color = annotate_color
+             font = font, xstyle = 1, color = annotate_color, xtitle = baseline_xtitle
      
      if not keyword_set(no_title) then cgtext, xloc_title, yloc_title, plot_title, /normal, alignment=0.5, charsize=1.2 * charsize, $
                                                color = annotate_color, font = font
-     cgtext, xloc_lambda, yloc_lambda, textoidl('(\lambda)', font = font), /normal, alignment=0.5, charsize=charsize, $
-             color = annotate_color, font = font
+     ;; cgtext, xloc_lambda, yloc_lambda, baseline_xtitle, /normal, alignment=0.5, charsize=charsize, $
+     ;;        color = annotate_color, font = font
 
   endif else $
      cgaxis, xaxis=1, xrange = minmax(plot_xarr), xtickv = xticks, xtickname = replicate(' ', n_elements(xticks)), $
@@ -467,10 +488,10 @@ pro uvf_slice_plot, slice_savefile, multi_pos = multi_pos, start_multi_params = 
      else baseline_range = minmax(plot_yarr* kperp_lambda_conv)
           
      cgaxis, yaxis=1, yrange = baseline_range, xthick = xthick, charthick = charthick, ythick = ythick, charsize = charsize, $
-             font = font, ystyle = 1, color = annotate_color
+             font = font, ystyle = 1, color = annotate_color, ytitle = baseline_ytitle
 
-      cgtext, xloc2_lambda, yloc2_lambda, textoidl('(\lambda)', font = font), /normal, alignment=0.5, charsize=charsize, $
-              color = annotate_color, font = font
+      ;; cgtext, xloc2_lambda, yloc2_lambda, baseline_ytitle, /normal, alignment=0.5, charsize=charsize, $
+      ;;        color = annotate_color, font = font
  endif else $
      cgaxis, yaxis=1, yrange = minmax(plot_yarr), ytickv = yticks, ytickname = replicate(' ', n_elements(yticks)), $
              charthick = charthick, xthick = xthick, ythick = ythick, charsize = charsize, font = font, ystyle = 1, $
@@ -480,7 +501,7 @@ pro uvf_slice_plot, slice_savefile, multi_pos = multi_pos, start_multi_params = 
 
 
   cgcolorbar, color = annotate_color, /vertical, position = cb_pos, charsize = charsize, font = font, minrange = cb_range[0], $
-              maxrange = cb_range[1], title = cb_title, minor=5
+              maxrange = cb_range[1], title = cb_title, minor=5, charthick = charthick, xthick = xthick, ythick = ythick
 
   if keyword_set(pub) and n_elements(multi_pos) eq 0 then begin
      psoff

@@ -60,6 +60,8 @@ pro ps_wrapper
 
 
   ;; options for plotting:
+  ;; kperp_linear_axis is a flag, set to 1 to use a linear kperp axis (default is log axis)
+  ;; kpar_linear_axis is a flag, set to 1 to use a linear kpar axis (default is log axis)
   ;; data_range specifies the min & max value of the plot colorbar (values outside that range are clipped to those values)
   ;; baseline_axis is a flag (defaulted to true) to mark baseline; length along top axis of 2d plots (set to 0 to turn off)
   ;; delay_axis is a flag (defaulted to true) to mark delay time along right axis of 2d plots (set to 0 to turn off)
@@ -73,7 +75,8 @@ pro ps_wrapper
   fhd_data_plots, datafile, dft_fchunk=dft_fchunk, plot_path = plot_path, save_path = save_path, pol_inc = pol_inc, $
                   type_inc = type_inc, refresh_dft = refresh_dft, refresh_ps = refresh_ps, refresh_binning = refresh_binning, $
                   log_kpar = log_kpar, log_kperp = log_kperp, kpar_bin = kpar_bin, kperp_bin = kperp_bin, log_k1d = log_k1d, $
-                  k1d_bin = k1d_bin, data_range = data_range, baseline_axis = baseline_axis, delay_axis = delay_axis, $
+                  k1d_bin = k1d_bin, kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, $
+                  data_range = data_range, baseline_axis = baseline_axis, delay_axis = delay_axis, $
                   hinv = hinv, plot_wedge_line = plot_wedge_line, grey_scale = grey_scale, pub = pub
 
 end
