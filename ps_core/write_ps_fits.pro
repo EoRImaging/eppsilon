@@ -1,13 +1,24 @@
-pro write_ps_fits, fits_savefile, power_3d, weights_3d, kx_mpc, ky_mpc, kz_mpc, kperp_lambda_conv, delay_params, hubble_param
+pro write_ps_fits, fits_savefile, power_3d, weights_3d, kx_mpc, ky_mpc, kz_mpc, kperp_lambda_conv, delay_params, hubble_param, $
+                   noise_3d = noise_3d
 
   ;; make a basic primary header & extension header (for weights)
   mkhdr, header, power_3d, /extend
   mkhdr, header2, weights_3d, /image
+  if n_elements(noise_3d) ne 0 then mkhdr, header3, noise_3d, /image
+
+  ;; put them all into a structure to loop over adding parameters
+  header_struct = {power:header, weights: header2}
+  if n_elements(noise_3d) ne 0 then begin
+     header_struct = create_struct(header_struct, 'noise', header3)
+     n_hdr = 3
+  endif else n_hdr = 2
 
   ;; add on units parameter
-  fxaddpar, header, 'BUNIT', 'mK^2 Mpc^3', 'For [mK^2 h^-3 Mpc^3], multiply by ' + number_formatter(hubble_param) + '^3'
-  fxaddpar, header2, 'BUNIT', '', 'Relative weights';;'For [mK^2 h^-3 Mpc^3], multiply by ' + number_formatter(hubble_param^3.)
-  
+  fxaddpar, header_struct.power, 'BUNIT', 'mK^2 Mpc^3', 'For [mK^2 h^-3 Mpc^3], multiply by ' + number_formatter(hubble_param) + '^3'
+  fxaddpar, header_struct.weights, 'BUNIT', '', 'Relative weights'
+  if n_elements(noise_3d) ne 0 then fxaddpar, header_struct.noise, 'BUNIT', 'mK^2 Mpc^3', 'For [mK^2 h^-3 Mpc^3], multiply by ' + $
+     number_formatter(hubble_param) + '^3'
+
   ;; setup primary WCS coordinates
   axis_names = ['kx', 'ky', 'kz']
   ref_pixs = intarr(3)
@@ -28,21 +39,16 @@ pro write_ps_fits, fits_savefile, power_3d, weights_3d, kx_mpc, ky_mpc, kz_mpc, 
   deltas = [kx_mpc[1]-kx_mpc[0], ky_mpc[1]-ky_mpc[0], kz_mpc[1]-kz_mpc[0]]
 
   ;; add header parameters
-  fxaddpar, header, 'WCSNAME', 'kspace'
-  fxaddpar, header2, 'WCSNAME', 'kspace'
-  for i=0, 2 do begin
-     fxaddpar, header, 'CNAME'+number_formatter(i+1), axis_names[i]
-     fxaddpar, header2, 'CNAME'+number_formatter(i+1), axis_names[i]
-      fxaddpar, header, 'CUNIT'+number_formatter(i+1), 'Mpc^-1', 'For [h Mpc^-1], divide by ' + $
-               number_formatter(hubble_param)
-      fxaddpar, header2, 'CUNIT'+number_formatter(i+1), 'Mpc^-1', 'For [h Mpc^-1], divide by ' + $
-               number_formatter(hubble_param)
-     fxaddpar, header, 'CRPIX'+number_formatter(i+1), ref_pixs[i]
-     fxaddpar, header2, 'CRPIX'+number_formatter(i+1), ref_pixs[i]
-     fxaddpar, header, 'CRVAL'+number_formatter(i+1), ref_vals[i]
-     fxaddpar, header2, 'CRVAL'+number_formatter(i+1), ref_vals[i]
-     fxaddpar, header, 'CDELT'+number_formatter(i+1), deltas[i]
-     fxaddpar, header2, 'CDELT'+number_formatter(i+1), deltas[i]
+  for j=0, n_hdr-1 do begin
+     fxaddpar, header_struct.(j), 'WCSNAME', 'kspace'
+     for i=0, 2 do begin
+        fxaddpar, header_struct.(j), 'CNAME'+number_formatter(i+1), axis_names[i]
+        fxaddpar, header_struct.(j), 'CUNIT'+number_formatter(i+1), 'Mpc^-1', 'For [h Mpc^-1], divide by ' + $
+                  number_formatter(hubble_param)
+        fxaddpar, header_struct.(j), 'CRPIX'+number_formatter(i+1), ref_pixs[i]
+        fxaddpar, header_struct.(j), 'CRVAL'+number_formatter(i+1), ref_vals[i]
+        fxaddpar, header_struct.(j), 'CDELT'+number_formatter(i+1), deltas[i]
+     endfor
   endfor
 
 
@@ -61,25 +67,25 @@ pro write_ps_fits, fits_savefile, power_3d, weights_3d, kx_mpc, ky_mpc, kz_mpc, 
   deltas2[2] = delay_params[0]
 
   ;; add header parameters
-  fxaddpar, header, 'WCSNAMEA', 'wavelength_delay'
-  fxaddpar, header2, 'WCSNAMEA', 'wavelength_delay'
-  for i=0, 2 do begin
-     fxaddpar, header, 'CNAME'+number_formatter(i+1)+'A', axis_names2[i]
-     fxaddpar, header2, 'CNAME'+number_formatter(i+1)+'A', axis_names2[i]
-     fxaddpar, header, 'CUNIT'+number_formatter(i+1)+'A', axis_units2[i]
-     fxaddpar, header2, 'CUNIT'+number_formatter(i+1)+'A', axis_units2[i]
-     fxaddpar, header, 'CRPIX'+number_formatter(i+1)+'A', ref_pix2[i]
-     fxaddpar, header2, 'CRPIX'+number_formatter(i+1)+'A', ref_pix2[i]
-     fxaddpar, header, 'CRVAL'+number_formatter(i+1)+'A', ref_vals2[i]
-     fxaddpar, header2, 'CRVAL'+number_formatter(i+1)+'A', ref_vals2[i]
-     fxaddpar, header, 'CDELT'+number_formatter(i+1)+'A', deltas2[i]
-     fxaddpar, header2, 'CDELT'+number_formatter(i+1)+'A', deltas2[i]
+  for j=0, n_hdr-1 do begin
+     fxaddpar, header_struct.(j), 'WCSNAMEA', 'wavelength_delay'
+     for i=0, 2 do begin
+        fxaddpar, header_struct.(j), 'CNAME'+number_formatter(i+1)+'A', axis_names2[i]
+        fxaddpar, header_struct.(j), 'CUNIT'+number_formatter(i+1)+'A', axis_units2[i]
+        fxaddpar, header_struct.(j), 'CRPIX'+number_formatter(i+1)+'A', ref_pix2[i]
+        fxaddpar, header_struct.(j), 'CRVAL'+number_formatter(i+1)+'A', ref_vals2[i]
+        fxaddpar, header_struct.(j), 'CDELT'+number_formatter(i+1)+'A', deltas2[i]
+     endfor
   endfor
 
   ;; write primary HDU
-  writefits, fits_savefile, power_3d, header 
+  writefits, fits_savefile, power_3d, header_struct.power
 
   ;; now add extension for weights
-  writefits, fits_savefile, weights_3d, header2, /append
+  writefits, fits_savefile, weights_3d, header_struct.weights, /append
   
+  ;; now add extension for noise
+  if n_hdr eq 3 then writefits, fits_savefile, noise_3d, header_struct.noise, /append
+
+
 end

@@ -1,5 +1,6 @@
 pro kpower_2d_plots, power_savefile, multi_pos = multi_pos, start_multi_params = start_multi_params, plot_weights = plot_weights, $
-                     ratio = ratio, snr = snr, kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
+                     plot_noise = plot_noise, ratio = ratio, snr = snr, $
+                     kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
                      data_range = data_range, color_profile = color_profile, log_cut_val = log_cut_val, pub = pub, $
                      plotfile = plotfile, no_title = no_title, window_num = window_num, title = title, norm_2d = norm_2d, $
                      norm_factor = norm_factor, grey_scale = grey_scale, wedge_amp = wedge_amp, plot_wedge_line = plot_wedge_line, $
@@ -25,11 +26,15 @@ pro kpower_2d_plots, power_savefile, multi_pos = multi_pos, start_multi_params =
   wh_prof = where(color_profile_enum eq color_profile, count)
   if count eq 0 then message, 'Color profile must be one of: ' + strjoin(color_profile_enum, ', ')
 
+  if total([keyword_set(plot_weights), keyword_set(plot_noise), keyword_set(snr)]) gt 1 then $
+     message, 'only one of snr, plot_noise, and plot_weights keywords can be set'
+
   if keyword_set(ratio) then begin
      if n_elements(power_savefile) gt 2 then message, 'Only 2 files can be specified in power_savefile if ratio keyword is set'
      restore, power_savefile[0]
      power1 = power
      weights1 = weights
+     if n_elements(noise) ne 0 then noise1 = noise
      kperp1 = kperp_edges
      kpar1 = kpar_edges
      kpar_bin1 = kpar_bin
@@ -37,37 +42,58 @@ pro kpower_2d_plots, power_savefile, multi_pos = multi_pos, start_multi_params =
      
      restore, power_savefile[1]
      power2 = power
+     if n_elements(noise) ne 0 then noise2 = noise
      weights2 = weights
      if total(abs(kperp1 - kperp_edges)) ne 0 or total(abs(kpar1 - kpar_edges)) ne 0 or $
         total(abs(size(power1,/dimension) - size(power2, /dimension))) ne 0 then $
            message, 'dimensions and kperp/kpar edges must be the same in both files'
 
+     if keyword_set(snr) then message, 'snr keyword cannot be used with ratio keyword'
+
+     if keyword_set(plot_noise) and (n_elements(noise1) eq 0 or n_elements(noise2) eq 0) then $
+        message, 'Noise is not included in one or both files'
+
      if keyword_set(plot_weights) then begin
         power = weights1 / weights2
-        plot_type = 'ratio'
-     endif else begin
-        power = power1 / power2
         plot_type = 'weight_ratio'
-     endelse
+     endif
 
+     if keyword_set(plot_noise) then begin
+        power = noise1 / noise2
+        plot_type = 'noise_ratio'
+     endif 
+    
+     if n_elements(plot_type) eq 0 then begin
+        power = power1 / power2
+        plot_type = 'ratio'
+     endif
+     
   endif else begin
      if n_elements(power_savefile) gt 1 then message, 'Only 1 file can be specified in power_savefile unless ratio keyword is set'
 
      restore, power_savefile
 
      if keyword_set(snr) then begin
-        if keyword_set(plot_weights) then message, 'Both snr and plot_weights keywords cannot be set at once.'
-        power = (power - 1d/weights) * weights
-        wh_0 = where(weights eq 0, count_0)
+         if n_elements(noise) eq 0 then message, 'noise is undefined in this file'
+
+        power = power / noise
+        wh_0 = where(noise eq 0, count_0)
         if count_0 gt 0 then begin
            power[wh_0] = 0
         endif
         plot_type = 'snr'
      endif
 
-     if keyword_set(plot_weights) then begin
+    if keyword_set(plot_weights) then begin
+        if keyword_set(plot_noise) then message, 'only one of snr, plot_noise, and plot_weights keywords can be set'
         power = weights
         plot_type = 'weight'
+     endif
+     
+     if keyword_set(plot_noise) then begin
+        if n_elements(noise) eq 0 then message, 'noise is undefined in this file'
+        power = noise
+        plot_type = 'noise'
      endif
      
      if n_elements(plot_type) eq 0 then plot_type = 'power'
@@ -82,7 +108,7 @@ pro kpower_2d_plots, power_savefile, multi_pos = multi_pos, start_multi_params =
   if keyword_set(hinv) then begin
      kperp_edges = kperp_edges / hubble_param
      kpar_edges = kpar_edges / hubble_param
-     if plot_type eq 'power' then power = power * (hubble_param)^3d
+     if plot_type eq 'power' or plot_type eq 'noise' then power = power * (hubble_param)^3d
   endif
 
   if n_elements(kperp_plot_range) eq 0 then kperp_plot_range = minmax(kperp_edges)
@@ -114,8 +140,20 @@ pro kpower_2d_plots, power_savefile, multi_pos = multi_pos, start_multi_params =
      end
      'snr': begin
          units_str = ''
-         plot_title = 'Signal/Noise (' + textoidl('P_k', font = font) + '*Weights)'
+         plot_title = 'Signal/Noise (' + textoidl('P_k', font = font) + '/N)'
          plotfile_add = '_2dsnr.eps'
+     end
+     'noise': begin
+        if keyword_set(hinv) then units_str = textoidl(' (mK^2 h^{-3} Mpc^3)', font = font) $
+        else units_str = textoidl(' (mK^2 Mpc^3)', font = font)
+
+        plot_title = 'Noise'
+        plotfile_add = '_2dnoise.eps'
+     end
+     'noise_ratio': begin
+         units_str = ''
+         plot_title = 'Noise Ratio'
+         plotfile_add = '_noise_ratio.eps'
      end
   endcase
   if n_elements(plotfile) eq 0 then plotfile = strsplit(power_savefile[0], '.idlsave', /regex, /extract) + plotfile_add $
