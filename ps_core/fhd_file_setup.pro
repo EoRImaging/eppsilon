@@ -44,10 +44,10 @@ function fhd_file_setup, datafile, datavar, weightfile, weightvar, frequencies, 
         uvf_froot = froot
         infilebase = file_basename(datafile)
         temp2 = strpos(infilebase, '.', /reverse_search)
-        if n_elements(savefilebase_in) eq 0 then savefilebase = strmid(infilebase, 0, temp2)
+        if n_elements(savefilebase_in) eq 0 then savefilebase = strmid(infilebase, 0, temp2) else savefilebase = savefilebase_in
         
         ;; if we're only dealing with one file and uvf_savefilebase isn't specified then use same base for uvf files 
-        if n_elements(uvf_savefilebase_in) eq 0 then uvf_savefilebase = savefilebase_in
+        if n_elements(uvf_savefilebase_in) eq 0 then uvf_savefilebase = savefilebase
      endif else begin
         froot = file_dirname(datafile[0], /mark_directory)
         infilebase = file_basename(datafile)
@@ -99,10 +99,12 @@ function fhd_file_setup, datafile, datavar, weightfile, weightvar, frequencies, 
      wt_froot = file_dirname(weightfile, /mark_directory)
      wt_infilebase = file_basename(weightfile)
      temp2 = strpos(wt_infilebase, '.', /reverse_search)
-     weight_savefilebase = [strmid(wt_infilebase[0], 0, temp2[0]), strmid(wt_infilebase[1], 0, temp2[1])] + '_weights'
-   endif else begin
+     weight_savefilebase = strarr(nfiles)
+     for i=0, nfiles-1 do weight_savefilebase[i] = strmid(wt_infilebase[i], 0, temp2[i]) + '_weights'
+    endif else begin
      temp = file_dirname(weight_savefilebase_in, /mark_directory)
-     for i=0, nfiles-1 do if temp[i] ne '.' then  wt_froot = temp[i] else wt_froot = file_dirname(weightfile[i], /mark_directory)
+     wt_froot = strarr(nfiles)
+     for i=0, nfiles-1 do if temp[i] ne '.' then  wt_froot[i] = temp[i] else wt_froot[i] = file_dirname(weightfile[i], /mark_directory)
      weight_savefilebase = file_basename(weight_savefilebase_in)
   endelse
   
