@@ -13,10 +13,10 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
      datafile_obj = obj_new('IDL_Savefile', file_struct.datafile[i])
      datafile_names = datafile_obj->names()
      datavar = strupcase(file_struct.datavar)
-     wh = where(datafile_names eq datavar, count)
+     wh = where(datafile_names eq datavar[i], count)
      if count eq 0 then message, 'specified datavar is not present in datafile (datafile=' + file_struct.datafile[i] + $
-                                 ', datavar=' + file_struct.datavar + ')'
-     data_dims = datafile_obj->size(file_struct.datavar, /dimensions)
+                                 ', datavar=' + file_struct.datavar[i] + ')'
+     data_dims = datafile_obj->size(file_struct.datavar[i], /dimensions)
      obj_destroy, datafile_obj
  
      if i gt 0 then if total(abs(data_dims - dims)) ne 0 then message, 'data dimensions in files do not match'
@@ -25,10 +25,10 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
         weightfile_obj = obj_new('IDL_Savefile', file_struct.weightfile[i])
         weightfile_names = weightfile_obj->names()
         weightvar = strupcase(file_struct.weightvar)
-        wh = where(weightfile_names eq weightvar, count)
+        wh = where(weightfile_names eq weightvar[i], count)
         if count eq 0 then message, 'specified weightvar is not present in weightfile (weightfile=' + file_struct.weightfile[i] + $
-                                    ', weightvar=' + file_struct.weightvar + ')'
-        weight_dims = weightfile_obj->size(weightvar, /dimensions)
+                                    ', weightvar=' + file_struct.weightvar[i] + ')'
+        weight_dims = weightfile_obj->size(weightvar[i], /dimensions)
         obj_destroy, weightfile_obj
         
         if total(abs(data_dims - weight_dims)) ne 0 then message, 'data and weight dimensions do not match'
@@ -110,20 +110,21 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
                          (1 - file_test(file_struct.uvf_weight_savefile[i], /zero_length))
         
         if test_uvf eq 0 or test_wt_uvf eq 0 or keyword_set(dft_refresh_data) or keyword_set(dft_refresh_weight) then begin          
-           pixel_nums = getvar_savefile(file_struct.pixelfile, file_struct.pixelvar)
+           pixel_nums = getvar_savefile(file_struct.pixelfile[i], file_struct.pixelvar[i])
            pixel_dims = size(pixel_nums, /dimension)
            if total(abs(dims - pixel_dims)) ne 0 then message, 'pixel and data dimensions do not match'
          
-           test_setup = file_test(file_struct.hpx_dftsetup_savefile) * (1 - file_test(file_struct.hpx_dftsetup_savefile, /zero_length))
+           test_setup = file_test(file_struct.hpx_dftsetup_savefile[i]) * $
+                        (1 - file_test(file_struct.hpx_dftsetup_savefile[i], /zero_length))
            if test_setup eq 0 then begin
               ;; figure out k values to calculate dft
               healpix_setup_ft, pixel_nums, file_struct.nside, new_pix_vec, limits, kx_rad_vals, ky_rad_vals, /quiet
-              save, file = file_struct.hpx_dftsetup_savefile, new_pix_vec, limits, kx_rad_vals, ky_rad_vals
-           endif else restore, file_struct.hpx_dftsetup_savefile
+              save, file = file_struct.hpx_dftsetup_savefile[i], new_pix_vec, limits, kx_rad_vals, ky_rad_vals
+           endif else restore, file_struct.hpx_dftsetup_savefile[i]
            
            ;; do DFT.
            if test_uvf eq 0 or keyword_set(dft_refresh_data) then begin
-              arr = temporary(data_cube)
+              arr = getvar_savefile(file_struct.datafile[i], file_struct.datavar[i])
               transform = discrete_ft_2D_fast(new_pix_vec[*,0], new_pix_vec[*,1], arr, kx_rad_vals, ky_rad_vals, timing = ft_time, $
                                               fchunk = dft_fchunk)
               data_cube = temporary(transform)
@@ -134,7 +135,7 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
            endif
            
            if test_wt_uvf eq 0 or keyword_set(dft_refresh_weight) then begin
-              arr = temporary(weights_cube)
+              arr = getvar_savefile(file_struct.weightfile[i], file_struct.weightvar[i])
               transform = discrete_ft_2D_fast(new_pix_vec[*,0], new_pix_vec[*,1], arr, kx_rad_vals, ky_rad_vals, timing = ft_time, $
                                               fchunk = dft_fchunk)
               
@@ -160,8 +161,8 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
            weights_cube1 = getvar_savefile(file_struct.uvf_weight_savefile[0], 'weights_cube')
            weights_cube2 = getvar_savefile(file_struct.uvf_weight_savefile[1], 'weights_cube')
         endif else begin
-           weights_cube1 = getvar_savefile(file_struct.weightfile[0], file_struct.weight_var)
-           weights_cube2 = getvar_savefile(file_struct.weightfile[1], file_struct.weight_var)
+           weights_cube1 = getvar_savefile(file_struct.weightfile[0], file_struct.weight_var[i])
+           weights_cube2 = getvar_savefile(file_struct.weightfile[1], file_struct.weight_var[i])
         endelse
 
         if min(weights_cube1) lt 0 or min(weights_cube2) lt 0 then message, 'Weights should be positive definite.'
@@ -241,8 +242,8 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
         data_cube1 = getvar_savefile(file_struct.uvf_savefile[0], 'data_cube') * float(conv_factor)
         data_cube2 = getvar_savefile(file_struct.uvf_savefile[1], 'data_cube') * float(conv_factor)
      endif else begin
-        data_cube1 = getvar_savefile(file_struct.datafile[0], file_struct.datavar) * float(conv_factor)
-        data_cube2 = getvar_savefile(file_struct.datafile[1], file_struct.datavar) * float(conv_factor)
+        data_cube1 = getvar_savefile(file_struct.datafile[0], file_struct.datavar[i]) * float(conv_factor)
+        data_cube2 = getvar_savefile(file_struct.datafile[1], file_struct.datavar[i]) * float(conv_factor)
      endelse
 
      if keyword_set(no_weighting) then weights_ave = real_part(data_cube1)*0. + 1.
@@ -378,7 +379,8 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
   
   ;; print, 'full_ft^2d integral (after theory factor):', total(abs(data_ft)^2d)
   
-  n_val = kz_mpc_orig / kz_mpc_delta
+  n_val = round(kz_mpc_orig / kz_mpc_delta)
+  kz_mpc_orig[where(n_val eq 0)] = 0
   a1_0 = 2. * data1_ft[*,*,where(n_val eq 0)]
   a1_n = data1_ft[*,*, where(n_val gt 0)] + data1_ft[*,*, reverse(where(n_val lt 0))]
   b1_n = complex(0,1) * (data1_ft[*,*, where(n_val gt 0)] - data1_ft[*,*, reverse(where(n_val lt 0))])

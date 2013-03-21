@@ -41,7 +41,7 @@ pro fhd_3dps, file_struct, refresh = refresh, kcube_refresh = kcube_refresh, dft
            ;;weights_1 = (1/sigma1_2)^2d
            ;;weights_1 = 1d/(4d*real_part(data1 * conj(data1))*sigma1_2)
            weights_1 = 1d/(4*(sigma1_2)^2d)
-           term1 = real_part(data1 * conj(data1))*weights_1
+           term1 = real_part(data1_1 * conj(data1_1))*weights_1
            wh_sig1_0 = where(sigma1_2^2d eq 0, count_sig1_0)
            if count_sig1_0 ne 0 then begin
               weights_1[wh_sig1_0] = 0
@@ -51,7 +51,7 @@ pro fhd_3dps, file_struct, refresh = refresh, kcube_refresh = kcube_refresh, dft
            ;;weights_2 = (1/sigma2_2)^2d
            ;;weights_2 = 1d/(4d*real_part(data2 * conj(data2))*sigma2_2)
            weights_2 = 1d/(4*(sigma2_2)^2d)
-           term2 = real_part(data2 * conj(data2))*weights_2
+           term2 = real_part(data1_2 * conj(data1_2))*weights_2
            wh_sig2_0 = where(sigma2_2^2d eq 0, count_sig2_0)
            if count_sig2_0 ne 0 then begin
               weights_2[wh_sig2_0] = 0

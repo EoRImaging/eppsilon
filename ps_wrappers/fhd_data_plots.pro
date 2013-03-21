@@ -11,6 +11,9 @@ pro fhd_data_plots, datafile, save_path = save_path, savefilebase = savefilebase
   nfiles = n_elements(datafile)
   if nfiles gt 2 then message, 'only 1 or 2 datafiles is supported'
 
+  if keyword_set(refresh_dft) then refresh_ps = 1
+  if keyword_set(refresh_ps) then refresh_binning = 1
+
   ;; default to including baseline axis & delay axis
   if n_elements(baseline_axis) eq 0 then baseline_axis = 1
   if n_elements(delay_axis) eq 0 then delay_axis = 1
