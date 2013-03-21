@@ -137,10 +137,11 @@ pro fhd_data_plots, datafile, save_path = save_path, savefilebase = savefilebase
 
   if n_elements(file_struct_arr[0].nside) ne 0 then healpix = 1 else healpix = 0
 
-  if healpix and n_elements(dft_fchunk) ne 0 then if dft_fchunk gt n_elements(file_struct_arr[0].frequencies) then begin
+  n_freq = n_elements(file_struct_arr[0].frequencies)
+  if healpix and n_elements(dft_fchunk) ne 0 then if dft_fchunk gt n_freq then begin
      print, 'dft_fchunk is larger than the number of frequency slices, setting it to the number of slices -- ' + $
-            number_formatter(n_freqbin)
-     dft_fchunk = n_freqbin
+            number_formatter(n_freq)
+     dft_fchunk = n_freq
   endif
 
   for i=0, n_cubes-1 do begin
