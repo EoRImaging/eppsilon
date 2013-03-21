@@ -60,7 +60,6 @@ function discrete_ft_2d_fast, locations1, locations2, data, k1, k2, timing = tim
         else y_exp = exp(-1.*complex(0,1)*rebin(y_loc_k, n_pts, n_k2, fchunk_sizes[j]))
    
      for i=0, n_k1-1 do begin
-        ;;generate a vector of x_exp values and a 2d array of y_exp values
         this_step = j*n_k1 + i
         wh = where(progress_steps eq this_step, count)
         if count gt 0 then begin
@@ -82,11 +81,20 @@ function discrete_ft_2d_fast, locations1, locations2, data, k1, k2, timing = tim
         temp=systime(1)
 
         if fchunk_sizes[j] eq 1 then begin
-           term1 = reform(data[*,fchunk_edges[j]]*exp(-1.*complex(0,1)*x_loc_k[*,i]), n_pts, fchunk_sizes[j])
+           x_inds = findgen(n_pts) + n_pts*i
+           data_inds = findgen(n_pts) + n_pts*fchunk_edges[j]
+           term1 = reform(data[data_inds]*exp(-1.*complex(0,1)*x_loc_k[x_inds]), n_pts, fchunk_sizes[j])
         endif else begin
-           term1 = data[*,fchunk_edges[j]:fchunk_edges[j+1]-1] * exp(-1.*complex(0,1)*rebin(x_loc_k[*,i], n_pts, fchunk_sizes[j]))
+           x_inds = matrix_multiply(findgen(n_pts) + n_pts*i, fltarr(fchunk_sizes[j])+1)
+           data_inds = matrix_multiply(findgen(n_pts), fltarr(fchunk_sizes[j])+1) + $
+                       n_pts*transpose(matrix_multiply(findgen(fchunk_sizes[j]) + fchunk_edges[j], fltarr(n_pts)+1))
+           term1 = data[data_inds] * exp(-1.*complex(0,1)*x_loc_k[x_inds])
         endelse
-        ft[i,*,fchunk_edges[j]:fchunk_edges[j+1]-1] = transpose(matrix_multiply(term1, y_exp, /atranspose))
+        undefine, data_inds, x_inds
+        inds = i + n_k1*matrix_multiply(findgen(n_k2), fltarr(fchunk_sizes[j])+1) + $
+               n_k1 * n_k2 * transpose(matrix_multiply(findgen(fchunk_sizes[j]) + fchunk_edges[j], fltarr(n_k2)+1))
+        ft[inds] = transpose(matrix_multiply(term1, y_exp, /atranspose))
+        undefine, inds
 
         inner_times[this_step] = systime(1) - temp
  
