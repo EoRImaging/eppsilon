@@ -1,8 +1,8 @@
 pro fhd_3dps, file_struct, refresh = refresh, kcube_refresh = kcube_refresh, dft_refresh_data = dft_refresh_data, $
               dft_refresh_weight = dft_refresh_weight, $
-              dft_fchunk = dft_fchunk, no_weighting = no_weighting, std_power = std_power, no_kzero = no_kzero, log_kpar = log_kpar, $
+              dft_fchunk = dft_fchunk, std_power = std_power, no_kzero = no_kzero, log_kpar = log_kpar, $
               log_kperp = log_kperp, kperp_bin = kperp_bin, kpar_bin = kpar_bin, log_k1d = log_k1d, k1d_bin = k1d_bin, $
-              no_weighted_averaging = no_weighted_averaging, input_units = input_units, fill_holes = fill_holes, quiet = quiet
+              input_units = input_units, fill_holes = fill_holes, quiet = quiet
 
   if n_elements(file_struct.nside) ne 0 then healpix = 1 else healpix = 0
   nfiles = n_elements(file_struct.datafile)
@@ -18,7 +18,7 @@ pro fhd_3dps, file_struct, refresh = refresh, kcube_refresh = kcube_refresh, dft
      test_kcube = file_test(file_struct.kcube_savefile) *  (1 - file_test(file_struct.kcube_savefile, /zero_length))
      if test_kcube eq 0 or keyword_set(kcube_refresh) then $
         fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weight = dft_refresh_weight, $
-                   dft_fchunk = dft_fchunk, no_weighting = no_weighting, std_power = std_power, input_units = input_units
+                   dft_fchunk = dft_fchunk, std_power = std_power, input_units = input_units
 
      if nfiles eq 1 then begin
         restore, file_struct.kcube_savefile
@@ -216,7 +216,6 @@ pro fhd_3dps, file_struct, refresh = refresh, kcube_refresh = kcube_refresh, dft
   endif
 
   fadd = ''
-  if keyword_set(no_weighted_averaging) then fadd = fadd + '_nowtave'
   if keyword_set(no_kzero) then fadd = fadd + '_nok0'
 
   fadd_2d = ''
@@ -228,30 +227,16 @@ pro fhd_3dps, file_struct, refresh = refresh, kcube_refresh = kcube_refresh, dft
 
   print, 'Binning to 2D power spectrum'
 
-  if keyword_set(no_weighting) then begin
-     power_rebin = kspace_rebinning_2d(power_3D, kx_mpc, ky_mpc, kz_mpc, kperp_edges_mpc, kpar_edges_mpc, log_kpar = log_kpar, $
-                                       log_kperp = log_kperp, kperp_bin = kperp_bin, kpar_bin = kpar_bin, $
-                                       binned_weights = binned_weights, fill_holes = fill_holes)
-     if nfiles eq 2 then $
-        noise_rebin = kspace_rebinning_2d(noise_3D, kx_mpc, ky_mpc, kz_mpc, kperp_edges_mpc, kpar_edges_mpc, log_kpar = log_kpar, $
-                                          log_kperp = log_kperp, kperp_bin = kperp_bin, kpar_bin = kpar_bin, $
-                                          binned_weights = binned_weights, fill_holes = fill_holes)
-
-  endif else begin
-     power_rebin = kspace_rebinning_2d(power_3D, kx_mpc, ky_mpc, kz_mpc, kperp_edges_mpc, kpar_edges_mpc, log_kpar = log_kpar, $
+  power_rebin = kspace_rebinning_2d(power_3D, kx_mpc, ky_mpc, kz_mpc, kperp_edges_mpc, kpar_edges_mpc, log_kpar = log_kpar, $
+                                    log_kperp = log_kperp, kperp_bin = kperp_bin, kpar_bin = kpar_bin, $
+                                    weights = weights_3d, binned_weights = binned_weights, fill_holes = fill_holes)
+  
+      
+  if nfiles eq 2 then $
+     noise_rebin = kspace_rebinning_2d(noise_3D, kx_mpc, ky_mpc, kz_mpc, kperp_edges_mpc, kpar_edges_mpc, log_kpar = log_kpar, $
                                        log_kperp = log_kperp, kperp_bin = kperp_bin, kpar_bin = kpar_bin, $
                                        weights = weights_3d, binned_weights = binned_weights, fill_holes = fill_holes)
-     
-     if keyword_set(no_weighted_averaging) then $
-        power_rebin = kspace_rebinning_2d(power_3D, kx_mpc, ky_mpc, kz_mpc, kperp_edges_mpc, kpar_edges_mpc, log_kpar = log_kpar, $
-                                          log_kperp = log_kperp, kperp_bin = kperp_bin, kpar_bin = kpar_bin, fill_holes = fill_holes)
-     
-     if nfiles eq 2 then $
-        noise_rebin = kspace_rebinning_2d(noise_3D, kx_mpc, ky_mpc, kz_mpc, kperp_edges_mpc, kpar_edges_mpc, log_kpar = log_kpar, $
-                                          log_kperp = log_kperp, kperp_bin = kperp_bin, kpar_bin = kpar_bin, $
-                                          weights = weights_3d, binned_weights = binned_weights, fill_holes = fill_holes)
 
-  endelse
 
   power = power_rebin
   if nfiles eq 2 then noise = noise_rebin
@@ -298,30 +283,14 @@ pro fhd_3dps, file_struct, refresh = refresh, kcube_refresh = kcube_refresh, dft
 
   print, 'Binning to 1D power spectrum'
  
-  if keyword_set(no_weighting) then begin
-     power_1d = kspace_rebinning_1d(power_3d, kx_mpc, ky_mpc, kz_mpc, k_edges_mpc, k_bin = k1d_bin, log_k = log_k1d, $
-                                    binned_weights = weights_1d, mask = mask, pixelwise_mask = pixelwise_mask, k1_mask = k1_mask, $
-                                    k2_mask = k2_mask,  k3_mask = k3_mask, edge_on_grid = edge_on_grid, match_datta = match_datta)
-     if nfiles eq 2 then $
-        noise_1d = kspace_rebinning_1d(noise_3d, kx_mpc, ky_mpc, kz_mpc, k_edges_mpc, k_bin = k1d_bin, log_k = log_k1d, $
-                                       binned_weights = weights_1d, mask = mask, pixelwise_mask = pixelwise_mask, k1_mask = k1_mask, $
-                                       k2_mask = k2_mask,  k3_mask = k3_mask, edge_on_grid = edge_on_grid, match_datta = match_datta)
-  endif else begin
-     power_1d = kspace_rebinning_1d(power_3d, kx_mpc, ky_mpc, kz_mpc, k_edges_mpc, k_bin = k1d_bin, log_k = log_k1d, $
-                                    weights = weights_3d, binned_weights = weights_1d, mask = mask, pixelwise_mask = pixelwise_mask, $
-                                    k1_mask = k1_mask, k2_mask = k2_mask,  k3_mask = k3_mask, edge_on_grid = edge_on_grid, $
-                                    match_datta = match_datta)
-     if keyword_set(no_weighted_averaging) then $
-        power_1d = kspace_rebinning_1d(power_3d, kx_mpc, ky_mpc, kz_mpc, k_edges_mpc, k_bin = k1d_bin, log_k = log_k1d, mask = mask, $
-                                       pixelwise_mask = pixelwise_mask, k1_mask = k1_mask, k2_mask = k2_mask,  k3_mask = k3_mask, $
-                                       edge_on_grid = edge_on_grid, match_datta = match_datta)
+  power_1d = kspace_rebinning_1d(power_3d, kx_mpc, ky_mpc, kz_mpc, k_edges_mpc, k_bin = k1d_bin, log_k = log_k1d, $
+                                 weights = weights_3d, binned_weights = weights_1d, mask = mask, pixelwise_mask = pixelwise_mask, $
+                                 k1_mask = k1_mask, k2_mask = k2_mask,  k3_mask = k3_mask)
 
-     if nfiles eq 2 then $
-        noise_1d = kspace_rebinning_1d(noise_3d, kx_mpc, ky_mpc, kz_mpc, k_edges_mpc, k_bin = k1d_bin, log_k = log_k1d, $
+  if nfiles eq 2 then $
+     noise_1d = kspace_rebinning_1d(noise_3d, kx_mpc, ky_mpc, kz_mpc, k_edges_mpc, k_bin = k1d_bin, log_k = log_k1d, $
                                     weights = weights_3d, binned_weights = weights_1d, mask = mask, pixelwise_mask = pixelwise_mask, $
-                                    k1_mask = k1_mask, k2_mask = k2_mask,  k3_mask = k3_mask, edge_on_grid = edge_on_grid, $
-                                    match_datta = match_datta)
-  endelse
+                                    k1_mask = k1_mask, k2_mask = k2_mask,  k3_mask = k3_mask)
 
   power = power_1d
   if nfiles eq 2 then noise = noise_1d

@@ -1,5 +1,5 @@
 pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weight = dft_refresh_weight, $
-              dft_fchunk = dft_fchunk, no_weighting = no_weighting, std_power = std_power, input_units = input_units
+              dft_fchunk = dft_fchunk, std_power = std_power, input_units = input_units
 
   if n_elements(file_struct.nside) ne 0 then healpix = 1 else healpix = 0
   nfiles = n_elements(file_struct.datafile)
