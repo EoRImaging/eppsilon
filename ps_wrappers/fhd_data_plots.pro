@@ -1,11 +1,18 @@
-pro fhd_data_plots, datafile, save_path = save_path, plot_path = plot_path, pol_inc = pol_inc, type_inc = type_inc, $
+pro fhd_data_plots, datafile, save_path = save_path, savefilebase = savefilebase, plot_path = plot_path, $
+                    pol_inc = pol_inc, type_inc = type_inc, $
                     refresh_dft = refresh_dft, dft_fchunk = dft_fchunk, refresh_ps = refresh_ps, refresh_binning = refresh_binning, $
                     no_weighting = no_weighting, std_power = std_power, no_kzero = no_kzero, $
-                    no_weighted_averaging = no_weighted_averaging, data_range = data_range, $
-                    slice_nobin = slice_nobin, log_kpar = log_kpar, log_kperp = log_kperp, kpar_bin = kpar_bin, $
-                    kperp_bin = kperp_bin, log_k1d = log_k1d, k1d_bin = k1d_bin, baseline_axis = baseline_axis, $
-                    delay_axis = delay_axis, hinv = hinv, plot_wedge_line = plot_wedge_line, kperp_linear_axis = kperp_linear_axis, $
-                    kpar_linear_axis = kpar_linear_axis, grey_scale = grey_scale, pub = pub
+                    no_weighted_averaging = no_weighted_averaging, data_range = data_range, slice_nobin = slice_nobin, $
+                    log_kpar = log_kpar, log_kperp = log_kperp, kpar_bin = kpar_bin, kperp_bin = kperp_bin, log_k1d = log_k1d, $
+                    k1d_bin = k1d_bin, kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, $
+                    baseline_axis = baseline_axis, delay_axis = delay_axis, hinv = hinv, plot_wedge_line = plot_wedge_line, $
+                    grey_scale = grey_scale, pub = pub
+
+  nfiles = n_elements(datafile)
+  if nfiles gt 2 then message, 'only 1 or 2 datafiles is supported'
+
+  if keyword_set(refresh_dft) then refresh_ps = 1
+  if keyword_set(refresh_ps) then refresh_binning = 1
 
   ;; default to including baseline axis & delay axis
   if n_elements(baseline_axis) eq 0 then baseline_axis = 1
@@ -31,7 +38,7 @@ pro fhd_data_plots, datafile, save_path = save_path, plot_path = plot_path, pol_
      pol_num[i] = wh[0]
   endfor
   pol_inc = pol_enum[pol_num[uniq(pol_num, sort(pol_num))]]
-
+  
   if n_elements(type_inc) eq 0 then type_inc = ['dirty', 'model', 'res']
   type_enum = ['dirty', 'model', 'res']
   ntype = n_elements(type_inc)
@@ -43,114 +50,6 @@ pro fhd_data_plots, datafile, save_path = save_path, plot_path = plot_path, pol_
   endfor
   type_inc = type_enum[type_num[uniq(type_num, sort(type_num))]]
 
-  datafile_test = file_test(datafile)
-  if datafile_test eq 0 then message, 'datafile not found'
-
-  infilebase = file_basename(datafile)
-  temp2 = strpos(infilebase, '.', /reverse_search)
-  datafilebase = strmid(infilebase, 0, temp2)
-
-  if n_elements(save_path) ne 0 then froot = save_path else froot = file_dirname(datafile, /mark_directory)
- 
-  file_obj = obj_new('idl_savefile', datafile)
-  varnames = file_obj->names()
-  wh_obs = where(strlowcase(varnames) eq 'obs', count_obs)
-  if count_obs ne 0 then file_obj->restore, 'obs' $
-  else begin
-     wh_obs = where(strlowcase(varnames) eq 'obs_arr', count_obs)
-     if count_obs ne 0 then begin
-        file_obj->restore, 'obs_arr'
-        if size(obs_arr,/type) eq 10 then begin
-           n_obs = n_elements(obs_arr)
-
-           max_baseline_vals = dblarr(n_obs)
-           obs_radec_vals = dblarr(n_obs, 2)
-           zen_radec_vals = dblarr(n_obs, 2)
-           for i=0, n_obs-1 do begin
-              if abs((*obs_arr[i]).degpix - (*obs_arr[0]).degpix) gt 0 then message, 'inconsistent degpix values in obs_arr'
-              if total(abs((*obs_arr[i]).freq - (*obs_arr[0]).freq)) gt 0 then message, 'inconsistent freq values in obs_arr'
-              if abs((*obs_arr[i]).n_freq - (*obs_arr[0]).n_freq) gt 0 then message, 'inconsistent n_freq values in obs_arr'
-
-              max_baseline_vals[i] = (*obs_arr[i]).max_baseline
-              obs_radec_vals[i, *] = [(*obs_arr[i]).obsra, (*obs_arr[i]).obsdec]
-              zen_radec_vals[i, *] = [(*obs_arr[i]).zenra, (*obs_arr[i]).zendec]              
-           endfor
-
-           max_baseline_lambda = max(max_baseline_vals)
-           
-           degpix = (*obs_arr[0]).degpix
-           freq = (*obs_arr[0]).freq
-           n_freq = (*obs_arr[0]).n_freq
-       endif else begin
-           n_obs = n_elements(obs_arr)
-           max_baseline_lambda = max(obs_arr.max_baseline)
-
-           obs_radec_vals = [[obs_arr.obsra],[obs_arr.obsdec]]
-           zen_radec_vals = [[obs_arr.zenra],[obs_arr.zendec]]
-           theta_vals = sqrt((obs_radec_vals[*,0] - zen_radec_vals[*,0])^2d + (obs_radec_vals[*,1] - zen_radec_vals[*,1])^2d)
-           max_theta = max(theta_vals)
-
-           n_freq_vals = obs_arr.n_freq
-           if total(abs(obs_arr.n_freq - obs_arr[0].n_freq)) ne 0 then message, 'inconsistent number of frequencies in obs_arr'
-           n_freq = obs_arr[0].n_freq
-
-           degpix_vals = obs_arr.degpix
-           if total(abs(obs_arr.degpix - obs_arr[0].degpix)) ne 0 then message, 'inconsistent degpix values in obs_arr'
-           degpix = obs_arr[0].degpix
-
-           obs_tags = tag_names(obs_arr)
-           wh_freq = where(strlowcase(obs_tags) eq 'freq', count_freq)
-           if count_freq ne 0 then freq_vals = obs_arr.freq $
-           else begin
-              freq_vals = dblarr(n_freq, n_obs)
-              for i=0, n_obs-1 do freq_vals[*,i] = (*obs_arr[i].bin).freq
-           endelse
-           if total(abs(freq_vals - rebin(freq_vals[*,0], n_freq, n_obs))) ne 0 then message, 'inconsistent freq values in obs_arr'
-           freq = freq_vals[*,0]
-
-         endelse
-
-       theta_vals = angle_difference(obs_radec_vals[*,1], obs_radec_vals[*,0], zen_radec_vals[*,1], zen_radec_vals[*,0], $
-                                     /degree, /nearest)
-       max_theta = max(theta_vals)
-       
-     endif else message, 'no obs or obs_arr in datafile'
-  endelse
-  wh_nside = where(strlowcase(varnames) eq 'nside', count_nside)
-  if count_nside gt 0 then begin
-     file_obj->restore, 'nside'
-     healpix = 1
-
-     if keyword_set(refresh_dft) then refresh_ps = 1
-  endif else healpix = 0
-
-  if keyword_set(refresh_ps) then refresh_binning = 1
-
-
-  wh_navg = where(strlowcase(varnames) eq 'n_avg', count_obs)
-  if count_obs ne 0 then file_obj->restore, 'n_avg' else begin
-     print, 'no n_avg present, assuming n_avg=32'
-     n_avg = 32
-  endelse
- 
- obj_destroy, file_obj
-  
-  n_freqbins = n_freq / n_avg
-  frequencies = dblarr(n_freqbins)
-  for i=0, n_freqbins-1 do begin
-     frequencies[i] = mean(freq[i*n_avg:i*n_avg+(n_avg-1)]) / 1e6 ;; in MHz
-  endfor
-
-  if healpix and n_elements(dft_fchunk) ne 0 then if dft_fchunk gt n_freqbins then begin
-     print, 'dft_fchunk is larger than the number of frequency slices, setting it to the number of slices -- ' + $
-            number_formatter(n_freqbin)
-     dft_fchunk = n_freqbin
-  endif
-
-
-  ;; the max baseline in the obs structure is given in wavelengths, need to convert using the maximum frequency
-  max_baseline = 3e8/max(freq)*max_baseline_lambda ;;else max_baseline = 342.497
-  
   fadd = ''
   if keyword_set(std_power) then fadd = fadd + '_sp'
   if keyword_set(no_weighting) then fadd = fadd + '_nowt'
@@ -178,8 +77,6 @@ pro fhd_data_plots, datafile, save_path = save_path, plot_path = plot_path, pol_
   n_cubes = npol*ntype
   type_pol_str = strarr(n_cubes)
   for i=0, npol-1 do type_pol_str[ntype*i:i*ntype+ntype-1] = type_inc + '_' + pol_inc[i]
-  data_varnames = strupcase(type_pol_str + '_cube')
-  weight_varnames = strupcase('weights_' + pol_inc + '_cube')
   weight_labels = strupcase(pol_inc)
   weight_ind = intarr(n_cubes)
   for i=0, npol-1 do weight_ind[ntype*i:i*ntype+ntype-1] = i
@@ -187,12 +84,50 @@ pro fhd_data_plots, datafile, save_path = save_path, plot_path = plot_path, pol_
   file_labels = '_' + strlowcase(type_pol_str)
   titles = strarr(n_cubes)
   for i=0, npol-1 do titles[ntype*i:i*ntype+ntype-1] = type_inc + ' ' + strupcase(pol_inc[i])
+  
+  if n_elements(savefilebase) ne 0 and n_elements(savefilebase) ne n_cubes then begin
+     if n_elements(savefilebase) eq 1 then begin
+        ;; need general_filebase for 1D plotfiles, make sure it doesn't have a full path
+        general_filebase = file_basename(savefilebase)
+        savefilebase = savefilebase + file_labels 
+     endif else $
+        message, 'savefilebase must be a scalar or have a number of elements given by the number of polarizations * number of types'
+  endif
 
-  savefilebase = froot + datafilebase + file_labels + fadd
-  savefiles_2d = savefilebase + fadd_2dbin + '_2dkpower.idlsave'
+  for i=0, n_cubes-1 do begin
+     pol = pol_inc[i / ntype]
+     type = type_inc[i mod ntype]
+
+     file_struct = fhd_file_setup(datafile, pol, type, savefilebase = savefilebase)
+     if i eq 0 then file_struct_arr = replicate(file_struct, n_cubes)
+     file_struct_arr[i] = file_struct
+  endfor
+  undefine, file_struct
+
+  if n_elements(general_filebase) eq 0 then begin
+     ;; need general_filebase for 1D plotfiles, make sure it doesn't have a full path
+     infilebase = file_basename(datafile)
+     temp2 = strpos(infilebase, '.', /reverse_search)
+     
+     if nfiles eq 1 then general_filebase = strmid(infilebase, 0, temp2) $
+     else begin
+        fileparts_1 = strsplit(strmid(infilebase[0], 0, temp2[0]), '_', /extract)
+        fileparts_2 = strsplit(strmid(infilebase[1], 0, temp2[1]), '_', /extract)
+        match_test = strcmp(fileparts_1, fileparts_2)
+        wh_diff = where(match_test eq 0, count_diff, complement = wh_same, ncomplement = count_same)
+        if count_diff eq 0 then general_filebase = strmid(infilebase[0], 0, temp2[0]) + '_joint' $
+        else begin
+           if count_same gt 0 then general_filebase = strjoin(fileparts_1[wh_same], '_') + '__' + strjoin(fileparts_1[wh_diff]) $
+              + '_' + strjoin(fileparts_2[wh_diff]) + '_joint' $
+           else general_filebase = infilebase[0] + infilebase[1] + '_joint'
+        endelse
+     endelse
+  endif
+
+  savefiles_2d = file_struct_arr.savefile_froot + file_struct_arr.savefilebase + fadd_2dbin + '_2dkpower.idlsave'
   test_save_2d = file_test(savefiles_2d) *  (1 - file_test(savefiles_2d, /zero_length))
 
-  savefiles_1d = savefilebase + fadd_1dbin + '_1dkpower.idlsave'
+  savefiles_1d = file_struct_arr.savefile_froot + file_struct_arr.savefilebase + fadd_1dbin + '_1dkpower.idlsave'
   test_save_1d = file_test(savefiles_1d) *  (1 - file_test(savefiles_1d, /zero_length))
 
   if keyword_set(refresh_binning) then begin
@@ -200,59 +135,52 @@ pro fhd_data_plots, datafile, save_path = save_path, plot_path = plot_path, pol_
      test_save_1d = test_save_1d*0
   endif
 
+  if n_elements(file_struct_arr[0].nside) ne 0 then healpix = 1 else healpix = 0
+
+  n_freq = n_elements(file_struct_arr[0].frequencies)
+  if healpix and n_elements(dft_fchunk) ne 0 then if dft_fchunk gt n_freq then begin
+     print, 'dft_fchunk is larger than the number of frequency slices, setting it to the number of slices -- ' + $
+            number_formatter(n_freq)
+     dft_fchunk = n_freq
+  endif
+
   for i=0, n_cubes-1 do begin
 
      ;; if binsizes are specified, check that binsize is right
      if (n_elements(kperp_bin) ne 0 or n_elements(kpar_bin) ne 0) and test_save_2d[i] gt 0 then begin
-        file_obj = obj_new('idl_savefile', savefiles_2d[i])
         if n_elements(kpar_bin) ne 0 then begin
-           kpar_bin_req = kpar_bin
-           file_obj->restore, 'kpar_bin'
-           if abs(kpar_bin - kpar_bin_req) gt 0. then test_save_2d[i]=0
-           kpar_bin = kpar_bin_req
+           kpar_bin_file = getvar_savefile(savefiles_2d[i], kpar_bin)
+           if abs(kpar_bin - kpar_bin_file) gt 0. then test_save_2d[i]=0
         endif
         if test_save_2d[i] gt 0 and n_elements(kpar_bin) ne 0 then begin
-           kperp_bin_req = kperp_bin
-           file_obj->restore, 'kperp_bin'
-           if abs(kperp_bin - kperp_bin_req) gt 0. then test_save_2d[i]=0
-           kperp_bin = kperp_bin_req
+           kperp_bin_file = getvar_savefile(savefiles_2d[i], kperp_bin)
+           if abs(kperp_bin - kperp_bin_file) gt 0. then test_save_2d[i]=0
         endif
-        obj_destroy, file_obj
      endif
 
      if n_elements(k1d_bin) ne 0 and test_save_1d[i] gt 0 then begin
-        file_obj = obj_new('idl_savefile', savefiles_1d[i])
-        k_bin_req = k_bin
-        file_obj->restore, 'k_bin'
-        if abs(k_bin - k_bin_req) gt 0. then test_save_1d[i]=0
-        k_bin = k_bin_req
+        k_bin_file = getvar_savefile(savefiles_1d[i], k_bin)
+        if abs(k_bin - k_bin_file) gt 0. then test_save_1d[i]=0
      endif
 
      test = test_save_2d[i] * test_save_1d[i]
 
      if test eq 0 then begin
+
         if healpix then begin
-           pixelfile = datafile
-           pixel_varname = 'hpx_inds'
-           hpx_dftsetup_savefile = froot + datafilebase + '_dftsetup.idlsave'
-           weight_savefilebase = froot + datafilebase + wt_file_labels + fadd
-           
            weight_refresh = intarr(n_cubes)
            if keyword_set(refresh_dft) then begin
               temp = weight_ind[uniq(weight_ind, sort(weight_ind))]
               for j=0, n_elements(temp)-1 do weight_refresh[(where(weight_ind eq temp[j]))[0]] = 1
            endif
 
-           fhd_3dps, datafile, data_varnames[i], datafile, weight_varnames[weight_ind[i]], frequencies, max_baseline, /healpix, $
-                     nside = nside, pixelfile = pixelfile, pixelvar = pixel_varname, hpx_dftsetup_savefile = hpx_dftsetup_savefile, $
-                     savefilebase = savefilebase[i], weight_savefilebase = weight_savefilebase[i], refresh = refresh_ps, $
-                     dft_refresh_data=refresh_dft, dft_refresh_weight=weight_refresh[i], dft_fchunk = dft_fchunk, $
-                     no_weighting = no_weighting, std_power = std_power, no_kzero = no_kzero, log_kpar = log_kpar, $
-                     log_kperp = log_kperp, kpar_bin = kpar_bin, kperp_bin = kperp_bin, $
+           fhd_3dps, file_struct_arr[i], kcube_refresh = refresh_ps, dft_refresh_data = refresh_dft, $
+                     dft_refresh_weight = weight_refresh[i], $
+                     dft_fchunk = dft_fchunk, no_weighting = no_weighting, std_power = std_power, no_kzero = no_kzero, $
+                     log_kpar = log_kpar, log_kperp = log_kperp, kpar_bin = kpar_bin, kperp_bin = kperp_bin, $
                      no_weighted_averaging = no_weighted_averaging, /quiet
         endif else $
-           fhd_3dps, datafile, data_varnames[i], datafile, weight_varnames[weight_ind[i]], frequencies, max_baseline, $
-                     degpix=degpix, savefilebase = savefilebase[i], refresh = refresh_ps, no_weighting = no_weighting, $
+           fhd_3dps, file_struct_arr[i], kcube_refresh = refresh_ps, no_weighting = no_weighting, $
                      std_power = std_power, no_kzero = no_kzero, log_kpar = log_kpar, log_kperp = log_kperp, kpar_bin = kpar_bin, $
                      kperp_bin = kperp_bin, no_weighted_averaging = no_weighted_averaging, /quiet
      endif
@@ -268,16 +196,17 @@ pro fhd_data_plots, datafile, save_path = save_path, plot_path = plot_path, pol_
   
 
   if n_elements(plot_path) ne 0 then plotfile_path = plot_path else plotfile_path = froot
-  plotfile_base = plotfile_path + datafilebase + file_labels + fadd
-  plotfile_base_wt = plotfile_path + datafilebase + wt_file_labels[uniq(weight_ind, sort(weight_ind))] + fadd
+  plotfile_base = plotfile_path + file_struct_arr.savefilebase + fadd
+  plotfile_base_wt = plotfile_path + file_struct_arr.weight_savefilebase + wt_file_labels[uniq(weight_ind, sort(weight_ind))] + fadd
 
   plot_fadd = ''
   if keyword_set(grey_scale) then plot_fadd = plot_fadd + '_grey'
 
   plotfiles_2d = plotfile_base + fadd_2dbin + '_2dkpower' + plot_fadd + '.eps'
   plotfiles_2d_wt = plotfile_base_wt + fadd_2dbin + '_2d' + plot_fadd + '.eps'
-  plotfiles_2d_ratio = plotfile_base + fadd_2dbin + '_2dsnr' + plot_fadd + '.eps'
-  plotfile_1d = plotfile_path + datafilebase + fadd + fadd_1dbin + '_1dkpower' + '.eps'
+  plotfiles_2d_noise = plotfile_base + fadd_2dbin + '_2dnoise' + plot_fadd + '.eps'
+  plotfiles_2d_snr = plotfile_base + fadd_2dbin + '_2dsnr' + plot_fadd + '.eps'
+  plotfile_1d = plotfile_path + general_filebase + fadd + fadd_1dbin + '_1dkpower' + '.eps'
 
   ;; if not keyword_set(slice_nobin) then slice_fadd = '_binned' else slice_fadd = ''
   ;; yslice_plotfile = plotfile_base + '_xz_plane' + plot_fadd + slice_fadd + '.eps'
@@ -286,7 +215,7 @@ pro fhd_data_plots, datafile, save_path = save_path, plot_path = plot_path, pol_
 
   if keyword_set(plot_wedge_line) then begin
      z0_freq = 1420.40 ;; MHz
-     redshifts = z0_freq/frequencies - 1
+     redshifts = z0_freq/file_struct_arr[0].frequencies - 1
      mean_redshift = mean(redshifts)
 
      cosmology_measures, mean_redshift, wedge_factor = wedge_factor
@@ -295,7 +224,7 @@ pro fhd_data_plots, datafile, save_path = save_path, plot_path = plot_path, pol_
      fov_amp = wedge_factor * source_dist
 
      ;; calculate angular distance to horizon
-     horizon_amp = wedge_factor * ((max_theta+90d) * !dpi / 180d)
+     horizon_amp = wedge_factor * ((file_struct_arr[0].max_theta+90d) * !dpi / 180d)
 
      wedge_amp = [fov_amp, horizon_amp]
   endif else wedge_amp = 0d
@@ -332,14 +261,22 @@ pro fhd_data_plots, datafile, save_path = save_path, plot_path = plot_path, pol_
                               kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis
      endfor
 
-     ;; for i=0, n_cubes-1 do $
-     ;;    kpower_2d_plots, savefiles_2d[i], /pub, /snr, plotfile = plotfiles_2d_ratio[i], $
-     ;;                     kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, data_range = snr_range, $
-     ;;                     title = titles[i] + ' SNR (' + textoidl('P_k', font = font) + '*W-1)', $
-     ;;                     grey_scale = grey_scale, plot_wedge_line = plot_wedge_line, hinv = hinv, $
-     ;;                     wedge_amp = wedge_amp, baseline_axis = baseline_axis, delay_axis = delay_axis, $
-     ;;                     kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis
-     
+     if nfiles eq 2 then begin
+        for i=0, n_cubes-1 do kpower_2d_plots, savefiles_2d[i], /pub, /snr, plotfile = plotfiles_2d_snr[i], $
+                                               kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
+                                               data_range = snr_range, $
+                                               title = titles[i] + ' SNR ((' + textoidl('P_k', font = font) + '-N)/N)', $
+                                               grey_scale = grey_scale, plot_wedge_line = plot_wedge_line, hinv = hinv, $
+                                               wedge_amp = wedge_amp, baseline_axis = baseline_axis, delay_axis = delay_axis, $
+                                               kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis
+   
+        for i=0, n_cubes-1 do kpower_2d_plots, savefiles_2d[i], /pub, /plot_noise, plotfile = plotfiles_2d_noise[i], $
+                                               kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
+                                               data_range = noise_range, title = titles[i] + ' Noise', $
+                                               grey_scale = grey_scale, plot_wedge_line = plot_wedge_line, hinv = hinv, $
+                                               wedge_amp = wedge_amp, baseline_axis = baseline_axis, delay_axis = delay_axis, $
+                                               kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis
+     endif   
   endif else begin
 
      ncol = ntype + 1 ;; ntype + 1 for weights
@@ -368,32 +305,56 @@ pro fhd_data_plots, datafile, save_path = save_path, plot_path = plot_path, pol_
      endfor
      undefine, positions, pos_use
 
-     ;; now plot SNR -- no separate weight plots
-     ;; nrow = npol
-     ;; ncol = ntype
-     ;; start_multi_params = {ncol:ncol, nrow:nrow, ordering:'row'}
+     if nfiles eq 2 then begin
+        ;; now plot Noise & SNR -- no separate weight plots
+        nrow = npol
+        ncol = ntype
+        start_multi_params = {ncol:ncol, nrow:nrow, ordering:'row'}
+        
+        window_num = 2
+        
+        noise_range = [1e18, 1e22]
+        for i=0, n_cubes-1 do begin
+           if i gt 0 then  pos_use = positions[*,i]
+           
+           kpower_2d_plots, savefiles_2d[i], /plot_noise, multi_pos = pos_use, start_multi_params = start_multi_params, $
+                            kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, data_range = noise_range, $
+                            title = titles[i] + ' Noise', grey_scale = grey_scale, $
+                            plot_wedge_line = plot_wedge_line, wedge_amp = wedge_amp, hinv = hinv, $
+                            baseline_axis = baseline_axis, delay_axis = delay_axis, kperp_linear_axis = kperp_linear_axis, $
+                            kpar_linear_axis = kpar_linear_axis, window_num = window_num
+           if i eq 0 then begin
+              positions = pos_use
+              undefine, start_multi_params
+           endif
+        endfor
 
-     ;; window_num = 2
- 
-     ;; for i=0, n_cubes-1 do begin
-     ;;   if i gt 0 then  pos_use = positions[*,i]
+        window_num = 3
+        start_multi_params = {ncol:ncol, nrow:nrow, ordering:'row'}
+        undefine, pos_use
+        
+        snr_range = [1e0, 1e6]
+        for i=0, n_cubes-1 do begin
+           if i gt 0 then  pos_use = positions[*,i]
+           
+           kpower_2d_plots, savefiles_2d[i], /snr, multi_pos = pos_use, start_multi_params = start_multi_params, $
+                            kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, data_range = snr_range, $
+                            title = titles[i] + ' SNR (' + textoidl('P_k', font = font) + '/N)', grey_scale = grey_scale, $
+                            plot_wedge_line = plot_wedge_line, wedge_amp = wedge_amp, hinv = hinv, $
+                            baseline_axis = baseline_axis, delay_axis = delay_axis, kperp_linear_axis = kperp_linear_axis, $
+                            kpar_linear_axis = kpar_linear_axis, window_num = window_num
+           if i eq 0 then begin
+              positions = pos_use
+              undefine, start_multi_params
+           endif
+        endfor
 
-     ;;    kpower_2d_plots, savefiles_2d[i], /snr, multi_pos = pos_use, start_multi_params = start_multi_params, $
-     ;;                     kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, data_range = snr_range, $
-     ;;                     title = titles[i] + ' SNR (' + textoidl('P_k', font = font) + '*W-1)', grey_scale = grey_scale, $
-     ;;                     plot_wedge_line = plot_wedge_line, wedge_amp = wedge_amp, hinv = hinv, $
-     ;;                     baseline_axis = baseline_axis, delay_axis = delay_axis, kperp_linear_axis = kperp_linear_axis, $
-     ;;                     kpar_linear_axis = kpar_linear_axis, window_num = window_num
-     ;;    if i eq 0 then begin
-     ;;       positions = pos_use
-     ;;       undefine, start_multi_params
-     ;;    endif
-     ;; endfor
+     endif
 
    endelse
 
   file_arr = savefiles_1d
-  kpower_1d_plots, file_arr, window_num = 3, colors = colors, names = titles, delta = delta, hinv = hinv, pub = pub, $
+  kpower_1d_plots, file_arr, window_num = 5, colors = colors, names = titles, delta = delta, hinv = hinv, pub = pub, $
                    plotfile = plotfile_1d
 
 end
