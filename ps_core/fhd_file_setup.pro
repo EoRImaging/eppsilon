@@ -1,7 +1,8 @@
-function fhd_file_setup, datafile, pol, type, weightfile = weightfile, pixelfile = pixelfile, datavar = datavar, $
-                         weightvar = weightvar, pixelvar = pixelvar, hpx_dftsetup_savefile = hpx_dftsetup_savefile, $
-                         savefilebase = savefilebase_in, weight_savefilebase = weight_savefilebase_in, $
-                         uvf_savefilebase = uvf_savefilebase_in
+function fhd_file_setup, datafile, pol, type, weightfile = weightfile, variancefile = variancefile, pixelfile = pixelfile, $
+                         datavar = datavar, weightvar = weightvar, variancevar = variancevar, pixelvar = pixelvar, $
+                         hpx_dftsetup_savefile = hpx_dftsetup_savefile, weight_savefilebase = weight_savefilebase_in, $
+                         variance_savefilebase = variance_savefilebase_in, uvf_savefilebase = uvf_savefilebase_in, $
+                         savefilebase = savefilebase_in
 
 
   nfiles = n_elements(datafile)
@@ -35,11 +36,17 @@ function fhd_file_setup, datafile, pol, type, weightfile = weightfile, pixelfile
   if n_elements(weight_varname) ne nfiles then $
      if n_elements(weight_varname) eq 1 then weight_varname = replicate(weight_varname, nfiles) $
      else message, 'weightvar must be a scalar or have the same number of elements as datafile'
+  if n_elements(variancevar) eq 0 then variance_varname = strupcase('variance_' + pol + '_cube') else variance_varname = variancevar
+  if n_elements(variance_varname) ne nfiles then $
+     if n_elements(variance_varname) eq 1 then variance_varname = replicate(variance_varname, nfiles) $
+     else message, 'variancevar must be a scalar or have the same number of elements as datafile'
   wt_file_label = '_weights_' + strlowcase(pol)
   file_label = '_' + strlowcase(type_pol_str)
 
   if n_elements(weightfile) eq 0 then weightfile = datafile $
   else if n_elements(weightfile) ne nfiles then message, 'weightfile must have the same number of elements as datafile'
+  if n_elements(variancefile) eq 0 then variancefile = datafile $
+  else if n_elements(variancefile) ne nfiles then message, 'variancefile must have the same number of elements as datafile'
 
   if n_elements(pixelfile) gt 0 and n_elements(pixelfile) ne nfiles then $
      message, 'pixelfile must have the same number of elements as datafile'
@@ -48,7 +55,7 @@ function fhd_file_setup, datafile, pol, type, weightfile = weightfile, pixelfile
      else message, 'pixelvar must be a scalar or have the same number of elements as datafile'
 
 
-  if n_elements(hpx_dftsetup_savefile) gt 1 then message, 'only one hpx_dftsetup_savefile allowed'
+  ;;if n_elements(hpx_dftsetup_savefile) gt 1 then message, 'only one hpx_dftsetup_savefile allowed'
   if n_elements(savefilebase) gt 1 then message, 'only one savefilebase allowed'
 
   if n_elements(weight_savefilebase) gt 0 and n_elements(weight_savefilebase) ne nfiles then $
@@ -269,15 +276,17 @@ function fhd_file_setup, datafile, pol, type, weightfile = weightfile, pixelfile
   endif
 
   if healpix then begin
-     file_struct = {datafile: datafile, weightfile: weightfile, pixelfile:pixelfile, datavar:data_varname, weightvar:weight_varname, $
-                    pixelvar:pixel_varname, frequencies:frequencies, max_baseline:max_baseline, max_theta:max_theta, nside:nside, $
+     file_struct = {datafile: datafile, weightfile: weightfile, variancefile:variancefile, pixelfile:pixelfile, $
+                    datavar:data_varname, variancevar:variance_varname, weightvar:weight_varname, pixelvar:pixel_varname, $
+                    frequencies:frequencies, max_baseline:max_baseline, max_theta:max_theta, nside:nside, $
                     hpx_dftsetup_savefile:hpx_dftsetup_savefile, $
                     uvf_savefile:uvf_savefile, uvf_weight_savefile:uvf_weight_savefile, $
                     uf_savefile:uf_savefile, vf_savefile:vf_savefile, uv_savefile:uv_savefile, kcube_savefile:kcube_savefile, $
                     power_savefile:power_savefile, fits_power_savefile:fits_power_savefile, $
                     savefile_froot:froot, savefilebase:savefilebase, weight_savefilebase:weight_savefilebase}
   endif else begin
-     file_struct = {datafile: datafile, weightfile: weightfile, datavar:data_varname, weightvar:weight_varname, $
+     file_struct = {datafile: datafile, weightfile: weightfile, variancefile:variancefile, $
+                    datavar:data_varname, weightvar:weight_varname, variancevar:variance_varname, $
                     frequencies:frequencies, max_baseline:max_baseline, max_theta:max_theta, degpix:degpix, $
                     kcube_savefile:kcube_savefile, power_savefile:power_savefile, fits_power_savefile:fits_power_savefile, $
                     savefile_froot:froot, savefilebase:savefilebase, weight_savefilebase:weight_savefilebase}

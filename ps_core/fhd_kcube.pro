@@ -21,19 +21,36 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
  
      if i gt 0 then if total(abs(data_dims - dims)) ne 0 then message, 'data dimensions in files do not match'
  
-     if not keyword_set(no_weighting) then begin
-        weightfile_obj = obj_new('IDL_Savefile', file_struct.weightfile[i])
-        weightfile_names = weightfile_obj->names()
-        weightvar = strupcase(file_struct.weightvar)
-        wh = where(weightfile_names eq weightvar[i], count)
-        if count eq 0 then message, 'specified weightvar is not present in weightfile (weightfile=' + file_struct.weightfile[i] + $
-                                    ', weightvar=' + file_struct.weightvar[i] + ')'
-        weight_dims = weightfile_obj->size(weightvar[i], /dimensions)
-        obj_destroy, weightfile_obj
-        
-        if total(abs(data_dims - weight_dims)) ne 0 then message, 'data and weight dimensions do not match'
-        undefine, weight_dims
-     endif
+     weightfile_obj = obj_new('IDL_Savefile', file_struct.weightfile[i])
+     weightfile_names = weightfile_obj->names()
+     weightvar = strupcase(file_struct.weightvar)
+     wh = where(weightfile_names eq weightvar[i], count)
+     if count eq 0 then message, 'specified weightvar is not present in weightfile (weightfile=' + file_struct.weightfile[i] + $
+                                 ', weightvar=' + file_struct.weightvar[i] + ')'
+     weight_dims = weightfile_obj->size(weightvar[i], /dimensions)
+     obj_destroy, weightfile_obj
+     
+     if total(abs(data_dims - weight_dims)) ne 0 then message, 'data and weight dimensions do not match'
+     undefine, weight_dims
+
+     
+     variancefile_obj = obj_new('IDL_Savefile', file_struct.variancefile[i])
+     variancefile_names = variancefile_obj->names()
+     variancevar = strupcase(file_struct.variancevar)
+     wh = where(variancefile_names eq variancevar[i], count)
+     if count eq 0 then begin
+        print, 'specified variancevar is not present in variancefile (variancefile=' + file_struct.weightfile[i] $
+               +  ', variancevar=' + file_struct.weightvar[i] + '). Weights will be used instead' 
+        no_var = 1
+     endif else begin
+        if n_elements(no_var) eq 0 then no_var = 0
+
+        variance_dims = variancefile_obj->size(variancevar[i], /dimensions)
+        if total(abs(data_dims - variance_dims)) ne 0 then message, 'data and variance dimensions do not match'
+        undefine, variance_dims
+     endelse
+     obj_destroy, variancefile_obj
+     
      dims = data_dims
      undefine, data_dims
   endfor
@@ -105,9 +122,7 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
      for i=0, nfiles-1 do begin     
         test_uvf = file_test(file_struct.uvf_savefile[i]) *  (1 - file_test(file_struct.uvf_savefile[i], /zero_length))
      
-        if not keyword_set(no_weighting) then $
-           test_wt_uvf = file_test(file_struct.uvf_weight_savefile[i]) * $
-                         (1 - file_test(file_struct.uvf_weight_savefile[i], /zero_length))
+        test_wt_uvf = file_test(file_struct.uvf_weight_savefile[i]) * (1 - file_test(file_struct.uvf_weight_savefile[i], /zero_length))
         
         if test_uvf eq 0 or test_wt_uvf eq 0 or keyword_set(dft_refresh_data) or keyword_set(dft_refresh_weight) then begin          
            pixel_nums = getvar_savefile(file_struct.pixelfile[i], file_struct.pixelvar[i])
@@ -137,13 +152,19 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
            if test_wt_uvf eq 0 or keyword_set(dft_refresh_weight) then begin
               arr = getvar_savefile(file_struct.weightfile[i], file_struct.weightvar[i])
               transform = discrete_ft_2D_fast(new_pix_vec[*,0], new_pix_vec[*,1], arr, kx_rad_vals, ky_rad_vals, timing = ft_time, $
-                                              fchunk = dft_fchunk)
+                                              fchunk = dft_fchunk)            
+              weights_cube = temporary(transform)
               
-              weights_cube = abs(transform) ;; make weights real, positive definite (amplitude)
-              undefine, arr, transform
-
-              save, file = file_struct.uvf_weight_savefile[i], kx_rad_vals, ky_rad_vals, weights_cube
-              undefine, new_pix_vec, weights_cube
+              if not no_var then begin
+                 arr = getvar_savefile(file_struct.variancefile[i], file_struct.variancevar[i])
+                 transform = discrete_ft_2D_fast(new_pix_vec[*,0], new_pix_vec[*,1], arr, kx_rad_vals, ky_rad_vals, timing = ft_time, $
+                                                 fchunk = dft_fchunk)            
+                 variance_cube = temporary(transform) ;; make variances real, positive definite (amplitude)
+                 undefine, arr
+              endif
+ 
+              save, file = file_struct.uvf_weight_savefile[i], kx_rad_vals, ky_rad_vals, weights_cube, variance_cube
+              undefine, new_pix_vec, weights_cube, variance_cube
            endif
            
         endif else begin
@@ -154,110 +175,149 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
   endif
 
 
-  ;; if 2 file mode and we're using weights then check that uvf weights are close enough to proceed.
+  ;; if 2 file mode check that uvf variances are close enough to proceed.
   if nfiles eq 2 then begin
-     if not keyword_set(no_weighting) then begin
+     if no_var then begin
+        ;; use abs(weights) instead
         if healpix then begin
            weights_cube1 = getvar_savefile(file_struct.uvf_weight_savefile[0], 'weights_cube')
            weights_cube2 = getvar_savefile(file_struct.uvf_weight_savefile[1], 'weights_cube')
+           sigma2_cube1 = 1./abs(weights_cube1)
+           sigma2_cube2 = 1./abs(weights_cube2)
         endif else begin
-           weights_cube1 = getvar_savefile(file_struct.weightfile[0], file_struct.weight_var[i])
-           weights_cube2 = getvar_savefile(file_struct.weightfile[1], file_struct.weight_var[i])
+           weights_cube1 = getvar_savefile(file_struct.weightfile[0], file_struct.weightvar[0])
+           weights_cube2 = getvar_savefile(file_struct.weightfile[1], file_struct.weightvar[1])
+           sigma2_cube1 = 1./abs(weights_cube1)
+           sigma2_cube2 = 1./abs(weights_cube2)
         endelse
+     endif else begin
+        if healpix then begin
+           variance_cube1 = getvar_savefile(file_struct.uvf_weight_savefile[0], 'variance_cube')
+           variance_cube2 = getvar_savefile(file_struct.uvf_weight_savefile[1], 'variance_cube')
+           weights_cube1 = getvar_savefile(file_struct.uvf_weight_savefile[0], 'weights_cube')
+           weights_cube2 = getvar_savefile(file_struct.uvf_weight_savefile[1], 'weights_cube')
+        endif else begin
+           variance_cube1 = getvar_savefile(file_struct.variancefile[0], file_struct.variancevar[i])
+           variance_cube2 = getvar_savefile(file_struct.variancefile[1], file_struct.variancevar[i])
+           weights_cube1 = getvar_savefile(file_struct.weightfile[0], file_struct.weightvar[0])
+           weights_cube2 = getvar_savefile(file_struct.weightfile[1], file_struct.weightvar[1])
+       endelse
 
-        if min(weights_cube1) lt 0 or min(weights_cube2) lt 0 then message, 'Weights should be positive definite.'
-        if total(abs(weights_cube1)) le 0 or total(abs(weights_cube2)) le 0 then message, 'one or both weights cubes is all zero'
-         
-        ;; freq_channel = 0
+        sigma2_cube1 = temporary(variance_cube1) / abs(weights_cube1)^2.
+        sigma2_cube2 = temporary(variance_cube2) / abs(weights_cube2)^2.
+     endelse
+
+     wh_wt1_0 = where(abs(weights_cube1) eq 0, count_wt1_0)
+     if count_wt1_0 ne 0 then sigma2_cube1[wh_wt1_0] = 0
+     wh_wt2_0 = where(abs(weights_cube2) eq 0, count_wt2_0)
+     if count_wt2_0 ne 0 then sigma2_cube2[wh_wt2_0] = 0
+ 
+
+    if min(sigma2_cube1) lt 0 or min(sigma2_cube2) lt 0 then message, 'sigma2 should be positive definite.'
+     if total(abs(sigma2_cube1)) le 0 or total(abs(sigma2_cube2)) le 0 then message, 'one or both sigma2 cubes is all zero'
+     
+     ;; freq_channel = 0
+     
+     ;; if windowavailable(1) then wset, 1 else window, 1
+     ;; quick_image, sigma2_cube1[*,*,freq_channel], kx_rad_vals, ky_rad_vals, /log, title = 'Even cube', $
+     ;;              xtitle = 'kx (Mpc!U-1!N)', ytitle = 'ky (Mpc!U-1!N)', data_range = data_range
+     ;; if windowavailable(2) then wset, 2 else window, 2
+     ;; quick_image, sigma2_cube2[*,*,freq_channel], kx_rad_vals, ky_rad_vals, /log, title = 'Odd cube', $
+     ;;              xtitle = 'kx (Mpc!U-1!N)', ytitle = 'ky (Mpc!U-1!N)', data_range = data_range
+     
+     
+     diff = abs(sigma2_cube1 - sigma2_cube2)
+     ;; quick_image, diff[*,*,freq_channel], kx_rad_vals, ky_rad_vals, /log, title = 'Difference', $
+     ;;              xtitle = 'kx (Mpc!U-1!N)', ytitle = 'ky (Mpc!U-1!N)'
+     
+     sigma2_ave = (sigma2_cube1 + sigma2_cube2) / 2.
+     diff_frac = temporary(diff) / sigma2_ave
+     
+     ;; if windowavailable(3) then wset, 3 else window, 3
+     ;; quick_image, diff_frac[*,*,freq_channel], kx_rad_vals, ky_rad_vals, /log, title = 'Difference Fraction', $
+     ;;              xtitle = 'kx (Mpc!U-1!N)', ytitle = 'ky (Mpc!U-1!N)'
+     
+     ;; diff_frac_mask = fix(diff_frac*0)
+     ;; wh_large = where(diff_frac ge 1, count_large)
+     ;; if count_large gt 0 then diff_frac_mask[wh_large] = 1
+     ;; ;;quick_image, diff_frac_mask[*,*,freq_channel], kx_rad_vals, ky_rad_vals, title = 'Difference Fraction above 1', $
+     ;; ;;             xtitle = 'kx (Mpc!U-1!N)', ytitle = 'ky (Mpc!U-1!N)', data_range = [0,1], /grey_scale
+     
+     cube_max = max([sigma2_cube1, sigma2_cube2])
+     cube_min_n0 = min([sigma2_cube1[where(sigma2_cube1 ne 0)], sigma2_cube2[where(sigma2_cube2 ne 0)]])
+     ;; cube_binsize = 10.^(floor(alog10(cube_max))-2)
+     ;;cube1_hist = histogram(sigma2_cube1, binsize = cube_binsize, min = 0, max = cube_max, locations = cube_locs)
+     ;;cube2_hist = histogram(sigma2_cube2, binsize = cube_binsize, min = 0, max = cube_max, locations = cube_locs)
+     ;;diff_hist = histogram(diff, binsize = cube_binsize*0.01, min = 0, omax = diff_max, locations = diff_locs)
+     diff_frac_hist = histogram(diff_frac, binsize = 0.01, min = 0, omax = df_max, locations = diff_frac_locs, $
+                                reverse_indices = df_ri)
+     
+     min_log_sigma = alog10(cube_min_n0)
+     min_log_df = alog10(min(diff_frac[where(diff_frac gt 0)]))
+     sigma_log_hist = histogram(alog10(sigma2_ave), binsize = 0.1, min = min_log_sigma, omax = max_log_sigma, $
+                                locations = sigma_log_locs)
+     df_log_hist = histogram(alog10(diff_frac), binsize = 0.1, min = min_log_df, omax = max_log_df, locations = df_log_locs)
+     
+     df_sigma_hist = hist_2d(alog10(sigma2_ave), alog10(diff_frac), bin1=0.1, bin2=0.1, $
+                          min1 = min_log_sigma, min2=min_log_df, max1=max_log_sigma, max2=max_log_df)
+     
+     ;; if windowavailable(4) then wset, 4 else window, 4
+     ;; quick_image, df_wt_hist, 10^wt_log_locs, 10^df_log_locs,/log, /xlog, /ylog, xtitle = 'average sigma2', $
+     ;;              ytitle = 'difference fraction', title = 'sigma2 vs difference fraction histogram'
+     
+     
+     ;; ;;binarea = matrix_multiply(10^(sigma_log_locs + 0.1) - 10^(sigma_log_locs), 10^(df_log_locs + 0.1) - 10^(df_log_locs))
+     
+     ;; ;;quick_image, df_wt_hist/binarea, 10^wt_log_locs, 10^df_log_locs,/log, /xlog, /ylog, xtitle = 'average sigma2', $
+     ;; ;;             ytitle = 'difference fraction', title = 'sigma2 vs difference fraction density'
+     
+     df_cut_level = 0.1
+     wh_df_cut = where(diff_frac_locs gt df_cut_level, count_df_cut)
+     if count_df_cut gt 0 then begin
+        print, 'cutting out pixels with a sigma2 difference greater than ' + number_formatter(df_cut_level*100.) + '%'
         
-        ;; if windowavailable(1) then wset, 1 else window, 1
-        ;; quick_image, weights_cube1[*,*,freq_channel], kx_rad_vals, ky_rad_vals, /log, title = 'Even cube', $
-        ;;              xtitle = 'kx (Mpc!U-1!N)', ytitle = 'ky (Mpc!U-1!N)', data_range = data_range
-        ;; if windowavailable(2) then wset, 2 else window, 2
-        ;; quick_image, weights_cube2[*,*,freq_channel], kx_rad_vals, ky_rad_vals, /log, title = 'Odd cube', $
-        ;;              xtitle = 'kx (Mpc!U-1!N)', ytitle = 'ky (Mpc!U-1!N)', data_range = data_range
-
-
-        diff = abs(weights_cube1 - weights_cube2)
-        ;; quick_image, diff[*,*,freq_channel], kx_rad_vals, ky_rad_vals, /log, title = 'Difference', $
-        ;;              xtitle = 'kx (Mpc!U-1!N)', ytitle = 'ky (Mpc!U-1!N)'
-
-        weights_ave = (weights_cube1 + weights_cube2) / 2.
-        diff_frac = temporary(diff) / weights_ave
-
-        ;; if windowavailable(3) then wset, 3 else window, 3
-        ;; quick_image, diff_frac[*,*,freq_channel], kx_rad_vals, ky_rad_vals, /log, title = 'Difference Fraction', $
-        ;;              xtitle = 'kx (Mpc!U-1!N)', ytitle = 'ky (Mpc!U-1!N)'
-
-        ;; diff_frac_mask = fix(diff_frac*0)
-        ;; wh_large = where(diff_frac ge 1, count_large)
-        ;; if count_large gt 0 then diff_frac_mask[wh_large] = 1
-        ;; ;;quick_image, diff_frac_mask[*,*,freq_channel], kx_rad_vals, ky_rad_vals, title = 'Difference Fraction above 1', $
-        ;; ;;             xtitle = 'kx (Mpc!U-1!N)', ytitle = 'ky (Mpc!U-1!N)', data_range = [0,1], /grey_scale
-
-        cube_max = max([weights_cube1, weights_cube2])
-        cube_min_n0 = min([weights_cube1[where(weights_cube1 ne 0)], weights_cube2[where(weights_cube2 ne 0)]])
-        ;; cube_binsize = 10.^(floor(alog10(cube_max))-2)
-        ;;cube1_hist = histogram(weights_cube1, binsize = cube_binsize, min = 0, max = cube_max, locations = cube_locs)
-        ;;cube2_hist = histogram(weights_cube2, binsize = cube_binsize, min = 0, max = cube_max, locations = cube_locs)
-        ;;diff_hist = histogram(diff, binsize = cube_binsize*0.01, min = 0, omax = diff_max, locations = diff_locs)
-        diff_frac_hist = histogram(diff_frac, binsize = 0.01, min = 0, omax = df_max, locations = diff_frac_locs, $
-                                   reverse_indices = df_ri)
-
-        min_log_wt = alog10(cube_min_n0)
-        min_log_df = alog10(min(diff_frac[where(diff_frac gt 0)]))
-        ;;wt_log_hist = histogram(alog10(weights_ave), binsize = 0.1, min = min_log_wt, omax = max_log_wt, locations = wt_log_locs)
-        ;;df_log_hist = histogram(alog10(diff_frac), binsize = 0.1, min = min_log_df, omax = max_log_df, locations = df_log_locs)
-
-        df_wt_hist = hist_2d(alog10(weights_ave), alog10(diff_frac), bin1=0.1, bin2=0.1, $
-                             min1 = min_log_wt, min2=min_log_df, max1=max_log_wt, max2=max_log_df)
-
-        ;; if windowavailable(4) then wset, 4 else window, 4
-        ;; quick_image, df_wt_hist, 10^wt_log_locs, 10^df_log_locs,/log, /xlog, /ylog, xtitle = 'average weight', $
-        ;;              ytitle = 'difference fraction', title = 'Weight vs difference fraction histogram'
-
-
-        ;; ;;binarea = matrix_multiply(10^(wt_log_locs + 0.1) - 10^(wt_log_locs), 10^(df_log_locs + 0.1) - 10^(df_log_locs))
+        cut_inds = df_ri[df_ri[min(wh_df_cut)]:df_ri[max(wh_df_cut)+1]-1]
+        if (n_elements(cut_inds) / total(diff_frac_hist)) gt .1 then stop
         
-        ;; ;;quick_image, df_wt_hist/binarea, 10^wt_log_locs, 10^df_log_locs,/log, /xlog, /ylog, xtitle = 'average weight', $
-        ;; ;;             ytitle = 'difference fraction', title = 'Weight vs difference fraction density'
-
-        df_cut_level = 0.1
-        wh_df_cut = where(diff_frac_locs gt df_cut_level, count_df_cut)
-        if count_df_cut gt 0 then begin
-           print, 'cutting out pixels with a weight difference greater than ' + number_formatter(df_cut_level*100.) + '%'
-
-           cut_inds = df_ri[df_ri[min(wh_df_cut)]:df_ri[max(wh_df_cut)+1]-1]
-           if (n_elements(cut_inds) / total(diff_frac_hist)) gt .1 then stop
-
-           print, 'removed ' + number_formatter(n_elements(cut_inds) / total(diff_frac_hist) * 100, format = '(f7.1)') + '% of pixels'
-           weights_ave[cut_inds] = 0.
-        endif
-        ;;undefine, diff, diff_frac_mask, cube1_hist, cube2_hist, diff_hist, wt_log_hist, df_log_hist
-        undefine, weights_cube1, weights_cube2, diff_frac, diff_frac_hist, df_wt_hist, df_ri
+        print, 'removed ' + number_formatter(n_elements(cut_inds) / total(diff_frac_hist) * 100, format = '(f7.1)') + '% of pixels'
+        sigma2_ave[cut_inds] = 0.
      endif
-        
-     ;; now get 2 data cubes
+     ;;undefine, diff, diff_frac_mask, cube1_hist, cube2_hist, diff_hist, sigma_log_hist, df_log_hist
+     undefine, sigma2_cube1, sigma2_cube2, diff_frac, diff_frac_hist, sigma_log_hist, df_log_hist, df_sigma_hist, df_ri
+ 
+     
+     ;; now get data cubes
      if healpix then begin
         data_cube1 = getvar_savefile(file_struct.uvf_savefile[0], 'data_cube') * float(conv_factor)
         data_cube2 = getvar_savefile(file_struct.uvf_savefile[1], 'data_cube') * float(conv_factor)
      endif else begin
-        data_cube1 = getvar_savefile(file_struct.datafile[0], file_struct.datavar[i]) * float(conv_factor)
-        data_cube2 = getvar_savefile(file_struct.datafile[1], file_struct.datavar[i]) * float(conv_factor)
+        data_cube1 = getvar_savefile(file_struct.datafile[0], file_struct.datavar[0]) * float(conv_factor)
+        data_cube2 = getvar_savefile(file_struct.datafile[1], file_struct.datavar[1]) * float(conv_factor)
      endelse
-
-     if keyword_set(no_weighting) then weights_ave = real_part(data_cube1)*0. + 1.
+     
   endif else begin
      ;; single file mode
      if healpix then begin
         data_cube1 = getvar_savefile(file_struct.uvf_savefile, 'data_cube') * float(conv_factor)
-        weights_ave = getvar_savefile(file_struct.uvf_weight_savefile, 'weights_cube')
+        weights_cube1 = getvar_savefile(file_struct.uvf_weight_savefile, 'weights_cube')
+        if not no_var then begin
+           variance_cube1 = getvar_savefile(file_struct.uvf_weight_savefile, 'variance_cube') 
+           sigma2_ave = temporary(variance_cube1) / abs(weights_cube1)^2.
+        endif else sigma2_ave = 1./abs(weights_cube1)
+
+        wh_wt1_0 = where(abs(weights_cube1) eq 0, count_wt1_0)
+        if count_wt1_0 ne 0 then sigma2_ave[wh_wt1_0] = 0
      endif else begin
         data_cube1 = getvar_savefile(file_struct.datafile, file_struct.datavar) * float(conv_factor)
-        weights_ave = getvar_savefile(file_struct.weightfile, file_struct.weight_var)
-     endelse
+        weights_cube1 = getvar_savefile(file_struct.weightfile, file_struct.weightvar)
+        if not no_var then begin
+           variance_ave = getvar_savefile(file_struct.variancefile, file_struct.variance_var) 
+           sigma2_ave = temporary(variance_cube1) / abs(weights_cube1)^2.
+        endif else sigma2_ave = 1./abs(weights_cube1)
 
-     if keyword_set(no_weighting) then weights_ave = real_part(data_cube1)*0. + 1.
+        wh_wt1_0 = where(abs(weights_cube1) eq 0, count_wt1_0)
+        if count_wt1_0 ne 0 then sigma2_ave[wh_wt1_0] = 0
+     endelse
   endelse
 
 
@@ -290,15 +350,9 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
      ky_mpc = (dindgen(n_ky)-n_ky/2) * ky_mpc_delta
      
   endelse
-  
-  sigma2_cube = 1d/(weights_ave)
-  wh_wt0 = where(weights_ave eq 0, count_wt0)
-  ;; wh = where(weights_cube le 1e-10, count)
-  if count_wt0 ne 0 then sigma2_cube[wh_wt0] = 0
-  undefine, weights_ave
-  
+
   mask = intarr(n_kx, n_ky, n_kz) + 1
-  if count_wt0 gt 0 then mask[wh_wt0] = 0
+  if count_wt0 gt 0 then mask[wh_var0] = 0
   ;; n_pix_contrib = total(total(mask, 2), 1)
   n_freq_contrib = total(mask, 3)
   wh_nofreq = where(n_freq_contrib eq 0, count_nofreq)
@@ -308,11 +362,16 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
   if nfiles eq 2 then print, 'pre-weighting sum(data_cube2^2)*z_delta:', total(abs(data_cube2)^2d)*z_mpc_delta
 
   ;; divide by weights (~array beam) to estimate true sky
-  data_cube1 = data_cube1 * sigma2_cube
-  if count_wt0 ne 0 then data_cube1[wh_wt0] = 0
-    if nfiles eq 2 then begin
-     data_cube2 = data_cube2 * sigma2_cube
-     if count_wt0 ne 0 then data_cube2[wh_wt0] = 0
+  data_cube1 = data_cube1 / weights_cube1
+  wh_wt1_0 = where(weights_cube1 eq 0, count_wt1_0)
+  if count_wt1_0 ne 0 then data_cube1[wh_wt1_0] = 0
+  undefine, weights_cube1
+
+  if nfiles eq 2 then begin
+     data_cube2 = data_cube2 / weights_cube2
+     wh_wt2_0 = where(weights_cube2 eq 0, count_wt2_0)
+     if count_wt2_0 ne 0 then data_cube2[wh_wt2_0] = 0
+     undefine, weights_cube2
   endif
 
   print, 'sum(data_cube^2)*z_delta (after weighting):', total(abs(data_cube1)^2d)*z_mpc_delta
@@ -344,7 +403,7 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
   ;; need to cut uvf cubes in half because image is real -- we'll cut in v
   data_cube1 = data_cube1[*, n_ky/2:n_ky-1,*]
   if nfiles eq 2 then data_cube2 = data_cube2[*, n_ky/2:n_ky-1,*]
-  sigma2_cube = sigma2_cube[*, n_ky/2:n_ky-1,*]
+  sigma2_ave = sigma2_ave[*, n_ky/2:n_ky-1,*]
   n_freq_contrib = n_freq_contrib[*, n_ky/2:n_ky-1]
   
   ky_mpc = ky_mpc[n_ky/2:n_ky-1]
@@ -398,9 +457,9 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
   
   if keyword_set(std_power) then begin
      ;; for standard power calc. just need ft of sigma2
-     sigma2_ft = fft(sigma2_cube, dimension=3) * n_freq * z_mpc_delta / (2.*!pi)
+     sigma2_ft = fft(sigma2_ave, dimension=3) * n_freq * z_mpc_delta / (2.*!pi)
      sigma2_ft = shift(sigma2_ft, [0,0,n_kz/2])
-     undefine, sigma2_cube
+     undefine, sigma2_ave
      
      sigma_a0 = 2. * abs(sigma2_ft[*,*,where(n_val eq 0)])
      sigma_an_bn = sqrt(abs(sigma2_ft[*,*, where(n_val gt 0)])^2. + abs(sigma2_ft[*,*, reverse(where(n_val lt 0))])^2.)
@@ -454,10 +513,10 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
      cos_arr = cos(freq_kz_arr)
      sin_arr = sin(freq_kz_arr)
 
-     sigma2_cube = reform(sigma2_cube, n_kx*n_ky, n_freq)
-     covar_cos = matrix_multiply(sigma2_cube, cos_arr^2d)
-     covar_sin = matrix_multiply(sigma2_cube, sin_arr^2d)
-     covar_cross = matrix_multiply(sigma2_cube, cos_arr*sin_arr)
+     sigma2_ave = reform(sigma2_ave, n_kx*n_ky, n_freq)
+     covar_cos = matrix_multiply(sigma2_ave, cos_arr^2d)
+     covar_sin = matrix_multiply(sigma2_ave, sin_arr^2d)
+     covar_cross = matrix_multiply(sigma2_ave, cos_arr*sin_arr)
 
      wh_divide = where(n_freq_contrib gt 0, count_divide, complement = wh_0f, ncomplement = count_0f)
      n_divide = double(rebin(reform(n_freq_contrib[wh_divide]),count_divide, n_kz))
@@ -489,7 +548,7 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
      
      ;; cos 0 term has different normalization
      covar_cos[*,*,0] = covar_cos[*,*,0]/4d  
-     undefine, sigma2_cube, freq_kz_arr, cos_arr, sin_arr, sigma2_arr
+     undefine, sigma2_ave, freq_kz_arr, cos_arr, sin_arr
      
      ;; factor to go to eor theory FT convention
      ;; I don't think I need these factors in the covariance
