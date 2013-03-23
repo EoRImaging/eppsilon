@@ -1,8 +1,8 @@
 pro fhd_data_plots, datafile, save_path = save_path, savefilebase = savefilebase, plot_path = plot_path, $
                     pol_inc = pol_inc, type_inc = type_inc, $
                     refresh_dft = refresh_dft, dft_fchunk = dft_fchunk, refresh_ps = refresh_ps, refresh_binning = refresh_binning, $
-                    no_weighting = no_weighting, std_power = std_power, no_kzero = no_kzero, $
-                    no_weighted_averaging = no_weighted_averaging, data_range = data_range, slice_nobin = slice_nobin, $
+                    std_power = std_power, no_kzero = no_kzero, slice_nobin = slice_nobin, $
+                    data_range = data_range, $
                     log_kpar = log_kpar, log_kperp = log_kperp, kpar_bin = kpar_bin, kperp_bin = kperp_bin, log_k1d = log_k1d, $
                     k1d_bin = k1d_bin, kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, $
                     baseline_axis = baseline_axis, delay_axis = delay_axis, hinv = hinv, plot_wedge_line = plot_wedge_line, $
@@ -23,10 +23,6 @@ pro fhd_data_plots, datafile, save_path = save_path, savefilebase = savefilebase
 
   ;; default to plot wedge line
   if n_elements(plot_wedge_line) eq 0 then plot_wedge_line=1
-
-
-  if n_elements(no_weighted_averaging) gt 0 and not keyword_set(no_weighted_averaging) and keyword_set(no_weighting) then $
-     message, 'Cannot set no_weighted_averaging=0 and no_weighting=1'
 
   if n_elements(pol_inc) eq 0 then pol_inc = ['xx', 'yy']
   pol_enum = ['xx', 'yy']
@@ -52,12 +48,10 @@ pro fhd_data_plots, datafile, save_path = save_path, savefilebase = savefilebase
 
   fadd = ''
   if keyword_set(std_power) then fadd = fadd + '_sp'
-  if keyword_set(no_weighting) then fadd = fadd + '_nowt'
   
   fadd_2dbin = ''
   wt_fadd_2dbin = ''
   ;;if keyword_set(fill_holes) then fadd_2dbin = fadd_2dbin + '_nohole'
-  if keyword_set(no_weighted_averaging) then fadd_2dbin = fadd_2dbin + '_nowtave'
   if keyword_set(no_kzero) then begin
      fadd_2dbin = fadd_2dbin + '_nok0'
      wt_fadd_2dbin = wt_fadd_2dbin + '_nok0'
@@ -176,13 +170,12 @@ pro fhd_data_plots, datafile, save_path = save_path, savefilebase = savefilebase
 
            fhd_3dps, file_struct_arr[i], kcube_refresh = refresh_ps, dft_refresh_data = refresh_dft, $
                      dft_refresh_weight = weight_refresh[i], $
-                     dft_fchunk = dft_fchunk, no_weighting = no_weighting, std_power = std_power, no_kzero = no_kzero, $
+                     dft_fchunk = dft_fchunk, std_power = std_power, no_kzero = no_kzero, $
                      log_kpar = log_kpar, log_kperp = log_kperp, kpar_bin = kpar_bin, kperp_bin = kperp_bin, $
-                     no_weighted_averaging = no_weighted_averaging, /quiet
+                     /quiet
         endif else $
-           fhd_3dps, file_struct_arr[i], kcube_refresh = refresh_ps, no_weighting = no_weighting, $
-                     std_power = std_power, no_kzero = no_kzero, log_kpar = log_kpar, log_kperp = log_kperp, kpar_bin = kpar_bin, $
-                     kperp_bin = kperp_bin, no_weighted_averaging = no_weighted_averaging, /quiet
+           fhd_3dps, file_struct_arr[i], kcube_refresh = refresh_ps, std_power = std_power, no_kzero = no_kzero, $
+                     log_kpar = log_kpar, log_kperp = log_kperp, kpar_bin = kpar_bin, kperp_bin = kperp_bin, /quiet
      endif
   endfor
 
