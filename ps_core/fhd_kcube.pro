@@ -39,8 +39,8 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
      variancevar = strupcase(file_struct.variancevar)
      wh = where(variancefile_names eq variancevar[i], count)
      if count eq 0 then begin
-        print, 'specified variancevar is not present in variancefile (variancefile=' + file_struct.weightfile[i] $
-               +  ', variancevar=' + file_struct.weightvar[i] + '). Weights will be used instead' 
+        print, 'specified variancevar is not present in variancefile (variancefile=' + file_struct.variancefile[i] $
+               +  ', variancevar=' + file_struct.variancevar[i] + '). Weights will be used instead' 
         no_var = 1
      endif else begin
         if n_elements(no_var) eq 0 then no_var = 0
@@ -119,23 +119,32 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
   
   
   if healpix then begin
+     if nfiles eq 2 then begin
+        ;; check that they have the same set of healpix pixels
+        pixel_nums1 = getvar_savefile(file_struct.pixelfile[0], file_struct.pixelvar[0])
+        pixel_nums2 = getvar_savefile(file_struct.pixelfile[1], file_struct.pixelvar[1])
+        if n_elements(pixel_nums1) ne n_elements(pixel_nums2) then message, 'Different number of Healpix pixels in cubes'
+        
+        if total(abs(pixel_nums1-pixel_nums2)) ne 0 then message, 'Pixel numbers are not consistent between cubes'
+  
+        pixel_dims = size(pixel_nums1, /dimension)
+        if total(abs(dims - pixel_dims)) ne 0 then message, 'pixel and data dimensions do not match'
+
+     endif
+
      for i=0, nfiles-1 do begin     
         test_uvf = file_test(file_struct.uvf_savefile[i]) *  (1 - file_test(file_struct.uvf_savefile[i], /zero_length))
      
         test_wt_uvf = file_test(file_struct.uvf_weight_savefile[i]) * (1 - file_test(file_struct.uvf_weight_savefile[i], /zero_length))
         
         if test_uvf eq 0 or test_wt_uvf eq 0 or keyword_set(dft_refresh_data) or keyword_set(dft_refresh_weight) then begin          
-           pixel_nums = getvar_savefile(file_struct.pixelfile[i], file_struct.pixelvar[i])
-           pixel_dims = size(pixel_nums, /dimension)
-           if total(abs(dims - pixel_dims)) ne 0 then message, 'pixel and data dimensions do not match'
-         
-           test_setup = file_test(file_struct.hpx_dftsetup_savefile[i]) * $
-                        (1 - file_test(file_struct.hpx_dftsetup_savefile[i], /zero_length))
+           test_setup = file_test(file_struct.hpx_dftsetup_savefile) * $
+                        (1 - file_test(file_struct.hpx_dftsetup_savefile, /zero_length))
            if test_setup eq 0 then begin
               ;; figure out k values to calculate dft
-              healpix_setup_ft, pixel_nums, file_struct.nside, new_pix_vec, limits, kx_rad_vals, ky_rad_vals, /quiet
-              save, file = file_struct.hpx_dftsetup_savefile[i], new_pix_vec, limits, kx_rad_vals, ky_rad_vals
-           endif else restore, file_struct.hpx_dftsetup_savefile[i]
+              healpix_setup_ft, pixel_nums1, file_struct.nside, new_pix_vec, limits, kx_rad_vals, ky_rad_vals, /quiet
+              save, file = file_struct.hpx_dftsetup_savefile, new_pix_vec, limits, kx_rad_vals, ky_rad_vals
+           endif else restore, file_struct.hpx_dftsetup_savefile
            
            ;; do DFT.
            if test_uvf eq 0 or keyword_set(dft_refresh_data) then begin
@@ -352,7 +361,8 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
   endelse
 
   mask = intarr(n_kx, n_ky, n_kz) + 1
-  if count_wt0 gt 0 then mask[wh_var0] = 0
+  wh_sig0 = where(sigma2_ave eq 0, count_sig0)
+  if count_sig0 gt 0 then mask[wh_sig0] = 0
   ;; n_pix_contrib = total(total(mask, 2), 1)
   n_freq_contrib = total(mask, 3)
   wh_nofreq = where(n_freq_contrib eq 0, count_nofreq)

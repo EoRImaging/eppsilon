@@ -55,7 +55,7 @@ function fhd_file_setup, datafile, pol, type, weightfile = weightfile, variancef
      else message, 'pixelvar must be a scalar or have the same number of elements as datafile'
 
 
-  ;;if n_elements(hpx_dftsetup_savefile) gt 1 then message, 'only one hpx_dftsetup_savefile allowed'
+  if n_elements(hpx_dftsetup_savefile) gt 1 then message, 'only one hpx_dftsetup_savefile allowed'
   if n_elements(savefilebase) gt 1 then message, 'only one savefilebase allowed'
 
   if n_elements(weight_savefilebase) gt 0 and n_elements(weight_savefilebase) ne nfiles then $
@@ -265,15 +265,9 @@ function fhd_file_setup, datafile, pol, type, weightfile = weightfile, variancef
   max_baseline = 3e8/max(freq)*max_baseline_lambda ;;else max_baseline = 342.497
 
 
-  if healpix then begin
-     if n_elements(hpx_dftsetup_savefile) eq 0 then begin
-        pix_froot = file_dirname(pixelfile, /mark_directory)
-        pix_infilebase = file_basename(pixelfile)
-        temp2 = strpos(pix_infilebase, '.', /reverse_search)
-
-        hpx_dftsetup_savefile = pix_froot + strmid(pix_infilebase, 0, temp2) + '_dftsetup.idlsave'
-     endif 
-  endif
+  if healpix then if n_elements(hpx_dftsetup_savefile) eq 0 then $
+     hpx_dftsetup_savefile = froot + savefilebase + '_dftsetup.idlsave'
+  
 
   if healpix then begin
      file_struct = {datafile: datafile, weightfile: weightfile, variancefile:variancefile, pixelfile:pixelfile, $
