@@ -5,17 +5,16 @@ function healpix_rot, x_locs, y_locs
   n_pts = n_elements(x_locs)
   if n_elements(y_locs) ne n_pts then message, 'x_locs and y_locs must have the same number of elements'
 
-  n_angles = 90 * 10
-  angles = dindgen(n_angles) * !pi/2d / n_angles
+  n_angles = 90. * 10.
+  angles = dindgen(n_angles) * !pi/2. / n_angles
 
-  x_arr = rebin(x_locs, n_pts, n_angles)
-  y_arr = rebin(y_locs, n_pts, n_angles)
-  cos_arr = rebin(reform(cos(angles), 1, n_angles), n_pts, n_angles)
-  sin_arr = rebin(reform(sin(angles), 1, n_angles), n_pts, n_angles)
+  cos_arr = cos(angles)
+  sin_arr = sin(angles)
 
-  x_rot = x_arr * cos_arr - y_arr * sin_arr
-  y_rot = x_arr * sin_arr + y_arr * cos_arr
- 
+  x_rot = matrix_multiply(x_locs, cos_arr) - matrix_multiply(y_locs, sin_arr)
+  y_rot = matrix_multiply(x_locs, sin_arr) + matrix_multiply(y_locs, cos_arr)
+  undefine, cos_arr, sin_arr
+
   area = dblarr(n_angles)
   limits = dblarr(n_angles,4)
   limits[*,0] = min(x_rot, dimension=1)
