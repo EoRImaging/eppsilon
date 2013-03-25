@@ -79,13 +79,35 @@ pro fhd_data_plots, datafile, save_path = save_path, savefilebase = savefilebase
   titles = strarr(n_cubes)
   for i=0, npol-1 do titles[ntype*i:i*ntype+ntype-1] = type_inc + ' ' + strupcase(pol_inc[i])
   
-  if n_elements(savefilebase) ne 0 and n_elements(savefilebase) ne n_cubes then begin
-     if n_elements(savefilebase) eq 1 then begin
+  if n_elements(savefilebase) ne 0 then begin
+     if n_elements(savefilebase) ne n_cubes then begin
+        if n_elements(savefilebase) eq 1 then begin
+           ;; need general_filebase for 1D plotfiles, make sure it doesn't have a full path
+           general_filebase = file_basename(savefilebase)
+           savefilebase = savefilebase + file_labels 
+        endif else $
+           message, 'savefilebase must be a scalar or have a number of elements given by the number of polarizations * number of types'
+     endif else begin
         ;; need general_filebase for 1D plotfiles, make sure it doesn't have a full path
-        general_filebase = file_basename(savefilebase)
-        savefilebase = savefilebase + file_labels 
-     endif else $
-        message, 'savefilebase must be a scalar or have a number of elements given by the number of polarizations * number of types'
+        nparts_max = 20
+        fileparts = strarr(nparts_max, n_cubes)
+        for i=0, n_cubes-1 do begin
+           temp = strsplit(file_basename(savefilebase[i]), '_', /extract)
+           if n_elements(temp) gt nparts_max then begin
+              temp2 = strarr(n_elements(temp) - nparts_max, n_cubes)
+              fileparts = [fileparts, temp2]
+           endif 
+           fileparts[*,i] = temp
+        endfor
+
+        match_test = strcmp(fileparts[*,0], fileparts[*,1:*])
+        wh_diff = where(match_test eq 0, count_diff, complement = wh_same, ncomplement = count_same)
+        if count_diff eq 0 then general_filebase = file_basename(savefilebase[0]) $
+           else begin
+              if count_same gt 0 then general_filebase = strjoin(fileparts[wh_same,0], '_') $
+              else general_filebase = strjoin(file_basename(savefilebase),'_')
+           endelse
+     endelse
   endif
 
   for i=0, n_cubes-1 do begin
@@ -98,23 +120,28 @@ pro fhd_data_plots, datafile, save_path = save_path, savefilebase = savefilebase
   endfor
   undefine, file_struct
 
+  ;; need general_filebase for 1D plotfiles, make sure it doesn't have a full path
   if n_elements(general_filebase) eq 0 then begin
-     ;; need general_filebase for 1D plotfiles, make sure it doesn't have a full path
-     infilebase = file_basename(datafile)
-     temp2 = strpos(infilebase, '.', /reverse_search)
-     
-     if nfiles eq 1 then general_filebase = strmid(infilebase, 0, temp2) $
+     if n_cubes eq 1 then general_filebase = file_struct_arr.general_filebase $
      else begin
-        fileparts_1 = strsplit(strmid(infilebase[0], 0, temp2[0]), '_', /extract)
-        fileparts_2 = strsplit(strmid(infilebase[1], 0, temp2[1]), '_', /extract)
-        match_test = strcmp(fileparts_1, fileparts_2)
+        nparts_max = 20
+        fileparts = strarr(nparts_max, n_cubes)
+        for i=0, n_cubes-1 do begin
+           temp = strsplit(file_struct_arr.general_filebase[i], '_', /extract)
+           if n_elements(temp) gt nparts_max then begin
+              temp2 = strarr(n_elements(temp) - nparts_max, n_cubes)
+              fileparts = [fileparts, temp2]
+           endif 
+           fileparts[*,i] = temp
+        endfor
+
+        match_test = strcmp(fileparts[*,0], fileparts[*,1:*])
         wh_diff = where(match_test eq 0, count_diff, complement = wh_same, ncomplement = count_same)
-        if count_diff eq 0 then general_filebase = strmid(infilebase[0], 0, temp2[0]) + '_joint' $
-        else begin
-           if count_same gt 0 then general_filebase = strjoin(fileparts_1[wh_same], '_') + '__' + strjoin(fileparts_1[wh_diff]) $
-              + '_' + strjoin(fileparts_2[wh_diff]) + '_joint' $
-           else general_filebase = infilebase[0] + infilebase[1] + '_joint'
-        endelse
+        if count_diff eq 0 then general_filebase = file_struct_arr.general_filebase[0] $
+           else begin
+              if count_same gt 0 then general_filebase = strjoin(fileparts[wh_same,0], '_') $
+              else general_filebase = strjoin(file_struct_arr.general_filebase,'_')
+           endelse
      endelse
   endif
 

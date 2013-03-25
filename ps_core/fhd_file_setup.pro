@@ -69,11 +69,12 @@ function fhd_file_setup, datafile, pol, type, weightfile = weightfile, variancef
         uvf_froot = froot
         infilebase = file_basename(datafile)
         temp2 = strpos(infilebase, '.', /reverse_search)
-        if n_elements(savefilebase_in) eq 0 then savefilebase = strmid(infilebase, 0, temp2) + file_label $
+        general_filebase = strmid(infilebase, 0, temp2)
+        if n_elements(savefilebase_in) eq 0 then savefilebase = general_filebase + file_label $
         else savefilebase = savefilebase_in
         
         ;; if we're only dealing with one file and uvf_savefilebase isn't specified then use same base for uvf files 
-        if n_elements(uvf_savefilebase_in) eq 0 then uvf_savefilebase = savefilebase + file_label
+        if n_elements(uvf_savefilebase_in) eq 0 then uvf_savefilebase = general_filebase + file_label
      endif else begin
         froot = file_dirname(datafile[0], /mark_directory)
         infilebase = file_basename(datafile)
@@ -84,12 +85,13 @@ function fhd_file_setup, datafile, pol, type, weightfile = weightfile, variancef
            fileparts_2 = strsplit(strmid(infilebase[1], 0, temp2[1]), '_', /extract)
            match_test = strcmp(fileparts_1, fileparts_2)
            wh_diff = where(match_test eq 0, count_diff, complement = wh_same, ncomplement = count_same)
-           if count_diff eq 0 then savefilebase = strmid(infilebase[0], 0, temp2[0]) + '_joint' $
+           if count_diff eq 0 then general_filebase = strmid(infilebase[0], 0, temp2[0]) + '_joint' $
            else begin
-              if count_same gt 0 then savefilebase = strjoin(fileparts_1[wh_same], '_') + '__' + strjoin(fileparts_1[wh_diff]) $
-                                                     + '_' + strjoin(fileparts_2[wh_diff]) + '_joint' + file_label $
-              else savefilebase = infilebase[0] + infilebase[1] + '_joint' + file_label
+              if count_same gt 0 then general_filebase = strjoin(fileparts_1[wh_same], '_') + '__' + strjoin(fileparts_1[wh_diff]) $
+                                                     + '_' + strjoin(fileparts_2[wh_diff]) + '_joint' $
+              else general_filebase = infilebase[0] + infilebase[1] + '_joint'
            endelse
+           savefilebase = general_filebase + file_label
         endif
         
         if n_elements(uvf_savefilebase_in) eq 0 then begin
@@ -104,6 +106,7 @@ function fhd_file_setup, datafile, pol, type, weightfile = weightfile, variancef
      temp = file_dirname(savefilebase_in, /mark_directory)
      if temp ne '.' then froot = temp else froot = file_dirname(datafile[0], /mark_directory)
      savefilebase = file_basename(savefilebase_in)
+     general_filebase = savefilebase
   endif
 
   if n_elements(uvf_savefilebase_in) eq nfiles then begin
@@ -125,10 +128,10 @@ function fhd_file_setup, datafile, pol, type, weightfile = weightfile, variancef
      wt_froot = file_dirname(weightfile, /mark_directory)
      wt_infilebase = file_basename(weightfile)
      temp2 = strpos(wt_infilebase, '.', /reverse_search)
-     if nfiles eq 1 then weight_savefilebase = strmid(wt_infilebase, 0, temp2) + wt_file_label + '_weights' $
+     if nfiles eq 1 then weight_savefilebase = strmid(wt_infilebase, 0, temp2) + wt_file_label $
      else begin
         weight_savefilebase = strarr(nfiles)
-        for i=0, nfiles-1 do weight_savefilebase[i] = strmid(wt_infilebase[i], 0, temp2[i]) + wt_file_label + '_weights'
+        for i=0, nfiles-1 do weight_savefilebase[i] = strmid(wt_infilebase[i], 0, temp2[i]) + wt_file_label
      endelse
     endif else begin
      temp = file_dirname(weight_savefilebase_in, /mark_directory)
@@ -266,7 +269,7 @@ function fhd_file_setup, datafile, pol, type, weightfile = weightfile, variancef
 
 
   if healpix then if n_elements(hpx_dftsetup_savefile) eq 0 then $
-     hpx_dftsetup_savefile = froot + savefilebase + '_dftsetup.idlsave'
+     hpx_dftsetup_savefile = froot + general_filebase + '_dftsetup.idlsave'
   
 
   if healpix then begin
@@ -277,13 +280,15 @@ function fhd_file_setup, datafile, pol, type, weightfile = weightfile, variancef
                     uvf_savefile:uvf_savefile, uvf_weight_savefile:uvf_weight_savefile, $
                     uf_savefile:uf_savefile, vf_savefile:vf_savefile, uv_savefile:uv_savefile, kcube_savefile:kcube_savefile, $
                     power_savefile:power_savefile, fits_power_savefile:fits_power_savefile, $
-                    savefile_froot:froot, savefilebase:savefilebase, weight_savefilebase:weight_savefilebase}
+                    savefile_froot:froot, savefilebase:savefilebase, general_filebase:general_filebase, $
+                    weight_savefilebase:weight_savefilebase}
   endif else begin
      file_struct = {datafile: datafile, weightfile: weightfile, variancefile:variancefile, $
                     datavar:data_varname, weightvar:weight_varname, variancevar:variance_varname, $
                     frequencies:frequencies, max_baseline:max_baseline, max_theta:max_theta, degpix:degpix, $
                     kcube_savefile:kcube_savefile, power_savefile:power_savefile, fits_power_savefile:fits_power_savefile, $
-                    savefile_froot:froot, savefilebase:savefilebase, weight_savefilebase:weight_savefilebase}
+                    savefile_froot:froot, savefilebase:savefilebase, general_filebase:general_filebase, $
+                    weight_savefilebase:weight_savefilebase}
   endelse
 
 return, file_struct
