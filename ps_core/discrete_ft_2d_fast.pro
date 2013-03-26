@@ -30,6 +30,7 @@ function discrete_ft_2d_fast, locations1, locations2, data, k1, k2, timing = tim
      'locations1 & 2 must have same number of elements as first dimension of data.'
 
   ft = complex(fltarr(n_k1, n_k2, n_slices))
+  ft_old = ft
 
   x_loc_k = float(matrix_multiply(locations1, k1, /btranspose))
   y_loc_k = float(matrix_multiply(locations2, k2, /btranspose))
@@ -74,7 +75,6 @@ function discrete_ft_2d_fast, locations1, locations2, data, k1, k2, timing = tim
               
               print, 'memory used: ' + number_formatter(memory(/current)/1.e9, format='(d8.1)') + ' GB; ave step time: ' + $
                      number_formatter(ave_t, format='(d8.2)') + '; approx. time remaining: ' + t_left_str
-
            endif
         endif
 
@@ -95,7 +95,9 @@ function discrete_ft_2d_fast, locations1, locations2, data, k1, k2, timing = tim
         undefine, data_inds, x_inds
         inds = reform(i + n_k1*matrix_multiply(findgen(n_k2), fltarr(fchunk_sizes[j])+1) + n_k1 * n_k2 * $
                       transpose(matrix_multiply(findgen(fchunk_sizes[j]) + fchunk_edges[j], fltarr(n_k2)+1)), n_k2*fchunk_sizes[j])
-        ft[inds] = transpose(matrix_multiply(term1, y_exp, /atranspose))
+        ft[inds] = reform(transpose(matrix_multiply(term1, y_exp, /atranspose)), n_k2*fchunk_sizes[j])
+        ft_old[i,*,fchunk_edges[j]:fchunk_edges[j+1]-1] = transpose(matrix_multiply(term1_old, y_exp, /atranspose))
+if max(abs(ft_old-ft)) ne 0 then stop
         undefine, inds
 
         inner_times[this_step] = systime(1) - temp
@@ -109,7 +111,7 @@ function discrete_ft_2d_fast, locations1, locations2, data, k1, k2, timing = tim
   if timing lt 60 then timing_str = number_formatter(timing, format='(d8.2)') + ' sec' $
   else if timing lt 3600 then timing_str = number_formatter(timing/60, format='(d8.2)') + ' min' $
   else timing_str= number_formatter(timing/3600, format='(d8.2)') + ' hours'
-
+stop
   print, 'discrete 2D FT time: ' + timing_str
 
   return, ft

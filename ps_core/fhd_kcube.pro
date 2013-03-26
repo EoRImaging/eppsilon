@@ -153,7 +153,7 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
                                               fchunk = dft_fchunk)
               data_cube = temporary(transform)
               undefine, arr
-
+stop
               save, file = file_struct.uvf_savefile[i], kx_rad_vals, ky_rad_vals, data_cube
               undefine, data_cube
            endif
@@ -163,7 +163,7 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
               transform = discrete_ft_2D_fast(new_pix_vec[*,0], new_pix_vec[*,1], arr, kx_rad_vals, ky_rad_vals, timing = ft_time, $
                                               fchunk = dft_fchunk)            
               weights_cube = temporary(transform)
-              
+stop              
               if not no_var then begin
                  arr = getvar_savefile(file_struct.variancefile[i], file_struct.variancevar[i])
                  transform = discrete_ft_2D_fast(new_pix_vec[*,0], new_pix_vec[*,1], arr, kx_rad_vals, ky_rad_vals, timing = ft_time, $
@@ -171,7 +171,7 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
                  variance_cube = abs(temporary(transform)) ;; make variances real, positive definite (amplitude)
                  undefine, arr
               endif
- 
+stop 
               save, file = file_struct.uvf_weight_savefile[i], kx_rad_vals, ky_rad_vals, weights_cube, variance_cube
               undefine, new_pix_vec, weights_cube, variance_cube
            endif
