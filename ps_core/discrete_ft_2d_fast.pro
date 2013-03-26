@@ -92,10 +92,9 @@ function discrete_ft_2d_fast, locations1, locations2, data, k1, k2, timing = tim
            term1 = data[data_inds] * exp(-1.*complex(0,1)*x_loc_k[x_inds])
            term1_old = data[*,fchunk_edges[j]:fchunk_edges[j+1]-1] * exp(-1.*complex(0,1)*rebin(x_loc_k[*,i], n_pts, fchunk_sizes[j]))
         endelse
-stop
         undefine, data_inds, x_inds
-        inds = i + n_k1*matrix_multiply(findgen(n_k2), fltarr(fchunk_sizes[j])+1) + $
-               n_k1 * n_k2 * transpose(matrix_multiply(findgen(fchunk_sizes[j]) + fchunk_edges[j], fltarr(n_k2)+1))
+        inds = reform(i + n_k1*matrix_multiply(findgen(n_k2), fltarr(fchunk_sizes[j])+1) + n_k1 * n_k2 * $
+                      transpose(matrix_multiply(findgen(fchunk_sizes[j]) + fchunk_edges[j], fltarr(n_k2)+1)), n_k2*fchunk_sizes[j])
         ft[inds] = transpose(matrix_multiply(term1, y_exp, /atranspose))
         undefine, inds
 
