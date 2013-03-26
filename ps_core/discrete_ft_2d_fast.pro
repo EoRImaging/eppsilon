@@ -81,23 +81,23 @@ function discrete_ft_2d_fast, locations1, locations2, data, k1, k2, timing = tim
         temp=systime(1)
 
         if fchunk_sizes[j] eq 1 then begin
-           x_inds = findgen(n_pts) + n_pts*i
-           data_inds = findgen(n_pts) + n_pts*fchunk_edges[j]
+           x_inds = dindgen(n_pts) + n_pts*i
+           data_inds = dindgen(n_pts) + n_pts*fchunk_edges[j]
            term1 = reform(data[data_inds]*exp(-1.*complex(0,1)*x_loc_k[x_inds]), n_pts, fchunk_sizes[j])
            term1_old = reform(data[*,fchunk_edges[j]]*exp(-1.*complex(0,1)*x_loc_k[*,i]), n_pts, fchunk_sizes[j])
         endif else begin
-           x_inds = matrix_multiply(findgen(n_pts) + n_pts*i, fltarr(fchunk_sizes[j])+1)
-           data_inds = matrix_multiply(findgen(n_pts), fltarr(fchunk_sizes[j])+1) + $
+           x_inds = matrix_multiply(dindgen(n_pts) + n_pts*i, fltarr(fchunk_sizes[j])+1)
+           data_inds = matrix_multiply(dindgen(n_pts), fltarr(fchunk_sizes[j])+1) + $
                        n_pts*transpose(matrix_multiply(findgen(fchunk_sizes[j]) + fchunk_edges[j], fltarr(n_pts)+1))
            term1 = data[data_inds] * exp(-1.*complex(0,1)*x_loc_k[x_inds])
            term1_old = data[*,fchunk_edges[j]:fchunk_edges[j+1]-1] * exp(-1.*complex(0,1)*rebin(x_loc_k[*,i], n_pts, fchunk_sizes[j]))
         endelse
-        undefine, data_inds, x_inds
-        inds = reform(i + n_k1*matrix_multiply(findgen(n_k2), fltarr(fchunk_sizes[j])+1) + n_k1 * n_k2 * $
-                      transpose(matrix_multiply(findgen(fchunk_sizes[j]) + fchunk_edges[j], fltarr(n_k2)+1)), n_k2*fchunk_sizes[j])
-        ft[inds] = reform(transpose(matrix_multiply(term1, y_exp, /atranspose)), n_k2*fchunk_sizes[j])
+        ;;undefine, data_inds, x_inds
+        inds = i + n_k1*matrix_multiply(dindgen(n_k2), fltarr(fchunk_sizes[j])+1) + n_k1 * n_k2 * $
+                      transpose(matrix_multiply(dindgen(fchunk_sizes[j]) + fchunk_edges[j], fltarr(n_k2)+1))
+        ft[inds] = transpose(matrix_multiply(term1, y_exp, /atranspose))
         ft_old[i,*,fchunk_edges[j]:fchunk_edges[j+1]-1] = transpose(matrix_multiply(term1_old, y_exp, /atranspose))
-if max(abs(ft_old-ft)) ne 0 then stop
+if max(abs(ft_old-ft)) or i eq 52 ne 0 then stop
         undefine, inds
 
         inner_times[this_step] = systime(1) - temp
