@@ -168,7 +168,7 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
                  arr = getvar_savefile(file_struct.variancefile[i], file_struct.variancevar[i])
                  transform = discrete_ft_2D_fast(new_pix_vec[*,0], new_pix_vec[*,1], arr, kx_rad_vals, ky_rad_vals, timing = ft_time, $
                                                  fchunk = dft_fchunk)            
-                 variance_cube = temporary(transform) ;; make variances real, positive definite (amplitude)
+                 variance_cube = abs(temporary(transform)) ;; make variances real, positive definite (amplitude)
                  undefine, arr
               endif
  
@@ -187,7 +187,7 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
   ;; if 2 file mode check that uvf variances are close enough to proceed.
   if nfiles eq 2 then begin
      if no_var then begin
-        ;; use abs(weights) instead
+        ;; use 1/abs(weights) instead
         if healpix then begin
            weights_cube1 = getvar_savefile(file_struct.uvf_weight_savefile[0], 'weights_cube')
            weights_cube2 = getvar_savefile(file_struct.uvf_weight_savefile[1], 'weights_cube')
