@@ -333,7 +333,7 @@ pro fhd_data_plots, datafile, save_path = save_path, savefilebase = savefilebase
         
         window_num = 2
         
-        noise_range = [1e18, 1e22]
+        ;;noise_range = [1e18, 1e22]
         for i=0, n_cubes-1 do begin
            if i gt 0 then  pos_use = positions[*,i]
            

@@ -153,7 +153,7 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
                                               fchunk = dft_fchunk)
               data_cube = temporary(transform)
               undefine, arr
-stop
+
               save, file = file_struct.uvf_savefile[i], kx_rad_vals, ky_rad_vals, data_cube
               undefine, data_cube
            endif
@@ -163,7 +163,7 @@ stop
               transform = discrete_ft_2D_fast(new_pix_vec[*,0], new_pix_vec[*,1], arr, kx_rad_vals, ky_rad_vals, timing = ft_time, $
                                               fchunk = dft_fchunk)            
               weights_cube = temporary(transform)
-stop              
+              
               if not no_var then begin
                  arr = getvar_savefile(file_struct.variancefile[i], file_struct.variancevar[i])
                  transform = discrete_ft_2D_fast(new_pix_vec[*,0], new_pix_vec[*,1], arr, kx_rad_vals, ky_rad_vals, timing = ft_time, $
@@ -171,7 +171,7 @@ stop
                  variance_cube = abs(temporary(transform)) ;; make variances real, positive definite (amplitude)
                  undefine, arr
               endif
-stop 
+ 
               save, file = file_struct.uvf_weight_savefile[i], kx_rad_vals, ky_rad_vals, weights_cube, variance_cube
               undefine, new_pix_vec, weights_cube, variance_cube
            endif
@@ -225,26 +225,26 @@ stop
     if min(sigma2_cube1) lt 0 or min(sigma2_cube2) lt 0 then message, 'sigma2 should be positive definite.'
      if total(abs(sigma2_cube1)) le 0 or total(abs(sigma2_cube2)) le 0 then message, 'one or both sigma2 cubes is all zero'
      
-      freq_channel = 0
+     ;; freq_channel = 0
      
-     if windowavailable(1) then wset, 1 else window, 1
-     quick_image, sigma2_cube1[*,*,freq_channel], kx_rad_vals, ky_rad_vals, /log, title = 'Even cube', $
-                  xtitle = 'kx (Mpc!U-1!N)', ytitle = 'ky (Mpc!U-1!N)', data_range = data_range
-     if windowavailable(2) then wset, 2 else window, 2
-     quick_image, sigma2_cube2[*,*,freq_channel], kx_rad_vals, ky_rad_vals, /log, title = 'Odd cube', $
-                  xtitle = 'kx (Mpc!U-1!N)', ytitle = 'ky (Mpc!U-1!N)', data_range = data_range
-     stop
+     ;; if windowavailable(1) then wset, 1 else window, 1
+     ;; quick_image, sigma2_cube1[*,*,freq_channel], kx_rad_vals, ky_rad_vals, /log, title = 'Even cube', $
+     ;;              xtitle = 'kx (Mpc!U-1!N)', ytitle = 'ky (Mpc!U-1!N)', data_range = data_range
+     ;; if windowavailable(2) then wset, 2 else window, 2
+     ;; quick_image, sigma2_cube2[*,*,freq_channel], kx_rad_vals, ky_rad_vals, /log, title = 'Odd cube', $
+     ;;              xtitle = 'kx (Mpc!U-1!N)', ytitle = 'ky (Mpc!U-1!N)', data_range = data_range
+     
      
      diff = abs(sigma2_cube1 - sigma2_cube2)
-     quick_image, diff[*,*,freq_channel], kx_rad_vals, ky_rad_vals, /log, title = 'Difference', $
-                  xtitle = 'kx (Mpc!U-1!N)', ytitle = 'ky (Mpc!U-1!N)'
+     ;; quick_image, diff[*,*,freq_channel], kx_rad_vals, ky_rad_vals, /log, title = 'Difference', $
+     ;;              xtitle = 'kx (Mpc!U-1!N)', ytitle = 'ky (Mpc!U-1!N)'
      
      sigma2_ave = (sigma2_cube1 + sigma2_cube2) / 2.
      diff_frac = diff / sigma2_ave
      
-     if windowavailable(3) then wset, 3 else window, 3
-     quick_image, diff_frac[*,*,freq_channel], kx_rad_vals, ky_rad_vals, /log, title = 'Difference Fraction', $
-                  xtitle = 'kx (Mpc!U-1!N)', ytitle = 'ky (Mpc!U-1!N)'
+     ;; if windowavailable(3) then wset, 3 else window, 3
+     ;; quick_image, diff_frac[*,*,freq_channel], kx_rad_vals, ky_rad_vals, /log, title = 'Difference Fraction', $
+     ;;              xtitle = 'kx (Mpc!U-1!N)', ytitle = 'ky (Mpc!U-1!N)'
      
      ;; diff_frac_mask = fix(diff_frac*0)
      ;; wh_large = where(diff_frac ge 1, count_large)
@@ -270,16 +270,16 @@ stop
      df_sigma_hist = hist_2d(alog10(sigma2_ave), alog10(diff_frac), bin1=0.1, bin2=0.1, $
                           min1 = min_log_sigma, min2=min_log_df, max1=max_log_sigma, max2=max_log_df)
      
-     if windowavailable(4) then wset, 4 else window, 4
-     quick_image, df_sigma_hist, 10^sigma_log_locs, 10^df_log_locs,/log, /xlog, /ylog, xtitle = 'average sigma2', $
-                  ytitle = 'difference fraction', title = 'sigma2 vs difference fraction histogram'
+     ;; if windowavailable(4) then wset, 4 else window, 4
+     ;; quick_image, df_wt_hist, 10^wt_log_locs, 10^df_log_locs,/log, /xlog, /ylog, xtitle = 'average sigma2', $
+     ;;              ytitle = 'difference fraction', title = 'sigma2 vs difference fraction histogram'
      
      
-     ;;binarea = matrix_multiply(10^(sigma_log_locs + 0.1) - 10^(sigma_log_locs), 10^(df_log_locs + 0.1) - 10^(df_log_locs))
+     ;; ;;binarea = matrix_multiply(10^(sigma_log_locs + 0.1) - 10^(sigma_log_locs), 10^(df_log_locs + 0.1) - 10^(df_log_locs))
      
-     ;;quick_image, df_wt_hist/binarea, 10^wt_log_locs, 10^df_log_locs,/log, /xlog, /ylog, xtitle = 'average sigma2', $
-     ;;             ytitle = 'difference fraction', title = 'sigma2 vs difference fraction density'
-stop     
+     ;; ;;quick_image, df_wt_hist/binarea, 10^wt_log_locs, 10^df_log_locs,/log, /xlog, /ylog, xtitle = 'average sigma2', $
+     ;; ;;             ytitle = 'difference fraction', title = 'sigma2 vs difference fraction density'
+     
      df_cut_level = 0.1
      wh_df_cut = where(diff_frac_locs gt df_cut_level, count_df_cut)
      if count_df_cut gt 0 then begin

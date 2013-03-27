@@ -84,20 +84,16 @@ function discrete_ft_2d_fast, locations1, locations2, data, k1, k2, timing = tim
            x_inds = dindgen(n_pts) + n_pts*i
            data_inds = dindgen(n_pts) + n_pts*fchunk_edges[j]
            term1 = reform(data[data_inds]*exp(-1.*complex(0,1)*x_loc_k[x_inds]), n_pts, fchunk_sizes[j])
-           term1_old = reform(data[*,fchunk_edges[j]]*exp(-1.*complex(0,1)*x_loc_k[*,i]), n_pts, fchunk_sizes[j])
         endif else begin
            x_inds = matrix_multiply(dindgen(n_pts) + n_pts*i, fltarr(fchunk_sizes[j])+1)
            data_inds = matrix_multiply(dindgen(n_pts), fltarr(fchunk_sizes[j])+1) + $
                        n_pts*transpose(matrix_multiply(findgen(fchunk_sizes[j]) + fchunk_edges[j], fltarr(n_pts)+1))
            term1 = data[data_inds] * exp(-1.*complex(0,1)*x_loc_k[x_inds])
-           term1_old = data[*,fchunk_edges[j]:fchunk_edges[j+1]-1] * exp(-1.*complex(0,1)*rebin(x_loc_k[*,i], n_pts, fchunk_sizes[j]))
         endelse
-        ;;undefine, data_inds, x_inds
+        undefine, data_inds, x_inds
         inds = i + n_k1*matrix_multiply(dindgen(n_k2), fltarr(fchunk_sizes[j])+1) + n_k1 * n_k2 * $
                       transpose(matrix_multiply(dindgen(fchunk_sizes[j]) + fchunk_edges[j], fltarr(n_k2)+1))
         ft[inds] = transpose(matrix_multiply(term1, y_exp, /atranspose))
-        ft_old[i,*,fchunk_edges[j]:fchunk_edges[j+1]-1] = transpose(matrix_multiply(term1_old, y_exp, /atranspose))
-if max(abs(ft_old-ft)) or i eq 52 ne 0 then stop
         undefine, inds
 
         inner_times[this_step] = systime(1) - temp
@@ -111,7 +107,7 @@ if max(abs(ft_old-ft)) or i eq 52 ne 0 then stop
   if timing lt 60 then timing_str = number_formatter(timing, format='(d8.2)') + ' sec' $
   else if timing lt 3600 then timing_str = number_formatter(timing/60, format='(d8.2)') + ' min' $
   else timing_str= number_formatter(timing/3600, format='(d8.2)') + ' hours'
-stop
+
   print, 'discrete 2D FT time: ' + timing_str
 
   return, ft
