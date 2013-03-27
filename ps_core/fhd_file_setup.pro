@@ -1,5 +1,6 @@
 function fhd_file_setup, datafile, pol, type, weightfile = weightfile, variancefile = variancefile, pixelfile = pixelfile, $
                          datavar = datavar, weightvar = weightvar, variancevar = variancevar, pixelvar = pixelvar, $
+                         save_path = save_path, $
                          hpx_dftsetup_savefile = hpx_dftsetup_savefile, weight_savefilebase = weight_savefilebase_in, $
                          variance_savefilebase = variance_savefilebase_in, uvf_savefilebase = uvf_savefilebase_in, $
                          savefilebase = savefilebase_in
@@ -65,7 +66,8 @@ function fhd_file_setup, datafile, pol, type, weightfile = weightfile, variancef
 
   if n_elements(savefilebase_in) eq 0 or n_elements(uvf_savefilebase_in) lt nfiles then begin
      if nfiles eq 1 then begin
-        froot = file_dirname(datafile, /mark_directory)
+        if n_elements(save_path) ne 0 then froot = save_path $
+        else froot = file_dirname(datafile, /mark_directory)
         uvf_froot = froot
         infilebase = file_basename(datafile)
         temp2 = strpos(infilebase, '.', /reverse_search)
@@ -76,7 +78,8 @@ function fhd_file_setup, datafile, pol, type, weightfile = weightfile, variancef
         ;; if we're only dealing with one file and uvf_savefilebase isn't specified then use same base for uvf files 
         if n_elements(uvf_savefilebase_in) eq 0 then uvf_savefilebase = general_filebase + file_label
      endif else begin
-        froot = file_dirname(datafile[0], /mark_directory)
+        if n_elements(save_path) ne 0 then froot = save_path $
+        else froot = file_dirname(datafile[0], /mark_directory)
         infilebase = file_basename(datafile)
         temp2 = strpos(infilebase, '.', /reverse_search)
         
@@ -96,22 +99,29 @@ function fhd_file_setup, datafile, pol, type, weightfile = weightfile, variancef
         
         if n_elements(uvf_savefilebase_in) eq 0 then begin
            ;; need 2 uvf files
-           uvf_froot = file_dirname(datafile, /mark_directory)
+           if n_elements(save_path) ne 0 then uvf_froot = save_path $
+           else uvf_froot = file_dirname(datafile, /mark_directory)
            uvf_savefilebase = [strmid(infilebase[0], 0, temp2[0]), strmid(infilebase[1], 0, temp2[1])] + file_label
         endif
      endelse
   endif 
 
   if n_elements(savefilebase_in) eq 1 then begin
-     temp = file_dirname(savefilebase_in, /mark_directory)
-     if temp ne '.' then froot = temp else froot = file_dirname(datafile[0], /mark_directory)
+     if n_elements(save_path) gt 0 then froot = save_path $
+     else begin
+        temp = file_dirname(savefilebase_in, /mark_directory)
+        if temp ne '.' then froot = temp else froot = file_dirname(datafile[0], /mark_directory)
+     endelse
      savefilebase = file_basename(savefilebase_in)
      general_filebase = savefilebase
   endif
 
   if n_elements(uvf_savefilebase_in) eq nfiles then begin
-     temp = file_dirname(uvf_savefilebase_in, /mark_directory)
-     for i=0, nfiles-1 do if temp[i] ne '.' then uvf_froot = temp[i] else uvf_froot = file_dirname(datafile[i], /mark_directory)
+     if n_elements(save_path) gt 0 then uvf_froot = save_path $
+     else begin
+        temp = file_dirname(uvf_savefilebase_in, /mark_directory)
+        for i=0, nfiles-1 do if temp[i] ne '.' then uvf_froot = temp[i] else uvf_froot = file_dirname(datafile[i], /mark_directory)
+     endelse
      uvf_savefilebase = file_basename(uvf_savefilebase_in)
   endif
       
@@ -125,7 +135,8 @@ function fhd_file_setup, datafile, pol, type, weightfile = weightfile, variancef
   fits_power_savefile = froot + savefilebase + '_power.fits'
 
   if n_elements(weight_savefilebase_in) eq 0 then begin
-     wt_froot = file_dirname(weightfile, /mark_directory)
+     if n_elements(save_path) gt 0 then wt_froot = save_path $
+     else wt_froot = file_dirname(weightfile, /mark_directory)
      wt_infilebase = file_basename(weightfile)
      temp2 = strpos(wt_infilebase, '.', /reverse_search)
      if nfiles eq 1 then weight_savefilebase = strmid(wt_infilebase, 0, temp2) + wt_file_label $
@@ -133,13 +144,16 @@ function fhd_file_setup, datafile, pol, type, weightfile = weightfile, variancef
         weight_savefilebase = strarr(nfiles)
         for i=0, nfiles-1 do weight_savefilebase[i] = strmid(wt_infilebase[i], 0, temp2[i]) + wt_file_label
      endelse
-    endif else begin
-     temp = file_dirname(weight_savefilebase_in, /mark_directory)
-     if nfiles eq 1 then if temp ne '.' then wt_froot = temp else  wt_froot = file_dirname(weightfile, /mark_directory) $
+  endif else begin
+     if n_elements(save_path) gt 0 then wt_froot = save_path $
      else begin
-        wt_froot = strarr(nfiles)
-        for i=0, nfiles-1 do if temp[i] ne '.' then wt_froot[i] = temp[i] else $
-           wt_froot[i] = file_dirname(weightfile[i], /mark_directory)
+        temp = file_dirname(weight_savefilebase_in, /mark_directory)
+        if nfiles eq 1 then if temp ne '.' then wt_froot = temp else  wt_froot = file_dirname(weightfile, /mark_directory) $
+        else begin
+           wt_froot = strarr(nfiles)
+           for i=0, nfiles-1 do if temp[i] ne '.' then wt_froot[i] = temp[i] else $
+              wt_froot[i] = file_dirname(weightfile[i], /mark_directory)
+        endelse
      endelse
      weight_savefilebase = file_basename(weight_savefilebase_in)
   endelse

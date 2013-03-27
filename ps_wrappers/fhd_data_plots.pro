@@ -114,7 +114,7 @@ pro fhd_data_plots, datafile, save_path = save_path, savefilebase = savefilebase
      pol = pol_inc[i / ntype]
      type = type_inc[i mod ntype]
 
-     file_struct = fhd_file_setup(datafile, pol, type, savefilebase = savefilebase)
+     file_struct = fhd_file_setup(datafile, pol, type, savefilebase = savefilebase, save_path = save_path)
      if i eq 0 then file_struct_arr = replicate(file_struct, n_cubes)
      file_struct_arr[i] = file_struct
   endfor
