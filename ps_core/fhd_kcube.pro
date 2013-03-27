@@ -1,5 +1,5 @@
 pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weight = dft_refresh_weight, $
-              dft_fchunk = dft_fchunk, std_power = std_power, input_units = input_units
+              dft_fchunk = dft_fchunk, std_power = std_power, input_units = input_units, quiet = quiet
 
   if n_elements(file_struct.nside) ne 0 then healpix = 1 else healpix = 0
   nfiles = n_elements(file_struct.datafile)
@@ -225,65 +225,82 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
     if min(sigma2_cube1) lt 0 or min(sigma2_cube2) lt 0 then message, 'sigma2 should be positive definite.'
      if total(abs(sigma2_cube1)) le 0 or total(abs(sigma2_cube2)) le 0 then message, 'one or both sigma2 cubes is all zero'
      
-     ;; freq_channel = 0
+     if not keyword_set(quiet) then begin
+        freq_channel = 0
      
-     ;; if windowavailable(1) then wset, 1 else window, 1
-     ;; quick_image, sigma2_cube1[*,*,freq_channel], kx_rad_vals, ky_rad_vals, /log, title = 'Even cube', $
-     ;;              xtitle = 'kx (Mpc!U-1!N)', ytitle = 'ky (Mpc!U-1!N)', data_range = data_range
-     ;; if windowavailable(2) then wset, 2 else window, 2
-     ;; quick_image, sigma2_cube2[*,*,freq_channel], kx_rad_vals, ky_rad_vals, /log, title = 'Odd cube', $
-     ;;              xtitle = 'kx (Mpc!U-1!N)', ytitle = 'ky (Mpc!U-1!N)', data_range = data_range
-     
-     
-     diff = abs(sigma2_cube1 - sigma2_cube2)
-     ;; quick_image, diff[*,*,freq_channel], kx_rad_vals, ky_rad_vals, /log, title = 'Difference', $
-     ;;              xtitle = 'kx (Mpc!U-1!N)', ytitle = 'ky (Mpc!U-1!N)'
+        win_num=1
+        if windowavailable(win_num) then wset, win_num else window, win_num
+        quick_image, sigma2_cube1[*,*,freq_channel], kx_rad_vals, ky_rad_vals, /log, title = 'Even cube variance', $
+                     xtitle = 'kx (Mpc!U-1!N)', ytitle = 'ky (Mpc!U-1!N)', data_range = data_range
+        win_num=2
+        if windowavailable(win_num) then wset, win_num else window, win_num
+        quick_image, sigma2_cube2[*,*,freq_channel], kx_rad_vals, ky_rad_vals, /log, title = 'Odd cube variance', $
+                     xtitle = 'kx (Mpc!U-1!N)', ytitle = 'ky (Mpc!U-1!N)', data_range = data_range
+     end
      
      sigma2_ave = (sigma2_cube1 + sigma2_cube2) / 2.
-     diff_frac = diff / sigma2_ave
-     
-     ;; if windowavailable(3) then wset, 3 else window, 3
-     ;; quick_image, diff_frac[*,*,freq_channel], kx_rad_vals, ky_rad_vals, /log, title = 'Difference Fraction', $
-     ;;              xtitle = 'kx (Mpc!U-1!N)', ytitle = 'ky (Mpc!U-1!N)'
-     
-     ;; diff_frac_mask = fix(diff_frac*0)
-     ;; wh_large = where(diff_frac ge 1, count_large)
-     ;; if count_large gt 0 then diff_frac_mask[wh_large] = 1
-     ;; ;;quick_image, diff_frac_mask[*,*,freq_channel], kx_rad_vals, ky_rad_vals, title = 'Difference Fraction above 1', $
-     ;; ;;             xtitle = 'kx (Mpc!U-1!N)', ytitle = 'ky (Mpc!U-1!N)', data_range = [0,1], /grey_scale
-     
+     diff = abs(1./sigma2_cube1 - 1./sigma2_cube2)
+     wh_invsig0 = where(sigma2_cube1 eq 0 or sigma2_cube2 eq 0, count_invsig0)
+     if count_invsig0 gt 0 then diff[wh_invsig0] = 0
+
+     if not keyword_set(quiet) then begin
+        win_num=3
+        if windowavailable(win_num) then wset, win_num else window, win_num
+        quick_image, diff[*,*,freq_channel], kx_rad_vals, ky_rad_vals, /log, title = 'Inverse Variance Difference', $
+                     xtitle = 'kx (Mpc!U-1!N)', ytitle = 'ky (Mpc!U-1!N)'
+     endif
+
+     ave_inv_var = (1./sigma2_cube1 + 1./sigma2_cube2) /2.
+     if count_invsig0 gt 0 then ave_inv_var[wh_invsig0] = 0
+     diff_frac = diff / ave_inv_var
+     if count_invsig0 gt 0 then diff_frac[wh_invsig0] = 0
+    
+
+     if not keyword_set(quiet) then begin
+        win_num=4 
+       if windowavailable(win_num) then wset, win_num else window, win_num
+        quick_image, diff_frac[*,*,freq_channel], kx_rad_vals, ky_rad_vals, /log, title = 'Inverse Variance Difference Fraction', $
+                     xtitle = 'kx (Mpc!U-1!N)', ytitle = 'ky (Mpc!U-1!N)'
+        
+        ;;diff_frac_mask = fix(diff_frac*0)
+        ;;wh_large = where(diff_frac ge 1, count_large)
+        ;;if count_large gt 0 then diff_frac_mask[wh_large] = 1
+        ;;quick_image, diff_frac_mask[*,*,freq_channel], kx_rad_vals, ky_rad_vals, title = 'Difference Fraction above 1', $
+        ;;             xtitle = 'kx (Mpc!U-1!N)', ytitle = 'ky (Mpc!U-1!N)', data_range = [0,1], /grey_scale
+     endif
+
      cube_max = max([sigma2_cube1, sigma2_cube2])
      cube_min_n0 = min([sigma2_cube1[where(sigma2_cube1 ne 0)], sigma2_cube2[where(sigma2_cube2 ne 0)]])
-     ;; cube_binsize = 10.^(floor(alog10(cube_max))-2)
-     ;;cube1_hist = histogram(sigma2_cube1, binsize = cube_binsize, min = 0, max = cube_max, locations = cube_locs)
-     ;;cube2_hist = histogram(sigma2_cube2, binsize = cube_binsize, min = 0, max = cube_max, locations = cube_locs)
-     ;;diff_hist = histogram(diff, binsize = cube_binsize*0.01, min = 0, omax = diff_max, locations = diff_locs)
      diff_frac_hist = histogram(diff_frac, binsize = 0.01, min = 0, omax = df_max, locations = diff_frac_locs, $
                                 reverse_indices = df_ri)
      
      min_log_sigma = alog10(cube_min_n0)
      min_log_df = alog10(min(diff_frac[where(diff_frac gt 0)]))
-     sigma_log_hist = histogram(alog10(sigma2_ave), binsize = 0.1, min = min_log_sigma, omax = max_log_sigma, $
-                                locations = sigma_log_locs)
+     invvar_log_hist = histogram(alog10(ave_inv_var), binsize = 0.1, min = min_log_invvar, omax = max_log_invvar, $
+                                locations = invvar_log_locs)
      df_log_hist = histogram(alog10(diff_frac), binsize = 0.1, min = min_log_df, omax = max_log_df, locations = df_log_locs)
      
-     df_sigma_hist = hist_2d(alog10(sigma2_ave), alog10(diff_frac), bin1=0.1, bin2=0.1, $
-                          min1 = min_log_sigma, min2=min_log_df, max1=max_log_sigma, max2=max_log_df)
+     df_invvar_hist = hist_2d(alog10(ave_inv_var), alog10(diff_frac), bin1=0.1, bin2=0.1, $
+                          min1 = min_log_invvar, min2=min_log_df, max1=max_log_invvar, max2=max_log_df)
      
-     ;; if windowavailable(4) then wset, 4 else window, 4
-     ;; quick_image, df_wt_hist, 10^wt_log_locs, 10^df_log_locs,/log, /xlog, /ylog, xtitle = 'average sigma2', $
-     ;;              ytitle = 'difference fraction', title = 'sigma2 vs difference fraction histogram'
-     
-     
-     ;; ;;binarea = matrix_multiply(10^(sigma_log_locs + 0.1) - 10^(sigma_log_locs), 10^(df_log_locs + 0.1) - 10^(df_log_locs))
-     
-     ;; ;;quick_image, df_wt_hist/binarea, 10^wt_log_locs, 10^df_log_locs,/log, /xlog, /ylog, xtitle = 'average sigma2', $
-     ;; ;;             ytitle = 'difference fraction', title = 'sigma2 vs difference fraction density'
-     
+     if not keyword_set(quiet) then begin
+        win_num=5
+        if windowavailable(win_num) then wset, win_num else window, win_num
+        quick_image, df_invvar_hist, 10^invvar_log_locs, 10^df_log_locs,/log, /xlog, /ylog, xtitle = 'average inverse variance', $
+                     ytitle = 'inverse variance difference fraction', title = 'inverse variance vs difference fraction histogram'
+        
+        ;;binarea = matrix_multiply(10^(sigma_log_locs + 0.1) - 10^(sigma_log_locs), 10^(df_log_locs + 0.1) - 10^(df_log_locs))
+        ;;quick_image, df_wt_hist/binarea, 10^wt_log_locs, 10^df_log_locs,/log, /xlog, /ylog, xtitle = 'average sigma2', $
+        ;;             ytitle = 'difference fraction', title = 'sigma2 vs difference fraction density'
+        
+     endif
+
      df_cut_level = 0.1
+     cgplot, /overplot, 10^invvar_log_locs, invvar_log_locs*0+df_cut_level
+
      wh_df_cut = where(diff_frac_locs gt df_cut_level, count_df_cut)
      if count_df_cut gt 0 then begin
-        print, 'cutting out pixels with a sigma2 difference greater than ' + number_formatter(df_cut_level*100.) + '%'
+        print, 'cutting out pixels with an inverse variance difference greater than ' + number_formatter(df_cut_level*100.) + '%'
         
         cut_inds = df_ri[df_ri[min(wh_df_cut)]:df_ri[max(wh_df_cut)+1]-1]
         if (n_elements(cut_inds) / total(diff_frac_hist)) gt .1 then stop
@@ -291,9 +308,11 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
         print, 'removed ' + number_formatter(n_elements(cut_inds) / total(diff_frac_hist) * 100, format = '(f7.1)') + '% of pixels'
         sigma2_ave[cut_inds] = 0.
      endif
-     ;;undefine, diff_frac_mask, cube1_hist, cube2_hist, diff_hist, sigma_log_hist, df_log_hist
-     undefine, sigma2_cube1, sigma2_cube2, diff, diff_frac, diff_frac_hist, sigma_log_hist, df_log_hist, df_sigma_hist, df_ri
- 
+     ;;undefine, cube1_hist, cube2_hist, diff_frac_mask
+     undefine, sigma2_cube1, sigma2_cube2
+     undefine, diff, ave_inv_var, diff_frac, diff_frac_hist, invvar_log_hist, df_log_hist, df_invvar_hist, df_ri
+
+     if not keyword_set(quiet) then stop
      
      ;; now get data cubes
      if healpix then begin
