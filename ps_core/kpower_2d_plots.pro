@@ -1,5 +1,5 @@
 pro kpower_2d_plots, power_savefile, multi_pos = multi_pos, start_multi_params = start_multi_params, plot_weights = plot_weights, $
-                     plot_noise = plot_noise, ratio = ratio, snr = snr, $
+                     plot_noise = plot_noise, plot_sigma = plot_sigma, ratio = ratio, snr = snr, nnr = nnr, $
                      kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
                      data_range = data_range, color_profile = color_profile, log_cut_val = log_cut_val, pub = pub, $
                      plotfile = plotfile, no_title = no_title, window_num = window_num, title = title, norm_2d = norm_2d, $
@@ -26,8 +26,9 @@ pro kpower_2d_plots, power_savefile, multi_pos = multi_pos, start_multi_params =
   wh_prof = where(color_profile_enum eq color_profile, count)
   if count eq 0 then message, 'Color profile must be one of: ' + strjoin(color_profile_enum, ', ')
 
-  if total([keyword_set(plot_weights), keyword_set(plot_noise), keyword_set(snr)]) gt 1 then $
-     message, 'only one of snr, plot_noise, and plot_weights keywords can be set'
+  if total([keyword_set(plot_weights), keyword_set(plot_sigma), $
+            keyword_set(plot_noise), keyword_set(snr), keyword_set(nnr)]) gt 1 then $
+     message, 'only one of [plot_noise, plot_sigma, plot_weights, snr, nnr] keywords can be set'
 
   if keyword_set(ratio) then begin
      if n_elements(power_savefile) gt 2 then message, 'Only 2 files can be specified in power_savefile if ratio keyword is set'
@@ -50,7 +51,7 @@ pro kpower_2d_plots, power_savefile, multi_pos = multi_pos, start_multi_params =
 
      if keyword_set(snr) then message, 'snr keyword cannot be used with ratio keyword'
 
-     if keyword_set(plot_noise) and (n_elements(noise1) eq 0 or n_elements(noise2) eq 0) then $
+     if (keyword_set(plot_noise) or keyword_set(nnr)) and (n_elements(noise1) eq 0 or n_elements(noise2) eq 0) then $
         message, 'Noise is not included in one or both files'
 
      if keyword_set(plot_weights) then begin
@@ -74,20 +75,20 @@ pro kpower_2d_plots, power_savefile, multi_pos = multi_pos, start_multi_params =
      restore, power_savefile
 
      if keyword_set(snr) then begin
-         if n_elements(noise) eq 0 then message, 'noise is undefined in this file'
-
-        power = power / noise
-        wh_0 = where(noise eq 0, count_0)
-        if count_0 gt 0 then begin
-           power[wh_0] = 0
-        endif
+        power = power * sqrt(weights)
         plot_type = 'snr'
      endif
 
     if keyword_set(plot_weights) then begin
-        if keyword_set(plot_noise) then message, 'only one of snr, plot_noise, and plot_weights keywords can be set'
         power = weights
         plot_type = 'weight'
+     endif
+
+    if keyword_set(plot_sigma) then begin
+        power = 1/weights
+        wh_wt0 = where(weights eq 0, count_wt0)
+        if count_wt0 gt 0 then power[wh_wt0 ] = 0
+        plot_type = 'sigma'
      endif
      
      if keyword_set(plot_noise) then begin
@@ -96,6 +97,11 @@ pro kpower_2d_plots, power_savefile, multi_pos = multi_pos, start_multi_params =
         plot_type = 'noise'
      endif
      
+     if keyword_set(nnr) then begin
+        power = noise * sqrt(weights)
+        plot_type = 'nnr'
+     endif
+
      if n_elements(plot_type) eq 0 then plot_type = 'power'
 
   endelse
@@ -138,9 +144,14 @@ pro kpower_2d_plots, power_savefile, multi_pos = multi_pos, start_multi_params =
          plot_title = 'Weights Ratio'
          plotfile_add = '_weight_ratio.eps'
      end
+     'sigma': begin
+         units_str = ''
+         plot_title = textoidl('\sigma', font = font)
+         plotfile_add = '_2dsigma.eps'
+     end
      'snr': begin
          units_str = ''
-         plot_title = 'Signal/Noise (' + textoidl('P_k', font = font) + '/N)'
+         plot_title = 'SNR (' + textoidl('P_k / \sigma', font = font) + ')'
          plotfile_add = '_2dsnr.eps'
      end
      'noise': begin
@@ -149,6 +160,11 @@ pro kpower_2d_plots, power_savefile, multi_pos = multi_pos, start_multi_params =
 
         plot_title = 'Noise'
         plotfile_add = '_2dnoise.eps'
+     end
+     'nnr': begin
+         units_str = ''
+         plot_title = 'NNR (' + textoidl('N / \sigma', font = font) + ')'
+         plotfile_add = '_2dnnr.eps'
      end
      'noise_ratio': begin
          units_str = ''
