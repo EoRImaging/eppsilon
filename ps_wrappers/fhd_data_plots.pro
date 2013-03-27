@@ -216,7 +216,8 @@ pro fhd_data_plots, datafile, save_path = save_path, savefilebase = savefilebase
   if keyword_set(hinv) then kperp_plot_range = kperp_plot_range / hubble_param
   
 
-  if n_elements(plot_path) ne 0 then plotfile_path = plot_path else plotfile_path = froot
+  if n_elements(plot_path) ne 0 then plotfile_path = plot_path $
+  else if n_elements(save_path) ne 0 then plotfile_path = save_path else plotfile_path = file_struct_arr.savefile_froot
   plotfile_base = plotfile_path + file_struct_arr.savefilebase + fadd
   plotfile_base_wt = plotfile_path + file_struct_arr.weight_savefilebase + wt_file_labels[uniq(weight_ind, sort(weight_ind))] + fadd
 
