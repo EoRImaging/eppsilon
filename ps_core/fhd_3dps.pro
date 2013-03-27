@@ -18,7 +18,7 @@ pro fhd_3dps, file_struct, refresh = refresh, kcube_refresh = kcube_refresh, dft
      test_kcube = file_test(file_struct.kcube_savefile) *  (1 - file_test(file_struct.kcube_savefile, /zero_length))
      if test_kcube eq 0 or keyword_set(kcube_refresh) then $
         fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weight = dft_refresh_weight, $
-                   dft_fchunk = dft_fchunk, std_power = std_power, input_units = input_units
+                   dft_fchunk = dft_fchunk, std_power = std_power, input_units = input_units, /quiet
 
      if nfiles eq 1 then begin
         restore, file_struct.kcube_savefile
@@ -39,8 +39,7 @@ pro fhd_3dps, file_struct, refresh = refresh, kcube_refresh = kcube_refresh, dft
         endif else begin  
  
            ;;weights_1 = (1/sigma1_2)^2d
-           ;;weights_1 = 1d/(4d*real_part(data1 * conj(data1))*sigma1_2)
-           weights_1 = 1d/(4*(sigma1_2)^2d)
+           weights_1 = 1d/(4*(sigma1_2)^2d) ;; inverse variance
            term1 = real_part(data1_1 * conj(data1_1))*weights_1
            wh_sig1_0 = where(sigma1_2^2d eq 0, count_sig1_0)
            if count_sig1_0 ne 0 then begin
@@ -49,28 +48,25 @@ pro fhd_3dps, file_struct, refresh = refresh, kcube_refresh = kcube_refresh, dft
            endif
            
            ;;weights_2 = (1/sigma2_2)^2d
-           ;;weights_2 = 1d/(4d*real_part(data2 * conj(data2))*sigma2_2)
-           weights_2 = 1d/(4*(sigma2_2)^2d)
+           weights_2 = 1d/(4*(sigma2_2)^2d) ;; inverse variance
            term2 = real_part(data1_2 * conj(data1_2))*weights_2
            wh_sig2_0 = where(sigma2_2^2d eq 0, count_sig2_0)
            if count_sig2_0 ne 0 then begin
               weights_2[wh_sig2_0] = 0
               term2[wh_sig2_0] = 0
            endif
-           undefine, data1, data2, weights1, weights2
+           undefine, data1_1, data1_2
 
-           weights_3d = weights_1 + weights_2
-           ;;weights_3d = 1d/(1d/weights_1 + 1d/weights_2)
+           weights_3d = weights_1 + weights_2 ;; variance_3d = 2/weights_3d (?)
            if count_sig1_0 gt 0 then weights_3d[wh_sig1_0] = weights_2[wh_sig1_0]
            if count_sig2_0 gt 0 then weights_3d[wh_sig2_0] = weights_1[wh_sig2_0]
            
            power_3d = (term1 + term2) / weights_3d
-           ;;power_error = 1/weights
            wh_wt0 = where(weights_3d eq 0, count_wt0)
            if count_wt0 ne 0 then begin
               power_3d[wh_wt0] = 0
            endif
-           undefine, term1, term2, weights1, weights2
+           undefine, term1, term2, weights_1, weights_2
            
         endelse
      endif else begin
@@ -122,11 +118,11 @@ pro fhd_3dps, file_struct, refresh = refresh, kcube_refresh = kcube_refresh, dft
            wh_sig1_0 = where(sigsq1 eq 0, count_sig1_0)
            wh_sig2_0 = where(sigsq2 eq 0, count_sig2_0)
                               
-           weights_1 = 1./(4.*(sigsq1)^2.)
+           weights_1 = 1./(4.*(sigsq1)^2.) ;; inverse variance
            term1 = 4. * real_part(cube1_data1 * conj(cube2_data1)) * weights_1
            noise_t1 = abs(cube1_data1 - cube2_data1)^2. * weights_1
            
-           weights_2 = 1./(4.*(sigsq2)^2.)
+           weights_2 = 1./(4.*(sigsq2)^2.) ;; inverse variance
            term2 = 4. * real_part(cube1_data2 * conj(cube2_data2)) * weights_2
            noise_t2 = abs(cube1_data2 - cube2_data2)^2. * weights_2
           
@@ -140,23 +136,15 @@ pro fhd_3dps, file_struct, refresh = refresh, kcube_refresh = kcube_refresh, dft
            if count_sig2_0 ne 0 then begin
               weights_2[wh_sig2_0] = 0
               term2[wh_sig2_0] = 0
-               noise_t2[wh_sig2_0] = 0
+              noise_t2[wh_sig2_0] = 0
            endif
 
-           ;;weights_main = weights_1 + weights_2
-           ;;weights_cross = 2. * weights_3_4
-           weights_3d =  weights_1 + weights_2
+           weights_3d =  weights_1 + weights_2 ;; variance_3d = 2/weights_3d (?)
            
-           ;;power_main = abs(term1 + term2) / weights_main
-           ;;power_cross = abs(term3 + term4) / weights_cross
            power_3d = (term1 + term2) / weights_3d
            noise_3d = (noise_t1 + noise_t2) / weights_3d
-           undefine, term1, term2, alt_term1, alt_term2, noise_t1, noise_t2
+           undefine, term1, term2, noise_t1, noise_t2
            
-           ;;wh_main0 = where(weights_main eq 0, count_main0)
-           ;;if count_main0 ne 0 then power_main[wh_main0] = 0
-           ;;wh_cross0 = where(weights_cross eq 0, count_cross0)
-           ;;if count_cross0 ne 0 then power_cross[wh_cross0] = 0
            wh_wt0 = where(weights_3d eq 0, count_wt0)
            if count_wt0 ne 0 then begin
               power_3d[wh_wt0] = 0
