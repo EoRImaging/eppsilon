@@ -119,8 +119,8 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
   
   t_sys = 440. ; K
   eff_area = 16. ; m^2
-  df = 40.e3 ; Hz
-  tau = 1. ; seconds
+  df = file_struct.freq_resolution ; Hz
+  tau = file_struct.time_resolution ; seconds
   vis_sigma = (2. * (1.38065e-23) * 1e26) * t_sys / (eff_area * sqrt(df * tau)) ;; in Jy
   vis_sigma = vis_sigma * conv_factor ;; convert to mK
 

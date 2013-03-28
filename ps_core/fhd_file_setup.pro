@@ -217,6 +217,7 @@ function fhd_file_setup, datafile, pol, type, weightfile = weightfile, variancef
                  message, 'frequencies do not agree between datafiles'
               if j eq 0 then n_freq = (*obs_arr[0]).n_freq else if (*obs_arr[0]).n_freq ne n_freq then $
                  message, 'n_freq does not agree between datafiles'
+stop
            endif else begin
               n_obs = n_elements(obs_arr)
               if j eq 0 then max_baseline_lambda = max(obs_arr.max_baseline) $
@@ -245,7 +246,18 @@ function fhd_file_setup, datafile, pol, type, weightfile = weightfile, variancef
               if total(abs(freq_vals - rebin(freq_vals[*,0], n_freq, n_obs))) ne 0 then message, 'inconsistent freq values in obs_arr'
               if j eq 0 then freq = freq_vals[*,0] else if total(abs(freq - freq_vals[*,0])) ne 0 then $
                  message, 'frequencies do not agree between datafiles'
+              freq_resolution = freq[1]-freq[0]
               
+              dt_vals = dblarr(n_obs)
+              for i=0, n_obs-1 do begin
+                 times = (*obs_arr[i].baseline_info).jdate
+                 ;; only allow time resolutions of n*.5 sec
+                 dt_vals[i] = round(((times[1]-times[0])*24*3600)*2.)/2.
+              endfor
+              if total(abs(dt_vals - dt_vals[0])) ne 0 then message, 'inconsistent time averaging in obs_arr'
+              if j eq 0 then time_resolution = dt_vals[0] else $
+                 if total(abs(time_resolution - dt_vals[0])) ne 0 then message, 'time averaging does not agree between datafiles' 
+
            endelse
 
            theta_vals = angle_difference(obs_radec_vals[*,1], obs_radec_vals[*,0], zen_radec_vals[*,1], zen_radec_vals[*,0], $
@@ -289,7 +301,8 @@ function fhd_file_setup, datafile, pol, type, weightfile = weightfile, variancef
   if healpix then begin
      file_struct = {datafile: datafile, weightfile: weightfile, variancefile:variancefile, pixelfile:pixelfile, $
                     datavar:data_varname, variancevar:variance_varname, weightvar:weight_varname, pixelvar:pixel_varname, $
-                    frequencies:frequencies, max_baseline:max_baseline, max_theta:max_theta, nside:nside, $
+                    frequencies:frequencies, freq_resolution:freq_resolution, time_resolution:time_resolution, $
+                    max_baseline:max_baseline, max_theta:max_theta, nside:nside, $
                     hpx_dftsetup_savefile:hpx_dftsetup_savefile, $
                     uvf_savefile:uvf_savefile, uvf_weight_savefile:uvf_weight_savefile, $
                     uf_savefile:uf_savefile, vf_savefile:vf_savefile, uv_savefile:uv_savefile, kcube_savefile:kcube_savefile, $
@@ -299,7 +312,8 @@ function fhd_file_setup, datafile, pol, type, weightfile = weightfile, variancef
   endif else begin
      file_struct = {datafile: datafile, weightfile: weightfile, variancefile:variancefile, $
                     datavar:data_varname, weightvar:weight_varname, variancevar:variance_varname, $
-                    frequencies:frequencies, max_baseline:max_baseline, max_theta:max_theta, degpix:degpix, $
+                    frequencies:frequencies, freq_resolution:freq_resolution, time_resolution:time_resolution, $
+                    max_baseline:max_baseline, max_theta:max_theta, degpix:degpix, $
                     kcube_savefile:kcube_savefile, power_savefile:power_savefile, fits_power_savefile:fits_power_savefile, $
                     savefile_froot:froot, savefilebase:savefilebase, general_filebase:general_filebase, $
                     weight_savefilebase:weight_savefilebase}
