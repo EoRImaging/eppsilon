@@ -114,10 +114,16 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
      
      ;; conv_factor = (10^(double(-26+16+3-12+23)) * 9d) / (beam_area_str * 2d * frequencies^2d * 1.38)
      ;; if max(conv_factor-conv_factor[0]) gt 1e-8 then stop else conv_factor = conv_factor[0]
-     conv_factor = float(2. * max_baseline^2d / (!dpi * 1.38))
+     conv_factor = float(2. * max_baseline^2d / (!dpi * 1.38065))
   endif else conv_factor = 1.
   
-  
+  t_sys = 440. ; K
+  eff_area = 16. ; m^2
+  df = 40.e3 ; Hz
+  tau = 1. ; seconds
+  vis_sigma = (2. * (1.38065e-23) * 1e26) * t_sys / (eff_area * sqrt(df * tau)) ;; in Jy
+  vis_sigma = vis_sigma * conv_factor ;; convert to mK
+
   if healpix then begin
      if nfiles eq 2 then begin
         ;; check that they have the same set of healpix pixels
@@ -296,7 +302,7 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
      endif
 
      df_cut_level = 0.1
-     cgplot, /overplot, 10^invvar_log_locs, invvar_log_locs*0+df_cut_level
+     if not keyword_set(quiet) then cgplot, /overplot, 10^invvar_log_locs, invvar_log_locs*0+df_cut_level
 
      wh_df_cut = where(diff_frac_locs gt df_cut_level, count_df_cut)
      if count_df_cut gt 0 then begin
@@ -347,7 +353,9 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
         if count_wt1_0 ne 0 then sigma2_ave[wh_wt1_0] = 0
      endelse
   endelse
-
+  
+  ;; get sigma into mK
+  sigma2_ave = sigma2_ave * vis_sigma^2.
 
   if healpix then begin
      dims = size(data_cube1, /dimensions)
