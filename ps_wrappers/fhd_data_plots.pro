@@ -276,29 +276,36 @@ pro fhd_data_plots, datafile, save_path = save_path, savefilebase = savefilebase
                             title = plot_titles[i], grey_scale = grey_scale, plot_wedge_line = plot_wedge_line, hinv = hinv, $
                             wedge_amp = wedge_amp, baseline_axis = baseline_axis, delay_axis = delay_axis, $
                             kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis $
-        else kpower_2d_plots, savefiles_2d_use[i], /plot_sigma, plotfile = plotfiles_2d_use[i],$
-                              kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, /pub, $
+        else kpower_2d_plots, savefiles_2d_use[i], /plot_sigma, /pub, plotfile = plotfiles_2d_use[i],$
+                              kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, data_range = sigma_range, $
                               title = plot_titles[i], grey_scale = grey_scale, plot_wedge_line = plot_wedge_line, hinv = hinv, $
                               wedge_amp = wedge_amp, baseline_axis = baseline_axis, delay_axis = delay_axis, $
                               kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis
      endfor
 
-     if nfiles eq 2 then begin
-        for i=0, n_cubes-1 do kpower_2d_plots, savefiles_2d[i], /pub, /snr, plotfile = plotfiles_2d_snr[i], $
-                                               kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
-                                               data_range = snr_range, $
-                                               title = titles[i] + ' SNR (' + textoidl('P_k/\sigma', font = font)+')', $
-                                               grey_scale = grey_scale, plot_wedge_line = plot_wedge_line, hinv = hinv, $
-                                               wedge_amp = wedge_amp, baseline_axis = baseline_axis, delay_axis = delay_axis, $
-                                               kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis
-   
+     for i=0, n_cubes-1 do kpower_2d_plots, savefiles_2d[i], /pub, /snr, plotfile = plotfiles_2d_snr[i], $
+                                            kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
+                                            data_range = snr_range, $
+                                            title = titles[i] + ' SNR (' + textoidl('P_k/\sigma', font = font)+')', $
+                                            grey_scale = grey_scale, plot_wedge_line = plot_wedge_line, hinv = hinv, $
+                                            wedge_amp = wedge_amp, baseline_axis = baseline_axis, delay_axis = delay_axis, $
+                                            kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis
+     if nfiles eq 2 then begin  
         for i=0, n_cubes-1 do kpower_2d_plots, savefiles_2d[i], /pub, /plot_noise, plotfile = plotfiles_2d_noise[i], $
                                                kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
                                                data_range = noise_range, title = titles[i] + ' Noise', $
                                                grey_scale = grey_scale, plot_wedge_line = plot_wedge_line, hinv = hinv, $
                                                wedge_amp = wedge_amp, baseline_axis = baseline_axis, delay_axis = delay_axis, $
                                                kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis
-     endif   
+
+     for i=0, n_cubes-1 do kpower_2d_plots, savefiles_2d[i], /pub, /nnr, plotfile = plotfiles_2d_snr[i], $
+                                            kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
+                                            data_range = nnr_range, $
+                                            title = titles[i] + ' SNR (' + textoidl('P_k/\sigma', font = font)+')', $
+                                            grey_scale = grey_scale, plot_wedge_line = plot_wedge_line, hinv = hinv, $
+                                            wedge_amp = wedge_amp, baseline_axis = baseline_axis, delay_axis = delay_axis, $
+                                            kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis
+  endif   
   endif else begin
 
      ncol = ntype + 1 ;; ntype + 1 for sigma
@@ -327,14 +334,35 @@ pro fhd_data_plots, datafile, save_path = save_path, savefilebase = savefilebase
      endfor
      undefine, positions, pos_use
 
+     ;; now plot SNR -- no separate sigma plots
+     nrow = npol
+     ncol = ntype
+     start_multi_params = {ncol:ncol, nrow:nrow, ordering:'row'}
+     
+     window_num = 2
+     ;;snr_range = [1e0, 1e6]
+     for i=0, n_cubes-1 do begin
+        if i gt 0 then  pos_use = positions[*,i]
+        
+        kpower_2d_plots, savefiles_2d[i], /snr, multi_pos = pos_use, start_multi_params = start_multi_params, $
+                         kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, data_range = snr_range, $
+                         title = titles[i] + ' SNR (' + textoidl('P_k/\sigma', font = font)+')', $
+                         grey_scale = grey_scale, plot_wedge_line = plot_wedge_line, wedge_amp = wedge_amp, hinv = hinv, $
+                         baseline_axis = baseline_axis, delay_axis = delay_axis, kperp_linear_axis = kperp_linear_axis, $
+                         kpar_linear_axis = kpar_linear_axis, window_num = window_num
+        if i eq 0 then begin
+           positions = pos_use
+           undefine, start_multi_params
+        endif
+     endfor
+     undefine, positions, pos_use
+
+
      if nfiles eq 2 then begin
-        ;; now plot Noise & SNR -- no separate sigma plots
-        nrow = npol
-        ncol = ntype
+        
+        window_num = 3
         start_multi_params = {ncol:ncol, nrow:nrow, ordering:'row'}
-        
-        window_num = 2
-        
+  
         ;;noise_range = [1e18, 1e22]
         for i=0, n_cubes-1 do begin
            if i gt 0 then  pos_use = positions[*,i]
@@ -343,26 +371,6 @@ pro fhd_data_plots, datafile, save_path = save_path, savefilebase = savefilebase
                             kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, data_range = noise_range, $
                             title = titles[i] + ' Noise', grey_scale = grey_scale, $
                             plot_wedge_line = plot_wedge_line, wedge_amp = wedge_amp, hinv = hinv, $
-                            baseline_axis = baseline_axis, delay_axis = delay_axis, kperp_linear_axis = kperp_linear_axis, $
-                            kpar_linear_axis = kpar_linear_axis, window_num = window_num
-           if i eq 0 then begin
-              positions = pos_use
-              undefine, start_multi_params
-           endif
-        endfor
-
-        window_num = 3
-        start_multi_params = {ncol:ncol, nrow:nrow, ordering:'row'}
-        undefine, pos_use
-        
-        ;;snr_range = [1e0, 1e6]
-        for i=0, n_cubes-1 do begin
-           if i gt 0 then  pos_use = positions[*,i]
-           
-           kpower_2d_plots, savefiles_2d[i], /snr, multi_pos = pos_use, start_multi_params = start_multi_params, $
-                            kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, data_range = snr_range, $
-                            title = titles[i] + ' SNR (' + textoidl('P_k/\sigma', font = font)+')', $
-                            grey_scale = grey_scale, plot_wedge_line = plot_wedge_line, wedge_amp = wedge_amp, hinv = hinv, $
                             baseline_axis = baseline_axis, delay_axis = delay_axis, kperp_linear_axis = kperp_linear_axis, $
                             kpar_linear_axis = kpar_linear_axis, window_num = window_num
            if i eq 0 then begin
