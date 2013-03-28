@@ -85,7 +85,7 @@ pro kpower_2d_plots, power_savefile, multi_pos = multi_pos, start_multi_params =
      endif
 
     if keyword_set(plot_sigma) then begin
-        power = 1/weights
+        power = 1/sqrt(weights)
         wh_wt0 = where(weights eq 0, count_wt0)
         if count_wt0 gt 0 then power[wh_wt0 ] = 0
         plot_type = 'sigma'
@@ -114,7 +114,7 @@ pro kpower_2d_plots, power_savefile, multi_pos = multi_pos, start_multi_params =
   if keyword_set(hinv) then begin
      kperp_edges = kperp_edges / hubble_param
      kpar_edges = kpar_edges / hubble_param
-     if plot_type eq 'power' or plot_type eq 'noise' then power = power * (hubble_param)^3d
+     if plot_type eq 'power' or plot_type eq 'noise' or plot_type eq 'sigma' then power = power * (hubble_param)^3d
   endif
 
   if n_elements(kperp_plot_range) eq 0 then kperp_plot_range = minmax(kperp_edges)
