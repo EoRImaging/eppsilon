@@ -38,35 +38,28 @@ pro fhd_3dps, file_struct, refresh = refresh, kcube_refresh = kcube_refresh, dft
            sigma2_3d=0
         endif else begin  
  
-           ;;weights_1 = (1/sigma1_2)^2d
-           weights_1 = 1d/(4*(sigma1_2)^2d) ;; inverse variance
-           term1 = real_part(data1_1 * conj(data1_1))*weights_1
-           wh_sig1_0 = where(sigma1_2^2d eq 0, count_sig1_0)
-           if count_sig1_0 ne 0 then begin
-              weights_1[wh_sig1_0] = 0
-              term1[wh_sig1_0] = 0
-           endif
-           
-           ;;weights_2 = (1/sigma2_2)^2d
-           weights_2 = 1d/(4*(sigma2_2)^2d) ;; inverse variance
-           term2 = real_part(data1_2 * conj(data1_2))*weights_2
-           wh_sig2_0 = where(sigma2_2^2d eq 0, count_sig2_0)
-           if count_sig2_0 ne 0 then begin
-              weights_2[wh_sig2_0] = 0
-              term2[wh_sig2_0] = 0
-           endif
-           undefine, data1_1, data1_2
+           ;; now construct weights for power (mag. squared) = 1/power variance
+           power_weights1 = 1d/(4*(sigma2_1)^2d)
+           wh_sig1_0 = where(sigma2_1^2d eq 0, count_sig1_0)
+           if count_sig1_0 ne 0 then power_weights1[wh_sig1_0] = 0
+           term1 = real_part(data_sum_1 * conj(data_sum_1))*power_weights1
+           undefine, data_sum_1
 
-           weights_3d = weights_1 + weights_2 ;; variance_3d = 2/weights_3d (?)
+           power_weights2 = 1d/(4*(sigma2_2)^2d) ;; inverse variance
+           wh_sig2_0 = where(sigma2_2^2d eq 0, count_sig2_0)
+           if count_sig2_0 ne 0 then power_weights2[wh_sig2_0] = 0
+           term2 = real_part(data_sum_2 * conj(data_sum_2))*power_weights2
+           undefine, data_sum_2
+
+           weights_3d = power_weights1 + power_weights2 ;; variance_3d = 1/weights_3d
            if count_sig1_0 gt 0 then weights_3d[wh_sig1_0] = weights_2[wh_sig1_0]
            if count_sig2_0 gt 0 then weights_3d[wh_sig2_0] = weights_1[wh_sig2_0]
+           undefine, weights_1, weights_2
            
            power_3d = (term1 + term2) / weights_3d
            wh_wt0 = where(weights_3d eq 0, count_wt0)
-           if count_wt0 ne 0 then begin
-              power_3d[wh_wt0] = 0
-           endif
-           undefine, term1, term2, weights_1, weights_2
+           if count_wt0 ne 0 then power_3d[wh_wt0] = 0
+           undefine, term1, term2
            
         endelse
      endif else begin
@@ -107,39 +100,27 @@ pro fhd_3dps, file_struct, refresh = refresh, kcube_refresh = kcube_refresh, dft
            undefine, sigsqr
 
         endif else begin
-           cube1_data1 = temporary(data1_1)
-           cube1_data2 = temporary(data1_2)
-           sigsq1 = temporary(sigma1_2)
-           sigsq2 = temporary(sigma2_2)
-           
-           cube2_data1 = temporary(data2_1)
-           cube2_data2 = temporary(data2_2)
-           
-           wh_sig1_0 = where(sigsq1 eq 0, count_sig1_0)
-           wh_sig2_0 = where(sigsq2 eq 0, count_sig2_0)
-                              
-           weights_1 = 1./(4.*(sigsq1)^2.) ;; inverse variance
-           term1 = 4. * real_part(cube1_data1 * conj(cube2_data1)) * weights_1
-           noise_t1 = abs(cube1_data1 - cube2_data1)^2. * weights_1
-           
-           weights_2 = 1./(4.*(sigsq2)^2.) ;; inverse variance
-           term2 = 4. * real_part(cube1_data2 * conj(cube2_data2)) * weights_2
-           noise_t2 = abs(cube1_data2 - cube2_data2)^2. * weights_2
-          
-           undefine, cube1_data1, cube1_data2, cube2_data1, cube2_data2, sigsq1, sigsq2
-           
-           if count_sig1_0 ne 0 then begin
-              weights_1[wh_sig1_0] = 0
-              term1[wh_sig1_0] = 0
-              noise_t1[wh_sig1_0] = 0
-           endif
-           if count_sig2_0 ne 0 then begin
-              weights_2[wh_sig2_0] = 0
-              term2[wh_sig2_0] = 0
-              noise_t2[wh_sig2_0] = 0
-           endif
+ 
+           ;; now construct weights for power (mag. squared) = 1/power variance
+           power_weights1 = 1d/(4*(sigma2_1)^2d)
+           wh_sig1_0 = where(sigma2_1^2d eq 0, count_sig1_0)
+           if count_sig1_0 ne 0 then power_weights1[wh_sig1_0] = 0
+           undefine, sigma2_1
 
-           weights_3d =  weights_1 + weights_2 ;; variance_3d = 2/weights_3d (?)
+           power_weights2 = 1d/(4*(sigma2_2)^2d) ;; inverse variance
+           wh_sig2_0 = where(sigma2_2^2d eq 0, count_sig2_0)
+           if count_sig2_0 ne 0 then power_weights2[wh_sig2_0] = 0
+           undefine, sigma2_1
+
+           term1 = (abs(data_sum_1)^2. - abs(data_diff_1)^2.) * power_weights1
+           term2 = (abs(data_sum_2)^2. - abs(data_diff_2)^2.) * power_weights2
+           undefine, data_sum_1, data_sum_2
+
+           noise_t1 = abs(data_diff_1)^2. * power_weights1
+           noise_t2 = abs(data_diff_2)^2. * power_weights2
+           undefine, data_diff_1, data_diff_2
+           
+           weights_3d = power_weights1 + power_weights2 ;; variance_3d = 1/weights_3d
            
            power_3d = (term1 + term2) / weights_3d
            noise_3d = (noise_t1 + noise_t2) / weights_3d
