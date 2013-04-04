@@ -145,7 +145,9 @@ pro kpower_2d_plots, power_savefile, multi_pos = multi_pos, start_multi_params =
          plotfile_add = '_weight_ratio.eps'
      end
      'sigma': begin
-         units_str = ''
+        if keyword_set(hinv) then units_str = textoidl(' (mK^2 h^{-3} Mpc^3)', font = font) $
+        else units_str = textoidl(' (mK^2 Mpc^3)', font = font)
+
          plot_title = textoidl('\sigma', font = font)
          plotfile_add = '_2dsigma.eps'
      end
