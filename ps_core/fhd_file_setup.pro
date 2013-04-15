@@ -193,7 +193,6 @@ function fhd_file_setup, datafile, pol, type, weightfile = weightfile, variancef
            if size(obs_arr,/type) eq 10 then begin
               n_obs = n_elements(obs_arr)
               
-              max_baseline_vals = dblarr(n_obs)
               obs_radec_vals = dblarr(n_obs, 2)
               zen_radec_vals = dblarr(n_obs, 2)
               for i=0, n_obs-1 do begin
@@ -202,13 +201,9 @@ function fhd_file_setup, datafile, pol, type, weightfile = weightfile, variancef
                  if total(abs((*obs_arr[i]).freq - (*obs_arr[0]).freq)) gt 0 then message, 'inconsistent freq values in obs_arr'
                  if abs((*obs_arr[i]).n_freq - (*obs_arr[0]).n_freq) gt 0 then message, 'inconsistent n_freq values in obs_arr'
                  
-                 max_baseline_vals[i] = (*obs_arr[i]).max_baseline
                  obs_radec_vals[i, *] = [(*obs_arr[i]).obsra, (*obs_arr[i]).obsdec]
                  zen_radec_vals[i, *] = [(*obs_arr[i]).zenra, (*obs_arr[i]).zendec]              
               endfor
-
-              if j eq 0 then max_baseline_lambda = max(max_baseline_vals) $
-              else max_baseline_lambda = max([max_baseline_lambda, max_baseline_vals])
            
               if not healpix then $
                  if j eq 0 then degpix = (*obs_arr[0]).degpix else if (*obs_arr[0]).degpix ne degpix then $
@@ -220,9 +215,7 @@ function fhd_file_setup, datafile, pol, type, weightfile = weightfile, variancef
 stop
            endif else begin
               n_obs = n_elements(obs_arr)
-              if j eq 0 then max_baseline_lambda = max(obs_arr.max_baseline) $
-              else max_baseline_lambda = max([max_baseline_lambda, obs_arr.max_baseline])
-              
+             
               obs_radec_vals = [[obs_arr.obsra],[obs_arr.obsdec]]
               zen_radec_vals = [[obs_arr.zenra],[obs_arr.zendec]]
               
@@ -264,6 +257,9 @@ stop
                                      /degree, /nearest)
            if j eq 0 then max_theta = max(theta_vals) else max_theta = max([max_theta, theta_vals])
 
+           if j eq 0 then n_vis = fltarr(nfiles)
+           n_vis[j] = total(obs_arr.n_vis)
+
         endif else message, 'no obs or obs_arr in datafile'
      endelse
      
@@ -290,10 +286,6 @@ stop
      frequencies[i] = mean(freq[i*n_avg:i*n_avg+(n_avg-1)]) / 1e6 ;; in MHz
   endfor
   
-  ;; the max baseline in the obs structure is given in wavelengths, need to convert using the maximum frequency
-  max_baseline = 3e8/max(freq)*max_baseline_lambda ;;else max_baseline = 342.497
-
-
   if healpix then if n_elements(hpx_dftsetup_savefile) eq 0 then $
      hpx_dftsetup_savefile = froot + general_filebase + '_dftsetup.idlsave'
   
@@ -302,7 +294,7 @@ stop
      file_struct = {datafile: datafile, weightfile: weightfile, variancefile:variancefile, pixelfile:pixelfile, $
                     datavar:data_varname, variancevar:variance_varname, weightvar:weight_varname, pixelvar:pixel_varname, $
                     frequencies:frequencies, freq_resolution:freq_resolution, time_resolution:time_resolution, $
-                    max_baseline:max_baseline, max_theta:max_theta, nside:nside, $
+                    n_vis:n_vis, max_theta:max_theta, nside:nside, $
                     hpx_dftsetup_savefile:hpx_dftsetup_savefile, $
                     uvf_savefile:uvf_savefile, uvf_weight_savefile:uvf_weight_savefile, $
                     uf_savefile:uf_savefile, vf_savefile:vf_savefile, uv_savefile:uv_savefile, kcube_savefile:kcube_savefile, $
@@ -313,7 +305,7 @@ stop
      file_struct = {datafile: datafile, weightfile: weightfile, variancefile:variancefile, $
                     datavar:data_varname, weightvar:weight_varname, variancevar:variance_varname, $
                     frequencies:frequencies, freq_resolution:freq_resolution, time_resolution:time_resolution, $
-                    max_baseline:max_baseline, max_theta:max_theta, degpix:degpix, $
+                    n_vis:n_vis, max_theta:max_theta, degpix:degpix, $
                     kcube_savefile:kcube_savefile, power_savefile:power_savefile, fits_power_savefile:fits_power_savefile, $
                     savefile_froot:froot, savefilebase:savefilebase, general_filebase:general_filebase, $
                     weight_savefilebase:weight_savefilebase}

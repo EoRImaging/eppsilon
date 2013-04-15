@@ -86,14 +86,14 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
   endif else begin
      
      f_delta = freq_diff[0]
-     z_mpc_delta = mean(comov_los_diff)
-     z_mpc_mean = mean(comov_dist_los)
+     z_mpc_delta = float(mean(comov_los_diff))
+     z_mpc_mean = float(mean(comov_dist_los))
      n_kz = n_freq
      
   endelse
-  kperp_lambda_conv = z_mpc_mean / (2d*!dpi)
+  kperp_lambda_conv = z_mpc_mean / (2.*!pi)
   delay_delta = 1e9/(n_freq*f_delta*1e6) ;; equivilent delay bin size for kparallel
-  delay_max = delay_delta * n_freq/2d    ;; factor of 2 b/c of neg/positive
+  delay_max = delay_delta * n_freq/2.    ;; factor of 2 b/c of neg/positive
   delay_params = [delay_delta, delay_max]     
   
   z_mpc_length = max(comov_dist_los) - min(comov_dist_los) + z_mpc_delta
@@ -107,22 +107,24 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
   print, 'z delta: ', z_mpc_delta
   print,  'kz delta: ', kz_mpc_delta
   
-  max_baseline = file_struct.max_baseline
   if input_units eq 'jansky' then begin
      ;; beam_diameter_rad = (3d * 10^8d) / (frequencies * 10^6d * max_baseline)
      ;; beam_area_str = !pi * beam_diameter_rad^2d /4d
      
      ;; conv_factor = (10^(double(-26+16+3-12+23)) * 9d) / (beam_area_str * 2d * frequencies^2d * 1.38)
      ;; if max(conv_factor-conv_factor[0]) gt 1e-8 then stop else conv_factor = conv_factor[0]
-     conv_factor = float(2. * max_baseline^2d / (!dpi * 1.38065))
-  endif else conv_factor = 1.
+     ;; conv_factor = float(2. * max_baseline^2. / (!pi * 1.38065))
+
+     ;; converting from Jy (in u,v,f) to mK*str
+     conv_factor = float((3e8)^2 / (2. * (frequencies*1e6)^2. * 1.38065))
+  endif else conv_factor = 1. + fltarr(n_freq)
   
   t_sys = 440. ; K
   eff_area = 16. ; m^2
-  df = file_struct.freq_resolution ; Hz
+  df = file_struct.freq_resolution ; Hz -- native visibility resolution NOT cube resolution
   tau = file_struct.time_resolution ; seconds
   vis_sigma = (2. * (1.38065e-23) * 1e26) * t_sys / (eff_area * sqrt(df * tau)) ;; in Jy
-  vis_sigma = vis_sigma * conv_factor ;; convert to mK
+  vis_sigma = float(vis_sigma)
 
   if healpix then begin
      if nfiles eq 2 then begin
@@ -217,6 +219,10 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
            weights_cube2 = getvar_savefile(file_struct.weightfile[1], file_struct.weightvar[1])
        endelse
 
+        ;; calculate integral of window function
+        window_int = [total(variance_cube1)*file_struct.n_vis[0]/abs(total(weights_cube1))^2., $
+                      total(variance_cube2)*file_struct.n_vis[1]/abs(total(weights_cube2))^2.]
+
         sigma2_cube1 = temporary(variance_cube1) / abs(weights_cube1)^2.
         sigma2_cube2 = temporary(variance_cube2) / abs(weights_cube2)^2.
      endelse
@@ -231,30 +237,38 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
 
      ;; now get data cubes
      if healpix then begin
-        data_cube1 = getvar_savefile(file_struct.uvf_savefile[0], 'data_cube') * float(conv_factor)
-        data_cube2 = getvar_savefile(file_struct.uvf_savefile[1], 'data_cube') * float(conv_factor)
+        data_cube1 = getvar_savefile(file_struct.uvf_savefile[0], 'data_cube')
+        data_cube2 = getvar_savefile(file_struct.uvf_savefile[1], 'data_cube')
      endif else begin
-        data_cube1 = getvar_savefile(file_struct.datafile[0], file_struct.datavar[0]) * float(conv_factor)
-        data_cube2 = getvar_savefile(file_struct.datafile[1], file_struct.datavar[1]) * float(conv_factor)
+        data_cube1 = getvar_savefile(file_struct.datafile[0], file_struct.datavar[0])
+        data_cube2 = getvar_savefile(file_struct.datafile[1], file_struct.datavar[1])
      endelse
      
   endif else begin
      ;; single file mode
      if healpix then begin
-        data_cube1 = getvar_savefile(file_struct.uvf_savefile, 'data_cube') * float(conv_factor)
+        data_cube1 = getvar_savefile(file_struct.uvf_savefile, 'data_cube')
         weights_cube1 = getvar_savefile(file_struct.uvf_weight_savefile, 'weights_cube')
         if not no_var then begin
            variance_cube1 = getvar_savefile(file_struct.uvf_weight_savefile, 'variance_cube') 
+
+           ;; calculate integral of window function
+           window_int = total(variance_cube1)*file_struct.n_vis/abs(total(weights_cube1))^2.
+
            sigma2_cube1 = temporary(variance_cube1) / abs(weights_cube1)^2.
         endif else sigma2_cube1 = 1./abs(weights_cube1)
 
         wh_wt1_0 = where(abs(weights_cube1) eq 0, count_wt1_0)
         if count_wt1_0 ne 0 then sigma2_cube1[wh_wt1_0] = 0
      endif else begin
-        data_cube1 = getvar_savefile(file_struct.datafile, file_struct.datavar) * float(conv_factor)
+        data_cube1 = getvar_savefile(file_struct.datafile, file_struct.datavar)
         weights_cube1 = getvar_savefile(file_struct.weightfile, file_struct.weightvar)
         if not no_var then begin
            variance_cube1 = getvar_savefile(file_struct.variancefile, file_struct.variance_var) 
+
+           ;; calculate integral of window function
+           window_int = total(variance_cube1)*file_struct.n_vis/abs(total(weights_cube1))^2.
+
            sigma2_cube1 = temporary(variance_cube1) / abs(weights_cube1)^2.
         endif else sigma2_cube1 = 1./abs(weights_cube1)
 
@@ -263,17 +277,21 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
      endelse
   endelse
   
-  ;; get sigma into mK
-  sigma2_cube1 = sigma2_cube1 * vis_sigma^2.
-  if nfiles eq 2 then sigma2_cube2 = sigma2_cube2 * vis_sigma^2.
-
   if healpix then begin
      dims = size(data_cube1, /dimensions)
      n_kx = dims[0]
      kx_mpc = temporary(kx_rad_vals) / z_mpc_mean
-     
+     kx_mpc_delta = kx_mpc[1] - kx_mpc[0]     
+
      n_ky = dims[1]
      ky_mpc = temporary(ky_rad_vals) / z_mpc_mean
+     ky_mpc_delta = ky_mpc[1] - ky_mpc[0]     
+   
+     ;; Angular resolution is given in Healpix paper in units of arcminutes, need to convert to radians
+     ang_resolution = sqrt(3./!pi) * 3600./file_struct.nside * (1./60.) * (!pi/180.)
+     pix_area_rad = ang_resolution^2. ;; by definition of ang. resolution in Healpix paper
+     
+     pix_area_mpc = pix_area_rad * z_mpc_mean^2.
      
   endif else begin
      
@@ -295,12 +313,50 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
      ky_mpc_delta = (2.*!pi) / y_mpc_length
      ky_mpc = (dindgen(n_ky)-n_ky/2) * ky_mpc_delta
      
+     pix_area_mpc = x_mpc_delta * y_mpc_delta
+
   endelse
+  
+  ;; multiply data and sigma cubes by pixel_area_mpc to get proper units from DFT
+  ;; divide by (2*!pi)^2d to get right FT convention
+  ;; (not squared for sigmas because they weren't treated as units squared in FHD code)
+  data_cube1 = data_cube1 * pix_area_mpc / (2.*!pi)^2.
+  sigma2_cube1 = sigma2_cube1 * pix_area_mpc / (2.*!pi)^2.
+  if nfiles eq 2 then begin
+     data_cube2 = data_cube2 * pix_area_mpc / (2.*!pi)^2.
+     sigma2_cube2 = sigma2_cube2 * pix_area_mpc / (2.*!pi)^2.
+  endif
+
+  ;; get sigma into Jy
+  sigma2_cube1 = sigma2_cube1 * vis_sigma^2.
+  if nfiles eq 2 then sigma2_cube2 = sigma2_cube2 * vis_sigma^2.
+
+  ;; get data & sigma into mK Mpc^2
+  for i=0, n_freq-1 do begin
+     data_cube1[*,*,i] = data_cube1[*,*,i]*conv_factor[i]
+     sigma2_cube1[*,*,i] = sigma2_cube1[*,*,i]*(conv_factor[i])^2.
+     if nfiles eq 2 then begin
+        data_cube2[*,*,i] = data_cube2[*,*,i]*conv_factor[i]
+        sigma2_cube2[*,*,i] = sigma2_cube2[*,*,i]*(conv_factor[i])^2.
+     endif
+  endfor
+
+  ;; fix units on window funtion integral -- now they should be Mpc^3
+  ;; use delta f for native visibility frequency resolution
+  window_int = window_int * df / (kx_mpc_delta * ky_mpc_delta)
+
+  ;; divide data by sqrt(window_int) and sigma2 by window_int
+  data_cube1 = data_cube1 / sqrt(window_int[0])
+  sigma2_cube1 = sigma2_cube1 / window_int[0]
+  if nfiles eq 2 then begin
+     data_cube2 = data_cube2 / sqrt(window_int[1])
+     sigma2_cube2 = sigma2_cube2  / window_int[1]
+  endif
 
   print, 'pre-weighting sum(data_cube^2)*z_delta:', total(abs(data_cube1)^2d)*z_mpc_delta
   if nfiles eq 2 then print, 'pre-weighting sum(data_cube2^2)*z_delta:', total(abs(data_cube2)^2d)*z_mpc_delta
 
-  ;; divide by weights (~array beam) to estimate true sky
+  ;; divide by weights
   data_cube1 = data_cube1 / weights_cube1
   if count_wt1_0 ne 0 then data_cube1[wh_wt1_0] = 0
   undefine, weights_cube1, wh_wt1_0, count_wt1_0
@@ -431,8 +487,8 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
   n_kz = n_elements(kz_mpc)
   
   if keyword_set(std_power) then begin
-     ;; for standard power calc. just need ft of sigma2
-     sigma2_ft = fft(sum_sigma2, dimension=3) * n_freq * z_mpc_delta / (2.*!pi)
+     ;; for standard power calc. just need ft of sigma2 (sigma has squared units relative to data, so use z_mpc_delta^2d)
+     sigma2_ft = fft(sum_sigma2, dimension=3) * n_freq * z_mpc_delta^2. / (2.*!pi)
      sigma2_ft = shift(sigma2_ft, [0,0,n_kz/2])
      undefine, sum_sigma2
      
@@ -489,19 +545,13 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
      sin_arr = sin(freq_kz_arr)
 
      sum_sigma2 = reform(sum_sigma2, n_kx*n_ky, n_freq)
-     covar_cos = matrix_multiply(sum_sigma2, cos_arr^2d)
-     covar_sin = matrix_multiply(sum_sigma2, sin_arr^2d)
-     covar_cross = matrix_multiply(sum_sigma2, cos_arr*sin_arr)
+     ;; doing 2 FTs so need 2 factors of z_mpc_delta/(2*!pi).
+     ;; No multiplication by N b/c don't need to fix IDL FFT
+     covar_cos = matrix_multiply(sum_sigma2, cos_arr^2d) * (z_mpc_delta / (2.*!pi))^2.
+     covar_sin = matrix_multiply(sum_sigma2, sin_arr^2d) * (z_mpc_delta / (2.*!pi))^2.
+     covar_cross = matrix_multiply(sum_sigma2, cos_arr*sin_arr) * (z_mpc_delta / (2.*!pi))^2.
 
-     wh_divide = where(n_freq_contrib gt 0, count_divide, complement = wh_0f, ncomplement = count_0f)
-     n_divide = double(rebin(reform(n_freq_contrib[wh_divide]),count_divide, n_kz))
-
-     if count_divide gt 0 then begin
-        covar_cos[wh_divide, *] = covar_cos[wh_divide, *] / n_divide
-        covar_sin[wh_divide, *] = covar_sin[wh_divide, *] / n_divide
-        covar_cross[wh_divide, *] = covar_cross[wh_divide, *] / n_divide
-     endif
-
+     wh_0f = where(n_freq_contrib eq 0, count_0f)
      if count_0f gt 0 then begin
         covar_cos[wh_0f, *] = 0
         covar_sin[wh_0f, *] = 0
