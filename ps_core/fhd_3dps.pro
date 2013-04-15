@@ -121,7 +121,8 @@ pro fhd_3dps, file_struct, refresh = refresh, kcube_refresh = kcube_refresh, dft
            undefine, data_diff_1, data_diff_2
            
            weights_3d = power_weights1 + power_weights2 ;; variance_3d = 1/weights_3d
-           
+           undefine, power_weights1, power_weights2
+
            power_3d = (term1 + term2) / weights_3d
            noise_3d = (noise_t1 + noise_t2) / weights_3d
            undefine, term1, term2, noise_t1, noise_t2

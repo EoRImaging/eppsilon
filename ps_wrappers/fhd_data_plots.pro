@@ -263,8 +263,8 @@ pro fhd_data_plots, datafile, save_path = save_path, savefilebase = savefilebase
      plotfiles_2d_use[i*(ntype+1):i*(ntype+1)+ntype-1] = plotfiles_2d[i*ntype:i*ntype+ntype-1]
      plotfiles_2d_use[i*(ntype+1)+ntype] = plotfiles_2d_wt[i]
      plot_sigma[i*(ntype+1)+ntype]=1
-     plot_titles[i*(ntype+1):i*(ntype+1)+ntype-1] = titles[i*ntype:i*ntype+ntype-1]
-     plot_titles[i*(ntype+1)+ntype] = textoidl('\sigma', font = font) + ' ' + weight_labels[i]
+     plot_titles[i*(ntype+1):i*(ntype+1)+ntype-1] = titles[i*ntype:i*ntype+ntype-1] + textoidl(' P_k', font = font)
+     plot_titles[i*(ntype+1)+ntype] = weight_labels[i] + ' Expected Noise'
   endfor
 
   if keyword_set(pub) then begin
@@ -286,14 +286,14 @@ pro fhd_data_plots, datafile, save_path = save_path, savefilebase = savefilebase
      for i=0, n_cubes-1 do kpower_2d_plots, savefiles_2d[i], /pub, /snr, plotfile = plotfiles_2d_snr[i], $
                                             kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
                                             data_range = snr_range, $
-                                            title = titles[i] + ' SNR (' + textoidl('P_k/\sigma', font = font)+')', $
+                                            title = titles[i] + ' SNR (' + textoidl('P_k/N_E', font = font)+')', $
                                             grey_scale = grey_scale, plot_wedge_line = plot_wedge_line, hinv = hinv, $
                                             wedge_amp = wedge_amp, baseline_axis = baseline_axis, delay_axis = delay_axis, $
                                             kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis
      if nfiles eq 2 then begin  
         for i=0, n_cubes-1 do kpower_2d_plots, savefiles_2d[i], /pub, /plot_noise, plotfile = plotfiles_2d_noise[i], $
                                                kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
-                                               data_range = noise_range, title = titles[i] + ' Noise', $
+                                               data_range = noise_range, title = titles[i] + ' Observed Noise', $
                                                grey_scale = grey_scale, plot_wedge_line = plot_wedge_line, hinv = hinv, $
                                                wedge_amp = wedge_amp, baseline_axis = baseline_axis, delay_axis = delay_axis, $
                                                kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis
@@ -301,7 +301,7 @@ pro fhd_data_plots, datafile, save_path = save_path, savefilebase = savefilebase
      for i=0, n_cubes-1 do kpower_2d_plots, savefiles_2d[i], /pub, /nnr, plotfile = plotfiles_2d_snr[i], $
                                             kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
                                             data_range = nnr_range, $
-                                            title = titles[i] + ' SNR (' + textoidl('P_k/\sigma', font = font)+')', $
+                                            title = titles[i] + ' Noise Ratio (' + textoidl('N_O/N_E', font = font) + ')', $
                                             grey_scale = grey_scale, plot_wedge_line = plot_wedge_line, hinv = hinv, $
                                             wedge_amp = wedge_amp, baseline_axis = baseline_axis, delay_axis = delay_axis, $
                                             kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis
@@ -346,7 +346,7 @@ pro fhd_data_plots, datafile, save_path = save_path, savefilebase = savefilebase
         
         kpower_2d_plots, savefiles_2d[i], /snr, multi_pos = pos_use, start_multi_params = start_multi_params, $
                          kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, data_range = snr_range, $
-                         title = titles[i] + ' SNR (' + textoidl('P_k/\sigma', font = font)+')', $
+                         title = titles[i] + ' SNR (' + textoidl('P_k/N_E', font = font)+')', $
                          grey_scale = grey_scale, plot_wedge_line = plot_wedge_line, wedge_amp = wedge_amp, hinv = hinv, $
                          baseline_axis = baseline_axis, delay_axis = delay_axis, kperp_linear_axis = kperp_linear_axis, $
                          kpar_linear_axis = kpar_linear_axis, window_num = window_num
@@ -369,7 +369,7 @@ pro fhd_data_plots, datafile, save_path = save_path, savefilebase = savefilebase
            
            kpower_2d_plots, savefiles_2d[i], /plot_noise, multi_pos = pos_use, start_multi_params = start_multi_params, $
                             kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, data_range = noise_range, $
-                            title = titles[i] + ' Noise', grey_scale = grey_scale, $
+                            title = titles[i] + ' Observed Noise', grey_scale = grey_scale, $
                             plot_wedge_line = plot_wedge_line, wedge_amp = wedge_amp, hinv = hinv, $
                             baseline_axis = baseline_axis, delay_axis = delay_axis, kperp_linear_axis = kperp_linear_axis, $
                             kpar_linear_axis = kpar_linear_axis, window_num = window_num
@@ -388,7 +388,7 @@ pro fhd_data_plots, datafile, save_path = save_path, savefilebase = savefilebase
            
            kpower_2d_plots, savefiles_2d[i], /nnr, multi_pos = pos_use, start_multi_params = start_multi_params, $
                             kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, data_range = nnr_range, $
-                            title = titles[i] + ' NNR (' + textoidl('N/\sigma', font = font) +')', $
+                            title = titles[i] + ' Noise Ratio (' + textoidl('N_O/N_E', font = font) + ')', $
                             grey_scale = grey_scale, plot_wedge_line = plot_wedge_line, wedge_amp = wedge_amp, hinv = hinv, $
                             baseline_axis = baseline_axis, delay_axis = delay_axis, kperp_linear_axis = kperp_linear_axis, $
                             kpar_linear_axis = kpar_linear_axis, window_num = window_num

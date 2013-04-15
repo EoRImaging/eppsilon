@@ -148,29 +148,29 @@ pro kpower_2d_plots, power_savefile, multi_pos = multi_pos, start_multi_params =
         if keyword_set(hinv) then units_str = textoidl(' (mK^2 h^{-3} Mpc^3)', font = font) $
         else units_str = textoidl(' (mK^2 Mpc^3)', font = font)
 
-         plot_title = textoidl('\sigma', font = font)
+         plot_title = 'Expected Noise';;textoidl('\sigma', font = font)
          plotfile_add = '_2dsigma.eps'
      end
      'snr': begin
          units_str = ''
-         plot_title = 'SNR (' + textoidl('P_k / \sigma', font = font) + ')'
+         plot_title = 'SNR (' + textoidl('P_k/N_E', font = font) + ')'
          plotfile_add = '_2dsnr.eps'
      end
      'noise': begin
         if keyword_set(hinv) then units_str = textoidl(' (mK^2 h^{-3} Mpc^3)', font = font) $
         else units_str = textoidl(' (mK^2 Mpc^3)', font = font)
 
-        plot_title = 'Noise'
+        plot_title = 'Observed Noise'
         plotfile_add = '_2dnoise.eps'
      end
      'nnr': begin
          units_str = ''
-         plot_title = 'NNR (' + textoidl('N / \sigma', font = font) + ')'
+         plot_title = 'Noise Ratio (' + textoidl('N_O/N_E', font = font) + ')'
          plotfile_add = '_2dnnr.eps'
      end
      'noise_ratio': begin
          units_str = ''
-         plot_title = 'Noise Ratio'
+         plot_title = 'Observed Noise Ratio'
          plotfile_add = '_noise_ratio.eps'
      end
   endcase
