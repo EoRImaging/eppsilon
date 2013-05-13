@@ -160,11 +160,19 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
               save, file = file_struct.hpx_dftsetup_savefile, new_pix_vec, limits, kx_rad_vals, ky_rad_vals
            endif else restore, file_struct.hpx_dftsetup_savefile
            
+           max_kperp_rad = (file_struct.max_baseline_lambda/kperp_lambda_conv) * z_mpc_mean
+           
+           wh_kx_good = where(abs(kx_rad_vals) le max_kperp_rad, count_kx)
+           wh_ky_good = where(abs(ky_rad_vals) le max_kperp_rad, count_ky)
+
+           if count_kx gt 0 then kx_rad_vals = kx_rad_vals[wh_kx_good] else stop
+           if count_ky gt 0 then ky_rad_vals = ky_rad_vals[wh_ky_good] else stop
+
            ;; do DFT.
            if test_uvf eq 0 or keyword_set(dft_refresh_data) then begin
               arr = getvar_savefile(file_struct.datafile[i], file_struct.datavar[i])
-              transform = discrete_ft_2D_fast(new_pix_vec[*,0], new_pix_vec[*,1], arr, kx_rad_vals, ky_rad_vals, timing = ft_time, $
-                                              fchunk = dft_fchunk)
+              transform = discrete_ft_2D_fast(new_pix_vec[*,0], new_pix_vec[*,1], arr, kx_rad_vals, ky_rad_vals, $
+                                              max_k_mag = max_kperp_rad, timing = ft_time, fchunk = dft_fchunk)
               data_cube = temporary(transform)
               undefine, arr
 
