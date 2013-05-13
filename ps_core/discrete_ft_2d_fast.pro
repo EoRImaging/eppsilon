@@ -4,7 +4,7 @@
 ; k1 & k2 are kx/ky values to test at
 
 
-function discrete_ft_2d_fast, locations1, locations2, data, k1, k2, timing = timing, fchunk = fchunk
+function discrete_ft_2d_fast, locations1, locations2, data, k1, k2, max_k_mag = max_k_mag, timing = timing, fchunk = fchunk
 
   print, 'Beginning discrete 2D FT'
 
@@ -75,10 +75,12 @@ function discrete_ft_2d_fast, locations1, locations2, data, k1, k2, timing = tim
               
               print, 'memory used: ' + number_formatter(memory(/current)/1.e9, format='(d8.1)') + ' GB; ave step time: ' + $
                      number_formatter(ave_t, format='(d8.2)') + '; approx. time remaining: ' + t_left_str
+
            endif
         endif
 
         temp=systime(1)
+
 
         if fchunk_sizes[j] eq 1 then begin
            x_inds = dindgen(n_pts) + n_pts*i
@@ -91,9 +93,31 @@ function discrete_ft_2d_fast, locations1, locations2, data, k1, k2, timing = tim
            term1 = data[data_inds] * exp(-1.*complex(0,1)*x_loc_k[x_inds])
         endelse
         undefine, data_inds, x_inds
-        inds = i + n_k1*matrix_multiply(dindgen(n_k2), fltarr(fchunk_sizes[j])+1) + n_k1 * n_k2 * $
-                      transpose(matrix_multiply(dindgen(fchunk_sizes[j]) + fchunk_edges[j], fltarr(n_k2)+1))
-        ft[inds] = transpose(matrix_multiply(term1, y_exp, /atranspose))
+ 
+        ;; get ky vals that are inside max_k_mag
+        ;; if n_elements(max_k_mag) gt 0 then begin
+        ;;    hist = histogram(sqrt(abs(k1[i]^2. + k2^2.))/max_k_mag, min=0, max=1.5, reverse_indices=ri)
+        ;;    count_inside = hist[0]
+        ;;    if count_inside gt 0 then y_inds = ri[ri[0]:ri[1]-1] else continue
+                   
+
+        ;;    ;; inds_temp = matrix_multiply(dindgen(n_pts), fltarr(count_inside)) + n_pts*matrix_multiply(fltarr(n_pts), double(y_inds))
+        ;;    ;; yexp_inds = reform(matrix_multiply(reform(temporary(inds_temp), n_pts*count_inside), $
+        ;;    ;;                                    n_pts*count_inside*(dindgen(fchunk_sizes[j]) + fchunk_edges[j])), $
+        ;;    ;;                    n_pts,count_inside, fchunk_sizes[j])
+        ;;    ;; y_exp_use = y_exp[yexp_inds]
+
+        ;;    y_exp_use = y_exp[*, y_inds, *]
+        ;;    inds = i + n_k1*matrix_multiply(double(y_inds), fltarr(fchunk_sizes[j])+1) + n_k1 * n_k2 * $
+        ;;           transpose(matrix_multiply(dindgen(fchunk_sizes[j]) + fchunk_edges[j], fltarr(count_inside)+1))
+        ;;    ft[inds] = transpose(matrix_multiply(term1, y_exp_use, /atranspose))
+
+
+        ;; endif else begin
+           inds = i + n_k1*matrix_multiply(dindgen(n_k2), fltarr(fchunk_sizes[j])+1) + n_k1 * n_k2 * $
+                  transpose(matrix_multiply(dindgen(fchunk_sizes[j]) + fchunk_edges[j], fltarr(n_k2)+1))
+           ft[inds] = transpose(matrix_multiply(term1, y_exp, /atranspose))
+        ;;endelse
         undefine, inds
 
         inner_times[this_step] = systime(1) - temp
