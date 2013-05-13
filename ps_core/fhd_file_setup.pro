@@ -193,21 +193,27 @@ function fhd_file_setup, datafile, pol, type, weightfile = weightfile, variancef
            if size(obs_arr,/type) eq 10 then begin
               n_obs = n_elements(obs_arr)
               
+              max_baseline_vals = dblarr(n_obs)
               obs_radec_vals = dblarr(n_obs, 2)
               zen_radec_vals = dblarr(n_obs, 2)
               for i=0, n_obs-1 do begin
-                 if not healpix then if abs((*obs_arr[i]).degpix - (*obs_arr[0]).degpix) gt 0 then $
-                    message, 'inconsistent degpix values in obs_arr'
+                 if abs((*obs_arr[i]).degpix - (*obs_arr[0]).degpix) gt 0 then message, 'inconsistent degpix values in obs_arr'
+                 if abs((*obs_arr[i]).kpix - (*obs_arr[0]).kpix) gt 0 then message, 'inconsistent kpix values in obs_arr'
                  if total(abs((*obs_arr[i]).freq - (*obs_arr[0]).freq)) gt 0 then message, 'inconsistent freq values in obs_arr'
                  if abs((*obs_arr[i]).n_freq - (*obs_arr[0]).n_freq) gt 0 then message, 'inconsistent n_freq values in obs_arr'
                  
+                 max_baseline_vals[i] = (*obs_arr[i]).max_baseline
                  obs_radec_vals[i, *] = [(*obs_arr[i]).obsra, (*obs_arr[i]).obsdec]
                  zen_radec_vals[i, *] = [(*obs_arr[i]).zenra, (*obs_arr[i]).zendec]              
               endfor
            
-              if not healpix then $
-                 if j eq 0 then degpix = (*obs_arr[0]).degpix else if (*obs_arr[0]).degpix ne degpix then $
-                    message, 'degpix does not agree between datafiles'
+              if j eq 0 then max_baseline_lambda = max(max_baseline_vals) $
+              else max_baseline_lambda = max([max_baseline_lambda, max_baseline_vals])
+
+              if j eq 0 then degpix = (*obs_arr[0]).degpix else if (*obs_arr[0]).degpix ne degpix then $
+                 message, 'degpix does not agree between datafiles'
+              if j eq 0 then kpix = (*obs_arr[0]).kpix else if (*obs_arr[0]).kpix ne kpix then $
+                 message, 'kpix does not agree between datafiles'
               if j eq 0 then freq = (*obs_arr[0]).freq else if total(abs(freq-(*obs_arr[0]).freq)) ne 0 then $
                  message, 'frequencies do not agree between datafiles'
               if j eq 0 then n_freq = (*obs_arr[0]).n_freq else if (*obs_arr[0]).n_freq ne n_freq then $
@@ -216,6 +222,9 @@ stop
            endif else begin
               n_obs = n_elements(obs_arr)
              
+              if j eq 0 then max_baseline_lambda = max(obs_arr.max_baseline) $
+              else max_baseline_lambda = max([max_baseline_lambda, obs_arr.max_baseline])
+              
               obs_radec_vals = [[obs_arr.obsra],[obs_arr.obsdec]]
               zen_radec_vals = [[obs_arr.zenra],[obs_arr.zendec]]
               
@@ -223,11 +232,13 @@ stop
               if j eq 0 then n_freq = obs_arr[0].n_freq else if obs_arr[0].n_freq ne n_freq then $
                  message, 'n_freq does not agree between datafiles'
               
-              if not healpix then begin
-                 if total(abs(obs_arr.degpix - obs_arr[0].degpix)) ne 0 then message, 'inconsistent degpix values in obs_arr'
-                 if j eq 0 then degpix = obs_arr[0].degpix else if obs_arr[0].degpix ne degpix  then $
-                    message, 'degpix does not agree between datafiles'
-              endif
+              if total(abs(obs_arr.degpix - obs_arr[0].degpix)) ne 0 then message, 'inconsistent degpix values in obs_arr'
+              if j eq 0 then degpix = obs_arr[0].degpix else if obs_arr[0].degpix ne degpix  then $
+                 message, 'degpix does not agree between datafiles'
+
+              if total(abs(obs_arr.kpix - obs_arr[0].kpix)) ne 0 then message, 'inconsistent kpix values in obs_arr'
+              if j eq 0 then kpix = obs_arr[0].kpix else if obs_arr[0].kpix ne kpix then $
+                 message, 'kpix does not agree between datafiles'
 
               obs_tags = tag_names(obs_arr)
               wh_freq = where(strlowcase(obs_tags) eq 'freq', count_freq)
@@ -294,7 +305,7 @@ stop
      file_struct = {datafile: datafile, weightfile: weightfile, variancefile:variancefile, pixelfile:pixelfile, $
                     datavar:data_varname, variancevar:variance_varname, weightvar:weight_varname, pixelvar:pixel_varname, $
                     frequencies:frequencies, freq_resolution:freq_resolution, time_resolution:time_resolution, $
-                    n_vis:n_vis, max_theta:max_theta, nside:nside, $
+                    n_vis:n_vis, max_baseline_lambda:max_baseline_lambda, max_theta:max_theta, degpix:degpix, kpix:kpix, nside:nside, $
                     hpx_dftsetup_savefile:hpx_dftsetup_savefile, $
                     uvf_savefile:uvf_savefile, uvf_weight_savefile:uvf_weight_savefile, $
                     uf_savefile:uf_savefile, vf_savefile:vf_savefile, uv_savefile:uv_savefile, kcube_savefile:kcube_savefile, $
@@ -305,7 +316,7 @@ stop
      file_struct = {datafile: datafile, weightfile: weightfile, variancefile:variancefile, $
                     datavar:data_varname, weightvar:weight_varname, variancevar:variance_varname, $
                     frequencies:frequencies, freq_resolution:freq_resolution, time_resolution:time_resolution, $
-                    n_vis:n_vis, max_theta:max_theta, degpix:degpix, $
+                    n_vis:n_vis, max_baseline_lambda:max_baseline_lambda, max_theta:max_theta, degpix:degpix, kpix:kpix, $
                     kcube_savefile:kcube_savefile, power_savefile:power_savefile, fits_power_savefile:fits_power_savefile, $
                     savefile_froot:froot, savefilebase:savefilebase, general_filebase:general_filebase, $
                     weight_savefilebase:weight_savefilebase}

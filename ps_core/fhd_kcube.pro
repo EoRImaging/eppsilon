@@ -117,6 +117,10 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
 
      ;; converting from Jy (in u,v,f) to mK*str
      conv_factor = float((3e8)^2 / (2. * (frequencies*1e6)^2. * 1.38065))
+
+     ;; mK str -> mK Mpc^2
+     conv_factor = conv_factor * z_mpc_mean^2.
+
   endif else conv_factor = 1. + fltarr(n_freq)
   
   t_sys = 440. ; K
@@ -125,6 +129,8 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
   tau = file_struct.time_resolution ; seconds
   vis_sigma = (2. * (1.38065e-23) * 1e26) * t_sys / (eff_area * sqrt(df * tau)) ;; in Jy
   vis_sigma = float(vis_sigma)
+
+
 
   if healpix then begin
      if nfiles eq 2 then begin
@@ -191,99 +197,14 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
      endfor
   endif
 
-
-  if nfiles eq 2 then begin
-     if no_var then begin
-        ;; use 1/abs(weights) instead
-        if healpix then begin
-           weights_cube1 = getvar_savefile(file_struct.uvf_weight_savefile[0], 'weights_cube')
-           weights_cube2 = getvar_savefile(file_struct.uvf_weight_savefile[1], 'weights_cube')
-           sigma2_cube1 = 1./abs(weights_cube1)
-           sigma2_cube2 = 1./abs(weights_cube2)
-        endif else begin
-           weights_cube1 = getvar_savefile(file_struct.weightfile[0], file_struct.weightvar[0])
-           weights_cube2 = getvar_savefile(file_struct.weightfile[1], file_struct.weightvar[1])
-           sigma2_cube1 = 1./abs(weights_cube1)
-           sigma2_cube2 = 1./abs(weights_cube2)
-        endelse
-     endif else begin
-        if healpix then begin
-           variance_cube1 = getvar_savefile(file_struct.uvf_weight_savefile[0], 'variance_cube')
-           variance_cube2 = getvar_savefile(file_struct.uvf_weight_savefile[1], 'variance_cube')
-           weights_cube1 = getvar_savefile(file_struct.uvf_weight_savefile[0], 'weights_cube')
-           weights_cube2 = getvar_savefile(file_struct.uvf_weight_savefile[1], 'weights_cube')
-        endif else begin
-           variance_cube1 = getvar_savefile(file_struct.variancefile[0], file_struct.variancevar[i])
-           variance_cube2 = getvar_savefile(file_struct.variancefile[1], file_struct.variancevar[i])
-           weights_cube1 = getvar_savefile(file_struct.weightfile[0], file_struct.weightvar[0])
-           weights_cube2 = getvar_savefile(file_struct.weightfile[1], file_struct.weightvar[1])
-       endelse
-
-        ;; calculate integral of window function
-        window_int = [total(variance_cube1)*file_struct.n_vis[0]/abs(total(weights_cube1))^2., $
-                      total(variance_cube2)*file_struct.n_vis[1]/abs(total(weights_cube2))^2.]
-
-        sigma2_cube1 = temporary(variance_cube1) / abs(weights_cube1)^2.
-        sigma2_cube2 = temporary(variance_cube2) / abs(weights_cube2)^2.
-     endelse
-
-     wh_wt1_0 = where(abs(weights_cube1) eq 0, count_wt1_0)
-     if count_wt1_0 ne 0 then sigma2_cube1[wh_wt1_0] = 0
-     wh_wt2_0 = where(abs(weights_cube2) eq 0, count_wt2_0)
-     if count_wt2_0 ne 0 then sigma2_cube2[wh_wt2_0] = 0
- 
-     if min(sigma2_cube1) lt 0 or min(sigma2_cube2) lt 0 then message, 'sigma2 should be positive definite.'
-     if total(abs(sigma2_cube1)) le 0 or total(abs(sigma2_cube2)) le 0 then message, 'one or both sigma2 cubes is all zero'
-
-     ;; now get data cubes
-     if healpix then begin
-        data_cube1 = getvar_savefile(file_struct.uvf_savefile[0], 'data_cube')
-        data_cube2 = getvar_savefile(file_struct.uvf_savefile[1], 'data_cube')
-     endif else begin
-        data_cube1 = getvar_savefile(file_struct.datafile[0], file_struct.datavar[0])
-        data_cube2 = getvar_savefile(file_struct.datafile[1], file_struct.datavar[1])
-     endelse
-     
-  endif else begin
-     ;; single file mode
-     if healpix then begin
-        data_cube1 = getvar_savefile(file_struct.uvf_savefile, 'data_cube')
-        weights_cube1 = getvar_savefile(file_struct.uvf_weight_savefile, 'weights_cube')
-        if not no_var then begin
-           variance_cube1 = getvar_savefile(file_struct.uvf_weight_savefile, 'variance_cube') 
-
-           ;; calculate integral of window function
-           window_int = total(variance_cube1)*file_struct.n_vis/abs(total(weights_cube1))^2.
-
-           sigma2_cube1 = temporary(variance_cube1) / abs(weights_cube1)^2.
-        endif else sigma2_cube1 = 1./abs(weights_cube1)
-
-        wh_wt1_0 = where(abs(weights_cube1) eq 0, count_wt1_0)
-        if count_wt1_0 ne 0 then sigma2_cube1[wh_wt1_0] = 0
-     endif else begin
-        data_cube1 = getvar_savefile(file_struct.datafile, file_struct.datavar)
-        weights_cube1 = getvar_savefile(file_struct.weightfile, file_struct.weightvar)
-        if not no_var then begin
-           variance_cube1 = getvar_savefile(file_struct.variancefile, file_struct.variance_var) 
-
-           ;; calculate integral of window function
-           window_int = total(variance_cube1)*file_struct.n_vis/abs(total(weights_cube1))^2.
-
-           sigma2_cube1 = temporary(variance_cube1) / abs(weights_cube1)^2.
-        endif else sigma2_cube1 = 1./abs(weights_cube1)
-
-        wh_wt1_0 = where(abs(weights_cube1) eq 0, count_wt1_0)
-        if count_wt1_0 ne 0 then sigma2_cube1[wh_wt1_0] = 0
-     endelse
-  endelse
-  
   if healpix then begin
-     dims = size(data_cube1, /dimensions)
-     n_kx = dims[0]
+     n_kx = n_elements(kx_rad_vals)
+     kx_rad_delta = kx_rad_vals[1] - kx_rad_vals[0]
      kx_mpc = temporary(kx_rad_vals) / z_mpc_mean
      kx_mpc_delta = kx_mpc[1] - kx_mpc[0]     
 
-     n_ky = dims[1]
+     n_ky = n_elements(ky_rad_vals)
+     ky_rad_delta = ky_rad_vals[1] - ky_rad_vals[0]
      ky_mpc = temporary(ky_rad_vals) / z_mpc_mean
      ky_mpc_delta = ky_mpc[1] - ky_mpc[0]     
    
@@ -316,7 +237,108 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
      pix_area_mpc = x_mpc_delta * y_mpc_delta
 
   endelse
+
+  if nfiles eq 2 then begin
+     if no_var then begin
+        ;; use 1/abs(weights) instead
+        if healpix then begin
+           weights_cube1 = getvar_savefile(file_struct.uvf_weight_savefile[0], 'weights_cube')
+           weights_cube2 = getvar_savefile(file_struct.uvf_weight_savefile[1], 'weights_cube')
+           sigma2_cube1 = 1./abs(weights_cube1)
+           sigma2_cube2 = 1./abs(weights_cube2)
+        endif else begin
+           weights_cube1 = getvar_savefile(file_struct.weightfile[0], file_struct.weightvar[0])
+           weights_cube2 = getvar_savefile(file_struct.weightfile[1], file_struct.weightvar[1])
+           sigma2_cube1 = 1./abs(weights_cube1)
+           sigma2_cube2 = 1./abs(weights_cube2)
+        endelse
+     endif else begin
+        if healpix then begin
+           variance_cube1 = getvar_savefile(file_struct.uvf_weight_savefile[0], 'variance_cube')
+           variance_cube2 = getvar_savefile(file_struct.uvf_weight_savefile[1], 'variance_cube')
+           weights_cube1 = getvar_savefile(file_struct.uvf_weight_savefile[0], 'weights_cube')
+           weights_cube2 = getvar_savefile(file_struct.uvf_weight_savefile[1], 'weights_cube')
+        endif else begin
+           variance_cube1 = getvar_savefile(file_struct.variancefile[0], file_struct.variancevar[i])
+           variance_cube2 = getvar_savefile(file_struct.variancefile[1], file_struct.variancevar[i])
+           weights_cube1 = getvar_savefile(file_struct.weightfile[0], file_struct.weightvar[0])
+           weights_cube2 = getvar_savefile(file_struct.weightfile[1], file_struct.weightvar[1])
+       endelse
+
+        ;; calculate integral of window function (use delta_theta^2. to undo Ian's FT normalization)
+        theta_delta = file_struct.degpix*!DtoR
+
+        test_weight = total(abs(weights_cube1))*pix_area_rad*kx_rad_delta*ky_rad_delta
+
+        test_variance = total(variance_cube1)*pix_area_rad*kx_rad_delta*ky_rad_delta
+
+        print, 'weights integral; Nvis; Nvis/(wt_int/(2pi*kpix)^2)'
+        print, test_weight, file_struct.n_vis[0], file_struct.n_vis[0]/(test_weight/(2.*!dpi*file_struct.kpix)^2.)
+
+        window_int = [total(variance_cube1)*pix_area_rad/file_struct.n_vis[0], $
+                      total(variance_cube2)*pix_area_rad/file_struct.n_vis[1]]
+
+        ;; window_int = [total(variance_cube1)*file_struct.n_vis[0]/(total(abs(weights_cube1))^2.*theta_delta^2.), $
+        ;;               total(variance_cube2)*file_struct.n_vis[1]/(total(abs(weights_cube2))^2.*theta_delta^2.)]
+
+        ;; window_int2 = [total(variance_cube1)*file_struct.n_vis[0]/(abs(total(weights_cube1))^2.*theta_delta^2.), $
+        ;;               total(variance_cube2)*file_struct.n_vis[1]/(abs(total(weights_cube2))^2.*theta_delta^2.)]
+
+        sigma2_cube1 = temporary(variance_cube1) / (abs(weights_cube1)^2.*pix_area_rad)
+        sigma2_cube2 = temporary(variance_cube2) / (abs(weights_cube2)^2.*pix_area_rad)
+     endelse
+
+     wh_wt1_0 = where(abs(weights_cube1) eq 0, count_wt1_0)
+     if count_wt1_0 ne 0 then sigma2_cube1[wh_wt1_0] = 0
+     wh_wt2_0 = where(abs(weights_cube2) eq 0, count_wt2_0)
+     if count_wt2_0 ne 0 then sigma2_cube2[wh_wt2_0] = 0
+ 
+     if min(sigma2_cube1) lt 0 or min(sigma2_cube2) lt 0 then message, 'sigma2 should be positive definite.'
+     if total(abs(sigma2_cube1)) le 0 or total(abs(sigma2_cube2)) le 0 then message, 'one or both sigma2 cubes is all zero'
+
+     ;; now get data cubes
+     if healpix then begin
+        data_cube1 = getvar_savefile(file_struct.uvf_savefile[0], 'data_cube')
+        data_cube2 = getvar_savefile(file_struct.uvf_savefile[1], 'data_cube')
+     endif else begin
+        data_cube1 = getvar_savefile(file_struct.datafile[0], file_struct.datavar[0])
+        data_cube2 = getvar_savefile(file_struct.datafile[1], file_struct.datavar[1])
+     endelse
+     
+  endif else begin
+     ;; single file mode
+     if healpix then begin
+        data_cube1 = getvar_savefile(file_struct.uvf_savefile, 'data_cube')
+        weights_cube1 = getvar_savefile(file_struct.uvf_weight_savefile, 'weights_cube')
+        if not no_var then begin
+           variance_cube1 = getvar_savefile(file_struct.uvf_weight_savefile, 'variance_cube') 
+
+           ;; calculate integral of window function
+           window_int = total(variance_cube1)*pix_area_rad^2./file_struct.n_vis
+
+           sigma2_cube1 = temporary(variance_cube1) / abs(weights_cube1)^2.
+        endif else sigma2_cube1 = 1./abs(weights_cube1)
+
+        wh_wt1_0 = where(abs(weights_cube1) eq 0, count_wt1_0)
+        if count_wt1_0 ne 0 then sigma2_cube1[wh_wt1_0] = 0
+     endif else begin
+        data_cube1 = getvar_savefile(file_struct.datafile, file_struct.datavar)
+        weights_cube1 = getvar_savefile(file_struct.weightfile, file_struct.weightvar)
+        if not no_var then begin
+           variance_cube1 = getvar_savefile(file_struct.variancefile, file_struct.variance_var) 
+
+           ;; calculate integral of window function
+           window_int = total(variance_cube1)**pix_area_rad^2./file_struct.n_vis
+
+           sigma2_cube1 = temporary(variance_cube1) / abs(weights_cube1)^2.
+        endif else sigma2_cube1 = 1./abs(weights_cube1)
+
+        wh_wt1_0 = where(abs(weights_cube1) eq 0, count_wt1_0)
+        if count_wt1_0 ne 0 then sigma2_cube1[wh_wt1_0] = 0
+     endelse
+  endelse
   
+ 
   ;; multiply data and sigma cubes by pixel_area_mpc to get proper units from DFT
   ;; divide by (2*!pi)^2d to get right FT convention
   ;; (not squared for sigmas because they weren't treated as units squared in FHD code)
@@ -343,7 +365,12 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
 
   ;; fix units on window funtion integral -- now they should be Mpc^3
   ;; use delta f for native visibility frequency resolution
-  window_int = window_int * df / (kx_mpc_delta * ky_mpc_delta)
+  ;; calculate integral of window in r^3 to compare w/ Adam
+  window_int_r = window_int * z_mpc_delta * (kx_mpc_delta * ky_mpc_delta)*z_mpc_mean^4./((2.*!dpi)^2.*file_struct.kpix^4.)
+  print, 'window integral in r^3: ' + number_formatter(window_int_r[0], format='(e10.4)')
+
+  ;; need window integral in k^3
+  window_int = window_int_r * (2*!dpi)^3.
 
   ;; divide data by sqrt(window_int) and sigma2 by window_int
   data_cube1 = data_cube1 / sqrt(window_int[0])
