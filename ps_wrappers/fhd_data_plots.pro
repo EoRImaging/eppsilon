@@ -212,7 +212,12 @@ pro fhd_data_plots, datafile, save_path = save_path, savefilebase = savefilebase
   wh_good_kperp = where(total(power, 2) gt 0, count)
   if count eq 0 then stop
   ;;kperp_plot_range = [min(kperp_edges[wh_good_kperp]), max(kperp_edges[wh_good_kperp+1])]
-  kperp_plot_range = [6e-3, min([max(kperp_edges[wh_good_kperp+1]),1.1e-1])]
+
+  ;;kperp_plot_range = [6e-3, min([max(kperp_edges[wh_good_kperp+1]),1.1e-1])]
+  ;;kperp_plot_range = [5./kperp_lambda_conv, min([max(kperp_edges[wh_good_kperp+1]),1.1e-1])]
+
+  kperp_plot_range = [5./kperp_lambda_conv, file_struct_arr.max_baseline_lambda/kperp_lambda_conv]
+
   if keyword_set(hinv) then kperp_plot_range = kperp_plot_range / hubble_param
   
 
