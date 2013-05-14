@@ -30,7 +30,6 @@ function discrete_ft_2d_fast, locations1, locations2, data, k1, k2, max_k_mag = 
      'locations1 & 2 must have same number of elements as first dimension of data.'
 
   ft = complex(fltarr(n_k1, n_k2, n_slices))
-  ft_old = ft
 
   x_loc_k = float(matrix_multiply(locations1, k1, /btranspose))
   y_loc_k = float(matrix_multiply(locations2, k2, /btranspose))
@@ -45,21 +44,17 @@ function discrete_ft_2d_fast, locations1, locations2, data, k1, k2, max_k_mag = 
   nprogsteps = 20
   progress_steps = [3, round(nsteps * findgen(nprogsteps) / double(nprogsteps))]
   inner_times = fltarr(nsteps)
-  outer_times = fltarr(n_chunks)
+  step1_times = fltarr(nsteps)
+  step2_times = fltarr(nsteps)
+  step3_times = fltarr(nsteps)
 
-  if fchunk_sizes[0] eq 1 then y_exp = reform(exp(-1.*complex(0,1)*y_loc_k), n_pts, n_k2, fchunk_sizes[0]) $
-  else y_exp = exp(-1.*complex(0,1)*rebin(y_loc_k, n_pts, n_k2, fchunk_sizes[0]))
-
+  y_exp = exp(-1.*complex(0,1)*y_loc_k)
+ 
   time_preloop = systime(1) - time0
   print, 'pre-loop time: ' + strsplit(string(time_preloop), /extract)
    
   for j=0, n_chunks-1 do begin
-     temp=systime(1)
- 
-     if fchunk_sizes[j] ne fchunk_sizes[0] then $
-        if fchunk_sizes[j] eq 1 then y_exp = reform(exp(-1.*complex(0,1)*y_loc_k), n_pts, n_k2, fchunk_sizes[j]) $
-        else y_exp = exp(-1.*complex(0,1)*rebin(y_loc_k, n_pts, n_k2, fchunk_sizes[j]))
-   
+    
      for i=0, n_k1-1 do begin
         this_step = j*n_k1 + i
         wh = where(progress_steps eq this_step, count)
@@ -94,6 +89,8 @@ function discrete_ft_2d_fast, locations1, locations2, data, k1, k2, max_k_mag = 
         endelse
         undefine, data_inds, x_inds
  
+        temp2 = systime(1)
+
         ;; get ky vals that are inside max_k_mag
         ;; if n_elements(max_k_mag) gt 0 then begin
         ;;    hist = histogram(sqrt(abs(k1[i]^2. + k2^2.))/max_k_mag, min=0, max=1.5, reverse_indices=ri)
@@ -114,14 +111,22 @@ function discrete_ft_2d_fast, locations1, locations2, data, k1, k2, max_k_mag = 
 
 
         ;; endif else begin
-           inds = i + n_k1*matrix_multiply(dindgen(n_k2), fltarr(fchunk_sizes[j])+1) + n_k1 * n_k2 * $
-                  transpose(matrix_multiply(dindgen(fchunk_sizes[j]) + fchunk_edges[j], fltarr(n_k2)+1))
-           ft[inds] = transpose(matrix_multiply(term1, y_exp, /atranspose))
+        inds = i + n_k1*matrix_multiply(dindgen(n_k2), fltarr(fchunk_sizes[j])+1) + n_k1 * n_k2 * $
+               transpose(matrix_multiply(dindgen(fchunk_sizes[j]) + fchunk_edges[j], fltarr(n_k2)+1))
         ;;endelse
+        temp3 = systime(1)
+
+        ft[inds] = transpose(matrix_multiply(term1, y_exp, /atranspose))
         undefine, inds
 
-        inner_times[this_step] = systime(1) - temp
- 
+        temp4 = systime(1)
+
+        inner_times[this_step] = temp4 - temp
+        step1_times[this_step] = temp2-temp
+        step2_times[this_step] = temp3-temp2
+        step3_times[this_step] = temp4-temp3
+        
+
      endfor
   endfor
 
