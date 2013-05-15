@@ -132,6 +132,13 @@ pro fhd_3dps, file_struct, refresh = refresh, kcube_refresh = kcube_refresh, dft
               power_3d[wh_wt0] = 0
               noise_3d[wh_wt0] = 0
            endif
+           
+           ;;quick_histplot, noise_3d[166,0,*], /logdata, binsize=0.1, plot_range=[1e7, 1e11]
+           ;;quick_histplot, noise_3d[169,0,*], /logdata, binsize=0.1, /overplot, color='red'
+           ;;quick_histplot, noise_3d[176,0,*], /logdata, binsize=0.1, /overplot, color='blue'
+           ;;quick_histplot, noise_3d[304,0,*], /logdata, binsize=0.1, /overplot, color='tg6'
+           ;;al_legend, ['[u,v] ' + textoidl('(\lambda)') + ':', '[5.6,0]', '[9.9,0]', '[19.8, 0]', '[200.5,0]'], $
+           ;;           textcolor = ['black', 'black', 'red', 'blue', 'tg6'], /right
 
            ;; quick_image, power_3d[*,0,*], kx_mpc, kz_mpc, /log, title = 'Full power', $
            ;;              xtitle = 'kx (Mpc!U-1!N)', ytitle = 'kz (Mpc!U-1!N)', data_range = data_range
