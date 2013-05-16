@@ -627,13 +627,13 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
         mask_fewfreq[wh_fewfreq] = 0
         mask_fewfreq = rebin(temporary(mask_fewfreq), n_kx, n_ky, n_kz)
         
-        a1_0 = temporary(a_0) * mask_fewfreq[*,*,0]
-        a1_n = temporary(a_n) * mask_fewfreq[*,*,1:*]
-        b1_n = temporary(b_n) * mask_fewfreq[*,*,1:*]
+        a1_0 = temporary(a1_0) * mask_fewfreq[*,*,0]
+        a1_n = temporary(a1_n) * mask_fewfreq[*,*,1:*]
+        b1_n = temporary(b1_n) * mask_fewfreq[*,*,1:*]
         if nfiles gt 1 then begin
-           a2_0 = temporary(a_0) * mask_fewfreq[*,*,0]
-           a2_n = temporary(a_n) * mask_fewfreq[*,*,1:*]
-           b2_n = temporary(b_n) * mask_fewfreq[*,*,1:*]
+           a2_0 = temporary(a2_0) * mask_fewfreq[*,*,0]
+           a2_n = temporary(a2_n) * mask_fewfreq[*,*,1:*]
+           b2_n = temporary(b2_n) * mask_fewfreq[*,*,1:*]
         endif
      endif
      
