@@ -158,7 +158,9 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
               save, file = file_struct.hpx_dftsetup_savefile, new_pix_vec, limits, kx_rad_vals, ky_rad_vals
            endif else restore, file_struct.hpx_dftsetup_savefile
            
-           max_kperp_rad = (file_struct.max_baseline_lambda/kperp_lambda_conv) * z_mpc_mean
+           ;; drop kperp >> max_baseline to save time on DFT
+           ;; go a little beyond max_baseline to account for expansion due to w projection
+           max_kperp_rad = (file_struct.max_baseline_lambda/kperp_lambda_conv) * z_mpc_mean * 1.1
            
            wh_kx_good = where(abs(kx_rad_vals) le max_kperp_rad, count_kx)
            wh_ky_good = where(abs(ky_rad_vals) le max_kperp_rad, count_ky)
