@@ -272,6 +272,10 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
            weights_cube2 = weights_cube2[*, n_ky/2:n_ky-1,*]
         endelse
 
+        ;; Also need to drop 1/2 of ky=0 line -- drop ky=0, kx<0
+        weights_cube1[0:n_kx/2-1, 0, *] = 0
+        weights_cube2[0:n_kx/2-1, 0, *] = 0
+
         sigma2_cube1 = 1./abs(weights_cube1)
         sigma2_cube2 = 1./abs(weights_cube2)
 
@@ -303,6 +307,12 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
            weights_cube1 = weights_cube1[*, n_ky/2:n_ky-1,*]
            weights_cube2 = weights_cube2[*, n_ky/2:n_ky-1,*]
        endelse
+
+        ;; Also need to drop 1/2 of ky=0 line -- drop ky=0, kx<0
+        weights_cube1[0:n_kx/2-1, 0, *] = 0
+        weights_cube2[0:n_kx/2-1, 0, *] = 0
+        variance_cube1[0:n_kx/2-1, 0, *] = 0
+        variance_cube2[0:n_kx/2-1, 0, *] = 0
 
         ;; calculate integral of window function (use delta_theta^2. to undo Ian's FT normalization)
         theta_delta = file_struct.degpix*!DtoR
@@ -357,7 +367,12 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
         ky_mpc = ky_mpc[n_ky/2:n_ky-1]
         n_ky = n_elements(ky_mpc)
      endelse
-     
+   
+    ;; Also need to drop 1/2 of ky=0 line -- drop ky=0, kx<0
+    data_cube1[0:n_kx/2-1, 0, *] = 0
+    data_cube2[0:n_kx/2-1, 0, *] = 0
+
+  
   endif else begin
      ;; single file mode
      if healpix then begin
@@ -371,6 +386,10 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
            data_cube1 = data_cube1[*, n_ky/2:n_ky-1,*]        
         endif
 
+        ;; Also need to drop 1/2 of ky=0 line -- drop ky=0, kx<0
+        weights_cube1[0:n_kx/2-1, 0, *] = 0
+        data_cube1[0:n_kx/2-1, 0, *] = 0
+
         if not no_var then begin
            variance_cube1 = getvar_savefile(file_struct.uvf_weight_savefile, 'variance_cube') 
 
@@ -379,6 +398,9 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
               ;; need to cut uvf cubes in half because image is real -- we'll cut negative ky
               variance_cube1 = variance_cube1[*, n_ky/2:n_ky-1,*]
            endif
+
+           ;; Also need to drop 1/2 of ky=0 line -- drop ky=0, kx<0
+           variance_cube1[0:n_kx/2-1, 0, *] = 0
 
            ;; calculate integral of window function
            ;; already cut out negative ky, so multiply by 2
@@ -404,11 +426,18 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
         weights_cube1 = weights_cube1[*, n_ky/2:n_ky-1,*]
         data_cube1 = data_cube1[*, n_ky/2:n_ky-1,*]        
 
+        ;; Also need to drop 1/2 of ky=0 line -- drop ky=0, kx<0
+        weights_cube1[0:n_kx/2-1, 0, *] = 0
+        data_cube1[0:n_kx/2-1, 0, *] = 0
+
         if not no_var then begin
            variance_cube1 = getvar_savefile(file_struct.variancefile, file_struct.variance_var) 
            ;; need to cut uvf cubes in half because image is real -- we'll cut negative ky
            variance_cube1 = variance_cube1[*, n_ky/2:n_ky-1,*]
- 
+
+           ;; Also need to drop 1/2 of ky=0 line -- drop ky=0, kx<0
+           variance_cube1[0:n_kx/2-1, 0, *] = 0
+
            ;; calculate integral of window function
            ;; already cut out negative ky, so multiply by 2
            window_int = 2*total(variance_cube1)*pix_area_rad/file_struct.n_vis
