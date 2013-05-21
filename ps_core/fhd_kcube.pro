@@ -289,6 +289,10 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
            weights_cube2 = getvar_savefile(file_struct.uvf_weight_savefile[1], 'weights_cube')
 
            if min(ky_mpc) lt 0 then begin
+              ;; calculate integral of window function before cut for comparison
+              window_int_orig = [total(variance_cube1)*pix_area_rad/file_struct.n_vis[0], $
+                                 total(variance_cube2)*pix_area_rad/file_struct.n_vis[1]]
+
               ;; negative ky values haven't been cut yet
               ;; need to cut uvf cubes in half because image is real -- we'll cut negative ky
               variance_cube1 = variance_cube1[*, n_ky/2:n_ky-1,*]
@@ -315,18 +319,8 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
         weights_cube2[0:n_kx/2-1, 0, *] = 0
         variance_cube1[0:n_kx/2-1, 0, *] = 0
         variance_cube2[0:n_kx/2-1, 0, *] = 0
-
-        ;; calculate integral of window function (use delta_theta^2. to undo Ian's FT normalization)
-        theta_delta = file_struct.degpix*!DtoR
-
-        test_weight = total(abs(weights_cube1))*pix_area_rad*kx_rad_delta*ky_rad_delta
-
-        test_variance = total(variance_cube1)*pix_area_rad*kx_rad_delta*ky_rad_delta
-
-        print, 'weights integral; Nvis; Nvis/(wt_int/(2pi*kpix)^2)'
-        print, test_weight, file_struct.n_vis[0], file_struct.n_vis[0]/(test_weight/(2.*!dpi*file_struct.kpix)^2.)
-
-        ;; calculate integral of window function
+        
+        ;; calculate integral of window function (use pix_area_rad for FT normalization)
         ;; already cut out negative ky, so multiply by 2
         window_int = 2*[total(variance_cube1)*pix_area_rad/file_struct.n_vis[0], $
                         total(variance_cube2)*pix_area_rad/file_struct.n_vis[1]]
