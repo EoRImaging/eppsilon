@@ -122,7 +122,8 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
   endif else conv_factor = 1. + fltarr(n_freq)
   
   t_sys = 440. ; K
-  eff_area = 16. ; m^2
+  ;;eff_area = 16. ; m^2
+  eff_area = 21. ; m^2 -- from Aaron's memo
   df = file_struct.freq_resolution ; Hz -- native visibility resolution NOT cube resolution
   tau = file_struct.time_resolution ; seconds
   vis_sigma = (2. * (1.38065e-23) * 1e26) * t_sys / (eff_area * sqrt(df * tau)) ;; in Jy
