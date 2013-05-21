@@ -478,7 +478,7 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
   ;; fix units on window funtion integral -- now they should be Mpc^3
   ;; use delta f for native visibility frequency resolution
   ;; calculate integral of window in r^3 to compare w/ Adam
-  window_int_r = window_int * z_mpc_delta * (kx_mpc_delta * ky_mpc_delta)*z_mpc_mean^4./((2.*!dpi)^2.*file_struct.kpix^4.)
+  window_int_r = window_int * (z_mpc_delta * n_freq) * (kx_mpc_delta * ky_mpc_delta)*z_mpc_mean^4./((2.*!dpi)^2.*file_struct.kpix^4.)
   print, 'window integral in r^3: ' + number_formatter(window_int_r[0], format='(e10.4)')
 
   ;; need window integral in k^3
