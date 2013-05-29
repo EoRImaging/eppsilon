@@ -51,6 +51,11 @@ function discrete_ft_2d_fast, locations1, locations2, data, k1, k2, max_k_mag = 
   y_exp = exp(-1.*complex(0,1)*y_loc_k)
   x_exp = exp(-1.*complex(0,1)*x_loc_k)
 
+  x_exp_real = real_part(x_exp)
+  x_exp_imag = imaginary(x_exp)
+ 
+  undefine, x_exp
+
   time_preloop = systime(1) - time0
   print, 'pre-loop time: ' + strsplit(string(time_preloop), /extract)
   
@@ -80,17 +85,24 @@ function discrete_ft_2d_fast, locations1, locations2, data, k1, k2, max_k_mag = 
 
      if fchunk_sizes[j] eq 1 then begin
         data_inds = dindgen(n_pts) + n_pts*fchunk_edges[j]
-        term1 = matrix_multiply(data[data_inds], fltarr(n_k1)+1)*x_exp
+
+        data_expand = rebin(data[temporary(data_inds)], n_pts, n_k1, /sample)
+
+        term1_real = data_expand * x_exp_real
+        term1_imag = temporary(data_expand) * x_exp_imag
      endif else begin
-        data_inds = matrix_multiply(dindgen(n_pts), fltarr(fchunk_sizes[j])+1) + $
-                    n_pts*transpose(matrix_multiply(findgen(fchunk_sizes[j]) + fchunk_edges[j], fltarr(n_pts)+1))
-      
-        term1 = reform(transpose(reform(matrix_multiply(reform(data[data_inds], n_pts*fchunk_sizes[j]), fltarr(n_k1)+1), $
-                                        n_pts, fchunk_sizes[j], n_k1), [0,2,1]) * $
-                       reform(matrix_multiply(reform(x_exp, n_pts*n_k1), fltarr(fchunk_sizes[j])+1), n_pts, n_k1, fchunk_sizes[j]), $
-                       n_pts, n_k1*fchunk_sizes[j])
+        data_inds = rebin(dindgen(n_pts), n_pts, fchunk_sizes[j], /sample) + n_pts * $
+                    rebin(reform(findgen(fchunk_sizes[j]) + fchunk_edges[j], 1, fchunk_sizes[j]), n_pts, fchunk_sizes[j], /sample)
+     
+        data_expand = rebin(reform(data[temporary(data_inds)], n_pts, 1, fchunk_sizes[j]), n_pts, n_k1, fchunk_sizes[j], /sample)
+
+        term1_real = reform(data_expand * rebin(x_exp_real, n_pts, n_k1,fchunk_sizes[j], /sample), n_pts, n_k1*fchunk_sizes[j])
+        
+        term1_imag = reform(temporary(data_expand) * rebin(x_exp_imag, n_pts, n_k1,fchunk_sizes[j], /sample), $
+                            n_pts, n_k1*fchunk_sizes[j])
+
      endelse
-     undefine, data_inds
+     term1 = temporary(term1_real)+complex(0,1)*temporary(term1_imag)
 
      temp2 = systime(1)
 
@@ -119,16 +131,18 @@ function discrete_ft_2d_fast, locations1, locations2, data, k1, k2, max_k_mag = 
         inds = dindgen(n_k1*n_k2) + n_k1 * n_k2 * fchunk_edges[j]
 
         temp3 = systime(1)
-        ft[inds] = matrix_multiply(term1, y_exp, /atranspose)
+        
+        ft[temporary(inds)] = matrix_multiply(temporary(term1), y_exp,/atranspose)
+
      endif else begin
-        inds = reform(matrix_multiply(dindgen(n_k1*n_k2), fltarr(fchunk_sizes[j])+1) + $
-                      n_k1 * n_k2 * transpose(matrix_multiply(dindgen(fchunk_sizes[j]) + fchunk_edges[j], fltarr(n_k1*n_k2)+1)), $
-                      n_k1, n_k2, fchunk_sizes[j])
-  
+        inds = reform(rebin(dindgen(n_k1*n_k2), n_k1*n_k2, fchunk_sizes[j], /sample) + $
+                      n_k1 * n_k2 * rebin(reform(dindgen(fchunk_sizes[j]) + fchunk_edges[j], 1, fchunk_sizes[j]), $
+                                          n_k1*n_k2, fchunk_sizes[j], /sample), n_k1, n_k2, fchunk_sizes[j])
+
         temp3 = systime(1)
-        ft[inds] = transpose(reform(matrix_multiply(term1, y_exp, /atranspose), n_k1, fchunk_sizes[j], n_k2), [0,2,1])
+        ft[temporary(inds)] = transpose(reform(matrix_multiply(temporary(term1), y_exp,/atranspose), $
+                                               n_k1, fchunk_sizes[j], n_k2), [0,2,1])
      endelse
-     undefine, inds, term1
 
      temp4 = systime(1)
 
