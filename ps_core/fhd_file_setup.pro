@@ -3,8 +3,7 @@ function fhd_file_setup, datafile, pol, type, weightfile = weightfile, variancef
                          save_path = save_path, $
                          hpx_dftsetup_savefile = hpx_dftsetup_savefile, weight_savefilebase = weight_savefilebase_in, $
                          variance_savefilebase = variance_savefilebase_in, uvf_savefilebase = uvf_savefilebase_in, $
-                         savefilebase = savefilebase_in
-
+                         savefilebase = savefilebase_in, spec_window_type = spec_window_type
 
   nfiles = n_elements(datafile)
   if nfiles gt 2 then message, 'only 1 or 2 datafiles is supported'
@@ -64,6 +63,19 @@ function fhd_file_setup, datafile, pol, type, weightfile = weightfile, variancef
   if n_elements(uvf_savefilebase) gt 0 and n_elements(uvf_savefilebase) ne nfiles then $
      message, 'if uvf_savefilebase is specified it must have the same number of elements as data files'
 
+  if n_elements(spec_window_type) ne 0 then begin
+     type_list = ['Hann', 'Hamming', 'Blackman', 'Nutall', 'Blackman-Nutall', 'Blackman-Harris']
+     sw_tag_list = ['hann', 'ham', 'blm', 'ntl', 'bn', 'bh']
+
+     wh_type = where(strlowcase(type_list) eq strlowcase(spec_window_type), count_type)
+     if count_type eq 0 then message, 'Spectral window type not recognized.' $
+     else begin
+        spec_window_type = type_list[wh_type[0]]
+        sw_tag = '_' + sw_tag_list[wh_type[0]]
+     endelse
+  endif else sw_tag = ''
+
+
   if n_elements(savefilebase_in) eq 0 or n_elements(uvf_savefilebase_in) lt nfiles then begin
      if nfiles eq 1 then begin
         if n_elements(save_path) ne 0 then froot = save_path $
@@ -72,7 +84,7 @@ function fhd_file_setup, datafile, pol, type, weightfile = weightfile, variancef
         infilebase = file_basename(datafile)
         temp2 = strpos(infilebase, '.', /reverse_search)
         general_filebase = strmid(infilebase, 0, temp2)
-        if n_elements(savefilebase_in) eq 0 then savefilebase = general_filebase + file_label $
+        if n_elements(savefilebase_in) eq 0 then savefilebase = general_filebase + file_label + sw_tag $
         else savefilebase = savefilebase_in
         
         ;; if we're only dealing with one file and uvf_savefilebase isn't specified then use same base for uvf files 
@@ -94,7 +106,7 @@ function fhd_file_setup, datafile, pol, type, weightfile = weightfile, variancef
                                                      + '_' + strjoin(fileparts_2[wh_diff]) + '_joint' $
               else general_filebase = infilebase[0] + infilebase[1] + '_joint'
            endelse
-           savefilebase = general_filebase + file_label
+           savefilebase = general_filebase + file_label + sw_tag
         endif
         
         if n_elements(uvf_savefilebase_in) eq 0 then begin

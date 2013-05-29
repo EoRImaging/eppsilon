@@ -1,5 +1,6 @@
 pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weight = dft_refresh_weight, $
-              dft_fchunk = dft_fchunk, std_power = std_power, input_units = input_units, quiet = quiet
+               dft_fchunk = dft_fchunk, spec_window_type = spec_window_type, $
+               std_power = std_power, input_units = input_units, quiet = quiet
 
   if n_elements(file_struct.nside) ne 0 then healpix = 1 else healpix = 0
   nfiles = n_elements(file_struct.datafile)
@@ -566,6 +567,21 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
   wh_nofreq = where(n_freq_contrib eq 0, count_nofreq)
   undefine, mask
       
+  ;; apply spectral windowing function if desired
+  if n_elements(spec_window_type) ne 0 then begin
+     window = spectral_window(n_freq, type = spec_window_type, /periodic)
+
+     norm_factor = n_freq / total(window)
+     window = window * norm_factor
+
+     window_expand = rebin(reform(window, 1, 1, n_freq), n_kx, n_ky, n_freq, /sample)
+     
+     data_sum = data_sum * window_expand
+     if nfiles eq 2 then data_diff = data_diff * window_expand
+
+     sum_sigma2 = sum_sigma2 * temporary(window_expand^2.)
+  endif
+
   ;; now take FFT
   data_sum_ft = fft(data_sum, dimension=3) * n_freq * z_mpc_delta / (2.*!pi)
   ;; put k0 in middle of cube
