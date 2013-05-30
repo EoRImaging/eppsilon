@@ -1,8 +1,8 @@
 pro fhd_data_plots, datafile, save_path = save_path, savefilebase = savefilebase, plot_path = plot_path, $
                     pol_inc = pol_inc, type_inc = type_inc, $
                     refresh_dft = refresh_dft, dft_fchunk = dft_fchunk, refresh_ps = refresh_ps, refresh_binning = refresh_binning, $
-                    spec_window_type = spec_window_type, std_power = std_power, no_kzero = no_kzero, $
-                    slice_nobin = slice_nobin, $
+                    freq_ch_range = freq_ch_range, no_spec_window = no_spec_window, spec_window_type = spec_window_type, $
+                    std_power = std_power, no_kzero = no_kzero, slice_nobin = slice_nobin, $
                     data_range = data_range, $
                     log_kpar = log_kpar, log_kperp = log_kperp, kpar_bin = kpar_bin, kperp_bin = kperp_bin, log_k1d = log_k1d, $
                     k1d_bin = k1d_bin, kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, $
@@ -85,73 +85,24 @@ pro fhd_data_plots, datafile, save_path = save_path, savefilebase = savefilebase
   titles = strarr(n_cubes)
   for i=0, npol-1 do titles[ntype*i:i*ntype+ntype-1] = type_inc + ' ' + strupcase(pol_inc[i])
   
-  if n_elements(savefilebase) ne 0 then begin
-     if n_elements(savefilebase) ne n_cubes then begin
-        if n_elements(savefilebase) eq 1 then begin
-           ;; need general_filebase for 1D plotfiles, make sure it doesn't have a full path
-           general_filebase = file_basename(savefilebase)
-           savefilebase = savefilebase + file_labels 
-        endif else $
-           message, 'savefilebase must be a scalar or have a number of elements given by the number of polarizations * number of types'
-     endif else begin
-        ;; need general_filebase for 1D plotfiles, make sure it doesn't have a full path
-        nparts_max = 20
-        fileparts = strarr(nparts_max, n_cubes)
-        for i=0, n_cubes-1 do begin
-           temp = strsplit(file_basename(savefilebase[i]), '_', /extract)
-           if n_elements(temp) gt nparts_max then begin
-              temp2 = strarr(n_elements(temp) - nparts_max, n_cubes)
-              fileparts = [fileparts, temp2]
-           endif 
-           fileparts[*,i] = temp
-        endfor
 
-        match_test = strcmp(fileparts[*,0], fileparts[*,1:*])
-        wh_diff = where(match_test eq 0, count_diff, complement = wh_same, ncomplement = count_same)
-        if count_diff eq 0 then general_filebase = file_basename(savefilebase[0]) $
-           else begin
-              if count_same gt 0 then general_filebase = strjoin(fileparts[wh_same,0], '_') $
-              else general_filebase = strjoin(file_basename(savefilebase),'_')
-           endelse
-     endelse
-  endif
+  if n_elements(savefilebase) gt 1 then message, 'savefilebase must be a scalar'
 
   for i=0, n_cubes-1 do begin
      pol = pol_inc[i / ntype]
      type = type_inc[i mod ntype]
 
      file_struct = fhd_file_setup(datafile, pol, type, savefilebase = savefilebase, save_path = save_path, $
-                                  spec_window_type = spec_window_type)
+                                  freq_ch_range = freq_ch_range, spec_window_type = spec_window_type)
      if i eq 0 then file_struct_arr = replicate(file_struct, n_cubes)
      file_struct_arr[i] = file_struct
   endfor
   undefine, file_struct
 
   ;; need general_filebase for 1D plotfiles, make sure it doesn't have a full path
-  if n_elements(general_filebase) eq 0 then begin
-     if n_cubes eq 1 then general_filebase = file_struct_arr.general_filebase $
-     else begin
-        nparts_max = 10
-        fileparts = strarr(nparts_max, n_cubes)
-        for i=0, n_cubes-1 do begin
-           temp = strsplit(file_struct_arr(i).general_filebase, '_', /extract)
-           if n_elements(temp) gt nparts_max then begin
-              temp2 = strarr(n_elements(temp) - nparts_max, n_cubes)
-              fileparts = [fileparts, temp2]
-              nparts_max = n_elements(temp)
-           endif 
-           fileparts[0:n_elements(temp)-1,i] = temp
-        endfor
+  general_filebase = file_struct_arr(0).general_filebase
+  for i=0, n_cubes-1 do if file_struct_arr(i).general_filebase ne general_filebase then stop
 
-        match_test = strcmp(fileparts[*,0], fileparts[*,1:*])
-        wh_diff = where(match_test eq 0, count_diff, complement = wh_same, ncomplement = count_same)
-        if count_diff eq 0 then general_filebase = file_struct_arr(0).general_filebase $
-           else begin
-              if count_same gt 0 then general_filebase = strjoin(fileparts[wh_same,0], '_') $
-              else general_filebase = strjoin(file_struct_arr.general_filebase,'_')
-           endelse
-     endelse
-  endif
 
   savefiles_2d = file_struct_arr.savefile_froot + file_struct_arr.savefilebase + fadd_2dbin + '_2dkpower.idlsave'
   test_save_2d = file_test(savefiles_2d) *  (1 - file_test(savefiles_2d, /zero_length))
@@ -167,11 +118,14 @@ pro fhd_data_plots, datafile, save_path = save_path, savefilebase = savefilebase
   if n_elements(file_struct_arr[0].nside) ne 0 then healpix = 1 else healpix = 0
 
   n_freq = n_elements(file_struct_arr[0].frequencies)
+  if n_elements(freq_ch_range) ne 0 then if max(freq_ch_range) gt n_freq-1 then message, 'invalid freq_ch_range'
+
   if healpix and n_elements(dft_fchunk) ne 0 then if dft_fchunk gt n_freq then begin
      print, 'dft_fchunk is larger than the number of frequency slices, setting it to the number of slices -- ' + $
             number_formatter(n_freq)
      dft_fchunk = n_freq
   endif
+
 
   for i=0, n_cubes-1 do begin
 
@@ -205,12 +159,13 @@ pro fhd_data_plots, datafile, save_path = save_path, savefilebase = savefilebase
 
            fhd_3dps, file_struct_arr[i], kcube_refresh = refresh_ps, dft_refresh_data = refresh_dft, $
                      dft_refresh_weight = weight_refresh[i], $
-                     dft_fchunk = dft_fchunk, spec_window_type = spec_window_type, $
+                     dft_fchunk = dft_fchunk, freq_ch_range = freq_ch_range, spec_window_type = spec_window_type, $
                      std_power = std_power, no_kzero = no_kzero, $
                      log_kpar = log_kpar, log_kperp = log_kperp, kpar_bin = kpar_bin, kperp_bin = kperp_bin, $
                      /quiet
         endif else $
-           fhd_3dps, file_struct_arr[i], kcube_refresh = refresh_ps, spec_window_type = spec_window_type, $
+           fhd_3dps, file_struct_arr[i], kcube_refresh = refresh_ps, freq_ch_range = freq_ch_range, $
+                     spec_window_type = spec_window_type, $
                      std_power = std_power, no_kzero = no_kzero, $
                      log_kpar = log_kpar, log_kperp = log_kperp, kpar_bin = kpar_bin, kperp_bin = kperp_bin, /quiet
      endif
@@ -218,6 +173,13 @@ pro fhd_data_plots, datafile, save_path = save_path, savefilebase = savefilebase
 
 
   restore, savefiles_2d[0]
+
+  ;;cgplot, 1/sqrt(weights[*,24]), /ylog, xstyle=1, yrange=minmax([noise, 1/sqrt(weights)]), title = spec_window_type
+  ;;cgplot, noise[*,24], /overplot, color='red'
+  ;;cgplot, total(noise,2)/(n_elements(kpar_edges)-1), /overplot, color='blue'
+  ;;al_legend, ['expected', 'observed'], textcolor=['black','red'], /right;
+;;stop
+
   wh_good_kperp = where(total(power, 2) gt 0, count)
   if count eq 0 then stop
   ;;kperp_plot_range = [min(kperp_edges[wh_good_kperp]), max(kperp_edges[wh_good_kperp+1])]

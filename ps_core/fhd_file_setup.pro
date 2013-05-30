@@ -1,9 +1,9 @@
 function fhd_file_setup, datafile, pol, type, weightfile = weightfile, variancefile = variancefile, pixelfile = pixelfile, $
                          datavar = datavar, weightvar = weightvar, variancevar = variancevar, pixelvar = pixelvar, $
-                         save_path = save_path, $
-                         hpx_dftsetup_savefile = hpx_dftsetup_savefile, weight_savefilebase = weight_savefilebase_in, $
-                         variance_savefilebase = variance_savefilebase_in, uvf_savefilebase = uvf_savefilebase_in, $
-                         savefilebase = savefilebase_in, spec_window_type = spec_window_type
+                         save_path = save_path, hpx_dftsetup_savefile = hpx_dftsetup_savefile, $
+                         weight_savefilebase = weight_savefilebase_in, variance_savefilebase = variance_savefilebase_in, $
+                         uvf_savefilebase = uvf_savefilebase_in, savefilebase = savefilebase_in, $
+                         freq_ch_range = freq_ch_range, spec_window_type = spec_window_type
 
   nfiles = n_elements(datafile)
   if nfiles gt 2 then message, 'only 1 or 2 datafiles is supported'
@@ -56,11 +56,11 @@ function fhd_file_setup, datafile, pol, type, weightfile = weightfile, variancef
 
 
   if n_elements(hpx_dftsetup_savefile) gt 1 then message, 'only one hpx_dftsetup_savefile allowed'
-  if n_elements(savefilebase) gt 1 then message, 'only one savefilebase allowed'
+  if n_elements(savefilebase_in) gt 1 then message, 'only one savefilebase allowed'
 
-  if n_elements(weight_savefilebase) gt 0 and n_elements(weight_savefilebase) ne nfiles then $
+  if n_elements(weight_savefilebase_in) gt 0 and n_elements(weight_savefilebase_in) ne nfiles then $
      message, 'if weight_savefilebase is specified it must have the same number of elements as data files'
-  if n_elements(uvf_savefilebase) gt 0 and n_elements(uvf_savefilebase) ne nfiles then $
+  if n_elements(uvf_savefilebase_in) gt 0 and n_elements(uvf_savefilebase_in) ne nfiles then $
      message, 'if uvf_savefilebase is specified it must have the same number of elements as data files'
 
   if n_elements(spec_window_type) ne 0 then begin
@@ -75,6 +75,10 @@ function fhd_file_setup, datafile, pol, type, weightfile = weightfile, variancef
      endelse
   endif else sw_tag = ''
 
+  if n_elements(freq_ch_range) ne 0 then begin
+     if min(freq_ch_range) lt 0 or max(freq_ch_range) - min(freq_ch_range) lt 3 then message, 'invalid freq_ch_range'
+     fch_tag = 'ch' + number_formatter(min(freq_ch_range)) + '-' + number_formatter(max(freq_ch_range))
+  endif else fch_tag = ''
 
   if n_elements(savefilebase_in) eq 0 or n_elements(uvf_savefilebase_in) lt nfiles then begin
      if nfiles eq 1 then begin
@@ -83,12 +87,13 @@ function fhd_file_setup, datafile, pol, type, weightfile = weightfile, variancef
         uvf_froot = froot
         infilebase = file_basename(datafile)
         temp2 = strpos(infilebase, '.', /reverse_search)
-        general_filebase = strmid(infilebase, 0, temp2)
+        dft_filebase = strmid(infilebase, 0, temp2)
+        general_filebase = dft_filebase + fch_tag
         if n_elements(savefilebase_in) eq 0 then savefilebase = general_filebase + file_label + sw_tag $
         else savefilebase = savefilebase_in
         
         ;; if we're only dealing with one file and uvf_savefilebase isn't specified then use same base for uvf files 
-        if n_elements(uvf_savefilebase_in) eq 0 then uvf_savefilebase = general_filebase + file_label
+        if n_elements(uvf_savefilebase_in) eq 0 then uvf_savefilebase = general_filebase + fch_tag + file_label
      endif else begin
         if n_elements(save_path) ne 0 then froot = save_path $
         else froot = file_dirname(datafile[0], /mark_directory)
@@ -100,12 +105,14 @@ function fhd_file_setup, datafile, pol, type, weightfile = weightfile, variancef
            fileparts_2 = strsplit(strmid(infilebase[1], 0, temp2[1]), '_', /extract)
            match_test = strcmp(fileparts_1, fileparts_2)
            wh_diff = where(match_test eq 0, count_diff, complement = wh_same, ncomplement = count_same)
-           if count_diff eq 0 then general_filebase = strmid(infilebase[0], 0, temp2[0]) + '_joint' $
+           if count_diff eq 0 then dft_filebase = strmid(infilebase[0], 0, temp2[0]) + '_joint' + fch_tag $
            else begin
-              if count_same gt 0 then general_filebase = strjoin(fileparts_1[wh_same], '_') + '__' + strjoin(fileparts_1[wh_diff]) $
-                                                     + '_' + strjoin(fileparts_2[wh_diff]) + '_joint' $
-              else general_filebase = infilebase[0] + infilebase[1] + '_joint'
+              if count_same gt 0 then dft_filebase = strjoin(fileparts_1[wh_same], '_') + '__' + strjoin(fileparts_1[wh_diff]) $
+                                                     + '_' + strjoin(fileparts_2[wh_diff]) + '_joint' + fch_tag $
+              else dft_filebase = infilebase[0] + infilebase[1] + '_joint' + fch_tag
            endelse
+
+           general_filebase = dft_filebase + fch_tag
            savefilebase = general_filebase + file_label + sw_tag
         endif
         
@@ -113,7 +120,7 @@ function fhd_file_setup, datafile, pol, type, weightfile = weightfile, variancef
            ;; need 2 uvf files
            if n_elements(save_path) ne 0 then uvf_froot = save_path $
            else uvf_froot = file_dirname(datafile, /mark_directory)
-           uvf_savefilebase = [strmid(infilebase[0], 0, temp2[0]), strmid(infilebase[1], 0, temp2[1])] + file_label
+           uvf_savefilebase = [strmid(infilebase[0], 0, temp2[0]), strmid(infilebase[1], 0, temp2[1])] + fch_tag + file_label
         endif
      endelse
   endif 
@@ -124,8 +131,9 @@ function fhd_file_setup, datafile, pol, type, weightfile = weightfile, variancef
         temp = file_dirname(savefilebase_in, /mark_directory)
         if temp ne '.' then froot = temp else froot = file_dirname(datafile[0], /mark_directory)
      endelse
-     savefilebase = file_basename(savefilebase_in)
-     general_filebase = savefilebase
+     savefilebase = file_basename(savefilebase_in) + fch_tag + file_label + sw_tag
+     dft_filebase = file_basename(savefilebase_in)
+     general_filebase = dft_filebase + fch_tag
   endif
 
   if n_elements(uvf_savefilebase_in) eq nfiles then begin
@@ -134,7 +142,7 @@ function fhd_file_setup, datafile, pol, type, weightfile = weightfile, variancef
         temp = file_dirname(uvf_savefilebase_in, /mark_directory)
         for i=0, nfiles-1 do if temp[i] ne '.' then uvf_froot = temp[i] else uvf_froot = file_dirname(datafile[i], /mark_directory)
      endelse
-     uvf_savefilebase = file_basename(uvf_savefilebase_in)
+     uvf_savefilebase = file_basename(uvf_savefilebase_in) + fch_tag + file_label
   endif
       
   uvf_savefile = uvf_froot + uvf_savefilebase + '_uvf.idlsave'
@@ -151,10 +159,10 @@ function fhd_file_setup, datafile, pol, type, weightfile = weightfile, variancef
      else wt_froot = file_dirname(weightfile, /mark_directory)
      wt_infilebase = file_basename(weightfile)
      temp2 = strpos(wt_infilebase, '.', /reverse_search)
-     if nfiles eq 1 then weight_savefilebase = strmid(wt_infilebase, 0, temp2) + wt_file_label $
+     if nfiles eq 1 then weight_savefilebase = strmid(wt_infilebase, 0, temp2) + fch_tag + wt_file_label $
      else begin
         weight_savefilebase = strarr(nfiles)
-        for i=0, nfiles-1 do weight_savefilebase[i] = strmid(wt_infilebase[i], 0, temp2[i]) + wt_file_label
+        for i=0, nfiles-1 do weight_savefilebase[i] = strmid(wt_infilebase[i], 0, temp2[i]) + fch_tag + wt_file_label
      endelse
   endif else begin
      if n_elements(save_path) gt 0 then wt_froot = save_path $
@@ -167,7 +175,7 @@ function fhd_file_setup, datafile, pol, type, weightfile = weightfile, variancef
               wt_froot[i] = file_dirname(weightfile[i], /mark_directory)
         endelse
      endelse
-     weight_savefilebase = file_basename(weight_savefilebase_in)
+     weight_savefilebase = file_basename(weight_savefilebase_in) + fch_tag + file_label
   endelse
   
   uvf_weight_savefile = wt_froot + weight_savefilebase + '_uvf.idlsave'
@@ -310,7 +318,7 @@ stop
   endfor
   
   if healpix then if n_elements(hpx_dftsetup_savefile) eq 0 then $
-     hpx_dftsetup_savefile = froot + general_filebase + '_dftsetup.idlsave'
+     hpx_dftsetup_savefile = froot + dft_filebase + '_dftsetup.idlsave'
   
 
   if healpix then begin

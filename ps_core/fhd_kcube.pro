@@ -1,5 +1,5 @@
 pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weight = dft_refresh_weight, $
-               dft_fchunk = dft_fchunk, spec_window_type = spec_window_type, $
+               dft_fchunk = dft_fchunk, freq_ch_range = freq_ch_range, spec_window_type = spec_window_type, $
                std_power = std_power, input_units = input_units, quiet = quiet
 
   if n_elements(file_struct.nside) ne 0 then healpix = 1 else healpix = 0
@@ -59,6 +59,8 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
   if healpix then n_freq = dims[1] else n_freq = dims[2]
   frequencies = file_struct.frequencies
   if n_elements(frequencies) ne n_freq then message, 'number of frequencies does not match frequency dimension of data'
+
+  if n_elements(freq_ch_range) ne 0 then frequencies = frequencies[min(freq_ch_range):max(freq_ch_range)]
      
   ;; check whether or not the frequencies are evenly spaced.
   freq_diff = frequencies - shift(frequencies, 1)
@@ -178,6 +180,8 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
            ;; do DFT.
            if test_uvf eq 0 or keyword_set(dft_refresh_data) then begin
               arr = getvar_savefile(file_struct.datafile[i], file_struct.datavar[i])
+              if n_elements(freq_ch_range) ne 0 then arr = arr[*, min(freq_ch_range):max(freq_ch_range)]
+
               transform = discrete_ft_2D_fast(new_pix_vec[*,0], new_pix_vec[*,1], arr, kx_rad_vals, ky_rad_vals, $
                                               max_k_mag = max_kperp_rad, timing = ft_time, fchunk = dft_fchunk)
               data_cube = temporary(transform)
@@ -189,12 +193,16 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
            
            if test_wt_uvf eq 0 or keyword_set(dft_refresh_weight) then begin
               arr = getvar_savefile(file_struct.weightfile[i], file_struct.weightvar[i])
+              if n_elements(freq_ch_range) ne 0 then arr = arr[*, min(freq_ch_range):max(freq_ch_range)]
+
               transform = discrete_ft_2D_fast(new_pix_vec[*,0], new_pix_vec[*,1], arr, kx_rad_vals, ky_rad_vals, timing = ft_time, $
                                               fchunk = dft_fchunk)            
               weights_cube = temporary(transform)
               
               if not no_var then begin
                  arr = getvar_savefile(file_struct.variancefile[i], file_struct.variancevar[i])
+                 if n_elements(freq_ch_range) ne 0 then arr = arr[*, min(freq_ch_range):max(freq_ch_range)]
+
                  transform = discrete_ft_2D_fast(new_pix_vec[*,0], new_pix_vec[*,1], arr, kx_rad_vals, ky_rad_vals, timing = ft_time, $
                                                  fchunk = dft_fchunk)            
                  variance_cube = abs(temporary(transform)) ;; make variances real, positive definite (amplitude)
