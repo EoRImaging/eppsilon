@@ -1,7 +1,8 @@
 pro fhd_data_plots, datafile, save_path = save_path, savefilebase = savefilebase, plot_path = plot_path, $
                     pol_inc = pol_inc, type_inc = type_inc, $
                     refresh_dft = refresh_dft, dft_fchunk = dft_fchunk, refresh_ps = refresh_ps, refresh_binning = refresh_binning, $
-                    std_power = std_power, no_kzero = no_kzero, slice_nobin = slice_nobin, $
+                    spec_window_type = spec_window_type, std_power = std_power, no_kzero = no_kzero, $
+                    slice_nobin = slice_nobin, $
                     data_range = data_range, $
                     log_kpar = log_kpar, log_kperp = log_kperp, kpar_bin = kpar_bin, kperp_bin = kperp_bin, log_k1d = log_k1d, $
                     k1d_bin = k1d_bin, kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, $
@@ -114,7 +115,8 @@ pro fhd_data_plots, datafile, save_path = save_path, savefilebase = savefilebase
      pol = pol_inc[i / ntype]
      type = type_inc[i mod ntype]
 
-     file_struct = fhd_file_setup(datafile, pol, type, savefilebase = savefilebase, save_path = save_path)
+     file_struct = fhd_file_setup(datafile, pol, type, savefilebase = savefilebase, save_path = save_path, $
+                                  spec_window_type = spec_window_type)
      if i eq 0 then file_struct_arr = replicate(file_struct, n_cubes)
      file_struct_arr[i] = file_struct
   endfor
@@ -198,11 +200,13 @@ pro fhd_data_plots, datafile, save_path = save_path, savefilebase = savefilebase
 
            fhd_3dps, file_struct_arr[i], kcube_refresh = refresh_ps, dft_refresh_data = refresh_dft, $
                      dft_refresh_weight = weight_refresh[i], $
-                     dft_fchunk = dft_fchunk, std_power = std_power, no_kzero = no_kzero, $
+                     dft_fchunk = dft_fchunk, spec_window_type = spec_window_type, $
+                     std_power = std_power, no_kzero = no_kzero, $
                      log_kpar = log_kpar, log_kperp = log_kperp, kpar_bin = kpar_bin, kperp_bin = kperp_bin, $
                      /quiet
         endif else $
-           fhd_3dps, file_struct_arr[i], kcube_refresh = refresh_ps, std_power = std_power, no_kzero = no_kzero, $
+           fhd_3dps, file_struct_arr[i], kcube_refresh = refresh_ps, spec_window_type = spec_window_type, $
+                     std_power = std_power, no_kzero = no_kzero, $
                      log_kpar = log_kpar, log_kperp = log_kperp, kpar_bin = kpar_bin, kperp_bin = kperp_bin, /quiet
      endif
   endfor
@@ -212,7 +216,12 @@ pro fhd_data_plots, datafile, save_path = save_path, savefilebase = savefilebase
   wh_good_kperp = where(total(power, 2) gt 0, count)
   if count eq 0 then stop
   ;;kperp_plot_range = [min(kperp_edges[wh_good_kperp]), max(kperp_edges[wh_good_kperp+1])]
-  kperp_plot_range = [6e-3, min([max(kperp_edges[wh_good_kperp+1]),1.1e-1])]
+
+  ;;kperp_plot_range = [6e-3, min([max(kperp_edges[wh_good_kperp+1]),1.1e-1])]
+  ;;kperp_plot_range = [5./kperp_lambda_conv, min([max(kperp_edges[wh_good_kperp+1]),1.1e-1])]
+
+  kperp_plot_range = [5./kperp_lambda_conv, file_struct_arr.max_baseline_lambda/kperp_lambda_conv]
+
   if keyword_set(hinv) then kperp_plot_range = kperp_plot_range / hubble_param
   
 

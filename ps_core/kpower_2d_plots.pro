@@ -1,5 +1,5 @@
 pro kpower_2d_plots, power_savefile, multi_pos = multi_pos, start_multi_params = start_multi_params, plot_weights = plot_weights, $
-                     plot_noise = plot_noise, plot_sigma = plot_sigma, ratio = ratio, snr = snr, nnr = nnr, $
+                     plot_noise = plot_noise, plot_sigma = plot_sigma, ratio = ratio, diff = diff, snr = snr, nnr = nnr, $
                      kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
                      data_range = data_range, color_profile = color_profile, log_cut_val = log_cut_val, pub = pub, $
                      plotfile = plotfile, no_title = no_title, window_num = window_num, title = title, norm_2d = norm_2d, $
@@ -30,8 +30,9 @@ pro kpower_2d_plots, power_savefile, multi_pos = multi_pos, start_multi_params =
             keyword_set(plot_noise), keyword_set(snr), keyword_set(nnr)]) gt 1 then $
      message, 'only one of [plot_noise, plot_sigma, plot_weights, snr, nnr] keywords can be set'
 
-  if keyword_set(ratio) then begin
-     if n_elements(power_savefile) gt 2 then message, 'Only 2 files can be specified in power_savefile if ratio keyword is set'
+  if keyword_set(ratio) or keyword_set(diff) then begin
+     if keyword_set(ratio) and keyword_set(diff) then message, 'Ratio and diff keywords cannot be set simultaneously'
+     if n_elements(power_savefile) gt 2 then message, 'Only 2 files can be specified in power_savefile if ratio or diff keyword is set'
      restore, power_savefile[0]
      power1 = power
      weights1 = weights
@@ -54,6 +55,11 @@ pro kpower_2d_plots, power_savefile, multi_pos = multi_pos, start_multi_params =
      if (keyword_set(plot_noise) or keyword_set(nnr)) and (n_elements(noise1) eq 0 or n_elements(noise2) eq 0) then $
         message, 'Noise is not included in one or both files'
 
+     if keyword_set(diff) then begin
+        power = power1 - power2
+        plot_type = 'diff'
+     endif
+
      if keyword_set(plot_weights) then begin
         power = weights1 / weights2
         plot_type = 'weight_ratio'
@@ -70,7 +76,8 @@ pro kpower_2d_plots, power_savefile, multi_pos = multi_pos, start_multi_params =
      endif
      
   endif else begin
-     if n_elements(power_savefile) gt 1 then message, 'Only 1 file can be specified in power_savefile unless ratio keyword is set'
+     if n_elements(power_savefile) gt 1 then message, $
+        'Only 1 file can be specified in power_savefile unless ratio or diff keyword is set'
 
      restore, power_savefile
 
@@ -133,6 +140,13 @@ pro kpower_2d_plots, power_savefile, multi_pos = multi_pos, start_multi_params =
          units_str = ''
          plot_title = 'Power Ratio'
          plotfile_add = '_ratio.eps'
+     end
+     'diff': begin
+        if keyword_set(hinv) then units_str = textoidl(' (mK^2 h^{-3} Mpc^3)', font = font) $
+        else units_str = textoidl(' (mK^2 Mpc^3)', font = font)
+
+        plot_title = textoidl('P_k difference', font = font)
+        plotfile_add = '_diff.eps'
      end
      'weight': begin
          units_str = ''
@@ -319,6 +333,11 @@ pro kpower_2d_plots, power_savefile, multi_pos = multi_pos, start_multi_params =
 
      kperp_inds = rebin(kperp_inds, nkperp_image, nkpar_image)
      power_plot = power[kperp_inds, kpar_inds]
+
+     ;; now expand array in any non-rebinned direction to prevent interpolation
+     if rebin_x eq 0 then power_plot = congrid(power_plot, nkperp_image*10, nkpar_image)
+     if rebin_y eq 0 then power_plot = congrid(power_plot, nkperp_image, nkpar_image*10)
+
   endif else begin
      ;; axes & binning agree for both directions
      ;; expand image array to prevent interpolation in postscript
@@ -590,15 +609,15 @@ pro kpower_2d_plots, power_savefile, multi_pos = multi_pos, start_multi_params =
      endif else charsize = charsize_in
 
      font = 1
-     ;;perp_char = '!Z(22A5)'
-     ;;perp_char = '!Z(27C2)'
-     perp_char = 'perp'
 
      if n_elements(multi_pos) eq 0 then begin
         window, window_num, xsize = xsize, ysize = ysize
         pson, file = plotfile, /eps 
      endif
-     ;;Device, /ISOLATIN1, Set_Font='Symbol', /TT_Font
+
+     DEVICE, /ISOLATIN1
+     perp_char = '!9' + String("136B) + '!X'
+
 
   endif else begin
      charthick = 1
@@ -724,16 +743,19 @@ pro kpower_2d_plots, power_savefile, multi_pos = multi_pos, start_multi_params =
              charthick = charthick, xthick = xthick, ythick = ythick, charsize = charsize, font = font, ystyle = 1, $
              color = annotate_color
 
-  tick_vals = loglevels(10d^[ceil(log_data_range[0]), floor(log_data_range[1])], coarse=0)
+  tick_vals = loglevels(10d^[floor(log_data_range[0])-.1, ceil(log_data_range[1])+.1], coarse=0)
 
+  wh_keep = where(tick_vals gt 10^(log_data_range[0]-0.001) and tick_vals lt 10^(log_data_range[1]+0.001), count_keep)
+  if count_keep gt 0 then tick_vals = tick_vals[wh_keep] else stop
+ 
   ;; want minor tick marks if there aren't very many loglevels.
   ;; unfortunately cgcolorbar can't do log minor tick marks
   ;; with specified tick locations (which I have to do b/c
   ;; can't use divisions=0 with formatting keyword)
   ;; solution: add regular tickmarks without labels for the minor ones.
 
-  if n_elements(tick_vals) lt 5 then begin
-     tick_vals_use = loglevels(10d^[floor(log_data_range[0]), ceil(log_data_range[1])], coarse=0)
+  if n_elements(tick_vals) lt 4 then begin
+     tick_vals_use = loglevels(10d^[floor(log_data_range[0])-.1, ceil(log_data_range[1])+.1], coarse=0)
 
      if n_elements(tick_vals) lt 2 then minor_multipliers = dindgen(8)+2 else minor_multipliers = (dindgen(4)+1)*2d
      n_minor_mult = n_elements(minor_multipliers)
@@ -804,6 +826,7 @@ pro kpower_2d_plots, power_savefile, multi_pos = multi_pos, start_multi_params =
      names = temp_names[order]
   endif
 
+ 
   if (alog10(tick_vals[0]) - log_data_range[0]) lt 10^(-3d) then begin
      cb_ticknames = [' ', names]
      cb_ticks = [color_range[0]-1, (alog10(tick_vals) - log_data_range[0]) * n_colors / $

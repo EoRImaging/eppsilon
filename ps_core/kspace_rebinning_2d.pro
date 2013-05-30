@@ -1,7 +1,8 @@
 
 
 function kspace_rebinning_2d, power_3d, kx_mpc, ky_mpc, kz_mpc, kperp_edges_mpc, kpar_edges_mpc, weights = weights, $
-                              binned_weights = weights_2d, edge_on_grid = edge_on_grid, match_datta = match_datta, $
+                              binned_weights = weights_2d, nbins_2d = nvox_2d, edge_on_grid = edge_on_grid, $
+                              match_datta = match_datta, $
                               fill_holes = fill_holes, kx_lims = kx_lims, ky_lims = ky_lims, $
                               log_kpar = log_kpar, log_kperp = log_kperp, kperp_bin = kperp_bin, kpar_bin = kpar_bin
 
@@ -137,15 +138,27 @@ function kspace_rebinning_2d, power_3d, kx_mpc, ky_mpc, kz_mpc, kperp_edges_mpc,
   n_kperp = n_elements(kperp_hist)
   weighted_power_mid = make_array(n_kperp, n_kz, type=input_type)
   weights_mid = dblarr(n_kperp, n_kz)
+  nvox_mid = lonarr(n_kperp, n_kz)
 
   reformed_wtpower = reform(temporary(weighted_power), n_kx*n_ky, n_kz)
   reformed_weights = reform(temporary(weights_use), n_kx*n_ky, n_kz)
   for i=0, n_kperp-1 do begin
      if kperp_hist[i] gt 0 then begin
         weighted_power_mid[i, *] = total(reform(reformed_wtpower[kperp_ri[kperp_ri[i] : kperp_ri[i+1]-1], *], kperp_hist[i], n_kz), 1)
-        weights_mid[i, *] = total(reform(reformed_weights[kperp_ri[kperp_ri[i] : kperp_ri[i+1]-1], *], kperp_hist[i], n_kz), 1)
+
+        temp = reformed_weights[kperp_ri[kperp_ri[i] : kperp_ri[i+1]-1], *]
+        weights_mid[i, *] = total(reform(temp, kperp_hist[i], n_kz), 1)
+        
+        if min(temp) le 0 then begin
+           for j=0, n_kz -1 do begin
+              wh_n0 = where(temp[*,j] gt 0, count_n0)
+              nvox_mid[i, j] = count_n0
+           endfor
+        endif else nvox_mid[i, *] = kperp_hist[i]
+
      endif 
   endfor
+
   undefine, reformed_wtpower
   undefine, reformed_weights
 
@@ -210,15 +223,28 @@ function kspace_rebinning_2d, power_3d, kx_mpc, ky_mpc, kz_mpc, kperp_edges_mpc,
   n_kpar = n_elements(kpar_hist)
   weighted_power_2d = make_array(n_kperp, n_kpar, type=input_type)
   weights_2d = dblarr(n_kperp, n_kpar)
+  nvox_2d = lonarr(n_kperp, n_kpar)
 
   for j=0, n_kpar-1 do begin
      if kpar_hist[j] ne 0 then begin
         weighted_power_2d[*,j] = total(reform(weighted_power_mid[*, kpar_ri[kpar_ri[j] : kpar_ri[j+1]-1]], n_kperp, kpar_hist[j]),2)
-        weights_2d[*, j] = total(reform(weights_mid[*, kpar_ri[kpar_ri[j] : kpar_ri[j+1]-1]], n_kperp, kpar_hist[j]), 2)
+
+        temp = reform(weights_mid[*, kpar_ri[kpar_ri[j] : kpar_ri[j+1]-1]], n_kperp, kpar_hist[j])
+        weights_2d[*, j] = total(temp, 2)
+        
+        if min(temp) le 0 then begin
+           wh_n0 = where(temp gt 0, count_n0)
+           mask = intarr(n_kperp, kpar_hist[j])
+           if count_n0 gt 0 then mask[wh_n0] = 1
+
+           nvox_2d[*, j] = total(reform(nvox_mid[*, kpar_ri[kpar_ri[j] : kpar_ri[j+1]-1]]*mask, n_kperp, kpar_hist[j]),2)
+        endif else nvox_2d[*, j] = total(reform(nvox_mid[*, kpar_ri[kpar_ri[j] : kpar_ri[j+1]-1]], n_kperp, kpar_hist[j]),2)
      endif
   endfor
+
   undefine, weighted_power_mid
   undefine, weights_mid
+  undefine, nvox_mid
   
   if keyword_set(fill_holes) then begin
      wh = where(weights_2d eq 0, n0)
@@ -231,7 +257,6 @@ function kspace_rebinning_2d, power_3d, kx_mpc, ky_mpc, kz_mpc, kperp_edges_mpc,
         endif
      endfor
   endif
-  
   
   power_ave = weighted_power_2d/weights_2d
   wh = where(weights_2d eq 0, count)
