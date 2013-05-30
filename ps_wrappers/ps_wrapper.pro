@@ -4,8 +4,8 @@ pro ps_wrapper
  
   ;;datafile = '/data2/MWA/PowerSpectra/FHD_healpix_test/multi_freq_residuals_cube_healpix.sav'
   
-  datafile = '/data2/MWA/FHD/DATA/X16/EOR1/fhd_v8/Healpix/' + $
-             'Combined_obs_EOR1_P00_145_20110926193959-EOR1_P00_145_20110926200503_even_cube.sav'
+  datafile = '/data2/MWA/FHD/DATA/X16/EOR1/145/fhd_v10/Healpix/' + $
+             'Combined_obs_EOR1_P00_145_20110926193959-EOR1_P00_145_20110926200503_'+['even', 'odd']+'_cube.sav'
 
     
   ;; dft_fchunk applies only to Healpix datasets (it's ignored otherwise) and it specifies how many frequencies to process
@@ -27,7 +27,7 @@ pro ps_wrapper
   ;; save_path = '/data2/MWA/FHD/DATA/X16/EOR1/fhd_v5/Healpix/ps/'
  
   ;; the following sets the save_path to a 'ps' directory inside the datafile directory and creates the directory if it doesn't exist
-  save_path = file_dirname(datafile, /mark_directory) + 'ps' + path_sep()
+  save_path = file_dirname(datafile[0], /mark_directory) + 'ps' + path_sep()
   if not file_test(save_path, /directory) then file_mkdir, save_path
 
   ;; plot_path specifies a location to save plot files.
@@ -36,12 +36,13 @@ pro ps_wrapper
 
   ;; pol_inc specifies which polarizations to generate the power spectra for.
   ;; The default is ['xx,'yy']
-
+  ;; pol_inc = 'xx'
+  plot_inc = 'yy'
 
   ;; type_inc specifies which types of cubes to generate the power spectra for. 
   ;; The default is ['dirty', 'model', 'res']. 
   ;; The number of power spectra generated is the number of polarizations * the number of types.
-
+  type_inc = 'res'
 
   ;; There are 3 refresh flags to indicate that various stages should be re-calculated 
   ;;   (rather than using previous save files if they exist).
@@ -50,7 +51,7 @@ pro ps_wrapper
   ;; The next stage is refresh_ps and the last stage is refresh_binning.
   ;; To set any of these flags, set them equal to 1 (true)
 
-   refresh_dft=1
+   ;;refresh_dft=1
 
 
   ;; options for binning:
@@ -70,7 +71,7 @@ pro ps_wrapper
   ;; grey_scale is a flag to use a black/white color scale rather than the default color scale
   ;; pub is a flag to make save plots as eps files rather than displaying to the screen
 
-  pub = 1
+  ;;pub = 1
 
   fhd_data_plots, datafile, dft_fchunk=dft_fchunk, plot_path = plot_path, save_path = save_path, savefilebase = savefilebase_in, $
                   pol_inc = pol_inc, type_inc = type_inc, $
