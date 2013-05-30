@@ -37,12 +37,12 @@ pro ps_wrapper
   ;; pol_inc specifies which polarizations to generate the power spectra for.
   ;; The default is ['xx,'yy']
   ;; pol_inc = 'xx'
-  plot_inc = 'yy'
+  ;;plot_inc = 'yy'
 
   ;; type_inc specifies which types of cubes to generate the power spectra for. 
   ;; The default is ['dirty', 'model', 'res']. 
   ;; The number of power spectra generated is the number of polarizations * the number of types.
-  type_inc = 'res'
+  ;;type_inc = 'res'
 
   ;; There are 3 refresh flags to indicate that various stages should be re-calculated 
   ;;   (rather than using previous save files if they exist).
