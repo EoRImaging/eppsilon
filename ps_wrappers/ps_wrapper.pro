@@ -17,7 +17,7 @@ pro ps_wrapper
   ;; The maximum value of this parameter is the number of frequency slices in the cube 
   ;;   (if its set too large it will be reduced to the maximum)
  
-  dft_fchunk = 12
+  dft_fchunk = 1
 
 
   ;; save_path specifies a location to save the power spectrum files. 
@@ -50,7 +50,7 @@ pro ps_wrapper
   ;; The next stage is refresh_ps and the last stage is refresh_binning.
   ;; To set any of these flags, set them equal to 1 (true)
 
-   refresh_dft=1
+   ;;refresh_dft=1
 
 
   ;; options for binning:
