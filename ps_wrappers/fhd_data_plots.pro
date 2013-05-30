@@ -25,6 +25,11 @@ pro fhd_data_plots, datafile, save_path = save_path, savefilebase = savefilebase
   ;; default to plot wedge line
   if n_elements(plot_wedge_line) eq 0 then plot_wedge_line=1
 
+  ;; default to blackman-harris spectral window
+  if not keyword_set(no_spec_window) then begin
+     if n_elements(spec_window_type) eq 0 then spec_window_type = 'Blackman-Harris' 
+  endif else undefine, spec_window_type
+
   if n_elements(pol_inc) eq 0 then pol_inc = ['xx', 'yy']
   pol_enum = ['xx', 'yy']
   npol = n_elements(pol_inc)
