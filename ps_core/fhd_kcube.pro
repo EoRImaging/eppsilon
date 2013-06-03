@@ -125,14 +125,14 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
 
   endif else conv_factor = 1. + fltarr(n_freq)
   
-  t_sys = 440. ; K
+  ;;t_sys = 440. ; K
+  t_sys = 280. * sqrt(2.) * ((1+redshifts)/7.5)^2.3 ;; from skew w/ stu + srt(2) for single pol
   ;;eff_area = 16. ; m^2
   eff_area = 21. ; m^2 -- from Aaron's memo
   df = file_struct.freq_resolution ; Hz -- native visibility resolution NOT cube resolution
   tau = file_struct.time_resolution ; seconds
   vis_sigma = (2. * (1.38065e-23) * 1e26) * t_sys / (eff_area * sqrt(df * tau)) ;; in Jy
   vis_sigma = float(vis_sigma)
-
 
 
   if healpix then begin
@@ -473,8 +473,8 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
   endif
 
   ;; get sigma into Jy
-  sigma2_cube1 = sigma2_cube1 * vis_sigma^2.
-  if nfiles eq 2 then sigma2_cube2 = sigma2_cube2 * vis_sigma^2.
+  sigma2_cube1 = sigma2_cube1 * rebin(reform(vis_sigma, 1, 1, n_freq), n_kx, n_ky, n_freq)^2.
+  if nfiles eq 2 then sigma2_cube2 = sigma2_cube2 * rebin(reform(vis_sigma, 1, 1, n_freq), n_kx, n_ky, n_freq)^2.
 
   ;; get data & sigma into mK Mpc^2
   for i=0, n_freq-1 do begin
