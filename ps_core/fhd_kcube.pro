@@ -61,7 +61,8 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
   if n_elements(frequencies) ne n_freq then message, 'number of frequencies does not match frequency dimension of data'
 
   if n_elements(freq_ch_range) ne 0 then frequencies = frequencies[min(freq_ch_range):max(freq_ch_range)]
-     
+  n_freq = n_elements(frequencies)
+
   ;; check whether or not the frequencies are evenly spaced.
   freq_diff = frequencies - shift(frequencies, 1)
   freq_diff = freq_diff[1:*]
