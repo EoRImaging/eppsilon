@@ -239,8 +239,14 @@ pro kpower_2d_plots, power_savefile, multi_pos = multi_pos, start_multi_params =
      power = power * norm_factor
   endif
 
-  if n_elements(data_range) eq 0 then data_range = minmax(power) else if n_elements(data_range) ne 2 then $
-     message, 'data_range must be a 2 element vector'
+  if n_elements(data_range) eq 0 then begin
+     no_input_data_range = 1
+     data_range = minmax(power) 
+  endif else begin
+     if n_elements(data_range) ne 2 then message, 'data_range must be a 2 element vector'
+     no_input_data_range = 0
+  endelse
+
   if data_range[1] lt data_range[0] then message, 'data_range[0] must be less than data_range[1]'
   wh = where(power gt 0d, count)
   if count gt 0 then min_pos = min(power[wh]) else if data_range[0] gt 0 then min_pos = data_range[0] else $
@@ -364,6 +370,8 @@ pro kpower_2d_plots, power_savefile, multi_pos = multi_pos, start_multi_params =
         if count ne 0 then power_log[wh_under] = log_data_range[0]
         wh_over = where(power_log gt log_data_range[1], count)
         if count ne 0 then power_log[wh_over] = log_data_range[1]
+
+        if no_input_data_range eq 1 then data_range = 10^log_data_range
      end
      'sym_log': begin
 

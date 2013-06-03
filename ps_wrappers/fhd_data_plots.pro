@@ -310,7 +310,7 @@ pro fhd_data_plots, datafile, save_path = save_path, savefilebase = savefilebase
                             wedge_amp = wedge_amp, baseline_axis = baseline_axis, delay_axis = delay_axis, $
                             kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, window_num = window_num $
         else kpower_2d_plots, savefiles_2d_use[i], multi_pos = pos_use, start_multi_params = start_multi_params, pub = pub, $
-                              /plot_sigma, $
+                              /plot_sigma, data_range = sigma_range, $
                               kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, title = plot_titles[i], $
                               grey_scale = grey_scale, plot_wedge_line = plot_wedge_line, wedge_amp = wedge_amp, hinv = hinv, $
                               baseline_axis = baseline_axis, delay_axis = delay_axis, $
