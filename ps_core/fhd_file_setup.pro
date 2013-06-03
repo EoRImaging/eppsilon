@@ -77,7 +77,7 @@ function fhd_file_setup, datafile, pol, type, weightfile = weightfile, variancef
 
   if n_elements(freq_ch_range) ne 0 then begin
      if min(freq_ch_range) lt 0 or max(freq_ch_range) - min(freq_ch_range) lt 3 then message, 'invalid freq_ch_range'
-     fch_tag = 'ch' + number_formatter(min(freq_ch_range)) + '-' + number_formatter(max(freq_ch_range))
+     fch_tag = '_ch' + number_formatter(min(freq_ch_range)) + '-' + number_formatter(max(freq_ch_range))
   endif else fch_tag = ''
 
   if n_elements(savefilebase_in) eq 0 or n_elements(uvf_savefilebase_in) lt nfiles then begin
@@ -105,11 +105,11 @@ function fhd_file_setup, datafile, pol, type, weightfile = weightfile, variancef
            fileparts_2 = strsplit(strmid(infilebase[1], 0, temp2[1]), '_', /extract)
            match_test = strcmp(fileparts_1, fileparts_2)
            wh_diff = where(match_test eq 0, count_diff, complement = wh_same, ncomplement = count_same)
-           if count_diff eq 0 then dft_filebase = strmid(infilebase[0], 0, temp2[0]) + '_joint' + fch_tag $
+           if count_diff eq 0 then dft_filebase = strmid(infilebase[0], 0, temp2[0]) + '_joint' $
            else begin
               if count_same gt 0 then dft_filebase = strjoin(fileparts_1[wh_same], '_') + '__' + strjoin(fileparts_1[wh_diff]) $
-                                                     + '_' + strjoin(fileparts_2[wh_diff]) + '_joint' + fch_tag $
-              else dft_filebase = infilebase[0] + infilebase[1] + '_joint' + fch_tag
+                                                     + '_' + strjoin(fileparts_2[wh_diff]) + '_joint' $
+              else dft_filebase = infilebase[0] + infilebase[1] + '_joint'
            endelse
 
            general_filebase = dft_filebase + fch_tag
