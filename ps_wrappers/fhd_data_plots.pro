@@ -66,7 +66,7 @@ pro fhd_data_plots, datafile, save_path = save_path, savefilebase = savefilebase
 
   weight_labels = strupcase(pol_inc)
   weight_ind = intarr(n_cubes)
-  for i=0, npol-1 do weight_ind[where(strpos(strlowcase(weight_labels), strlowcase(pol_inc[i])) ge 0) ] = i
+  for i=0, n_elements(pol_inc)-1 do weight_ind[where(strpos(strlowcase(weight_labels), strlowcase(pol_inc[i])) ge 0) ] = i
 
 
   ;; need general_filebase for 1D plotfiles, make sure it doesn't have a full path
