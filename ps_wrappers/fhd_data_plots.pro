@@ -1,5 +1,4 @@
-pro fhd_data_plots, datafile, save_path = save_path, savefilebase = savefilebase, plot_path = plot_path, $
-                    pol_inc = pol_inc, type_inc = type_inc, $
+pro fhd_data_plots, datafile, save_path = save_path, savefilebase = savefilebase, plot_path = plot_path, pol_inc = pol_inc, $
                     refresh_dft = refresh_dft, dft_fchunk = dft_fchunk, refresh_ps = refresh_ps, refresh_binning = refresh_binning, $
                     freq_ch_range = freq_ch_range, no_spec_window = no_spec_window, spec_window_type = spec_window_type, $
                     std_power = std_power, no_kzero = no_kzero, slice_nobin = slice_nobin, $
@@ -29,29 +28,7 @@ pro fhd_data_plots, datafile, save_path = save_path, savefilebase = savefilebase
   if not keyword_set(no_spec_window) then begin
      if n_elements(spec_window_type) eq 0 then spec_window_type = 'Blackman-Harris' 
   endif else undefine, spec_window_type
-
-  if n_elements(pol_inc) eq 0 then pol_inc = ['xx', 'yy']
-  pol_enum = ['xx', 'yy']
-  npol = n_elements(pol_inc)
-  pol_num = intarr(npol)
-  for i=0, npol-1 do begin
-     wh = where(pol_enum eq pol_inc[i], count)
-     if count eq 0 then message, 'pol ' + pol_inc[i] + ' not recognized.'
-     pol_num[i] = wh[0]
-  endfor
-  pol_inc = pol_enum[pol_num[uniq(pol_num, sort(pol_num))]]
   
-  if n_elements(type_inc) eq 0 then type_inc = ['dirty', 'model', 'res']
-  type_enum = ['dirty', 'model', 'res']
-  ntype = n_elements(type_inc)
-  type_num = intarr(ntype)
-  for i=0, ntype-1 do begin
-     wh = where(type_enum eq type_inc[i], count)
-     if count eq 0 then message, 'type ' + type_inc[i] + ' not recognized.'
-     type_num[i] = wh[0]
-  endfor
-  type_inc = type_enum[type_num[uniq(type_num, sort(type_num))]]
-
   fadd = ''
   if keyword_set(std_power) then fadd = fadd + '_sp'
   
@@ -74,30 +51,23 @@ pro fhd_data_plots, datafile, save_path = save_path, savefilebase = savefilebase
   fadd_1dbin = ''
   if keyword_set(log_k) then fadd_1dbin = fadd_1dbin + '_logk'
 
-  n_cubes = npol*ntype
-  type_pol_str = strarr(n_cubes)
-  for i=0, npol-1 do type_pol_str[ntype*i:i*ntype+ntype-1] = type_inc + '_' + pol_inc[i]
-  weight_labels = strupcase(pol_inc)
-  weight_ind = intarr(n_cubes)
-  for i=0, npol-1 do weight_ind[ntype*i:i*ntype+ntype-1] = i
-  wt_file_labels = '_weights_' + strlowcase(weight_labels[weight_ind])
-  file_labels = '_' + strlowcase(type_pol_str)
-  titles = strarr(n_cubes)
-  for i=0, npol-1 do titles[ntype*i:i*ntype+ntype-1] = type_inc + ' ' + strupcase(pol_inc[i])
   
 
   if n_elements(savefilebase) gt 1 then message, 'savefilebase must be a scalar'
 
-  for i=0, n_cubes-1 do begin
-     pol = pol_inc[i / ntype]
-     type = type_inc[i mod ntype]
+  file_struct_arr = fhd_file_setup(datafile, pol_inc, savefilebase = savefilebase, save_path = save_path, $
+                                   freq_ch_range = freq_ch_range, spec_window_type = spec_window_type)
 
-     file_struct = fhd_file_setup(datafile, pol, type, savefilebase = savefilebase, save_path = save_path, $
-                                  freq_ch_range = freq_ch_range, spec_window_type = spec_window_type)
-     if i eq 0 then file_struct_arr = replicate(file_struct, n_cubes)
-     file_struct_arr[i] = file_struct
-  endfor
-  undefine, file_struct
+  n_cubes = n_elements(file_struct_arr)
+  file_labels = file_struct_arr.file_label
+  wt_file_labels = file_struct_arr.wt_file_label
+  titles = strarr(n_cubes)
+  for i=0, n_cubes-1 do titles[i] = strjoin(strsplit(file_labels[i], '_', /extract), ' ')
+
+  weight_labels = strupcase(pol_inc)
+  weight_ind = intarr(n_cubes)
+  for i=0, npol-1 do weight_ind[where(strpos(strlowcase(weight_labels), strlowcase(pol_inc[i])) ge 0) ] = i
+
 
   ;; need general_filebase for 1D plotfiles, make sure it doesn't have a full path
   general_filebase = file_struct_arr(0).general_filebase
@@ -180,7 +150,7 @@ pro fhd_data_plots, datafile, save_path = save_path, savefilebase = savefilebase
 ;;   cgplot, kperp_edges[1:*]*kperp_lambda_conv, 1/sqrt(weights[*,24]), /overplot, color='blue'
 ;;   cgplot, kperp_edges[1:*]*kperp_lambda_conv, noise[*,24], /overplot, color='red'
 
-;;   ;;cgplot, total(noise,2)/(n_elements(kpar_edges)-1), /overplot, color='blue'
+;;   ;;cgplot, kperp_edges[1:*]*kperp_lambda_conv, total(noise,2)/(n_elements(kpar_edges)-1), /overplot, color='black', linestyle = 2
 ;;   al_legend, ['expected', 'observed'], textcolor=['blue','red'], /right, box=0
 ;; stop
 
