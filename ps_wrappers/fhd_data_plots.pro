@@ -57,8 +57,11 @@ pro fhd_data_plots, datafile, save_path = save_path, savefilebase = savefilebase
 
   file_struct_arr = fhd_file_setup(datafile, pol_inc, savefilebase = savefilebase, save_path = save_path, $
                                    freq_ch_range = freq_ch_range, spec_window_type = spec_window_type)
-
+  ntype = 3
+  npol = n_elements(pol_inc)
   n_cubes = n_elements(file_struct_arr)
+  if n_cubes ne ntype * npol then stop
+
   file_labels = file_struct_arr.file_label
   wt_file_labels = file_struct_arr.wt_file_label
   titles = strarr(n_cubes)
@@ -66,10 +69,8 @@ pro fhd_data_plots, datafile, save_path = save_path, savefilebase = savefilebase
   
   weight_labels = strupcase(pol_inc)
   weight_ind = intarr(n_cubes)
-  npol = n_elements(pol_inc)
   for i=0, npol-1 do weight_ind[where(strpos(strlowcase(weight_labels), strlowcase(pol_inc[i])) ge 0) ] = i
-
-
+ 
   ;; need general_filebase for 1D plotfiles, make sure it doesn't have a full path
   general_filebase = file_struct_arr(0).general_filebase
   for i=0, n_cubes-1 do if file_struct_arr(i).general_filebase ne general_filebase then stop
