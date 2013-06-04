@@ -15,10 +15,10 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
      for i=0, nfiles-1 do begin
         datafile_obj = obj_new('IDL_Savefile', file_struct.datafile[i])
         datafile_names = datafile_obj->names()
-        wh = where(datafile_names eq datavar[i], count)
+        wh = where(datafile_names eq datavar, count)
         if count eq 0 then message, 'specified datavar is not present in datafile (datafile=' + file_struct.datafile[i] + $
-                                    ', datavar=' + file_struct.datavar[i] + ')'
-        data_dims = datafile_obj->size(file_struct.datavar[i], /dimensions)
+                                    ', datavar=' + file_struct.datavar + ')'
+        data_dims = datafile_obj->size(file_struct.datavar, /dimensions)
         obj_destroy, datafile_obj
   
         if i gt 0 then if total(abs(data_dims - dims)) ne 0 then message, 'data dimensions in files do not match'
@@ -26,10 +26,10 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
         weightfile_obj = obj_new('IDL_Savefile', file_struct.weightfile[i])
         weightfile_names = weightfile_obj->names()
         weightvar = strupcase(file_struct.weightvar)
-        wh = where(weightfile_names eq weightvar[i], count)
+        wh = where(weightfile_names eq weightvar, count)
         if count eq 0 then message, 'specified weightvar is not present in weightfile (weightfile=' + file_struct.weightfile[i] + $
-                                    ', weightvar=' + file_struct.weightvar[i] + ')'
-        weight_dims = weightfile_obj->size(weightvar[i], /dimensions)
+                                    ', weightvar=' + file_struct.weightvar + ')'
+        weight_dims = weightfile_obj->size(weightvar, /dimensions)
         obj_destroy, weightfile_obj
         
         if total(abs(data_dims - weight_dims)) ne 0 then message, 'data and weight dimensions do not match'
@@ -39,15 +39,15 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
         variancefile_obj = obj_new('IDL_Savefile', file_struct.variancefile[i])
         variancefile_names = variancefile_obj->names()
         variancevar = strupcase(file_struct.variancevar)
-        wh = where(variancefile_names eq variancevar[i], count)
+        wh = where(variancefile_names eq variancevar, count)
         if count eq 0 then begin
            print, 'specified variancevar is not present in variancefile (variancefile=' + file_struct.variancefile[i] $
-                  +  ', variancevar=' + file_struct.variancevar[i] + '). Weights will be used instead' 
+                  +  ', variancevar=' + file_struct.variancevar + '). Weights will be used instead' 
            no_var = 1
         endif else begin
            if n_elements(no_var) eq 0 then no_var = 0
 
-           variance_dims = variancefile_obj->size(variancevar[i], /dimensions)
+           variance_dims = variancefile_obj->size(variancevar, /dimensions)
            if total(abs(data_dims - variance_dims)) ne 0 then message, 'data and variance dimensions do not match'
            undefine, variance_dims
         endelse
@@ -240,7 +240,7 @@ stop
               
               ;; do DFT.
               if test_uvf eq 0 or keyword_set(dft_refresh_data) then begin
-                 arr = getvar_savefile(file_struct.datafile[i], file_struct.datavar[i])
+                 arr = getvar_savefile(file_struct.datafile[i], file_struct.datavar)
                  if n_elements(freq_ch_range) ne 0 then arr = arr[*, min(freq_ch_range):max(freq_ch_range)]
                  
                  transform = discrete_ft_2D_fast(new_pix_vec[*,0], new_pix_vec[*,1], arr, kx_rad_vals, ky_rad_vals, $
@@ -253,7 +253,7 @@ stop
               endif
               
               if test_wt_uvf eq 0 or keyword_set(dft_refresh_weight) then begin
-                 arr = getvar_savefile(file_struct.weightfile[i], file_struct.weightvar[i])
+                 arr = getvar_savefile(file_struct.weightfile[i], file_struct.weightvar)
                  if n_elements(freq_ch_range) ne 0 then arr = arr[*, min(freq_ch_range):max(freq_ch_range)]
                  
                  transform = discrete_ft_2D_fast(new_pix_vec[*,0], new_pix_vec[*,1], arr, kx_rad_vals, ky_rad_vals, timing = ft_time, $
@@ -261,7 +261,7 @@ stop
                  weights_cube = temporary(transform)
                  
                  if not no_var then begin
-                    arr = getvar_savefile(file_struct.variancefile[i], file_struct.variancevar[i])
+                    arr = getvar_savefile(file_struct.variancefile[i], file_struct.variancevar)
                     if n_elements(freq_ch_range) ne 0 then arr = arr[*, min(freq_ch_range):max(freq_ch_range)]
                     
                     transform = discrete_ft_2D_fast(new_pix_vec[*,0], new_pix_vec[*,1], arr, kx_rad_vals, ky_rad_vals, $
@@ -337,8 +337,8 @@ stop
            endif
 
         endif else begin
-           weights_cube1 = getvar_savefile(file_struct.weightfile[0], file_struct.weightvar[0])
-           weights_cube2 = getvar_savefile(file_struct.weightfile[1], file_struct.weightvar[1])
+           weights_cube1 = getvar_savefile(file_struct.weightfile[0], file_struct.weightvar)
+           weights_cube2 = getvar_savefile(file_struct.weightfile[1], file_struct.weightvar)
 
            ;; need to cut uvf cubes in half because image is real -- we'll cut negative ky
            weights_cube1 = weights_cube1[*, n_ky/2:n_ky-1,*]
@@ -373,10 +373,10 @@ stop
            endif
 
         endif else begin
-           variance_cube1 = getvar_savefile(file_struct.variancefile[0], file_struct.variancevar[i])
-           variance_cube2 = getvar_savefile(file_struct.variancefile[1], file_struct.variancevar[i])
-           weights_cube1 = getvar_savefile(file_struct.weightfile[0], file_struct.weightvar[0])
-           weights_cube2 = getvar_savefile(file_struct.weightfile[1], file_struct.weightvar[1])
+           variance_cube1 = getvar_savefile(file_struct.variancefile[0], file_struct.variancevar)
+           variance_cube2 = getvar_savefile(file_struct.variancefile[1], file_struct.variancevar)
+           weights_cube1 = getvar_savefile(file_struct.weightfile[0], file_struct.weightvar)
+           weights_cube2 = getvar_savefile(file_struct.weightfile[1], file_struct.weightvar)
 
            ;; need to cut uvf cubes in half because image is real -- we'll cut negative ky
            variance_cube1 = variance_cube1[*, n_ky/2:n_ky-1,*]
@@ -424,8 +424,8 @@ stop
         endif
 
     endif else begin
-        data_cube1 = getvar_savefile(file_struct.datafile[0], file_struct.datavar[0])
-        data_cube2 = getvar_savefile(file_struct.datafile[1], file_struct.datavar[1])
+        data_cube1 = getvar_savefile(file_struct.datafile[0], file_struct.datavar)
+        data_cube2 = getvar_savefile(file_struct.datafile[1], file_struct.datavar)
 
         ;; need to cut uvf cubes in half because image is real -- we'll cut negative ky
         data_cube1 = data_cube1[*, n_ky/2:n_ky-1,*]
