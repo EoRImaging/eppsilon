@@ -42,11 +42,6 @@ pro ps_wrapper
   ;; pol_inc = 'xx'
   ;;plot_inc = 'yy'
 
-  ;; type_inc specifies which types of cubes to generate the power spectra for. 
-  ;; The default is ['dirty', 'model', 'res']. 
-  ;; The number of power spectra generated is the number of polarizations * the number of types.
-  ;;type_inc = 'res'
-
   ;; There are 3 refresh flags to indicate that various stages should be re-calculated 
   ;;   (rather than using previous save files if they exist).
   ;; If an early stage is recalculated, all subsequent stages will also be recalculated
@@ -77,7 +72,7 @@ pro ps_wrapper
   ;;pub = 1
 
   fhd_data_plots, datafile, dft_fchunk=dft_fchunk, plot_path = plot_path, save_path = save_path, savefilebase = savefilebase, $
-                  pol_inc = pol_inc, type_inc = type_inc, $
+                  pol_inc = pol_inc, $
                   refresh_dft = refresh_dft, refresh_ps = refresh_ps, refresh_binning = refresh_binning, $
                   freq_ch_range = freq_ch_range, no_spec_window = no_spec_window, spec_window_type = spec_window_type, $
                   log_kpar = log_kpar, log_kperp = log_kperp, kpar_bin = kpar_bin, kperp_bin = kperp_bin, log_k1d = log_k1d, $
