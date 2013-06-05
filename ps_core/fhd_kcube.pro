@@ -65,7 +65,7 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
      for i=0, n_elements(input_uvf_files)-1 do begin
         datafile_obj = obj_new('IDL_Savefile', input_uvf_files[i])
         datafile_names = datafile_obj->names()
-        wh = where(datafile_names eq 'data_cube', count)
+        wh = where(strlowcase(datafile_names) eq 'data_cube', count)
         if count eq 0 then message, 'specified res_uvf_inputfile does not contain a data cube (res_uvf_inputfile=' + $
                                     input_uvf_files[i] + ')'
         data_dims = datafile_obj->size('data_cube', /dimensions)
@@ -79,19 +79,24 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
      input_uvf_wtfiles = file_struct.uvf_weight_savefile
      for i=0, n_elements(input_uvf_wtfiles)-1 do begin
         weightfile_obj = obj_new('IDL_Savefile', input_uvf_wtfiles[i])
-        weightfile_names = datafile_obj->names()
-        wh = where(weightfile_names eq 'weights_cube', count)
+        weightfile_names = weightfile_obj->names()
+        wh = where(strlowcase(weightfile_names) eq 'weights_cube', count)
         if count eq 0 then message, 'specified uvf_weight_savefile does not contain a weights cube (res_uvf_inputfile=' + $
                                     input_uvf_wtfiles[i] + ')'
-        weights_dims = datafile_obj->size('weights_cube', /dimensions)
-        wh = where(weightfile_names eq 'variance_cube', count)
-        if count eq 0 then message, 'specified uvf_weight_savefile does not contain a variance cube (res_uvf_inputfile=' + $
-                                    input_uvf_wtfiles[i] + ')'
-        variance_dims = datafile_obj->size('variance_cube', /dimensions)
-        obj_destroy, datafile_obj
-     
+        weight_dims = weightfile_obj->size('weights_cube', /dimensions)
+        wh = where(strlowcase(weightfile_names) eq 'variance_cube', count)
+        if count eq 0 then begin
+           print, 'specified uvf_weight_savefile does not contain a variance cube (res_uvf_inputfile=' + $
+                  input_uvf_wtfiles[i] + '). Weights will be used instead' 
+           no_var = 1
+        endif else begin
+           if n_elements(no_var) eq 0 then no_var = 0
+           variance_dims = weightfile_obj->size('variance_cube', /dimensions)
+           obj_destroy, datafile_obj
+           if total(abs(dims - variance_dims)) ne 0 then message, 'data and variance dimensions do not match'
+        endelse
+    
         if total(abs(dims - weight_dims)) ne 0 then message, 'data and weight dimensions do not match'
-        if total(abs(dims - variance_dims)) ne 0 then message, 'data and variance dimensions do not match'
      endfor
      undefine, weights_dims, variance_dims
 
@@ -187,7 +192,7 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
         if total(abs(pixel_nums1-pixel_nums2)) ne 0 then message, 'Pixel numbers are not consistent between cubes'
   
         pixel_dims = size(pixel_nums1, /dimension)
-        if total(abs(dims - pixel_dims)) ne 0 then message, 'pixel and data dimensions do not match'
+        if datavar ne '' and total(abs(dims - pixel_dims)) ne 0 then message, 'pixel and data dimensions do not match'
 
      endif
 
