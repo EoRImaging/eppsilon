@@ -215,7 +215,7 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
               if total(abs(kx_rad_vals - kx_dirty)) ne 0 then message, 'kx_rad_vals for dirty and model cubes must match'
               if total(abs(ky_rad_vals - ky_dirty)) ne 0 then message, 'kx_rad_vals for dirty and model cubes must match'
               undefine, kx_dirty, ky_dirty
-stop
+
               data_cube = temporary(dirty_cube) - temporary(model_cube)
               save, file = file_struct.uvf_savefile[i], kx_rad_vals, ky_rad_vals, data_cube
               undefine, data_cube
