@@ -34,9 +34,17 @@ function discrete_ft_2d_fast, locations1, locations2, data, k1, k2, max_k_mag = 
   x_loc_k = float(matrix_multiply(locations1, k1, /btranspose))
   y_loc_k = float(matrix_multiply(locations2, k2, /btranspose))
 
-  n_chunks = ceil(n_slices/float(fchunk))
+  wh_freq0 = where(total(abs(data), 1) eq 0, count_freq0, complement = wh_freq_n0, ncomplement = count_freq_n0)
+  if count_freq0 gt 0 then begin
+     if count_freq_n0 eq 0 then message, 'data are all zeros'
+     
+     ;; want to skip zero channels to save time. Step through freqs in order of good channels.
+     freq_order = [wh_freq_n0, wh_freq0]
+  endif
+
+  n_chunks = ceil(count_freq_n0/float(fchunk))
   fchunk_sizes = intarr(n_chunks) + fchunk
-  if n_chunks gt 1 then fchunk_sizes[n_chunks-1] = n_slices - total(fchunk_sizes[0:n_chunks-2])
+  if n_chunks gt 1 then fchunk_sizes[n_chunks-1] = count_freq_n0 - total(fchunk_sizes[0:n_chunks-2])
   fchunk_edges = [0, total(fchunk_sizes, /cumulative)]
 
   ;; want progress reports every so often + on 3rd step
@@ -84,15 +92,17 @@ function discrete_ft_2d_fast, locations1, locations2, data, k1, k2, max_k_mag = 
      temp=systime(1)
 
      if fchunk_sizes[j] eq 1 then begin
-        data_inds = dindgen(n_pts) + n_pts*fchunk_edges[j]
+        freq_inds = freq_order[fchunk_edges[j]]
+        data_inds = dindgen(n_pts) + n_pts*freq_inds
 
         data_expand = rebin(data[temporary(data_inds)], n_pts, n_k1, /sample)
 
         term1_real = data_expand * x_exp_real
         term1_imag = temporary(data_expand) * x_exp_imag
      endif else begin
+        freq_inds = freq_order[findgen(fchunk_sizes[j]) + fchunk_edges[j]]
         data_inds = rebin(dindgen(n_pts), n_pts, fchunk_sizes[j], /sample) + n_pts * $
-                    rebin(reform(findgen(fchunk_sizes[j]) + fchunk_edges[j], 1, fchunk_sizes[j]), n_pts, fchunk_sizes[j], /sample)
+                    rebin(reform(freq_inds, 1, fchunk_sizes[j]), n_pts, fchunk_sizes[j], /sample)
      
         data_expand = rebin(reform(data[temporary(data_inds)], n_pts, 1, fchunk_sizes[j]), n_pts, n_k1, fchunk_sizes[j], /sample)
 
@@ -128,7 +138,7 @@ function discrete_ft_2d_fast, locations1, locations2, data, k1, k2, max_k_mag = 
         ;; endif else begin
 
      if fchunk_sizes[j] eq 1 then begin
-        inds = dindgen(n_k1*n_k2) + n_k1 * n_k2 * fchunk_edges[j]
+        inds = dindgen(n_k1*n_k2) + n_k1 * n_k2 * freq_inds
 
         temp3 = systime(1)
         
@@ -136,9 +146,8 @@ function discrete_ft_2d_fast, locations1, locations2, data, k1, k2, max_k_mag = 
 
      endif else begin
         inds = reform(rebin(dindgen(n_k1*n_k2), n_k1*n_k2, fchunk_sizes[j], /sample) + $
-                      n_k1 * n_k2 * rebin(reform(dindgen(fchunk_sizes[j]) + fchunk_edges[j], 1, fchunk_sizes[j]), $
+                      n_k1 * n_k2 * rebin(reform(freq_inds, 1, fchunk_sizes[j]), $
                                           n_k1*n_k2, fchunk_sizes[j], /sample), n_k1, n_k2, fchunk_sizes[j])
-
         temp3 = systime(1)
         ft[temporary(inds)] = transpose(reform(matrix_multiply(temporary(term1), y_exp,/atranspose), $
                                                n_k1, fchunk_sizes[j], n_k2), [0,2,1])
