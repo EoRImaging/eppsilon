@@ -1,12 +1,7 @@
+function healpix_rot_calc, x_locs, y_locs, ang_range, ang_step
 
-
-function healpix_rot, x_locs, y_locs
-
-  n_pts = n_elements(x_locs)
-  if n_elements(y_locs) ne n_pts then message, 'x_locs and y_locs must have the same number of elements'
-
-  n_angles = 90. * 10.
-  angles = dindgen(n_angles) * !pi/2. / n_angles
+  n_angles = (ang_range[1] - ang_range[0]) / ang_step
+  angles = (dindgen(n_angles) * (ang_range[1]-ang_range[0])*!dpi/180.) / n_angles + ang_range[0]*!dpi/180.
 
   cos_arr = cos(angles)
   sin_arr = sin(angles)
@@ -28,6 +23,22 @@ function healpix_rot, x_locs, y_locs
   if count eq 1 then rot_angle = angles[wh[0]] $
   else if count eq 2 and abs(wh[1] - wh[0]) eq 1 then rot_angle = mean(angles[wh]) $
   else stop
+
+  return, rot_angle
+end
+
+function healpix_rot, x_locs, y_locs
+
+  n_pts = n_elements(x_locs)
+  if n_elements(y_locs) ne n_pts then message, 'x_locs and y_locs must have the same number of elements'
+
+  ang_range = [0, 90]
+  ang_step = 1
+  rot_ang1 = healpix_rot_calc(x_locs, y_locs, ang_range, ang_step)
+
+  ang_range = [rot_ang1*180./!dpi - 2*ang_step, rot_ang1*180./!dpi + 2*ang_step]
+  ang_step = 0.1
+  rot_angle = healpix_rot_calc(x_locs, y_locs, ang_range, ang_step)
 
   return, rot_angle
 

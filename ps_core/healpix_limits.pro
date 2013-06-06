@@ -19,7 +19,13 @@ function limits_fom, limits, n_inside = n_inside, n_out_inside = n_out_inside
   xy_out_inside = x_out_above_min * y_out_above_min * x_out_below_max * y_out_below_max
   n_out_inside = total(xy_out_inside)
 
-  fom = n_pts/4d * double(n_out_inside) + double((n_pts - n_inside))
+  xlen = limits[2] - limits[0]
+  ylen = limits[3] - limits[1]
+
+  max_len_ratio = max([ylen, xlen]) / min([ylen, xlen])
+
+  ;;fom = n_pts/4d * double(n_out_inside) + double((n_pts - n_inside)) 
+  fom = n_pts/4d * double(n_out_inside) + double((n_pts - n_inside)) + (max_len_ratio-1)*n_pts/100.
 
   if limits[2] lt limits[0] or limits[3] lt limits[1] then fom = double(n_pts)*double(n_elements(x_out))
 
