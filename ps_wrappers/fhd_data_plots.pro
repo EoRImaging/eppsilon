@@ -67,10 +67,10 @@ pro fhd_data_plots, datafile, save_path = save_path, savefilebase = savefilebase
   titles = strarr(n_cubes)
   for i=0, n_cubes-1 do titles[i] = strjoin(strsplit(file_labels[i], '_', /extract), ' ')
   
-  weight_labels = strupcase(pol_inc)
   weight_ind = intarr(n_cubes)
-  for i=0, npol-1 do weight_ind[where(strpos(strlowcase(weight_labels), strlowcase(pol_inc[i])) ge 0) ] = i
- 
+  for i=0, npol-1 do weight_ind[where(strpos(strlowcase(file_struct_arr.wt_file_label), strlowcase(pol_inc[i])) ge 0) ] = i
+  weight_labels = strupcase(pol_inc[weight_ind])
+
   ;; need general_filebase for 1D plotfiles, make sure it doesn't have a full path
   general_filebase = file_struct_arr(0).general_filebase
   for i=0, n_cubes-1 do if file_struct_arr(i).general_filebase ne general_filebase then stop
