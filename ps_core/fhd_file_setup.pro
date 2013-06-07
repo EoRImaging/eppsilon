@@ -360,7 +360,7 @@ stop
         end
         2: begin
            data_varname = ''
-           res_uvf_inputfiles = uvf_savefile[*, 0:1]
+           res_uvf_inputfiles = uvf_savefile[*, 3*pol_index:3*pol_index+1]
         end
      endcase
 
