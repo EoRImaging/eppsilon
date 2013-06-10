@@ -40,7 +40,7 @@ function discrete_ft_2d_fast, locations1, locations2, data, k1, k2, max_k_mag = 
      
      ;; want to skip zero channels to save time. Step through freqs in order of good channels.
      freq_order = [wh_freq_n0, wh_freq0]
-  endif
+  endif else freq_order = indgen(n_slices)
 
   n_chunks = ceil(count_freq_n0/float(fchunk))
   fchunk_sizes = intarr(n_chunks) + fchunk
