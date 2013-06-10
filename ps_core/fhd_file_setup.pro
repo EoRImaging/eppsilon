@@ -150,6 +150,9 @@ function fhd_file_setup, datafile, pol_inc, weightfile = weightfile, variancefil
      general_filebase = dft_filebase + fch_tag
   endif
 
+  ;; add sw tag to general_filebase so that plotfiles have sw_tag in them
+  general_filebase = general_filebase + sw_tag
+
   if n_elements(uvf_savefilebase_in) eq nfiles then begin
      if n_elements(save_path) gt 0 then uvf_froot = replicate(save_path, nfiles, ncubes) $
      else begin
