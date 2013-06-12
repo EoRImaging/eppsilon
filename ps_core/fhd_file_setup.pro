@@ -1,7 +1,6 @@
 function fhd_file_setup, datafile, pol_inc, weightfile = weightfile, variancefile = variancefile, pixelfile = pixelfile, $
                          dirtyvar = dirtyvar, modelvar = modelvar, weightvar = weightvar, variancevar = variancevar, $
-                         pixelvar = pixelvar, $
-                         save_path = save_path, hpx_dftsetup_savefile = hpx_dftsetup_savefile, $
+                         pixelvar = pixelvar, save_path = save_path, $
                          weight_savefilebase = weight_savefilebase_in, variance_savefilebase = variance_savefilebase_in, $
                          uvf_savefilebase = uvf_savefilebase_in, savefilebase = savefilebase_in, $
                          freq_ch_range = freq_ch_range, spec_window_type = spec_window_type
@@ -65,8 +64,6 @@ function fhd_file_setup, datafile, pol_inc, weightfile = weightfile, variancefil
      if n_elements(pixelvar) eq 1 then pixelvar = replicate(pixelvar, nfiles) $
      else message, 'pixelvar must be a scalar or have the same number of elements as datafile'
 
-
-  if n_elements(hpx_dftsetup_savefile) gt 1 then message, 'only one hpx_dftsetup_savefile allowed'
   if n_elements(savefilebase_in) gt 1 then message, 'only one savefilebase allowed'
 
   if n_elements(weight_savefilebase_in) gt 0 and n_elements(weight_savefilebase_in) ne nfiles then $
@@ -98,8 +95,7 @@ function fhd_file_setup, datafile, pol_inc, weightfile = weightfile, variancefil
         uvf_froot = froot
         infilebase = file_basename(datafile)
         temp2 = strpos(infilebase, '.', /reverse_search)
-        dft_filebase = strmid(infilebase, 0, temp2)
-        general_filebase = dft_filebase + fch_tag
+        general_filebase = strmid(infilebase, 0, temp2) + fch_tag
         if n_elements(savefilebase_in) eq 0 then savefilebase = general_filebase + file_label + sw_tag
         
         ;; if we're only dealing with one file and uvf_savefilebase isn't specified then use same base for uvf files 
@@ -115,14 +111,14 @@ function fhd_file_setup, datafile, pol_inc, weightfile = weightfile, variancefil
            fileparts_2 = strsplit(strmid(infilebase[1], 0, temp2[1]), '_', /extract)
            match_test = strcmp(fileparts_1, fileparts_2)
            wh_diff = where(match_test eq 0, count_diff, complement = wh_same, ncomplement = count_same)
-           if count_diff eq 0 then dft_filebase = strmid(infilebase[0], 0, temp2[0]) + '_joint' $
+           if count_diff eq 0 then general_filebase = strmid(infilebase[0], 0, temp2[0]) + '_joint' $
            else begin
-              if count_same gt 0 then dft_filebase = strjoin(fileparts_1[wh_same], '_') + '__' + strjoin(fileparts_1[wh_diff]) $
+              if count_same gt 0 then general_filebase = strjoin(fileparts_1[wh_same], '_') + '__' + strjoin(fileparts_1[wh_diff]) $
                                                      + '_' + strjoin(fileparts_2[wh_diff]) + '_joint' $
-              else dft_filebase = infilebase[0] + infilebase[1] + '_joint'
+              else general_filebase = infilebase[0] + infilebase[1] + '_joint'
            endelse
 
-           general_filebase = dft_filebase + fch_tag
+           general_filebase = general_filebase + fch_tag
            savefilebase = general_filebase + file_label + sw_tag
         endif
         
@@ -146,8 +142,7 @@ function fhd_file_setup, datafile, pol_inc, weightfile = weightfile, variancefil
         if temp ne '.' then froot = temp else froot = file_dirname(datafile[0], /mark_directory)
      endelse
      savefilebase = file_basename(savefilebase_in) + fch_tag + file_label + sw_tag
-     dft_filebase = file_basename(savefilebase_in)
-     general_filebase = dft_filebase + fch_tag
+     general_filebase = file_basename(savefilebase_in) + fch_tag
   endif
 
   ;; add sw tag to general_filebase so that plotfiles have sw_tag in them
@@ -345,9 +340,6 @@ stop
      frequencies[i] = mean(freq[i*n_avg:i*n_avg+(n_avg-1)]) / 1e6 ;; in MHz
   endfor
   
-  if healpix then if n_elements(hpx_dftsetup_savefile) eq 0 then $
-     hpx_dftsetup_savefile = froot + dft_filebase + '_dftsetup.idlsave'
-  
   for i=0, ncubes-1 do begin
      pol_index = i / 3
      type_index = i mod 3
@@ -373,7 +365,7 @@ stop
                        datavar:data_varname, variancevar:variance_varname[pol_index], weightvar:weight_varname[pol_index], $
                        pixelvar:pixel_varname, frequencies:frequencies, freq_resolution:freq_resolution, $
                        time_resolution:time_resolution, n_vis:n_vis, max_baseline_lambda:max_baseline_lambda, max_theta:max_theta, $
-                       degpix:degpix, kpix:kpix, nside:nside, hpx_dftsetup_savefile:hpx_dftsetup_savefile, $
+                       degpix:degpix, kpix:kpix, nside:nside, $
                        uvf_savefile:uvf_savefile[*,i], uvf_weight_savefile:uvf_weight_savefile[*,pol_index], $
                        uf_savefile:uf_savefile[*,i], vf_savefile:vf_savefile[*,i], uv_savefile:uv_savefile[*,i], $
                        kcube_savefile:kcube_savefile[i], power_savefile:power_savefile[i], fits_power_savefile:fits_power_savefile[i],$

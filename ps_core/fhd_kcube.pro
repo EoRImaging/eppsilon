@@ -221,28 +221,33 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
               save, file = file_struct.uvf_savefile[i], kx_rad_vals, ky_rad_vals, data_cube
               undefine, data_cube
            endif else begin        
-              test_setup = file_test(file_struct.hpx_dftsetup_savefile) * $
-                           (1 - file_test(file_struct.hpx_dftsetup_savefile, /zero_length))
-              if test_setup eq 0 then begin
-                 ;; figure out k values to calculate dft
-                 healpix_setup_ft, pixel_nums1, file_struct.nside, new_pix_vec, limits, kx_rad_vals, ky_rad_vals, /quiet
-                 save, file = file_struct.hpx_dftsetup_savefile, new_pix_vec, limits, kx_rad_vals, ky_rad_vals
-              endif else restore, file_struct.hpx_dftsetup_savefile
-              
-              ;; drop kperp >> max_baseline to save time on DFT
+
+              ;; get pixel vectors
+              pix2vec_ring, file_struct.nside, pixel_nums1, pix_center_vec
+              ;; find mid point (work in x/y because of possible jumps in phi)
+              vec_mid = [mean(pix_center_vec[*,0]), mean(pix_center_vec[*,1]), mean(pix_center_vec[*,2])]
+              theta0 = acos(vec_mid[2])
+              phi0 = atan(vec_mid[1], vec_mid[0])
+
+              ;; To go to flat sky, rotate patch to zenith and flatten.
+              ;; To get to current location, need to first rotate around z by
+              ;; phi, then around y by -theta, then around z by -phi
+              ;; use inverse to rotate back to zenith
+              rot_matrix = get_rot_matrix(theta0, phi0, /inverse)
+              new_pix_vec = rot_matrix ## pix_center_vec
+
+              ;; figure out k values to calculate dft
+              uv_cellsize_m = 5 ;; based on calculations of beam FWHM by Aaron
+              delta_kperp_rad = uv_cellsize_m * mean(frequencies*1e6) * z_mpc_mean / (3e8 * kperp_lambda_conv)
               ;; go a little beyond max_baseline to account for expansion due to w projection
               max_kperp_rad = (file_struct.max_baseline_lambda/kperp_lambda_conv) * z_mpc_mean * 1.1
-              
-              wh_kx_good = where(abs(kx_rad_vals) le max_kperp_rad, count_kx)
-              wh_ky_good = where(abs(ky_rad_vals) le max_kperp_rad, count_ky)
-              
-              if count_kx gt 0 then kx_rad_vals = kx_rad_vals[wh_kx_good] else stop
-              if count_ky gt 0 then ky_rad_vals = ky_rad_vals[wh_ky_good] else stop
-              
+
+              n_kperp = round(max_kperp_rad / delta_kperp_rad) * 2 + 1
+              kx_rad_vals = (findgen(n_kperp) - (n_kperp-1)/2) * delta_kperp_rad
+
               ;; need to cut uvf cubes in half because image is real -- we'll cut in v
               ;; drop the unused half before the DFT to save time
-              n_ky = n_elements(ky_rad_vals)
-              ky_rad_vals = ky_rad_vals[n_ky/2:n_ky-1]
+              ky_rad_vals = kx_rad_vals[n_kperp/2:n_kperp-1]
               
               ;; do DFT.
               if test_uvf eq 0 or keyword_set(dft_refresh_data) then begin
