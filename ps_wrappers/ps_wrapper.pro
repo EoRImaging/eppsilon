@@ -4,7 +4,7 @@ pro ps_wrapper
  
   ;;datafile = '/data2/MWA/PowerSpectra/FHD_healpix_test/multi_freq_residuals_cube_healpix.sav'
   
-  datafile = '/data2/MWA/FHD/DATA/X16/EOR1/145/fhd_v10/Healpix/' + $
+  datafile = '/data2/MWA/FHD/DATA/X16/EOR1/145/fhd_v14/Healpix/' + $
              'Combined_obs_EOR1_P00_145_20110926193959-EOR1_P00_145_20110926200503_'+['even', 'odd']+'_cube.sav'
 
     
@@ -36,11 +36,13 @@ pro ps_wrapper
   ;; freq_ch_range specifies which frequency channels to include in the power spectrum.
   ;; Fewer number of channels makes the dfts faster
   ;; freq_ch_range = [0, 191]
+  ;; freq_ch_range = [288, 480]
+  ;; freq_ch_range = [575, 767]
 
   ;; pol_inc specifies which polarizations to generate the power spectra for.
   ;; The default is ['xx,'yy']
   ;; pol_inc = 'xx'
-  ;;plot_inc = 'yy'
+  ;; plot_inc = 'yy'
 
   ;; There are 3 refresh flags to indicate that various stages should be re-calculated 
   ;;   (rather than using previous save files if they exist).
@@ -49,7 +51,8 @@ pro ps_wrapper
   ;; The next stage is refresh_ps and the last stage is refresh_binning.
   ;; To set any of these flags, set them equal to 1 (true)
 
-   ;;refresh_dft=1
+  ;;refresh_dft=1
+  ;;refresh_ps=1
 
 
   ;; options for binning:
