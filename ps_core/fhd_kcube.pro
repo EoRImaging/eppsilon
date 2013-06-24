@@ -236,6 +236,11 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
               rot_matrix = get_rot_matrix(theta0, phi0, /inverse)
               new_pix_vec = rot_matrix ## pix_center_vec
 
+              ;; limit field of view to 30 degrees across
+              dist_rad = sqrt(new_pix_vec[*,0]^2. + new_pix_vec[*,1]^2)
+              wh_close = where(dist_rad le 15*!dpi/180., count_close, ncomplement = count_far)
+              if count_far ne 0 then new_pix_vec = new_pix_vec[wh_close, *]
+              
               ;; figure out k values to calculate dft
               uv_cellsize_m = 5 ;; based on calculations of beam FWHM by Aaron
               delta_kperp_rad = uv_cellsize_m * mean(frequencies*1e6) * z_mpc_mean / (3e8 * kperp_lambda_conv)
@@ -252,6 +257,8 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
               ;; do DFT.
               if test_uvf eq 0 or keyword_set(dft_refresh_data) then begin
                  arr = getvar_savefile(file_struct.datafile[i], file_struct.datavar)
+                 if count_far ne 0 then arr = arr[wh_close, *]
+
                  if n_elements(freq_ch_range) ne 0 then arr = arr[*, min(freq_ch_range):max(freq_ch_range)]
                  
                  transform = discrete_ft_2D_fast(new_pix_vec[*,0], new_pix_vec[*,1], arr, kx_rad_vals, ky_rad_vals, $
@@ -265,6 +272,7 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
               
               if test_wt_uvf eq 0 or keyword_set(dft_refresh_weight) then begin
                  arr = getvar_savefile(file_struct.weightfile[i], file_struct.weightvar)
+                 if count_far ne 0 then arr = arr[wh_close, *]
                  if n_elements(freq_ch_range) ne 0 then arr = arr[*, min(freq_ch_range):max(freq_ch_range)]
                  
                  transform = discrete_ft_2D_fast(new_pix_vec[*,0], new_pix_vec[*,1], arr, kx_rad_vals, ky_rad_vals, timing = ft_time, $
@@ -273,6 +281,7 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
                  
                  if not no_var then begin
                     arr = getvar_savefile(file_struct.variancefile[i], file_struct.variancevar)
+                    if count_far ne 0 then arr = arr[wh_close, *]
                     if n_elements(freq_ch_range) ne 0 then arr = arr[*, min(freq_ch_range):max(freq_ch_range)]
                     
                     transform = discrete_ft_2D_fast(new_pix_vec[*,0], new_pix_vec[*,1], arr, kx_rad_vals, ky_rad_vals, $
