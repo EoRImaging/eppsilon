@@ -1,5 +1,5 @@
 pro uvf_slice_plot, slice_savefile, multi_pos = multi_pos, start_multi_params = start_multi_params, plot_xrange = plot_xrange, $
-                    plot_yrange = plot_yrange, data_range = data_range, type = type, pub = pub, plotfile = plotfile, $
+                    plot_yrange = plot_yrange, data_range = data_range, type = type, log=log, pub = pub, plotfile = plotfile, $
                     window_num = window_num, title = title, grey_scale = grey_scale, baseline_axis = baseline_axis, hinv = hinv, $
                     mark_0 = mark_0, image_space = image_space, color_0amp = color_0amp, charsize = charsize_in, $
                     cb_size = cb_size_in, margin = margin_in, cb_margin = cb_margin_in, no_title = no_title
@@ -19,7 +19,7 @@ pro uvf_slice_plot, slice_savefile, multi_pos = multi_pos, start_multi_params = 
   type_enum = ['abs', 'phase', 'real', 'imaginary', 'weights']
   if n_elements(type) eq 0 then if keyword_set(image_space) then type = 'real' else type = 'phase'
   wh = where(type_enum eq type, count)
-  if count eq 0 then message, 'unknown type. Use one of: ' + type_enum
+  if count eq 0 then message, 'unknown type. Use one of: ' + print, strjoin(type_enum, ', ')
 
   if keyword_set(image_space) and keyword_set(baseline_axis) then begin
      print, 'baseline_axis keyword cannot be used with image_space keyword'
@@ -148,10 +148,30 @@ pro uvf_slice_plot, slice_savefile, multi_pos = multi_pos, start_multi_params = 
   n_colors = 256
   
   if n_elements(data_range) eq 0 then if not keyword_set(all_zero) then data_range = minmax(plot_slice) else data_range = [-1*!pi, !pi]
+  wh = where(plot_slice gt 0d, count)
+  if count gt 0 then min_pos = min(plot_slice[wh]) else if keyword_set(all_zero) then min_pos = data_range[0]
 
   if n_x_plot lt 100 or n_y_plot lt 100 then slice_plot = congrid(plot_slice, n_x_plot*10, n_y_plot * 10) else slice_plot = plot_slice
      
-  slice_plot_norm = (slice_plot-data_range[0])*n_colors/(data_range[1]-data_range[0])
+  if keyword_set(log) and type eq 'abs' then begin
+     color_range = [0, 255]
+
+     if data_range[0] gt 0 then log_cut_val = alog10(data_range[0]) else $
+        log_cut_val = alog10(min_pos)
+     log_data_range = [log_cut_val, alog10(data_range[1])]
+    
+     data_range = 10^log_data_range
+
+     slice_log = alog10(plot_slice)
+     wh_under = where(plot_slice lt 10^double(log_cut_val), count)
+     if count ne 0 then slice_log[wh_under] = log_data_range[0]
+     wh_over = where(slice_log gt log_data_range[1], count)
+     if count ne 0 then slice_log[wh_over] = log_data_range[1]
+
+     slice_plot_norm = (slice_log-log_data_range[0])*n_colors/(log_data_range[1]-log_data_range[0]) + color_range[0]
+     if keyword_set(all_zero) then slice_log_norm = slice_log_norm * 0 + annotate_color
+
+  endif else slice_plot_norm = (slice_plot-data_range[0])*n_colors/(data_range[1]-data_range[0])
  
   tvlct, r2, g2, b2, /get
   plot_dims = size(slice_plot_norm, /dimension)
@@ -190,7 +210,7 @@ pro uvf_slice_plot, slice_savefile, multi_pos = multi_pos, start_multi_params = 
   ;; in units of plot area (incl. margins)
   if n_elements(cb_size_in) eq 0 then cb_size = 0.025 else cb_size = cb_size_in
   if n_elements(margin_in) lt 4 then begin
-     margin = [0.2, 0.15, 0.02, 0.15] 
+     margin = [0.2, 0.25, 0.02, 0.15] 
      if keyword_set(baseline_axis) and not keyword_set(no_title) then margin[3] = 0.22
      if keyword_set(baseline_axis) and slice_axis eq 2 then margin[2] = 0.1
    endif else margin = margin_in
@@ -499,9 +519,98 @@ pro uvf_slice_plot, slice_savefile, multi_pos = multi_pos, start_multi_params = 
 
   if type eq 'phase' then cb_range = data_range * 180/!dpi else cb_range = data_range
 
+  if keyword_set(log) and type eq 'abs' then begin
+     tick_vals = loglevels(10d^[floor(log_data_range[0])-.1, ceil(log_data_range[1])+.1], coarse=0)
 
-  cgcolorbar, color = annotate_color, /vertical, position = cb_pos, charsize = charsize, font = font, minrange = cb_range[0], $
-              maxrange = cb_range[1], title = cb_title, minor=5, charthick = charthick, xthick = xthick, ythick = ythick
+     wh_keep = where(tick_vals gt 10^(log_data_range[0]-0.001) and tick_vals lt 10^(log_data_range[1]+0.001), count_keep)
+     if count_keep gt 0 then tick_vals = tick_vals[wh_keep] else stop
+     
+     ;; want minor tick marks if there aren't very many loglevels.
+     ;; unfortunately cgcolorbar can't do log minor tick marks
+     ;; with specified tick locations (which I have to do b/c
+     ;; can't use divisions=0 with formatting keyword)
+     ;; solution: add regular tickmarks without labels for the minor ones.
+     
+     if n_elements(tick_vals) lt 4 then begin
+        tick_vals_use = loglevels(10d^[floor(log_data_range[0])-.1, ceil(log_data_range[1])+.1], coarse=0)
+        
+        if n_elements(tick_vals) lt 2 then minor_multipliers = dindgen(8)+2 else minor_multipliers = (dindgen(4)+1)*2d
+        n_minor_mult = n_elements(minor_multipliers)
+        n_major = n_elements(tick_vals_use)
+        
+        minor_tick_vals = reform(rebin(minor_multipliers, n_minor_mult, n_major), n_minor_mult*n_major) $
+                          * reform(rebin(reform(tick_vals_use, 1, n_major), n_minor_mult, n_major), n_minor_mult*n_major)
+        wh_keep = where(minor_tick_vals gt 10^log_data_range[0] and minor_tick_vals lt 10^log_data_range[1], count_keep)
+        
+        if count_keep gt 0 then begin
+           minor_tick_vals = minor_tick_vals[wh_keep]
+           n_minor = n_elements(minor_tick_vals)
+           minor_tick_names = strarr(n_minor) + ' '
+        endif else n_minor = 0
+        
+     endif else n_minor = 0
+     
+     nloop = 0
+     while(n_elements(tick_vals) gt 8) do begin
+        nloop = nloop + 1
+        factor = double(nloop+1)
+        if color_profile eq 'sym_log' then begin
+           pos_exp_vals = dindgen(ceil((alog10(max(tick_vals))-alog10(min(tick_vals)) + 1)/(2d*factor)) + 1)*factor
+           if max(pos_exp_vals) gt temp[1] then pos_exp_vals = pos_exp_vals[0:n_elements(pos_exp_vals)-2]
+           
+           exp_vals = [(-1)*reverse(pos_exp_vals[1:*]), pos_exp_vals]
+        endif else begin 
+           exp_vals = (dindgen(ceil((alog10(max(tick_vals))-alog10(min(tick_vals)) + 1)/factor) + 1)*factor + alog10(min(tick_vals)))
+           if max(exp_vals) gt alog10(max(tick_vals)) then exp_vals = exp_vals[0:n_elements(exp_vals)-2]
+        endelse
+        tick_vals = 10^exp_vals
+     endwhile
+     
+        
+     if min(plot_slice) lt 0 and min(tick_vals) lt min_pos then begin
+        wh = where(tick_vals lt min_pos, count, complement = wh_keep, ncomplement = count_keep) 
+        
+        if count lt 1 then stop $
+        else if count eq 1 then names = ['<0', number_formatter(tick_vals[wh_keep], format = '(e0)',/print_exp)] $
+        else names = [strarr(count-1), '<0', number_formatter(tick_vals[wh_keep], format = '(e0)',/print_exp)]
+        
+     endif else names = number_formatter(tick_vals, format = '(e0)',/print_exp)
+     
+     if n_minor gt 0 then begin
+        temp_ticks = [tick_vals, minor_tick_vals]
+        temp_names = [names, minor_tick_names]
+        order = sort(temp_ticks)
+        
+        tick_vals = temp_ticks[order]
+        names = temp_names[order]
+     endif
+     
+     
+     if (alog10(tick_vals[0]) - log_data_range[0]) lt 10^(-3d) then begin
+        cb_ticknames = [' ', names]
+        cb_ticks = [color_range[0]-1, (alog10(tick_vals) - log_data_range[0]) * n_colors / $
+                    (log_data_range[1] - log_data_range[0]) + color_range[0]] - color_range[0]
+        
+     endif else begin
+        cb_ticknames = names
+        cb_ticks = ((alog10(tick_vals) - log_data_range[0]) * (n_colors+1) / $
+                    (log_data_range[1] - log_data_range[0]) + color_range[0]) - color_range[0]
+     endelse
+     
+     if (log_data_range[1] - alog10(max(tick_vals))) gt 10^(-3d) then begin
+        cb_ticknames = [cb_ticknames, ' ']
+        cb_ticks = [cb_ticks, color_range[1]-color_range[0]+1]
+     endif
+     
+     min_pos_cb_val = ((alog10(min_pos) - log_data_range[0]) * n_colors / $
+                       (log_data_range[1] - log_data_range[0]) + color_range[0]) - color_range[0]
+     
+     cgcolorbar, color = annotate_color, /vertical, position = cb_pos, bottom = color_range[0], ncolors = n_colors, minor = 0, $
+                 ticknames = cb_ticknames, ytickv = cb_ticks, yticks = n_elements(cb_ticks) -1, title = units_str, $
+                 charsize = charsize, font = font
+  endif else $
+     cgcolorbar, color = annotate_color, /vertical, position = cb_pos, charsize = charsize, font = font, minrange = cb_range[0], $
+                 maxrange = cb_range[1], title = cb_title, minor=5, charthick = charthick, xthick = xthick, ythick = ythick
 
   if keyword_set(pub) and n_elements(multi_pos) eq 0 then begin
      psoff
