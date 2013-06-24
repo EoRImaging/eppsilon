@@ -583,6 +583,28 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
      sigma2_cube2 = sigma2_cube2  / window_int[1]
   endif
 
+  ;; save some slices of the raw data cube (before dividing by weights)
+  for i=0, nfiles-1 do begin
+     if i eq 0 then data_cube = data_cube1 else data_cube = data_cube2
+     uf_slice = uvf_slice(data_cube, kx_mpc, ky_mpc, frequencies, kperp_lambda_conv, delay_params, hubble_param, slice_axis = 1, $
+                          slice_inds = 0, slice_savefile = file_struct.uf_raw_savefile[i])
+     
+     vf_slice = uvf_slice(data_cube, kx_mpc, ky_mpc, frequencies, kperp_lambda_conv, delay_params, hubble_param, slice_axis = 0, $
+                          slice_inds = n_kx/2, slice_savefile = file_struct.vf_raw_savefile[i])
+     
+     if max(abs(vf_slice)) eq 0 then begin
+        nloop = 0
+        while max(abs(vf_slice)) eq 0 do begin
+           nloop = nloop+1
+           vf_slice = uvf_slice(data_cube, kx_mpc, ky_mpc, frequencies, kperp_lambda_conv, delay_params, hubble_param, $
+                                slice_axis = 0, slice_inds = n_kx/2+nloop, slice_savefile = file_struct.vf_raw_savefile[i])
+        endwhile
+     endif
+     
+     uv_slice = uvf_slice(data_cube, kx_mpc, ky_mpc, frequencies, kperp_lambda_conv, delay_params, hubble_param, slice_axis = 2, $
+                          slice_inds = 0, slice_savefile = file_struct.uv_raw_savefile[i])
+  endfor     
+
   ;; divide by weights
   data_cube1 = data_cube1 / weights_cube1
   if count_wt1_0 ne 0 then data_cube1[wh_wt1_0] = 0
@@ -593,7 +615,6 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
      if count_wt2_0 ne 0 then data_cube2[wh_wt2_0] = 0
      undefine, weights_cube2, wh_wt2_0, count_wt2_0
   endif
-
 
   ;; save some slices of the data cube
   for i=0, nfiles-1 do begin
@@ -656,6 +677,34 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
   wh_nofreq = where(n_freq_contrib eq 0, count_nofreq)
   undefine, mask
       
+  ;; save some slices of the sum & diff cubes
+  uf_slice = uvf_slice(data_sum, kx_mpc, ky_mpc, frequencies, kperp_lambda_conv, delay_params, hubble_param, slice_axis = 1, $
+                       slice_inds = 0, slice_savefile = file_struct.uf_sum_savefile)
+  uf_slice = uvf_slice(data_diff, kx_mpc, ky_mpc, frequencies, kperp_lambda_conv, delay_params, hubble_param, slice_axis = 1, $
+                       slice_inds = 0, slice_savefile = file_struct.uf_diff_savefile)
+    
+  vf_slice = uvf_slice(data_sum, kx_mpc, ky_mpc, frequencies, kperp_lambda_conv, delay_params, hubble_param, slice_axis = 0, $
+                       slice_inds = n_kx/2, slice_savefile = file_struct.vf_sum_savefile)
+  vf_slice2 = uvf_slice(data_diff, kx_mpc, ky_mpc, frequencies, kperp_lambda_conv, delay_params, hubble_param, slice_axis = 0, $
+                       slice_inds = n_kx/2, slice_savefile = file_struct.vf_diff_savefile)
+     
+  if max(abs(vf_slice)) eq 0 or max(vf_slice2) eq 0 then begin
+     nloop = 0
+     while max(abs(vf_slice)) eq 0 or max(vf_slice2) eq 0 do begin
+        nloop = nloop+1
+        vf_slice = uvf_slice(data_sum, kx_mpc, ky_mpc, frequencies, kperp_lambda_conv, delay_params, hubble_param, $
+                             slice_axis = 0, slice_inds = n_kx/2+nloop, slice_savefile = file_struct.vf_sum_savefile)
+        vf_slice2 = uvf_slice(data_diff, kx_mpc, ky_mpc, frequencies, kperp_lambda_conv, delay_params, hubble_param, $
+                             slice_axis = 0, slice_inds = n_kx/2+nloop, slice_savefile = file_struct.vf_diff_savefile)
+     endwhile
+  endif
+  
+  uv_slice = uvf_slice(data_sum, kx_mpc, ky_mpc, frequencies, kperp_lambda_conv, delay_params, hubble_param, slice_axis = 2, $
+                       slice_inds = 0, slice_savefile = file_struct.uv_sum_savefile)
+  uv_slice = uvf_slice(data_diff, kx_mpc, ky_mpc, frequencies, kperp_lambda_conv, delay_params, hubble_param, slice_axis = 2, $
+                       slice_inds = 0, slice_savefile = file_struct.uv_diff_savefile)
+
+
   ;; apply spectral windowing function if desired
   if n_elements(spec_window_type) ne 0 then begin
      window = spectral_window(n_freq, type = spec_window_type, /periodic)

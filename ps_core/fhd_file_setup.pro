@@ -164,6 +164,19 @@ function fhd_file_setup, datafile, pol_inc, weightfile = weightfile, variancefil
   vf_savefile = uvf_froot + uvf_savefilebase + '_vf_plane.idlsave'
   uv_savefile = uvf_froot + uvf_savefilebase + '_uv_plane.idlsave'
 
+  uf_raw_savefile = uvf_froot + uvf_savefilebase + '_uf_plane_raw.idlsave'
+  vf_raw_savefile = uvf_froot + uvf_savefilebase + '_vf_plane_raw.idlsave'
+  uv_raw_savefile = uvf_froot + uvf_savefilebase + '_uv_plane_raw.idlsave'
+
+
+  uf_sum_savefile = froot + savefilebase + '_sum_uf_plane.idlsave'
+  vf_sum_savefile = froot + savefilebase + '_sum_vf_plane.idlsave'
+  uv_sum_savefile = froot + savefilebase + '_sum_uv_plane.idlsave'
+  uf_diff_savefile = froot + savefilebase + '_diff_uf_plane.idlsave'
+  vf_diff_savefile = froot + savefilebase + '_diff_vf_plane.idlsave'
+  uv_diff_savefile = froot + savefilebase + '_diff_uv_plane.idlsave'
+
+
   kcube_savefile = froot + savefilebase + '_kcube.idlsave'
   power_savefile = froot + savefilebase + '_power.idlsave'
   fits_power_savefile = froot + savefilebase + '_power.fits'
@@ -368,6 +381,11 @@ stop
                        degpix:degpix, kpix:kpix, nside:nside, $
                        uvf_savefile:uvf_savefile[*,i], uvf_weight_savefile:uvf_weight_savefile[*,pol_index], $
                        uf_savefile:uf_savefile[*,i], vf_savefile:vf_savefile[*,i], uv_savefile:uv_savefile[*,i], $
+                       uf_raw_savefile:uf_raw_savefile[*,i], vf_raw_savefile:vf_raw_savefile[*,i], $
+                       uv_raw_savefile:uv_raw_savefile[*,i], $
+                       uf_sum_savefile:uf_sum_savefile[i], vf_sum_savefile:vf_sum_savefile[i], $
+                       uv_sum_savefile:uv_sum_savefile[i], uf_diff_savefile:uf_diff_savefile[i], $
+                       vf_diff_savefile:vf_diff_savefile[i], uv_diff_savefile:uv_diff_savefile[i], $
                        kcube_savefile:kcube_savefile[i], power_savefile:power_savefile[i], fits_power_savefile:fits_power_savefile[i],$
                        savefile_froot:froot, savefilebase:savefilebase[i], general_filebase:general_filebase, $
                        weight_savefilebase:weight_savefilebase[*,pol_index], res_uvf_inputfiles:res_uvf_inputfiles, $
@@ -377,6 +395,9 @@ stop
                        datavar:data_varname, weightvar:weight_varname[pol_index], variancevar:variance_varname[pol_index], $
                        frequencies:frequencies, freq_resolution:freq_resolution, time_resolution:time_resolution, $
                        n_vis:n_vis, max_baseline_lambda:max_baseline_lambda, max_theta:max_theta, degpix:degpix, kpix:kpix, $
+                       uf_sum_savefile:uf_sum_savefile[i], vf_sum_savefile:vf_sum_savefile[i], $
+                       uv_sum_savefile:uv_sum_savefile[i], uf_diff_savefile:uf_diff_savefile[i], $
+                       vf_diff_savefile:vf_diff_savefile[i], uv_diff_savefile:uv_diff_savefile[i], $
                        kcube_savefile:kcube_savefile[i], power_savefile:power_savefile[i], fits_power_savefile:fits_power_savefile[i],$
                        savefile_froot:froot, savefilebase:savefilebase[i], general_filebase:general_filebase, $
                        weight_savefilebase:weight_savefilebase[*,pol_index], res_uvf_inputfiles:res_uvf_inputfiles, $
