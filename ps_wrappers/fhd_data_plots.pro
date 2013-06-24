@@ -171,14 +171,15 @@ pro fhd_data_plots, datafile, save_path = save_path, savefilebase = savefilebase
   if n_elements(plot_path) ne 0 then plotfile_path = plot_path $
   else if n_elements(save_path) ne 0 then plotfile_path = save_path else plotfile_path = file_struct_arr.savefile_froot
 
+  plot_fadd = ''
+  if keyword_set(grey_scale) then plot_fadd = plot_fadd + '_grey'
+
   if keyword_set(individual_plots) then begin
      plotfile_base = plotfile_path + file_struct_arr.savefilebase + fadd
      plotfile_base_wt = plotfile_path + file_struct_arr.weight_savefilebase + wt_file_labels[uniq(weight_ind, sort(weight_ind))] + fadd
      plotfiles_2d_wt = plotfile_base_wt + fadd_2dbin + '_2d' + plot_fadd + '.eps'
   endif else plotfile_base = plotfile_path + general_filebase + fadd
 
-  plot_fadd = ''
-  if keyword_set(grey_scale) then plot_fadd = plot_fadd + '_grey'
 
   plotfiles_2d = plotfile_base + fadd_2dbin + '_2dkpower' + plot_fadd + '.eps'
   plotfiles_2d_noise = plotfile_base + fadd_2dbin + '_2dnoise' + plot_fadd + '.eps'
