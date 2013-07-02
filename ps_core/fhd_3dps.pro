@@ -56,14 +56,18 @@ pro fhd_3dps, file_struct, refresh = refresh, kcube_refresh = kcube_refresh, dft
            term2 = real_part(data_sum_2 * conj(data_sum_2))*power_weights2
            undefine, data_sum_2
 
-           ;; we want a weighted sum not a weighted average, so do a
-           ;; weighted average * 2
-           weights_3d = 4*(power_weights1 + power_weights2) ;; variance_3d = 1/weights_3d
+           noise_expval_3d = sqrt(power_weights1) + sqrt(power_weights2)
+
+           weights_3d = (power_weights1 + power_weights2) ;; variance_3d = 1/weights_3d
            undefine, power_weights1, power_weights2
            
-           power_3d = 2 * (term1 + term2) / weights_3d
+           power_3d = (term1 + term2) / weights_3d
+           noise_expval_3d = noise_expval_3d / weights_3d
            wh_wt0 = where(weights_3d eq 0, count_wt0)
-           if count_wt0 ne 0 then power_3d[wh_wt0] = 0
+           if count_wt0 ne 0 then begin
+              power_3d[wh_wt0] = 0
+              noise_expval_3d[wh_wt0] = 0
+           endif           
            undefine, term1, term2
            
         endelse
@@ -128,21 +132,24 @@ pro fhd_3dps, file_struct, refresh = refresh, kcube_refresh = kcube_refresh, dft
            noise_t2 = abs(data_diff_2)^2. * power_weights2
            undefine, data_diff_1, data_diff_2
            
+           noise_expval_3d = sqrt(power_weights1) + sqrt(power_weights2)
+
            weights_3d = power_weights1 + power_weights2 ;; variance_3d = 1/weights_3d
-           if count_sig1_0 gt 0 then weights_3d[wh_sig1_0] = power_weights1[wh_sig1_0]
-           if count_sig2_0 gt 0 then weights_3d[wh_sig2_0] = power_weights2[wh_sig2_0]
            undefine, power_weights1, power_weights2
 
-           power_3d = (term1 + term2) / weights_3d
+           ;; divide by 4 on power b/c otherwise it would be 4*Re(even-odd crosspower)
+           power_3d = (term1 + term2) / (4. * weights_3d)
            noise_3d = (noise_t1 + noise_t2) / weights_3d
+           noise_expval_3d= noise_expval_3d / weights_3d
            undefine, term1, term2, noise_t1, noise_t2
            
            wh_wt0 = where(weights_3d eq 0, count_wt0)
            if count_wt0 ne 0 then begin
               power_3d[wh_wt0] = 0
+              noise_expval_3d[wh_wt0] = 0
               noise_3d[wh_wt0] = 0
            endif
-           
+          
            ;; quick_histplot, noise_3d[182,0,*], /logdata, binsize=0.1, plot_range=[1e5, 1e12]
            ;; cgplot, /overplot, replicate(mean(sqrt(1/weights_3d[182,0,*])), 2), [0, n_kz], psym=-3, linestyle=2
            ;; quick_histplot, noise_3d[185,0,*], /logdata, binsize=0.1, /overplot, color='red'
@@ -183,11 +190,11 @@ pro fhd_3dps, file_struct, refresh = refresh, kcube_refresh = kcube_refresh, dft
 
         endelse
      endelse
-stop
-     save, file = file_struct.power_savefile, power_3d, noise_3d, weights_3d, $
+
+     save, file = file_struct.power_savefile, power_3d, noise_3d, noise_expval_3d, weights_3d, $
            kx_mpc, ky_mpc, kz_mpc, kperp_lambda_conv, delay_params, hubble_param, n_freq_contrib
 
-     write_ps_fits, file_struct.fits_power_savefile, power_3d, weights_3d, noise_3d = noise_3d, $
+     write_ps_fits, file_struct.fits_power_savefile, power_3d, weights_3d, noise_expval_3d, noise_3d = noise_3d, $
                     kx_mpc, ky_mpc, kz_mpc, kperp_lambda_conv, delay_params, hubble_param
 
   endif else restore, file_struct.power_savefile
@@ -203,6 +210,8 @@ stop
      kz_mpc = kz_mpc[1:*]
      power_3d = temporary(power_3d[*, *, 1:*])
      weights_3d = temporary(weights_3d[*,*,1:*])
+     noise_expval_3d = temporary(noise_expval_3d[*,*,1:*])
+     if nfiles eq 2 then noise_3d = temporary(noise_3d[*,*,1:*])
      n_kz = n_elements(kz_mpc)
   endif
 
@@ -220,12 +229,14 @@ stop
 
   power_rebin = kspace_rebinning_2d(power_3D, kx_mpc, ky_mpc, kz_mpc, kperp_edges_mpc, kpar_edges_mpc, log_kpar = log_kpar, $
                                     log_kperp = log_kperp, kperp_bin = kperp_bin, kpar_bin = kpar_bin, $
-                                    weights = weights_3d, binned_weights = binned_weights, fill_holes = fill_holes)
+                                    noise_expval = noise_expval_3d, binned_noise_expval = binned_noise_expval, weights = weights_3d, $
+                                    binned_weights = binned_weights, fill_holes = fill_holes)
   
       
   if nfiles eq 2 then $
      noise_rebin = kspace_rebinning_2d(noise_3D, kx_mpc, ky_mpc, kz_mpc, kperp_edges_mpc, kpar_edges_mpc, log_kpar = log_kpar, $
                                        log_kperp = log_kperp, kperp_bin = kperp_bin, kpar_bin = kpar_bin, $
+                                       noise_expval = noise_expval_3d, binned_noise_expval = binned_noise_expval, $
                                        weights = weights_3d, binned_weights = binned_weights, fill_holes = fill_holes)
 
 
@@ -234,12 +245,13 @@ stop
   kperp_edges = kperp_edges_mpc
   kpar_edges = kpar_edges_mpc
   weights = binned_weights
+  noise_expval = binned_noise_expval
 
   wh_good_kperp = where(total(weights, 2) gt 0, count)
   if count eq 0 then stop
   kperp_plot_range = [min(kperp_edges[wh_good_kperp]), max(kperp_edges[wh_good_kperp+1])]
   
-  save, file = savefile, power, noise, weights, kperp_edges, kpar_edges, kperp_bin, kpar_bin, $
+  save, file = savefile, power, noise, weights, noise_expval, kperp_edges, kpar_edges, kperp_bin, kpar_bin, $
         kperp_lambda_conv, delay_params, hubble_param
 
   if not keyword_set(quiet) then begin
@@ -252,48 +264,54 @@ stop
   ;; now do slices    
   yslice_savefile = file_struct.savefile_froot + file_struct.savefilebase + '_xz_plane.idlsave'
   yslice_power = kpower_slice(power_3d, kx_mpc, ky_mpc, kz_mpc, kperp_lambda_conv, delay_params, hubble_param, noise_3d = noise_3d, $
-                       weights_3d = weights_3d, slice_axis = 1, slice_inds = 0, slice_savefile = yslice_savefile)
+                              noise_expval_3d = noise_expval_3d, weights_3d = weights_3d, slice_axis = 1, slice_inds = 0, $
+                              slice_savefile = yslice_savefile)
 
   xslice_savefile = file_struct.savefile_froot + file_struct.savefilebase + '_yz_plane.idlsave'
   xslice_power = kpower_slice(power_3d, kx_mpc, ky_mpc, kz_mpc, kperp_lambda_conv, delay_params, hubble_param, noise_3d = noise_3d, $
-                       weights_3d = weights_3d, slice_axis = 0, slice_inds = n_kx/2, slice_savefile = xslice_savefile)
+                              noise_expval_3d = noise_expval_3d, weights_3d = weights_3d, slice_axis = 0, slice_inds = n_kx/2, $
+                              slice_savefile = xslice_savefile)
   if max(xslice_power) eq 0 then begin
      nloop = 0
      while max(xslice_power) eq 0 do begin
          nloop = nloop+1
          xslice_power = kpower_slice(power_3d, kx_mpc, ky_mpc, kz_mpc, kperp_lambda_conv, delay_params, hubble_param, $
-                                     noise_3d = noise_3d, weights_3d = weights_3d, slice_axis = 0, slice_inds = n_kx/2+nloop, $
-                                     slice_savefile = xslice_savefile)
+                                     noise_3d = noise_3d, noise_expval_3d = noise_expval_3d, weights_3d = weights_3d, slice_axis = 0, $
+                                     slice_inds = n_kx/2+nloop, slice_savefile = xslice_savefile)
      endwhile
   endif
 
   zslice_savefile = file_struct.savefile_froot + file_struct.savefilebase + '_xy_plane.idlsave'
   zslice_power = kpower_slice(power_3d, kx_mpc, ky_mpc, kz_mpc, kperp_lambda_conv, delay_params, hubble_param, noise_3d = noise_3d, $
-                       weights_3d = weights_3d, slice_axis = 2, slice_inds = 1, slice_savefile = zslice_savefile)
+                              noise_expval_3d = noise_expval_3d, weights_3d = weights_3d, slice_axis = 2, slice_inds = 1, $
+                              slice_savefile = zslice_savefile)
 
 
   print, 'Binning to 1D power spectrum'
  
   power_1d = kspace_rebinning_1d(power_3d, kx_mpc, ky_mpc, kz_mpc, k_edges_mpc, k_bin = k1d_bin, log_k = log_k1d, $
-                                 weights = weights_3d, binned_weights = weights_1d, mask = mask, pixelwise_mask = pixelwise_mask, $
-                                 k1_mask = k1_mask, k2_mask = k2_mask,  k3_mask = k3_mask)
+                                 noise_expval = noise_expval_3d, binned_noise_expval = noise_expval_1d, weights = weights_3d, $
+                                 binned_weights = weights_1d, mask = mask, pixelwise_mask = pixelwise_mask, k1_mask = k1_mask, $
+                                 k2_mask = k2_mask,  k3_mask = k3_mask)
 
   if nfiles eq 2 then $
      noise_1d = kspace_rebinning_1d(noise_3d, kx_mpc, ky_mpc, kz_mpc, k_edges_mpc, k_bin = k1d_bin, log_k = log_k1d, $
-                                    weights = weights_3d, binned_weights = weights_1d, mask = mask, pixelwise_mask = pixelwise_mask, $
-                                    k1_mask = k1_mask, k2_mask = k2_mask,  k3_mask = k3_mask)
+                                    noise_expval = noise_expval_3d, binned_noise_expval = noise_expval_1d, weights = weights_3d, $
+                                    binned_weights = weights_1d, mask = mask, pixelwise_mask = pixelwise_mask, k1_mask = k1_mask, $
+                                    k2_mask = k2_mask,  k3_mask = k3_mask)
 
   power = power_1d
   if nfiles eq 2 then noise = noise_1d
   weights = weights_1d
   k_edges = k_edges_mpc
   k_bin = k1d_bin
+  noise_expval = noise_expval_1d
 
   fadd_1d = ''
   if keyword_set(log_k) then fadd_1d = fadd_1d + '_logk'
 
   savefile = file_struct.savefile_froot + file_struct.savefilebase + fadd + fadd_1d + '_1dkpower.idlsave'
-  save, file = savefile, power, noise, weights, k_edges, k_bin, hubble_param
+  save, file = savefile, power, noise, weights, noise_expval, k_edges, k_bin, hubble_param
 
   if not keyword_set(quiet) then begin
      kpower_1d_plots, savefile, window_num = 5

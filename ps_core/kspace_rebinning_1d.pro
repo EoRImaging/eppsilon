@@ -1,6 +1,7 @@
 
 
-function kspace_rebinning_1d, power, k1_mpc, k2_mpc, k3_mpc, k_edges_mpc, k_bin = k_bin, log_k = log_k, weights = weights, $
+function kspace_rebinning_1d, power, k1_mpc, k2_mpc, k3_mpc, k_edges_mpc, k_bin = k_bin, log_k = log_k, $
+                              noise_expval = noise_expval, binned_noise_expval = noise_expval_1d, weights = weights, $
                               binned_weights = weights_1d, mask = mask, pixelwise_mask = pixelwise_mask, k1_mask = k1_mask, $
                               k2_mask = k2_mask, k3_mask = k3_mask, edge_on_grid = edge_on_grid, match_datta = match_datta
 
@@ -34,6 +35,15 @@ function kspace_rebinning_1d, power, k1_mpc, k2_mpc, k3_mpc, k_edges_mpc, k_bin 
   endif else begin
      weights = dblarr(power_size) + 1d
      weighted_power = power
+  endelse
+ 
+ if n_elements(noise_expval) ne 0 then begin
+     if total(abs(size(noise_expval, /dimensions) - power_size)) ne 0 then $
+        message, 'If noise_expval array is provided, it must have the same dimensionality as the power' $
+     else weighted_noise_expval = weights * noise_expval
+  endif else begin
+     noise_expval = 1/sqrt(weights)
+     weighted_noise_expval = sqrt(weights)
   endelse
 
   if n_elements(mask) ne 0 then begin
@@ -203,6 +213,7 @@ function kspace_rebinning_1d, power, k1_mpc, k2_mpc, k3_mpc, k_edges_mpc, k_bin 
      
      n_k = n_elements(k_hist)
      power_1d = dblarr(n_k)
+     nev_1d = dblarr(n_k)
      weights_1d = dblarr(n_k)
      norm = dblarr(n_k)
 
@@ -211,10 +222,12 @@ function kspace_rebinning_1d, power, k1_mpc, k2_mpc, k3_mpc, k_edges_mpc, k_bin 
            inds =  k_ri[k_ri[i] : k_ri[i+1]-1]
            if n_elements(mask) ne 0 then begin
               power_1d[i] = total(weighted_power[inds] * double(pixel_mask[inds]))
+              nev_1d[i] = total(weighted_noise_expval[inds] * double(pixel_mask[inds]))
               weights_1d[i] = total(weights[inds] * double(pixel_mask[inds]))
               norm[i] = total(pixel_mask[inds])
            endif else begin
               power_1d[i] = total(weighted_power[inds])
+              nev_1d[i] = total(weighted_noise_expval[inds])
               weights_1d[i] = total(weights[inds])
               norm[i] = k_hist[i]
            endelse
@@ -298,6 +311,7 @@ function kspace_rebinning_1d, power, k1_mpc, k2_mpc, k3_mpc, k_edges_mpc, k_bin 
 
      n_k = n_elements(k_hist)
      power_1d = dblarr(n_k)
+     nev_1d = dblarr(n_k)
      weights_1d = dblarr(n_k)
      norm = dblarr(n_k)
 
@@ -306,10 +320,12 @@ function kspace_rebinning_1d, power, k1_mpc, k2_mpc, k3_mpc, k_edges_mpc, k_bin 
            inds = k_ri[k_ri[i] : k_ri[i+1]-1]
            if n_elements(mask) ne 0 then begin
               power_1d[i] = total(weighted_power[inds] * double(pixel_mask[inds]))
+              nev_1d[i] = total(weighted_noise_expval[inds] * double(pixel_mask[inds]))
               weights_1d[i] = total(weights[inds] * double(pixel_mask[inds]))
               norm[i] = total(pixel_mask[inds])
            endif else begin
               power_1d[i] = total(weighted_power[inds])
+              nev_1d[i] = total(weighted_noise_expval[inds])
               weights_1d[i] = total(weights[inds])
               norm[i] = k_hist[i]
            endelse
@@ -329,9 +345,13 @@ function kspace_rebinning_1d, power, k1_mpc, k2_mpc, k3_mpc, k_edges_mpc, k_bin 
 
 
   power_ave = power_1d/weights_1d
+  noise_expval_1d = nev_1d/weights_1d
   wh = where(weights_1d eq 0, count)
-  if count ne 0 then power_ave[wh] = 0d
-  
+  if count ne 0 then begin
+     power_ave[wh] = 0d
+     noise_expval_1d[wh] = 0d
+  endif
+
   return, power_ave
   
 end 

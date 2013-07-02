@@ -1,23 +1,27 @@
-pro write_ps_fits, fits_savefile, power_3d, weights_3d, kx_mpc, ky_mpc, kz_mpc, kperp_lambda_conv, delay_params, hubble_param, $
-                   noise_3d = noise_3d
+pro write_ps_fits, fits_savefile, power_3d, weights_3d, noise_expval, kx_mpc, ky_mpc, kz_mpc, kperp_lambda_conv, delay_params, $
+                   hubble_param, noise_3d = noise_3d
 
-  ;; make a basic primary header & extension header (for weights)
+  ;; make a basic primary header & 2 extension headers (for weights & noise expectation value)
   mkhdr, header, power_3d, /extend
   mkhdr, header2, weights_3d, /image
-  if n_elements(noise_3d) ne 0 then mkhdr, header3, noise_3d, /image
+  mkhdr, header3, noise_expval, /image
+  if n_elements(noise_3d) ne 0 then mkhdr, header4, noise_3d, /image
 
   ;; put them all into a structure to loop over adding parameters
-  header_struct = {power:header, weights: header2}
+  header_struct = {power:header, weights: header2, noise_expval:header3}
   if n_elements(noise_3d) ne 0 then begin
-     header_struct = create_struct(header_struct, 'noise', header3)
-     n_hdr = 3
-  endif else n_hdr = 2
+     header_struct = create_struct(header_struct, 'noise', header4)
+     n_hdr = 4
+  endif else n_hdr = 3
 
   ;; add on units parameter
-  fxaddpar, header_struct.power, 'BUNIT', 'mK^2 Mpc^3', 'For [mK^2 h^-3 Mpc^3], multiply by ' + number_formatter(hubble_param) + '^3'
-  fxaddpar, header_struct.weights, 'BUNIT', '', 'Relative weights'
-  if n_elements(noise_3d) ne 0 then fxaddpar, header_struct.noise, 'BUNIT', 'mK^2 Mpc^3', 'For [mK^2 h^-3 Mpc^3], multiply by ' + $
-     number_formatter(hubble_param) + '^3'
+  fxaddpar, header_struct.power, 'BUNIT', 'mK^2 Mpc^3', 'Power. For [mK^2 h^-3 Mpc^3], multiply by ' + number_formatter(hubble_param) + '^3'
+  fxaddpar, header_struct.weights, 'BUNIT', 'mK^-4 Mpc^-6', 'Weights (1/variance). For [mK^-4 h^6 Mpc^-6], multiply by ' + $
+            number_formatter(hubble_param) + '^-6'
+  fxaddpar, header_struct.noise_expval, 'BUNIT', 'mK^2 Mpc^3', 'Noise expectation value. For [mK^2 h^-3 Mpc^3], multiply by ' + $
+            number_formatter(hubble_param) + '^3'
+  if n_elements(noise_3d) ne 0 then fxaddpar, header_struct.noise, 'BUNIT', 'mK^2 Mpc^3', 'Observed noise. For [mK^2 h^-3 Mpc^3], ' + $
+     'multiply by ' + number_formatter(hubble_param) + '^3'
 
   ;; setup primary WCS coordinates
   axis_names = ['kx', 'ky', 'kz']
@@ -84,8 +88,11 @@ pro write_ps_fits, fits_savefile, power_3d, weights_3d, kx_mpc, ky_mpc, kz_mpc, 
   ;; now add extension for weights
   writefits, fits_savefile, weights_3d, header_struct.weights, /append
   
+  ;; now add extension for noise expectation value
+  writefits, fits_savefile, noise_expval, header_struct.noise_expval, /append
+
   ;; now add extension for noise
-  if n_hdr eq 3 then writefits, fits_savefile, noise_3d, header_struct.noise, /append
+  if n_hdr eq 4 then writefits, fits_savefile, noise_3d, header_struct.noise, /append
 
 
 end

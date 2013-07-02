@@ -1,8 +1,9 @@
-pro kpower_2d_plots, power_savefile, multi_pos = multi_pos, start_multi_params = start_multi_params, plot_weights = plot_weights, $
-                     plot_noise = plot_noise, plot_sigma = plot_sigma, ratio = ratio, diff = diff, snr = snr, nnr = nnr, $
-                     kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
-                     data_range = data_range, color_profile = color_profile, log_cut_val = log_cut_val, pub = pub, $
-                     plotfile = plotfile, no_title = no_title, window_num = window_num, title = title, norm_2d = norm_2d, $
+pro kpower_2d_plots, power_savefile, multi_pos = multi_pos, start_multi_params = start_multi_params, window_num = window_num, $
+                     plot_weights = plot_weights, plot_noise = plot_noise, plot_sigma = plot_sigma, plot_exp_noise = plot_exp_noise, $
+                     ratio = ratio, diff = diff, snr = snr, nnr = nnr, $
+                     kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, data_range = data_range, $
+                     color_profile = color_profile, log_cut_val = log_cut_val, pub = pub, plotfile = plotfile, $
+                     no_title = no_title, title = title, title_prefix = title_prefix, norm_2d = norm_2d, $
                      norm_factor = norm_factor, grey_scale = grey_scale, wedge_amp = wedge_amp, plot_wedge_line = plot_wedge_line, $
                      baseline_axis = baseline_axis, delay_axis = delay_axis, kperp_linear_axis = kperp_linear_axis, $
                      kpar_linear_axis = kpar_linear_axis, no_units = no_units, hinv = hinv, charsize = charsize_in, $
@@ -26,9 +27,10 @@ pro kpower_2d_plots, power_savefile, multi_pos = multi_pos, start_multi_params =
   wh_prof = where(color_profile_enum eq color_profile, count)
   if count eq 0 then message, 'Color profile must be one of: ' + strjoin(color_profile_enum, ', ')
 
-  if total([keyword_set(plot_weights), keyword_set(plot_sigma), $
+  if total([keyword_set(plot_weights), keyword_set(plot_sigma), keyword_set(plot_exp_noise), $
             keyword_set(plot_noise), keyword_set(snr), keyword_set(nnr)]) gt 1 then $
-     message, 'only one of [plot_noise, plot_sigma, plot_weights, snr, nnr] keywords can be set'
+     message, 'only one of [plot_noise, plot_sigma, plot_exp_noise, plot_weights, snr, nnr] keywords can be set'
+  
 
   if keyword_set(ratio) or keyword_set(diff) then begin
      if keyword_set(ratio) and keyword_set(diff) then message, 'Ratio and diff keywords cannot be set simultaneously'
@@ -36,6 +38,8 @@ pro kpower_2d_plots, power_savefile, multi_pos = multi_pos, start_multi_params =
      restore, power_savefile[0]
      power1 = power
      weights1 = weights
+     weights1 = weights
+     noise_expval1 = noise_expval
      if n_elements(noise) ne 0 then noise1 = noise
      kperp1 = kperp_edges
      kpar1 = kpar_edges
@@ -46,7 +50,9 @@ pro kpower_2d_plots, power_savefile, multi_pos = multi_pos, start_multi_params =
      power2 = power
      if n_elements(noise) ne 0 then noise2 = noise
      weights2 = weights
-     if total(abs(kperp1 - kperp_edges)) ne 0 or total(abs(kpar1 - kpar_edges)) ne 0 or $
+     noise_expval2 = noise_expval
+      
+    if total(abs(kperp1 - kperp_edges)) ne 0 or total(abs(kpar1 - kpar_edges)) ne 0 or $
         total(abs(size(power1,/dimension) - size(power2, /dimension))) ne 0 then $
            message, 'dimensions and kperp/kpar edges must be the same in both files'
 
@@ -65,6 +71,16 @@ pro kpower_2d_plots, power_savefile, multi_pos = multi_pos, start_multi_params =
         plot_type = 'weight_ratio'
      endif
 
+     if keyword_set(plot_sigma) then begin
+        power = sqrt(weights2 / weights1)
+        plot_type = 'sigma_ratio'
+     endif
+
+     if keyword_set(plot_noise_exp) then begin
+        power = noise_expval1 / noise_expval2
+        plot_type = 'exp_noise_ratio'
+     endif 
+
      if keyword_set(plot_noise) then begin
         power = noise1 / noise2
         plot_type = 'noise_ratio'
@@ -82,20 +98,25 @@ pro kpower_2d_plots, power_savefile, multi_pos = multi_pos, start_multi_params =
      restore, power_savefile
 
      if keyword_set(snr) then begin
-        power = power * sqrt(weights)
+        power = power / noise_expval
         plot_type = 'snr'
      endif
-
-    if keyword_set(plot_weights) then begin
+     
+     if keyword_set(plot_weights) then begin
         power = weights
         plot_type = 'weight'
      endif
-
-    if keyword_set(plot_sigma) then begin
+     
+     if keyword_set(plot_sigma) then begin
         power = 1/sqrt(weights)
         wh_wt0 = where(weights eq 0, count_wt0)
         if count_wt0 gt 0 then power[wh_wt0 ] = 0
         plot_type = 'sigma'
+     endif
+     
+     if keyword_set(plot_exp_noise) then begin
+        power = noise_expval
+        plot_type = 'exp_noise'
      endif
      
      if keyword_set(plot_noise) then begin
@@ -105,7 +126,7 @@ pro kpower_2d_plots, power_savefile, multi_pos = multi_pos, start_multi_params =
      endif
      
      if keyword_set(nnr) then begin
-        power = noise * sqrt(weights)
+        power = noise / noise_expval
         plot_type = 'nnr'
      endif
 
@@ -121,7 +142,8 @@ pro kpower_2d_plots, power_savefile, multi_pos = multi_pos, start_multi_params =
   if keyword_set(hinv) then begin
      kperp_edges = kperp_edges / hubble_param
      kpar_edges = kpar_edges / hubble_param
-     if plot_type eq 'power' or plot_type eq 'noise' or plot_type eq 'sigma' then power = power * (hubble_param)^3d
+     if plot_type eq 'power' or plot_type eq 'noise' or plot_type eq 'sigma' or plot_type eq 'exp_noise' then $
+        power = power * (hubble_param)^3d
   endif
 
   if n_elements(kperp_plot_range) eq 0 then kperp_plot_range = minmax(kperp_edges)
@@ -162,8 +184,27 @@ pro kpower_2d_plots, power_savefile, multi_pos = multi_pos, start_multi_params =
         if keyword_set(hinv) then units_str = textoidl(' (mK^2 h^{-3} Mpc^3)', font = font) $
         else units_str = textoidl(' (mK^2 Mpc^3)', font = font)
 
-         plot_title = 'Expected Noise';;textoidl('\sigma', font = font)
+         plot_title = 'Error (sigma)'
          plotfile_add = '_2dsigma.eps'
+     end
+     'sigma_ratio': begin
+         units_str = ''
+
+         if keyword_set(pub) then sigma_char = textoidl('\sigma', font = 1) else sigma_char = textoidl('\sigma', font = -1)
+         plot_title = 'Error (sigma) Ratio'
+         plotfile_add = '_sigma_ratio.eps'
+     end
+     'exp_noise': begin
+        if keyword_set(hinv) then units_str = textoidl(' (mK^2 h^{-3} Mpc^3)', font = font) $
+        else units_str = textoidl(' (mK^2 Mpc^3)', font = font)
+
+         plot_title = 'Expected Noise'
+         plotfile_add = '_2dnoise_expval.eps'
+     end
+     'exp_noise_ratio': begin
+        units_str = ''
+        plot_title = 'Expected Noise ratio'
+        plotfile_add = '_noise_expval_ratio.eps'
      end
      'snr': begin
          units_str = ''
@@ -217,6 +258,14 @@ pro kpower_2d_plots, power_savefile, multi_pos = multi_pos, start_multi_params =
   if total(abs(kperp_log_diffs - kperp_log_diffs[0])) gt n_kperp*1e-15 then log_bins[0] = 0
   kpar_log_diffs = (alog10(kpar_edges) - shift(alog10(kpar_edges), 1))[2:*]
   if total(abs(kpar_log_diffs - kpar_log_diffs[0])) gt n_kpar*1e-15 then log_bins[1] = 0
+
+  log_bins = [0, 0]
+  kperp_diffs = (kperp_edges - shift(kperp_edges, 1))[1:*]
+  if total(abs(kperp_diffs - kperp_diffs[0])) gt n_kperp*1e-7 then log_bins[0] = 1
+  kpar_diffs = (kpar_edges - shift(kpar_edges, 1))[1:*]
+  if total(abs(kpar_diffs - kpar_diffs[0])) gt n_kpar*1e-7 then log_bins[1] = 1
+
+
 
   tvlct, r, g, b, /get
 
@@ -624,7 +673,7 @@ pro kpower_2d_plots, power_savefile, multi_pos = multi_pos, start_multi_params =
      endif
 
      DEVICE, /ISOLATIN1
-     perp_char = '!9' + String("136B) + '!X'
+     perp_char = '!9' + String("136B) + '!X' ;"
 
 
   endif else begin
@@ -653,6 +702,11 @@ pro kpower_2d_plots, power_savefile, multi_pos = multi_pos, start_multi_params =
   if log_axes[0] eq 1 then plot_kperp = 10^kperp_log_edges else plot_kperp = kperp_edges
   if log_axes[1] eq 1 then plot_kpar = 10^kpar_log_edges else plot_kpar = kpar_edges
  
+  ;; if plot title includes sigma need to replace 'sigma' with appropriate character
+  ;; (textoidl has to be called after pson)
+  if keyword_set(plot_sigma) then plot_title = repstr(plot_title, 'sigma', textoidl('\sigma', font=font))
+
+  if keyword_set(title_prefix) then plot_title = title_prefix + ' ' + plot_title
   if n_elements(title) ne 0 then plot_title = title
   if keyword_set(no_title) then undefine, plot_title
 

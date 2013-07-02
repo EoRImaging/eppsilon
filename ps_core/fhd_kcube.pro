@@ -126,11 +126,20 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
   
   if max(freq_diff-freq_diff[0]) gt 1e-12 then begin
      ;; frequencies are not evenly spaced, need to be careful about z_mpc_delta/mean      
-     
-     f_delta = freq_resolution
-     nominal_freqs = findgen(floor(((max(frequencies)-min(frequencies))/freq_resolution))+1)*freq_resolution + min(frequencies)
+     even_freq = 0
+
+     freq_diff_hist = histogram(freq_diff, binsize = min(freq_diff)*.1, locations=locs, reverse_indices = ri)
+     if max(freq_diff_hist)/float(n_freq) lt .9 then stop $
+     else begin
+        peak_bin = (where(freq_diff_hist eq max(freq_diff_hist), count_peak))[0]
+        if count_peak eq 1 then peak_diffs = freq_diff[ri[ri[peak_bin] : ri[peak_bin+1]-1]]
+        
+        f_delta = mean(peak_diffs)
+     endelse
+
+     nominal_freqs = findgen(floor(((max(frequencies)-min(frequencies))/f_delta))+1)*f_delta + min(frequencies)
      nominal_z = z0_freq/nominal_freqs - 1
-     comoving_distance_los, nominal_z, nominal_comov_dist_los
+     cosmology_measures, nominal_z, comoving_dist_los = nominal_comov_dist_los
      nominal_comov_diffs = nominal_comov_dist_los - shift(nominal_comov_dist_los, -1)
      nominal_comov_diffs = nominal_comov_diffs[0:n_elements(nominal_comov_diffs)-2]
      
@@ -138,7 +147,8 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
      z_mpc_mean = mean(nominal_comov_dist_los)
      
   endif else begin
-     
+     even_freq = 1   
+
      f_delta = freq_diff[0]
      z_mpc_delta = float(mean(comov_los_diff))
      z_mpc_mean = float(mean(comov_dist_los))
@@ -156,8 +166,7 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
   kz_mpc_orig = findgen(round(kz_mpc_range / kz_mpc_delta)) * kz_mpc_delta - kz_mpc_range/2.
   if n_elements(n_kz) ne 0 then begin
      if n_elements(kz_mpc_orig) ne n_kz then stop
-  endif else n_kz = n_elements(kz_mpc_orig)
-  
+  endif else n_kz = n_elements(kz_mpc_orig)  
 
   if input_units eq 'jansky' then begin
      ;; beam_diameter_rad = (3d * 10^8d) / (frequencies * 10^6d * max_baseline)
@@ -186,17 +195,19 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
 
 
   if healpix then begin
+     
+     pixel_nums1 = getvar_savefile(file_struct.pixelfile[0], file_struct.pixelvar[0])
+     
+     pixel_dims = size(pixel_nums1, /dimension)
+     if datavar ne '' and total(abs(dims - pixel_dims)) ne 0 then message, 'pixel and data dimensions do not match'
+
      if nfiles eq 2 then begin
         ;; check that they have the same set of healpix pixels
-        pixel_nums1 = getvar_savefile(file_struct.pixelfile[0], file_struct.pixelvar[0])
         pixel_nums2 = getvar_savefile(file_struct.pixelfile[1], file_struct.pixelvar[1])
         if n_elements(pixel_nums1) ne n_elements(pixel_nums2) then message, 'Different number of Healpix pixels in cubes'
         
         if total(abs(pixel_nums1-pixel_nums2)) ne 0 then message, 'Pixel numbers are not consistent between cubes'
   
-        pixel_dims = size(pixel_nums1, /dimension)
-        if datavar ne '' and total(abs(dims - pixel_dims)) ne 0 then message, 'pixel and data dimensions do not match'
-
      endif
 
      for i=0, nfiles-1 do begin     
@@ -634,9 +645,6 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
      undefine, weights_cube2, wh_wt2_0, count_wt2_0
   endif
 
-  temp = sigma2_cube1*0
-  for i=0, n_freq-1 do temp[*,*,i] = sigma2_cube1[*,*,0]
-  sigma2_cube1 = temporary(temp)
   if keyword_set(noise_sim) then begin
      noise = randomn(seed, dims) * sqrt(sigma2_cube1) + $
              complex(0,1)*randomn(seed, dims) * sqrt(sigma2_cube1)
@@ -752,36 +760,45 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
      sum_sigma2 = sum_sigma2 * temporary(window_expand^2.)
   endif
 
-  ;; now take FFT
-  data_sum_ft = fft(data_sum, dimension=3) * n_freq * z_mpc_delta / (2.*!pi)
-  ;; put k0 in middle of cube
-  data_sum_ft = shift(data_sum_ft, [0,0,n_kz/2])
-  undefine, data_sum
-  if nfiles eq 2 then begin
-     data_diff_ft = fft(data_diff, dimension=3) * n_freq * z_mpc_delta / (2.*!pi)
+  ;; now take frequency FT
+  if even_freq then begin
+     ;; evenly spaced, just use fft
+     data_sum_ft = fft(data_sum, dimension=3) * n_freq * z_mpc_delta / (2.*!dpi)
      ;; put k0 in middle of cube
-     data_diff_ft = shift(data_diff_ft, [0,0,n_kz/2])
-     undefine, data_diff
-  endif
+     data_sum_ft = shift(data_sum_ft, [0,0,n_kz/2])
+     undefine, data_sum
+     if nfiles eq 2 then begin
+        data_diff_ft = fft(data_diff, dimension=3) * n_freq * z_mpc_delta / (2.*!dpi)
+        ;; put k0 in middle of cube
+        data_diff_ft = shift(data_diff_ft, [0,0,n_kz/2])
+        undefine, data_diff
+     endif
+  endif else begin
+     ;; Not evenly spaced. Do a dft
+     z_exp =  exp(-1.*complex(0,1)*matrix_multiply(comov_dist_los, kz_mpc_orig, /btranspose))
 
-  ;; factor to go to eor theory FT convention
-  ;; Only 1 factor of 2pi b/c only transforming along z
-  ;; factor = (2d*!pi)
-  ;; if not keyword_set(eor_test) then data_ft = factor * temporary(data_ft)
-  
-  ;; print, 'full_ft^2d integral (after theory factor):', total(abs(data_ft)^2d)
+     data_sum_ft = z_mpc_delta/(2.*!dpi) * $
+                   reform(matrix_multiply(reform(temporary(data_sum), n_kx*n_ky, n_freq), z_exp), n_kx, n_ky, n_kz)
+     if nfiles eq 2 then $
+        data_diff_ft = z_mpc_delta/(2.*!dpi) * $
+                       reform(matrix_multiply(reform(temporary(data_diff), n_kx*n_ky, n_freq), z_exp), n_kx, n_ky, n_kz)
+  endelse
   
   n_val = round(kz_mpc_orig / kz_mpc_delta)
   kz_mpc_orig[where(n_val eq 0)] = 0
-  a1_0 = 2. * data_sum_ft[*,*,where(n_val eq 0)]
-  a1_n = data_sum_ft[*,*, where(n_val gt 0)] + data_sum_ft[*,*, reverse(where(n_val lt 0))]
-  b1_n = complex(0,1) * (data_sum_ft[*,*, where(n_val gt 0)] - data_sum_ft[*,*, reverse(where(n_val lt 0))])
+  ;; these an and bn calculations don't match the standard
+  ;; convention (they down by a factor of 2) but they make more sense
+  ;; and remove factors of 2 we'd otherwise have in the power
+  ;; and variance calculations
+  a1_0 = data_sum_ft[*,*,where(n_val eq 0)]
+  a1_n = (data_sum_ft[*,*, where(n_val gt 0)] + data_sum_ft[*,*, reverse(where(n_val lt 0))])/2.
+  b1_n = complex(0,1) * (data_sum_ft[*,*, where(n_val gt 0)] - data_sum_ft[*,*, reverse(where(n_val lt 0))])/2.
   undefine, data_sum_ft
 
   if nfiles gt 1 then begin
-     a2_0 = 2. * data_diff_ft[*,*,where(n_val eq 0)]
-     a2_n = data_diff_ft[*,*, where(n_val gt 0)] + data_diff_ft[*,*, reverse(where(n_val lt 0))]
-     b2_n = complex(0,1) * (data_diff_ft[*,*, where(n_val gt 0)] - data_diff_ft[*,*, reverse(where(n_val lt 0))])
+     a2_0 = data_diff_ft[*,*,where(n_val eq 0)]
+     a2_n = (data_diff_ft[*,*, where(n_val gt 0)] + data_diff_ft[*,*, reverse(where(n_val lt 0))])/2.
+     b2_n = complex(0,1) * (data_diff_ft[*,*, where(n_val gt 0)] - data_diff_ft[*,*, reverse(where(n_val lt 0))])/2.
      undefine, data_diff_ft
   endif
 
@@ -794,8 +811,8 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
      sigma2_ft = shift(sigma2_ft, [0,0,n_kz/2])
      undefine, sum_sigma2
      
-     sigma_a0 = 2. * abs(sigma2_ft[*,*,where(n_val eq 0)])
-     sigma_an_bn = sqrt(abs(sigma2_ft[*,*, where(n_val gt 0)])^2. + abs(sigma2_ft[*,*, reverse(where(n_val lt 0))])^2.)
+     sigma_a0 = abs(sigma2_ft[*,*,where(n_val eq 0)])
+     sigma_an_bn = sqrt(abs(sigma2_ft[*,*, where(n_val gt 0)])^2. + abs(sigma2_ft[*,*, reverse(where(n_val lt 0))])^2.)/2.
      undefine, sigma2_ft
      
      save, file = file_struct.kcube_savefile, a1_0, a1_n, b1_n, a2_0, a2_n, b2_n, sigma_a0, sigma_an_bn, $
@@ -849,10 +866,9 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
      sum_sigma2 = reform(sum_sigma2, n_kx*n_ky, n_freq)
      ;; doing 2 FTs so need 2 factors of z_mpc_delta/(2*!pi).
      ;; No multiplication by N b/c don't need to fix IDL FFT
-     ;; factor of pi not 2pi in denominator b/c of cos/sin convention vs exponential
-     covar_cos = matrix_multiply(sum_sigma2, cos_arr^2d) * (z_mpc_delta / (!pi))^2.
-     covar_sin = matrix_multiply(sum_sigma2, sin_arr^2d) * (z_mpc_delta / (!pi))^2.
-     covar_cross = matrix_multiply(sum_sigma2, cos_arr*sin_arr) * (z_mpc_delta / (!pi))^2.
+     covar_cos = matrix_multiply(sum_sigma2, cos_arr^2d) * (z_mpc_delta / (2.*!pi))^2.
+     covar_sin = matrix_multiply(sum_sigma2, sin_arr^2d) * (z_mpc_delta / (2.*!pi))^2.
+     covar_cross = matrix_multiply(sum_sigma2, cos_arr*sin_arr) * (z_mpc_delta / (2.*!pi))^2.
 
      wh_0f = where(n_freq_contrib eq 0, count_0f)
      if count_0f gt 0 then begin
