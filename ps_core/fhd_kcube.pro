@@ -1,6 +1,6 @@
 pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weight = dft_refresh_weight, $
                dft_fchunk = dft_fchunk, freq_ch_range = freq_ch_range, spec_window_type = spec_window_type, $
-               std_power = std_power, input_units = input_units, quiet = quiet
+               noise_sim = noise_sim, std_power = std_power, input_units = input_units, quiet = quiet
 
   if n_elements(file_struct.nside) ne 0 then healpix = 1 else healpix = 0
   nfiles = n_elements(file_struct.datafile)
@@ -60,8 +60,10 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
 
      if healpix then n_freq = dims[1] else n_freq = dims[2]
   endif else begin
-     ;; working with a 'derived' cube (ie residual cube) that is constructed from uvf_savefiles
-     input_uvf_files = reform(file_struct.res_uvf_inputfiles, nfiles, 2)
+     ;; working with a 'derived' cube (ie residual cube or noise simulation cube) that is constructed from uvf_savefiles
+     if keyword_set(noise_sim) then input_uvf_files = reform(file_struct.res_uvf_inputfiles) $
+     else input_uvf_files = reform(file_struct.res_uvf_inputfiles, nfiles, 2)
+     
      for i=0, n_elements(input_uvf_files)-1 do begin
         datafile_obj = obj_new('IDL_Savefile', input_uvf_files[i])
         datafile_names = datafile_obj->names()
@@ -204,22 +206,38 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
         
         if test_uvf eq 0 or test_wt_uvf eq 0 or keyword_set(dft_refresh_data) or keyword_set(dft_refresh_weight) then begin
            if datavar eq '' then begin
-              ;; working with a 'derived' cube (ie residual cube) that is constructed from uvf_savefiles
+              ;; working with a 'derived' cube (ie residual cube or noise simulation cube) that is constructed from uvf_savefiles
               restore, input_uvf_files[i,0]
               kx_dirty = temporary(kx_rad_vals)
               ky_dirty = temporary(ky_rad_vals)
               dirty_cube = temporary(data_cube)
 
-              restore, input_uvf_files[i,1]
-              model_cube = temporary(data_cube)
-              
-              if total(abs(kx_rad_vals - kx_dirty)) ne 0 then message, 'kx_rad_vals for dirty and model cubes must match'
-              if total(abs(ky_rad_vals - ky_dirty)) ne 0 then message, 'kx_rad_vals for dirty and model cubes must match'
-              undefine, kx_dirty, ky_dirty
+              if keyword_set(noise_sim) then begin
+                 undefine, dirty_cube
+                 restore, file_struct.uvf_weight_savefile[i]
 
-              data_cube = temporary(dirty_cube) - temporary(model_cube)
-              save, file = file_struct.uvf_savefile[i], kx_rad_vals, ky_rad_vals, data_cube
-              undefine, data_cube
+                 if total(abs(kx_rad_vals - kx_dirty)) ne 0 then message, 'kx_rad_vals for dirty and weights cubes must match'
+                 if total(abs(ky_rad_vals - ky_dirty)) ne 0 then message, 'kx_rad_vals for dirty and weights cubes must match'
+                 undefine, kx_dirty, ky_dirty, weights_cube
+
+                 seed = systime(1)
+                 noise = randomn(seed, dims) * sqrt(variance_cube) + $
+                             complex(0,1)*randomn(seed, dims) * sqrt(variance_cube)
+                 data_cube = temporary(noise)
+                 save, file = file_struct.uvf_savefile[i], kx_rad_vals, ky_rad_vals, data_cube
+                 undefine, data_cube, seed, variance_cube
+              endif else begin
+                 restore, input_uvf_files[i,1]
+                 model_cube = temporary(data_cube)
+                 
+                 if total(abs(kx_rad_vals - kx_dirty)) ne 0 then message, 'kx_rad_vals for dirty and model cubes must match'
+                 if total(abs(ky_rad_vals - ky_dirty)) ne 0 then message, 'kx_rad_vals for dirty and model cubes must match'
+                 undefine, kx_dirty, ky_dirty
+
+                 data_cube = temporary(dirty_cube) - temporary(model_cube)
+                 save, file = file_struct.uvf_savefile[i], kx_rad_vals, ky_rad_vals, data_cube
+                 undefine, data_cube
+              endelse
            endif else begin        
 
               ;; get pixel vectors
@@ -616,6 +634,15 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
      undefine, weights_cube2, wh_wt2_0, count_wt2_0
   endif
 
+  temp = sigma2_cube1*0
+  for i=0, n_freq-1 do temp[*,*,i] = sigma2_cube1[*,*,0]
+  sigma2_cube1 = temporary(temp)
+  if keyword_set(noise_sim) then begin
+     noise = randomn(seed, dims) * sqrt(sigma2_cube1) + $
+             complex(0,1)*randomn(seed, dims) * sqrt(sigma2_cube1)
+     data_cube1 = temporary(noise)
+  endif
+
   ;; save some slices of the data cube
   for i=0, nfiles-1 do begin
      if i eq 0 then data_cube = data_cube1 else data_cube = data_cube2
@@ -680,13 +707,16 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
   ;; save some slices of the sum & diff cubes
   uf_slice = uvf_slice(data_sum, kx_mpc, ky_mpc, frequencies, kperp_lambda_conv, delay_params, hubble_param, slice_axis = 1, $
                        slice_inds = 0, slice_savefile = file_struct.uf_sum_savefile)
-  uf_slice = uvf_slice(data_diff, kx_mpc, ky_mpc, frequencies, kperp_lambda_conv, delay_params, hubble_param, slice_axis = 1, $
-                       slice_inds = 0, slice_savefile = file_struct.uf_diff_savefile)
+  if nfiles eq 2 then $
+     uf_slice = uvf_slice(data_diff, kx_mpc, ky_mpc, frequencies, kperp_lambda_conv, delay_params, hubble_param, slice_axis = 1, $
+                          slice_inds = 0, slice_savefile = file_struct.uf_diff_savefile)
     
   vf_slice = uvf_slice(data_sum, kx_mpc, ky_mpc, frequencies, kperp_lambda_conv, delay_params, hubble_param, slice_axis = 0, $
                        slice_inds = n_kx/2, slice_savefile = file_struct.vf_sum_savefile)
-  vf_slice2 = uvf_slice(data_diff, kx_mpc, ky_mpc, frequencies, kperp_lambda_conv, delay_params, hubble_param, slice_axis = 0, $
-                       slice_inds = n_kx/2, slice_savefile = file_struct.vf_diff_savefile)
+  if nfiles eq 2 then $
+     vf_slice2 = uvf_slice(data_diff, kx_mpc, ky_mpc, frequencies, kperp_lambda_conv, delay_params, hubble_param, slice_axis = 0, $
+                           slice_inds = n_kx/2, slice_savefile = file_struct.vf_diff_savefile) $
+  else vf_slice2 = vf_slice
      
   if max(abs(vf_slice)) eq 0 or max(vf_slice2) eq 0 then begin
      nloop = 0
@@ -694,15 +724,17 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
         nloop = nloop+1
         vf_slice = uvf_slice(data_sum, kx_mpc, ky_mpc, frequencies, kperp_lambda_conv, delay_params, hubble_param, $
                              slice_axis = 0, slice_inds = n_kx/2+nloop, slice_savefile = file_struct.vf_sum_savefile)
-        vf_slice2 = uvf_slice(data_diff, kx_mpc, ky_mpc, frequencies, kperp_lambda_conv, delay_params, hubble_param, $
-                             slice_axis = 0, slice_inds = n_kx/2+nloop, slice_savefile = file_struct.vf_diff_savefile)
+         if nfiles eq 2 then $
+            vf_slice2 = uvf_slice(data_diff, kx_mpc, ky_mpc, frequencies, kperp_lambda_conv, delay_params, hubble_param, $
+                                  slice_axis = 0, slice_inds = n_kx/2+nloop, slice_savefile = file_struct.vf_diff_savefile)
      endwhile
   endif
   
   uv_slice = uvf_slice(data_sum, kx_mpc, ky_mpc, frequencies, kperp_lambda_conv, delay_params, hubble_param, slice_axis = 2, $
                        slice_inds = 0, slice_savefile = file_struct.uv_sum_savefile)
-  uv_slice = uvf_slice(data_diff, kx_mpc, ky_mpc, frequencies, kperp_lambda_conv, delay_params, hubble_param, slice_axis = 2, $
-                       slice_inds = 0, slice_savefile = file_struct.uv_diff_savefile)
+  if nfiles eq 2 then $
+     uv_slice = uvf_slice(data_diff, kx_mpc, ky_mpc, frequencies, kperp_lambda_conv, delay_params, hubble_param, slice_axis = 2, $
+                          slice_inds = 0, slice_savefile = file_struct.uv_diff_savefile)
 
 
   ;; apply spectral windowing function if desired
@@ -817,9 +849,10 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
      sum_sigma2 = reform(sum_sigma2, n_kx*n_ky, n_freq)
      ;; doing 2 FTs so need 2 factors of z_mpc_delta/(2*!pi).
      ;; No multiplication by N b/c don't need to fix IDL FFT
-     covar_cos = matrix_multiply(sum_sigma2, cos_arr^2d) * (z_mpc_delta / (2.*!pi))^2.
-     covar_sin = matrix_multiply(sum_sigma2, sin_arr^2d) * (z_mpc_delta / (2.*!pi))^2.
-     covar_cross = matrix_multiply(sum_sigma2, cos_arr*sin_arr) * (z_mpc_delta / (2.*!pi))^2.
+     ;; factor of pi not 2pi in denominator b/c of cos/sin convention vs exponential
+     covar_cos = matrix_multiply(sum_sigma2, cos_arr^2d) * (z_mpc_delta / (!pi))^2.
+     covar_sin = matrix_multiply(sum_sigma2, sin_arr^2d) * (z_mpc_delta / (!pi))^2.
+     covar_cross = matrix_multiply(sum_sigma2, cos_arr*sin_arr) * (z_mpc_delta / (!pi))^2.
 
      wh_0f = where(n_freq_contrib eq 0, count_0f)
      if count_0f gt 0 then begin
@@ -854,6 +887,7 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
      
      ;; get rotation angle to diagonalize covariance block
      theta = atan(2.*covar_cross, covar_cos - covar_sin)/2.
+
      cos_theta = cos(theta)
      sin_theta = sin(theta)
      undefine, theta

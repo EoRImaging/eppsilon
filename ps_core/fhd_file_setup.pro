@@ -3,7 +3,7 @@ function fhd_file_setup, datafile, pol_inc, weightfile = weightfile, variancefil
                          pixelvar = pixelvar, save_path = save_path, $
                          weight_savefilebase = weight_savefilebase_in, variance_savefilebase = variance_savefilebase_in, $
                          uvf_savefilebase = uvf_savefilebase_in, savefilebase = savefilebase_in, $
-                         freq_ch_range = freq_ch_range, spec_window_type = spec_window_type
+                         freq_ch_range = freq_ch_range, spec_window_type = spec_window_type, noise_sim = noise_sim
 
   nfiles = n_elements(datafile)
   if nfiles gt 2 then message, 'only 1 or 2 datafiles is supported'
@@ -13,6 +13,7 @@ function fhd_file_setup, datafile, pol_inc, weightfile = weightfile, variancefil
   if nfiles eq 2 then if datafile[0] eq datafile[1] then begin
      print, 'datafiles are identical'
      datafile = datafile[0]
+     nfiles = 1
   endif
 
   if n_elements(pol_inc) eq 0 then pol_inc = ['xx', 'yy']
@@ -25,11 +26,23 @@ function fhd_file_setup, datafile, pol_inc, weightfile = weightfile, variancefil
      pol_num[i] = wh[0]
   endfor
   pol_inc = pol_enum[pol_num[uniq(pol_num, sort(pol_num))]]
-  
-  ncubes = npol * 3
-  type_inc = ['dirty', 'model', 'res']
-  type_pol_str = strarr(ncubes)
-  for i=0, npol-1 do type_pol_str[3*i:i*3+2] = type_inc + '_' + pol_inc[i]
+
+  if keyword_set(noise_sim) then begin
+     datafile = datafile[0]
+     nfiles = 1
+
+     type_inc = ['noisesim']
+     ntypes = n_elements(type_inc)
+     ncubes = npol * ntypes
+     type_pol_str = strarr(ncubes)
+     for i=0, npol-1 do type_pol_str[ntypes*i:i*ntypes+(ntypes-1)] = type_inc + '_' + pol_inc[i]
+  endif else begin
+     type_inc = ['dirty', 'model', 'res']
+     ntypes = n_elements(type_inc)
+     ncubes = npol * ntypes
+     type_pol_str = strarr(ncubes)
+     for i=0, npol-1 do type_pol_str[ntypes*i:i*ntypes+(ntypes-1)] = type_inc + '_' + pol_inc[i]
+  endelse
 
   if n_elements(dirtyvar) eq 0 then dirty_varname = strupcase('dirty_' + pol_inc + '_cube') else dirty_varname = dirtyvar 
   if n_elements(dirty_varname) ne npol then $
@@ -52,7 +65,7 @@ function fhd_file_setup, datafile, pol_inc, weightfile = weightfile, variancefil
  
   wt_file_label = '_weights_' + strlowcase(pol_inc)
   file_label = '_' + strlowcase(type_pol_str)
-
+  
   if n_elements(weightfile) eq 0 then weightfile = datafile $
   else if n_elements(weightfile) ne nfiles then message, 'weightfile must have the same number of elements as datafile'
   if n_elements(variancefile) eq 0 then variancefile = datafile $
@@ -354,41 +367,49 @@ stop
   endfor
   
   for i=0, ncubes-1 do begin
-     pol_index = i / 3
-     type_index = i mod 3
+     pol_index = i / ntypes
+     type_index = i mod ntypes
 
-     case type_index of
-        0: begin 
-           data_varname = dirty_varname[pol_index]
-           res_uvf_inputfiles = strarr(nfiles,2)
-        end
-        1: begin 
-           data_varname = model_varname[pol_index]
-           res_uvf_inputfiles = strarr(nfiles,2)
-        end
-        2: begin
-           data_varname = ''
-           res_uvf_inputfiles = uvf_savefile[*, 3*pol_index:3*pol_index+1]
-        end
-     endcase
-
+     if keyword_set(noise_sim) then begin
+        data_varname = ''
+        res_uvf_inputfiles = strmid(uvf_savefile[i], 0, strpos(uvf_savefile[i], 'noisesim')) + 'dirty' + $
+                             strmid(uvf_savefile[i], strpos(uvf_savefile[i], 'noisesim')+strlen('noisesim'))
+     endif else begin
+        case type_index of
+           0: begin 
+              data_varname = dirty_varname[pol_index]
+              res_uvf_inputfiles = strarr(nfiles,2)
+           end
+           1: begin 
+              data_varname = model_varname[pol_index]
+              res_uvf_inputfiles = strarr(nfiles,2)
+           end
+           2: begin
+              data_varname = ''
+              res_uvf_inputfiles = uvf_savefile[*, ntypes*pol_index:ntypes*pol_index+1]
+           end
+        endcase
+     endelse
 
      if healpix then begin
+        uvf_inds = indgen(nfiles) + i*nfiles
+        wt_inds = indgen(nfiles) + pol_index*nfiles
+
         file_struct = {datafile: datafile, weightfile: weightfile, variancefile:variancefile, pixelfile:pixelfile, $
                        datavar:data_varname, variancevar:variance_varname[pol_index], weightvar:weight_varname[pol_index], $
                        pixelvar:pixel_varname, frequencies:frequencies, freq_resolution:freq_resolution, $
                        time_resolution:time_resolution, n_vis:n_vis, max_baseline_lambda:max_baseline_lambda, max_theta:max_theta, $
                        degpix:degpix, kpix:kpix, nside:nside, $
-                       uvf_savefile:uvf_savefile[*,i], uvf_weight_savefile:uvf_weight_savefile[*,pol_index], $
-                       uf_savefile:uf_savefile[*,i], vf_savefile:vf_savefile[*,i], uv_savefile:uv_savefile[*,i], $
-                       uf_raw_savefile:uf_raw_savefile[*,i], vf_raw_savefile:vf_raw_savefile[*,i], $
-                       uv_raw_savefile:uv_raw_savefile[*,i], $
+                       uvf_savefile:uvf_savefile[uvf_inds], uvf_weight_savefile:uvf_weight_savefile[wt_inds], $
+                       uf_savefile:uf_savefile[uvf_inds], vf_savefile:vf_savefile[uvf_inds], uv_savefile:uv_savefile[uvf_inds], $
+                       uf_raw_savefile:uf_raw_savefile[uvf_inds], vf_raw_savefile:vf_raw_savefile[uvf_inds], $
+                       uv_raw_savefile:uv_raw_savefile[uvf_inds], $
                        uf_sum_savefile:uf_sum_savefile[i], vf_sum_savefile:vf_sum_savefile[i], $
                        uv_sum_savefile:uv_sum_savefile[i], uf_diff_savefile:uf_diff_savefile[i], $
                        vf_diff_savefile:vf_diff_savefile[i], uv_diff_savefile:uv_diff_savefile[i], $
                        kcube_savefile:kcube_savefile[i], power_savefile:power_savefile[i], fits_power_savefile:fits_power_savefile[i],$
                        savefile_froot:froot, savefilebase:savefilebase[i], general_filebase:general_filebase, $
-                       weight_savefilebase:weight_savefilebase[*,pol_index], res_uvf_inputfiles:res_uvf_inputfiles, $
+                       weight_savefilebase:weight_savefilebase[wt_inds], res_uvf_inputfiles:res_uvf_inputfiles, $
                        file_label:file_label[i], wt_file_label:wt_file_label[pol_index]}
      endif else begin
         file_struct = {datafile: datafile, weightfile: weightfile, variancefile:variancefile, $

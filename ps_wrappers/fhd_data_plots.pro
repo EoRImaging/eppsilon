@@ -1,7 +1,7 @@
 pro fhd_data_plots, datafile, save_path = save_path, savefilebase = savefilebase, plot_path = plot_path, pol_inc = pol_inc, $
                     refresh_dft = refresh_dft, dft_fchunk = dft_fchunk, refresh_ps = refresh_ps, refresh_binning = refresh_binning, $
                     freq_ch_range = freq_ch_range, no_spec_window = no_spec_window, spec_window_type = spec_window_type, $
-                    std_power = std_power, no_kzero = no_kzero, slice_nobin = slice_nobin, $
+                    noise_sim = noise_sim, std_power = std_power, no_kzero = no_kzero, slice_nobin = slice_nobin, $
                     data_range = data_range, $
                     log_kpar = log_kpar, log_kperp = log_kperp, kpar_bin = kpar_bin, kperp_bin = kperp_bin, log_k1d = log_k1d, $
                     k1d_bin = k1d_bin, kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, $
@@ -10,6 +10,11 @@ pro fhd_data_plots, datafile, save_path = save_path, savefilebase = savefilebase
 
   nfiles = n_elements(datafile)
   if nfiles gt 2 then message, 'only 1 or 2 datafiles is supported'
+
+  if keyword_set(noise_sim) then begin
+     datafile=datafile[0]
+     nfiles=1
+  endif
 
   if keyword_set(refresh_dft) then refresh_ps = 1
   if keyword_set(refresh_ps) then refresh_binning = 1
@@ -56,8 +61,8 @@ pro fhd_data_plots, datafile, save_path = save_path, savefilebase = savefilebase
   if n_elements(savefilebase) gt 1 then message, 'savefilebase must be a scalar'
 
   file_struct_arr = fhd_file_setup(datafile, pol_inc, savefilebase = savefilebase, save_path = save_path, $
-                                   freq_ch_range = freq_ch_range, spec_window_type = spec_window_type)
-  ntype = 3
+                                   freq_ch_range = freq_ch_range, spec_window_type = spec_window_type, noise_sim = noise_sim)
+  if keyword_set(noise_sim) then ntype = 1 else ntype = 3
   npol = n_elements(pol_inc)
   n_cubes = n_elements(file_struct_arr)
   if n_cubes ne ntype * npol then stop
@@ -131,13 +136,13 @@ pro fhd_data_plots, datafile, save_path = save_path, savefilebase = savefilebase
            fhd_3dps, file_struct_arr[i], kcube_refresh = refresh_ps, dft_refresh_data = refresh_dft, $
                      dft_refresh_weight = weight_refresh[i], $
                      dft_fchunk = dft_fchunk, freq_ch_range = freq_ch_range, spec_window_type = spec_window_type, $
-                     std_power = std_power, no_kzero = no_kzero, $
+                     noise_sim = noise_sim, std_power = std_power, no_kzero = no_kzero, $
                      log_kpar = log_kpar, log_kperp = log_kperp, kpar_bin = kpar_bin, kperp_bin = kperp_bin, $
                      /quiet
         endif else $
            fhd_3dps, file_struct_arr[i], kcube_refresh = refresh_ps, freq_ch_range = freq_ch_range, $
                      spec_window_type = spec_window_type, $
-                     std_power = std_power, no_kzero = no_kzero, $
+                     noise_sim = noise_sim, std_power = std_power, no_kzero = no_kzero, $
                      log_kpar = log_kpar, log_kperp = log_kperp, kpar_bin = kpar_bin, kperp_bin = kperp_bin, /quiet
      endif
   endfor

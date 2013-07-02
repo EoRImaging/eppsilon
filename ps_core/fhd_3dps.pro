@@ -1,7 +1,7 @@
 pro fhd_3dps, file_struct, refresh = refresh, kcube_refresh = kcube_refresh, dft_refresh_data = dft_refresh_data, $
               dft_refresh_weight = dft_refresh_weight, $
               dft_fchunk = dft_fchunk, freq_ch_range = freq_ch_range, spec_window_type = spec_window_type, $
-              std_power = std_power, no_kzero = no_kzero, log_kpar = log_kpar, $
+              noise_sim = noise_sim, std_power = std_power, no_kzero = no_kzero, log_kpar = log_kpar, $
               log_kperp = log_kperp, kperp_bin = kperp_bin, kpar_bin = kpar_bin, log_k1d = log_k1d, k1d_bin = k1d_bin, $
               input_units = input_units, fill_holes = fill_holes, quiet = quiet
 
@@ -20,7 +20,7 @@ pro fhd_3dps, file_struct, refresh = refresh, kcube_refresh = kcube_refresh, dft
      if test_kcube eq 0 or keyword_set(kcube_refresh) then $
         fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weight = dft_refresh_weight, $
                    dft_fchunk = dft_fchunk, freq_ch_range = freq_ch_range, spec_window_type = spec_window_type, $
-                   std_power = std_power, input_units = input_units, /quiet
+                   noise_sim = noise_sim, std_power = std_power, input_units = input_units, /quiet
 
      if nfiles eq 1 then begin
         restore, file_struct.kcube_savefile
@@ -56,12 +56,12 @@ pro fhd_3dps, file_struct, refresh = refresh, kcube_refresh = kcube_refresh, dft
            term2 = real_part(data_sum_2 * conj(data_sum_2))*power_weights2
            undefine, data_sum_2
 
-           weights_3d = power_weights1 + power_weights2 ;; variance_3d = 1/weights_3d
-           if count_sig1_0 gt 0 then weights_3d[wh_sig1_0] = weights_2[wh_sig1_0]
-           if count_sig2_0 gt 0 then weights_3d[wh_sig2_0] = weights_1[wh_sig2_0]
-           undefine, weights_1, weights_2
+           ;; we want a weighted sum not a weighted average, so do a
+           ;; weighted average * 2
+           weights_3d = 4*(power_weights1 + power_weights2) ;; variance_3d = 1/weights_3d
+           undefine, power_weights1, power_weights2
            
-           power_3d = (term1 + term2) / weights_3d
+           power_3d = 2 * (term1 + term2) / weights_3d
            wh_wt0 = where(weights_3d eq 0, count_wt0)
            if count_wt0 ne 0 then power_3d[wh_wt0] = 0
            undefine, term1, term2
@@ -129,6 +129,8 @@ pro fhd_3dps, file_struct, refresh = refresh, kcube_refresh = kcube_refresh, dft
            undefine, data_diff_1, data_diff_2
            
            weights_3d = power_weights1 + power_weights2 ;; variance_3d = 1/weights_3d
+           if count_sig1_0 gt 0 then weights_3d[wh_sig1_0] = power_weights1[wh_sig1_0]
+           if count_sig2_0 gt 0 then weights_3d[wh_sig2_0] = power_weights2[wh_sig2_0]
            undefine, power_weights1, power_weights2
 
            power_3d = (term1 + term2) / weights_3d
@@ -181,7 +183,7 @@ pro fhd_3dps, file_struct, refresh = refresh, kcube_refresh = kcube_refresh, dft
 
         endelse
      endelse
-
+stop
      save, file = file_struct.power_savefile, power_3d, noise_3d, weights_3d, $
            kx_mpc, ky_mpc, kz_mpc, kperp_lambda_conv, delay_params, hubble_param, n_freq_contrib
 
