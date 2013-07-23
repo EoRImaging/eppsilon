@@ -1,8 +1,8 @@
 pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weight = dft_refresh_weight, $
-               dft_fchunk = dft_fchunk, freq_ch_range = freq_ch_range, spec_window_type = spec_window_type, $
-               noise_sim = noise_sim, std_power = std_power, input_units = input_units, quiet = quiet
+               dft_fchunk = dft_fchunk, freq_ch_range = freq_ch_range, spec_window_type = spec_window_type, cut_image = cut_image, $
+               noise_sim = noise_sim, std_power = std_power, input_units = input_units, image = image, quiet = quiet
 
-  if n_elements(file_struct.nside) ne 0 then healpix = 1 else healpix = 0
+  if tag_exist(file_struct, 'nside') ne 0 then healpix = 1 else healpix = 0
   nfiles = n_elements(file_struct.datafile)
 
   if n_elements(input_units) eq 0 then input_units = 'jansky'
@@ -57,20 +57,26 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
         undefine, data_dims
      endfor
 
+     if n_elements(dims) eq 3 then healpix = 0
 
      if healpix then n_freq = dims[1] else n_freq = dims[2]
   endif else begin
      ;; working with a 'derived' cube (ie residual cube or noise simulation cube) that is constructed from uvf_savefiles
-     if keyword_set(noise_sim) then input_uvf_files = reform(file_struct.res_uvf_inputfiles) $
-     else input_uvf_files = reform(file_struct.res_uvf_inputfiles, nfiles, 2)
-     
+     if keyword_set(noise_sim) then begin
+        input_uvf_files = reform(file_struct.res_uvf_inputfiles)
+        input_uvf_varname = reform(file_struct.res_uvf_varname)   
+     endif else begin
+        input_uvf_files = reform(file_struct.res_uvf_inputfiles, nfiles, 2)
+        input_uvf_varname = reform(file_struct.res_uvf_varname, nfiles, 2)   
+     endelse
+
      for i=0, n_elements(input_uvf_files)-1 do begin
         datafile_obj = obj_new('IDL_Savefile', input_uvf_files[i])
         datafile_names = datafile_obj->names()
-        wh = where(strlowcase(datafile_names) eq 'data_cube', count)
+        wh = where(strlowcase(datafile_names) eq strlowcase(input_uvf_varname[i]), count)
         if count eq 0 then message, 'specified res_uvf_inputfile does not contain a data cube (res_uvf_inputfile=' + $
                                     input_uvf_files[i] + ')'
-        data_dims = datafile_obj->size('data_cube', /dimensions)
+        data_dims = datafile_obj->size(input_uvf_varname[i], /dimensions)
         obj_destroy, datafile_obj
 
         dims = data_dims
@@ -78,32 +84,65 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
         undefine, data_dims
      endfor
 
-     input_uvf_wtfiles = file_struct.uvf_weight_savefile
-     for i=0, n_elements(input_uvf_wtfiles)-1 do begin
-        weightfile_obj = obj_new('IDL_Savefile', input_uvf_wtfiles[i])
-        weightfile_names = weightfile_obj->names()
-        wh = where(strlowcase(weightfile_names) eq 'weights_cube', count)
-        if count eq 0 then message, 'specified uvf_weight_savefile does not contain a weights cube (res_uvf_inputfile=' + $
-                                    input_uvf_wtfiles[i] + ')'
-        weight_dims = weightfile_obj->size('weights_cube', /dimensions)
-        wh = where(strlowcase(weightfile_names) eq 'variance_cube', count)
-        if count eq 0 then begin
-           print, 'specified uvf_weight_savefile does not contain a variance cube (res_uvf_inputfile=' + $
-                  input_uvf_wtfiles[i] + '). Weights will be used instead' 
-           no_var = 1
-        endif else begin
-           if n_elements(no_var) eq 0 then no_var = 0
-           variance_dims = weightfile_obj->size('variance_cube', /dimensions)
-           obj_destroy, datafile_obj
-           if total(abs(dims - variance_dims)) ne 0 then message, 'data and variance dimensions do not match'
-        endelse
+     if healpix or keyword_set(image) then begin
+        input_uvf_wtfiles = file_struct.uvf_weight_savefile
+        for i=0, n_elements(input_uvf_wtfiles)-1 do begin
+           weightfile_obj = obj_new('IDL_Savefile', input_uvf_wtfiles[i])
+           weightfile_names = weightfile_obj->names()
+           wh = where(strlowcase(weightfile_names) eq 'weights_cube', count)
+           if count eq 0 then message, 'specified uvf_weight_savefile does not contain a weights cube (res_uvf_inputfile=' + $
+                                       input_uvf_wtfiles[i] + ')'
+           weight_dims = weightfile_obj->size('weights_cube', /dimensions)
+           wh = where(strlowcase(weightfile_names) eq 'variance_cube', count)
+           if count eq 0 then begin
+              print, 'specified uvf_weight_savefile does not contain a variance cube (res_uvf_inputfile=' + $
+                     input_uvf_wtfiles[i] + '). Weights will be used instead' 
+              no_var = 1
+           endif else begin
+              if n_elements(no_var) eq 0 then no_var = 0
+              variance_dims = weightfile_obj->size('variance_cube', /dimensions)
+              obj_destroy, datafile_obj
+              if total(abs(dims - variance_dims)) ne 0 then message, 'data and variance dimensions do not match'
+           endelse
     
-        if total(abs(dims - weight_dims)) ne 0 then message, 'data and weight dimensions do not match'
-     endfor
-     undefine, weights_dims, variance_dims
+           if total(abs(dims - weight_dims)) ne 0 then message, 'data and weight dimensions do not match'
+        endfor
+        undefine, weights_dims, variance_dims
+     endif else begin
+        for i=0, nfiles-1 do begin
+           weightfile_obj = obj_new('IDL_Savefile', file_struct.weightfile[i])
+           weightfile_names = weightfile_obj->names()
+           weightvar = strupcase(file_struct.weightvar)
+           wh = where(weightfile_names eq weightvar, count)
+           if count eq 0 then message, 'specified weightvar is not present in weightfile (weightfile=' + file_struct.weightfile[i] + $
+                                       ', weightvar=' + file_struct.weightvar + ')'
+           weight_dims = weightfile_obj->size(weightvar, /dimensions)
+           obj_destroy, weightfile_obj
+           
+           if total(abs(dims - weight_dims)) ne 0 then message, 'data and weight dimensions do not match'
+           
+           variancefile_obj = obj_new('IDL_Savefile', file_struct.variancefile[i])
+           variancefile_names = variancefile_obj->names()
+           variancevar = strupcase(file_struct.variancevar)
+           wh = where(variancefile_names eq variancevar, count)
+           if count eq 0 then begin
+              print, 'specified variancevar is not present in variancefile (variancefile=' + file_struct.variancefile[i] $
+                     +  ', variancevar=' + file_struct.variancevar + '). Weights will be used instead' 
+              no_var = 1
+           endif else begin
+              if n_elements(no_var) eq 0 then no_var = 0
+              
+              variance_dims = variancefile_obj->size(variancevar, /dimensions)
+              if total(abs(dims - variance_dims)) ne 0 then message, 'data and variance dimensions do not match'
+           endelse
+           obj_destroy, variancefile_obj
+        endfor
+        undefine, weights_dims, variance_dims
 
+     endelse
 
      n_freq = dims[2]
+
   endelse     
 
   frequencies = file_struct.frequencies
@@ -175,8 +214,8 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
      ;; conv_factor = (10^(double(-26+16+3-12+23)) * 9d) / (beam_area_str * 2d * frequencies^2d * 1.38)
      ;; if max(conv_factor-conv_factor[0]) gt 1e-8 then stop else conv_factor = conv_factor[0]
      ;; conv_factor = float(2. * max_baseline^2. / (!pi * 1.38065))
-
-     ;; converting from Jy (in u,v,f) to mK*str
+     
+     ;; converting from Jy (in u,v,f) to mK*str (10^-26 * c^2 * 10^-3/ (2*f^2*kb))
      conv_factor = float((3e8)^2 / (2. * (frequencies*1e6)^2. * 1.38065))
 
      ;; mK str -> mK Mpc^2
@@ -194,20 +233,22 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
   vis_sigma = float(vis_sigma)
 
 
-  if healpix then begin
+  if healpix or keyword_set(image) then begin
      
-     pixel_nums1 = getvar_savefile(file_struct.pixelfile[0], file_struct.pixelvar[0])
-     
-     pixel_dims = size(pixel_nums1, /dimension)
-     if datavar ne '' and total(abs(dims - pixel_dims)) ne 0 then message, 'pixel and data dimensions do not match'
-
-     if nfiles eq 2 then begin
-        ;; check that they have the same set of healpix pixels
-        pixel_nums2 = getvar_savefile(file_struct.pixelfile[1], file_struct.pixelvar[1])
-        if n_elements(pixel_nums1) ne n_elements(pixel_nums2) then message, 'Different number of Healpix pixels in cubes'
+     if healpix then begin
+        pixel_nums1 = getvar_savefile(file_struct.pixelfile[0], file_struct.pixelvar[0])
         
-        if total(abs(pixel_nums1-pixel_nums2)) ne 0 then message, 'Pixel numbers are not consistent between cubes'
-  
+        pixel_dims = size(pixel_nums1, /dimension)
+        if datavar ne '' and total(abs(dims - pixel_dims)) ne 0 then message, 'pixel and data dimensions do not match'
+
+        if nfiles eq 2 then begin
+           ;; check that they have the same set of healpix pixels
+           pixel_nums2 = getvar_savefile(file_struct.pixelfile[1], file_struct.pixelvar[1])
+           if n_elements(pixel_nums1) ne n_elements(pixel_nums2) then message, 'Different number of Healpix pixels in cubes'
+           
+           if total(abs(pixel_nums1-pixel_nums2)) ne 0 then message, 'Pixel numbers are not consistent between cubes'
+           
+        endif
      endif
 
      for i=0, nfiles-1 do begin     
@@ -218,18 +259,11 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
         if test_uvf eq 0 or test_wt_uvf eq 0 or keyword_set(dft_refresh_data) or keyword_set(dft_refresh_weight) then begin
            if datavar eq '' then begin
               ;; working with a 'derived' cube (ie residual cube or noise simulation cube) that is constructed from uvf_savefiles
-              restore, input_uvf_files[i,0]
-              kx_dirty = temporary(kx_rad_vals)
-              ky_dirty = temporary(ky_rad_vals)
-              dirty_cube = temporary(data_cube)
-
+               
               if keyword_set(noise_sim) then begin
-                 undefine, dirty_cube
-                 restore, file_struct.uvf_weight_savefile[i]
-
-                 if total(abs(kx_rad_vals - kx_dirty)) ne 0 then message, 'kx_rad_vals for dirty and weights cubes must match'
-                 if total(abs(ky_rad_vals - ky_dirty)) ne 0 then message, 'kx_rad_vals for dirty and weights cubes must match'
-                 undefine, kx_dirty, ky_dirty, weights_cube
+                 variance_cube = getvar_savefile(file_struct.uvf_weight_savefile[i], 'variance_cube')
+                 kx_rad_vals = getvar_savefile(file_struct.uvf_weight_savefile[i], 'kx_rad_vals')
+                 ky_rad_vals = getvar_savefile(file_struct.uvf_weight_savefile[i], 'ky_rad_vals')
 
                  seed = systime(1)
                  noise = randomn(seed, dims) * sqrt(variance_cube) + $
@@ -238,38 +272,58 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
                  save, file = file_struct.uvf_savefile[i], kx_rad_vals, ky_rad_vals, data_cube
                  undefine, data_cube, seed, variance_cube
               endif else begin
-                 restore, input_uvf_files[i,1]
-                 model_cube = temporary(data_cube)
+                 dirty_cube = getvar_savefile(input_uvf_files[i,0], input_uvf_varname[i,0])
+                 kx_dirty = getvar_savefile(input_uvf_files[i,0], 'kx_rad_vals')
+                 ky_dirty = getvar_savefile(input_uvf_files[i,0], 'ky_rad_vals')
+
+                 model_cube = getvar_savefile(input_uvf_files[i,1], input_uvf_varname[i,1])
+                 kx_rad_vals = getvar_savefile(input_uvf_files[i,1], 'kx_rad_vals')
+                 ky_rad_vals = getvar_savefile(input_uvf_files[i,1], 'ky_rad_vals')
                  
                  if total(abs(kx_rad_vals - kx_dirty)) ne 0 then message, 'kx_rad_vals for dirty and model cubes must match'
                  if total(abs(ky_rad_vals - ky_dirty)) ne 0 then message, 'kx_rad_vals for dirty and model cubes must match'
                  undefine, kx_dirty, ky_dirty
-
-                 data_cube = temporary(dirty_cube) - temporary(model_cube)
-                 save, file = file_struct.uvf_savefile[i], kx_rad_vals, ky_rad_vals, data_cube
-                 undefine, data_cube
               endelse
+
+              data_cube = temporary(dirty_cube) - temporary(model_cube)
+              save, file = file_struct.uvf_savefile[i], kx_rad_vals, ky_rad_vals, data_cube
+              undefine, data_cube
            endif else begin        
 
-              ;; get pixel vectors
-              pix2vec_ring, file_struct.nside, pixel_nums1, pix_center_vec
-              ;; find mid point (work in x/y because of possible jumps in phi)
-              vec_mid = [mean(pix_center_vec[*,0]), mean(pix_center_vec[*,1]), mean(pix_center_vec[*,2])]
-              theta0 = acos(vec_mid[2])
-              phi0 = atan(vec_mid[1], vec_mid[0])
+              if healpix then begin
+                 ;; get pixel vectors
+                 pix2vec_ring, file_struct.nside, pixel_nums1, pix_center_vec
+                 ;; find mid point (work in x/y because of possible jumps in phi)
+                 vec_mid = [mean(pix_center_vec[*,0]), mean(pix_center_vec[*,1]), mean(pix_center_vec[*,2])]
+                 theta0 = acos(vec_mid[2])
+                 phi0 = atan(vec_mid[1], vec_mid[0])
 
-              ;; To go to flat sky, rotate patch to zenith and flatten.
-              ;; To get to current location, need to first rotate around z by
-              ;; phi, then around y by -theta, then around z by -phi
-              ;; use inverse to rotate back to zenith
-              rot_matrix = get_rot_matrix(theta0, phi0, /inverse)
-              new_pix_vec = rot_matrix ## pix_center_vec
+                 ;; To go to flat sky, rotate patch to zenith and flatten.
+                 ;; To get to current location, need to first rotate around z by
+                 ;; phi, then around y by -theta, then around z by -phi
+                 ;; use inverse to rotate back to zenith
+                 rot_matrix = get_rot_matrix(theta0, phi0, /inverse)
+                 new_pix_vec = rot_matrix ## pix_center_vec
+                 
+              endif else begin
+                 ;; gridded image to dft to parallel Healpix computation
+                 pix_size_rad = abs(file_struct.degpix) * !pi / 180d
+                 x_vec = (findgen(dims[0]) - dims[0]/2.) * pix_size_rad
+                 y_vec = (findgen(dims[1]) - dims[1]/2.) * pix_size_rad
 
-              ;; limit field of view to 30 degrees across
-              dist_rad = sqrt(new_pix_vec[*,0]^2. + new_pix_vec[*,1]^2)
-              wh_close = where(dist_rad le 15*!dpi/180., count_close, ncomplement = count_far)
-              if count_far ne 0 then new_pix_vec = new_pix_vec[wh_close, *]
-              
+                 new_pix_vec = fltarr(dims[0]*dims[1], 3)
+                 new_pix_vec[*,0] = reform(rebin(x_vec, dims[0], dims[1], /sample), dims[0]*dims[1])
+                 new_pix_vec[*,1] = reform(rebin(reform(y_vec, 1, dims[1]), dims[0], dims[1], /sample), dims[0]*dims[1])
+                 new_pix_vec[*,2] = 1.
+              endelse
+
+              if keyword_set(cut_image) then begin
+                 ;; limit field of view to 30 degrees across
+                 dist_rad = sqrt(new_pix_vec[*,0]^2. + new_pix_vec[*,1]^2)
+                 wh_close = where(dist_rad le 15*!dpi/180., count_close, ncomplement = count_far)
+                 if count_far ne 0 then new_pix_vec = new_pix_vec[wh_close, *]
+              endif else count_far = 0
+
               ;; figure out k values to calculate dft
               uv_cellsize_m = 5 ;; based on calculations of beam FWHM by Aaron
               delta_kperp_rad = uv_cellsize_m * mean(frequencies*1e6) * z_mpc_mean / (3e8 * kperp_lambda_conv)
@@ -286,8 +340,12 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
               ;; do DFT.
               if test_uvf eq 0 or keyword_set(dft_refresh_data) then begin
                  arr = getvar_savefile(file_struct.datafile[i], file_struct.datavar)
-                 if count_far ne 0 then arr = arr[wh_close, *]
+                 
+                 if size(arr,/type) eq 6 or size(arr,/type) eq 9 then $
+                    if max(abs(imaginary(arr))) eq 0 then arr = real_part(arr) else stop
+                 if not healpix then arr = reform(arr, dims[0]*dims[1], n_freq)
 
+                 if count_far ne 0 then arr = arr[wh_close, *]
                  if n_elements(freq_ch_range) ne 0 then arr = arr[*, min(freq_ch_range):max(freq_ch_range)]
                  
                  transform = discrete_ft_2D_fast(new_pix_vec[*,0], new_pix_vec[*,1], arr, kx_rad_vals, ky_rad_vals, $
@@ -301,6 +359,11 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
               
               if test_wt_uvf eq 0 or keyword_set(dft_refresh_weight) then begin
                  arr = getvar_savefile(file_struct.weightfile[i], file_struct.weightvar)
+
+                 if size(arr,/type) eq 6 or size(arr,/type) eq 9 then $
+                    if max(abs(imaginary(arr))) eq 0 then arr = real_part(arr) else stop
+                 if not healpix then arr = reform(arr, dims[0]*dims[1], n_freq)
+
                  if count_far ne 0 then arr = arr[wh_close, *]
                  if n_elements(freq_ch_range) ne 0 then arr = arr[*, min(freq_ch_range):max(freq_ch_range)]
                  
@@ -310,6 +373,11 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
                  
                  if not no_var then begin
                     arr = getvar_savefile(file_struct.variancefile[i], file_struct.variancevar)
+
+                    if size(arr,/type) eq 6 or size(arr,/type) eq 9 then $
+                       if max(abs(imaginary(arr))) eq 0 then arr = real_part(arr) else stop
+                    if not healpix then arr = reform(arr, dims[0]*dims[1], n_freq)
+
                     if count_far ne 0 then arr = arr[wh_close, *]
                     if n_elements(freq_ch_range) ne 0 then arr = arr[*, min(freq_ch_range):max(freq_ch_range)]
                     
@@ -330,7 +398,7 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
      endfor
   endif
 
-  if healpix then begin
+  if healpix or keyword_set(image) then begin
      n_kx = n_elements(kx_rad_vals)
      kx_rad_delta = kx_rad_vals[1] - kx_rad_vals[0]
      kx_mpc = temporary(kx_rad_vals) / z_mpc_mean
@@ -341,40 +409,39 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
      ky_mpc = temporary(ky_rad_vals) / z_mpc_mean
      ky_mpc_delta = ky_mpc[1] - ky_mpc[0]     
    
-     ;; Angular resolution is given in Healpix paper in units of arcminutes, need to convert to radians
-     ang_resolution = sqrt(3./!pi) * 3600./file_struct.nside * (1./60.) * (!pi/180.)
-     pix_area_rad = ang_resolution^2. ;; by definition of ang. resolution in Healpix paper
+     if healpix then begin
+        ;; Angular resolution is given in Healpix paper in units of arcminutes, need to convert to radians
+        ang_resolution = sqrt(3./!pi) * 3600./file_struct.nside * (1./60.) * (!pi/180.)
+        pix_area_rad = ang_resolution^2. ;; by definition of ang. resolution in Healpix paper
+     endif else pix_area_rad = (abs(file_struct.degpix) * !pi / 180d)^2.
      
      pix_area_mpc = pix_area_rad * z_mpc_mean^2.
-     
+
   endif else begin
      
      x_rad_delta = abs(file_struct.degpix) * !pi / 180d
      n_kx = dims[0]
      x_rad_length = dims[0] * x_rad_delta
-     x_mpc_delta = x_rad_delta * z_mpc_mean
-     x_mpc_length = x_rad_length * z_mpc_mean
-     kx_mpc_range = (2.*!pi) / x_mpc_delta
-     kx_mpc_delta = (2.*!pi) / x_mpc_length
+     if abs(file_struct.kpix-1/x_rad_length)/file_struct.kpix gt 1e-4 then stop
+  
+     kx_mpc_delta = (2.*!dpi)*file_struct.kpix / z_mpc_mean
      kx_mpc = (dindgen(n_kx)-n_kx/2) * kx_mpc_delta
      
      y_rad_delta = abs(file_struct.degpix) * !pi / 180.
      n_ky = dims[1]
      y_rad_length = dims[1] * y_rad_delta
-     y_mpc_delta = y_rad_delta * z_mpc_mean
-     y_mpc_length = y_rad_length * z_mpc_mean
-     ky_mpc_range = (2.*!pi) / y_mpc_delta
-     ky_mpc_delta = (2.*!pi) / y_mpc_length
-     ky_mpc = (dindgen(n_ky)-n_ky/2) * ky_mpc_delta
-     
-     pix_area_mpc = x_mpc_delta * y_mpc_delta
+
+     ky_mpc_delta = (2.*!dpi)*file_struct.kpix / z_mpc_mean
+     ky_mpc = (dindgen(n_ky)-n_ky/2) * kx_mpc_delta
+    
+     pix_area_rad = x_rad_delta * y_rad_delta
 
   endelse
 
   if nfiles eq 2 then begin
      if no_var then begin
         ;; use 1/abs(weights) instead
-        if healpix then begin
+        if healpix or keyword_set(image) then begin
            weights_cube1 = getvar_savefile(file_struct.uvf_weight_savefile[0], 'weights_cube')
            weights_cube2 = getvar_savefile(file_struct.uvf_weight_savefile[1], 'weights_cube')
 
@@ -402,7 +469,7 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
         sigma2_cube2 = 1./abs(weights_cube2)
 
      endif else begin
-        if healpix then begin
+        if healpix or keyword_set(image) then begin
            variance_cube1 = getvar_savefile(file_struct.uvf_weight_savefile[0], 'variance_cube')
            variance_cube2 = getvar_savefile(file_struct.uvf_weight_savefile[1], 'variance_cube')
            weights_cube1 = getvar_savefile(file_struct.uvf_weight_savefile[0], 'weights_cube')
@@ -422,15 +489,17 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
            endif
 
         endif else begin
-           variance_cube1 = getvar_savefile(file_struct.variancefile[0], file_struct.variancevar)
-           variance_cube2 = getvar_savefile(file_struct.variancefile[1], file_struct.variancevar)
-           weights_cube1 = getvar_savefile(file_struct.weightfile[0], file_struct.weightvar)
-           weights_cube2 = getvar_savefile(file_struct.weightfile[1], file_struct.weightvar)
-
            ;; need to cut uvf cubes in half because image is real -- we'll cut negative ky
+           variance_cube1 = getvar_savefile(file_struct.variancefile[0], file_struct.variancevar)
+           if max(abs(imaginary(variance_cube1))) gt 0 then stop else variance_cube1 = real_part(variance_cube1)
            variance_cube1 = variance_cube1[*, n_ky/2:n_ky-1,*]
+           variance_cube2 = getvar_savefile(file_struct.variancefile[1], file_struct.variancevar)
+           if max(abs(imaginary(variance_cube2))) gt 0 then stop else variance_cube2 = real_part(variance_cube2)
            variance_cube2 = variance_cube2[*, n_ky/2:n_ky-1,*]
+
+           weights_cube1 = getvar_savefile(file_struct.weightfile[0], file_struct.weightvar)
            weights_cube1 = weights_cube1[*, n_ky/2:n_ky-1,*]
+           weights_cube2 = getvar_savefile(file_struct.weightfile[1], file_struct.weightvar)
            weights_cube2 = weights_cube2[*, n_ky/2:n_ky-1,*]
        endelse
 
@@ -458,7 +527,7 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
      if total(abs(sigma2_cube1)) le 0 or total(abs(sigma2_cube2)) le 0 then message, 'one or both sigma2 cubes is all zero'
 
      ;; now get data cubes
-     if healpix then begin
+     if healpix or keyword_set(image) then begin
         data_cube1 = getvar_savefile(file_struct.uvf_savefile[0], 'data_cube')
         data_cube2 = getvar_savefile(file_struct.uvf_savefile[1], 'data_cube')
  
@@ -472,16 +541,46 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
            n_ky = n_elements(ky_mpc)
         endif
 
-    endif else begin
-        data_cube1 = getvar_savefile(file_struct.datafile[0], file_struct.datavar)
-        data_cube2 = getvar_savefile(file_struct.datafile[1], file_struct.datavar)
+     endif else begin
+       if datavar eq '' then begin
+          ;; working with a 'derived' cube (ie residual cube or noise simulation cube) that is constructed from other cubes
+          if keyword_set(noise_sim) then begin
+             ;; need to cut uvf cubes in half because image is real -- we'll cut negative ky
+             variance_cube1 = getvar_savefile(file_struct.variancefile[0], file_struct.variancevar)
+             variance_cube1 = variance_cube1[*, n_ky/2:n_ky-1,*]
+             variance_cube2 = getvar_savefile(file_struct.variancefile[1], file_struct.variancevar)
+             variance_cube2 = variance_cube2[*, n_ky/2:n_ky-1,*]
 
-        ;; need to cut uvf cubes in half because image is real -- we'll cut negative ky
-        data_cube1 = data_cube1[*, n_ky/2:n_ky-1,*]
-        data_cube2 = data_cube2[*, n_ky/2:n_ky-1,*]
-        
-        ky_mpc = ky_mpc[n_ky/2:n_ky-1]
-        n_ky = n_elements(ky_mpc)
+             seed = systime(1)
+             noise = randomn(seed, dims) * sqrt(variance_cube) + $
+                     complex(0,1)*randomn(seed, dims) * sqrt(variance_cube)
+             data_cube = temporary(noise)
+             save, file = file_struct.uvf_savefile[i], kx_rad_vals, ky_rad_vals, data_cube
+             undefine, data_cube, seed, variance_cube
+          endif else begin
+             ;; need to cut uvf cubes in half because image is real -- we'll cut negative ky
+             dirty_cube1 = getvar_savefile(input_uvf_files[0,0], input_uvf_varname[0,0])
+             dirty_cube1 = dirty_cube1[*, n_ky/2:n_ky-1,*]
+             model_cube1 = getvar_savefile(input_uvf_files[0,1], input_uvf_varname[0,1])
+             model_cube1 = model_cube1[*, n_ky/2:n_ky-1,*]
+             data_cube1 = temporary(dirty_cube1) - temporary(model_cube1)
+
+             dirty_cube2 = getvar_savefile(input_uvf_files[1,0], input_uvf_varname[1,0])
+             dirty_cube2 = dirty_cube2[*, n_ky/2:n_ky-1,*]
+             model_cube2 = getvar_savefile(input_uvf_files[1,1], input_uvf_varname[1,1])
+             model_cube2 = model_cube2[*, n_ky/2:n_ky-1,*]
+             data_cube2 = temporary(dirty_cube2) - temporary(model_cube2)
+          endelse
+       endif else begin
+          ;; need to cut uvf cubes in half because image is real -- we'll cut negative ky
+          data_cube1 = getvar_savefile(file_struct.datafile[0], file_struct.datavar)
+          data_cube1 = data_cube1[*, n_ky/2:n_ky-1,*]
+          data_cube2 = getvar_savefile(file_struct.datafile[1], file_struct.datavar)
+          data_cube2 = data_cube2[*, n_ky/2:n_ky-1,*]
+       endelse
+
+       ky_mpc = ky_mpc[n_ky/2:n_ky-1]
+       n_ky = n_elements(ky_mpc)
      endelse
    
     ;; Also need to drop 1/2 of ky=0 line -- drop ky=0, kx<0
@@ -491,7 +590,7 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
   
   endif else begin
      ;; single file mode
-     if healpix then begin
+     if healpix or keyword_set(image) then begin
         data_cube1 = getvar_savefile(file_struct.uvf_savefile, 'data_cube')
         weights_cube1 = getvar_savefile(file_struct.uvf_weight_savefile, 'weights_cube')
 
@@ -535,12 +634,11 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
         wh_wt1_0 = where(abs(weights_cube1) eq 0, count_wt1_0)
         if count_wt1_0 ne 0 then sigma2_cube1[wh_wt1_0] = 0
      endif else begin
-        data_cube1 = getvar_savefile(file_struct.datafile, file_struct.datavar)
-        weights_cube1 = getvar_savefile(file_struct.weightfile, file_struct.weightvar)
-
         ;; need to cut uvf cubes in half because image is real -- we'll cut negative ky
-        weights_cube1 = weights_cube1[*, n_ky/2:n_ky-1,*]
+        data_cube1 = getvar_savefile(file_struct.datafile, file_struct.datavar)
         data_cube1 = data_cube1[*, n_ky/2:n_ky-1,*]        
+        weights_cube1 = getvar_savefile(file_struct.weightfile, file_struct.weightvar)
+        weights_cube1 = weights_cube1[*, n_ky/2:n_ky-1,*]
 
         ;; Also need to drop 1/2 of ky=0 line -- drop ky=0, kx<0
         weights_cube1[0:n_kx/2-1, 0, *] = 0
@@ -570,16 +668,18 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
      endelse
   endelse
   
- 
-  ;; multiply data and sigma cubes by pixel_area_mpc to get proper units from DFT
-  ;; divide by (2*!pi)^2d to get right FT convention
-  ;; (not squared for sigmas because they weren't treated as units squared in FHD code)
-  data_cube1 = data_cube1 * pix_area_mpc / (2.*!pi)^2.
-  sigma2_cube1 = sigma2_cube1 * pix_area_mpc / (2.*!pi)^2.
-  if nfiles eq 2 then begin
-     data_cube2 = data_cube2 * pix_area_mpc / (2.*!pi)^2.
-     sigma2_cube2 = sigma2_cube2 * pix_area_mpc / (2.*!pi)^2.
+  if healpix or keyword_set(image) then begin
+     ;; multiply data and sigma cubes by pixel_area_mpc to get proper units from DFT
+     ;; divide by (2*!pi)^2d to get right FT convention
+     ;; (not squared for sigmas because they weren't treated as units squared in FHD code)
+     data_cube1 = data_cube1 * pix_area_mpc / (2.*!pi)^2.
+     sigma2_cube1 = sigma2_cube1 * pix_area_mpc / (2.*!pi)^2.
+     if nfiles eq 2 then begin
+        data_cube2 = data_cube2 * pix_area_mpc / (2.*!pi)^2.
+        sigma2_cube2 = sigma2_cube2 * pix_area_mpc / (2.*!pi)^2.
+     endif
   endif
+
 
   ;; get sigma into Jy
   sigma2_cube1 = sigma2_cube1 * rebin(reform(vis_sigma, 1, 1, n_freq), n_kx, n_ky, n_freq)^2.

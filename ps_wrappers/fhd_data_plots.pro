@@ -1,8 +1,9 @@
-pro fhd_data_plots, datafile, rts = rts,save_path = save_path, savefilebase = savefilebase, plot_path = plot_path, pol_inc = pol_inc, $
+pro fhd_data_plots, datafile, rts = rts, pol_inc = pol_inc, image = image, $
+                    save_path = save_path, savefilebase = savefilebase, plot_path = plot_path, $
                     refresh_dft = refresh_dft, dft_fchunk = dft_fchunk, refresh_ps = refresh_ps, refresh_binning = refresh_binning, $
                     freq_ch_range = freq_ch_range, no_spec_window = no_spec_window, spec_window_type = spec_window_type, $
-                    noise_sim = noise_sim, std_power = std_power, no_kzero = no_kzero, slice_nobin = slice_nobin, $
-                    data_range = data_range, $
+                    cut_image = cut_image, noise_sim = noise_sim, std_power = std_power, no_kzero = no_kzero, $
+                    slice_nobin = slice_nobin, data_range = data_range, $
                     log_kpar = log_kpar, log_kperp = log_kperp, kpar_bin = kpar_bin, kperp_bin = kperp_bin, log_k1d = log_k1d, $
                     k1d_bin = k1d_bin, kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, $
                     baseline_axis = baseline_axis, delay_axis = delay_axis, hinv = hinv, plot_wedge_line = plot_wedge_line, $
@@ -35,7 +36,11 @@ pro fhd_data_plots, datafile, rts = rts,save_path = save_path, savefilebase = sa
   if not keyword_set(no_spec_window) then begin
      if n_elements(spec_window_type) eq 0 then spec_window_type = 'Blackman-Harris' 
   endif else undefine, spec_window_type
-  
+ 
+  ;; default to cutting in image space (down to 30 degree diameter circle)
+  if n_elements(cut_image) eq 0 then cut_image = 1
+
+ 
   fadd = ''
   if keyword_set(std_power) then fadd = fadd + '_sp'
   
@@ -64,7 +69,7 @@ pro fhd_data_plots, datafile, rts = rts,save_path = save_path, savefilebase = sa
 
   if keyword_set(rts) then file_struct_arr = rts_file_setup(datafile, pol_inc, savefilebase = savefilebase, save_path = save_path, $
                                                             spec_window_type = spec_window_type) $
-  else file_struct_arr = fhd_file_setup(datafile, pol_inc, savefilebase = savefilebase, save_path = save_path, $
+  else file_struct_arr = fhd_file_setup(datafile, pol_inc, image = image, savefilebase = savefilebase, save_path = save_path, $
                                         freq_ch_range = freq_ch_range, spec_window_type = spec_window_type, noise_sim = noise_sim)
  
   npol = n_elements(pol_inc)
@@ -96,7 +101,7 @@ pro fhd_data_plots, datafile, rts = rts,save_path = save_path, savefilebase = sa
      test_save_1d = test_save_1d*0
   endif
 
-  if n_elements(file_struct_arr[0].nside) ne 0 then healpix = 1 else healpix = 0
+  if tag_exist(file_struct_arr[0], 'nside') ne 0 then healpix = 1 else healpix = 0
 
   n_freq = n_elements(file_struct_arr[0].frequencies)
   if n_elements(freq_ch_range) ne 0 then if max(freq_ch_range) gt n_freq-1 then message, 'invalid freq_ch_range'
@@ -131,7 +136,7 @@ pro fhd_data_plots, datafile, rts = rts,save_path = save_path, savefilebase = sa
 
      if test eq 0 then begin
 
-        if healpix then begin
+        if healpix or keyword_set(image) then begin
            weight_refresh = intarr(n_cubes)
            if keyword_set(refresh_dft) then begin
               temp = weight_ind[uniq(weight_ind, sort(weight_ind))]
@@ -139,7 +144,7 @@ pro fhd_data_plots, datafile, rts = rts,save_path = save_path, savefilebase = sa
            endif
 
            fhd_3dps, file_struct_arr[i], kcube_refresh = refresh_ps, dft_refresh_data = refresh_dft, $
-                     dft_refresh_weight = weight_refresh[i], $
+                     dft_refresh_weight = weight_refresh[i], cut_image = cut_imag, image = image, $
                      dft_fchunk = dft_fchunk, freq_ch_range = freq_ch_range, spec_window_type = spec_window_type, $
                      noise_sim = noise_sim, std_power = std_power, no_kzero = no_kzero, $
                      log_kpar = log_kpar, log_kperp = log_kperp, kpar_bin = kpar_bin, kperp_bin = kperp_bin, $

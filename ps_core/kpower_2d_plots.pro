@@ -99,6 +99,9 @@ pro kpower_2d_plots, power_savefile, multi_pos = multi_pos, start_multi_params =
 
      if keyword_set(snr) then begin
         power = power / noise_expval
+        wh_err0 = where(noise_expval eq 0, count_err0)
+        if count_err0 gt 0 then power[wh_err0] = 0
+
         plot_type = 'snr'
      endif
      
@@ -127,6 +130,9 @@ pro kpower_2d_plots, power_savefile, multi_pos = multi_pos, start_multi_params =
      
      if keyword_set(nnr) then begin
         power = noise / noise_expval
+        wh_err0 = where(noise_expval eq 0, count_err0)
+        if count_err0 gt 0 then power[wh_err0] = 0
+
         plot_type = 'nnr'
      endif
 
