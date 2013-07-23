@@ -1,12 +1,29 @@
-pro ps_wrapper
+pro ps_wrapper, rts = rts, refresh_dft = refresh_dft, refresh_ps = refresh_ps, refresh_binning = refresh_binning, pol_inc = pol_inc, $
+                no_spec_window = no_spec_window, spec_window_type = spec_window_type,individual_plots = individual_plots, pub = pub
 
   ;; The only required input is the datafile name (including the full path)
- 
-  ;;datafile = '/data2/MWA/PowerSpectra/FHD_healpix_test/multi_freq_residuals_cube_healpix.sav'
-  
-  datafile = '/data2/MWA/FHD/DATA/X16/EOR1/145/fhd_v14/Healpix/' + $
-             'Combined_obs_EOR1_P00_145_20110926193959-EOR1_P00_145_20110926200503_'+['even', 'odd']+'_cube.sav'
 
+  if keyword_set(rts) then begin
+     froot = '/data2/MWA/RTS/test2/'
+     
+     data_dir = froot + 'BdaggerV/'
+     datafiles = file_search(data_dir + '*.fits')
+     
+     weights_dir = froot + 'Bdagger1/'
+     weightfiles = file_search(weights_dir + '*.fits')
+     
+     variance_dir = froot + 'BdaggerB/'
+     variancefiles = file_search(variance_dir + '*.fits')
+
+     datafile =  rts_fits2imagecube(datafiles, weightfiles, variancefiles, pol_inc, save_path = froot)
+
+  endif else begin
+ 
+     ;;datafile = '/data2/MWA/PowerSpectra/FHD_healpix_test/multi_freq_residuals_cube_healpix.sav'
+  
+     datafile = '/data2/MWA/FHD/DATA/X16/EOR1/145/fhd_v14/Healpix/' + $
+                'Combined_obs_EOR1_P00_145_20110926193959-EOR1_P00_145_20110926200503_'+['even', 'odd']+'_cube.sav'
+  endelse
     
   ;; dft_fchunk applies only to Healpix datasets (it's ignored otherwise) and it specifies how many frequencies to process
   ;;   through the dft at once. This keyword allows for trade-offs between memory use and speed.
@@ -44,6 +61,12 @@ pro ps_wrapper
   ;; pol_inc = 'xx'
   ;; plot_inc = 'yy'
 
+
+  ;; cut_image keyword only applies to Healpix datasets. It allows for limiting the field of view in the
+  ;; image plane by only using Healpix pixels inside a 30 degree square centered in the middle of the field.
+  ;; Currently defaults to on. Set equal to 0 to turn it off, 1 to turn it on
+
+
   ;; There are 3 refresh flags to indicate that various stages should be re-calculated 
   ;;   (rather than using previous save files if they exist).
   ;; If an early stage is recalculated, all subsequent stages will also be recalculated
@@ -75,12 +98,13 @@ pro ps_wrapper
   ;;pub = 1
 
   fhd_data_plots, datafile, dft_fchunk=dft_fchunk, plot_path = plot_path, save_path = save_path, savefilebase = savefilebase, $
-                  pol_inc = pol_inc, $
+                  pol_inc = pol_inc, rts = rts, $
                   refresh_dft = refresh_dft, refresh_ps = refresh_ps, refresh_binning = refresh_binning, $
                   freq_ch_range = freq_ch_range, no_spec_window = no_spec_window, spec_window_type = spec_window_type, $
+                   cut_image = cut_image, $
                   log_kpar = log_kpar, log_kperp = log_kperp, kpar_bin = kpar_bin, kperp_bin = kperp_bin, log_k1d = log_k1d, $
                   k1d_bin = k1d_bin, kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, $
-                  data_range = data_range, baseline_axis = baseline_axis, delay_axis = delay_axis, $
-                  hinv = hinv, plot_wedge_line = plot_wedge_line, grey_scale = grey_scale, pub = pub
+                  data_range = data_range, baseline_axis = baseline_axis, delay_axis = delay_axis, hinv = hinv, $
+                  plot_wedge_line = plot_wedge_line, grey_scale = grey_scale, individual_plots = individual_plot, pub = pub
 
 end
