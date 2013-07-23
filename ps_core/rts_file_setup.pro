@@ -184,16 +184,18 @@ function rts_file_setup, datafile, pol_inc, save_path = save_path, $
   pixel_varname = 'pixel_nums'
 
   ;; these are totally made up for now
-  time_resolution = 1
-  n_vis = 32*31*n_freq*(5*60)
-  max_baseline_lambda = 300 * max(frequencies*1e6) / (3e8)
+  time_resolution = 16
+  n_vis = (112*111)*n_freq*(6.)
+  max_baseline_lambda = 1500 * max(frequencies*1e6) / (3e8)
+  kpix = 3.46697 * 1.41555e+08 / (3e8)
+
+  ;; pointing offset from zenith (for calculating horizon distance for wedge line)
+  max_theta = 0
 
   ang_resolution = sqrt(3./!pi) * 3600./nside * (1./60.) * (!pi/180.)
   pix_area_rad = ang_resolution^2.
   image_area = npix*pix_area_rad
-  kpix = 1/sqrt(image_area)
 
-  max_theta = 0
 
   for i=0, ncubes-1 do begin
      pol_index = i / ntypes
