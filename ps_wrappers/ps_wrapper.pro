@@ -63,7 +63,7 @@ pro ps_wrapper, rts = rts, refresh_dft = refresh_dft, refresh_ps = refresh_ps, r
 
 
   ;; cut_image keyword only applies to Healpix datasets. It allows for limiting the field of view in the
-  ;; image plane by only using Healpix pixels inside a 30 degree square centered in the middle of the field.
+  ;; image plane by only using Healpix pixels inside a 30 degree diameter circle centered in the middle of the field.
   ;; Currently defaults to on. Set equal to 0 to turn it off, 1 to turn it on
 
 
