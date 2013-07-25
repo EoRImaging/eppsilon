@@ -144,7 +144,7 @@ pro fhd_data_plots, datafile, rts = rts, pol_inc = pol_inc, image = image, $
            endif
 
            fhd_3dps, file_struct_arr[i], kcube_refresh = refresh_ps, dft_refresh_data = refresh_dft, $
-                     dft_refresh_weight = weight_refresh[i], cut_image = cut_imag, image = image, $
+                     dft_refresh_weight = weight_refresh[i], cut_image = cut_image, image = image, $
                      dft_fchunk = dft_fchunk, freq_ch_range = freq_ch_range, spec_window_type = spec_window_type, $
                      noise_sim = noise_sim, std_power = std_power, no_kzero = no_kzero, $
                      log_kpar = log_kpar, log_kperp = log_kperp, kpar_bin = kpar_bin, kperp_bin = kperp_bin, $
