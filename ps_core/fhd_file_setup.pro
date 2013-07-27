@@ -234,7 +234,7 @@ function fhd_file_setup, datafile, pol_inc, weightfile = weightfile, variancefil
      varnames = file_obj->names()
 
      wh_nside = where(strlowcase(varnames) eq 'nside', count_nside)
-     data_dims = file_obj->size(dirty_varname[j], /dimensions)
+     data_dims = file_obj->size(dirty_varname[0], /dimensions)
      if count_nside gt 0 and n_elements(data_dims) eq 2 then this_healpix = 1 else this_healpix = 0
 
      if j gt 0 then if (this_healpix eq 1 and healpix eq 0) or (this_healpix eq 0 and healpix eq 1) then $
