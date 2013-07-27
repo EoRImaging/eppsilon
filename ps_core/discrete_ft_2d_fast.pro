@@ -49,7 +49,7 @@ function discrete_ft_2d_fast, locations1, locations2, data, k1, k2, max_k_mag = 
 
   ;; want progress reports every so often + on 3rd step
   nsteps = n_chunks
-  nprogsteps = 20
+  nprogsteps = 5
   progress_steps = [3, round(nsteps * findgen(nprogsteps) / double(nprogsteps))]
   inner_times = fltarr(nsteps)
   step1_times = fltarr(nsteps)
