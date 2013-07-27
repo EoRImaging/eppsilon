@@ -517,8 +517,8 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
         window_int = 2*[total(variance_cube1)*pix_area_rad/file_struct.n_vis[0], $
                         total(variance_cube2)*pix_area_rad/file_struct.n_vis[1]]
 
-        sigma2_cube1 = temporary(variance_cube1) / (abs(weights_cube1)^2.*pix_area_rad)
-        sigma2_cube2 = temporary(variance_cube2) / (abs(weights_cube2)^2.*pix_area_rad)
+        sigma2_cube1 = temporary(variance_cube1) / (abs(weights_cube1)^2.)
+        sigma2_cube2 = temporary(variance_cube2) / (abs(weights_cube2)^2.)
      endelse
 
      wh_wt1_0 = where(abs(weights_cube1) eq 0, count_wt1_0)
