@@ -317,13 +317,6 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
                  new_pix_vec[*,2] = 1.
               endelse
 
-              if keyword_set(cut_image) then begin
-                 ;; limit field of view to 30 degrees across
-                 dist_rad = sqrt(new_pix_vec[*,0]^2. + new_pix_vec[*,1]^2)
-                 wh_close = where(dist_rad le 15*!dpi/180., count_close, ncomplement = count_far)
-                 if count_far ne 0 then new_pix_vec = new_pix_vec[wh_close, *]
-              endif else count_far = 0
-
               ;; figure out k values to calculate dft
               uv_cellsize_m = 5 ;; based on calculations of beam FWHM by Aaron
               delta_kperp_rad = uv_cellsize_m * mean(frequencies*1e6) * z_mpc_mean / (3e8 * kperp_lambda_conv)
@@ -336,11 +329,21 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
               ;; need to cut uvf cubes in half because image is real -- we'll cut in v
               ;; drop the unused half before the DFT to save time
               ky_rad_vals = kx_rad_vals[n_kperp/2:n_kperp-1]
+
+
+              if keyword_set(cut_image) then begin
+                 ;; limit field of view to match calculated k-modes
+                 xy_len = 2*!pi/delta_kperp_rad               
+                 wh_close = where(new_pix_vec[*,0] le xy_len/2 and new_pix_vec[*,0] ge -1*xy_len/2 and $
+                                  new_pix_vec[*,1] le xy_len/2 and new_pix_vec[*,1] ge -1*xy_len/2, count_close, $
+                                  ncomplement = count_far)
+                 if count_far ne 0 then new_pix_vec = new_pix_vec[wh_close, *]
+              endif else count_far = 0
               
               ;; do DFT.
               if test_uvf eq 0 or keyword_set(dft_refresh_data) then begin
                  arr = getvar_savefile(file_struct.datafile[i], file_struct.datavar)
-                 
+                
                  if size(arr,/type) eq 6 or size(arr,/type) eq 9 then $
                     if max(abs(imaginary(arr))) eq 0 then arr = real_part(arr) else stop
                  if not healpix then arr = reform(arr, dims[0]*dims[1], n_freq)
@@ -711,6 +714,17 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
      data_cube2 = data_cube2 / sqrt(window_int[1])
      sigma2_cube2 = sigma2_cube2  / window_int[1]
   endif
+
+  ;; temp = data_cube1[*,*,10]
+  ;; temp_exp = complex(dblarr(165, 83+82))
+  ;; temp_exp[*, 82:*] = temp
+  ;; temp_exp[*, 0:81] = conj(reverse(reverse(temp[*,1:*]),2))
+  ;; temp_exp[0:81, 82] =  reverse(conj(temp[83:*,0]))
+  ;; temp_exp = temp_exp[0:163, 0:163]
+  ;; temp_img = fft_shift(fft(fft_shift(temp_exp)))
+  ;; temp_2 = fft_shift(fft(fft_shift(temp_img), /inverse))
+  ;; quick_image, abs(temp_exp), title='107',/log
+
 
   ;; save some slices of the raw data cube (before dividing by weights)
   for i=0, nfiles-1 do begin
