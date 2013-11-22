@@ -1,5 +1,5 @@
 pro fhd_3dps, file_struct, refresh = refresh, kcube_refresh = kcube_refresh, dft_refresh_data = dft_refresh_data, $
-              dft_refresh_weight = dft_refresh_weight, cut_image = cut_image, image = image, $
+              dft_refresh_weight = dft_refresh_weight, dft_ian = dft_ian, cut_image = cut_image, image = image, $
               dft_fchunk = dft_fchunk, freq_ch_range = freq_ch_range, spec_window_type = spec_window_type, $
               noise_sim = noise_sim, std_power = std_power, no_kzero = no_kzero, log_kpar = log_kpar, $
               log_kperp = log_kperp, kperp_bin = kperp_bin, kpar_bin = kpar_bin, log_k1d = log_k1d, k1d_bin = k1d_bin, $
@@ -19,7 +19,7 @@ pro fhd_3dps, file_struct, refresh = refresh, kcube_refresh = kcube_refresh, dft
      
      test_kcube = file_test(file_struct.kcube_savefile) *  (1 - file_test(file_struct.kcube_savefile, /zero_length))
      if test_kcube eq 0 or keyword_set(kcube_refresh) then $
-        fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weight = dft_refresh_weight, $
+        fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weight = dft_refresh_weight, dft_ian = dft_ian, $
                    dft_fchunk = dft_fchunk, freq_ch_range = freq_ch_range, cut_image = cut_image, image = image, $
                    spec_window_type = spec_window_type, noise_sim = noise_sim, std_power = std_power, input_units = input_units, /quiet
 

@@ -2,7 +2,7 @@ pro fhd_data_plots, datafile, rts = rts, pol_inc = pol_inc, image = image, $
                     save_path = save_path, savefilebase = savefilebase, plot_path = plot_path, $
                     refresh_dft = refresh_dft, dft_fchunk = dft_fchunk, refresh_ps = refresh_ps, refresh_binning = refresh_binning, $
                     freq_ch_range = freq_ch_range, no_spec_window = no_spec_window, spec_window_type = spec_window_type, $
-                    cut_image = cut_image, noise_sim = noise_sim, std_power = std_power, no_kzero = no_kzero, $
+                    cut_image = cut_image, dft_ian = dft_ian, noise_sim = noise_sim, std_power = std_power, no_kzero = no_kzero, $
                     slice_nobin = slice_nobin, data_range = data_range, $
                     log_kpar = log_kpar, log_kperp = log_kperp, kpar_bin = kpar_bin, kperp_bin = kperp_bin, log_k1d = log_k1d, $
                     k1d_bin = k1d_bin, kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, $
@@ -69,8 +69,9 @@ pro fhd_data_plots, datafile, rts = rts, pol_inc = pol_inc, image = image, $
 
   if keyword_set(rts) then file_struct_arr = rts_file_setup(datafile, pol_inc, savefilebase = savefilebase, save_path = save_path, $
                                                             spec_window_type = spec_window_type) $
-  else file_struct_arr = fhd_file_setup(datafile, pol_inc, image = image, savefilebase = savefilebase, save_path = save_path, $
-                                        freq_ch_range = freq_ch_range, spec_window_type = spec_window_type, noise_sim = noise_sim)
+  else file_struct_arr = fhd_file_setup(datafile, pol_inc, image = image, dft_ian = dft_ian, savefilebase = savefilebase, $
+                                        save_path = save_path, freq_ch_range = freq_ch_range, spec_window_type = spec_window_type, $
+                                        noise_sim = noise_sim)
  
   npol = n_elements(pol_inc)
   n_cubes = n_elements(file_struct_arr)
@@ -144,7 +145,7 @@ pro fhd_data_plots, datafile, rts = rts, pol_inc = pol_inc, image = image, $
            endif
 
            fhd_3dps, file_struct_arr[i], kcube_refresh = refresh_ps, dft_refresh_data = refresh_dft, $
-                     dft_refresh_weight = weight_refresh[i], cut_image = cut_image, image = image, $
+                     dft_refresh_weight = weight_refresh[i], dft_ian = dft_ian, cut_image = cut_image, image = image, $
                      dft_fchunk = dft_fchunk, freq_ch_range = freq_ch_range, spec_window_type = spec_window_type, $
                      noise_sim = noise_sim, std_power = std_power, no_kzero = no_kzero, $
                      log_kpar = log_kpar, log_kperp = log_kperp, kpar_bin = kpar_bin, kperp_bin = kperp_bin, $
