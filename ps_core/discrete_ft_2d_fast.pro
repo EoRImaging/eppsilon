@@ -4,7 +4,7 @@
 ; k1 & k2 are kx/ky values to test at
 
 
-function discrete_ft_2d_fast, locations1, locations2, data, k1, k2, max_k_mag = max_k_mag, timing = timing, fchunk = fchunk
+function discrete_ft_2d_fast, locations1, locations2, data, k1, k2, timing = timing, fchunk = fchunk, exp2pi = exp2pi
 
   print, 'Beginning discrete 2D FT'
 
@@ -56,8 +56,13 @@ function discrete_ft_2d_fast, locations1, locations2, data, k1, k2, max_k_mag = 
   step2_times = fltarr(nsteps)
   step3_times = fltarr(nsteps)
 
-  y_exp = exp(-1.*complex(0,1)*y_loc_k)
-  x_exp = exp(-1.*complex(0,1)*x_loc_k)
+  if keyword_set(exp2pi) then begin
+     y_exp = exp(-1.*2.*!pi*complex(0,1)*y_loc_k)
+     x_exp = exp(-1.*2.*!pi*complex(0,1)*x_loc_k)
+  endif else begin
+     y_exp = exp(-1.*complex(0,1)*y_loc_k)
+     x_exp = exp(-1.*complex(0,1)*x_loc_k)
+  endelse
 
   x_exp_real = real_part(x_exp)
   x_exp_imag = imaginary(x_exp)
@@ -115,27 +120,6 @@ function discrete_ft_2d_fast, locations1, locations2, data, k1, k2, max_k_mag = 
      term1 = temporary(term1_real)+complex(0,1)*temporary(term1_imag)
 
      temp2 = systime(1)
-
-        ;; get ky vals that are inside max_k_mag
-        ;; if n_elements(max_k_mag) gt 0 then begin
-        ;;    hist = histogram(sqrt(abs(k1[i]^2. + k2^2.))/max_k_mag, min=0, max=1.5, reverse_indices=ri)
-        ;;    count_inside = hist[0]
-        ;;    if count_inside gt 0 then y_inds = ri[ri[0]:ri[1]-1] else continue
-                   
-
-        ;;    ;; inds_temp = matrix_multiply(dindgen(n_pts), fltarr(count_inside)) + n_pts*matrix_multiply(fltarr(n_pts), double(y_inds))
-        ;;    ;; yexp_inds = reform(matrix_multiply(reform(temporary(inds_temp), n_pts*count_inside), $
-        ;;    ;;                                    n_pts*count_inside*(dindgen(fchunk_sizes[j]) + fchunk_edges[j])), $
-        ;;    ;;                    n_pts,count_inside, fchunk_sizes[j])
-        ;;    ;; y_exp_use = y_exp[yexp_inds]
-
-        ;;    y_exp_use = y_exp[*, y_inds, *]
-        ;;    inds = i + n_k1*matrix_multiply(double(y_inds), fltarr(fchunk_sizes[j])+1) + n_k1 * n_k2 * $
-        ;;           transpose(matrix_multiply(dindgen(fchunk_sizes[j]) + fchunk_edges[j], fltarr(count_inside)+1))
-        ;;    ft[inds] = transpose(matrix_multiply(term1, y_exp_use, /atranspose))
-
-
-        ;; endif else begin
 
      if fchunk_sizes[j] eq 1 then begin
         inds = dindgen(n_k1*n_k2) + n_k1 * n_k2 * freq_inds
