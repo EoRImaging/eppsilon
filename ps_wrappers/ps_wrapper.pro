@@ -4,15 +4,18 @@ pro ps_wrapper, rts = rts, refresh_dft = refresh_dft, refresh_ps = refresh_ps, r
   ;; The only required input is the datafile name (including the full path)
 
   if keyword_set(rts) then begin
-     froot = '/data2/MWA/RTS/test2/'
+     froot = '/data2/MWA/bpindor/RTS/'
      
-     data_dir = froot + 'BdaggerV/'
+;     data_dir = froot + 'BdaggerV/'
+     data_dir = froot + 'Images/'
      datafiles = file_search(data_dir + '*.fits')
      
-     weights_dir = froot + 'Bdagger1/'
+;     weights_dir = froot + 'Bdagger1/'
+     weights_dir = froot + 'Weights/'
      weightfiles = file_search(weights_dir + '*.fits')
      
-     variance_dir = froot + 'BdaggerB/'
+;     variance_dir = froot + 'BdaggerB/'
+     variance_dir = froot + 'Variances/'
      variancefiles = file_search(variance_dir + '*.fits')
 
      datafile =  rts_fits2imagecube(datafiles, weightfiles, variancefiles, pol_inc, save_path = froot)
@@ -21,8 +24,12 @@ pro ps_wrapper, rts = rts, refresh_dft = refresh_dft, refresh_ps = refresh_ps, r
  
      ;;datafile = '/data2/MWA/PowerSpectra/FHD_healpix_test/multi_freq_residuals_cube_healpix.sav'
   
-     datafile = '/data2/MWA/FHD/DATA/X16/EOR1/145/fhd_v14/Healpix/' + $
-                'Combined_obs_EOR1_P00_145_20110926193959-EOR1_P00_145_20110926200503_'+['even', 'odd']+'_cube.sav'
+     ;;datafile = '/data2/MWA/FHD/DATA/X16/EOR1/145/fhd_v14/Healpix/' + $
+     ;;           'Combined_obs_EOR1_P00_145_20110926193959-EOR1_P00_145_20110926200503_'+['even', 'odd']+'_cube.sav'
+
+     datafile = '/data2/MWA/FHD/DATA/X16/EOR1/145/fhd_v300/Healpix/' + $
+                'Sim_obs_'+['even', 'odd']+'_cube.sav'
+
   endelse
     
   ;; dft_fchunk applies only to Healpix datasets (it's ignored otherwise) and it specifies how many frequencies to process
