@@ -368,8 +368,10 @@ if healpix or keyword_set(image) then begin
           ;; go a little beyond max_baseline to account for expansion due to w projection
           ;; max_kperp_rad = (file_struct.max_baseline_lambda/kperp_lambda_conv) * z_mpc_mean * 1.1
           ;; use kspan of Ian's cubes
-          max_kperp_rad = (min([file_struct.kspan/2.,file_struct.max_baseline_lambda])/kperp_lambda_conv) * z_mpc_mean
-          
+          if tag_exist(file_struct, 'kspan') then $
+            max_kperp_rad = (min([file_struct.kspan/2.,file_struct.max_baseline_lambda])/kperp_lambda_conv) * z_mpc_mean else $
+            max_kperp_rad = (min([file_struct.max_baseline_lambda])/kperp_lambda_conv) * z_mpc_mean
+            
           if keyword_set(cut_image) then begin
             ;; limit field of view to match calculated k-modes
             xy_len = 2*!pi/delta_kperp_rad
