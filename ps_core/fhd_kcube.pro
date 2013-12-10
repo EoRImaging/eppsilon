@@ -968,16 +968,24 @@ if nfiles eq 2 then $
   slice_inds = n_kx/2, slice_savefile = file_struct.vf_diff_savefile) $
 else vf_slice2 = vf_slice
 
-if max(abs(vf_slice)) eq 0 or (max(vf_slice2) eq 0 and max(abs(data_diff)) gt 0) then begin
+test_vf = 1
+if max(abs(vf_slice)) eq 0 then test_vf=0
+if nfiles eq 2 then if max(vf_slice2) eq 0 and max(abs(data_diff)) gt 0 then test_vf=0
+
+if test_vf eq 0 then begin
   nloop = 0
   slice_inds = shift(indgen(n_kx), n_kx/2)
-  while max(abs(vf_slice)) eq 0 or (max(vf_slice2) eq 0 and max(abs(data_diff)) gt 0) do begin
+  while test_vf eq 0 do begin
     nloop = nloop+1
     vf_slice = uvf_slice(data_sum, kx_mpc, ky_mpc, frequencies, kperp_lambda_conv, delay_params, hubble_param, $
       slice_axis = 0, slice_inds = slice_inds[nloop], slice_savefile = file_struct.vf_sum_savefile)
     if nfiles eq 2 then $
       vf_slice2 = uvf_slice(data_diff, kx_mpc, ky_mpc, frequencies, kperp_lambda_conv, delay_params, hubble_param, $
       slice_axis = 0, slice_inds = slice_inds[nloop], slice_savefile = file_struct.vf_diff_savefile)
+      
+    test_vf = 1
+    if max(abs(vf_slice)) eq 0 then test_vf=0
+    if nfiles eq 2 then if max(vf_slice2) eq 0 and max(abs(data_diff)) gt 0 then test_vf=0
   endwhile
 endif
 
