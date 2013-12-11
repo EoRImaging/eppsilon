@@ -44,7 +44,7 @@ function rts_fits2imagecube, datafiles, weightfiles, variancefiles, pol_inc, sav
         if count gt 1 then stop else freq_loc = freq_loc[0]
         frequencies[i] = float(temp[freq_loc])
         
-        data = mrdfits(datafiles[0], 1, hdr)
+        data = mrdfits(datafiles[i], 1, hdr)
         
         this_nside = fxpar(hdr, 'nside')
         if i eq 0 then nside = this_nside else if this_nside ne nside then message, 'nside values do not agree across datafiles'
@@ -64,19 +64,19 @@ function rts_fits2imagecube, datafiles, weightfiles, variancefiles, pol_inc, sav
         if i eq 0 then pixel_nums = temporary(pixels) $
         else if total(abs(pixel_nums-pixels)) ne 0 then message, 'pixel nums do not agree across datafiles'
         
-        xx_col = where(strpos(strlowcase(col_types), 'pp') gt -1, count)
+        xx_col = where(strpos(strlowcase(col_types), 'weighted pp') gt -1, count)
         if count ne 1 then stop else xx_col = xx_col[0]
         
         if i eq 0 then xx_data = fltarr(npix, n_freq)
         
         xx_data[*,i] = data.(xx_col)
         
-        yy_col = where(strpos(strlowcase(col_types), 'qq') gt -1, count)
+        yy_col = where(strpos(strlowcase(col_types), 'weighted qq') gt -1, count)
         if count ne 1 then stop else yy_col = yy_col[0]
         
         if i eq 0 then yy_data = fltarr(npix, n_freq)
         yy_data[*,i] =  data.(yy_col)
-        
+                
         undefine, data
      endfor
      
@@ -102,14 +102,14 @@ function rts_fits2imagecube, datafiles, weightfiles, variancefiles, pol_inc, sav
         pixels = data.(pix_col)
         if total(abs(pixel_nums-pixels)) ne 0 then message, 'weights pixel nums do not agree with datafiles'
         
-        xx_col = where(strpos(strlowcase(col_types), 'pp') gt -1, count)
+        xx_col = where(strpos(strlowcase(col_types), 'weighted pp') gt -1, count)
         if count ne 1 then stop else xx_col = xx_col[0]
         
         if i eq 0 then xx_weights = fltarr(npix, n_freq)
         
         xx_weights[*,i] = data.(xx_col)
         
-        yy_col = where(strpos(strlowcase(col_types), 'qq') gt -1, count)
+        yy_col = where(strpos(strlowcase(col_types), 'weighted qq') gt -1, count)
         if count ne 1 then stop else yy_col = yy_col[0]
         
         if i eq 0 then yy_weights = fltarr(npix, n_freq)
@@ -140,14 +140,14 @@ function rts_fits2imagecube, datafiles, weightfiles, variancefiles, pol_inc, sav
         pixels = data.(pix_col)
         if total(abs(pixel_nums-pixels)) ne 0 then message, 'variances pixel nums do not agree with datafiles'
         
-        xx_col = where(strpos(strlowcase(col_types), 'pp') gt -1, count)
+        xx_col = where(strpos(strlowcase(col_types), 'weighted pp') gt -1, count)
         if count ne 1 then stop else xx_col = xx_col[0]
         
         if i eq 0 then xx_variances = fltarr(npix, n_freq)
         
         xx_variances[*,i] = data.(xx_col)
         
-        yy_col = where(strpos(strlowcase(col_types), 'qq') gt -1, count)
+        yy_col = where(strpos(strlowcase(col_types), 'weighted qq') gt -1, count)
         if count ne 1 then stop else yy_col = yy_col[0]
         
         if i eq 0 then yy_variances = fltarr(npix, n_freq)

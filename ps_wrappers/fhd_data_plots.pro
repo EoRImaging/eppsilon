@@ -3,7 +3,8 @@ pro fhd_data_plots, datafile, rts = rts, pol_inc = pol_inc, image = image, $
     refresh_dft = refresh_dft, dft_fchunk = dft_fchunk, refresh_ps = refresh_ps, refresh_binning = refresh_binning, $
     freq_ch_range = freq_ch_range, no_spec_window = no_spec_window, spec_window_type = spec_window_type, $
     cut_image = cut_image, dft_ian = dft_ian, noise_sim = noise_sim, std_power = std_power, no_kzero = no_kzero, $
-    slice_nobin = slice_nobin, data_range = data_range, sigma_range = sigma_range, nev_range = nev_range, $
+    plot_slices = plot_slices, slice_type = slice_type, $
+    data_range = data_range, sigma_range = sigma_range, nev_range = nev_range, $
     snr_range = snr_range, noise_range = noise_range, nnr_range = nnr_range, $
     log_kpar = log_kpar, log_kperp = log_kperp, kpar_bin = kpar_bin, kperp_bin = kperp_bin, log_k1d = log_k1d, $
     k1d_bin = k1d_bin, kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, $
@@ -212,11 +213,54 @@ pro fhd_data_plots, datafile, rts = rts, pol_inc = pol_inc, image = image, $
   if n_elements(plot_filebase) eq 0 then plotfile_1d = plotfile_path + general_filebase + fadd + fadd_1dbin + '_1dkpower' + '.eps' else $
     plotfile_1d = plotfile_path + plot_filebase + fadd + fadd_1dbin + '_1dkpower' + '.eps'
     
-  ;; if not keyword_set(slice_nobin) then slice_fadd = '_binned' else slice_fadd = ''
-  ;; yslice_plotfile = plotfile_base + '_xz_plane' + plot_fadd + slice_fadd + '.eps'
-  ;; xslice_plotfile = plotfile_base + '_yz_plane' + plot_fadd + slice_fadd + '.eps'
-  ;; zslice_plotfile = plotfile_base + '_xy_plane' + plot_fadd + slice_fadd + '.eps'
+  if keyword_set(plot_slices) then begin
+    if n_elements(slice_type) eq 0 then slice_type = 'sumdiff'
+    slice_type_enum = ['raw', 'divided', 'kspace', 'sumdiff']
     
+    wh_slice_type = where(slice_type_enum eq slice_type, count_slice_type)
+    if count_slice_type eq 0 then begin
+      print, 'slice_type not recognized, using default'
+      slice_type = 'sumdiff'
+    endif
+    
+    if slice_type ne 'kspace' then begin
+      uf_slice_plotfile = plotfile_base + '_' + slice_type + '_uf_plane' + plot_fadd + '.eps'
+      vf_slice_plotfile = plotfile_base + '_' + slice_type + '_vf_plane' + plot_fadd + '.eps'
+      uv_slice_plotfile = plotfile_base + '_' + slice_type + '_uv_plane' + plot_fadd + '.eps'
+    endif else begin
+      uf_slice_plotfile = plotfile_base + '_' + slice_type + '_xz_plane' + plot_fadd + '.eps'
+      vf_slice_plotfile = plotfile_base + '_' + slice_type + '_yz_plane' + plot_fadd + '.eps'
+      uv_slice_plotfile = plotfile_base + '_' + slice_type + '_xy_plane' + plot_fadd + '.eps'
+    endelse
+    
+    case slice_type of
+      'raw': begin
+        uf_slice_savefile = file_struct_arr.uf_raw_savefile
+        vf_slice_savefile = file_struct_arr.vf_raw_savefile
+        uv_slice_savefile = file_struct_arr.uv_raw_savefile
+        
+      end
+      'divided': begin
+        uf_slice_savefile = file_struct_arr.uf_savefile
+        vf_slice_savefile = file_struct_arr.vf_savefile
+        uv_slice_savefile = file_struct_arr.uv_savefile
+        
+      end
+      'sumdiff': begin
+        uf_slice_savefile = [file_struct_arr.uf_sum_savefile, file_struct_arr.uf_diff_savefile]
+        vf_slice_savefile = [file_struct_arr.vf_sum_savefile, file_struct_arr.vf_diff_savefile]
+        uv_slice_savefile = [file_struct_arr.uv_sum_savefile, file_struct_arr.uv_diff_savefile]
+        
+      end
+      'kspace': begin
+        uf_slice_savefile = file_struct_arr.savefile_froot + file_struct_arr.savefilebase + '_xz_plane.idlsave'
+        vf_slice_savefile = file_struct_arr.savefile_froot + file_struct_arr.savefilebase + '_yz_plane.idlsave'
+        uv_slice_savefile = file_struct_arr.savefile_froot + file_struct_arr.savefilebase + '_xy_plane.idlsave'
+      end
+    endcase
+    
+  endif
+  
   if keyword_set(plot_wedge_line) then begin
     z0_freq = 1420.40 ;; MHz
     redshifts = z0_freq/file_struct_arr[0].frequencies - 1
@@ -264,6 +308,7 @@ pro fhd_data_plots, datafile, rts = rts, pol_inc = pol_inc, image = image, $
       grey_scale = grey_scale, plot_wedge_line = plot_wedge_line, hinv = hinv, $
       wedge_amp = wedge_amp, baseline_axis = baseline_axis, delay_axis = delay_axis, $
       kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis
+      
     if nfiles eq 2 then begin
       for i=0, n_cubes-1 do kpower_2d_plots, savefiles_2d[i], /pub, /plot_noise, plotfile = plotfiles_2d_noise[i], $
         kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
@@ -422,6 +467,109 @@ pro fhd_data_plots, datafile, rts = rts, pol_inc = pol_inc, image = image, $
     
   endif
   
+  if keyword_set(plot_slices) then begin
+    nrow = npol
+    if slice_type eq 'kspace' then ncol=ntype else ncol = ntype*nfiles
+    
+    window_num = 7
+    start_multi_params = {ncol:ncol, nrow:nrow, ordering:'row'}
+    undefine, pos_use
+    
+    for i=0, (nrow*ncol)-1 do begin
+      if i gt 0 then  pos_use = positions[*,i]
+      
+      if slice_type eq 'kspace' then begin
+        kpower_slice_plot, uf_slice_savefile[i], multi_pos = pos_use, start_multi_params = start_multi_params, pub = pub, $
+          plotfile = uf_slice_plotfile, plot_xrange = kperp_plot_range, plot_yrange = kpar_plot_range, $
+          title_prefix = titles[i], $
+          grey_scale = grey_scale, plot_wedge_line = plot_wedge_line, wedge_amp = wedge_amp, hinv = hinv, $
+          baseline_axis = baseline_axis, delay_axis = delay_axis, linear_axes = kperp_linear_axis, $
+          window_num = window_num
+      endif else begin
+      
+        uvf_slice_plot, uf_slice_savefile[i], multi_pos = pos_use, start_multi_params = start_multi_params, pub = pub, $
+          plotfile = uf_slice_plotfile, type = 'abs', title_prefix = titles[i], $
+          grey_scale = grey_scale, hinv = hinv, $
+          baseline_axis = baseline_axis, window_num = window_num
+      endelse
+      
+      if i eq 0 then begin
+        positions = pos_use
+        undefine, start_multi_params
+      endif
+    endfor
+    if keyword_set(pub) then begin
+      psoff
+      wdelete, window_num
+    endif
+    
+    window_num = 8
+    start_multi_params = {ncol:ncol, nrow:nrow, ordering:'row'}
+    undefine, pos_use
+    
+    for i=0, (nrow*ncol)-1 do begin
+      if i gt 0 then  pos_use = positions[*,i]
+      
+      if slice_type eq 'kspace' then begin
+        kpower_slice_plot, vf_slice_savefile[i], multi_pos = pos_use, start_multi_params = start_multi_params, pub = pub, $
+          plotfile = uf_slice_plotfile, $
+          plot_xrange = kperp_plot_range, plot_yrange = kpar_plot_range, $
+          title_prefix = titles[i], $
+          grey_scale = grey_scale, plot_wedge_line = plot_wedge_line, wedge_amp = wedge_amp, hinv = hinv, $
+          baseline_axis = baseline_axis, delay_axis = delay_axis, linear_axes = kperp_linear_axis, $
+          window_num = window_num
+      endif else begin
+      
+        uvf_slice_plot, vf_slice_savefile[i], multi_pos = pos_use, start_multi_params = start_multi_params, pub = pub, $
+          plotfile = uf_slice_plotfile, type = 'abs', title_prefix = titles[i], $
+          grey_scale = grey_scale, hinv = hinv, $
+          baseline_axis = baseline_axis, window_num = window_num
+      endelse
+      
+      if i eq 0 then begin
+        positions = pos_use
+        undefine, start_multi_params
+      endif
+    endfor
+    if keyword_set(pub) then begin
+      psoff
+      wdelete, window_num
+    endif
+    
+    window_num = 9
+    start_multi_params = {ncol:ncol, nrow:nrow, ordering:'row'}
+    undefine, pos_use
+    
+    for i=0, (nrow*ncol)-1 do begin
+      if i gt 0 then  pos_use = positions[*,i]
+      
+      if slice_type eq 'kspace' then begin
+        kpower_slice_plot, uv_slice_savefile[i], multi_pos = pos_use, start_multi_params = start_multi_params, pub = pub, $
+          plotfile = uf_slice_plotfile, $
+          plot_xrange = kperp_plot_range, plot_yrange = kperp_plot_range, $
+          title_prefix = titles[i], $
+          grey_scale = grey_scale, plot_wedge_line = plot_wedge_line, wedge_amp = wedge_amp, hinv = hinv, $
+          baseline_axis = baseline_axis, delay_axis = delay_axis, linear_axes = kperp_linear_axis, $
+          window_num = window_num
+      endif else begin
+      
+        uvf_slice_plot, uv_slice_savefile[i], multi_pos = pos_use, start_multi_params = start_multi_params, pub = pub, $
+          plotfile = uf_slice_plotfile, type = 'abs', title_prefix = titles[i], $
+          grey_scale = grey_scale, hinv = hinv, $
+          baseline_axis = baseline_axis, window_num = window_num
+      endelse
+      
+      if i eq 0 then begin
+        positions = pos_use
+        undefine, start_multi_params
+      endif
+    endfor
+    if keyword_set(pub) then begin
+      psoff
+      wdelete, window_num
+    endif
+    
+  endif
 endelse
 
 file_arr = savefiles_1d
