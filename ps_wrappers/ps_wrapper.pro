@@ -21,8 +21,16 @@ pro ps_wrapper, rts = rts, refresh_dft = refresh_dft, refresh_ps = refresh_ps, r
   
     ;;datafile = '/data2/MWA/PowerSpectra/FHD_healpix_test/multi_freq_residuals_cube_healpix.sav'
   
-    datafile = '/data2/MWA/FHD/DATA/X16/EOR1/145/fhd_v14/Healpix/' + $
-      'Combined_obs_EOR1_P00_145_20110926193959-EOR1_P00_145_20110926200503_'+['even', 'odd']+'_cube.sav'
+    ;datafile = '/data2/MWA/FHD/DATA/X16/EOR1/145/fhd_v14/Healpix/' + $
+    ;  'Combined_obs_EOR1_P00_145_20110926193959-EOR1_P00_145_20110926200503_'+['even', 'odd']+'_cube.sav'
+    
+    ;datafile = '/nfs/mwa-09/r1/djc/EoR2013/Aug23/fhd_apb_eor_firstpass_8/Healpix/' + $
+
+    ;datafile = '/nfs/mwa-09/r1/djc/EoR2013/Aug23/fhd_apb_gen_sourcelist_5/Healpix/' + $
+    ;   'Combined_obs_1061311664-1061320816_' + ['even', 'odd']+'_cube.sav'
+    
+    datafile = '/nfs/mwa-09/r1/djc/EoR2013/Aug23/fhd_apb_eor_firstpass_10/Healpix/' + $
+    'Combined_obs_1061316296-1061316296_' + ['even', 'odd']+'_cube.sav' 
   endelse
   
   ;; dft_fchunk applies only to Healpix datasets (it's ignored otherwise) and it specifies how many frequencies to process
@@ -43,8 +51,8 @@ pro ps_wrapper, rts = rts, refresh_dft = refresh_dft, refresh_ps = refresh_ps, r
   
   ;; save_path = '/data2/MWA/FHD/DATA/X16/EOR1/fhd_v5/Healpix/ps/'
   
-  ;; the following sets the save_path to a 'ps' directory inside the datafile directory and creates the directory if it doesn't exist
-  save_path = file_dirname(datafile[0], /mark_directory) + 'ps' + path_sep()
+  ;; the following sets the save_path to a 'ps' directory one level up from the datafile directory and creates the directory if it doesn't exist
+  save_path = file_dirname(file_dirname(datafile[0]), /mark_directory) + 'ps' + path_sep()
   if not file_test(save_path, /directory) then file_mkdir, save_path
   
   ;; savefilebase specifies a base name to use for the save files
