@@ -236,7 +236,7 @@ pro fhd_data_plots, datafile, rts = rts, pol_inc = pol_inc, image = image, $
   if keyword_set(pub) then font = 1 else font = -1
   
   if keyword_set(pub) and keyword_set(individual_plots) then begin
-    for i=0, cubes-1 do kpower_2d_plots, savefiles_2d[i], /pub, plotfile = plotfiles_2d[i], $
+    for i=0, n_cubes-1 do kpower_2d_plots, savefiles_2d[i], /pub, plotfile = plotfiles_2d[i], $
       kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
       data_range = data_range, title_prefix = titles[i], grey_scale = grey_scale, $
       plot_wedge_line = plot_wedge_line, hinv = hinv, $
@@ -250,7 +250,7 @@ pro fhd_data_plots, datafile, rts = rts, pol_inc = pol_inc, image = image, $
       wedge_amp = wedge_amp, baseline_axis = baseline_axis, delay_axis = delay_axis, $
       kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis
       
-    for i=0, npol -1 do kpower_2d_plots, savefiles_2d[i], /plot_noise_exp, /pub, plotfile = plotfiles_2d_noise_expval[i],$
+    for i=0, npol -1 do kpower_2d_plots, savefiles_2d[i], /plot_exp_noise, /pub, plotfile = plotfiles_2d_noise_expval[i],$
       kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
       data_range = nev_range, title_prefix = pol_inc[i], $
       grey_scale = grey_scale, plot_wedge_line = plot_wedge_line, hinv = hinv, $
