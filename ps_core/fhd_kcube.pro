@@ -233,13 +233,13 @@ tau = file_struct.time_resolution ; seconds
 vis_sigma = (2. * (1.38065e-23) * 1e26) * t_sys / (eff_area * sqrt(df * tau)) ;; in Jy
 vis_sigma = float(vis_sigma)
 
-;old_vis_sigma = vis_sigma
+old_vis_sigma = vis_sigma
 
-;vis_sig_tag = number_formatter(768./n_freq)
-;restore, '/Users/bryna/Documents/Physics/idl_data_files/fhd_ps_data/vis_sigma/vis_sigma_measured' + vis_sig_tag + '.sav'
-;if n_elements(vis_sigma) ne n_freq then stop
-;wh_nan = where(finite(vis_sigma) eq 0, count_nan)
-;if count_nan gt 0 then vis_sigma[wh_nan] = 0
+vis_sig_tag = number_formatter(384./n_freq)
+restore, file_dirname(file_struct.savefile_froot, /mark_directory) + 'vis_sigma/vis_sigma_measured' + vis_sig_tag + '.sav'
+if n_elements(vis_sigma) ne n_freq then stop
+wh_nan = where(finite(vis_sigma) eq 0, count_nan)
+if count_nan gt 0 then vis_sigma[wh_nan] = 0
 
 if healpix or keyword_set(image) then begin
 
