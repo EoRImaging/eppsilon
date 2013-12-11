@@ -44,7 +44,7 @@ function rts_fits2imagecube, datafiles, weightfiles, variancefiles, pol_inc, sav
         if count gt 1 then stop else freq_loc = freq_loc[0]
         frequencies[i] = float(temp[freq_loc])
         
-        data = mrdfits(datafiles[0], 1, hdr)
+        data = mrdfits(datafiles[i], 1, hdr)
         
         this_nside = fxpar(hdr, 'nside')
         if i eq 0 then nside = this_nside else if this_nside ne nside then message, 'nside values do not agree across datafiles'
@@ -76,7 +76,7 @@ function rts_fits2imagecube, datafiles, weightfiles, variancefiles, pol_inc, sav
         
         if i eq 0 then yy_data = fltarr(npix, n_freq)
         yy_data[*,i] =  data.(yy_col)
-        
+                
         undefine, data
      endfor
      
