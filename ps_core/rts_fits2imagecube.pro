@@ -86,7 +86,7 @@ function rts_fits2imagecube, datafiles, weightfiles, variancefiles, pol_inc, sav
         if count gt 1 then stop else freq_loc = freq_loc[0]
         if float(temp[freq_loc]) ne frequencies[i] then message, 'data and weights frequencies do not match'
         
-        data = mrdfits(weightfiles[0], 1, hdr)
+        data = mrdfits(weightfiles[i], 1, hdr)
         
         this_nside = fxpar(hdr, 'nside')
         if this_nside ne nside then message, 'weights nside value does not agree with datafiles'
@@ -124,7 +124,7 @@ function rts_fits2imagecube, datafiles, weightfiles, variancefiles, pol_inc, sav
         if count gt 1 then stop else freq_loc = freq_loc[0]
         if float(temp[freq_loc]) ne frequencies[i] then message, 'data and variances frequencies do not match'
         
-        data = mrdfits(variancefiles[0], 1, hdr)
+        data = mrdfits(variancefiles[i], 1, hdr)
         
         this_nside = fxpar(hdr, 'nside')
         if this_nside ne nside then message, 'variances nside value does not agree with datafiles'
