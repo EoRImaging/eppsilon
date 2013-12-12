@@ -1005,8 +1005,7 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
   if nfiles eq 2 then $
     uv_slice = uvf_slice(data_diff, kx_mpc, ky_mpc, frequencies, kperp_lambda_conv, delay_params, hubble_param, slice_axis = 2, $
     slice_inds = 0, slice_savefile = file_struct.uv_diff_savefile)
-    
-    
+        
   ;; apply spectral windowing function if desired
   if n_elements(spec_window_type) ne 0 then begin
     window = spectral_window(n_freq, type = spec_window_type, /periodic)
