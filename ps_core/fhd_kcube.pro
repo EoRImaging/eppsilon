@@ -774,7 +774,7 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
     uv_slice = uvf_slice(data_cube, kx_mpc, ky_mpc, frequencies, kperp_lambda_conv, delay_params, hubble_param, slice_axis = 2, $
       slice_inds = 0, slice_savefile = file_struct.uv_raw_savefile[i])
   endfor
-stop  
+  
   if healpix or keyword_set(image) then begin
     if keyword_set (dft_ian) then begin
       ;; multiply data, weights & variance cubes by pixel_area_rad to get proper units from DFT
@@ -903,7 +903,7 @@ stop
   ;; temp_img = fft_shift(fft(fft_shift(temp_exp)))
   ;; temp_2 = fft_shift(fft(fft_shift(temp_img), /inverse))
   ;; quick_image, abs(temp_exp), title='107',/log
-stop  
+  
   ;; save some slices of the data cube
   for i=0, nfiles-1 do begin
     if i eq 0 then data_cube = data_cube1 else data_cube = data_cube2

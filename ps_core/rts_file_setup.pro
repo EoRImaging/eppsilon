@@ -162,9 +162,10 @@ function rts_file_setup, datafile, pol_inc, save_path = save_path, $
       message, 'frequencies do not match between datafiles'
     if i eq 0 then nside = getvar_savefile(datafile[i], 'nside') else if nside ne getvar_savefile(datafile[i], 'nside') then $
       message, 'nside does not match between datafiles'
-    if i eq 0 then pixels = getvar_savefile(datafile[i], 'pixel_nums') else $
+    if i eq 0 then pixels = getvar_savefile(datafile[i], 'pixel_nums') else begin
       if total(abs(pixels - getvar_savefile(datafile[i], 'pixel_nums'))) ne 0 then $
-      message, 'pixel nums do not match between datafiles'
+        message, 'pixel nums do not match between datafiles, using common set.'
+    endelse
   endfor
   
   n_freq = n_elements(frequencies)
@@ -174,11 +175,11 @@ function rts_file_setup, datafile, pol_inc, save_path = save_path, $
   data_varname = pol_inc + '_data'
   weight_varname = pol_inc + '_weights'
   variance_varname = pol_inc + '_variances'
-  pixel_varname = 'pixel_nums'
+  pixel_varname = strarr(nfiles) + 'pixel_nums'
   
   ;; these are totally made up for now
   time_resolution = 16
-  n_vis = (112*111)*n_freq*(6.)
+  n_vis = fltarr(nfiles)+(112*111)*n_freq*(6.)
   max_baseline_lambda = 1500 * max(frequencies*1e6) / (3e8)
   kspan = 300.
   kpix = 3.46697 * 1.41555e+08 / (3e8)
@@ -195,23 +196,21 @@ function rts_file_setup, datafile, pol_inc, save_path = save_path, $
     pol_index = i / ntypes
     type_index = i mod ntypes
     
-    uvf_inds = i
-    wt_inds = pol_index
     file_struct = {datafile: datafile, weightfile: datafile, variancefile:datafile, pixelfile:datafile, $
       datavar:data_varname[pol_index], variancevar:variance_varname[pol_index], weightvar:weight_varname[pol_index], $
       pixelvar:pixel_varname, frequencies:frequencies, freq_resolution:freq_resolution, $
       time_resolution:time_resolution, n_vis:n_vis, max_baseline_lambda:max_baseline_lambda, max_theta:max_theta, $
       kpix:kpix, kspan:kspan, nside:nside, $
-      uvf_savefile:uvf_savefile[uvf_inds], uvf_weight_savefile:uvf_weight_savefile[wt_inds], $
-      uf_savefile:uf_savefile[uvf_inds], vf_savefile:vf_savefile[uvf_inds], uv_savefile:uv_savefile[uvf_inds], $
-      uf_raw_savefile:uf_raw_savefile[uvf_inds], vf_raw_savefile:vf_raw_savefile[uvf_inds], $
-      uv_raw_savefile:uv_raw_savefile[uvf_inds], $
+      uvf_savefile:uvf_savefile[*,i], uvf_weight_savefile:uvf_weight_savefile[*,pol_index], $
+      uf_savefile:uf_savefile[*,i], vf_savefile:vf_savefile[*,i], uv_savefile:uv_savefile[*,i], $
+      uf_raw_savefile:uf_raw_savefile[*,i], vf_raw_savefile:vf_raw_savefile[*,i], $
+      uv_raw_savefile:uv_raw_savefile[*,i], $
       uf_sum_savefile:uf_sum_savefile[i], vf_sum_savefile:vf_sum_savefile[i], $
       uv_sum_savefile:uv_sum_savefile[i], uf_diff_savefile:uf_diff_savefile[i], $
       vf_diff_savefile:vf_diff_savefile[i], uv_diff_savefile:uv_diff_savefile[i], $
       kcube_savefile:kcube_savefile[i], power_savefile:power_savefile[i], fits_power_savefile:fits_power_savefile[i],$
       savefile_froot:froot, savefilebase:savefilebase[i], general_filebase:general_filebase, $
-      weight_savefilebase:weight_savefilebase[wt_inds], $
+      weight_savefilebase:weight_savefilebase[*,pol_index], $
       file_label:file_label[i], wt_file_label:wt_file_label[pol_index]}
       
     if i eq 0 then file_struct_arr = replicate(file_struct, ncubes) else file_struct_arr[i] = file_struct

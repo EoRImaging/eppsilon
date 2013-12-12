@@ -13,9 +13,7 @@ pro fhd_data_plots, datafile, rts = rts, pol_inc = pol_inc, image = image, $
     
   nfiles = n_elements(datafile)
   if nfiles gt 2 then message, 'only 1 or 2 datafiles is supported'
-  
-  if keyword_set(rts) then nfiles=1
-  
+    
   if keyword_set(noise_sim) then begin
     datafile=datafile[0]
     nfiles=1
