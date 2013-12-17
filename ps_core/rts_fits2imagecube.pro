@@ -43,13 +43,14 @@ function rts_fits2imagecube, datafiles, weightfiles, variancefiles, pol_inc, sav
     if test_imagecube eq 0 then begin
     
       frequencies = fltarr(n_freq)
+      frequencies2 = fltarr(n_freq)
       for i=0, n_freq-1 do begin
         temp = strsplit(datafiles[i, file_i], '_',/extract)
         freq_loc = where(strpos(strlowcase(strsplit(datafiles[i, file_i], '_',/extract)), 'mhz') gt -1, count)
         if count gt 1 then stop else freq_loc = freq_loc[0]
         frequencies[i] = float(temp[freq_loc])
         
-        data = mrdfits(datafiles[i, file_i], 1, hdr)
+        data = mrdfits(datafiles[i, file_i], 1, hdr, /silent)
         
         this_nside = fxpar(hdr, 'nside')
         if i eq 0 then nside = this_nside else if this_nside ne nside then message, 'nside values do not agree across datafiles'
@@ -83,6 +84,54 @@ function rts_fits2imagecube, datafiles, weightfiles, variancefiles, pol_inc, sav
         yy_data[*,i] =  data.(yy_col)
         
         undefine, data
+        
+        data = mrdfits(datafiles[i, file_i], 2, hdr2, /silent)
+        col_types2 = fxpar(hdr2, 'ttype*')
+        
+        freq_col = where(strpos(strlowcase(col_types2), 'freq') gt -1, count)
+        if count ne 1 then stop else freq_col = freq_col[0]
+        freq_arr = data.(freq_col)
+        if total(abs(freq_arr - freq_arr[0])) gt 1e-3 then message, 'inconsistent frequencies in file ' + datafiles[i, file_i]
+        frequencies2[i] = freq_arr[0]
+        
+        time_col = where(strpos(strlowcase(col_types2), 'fracmjd') gt -1, count)
+        if count ne 1 then stop else time_col = time_col[0]
+        time_arr = data.(time_col)
+        time_diffs = ((time_arr - shift(time_arr, 1))[1:*])*3600*24 ;fractional days to seconds
+        time_diffs = round(time_diffs*2.)/2. ;round to nearest 1/2 second
+        if total(abs(time_diffs - time_diffs[0])) gt 0 then message, 'inconsistent time resolutions in file ' + datafiles[i, file_i]
+        if i eq 0 then time_resolution = time_diffs[0] else if abs(time_resolution - time_diffs[0]) ne 0 then $
+          message, 'time resolutions are not the same between frequency files'
+          
+          
+;        obs_ra_col = where(strpos(strlowcase(col_types2), 'ha_pt') gt -1, count)
+;        if count ne 1 then stop else obs_ra_col = obs_ra_col[0]
+;        obs_ra_arr = data.(obs_ra_col)
+;        if total(abs(obs_ra_arr - obs_ra_arr[0])) gt 0 then message, 'inconsistent obs_ra in file ' + datafiles[i, file_i]
+;        if i eq 0 then obs_ra = obs_ra_arr[0] else if abs(obs_ra - obs_ra_arr[0]) ne 0 then $
+;          message, 'obs_ra are not the same between frequency files'
+;          
+;        obs_dec_col = where(strpos(strlowcase(col_types2), 'dec_pt') gt -1, count)
+;        if count ne 1 then stop else obs_dec_col = obs_dec_col[0]
+;        obs_dec_arr = data.(obs_dec_col)
+;        if total(abs(obs_dec_arr - obs_dec_arr[0])) gt 0 then message, 'inconsistent obs_dec in file ' + datafiles[i, file_i]
+;        if i eq 0 then obs_dec = obs_dec_arr[0] else if abs(obs_dec - obs_dec_arr[0]) ne 0 then $
+;          message, 'obs_dec are not the same between frequency files'
+;          
+;        zen_ra_col = where(strpos(strlowcase(col_types2), 'ha_ph') gt -1, count)
+;        if count ne 1 then stop else zen_ra_col = zen_ra_col[0]
+;        zen_ra_arr = data.(zen_ra_col)
+;        if total(abs(zen_ra_arr - zen_ra_arr[0])) gt 0 then message, 'inconsistent zen_ra in file ' + datafiles[i, file_i]
+;        if i eq 0 then zen_ra = zen_ra_arr[0] else if abs(zen_ra - zen_ra_arr[0]) ne 0 then $
+;          message, 'zen_ra are not the same between frequency files'
+;          
+;        zen_dec_col = where(strpos(strlowcase(col_types2), 'dec_ph') gt -1, count)
+;        if count ne 1 then stop else zen_dec_col = zen_dec_col[0]
+;        zen_dec_arr = data.(zen_dec_col)
+;        if total(abs(zen_dec_arr - zen_dec_arr[0])) gt 0 then message, 'inconsistent zen_dec in file ' + datafiles[i, file_i]
+;        if i eq 0 then zen_dec = zen_dec_arr[0] else if abs(zen_dec - zen_dec_arr[0]) ne 0 then $
+;          message, 'zen_dec are not the same between frequency files'
+          
       endfor
       
       for i=0, n_freq-1 do begin
@@ -91,7 +140,7 @@ function rts_fits2imagecube, datafiles, weightfiles, variancefiles, pol_inc, sav
         if count gt 1 then stop else freq_loc = freq_loc[0]
         if float(temp[freq_loc]) ne frequencies[i] then message, 'data and weights frequencies do not match'
         
-        data = mrdfits(weightfiles[i, file_i], 1, hdr)
+        data = mrdfits(weightfiles[i, file_i], 1, hdr, /silent)
         
         this_nside = fxpar(hdr, 'nside')
         if this_nside ne nside then message, 'weights nside value does not agree with datafiles'
@@ -121,6 +170,49 @@ function rts_fits2imagecube, datafiles, weightfiles, variancefiles, pol_inc, sav
         yy_weights[*,i] =  data.(yy_col)
         
         undefine, data
+        
+        data = mrdfits(weightfiles[i, file_i], 2, hdr2, /silent)
+        col_types2 = fxpar(hdr2, 'ttype*')
+        
+        freq_col = where(strpos(strlowcase(col_types2), 'freq') gt -1, count)
+        if count ne 1 then stop else freq_col = freq_col[0]
+        freq_arr = data.(freq_col)
+        if total(abs(freq_arr - freq_arr[0])) gt 1e-3 then message, 'inconsistent frequencies in file ' + weightfiles[i, file_i]
+        if abs(frequencies2[i] - freq_arr[0]) gt 1e-3 then message, 'frequencies are not the same in weights and data files.'
+        
+        time_col = where(strpos(strlowcase(col_types2), 'fracmjd') gt -1, count)
+        if count ne 1 then stop else time_col = time_col[0]
+        time_arr = data.(time_col)
+        time_diffs = ((time_arr - shift(time_arr, 1))[1:*])*3600*24 ;fractional days to seconds
+        time_diffs = round(time_diffs*2.)/2. ;round to nearest 1/2 second
+        if total(abs(time_diffs - time_diffs[0])) gt 0 then message, 'inconsistent time resolutions in file ' + weightfiles[i, file_i]
+        if abs(time_resolution - time_diffs[0]) ne 0 then message, 'time resolutions are not the same in weights and data files'
+        
+        
+;        obs_ra_col = where(strpos(strlowcase(col_types2), 'ha_pt') gt -1, count)
+;        if count ne 1 then stop else obs_ra_col = obs_ra_col[0]
+;        obs_ra_arr = data.(obs_ra_col)
+;        if total(abs(obs_ra_arr - obs_ra_arr[0])) gt 0 then message, 'inconsistent obs_ra in file ' + weightfiles[i, file_i]
+;        if abs(obs_ra - obs_ra_arr[0]) ne 0 then message, 'obs_ra is not the same in weights and data files'
+;        
+;        obs_dec_col = where(strpos(strlowcase(col_types2), 'dec_pt') gt -1, count)
+;        if count ne 1 then stop else obs_dec_col = obs_dec_col[0]
+;        obs_dec_arr = data.(obs_dec_col)
+;        if total(abs(obs_dec_arr - obs_dec_arr[0])) gt 0 then message, 'inconsistent obs_dec in file ' + weightfiles[i, file_i]
+;        if abs(obs_dec - obs_dec_arr[0]) ne 0 then message, 'obs_dec is not the same in weights and data files'
+;        
+;        zen_ra_col = where(strpos(strlowcase(col_types2), 'ha_ph') gt -1, count)
+;        if count ne 1 then stop else zen_ra_col = zen_ra_col[0]
+;        zen_ra_arr = data.(zen_ra_col)
+;        if total(abs(zen_ra_arr - zen_ra_arr[0])) gt 0 then message, 'inconsistent zen_ra in file ' + weightfiles[i, file_i]
+;        if abs(zen_ra - zen_ra_arr[0]) ne 0 then message, 'zen_ra is not the same in weights and data files'
+;        
+;        zen_dec_col = where(strpos(strlowcase(col_types2), 'dec_ph') gt -1, count)
+;        if count ne 1 then stop else zen_dec_col = zen_dec_col[0]
+;        zen_dec_arr = data.(zen_dec_col)
+;        if total(abs(zen_dec_arr - zen_dec_arr[0])) gt 0 then message, 'inconsistent zen_dec in file ' + weightfiles[i, file_i]
+;        if abs(zen_dec - zen_dec_arr[0]) ne 0 then message, 'zen_dec is not the same in weights and data files'
+        
       endfor
       
       for i=0, n_freq-1 do begin
@@ -129,7 +221,7 @@ function rts_fits2imagecube, datafiles, weightfiles, variancefiles, pol_inc, sav
         if count gt 1 then stop else freq_loc = freq_loc[0]
         if float(temp[freq_loc]) ne frequencies[i] then message, 'data and variances frequencies do not match'
         
-        data = mrdfits(variancefiles[i, file_i], 1, hdr)
+        data = mrdfits(variancefiles[i, file_i], 1, hdr, /silent)
         
         this_nside = fxpar(hdr, 'nside')
         if this_nside ne nside then message, 'variances nside value does not agree with datafiles'
@@ -159,16 +251,59 @@ function rts_fits2imagecube, datafiles, weightfiles, variancefiles, pol_inc, sav
         yy_variances[*,i] =  data.(yy_col)
         
         undefine, data
+        
+        data = mrdfits(variancefiles[i, file_i], 2, hdr2, /silent)
+        col_types2 = fxpar(hdr2, 'ttype*')
+        
+        freq_col = where(strpos(strlowcase(col_types2), 'freq') gt -1, count)
+        if count ne 1 then stop else freq_col = freq_col[0]
+        freq_arr = data.(freq_col)
+        if total(abs(freq_arr - freq_arr[0])) gt 1e-3 then message, 'inconsistent frequencies in file ' + variancefiles[i, file_i]
+        if abs(frequencies2[i] - freq_arr[0]) gt 1e-3 then message, 'frequencies are not the same in variance and data files.'
+        
+        time_col = where(strpos(strlowcase(col_types2), 'fracmjd') gt -1, count)
+        if count ne 1 then stop else time_col = time_col[0]
+        time_arr = data.(time_col)
+        time_diffs = ((time_arr - shift(time_arr, 1))[1:*])*3600*24 ;fractional days to seconds
+        time_diffs = round(time_diffs*2.)/2. ;round to nearest 1/2 second
+        if total(abs(time_diffs - time_diffs[0])) gt 0 then message, 'inconsistent time resolutions in file ' + variancefiles[i, file_i]
+        if abs(time_resolution - time_diffs[0]) ne 0 then message, 'time resolutions are not the same in variance and data files'
+        
+        
+;        obs_ra_col = where(strpos(strlowcase(col_types2), 'ha_pt') gt -1, count)
+;        if count ne 1 then stop else obs_ra_col = obs_ra_col[0]
+;        obs_ra_arr = data.(obs_ra_col)
+;        if total(abs(obs_ra_arr - obs_ra_arr[0])) gt 0 then message, 'inconsistent obs_ra in file ' + variancefiles[i, file_i]
+;        if abs(obs_ra - obs_ra_arr[0]) ne 0 then message, 'obs_ra is not the same in variance and data files'
+;        
+;        obs_dec_col = where(strpos(strlowcase(col_types2), 'dec_pt') gt -1, count)
+;        if count ne 1 then stop else obs_dec_col = obs_dec_col[0]
+;        obs_dec_arr = data.(obs_dec_col)
+;        if total(abs(obs_dec_arr - obs_dec_arr[0])) gt 0 then message, 'inconsistent obs_dec in file ' + variancefiles[i, file_i]
+;        if abs(obs_dec - obs_dec_arr[0]) ne 0 then message, 'obs_dec is not the same in variance and data files'
+;        
+;        zen_ra_col = where(strpos(strlowcase(col_types2), 'ha_ph') gt -1, count)
+;        if count ne 1 then stop else zen_ra_col = zen_ra_col[0]
+;        zen_ra_arr = data.(zen_ra_col)
+;        if total(abs(zen_ra_arr - zen_ra_arr[0])) gt 0 then message, 'inconsistent zen_ra in file ' + variancefiles[i, file_i]
+;        if abs(zen_ra - zen_ra_arr[0]) ne 0 then message, 'zen_ra is not the same in variance and data files'
+;        
+;        zen_dec_col = where(strpos(strlowcase(col_types2), 'dec_ph') gt -1, count)
+;        if count ne 1 then stop else zen_dec_col = zen_dec_col[0]
+;        zen_dec_arr = data.(zen_dec_col)
+;        if total(abs(zen_dec_arr - zen_dec_arr[0])) gt 0 then message, 'inconsistent zen_dec in file ' + variancefiles[i, file_i]
+;        if abs(zen_dec - zen_dec_arr[0]) ne 0 then message, 'zen_dec is not the same in variance and data files'
+        
       endfor
       
-      save, file = image_cube_savefile[file_i], nside, frequencies, pixel_nums, xx_data, yy_data, xx_weights, yy_weights, $
-        xx_variances, yy_variances
+      save, file = image_cube_savefile[file_i], nside, frequencies, frequencies2, time_resolution, $;obs_ra, obs_dec, zen_ra, zen_dec, $
+        pixel_nums, xx_data, yy_data, xx_weights, yy_weights, xx_variances, yy_variances
         
     endif
   endfor
   
   
-  if nfiles eq 2 then begin
+  if nfiles eq 2 then begin  
     pixel_nums1 = getvar_savefile(image_cube_savefile[0], 'pixel_nums')
     pixel_nums2 = getvar_savefile(image_cube_savefile[1], 'pixel_nums')
     

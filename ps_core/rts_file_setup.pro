@@ -4,6 +4,7 @@ function rts_file_setup, datafile, pol_inc, save_path = save_path, $
     spec_window_type = spec_window_type
     
   nfiles = n_elements(datafile)
+  if nfiles eq 1 then datafile = datafile[0]
   
   if n_elements(pol_inc) eq 0 then pol_inc = ['xx', 'yy']
   pol_enum = ['xx', 'yy']
@@ -55,8 +56,9 @@ function rts_file_setup, datafile, pol_inc, save_path = save_path, $
       if n_elements(savefilebase_in) eq 0 then savefilebase = general_filebase + file_label + sw_tag
       
       ;; if we're only dealing with one file and uvf_savefilebase isn't specified then use same base for uvf files
-      if n_elements(uvf_savefilebase_in) eq 0 then uvf_savefilebase = general_filebase + fch_tag + file_label
-      if n_elements(weight_savefilebase_in) eq 0 then weight_savefilebase = general_filebase + fch_tag + wt_file_label
+      if n_elements(uvf_savefilebase_in) eq 0 then uvf_savefilebase = strarr(nfiles, ncubes) + (general_filebase + file_label)
+      if n_elements(weight_savefilebase_in) eq 0 then weight_savefilebase = strarr(nfiles, ncubes) + (general_filebase + wt_file_label)
+
     endif else begin
       if n_elements(save_path) ne 0 then froot = save_path $
       else froot = file_dirname(datafile[0], /mark_directory)
@@ -83,6 +85,7 @@ function rts_file_setup, datafile, pol_inc, save_path = save_path, $
           uvf_froot = strarr(nfiles, ncubes)
           for i=0, nfiles-1 do uvf_froot[i, *] = file_dirname(datafile[i], /mark_directory)
         endelse
+
         uvf_savefilebase = strarr(nfiles, ncubes)
         for i=0, nfiles-1 do uvf_savefilebase[i, *] = strmid(infilebase[i], 0, temp2[i]) + fch_tag + file_label
       endif
@@ -118,7 +121,7 @@ function rts_file_setup, datafile, pol_inc, save_path = save_path, $
       for i=0, nfiles-1 do if temp[i] ne '.' then uvf_froot[i,*] = temp[i] $
       else uvf_froot[i,*] = file_dirname(datafile[i], /mark_directory)
     endelse
-    uvf_savefilebase = file_basename(uvf_savefilebase_in) + fch_tag + file_label
+    uvf_savefilebase = strarr(nfiles, ncubes) + (file_basename(uvf_savefilebase_in) + fch_tag + file_label)
   endif
   
   
@@ -129,7 +132,7 @@ function rts_file_setup, datafile, pol_inc, save_path = save_path, $
       for i=0, nfiles-1 do if temp[i] ne '.' then wt_froot[i,*] = temp[i] $
       else wt_froot[i,*] = file_dirname(datafile[i], /mark_directory)
     endelse
-    weight_savefilebase = file_basename(weight_savefilebase_in) + fch_tag + wt_file_label
+    weight_savefilebase = strarr(nfiles, ncubes) + (file_basename(weight_savefilebase_in) + fch_tag + wt_file_label)
   endif
   
   uvf_savefile = uvf_froot + uvf_savefilebase + '_uvf.idlsave'
@@ -162,6 +165,17 @@ function rts_file_setup, datafile, pol_inc, save_path = save_path, $
       message, 'frequencies do not match between datafiles'
     if i eq 0 then nside = getvar_savefile(datafile[i], 'nside') else if nside ne getvar_savefile(datafile[i], 'nside') then $
       message, 'nside does not match between datafiles'
+    if i eq 0 then time_resolution = getvar_savefile(datafile[i], 'time_resolution') else $
+      if time_resolution ne getvar_savefile(datafile[i], 'time_resolution') then $
+      message, 'time_resolution does not match between datafiles'
+;    if i eq 0 then obs_ra = getvar_savefile(datafile[i], 'obs_ra') else if obs_ra ne getvar_savefile(datafile[i], 'obs_ra') then $
+;      message, 'obs_ra does not match between datafiles'
+;    if i eq 0 then obs_dec = getvar_savefile(datafile[i], 'obs_dec') else if obs_dec ne getvar_savefile(datafile[i], 'obs_dec') then $
+;      message, 'obs_dec does not match between datafiles'
+;    if i eq 0 then zen_ra = getvar_savefile(datafile[i], 'zen_ra') else if zen_ra ne getvar_savefile(datafile[i], 'zen_ra') then $
+;      message, 'zen_ra does not match between datafiles'
+;    if i eq 0 then zen_dec = getvar_savefile(datafile[i], 'zen_dec') else if zen_dec ne getvar_savefile(datafile[i], 'zen_dec') then $
+;      message, 'zen_dec does not match between datafiles'
     if i eq 0 then pixels = getvar_savefile(datafile[i], 'pixel_nums') else begin
       if total(abs(pixels - getvar_savefile(datafile[i], 'pixel_nums'))) ne 0 then $
         message, 'pixel nums do not match between datafiles, using common set.'
@@ -178,7 +192,7 @@ function rts_file_setup, datafile, pol_inc, save_path = save_path, $
   pixel_varname = strarr(nfiles) + 'pixel_nums'
   
   ;; these are totally made up for now
-  time_resolution = 16
+  ;time_resolution = 16
   n_vis = fltarr(nfiles)+(112*111)*n_freq*(6.)
   max_baseline_lambda = 1500 * max(frequencies*1e6) / (3e8)
   kspan = 300.
@@ -186,12 +200,7 @@ function rts_file_setup, datafile, pol_inc, save_path = save_path, $
   
   ;; pointing offset from zenith (for calculating horizon distance for wedge line)
   max_theta = 0
-  
-  ang_resolution = sqrt(3./!pi) * 3600./nside * (1./60.) * (!pi/180.)
-  pix_area_rad = ang_resolution^2.
-  image_area = npix*pix_area_rad
-  
-  
+    
   for i=0, ncubes-1 do begin
     pol_index = i / ntypes
     type_index = i mod ntypes
