@@ -69,17 +69,17 @@ function fhd_file_setup, datafile, pol_inc, weightfile = weightfile, variancefil
   endelse
   
   ;; check for pre-saved info file. If it exists, restore it and return structure. Otherwise construct structure.
-  info_file = froot + general_filebase + '_info.idlsave'
-  info_filetest = file_test(info_file)
-  if info_filetest eq 1 then begin
-    ;; check if info file has the right polarizations
-    info_pol_inc = getvar_savefile(info_file, 'pol_inc')
-    match2, pol_inc, info_pol_inc, suba, subb
-    if min([suba, subb]) ge 0 then begin
-      restore, info_file
-      return, file_struct_arr
-    endif  
-  endif
+  ;  info_file = froot + general_filebase + '_info.idlsave'
+  ;  info_filetest = file_test(info_file)
+  ;  if info_filetest eq 1 then begin
+  ;    ;; check if info file has the right polarizations
+  ;    info_pol_inc = getvar_savefile(info_file, 'pol_inc')
+  ;    match2, pol_inc, info_pol_inc, suba, subb
+  ;    if min([suba, subb]) ge 0 then begin
+  ;      restore, info_file
+  ;      return, file_struct_arr
+  ;    endif
+  ;  endif
   
   datafile_test = file_test(datafile)
   if min(datafile_test) eq 0 then message, 'datafile not found'
