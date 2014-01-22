@@ -25,7 +25,7 @@ pro ps_wrapper, rts = rts, refresh_dft = refresh_dft, refresh_ps = refresh_ps, r
      ;;datafile = '/data2/MWA/FHD/DATA/X16/EOR1/145/fhd_v14/Healpix/' + $
      ;;           'Combined_obs_EOR1_P00_145_20110926193959-EOR1_P00_145_20110926200503_'+['even', 'odd']+'_cube.sav'
 
-    ;;datafile = '/data2/MWA/PowerSpectra/FHD_healpix_test/multi_freq_residuals_cube_healpix.sav'
+    ;;datafile = '/data2/MWA/PowerSpectrad/FHD_healpix_test/multi_freq_residuals_cube_healpix.sav'
   
     ;datafile = '/data2/MWA/FHD/DATA/X16/EOR1/145/fhd_v14/Healpix/' + $
     ;  'Combined_obs_EOR1_P00_145_20110926193959-EOR1_P00_145_20110926200503_'+['even', 'odd']+'_cube.sav'
@@ -35,8 +35,23 @@ pro ps_wrapper, rts = rts, refresh_dft = refresh_dft, refresh_ps = refresh_ps, r
     ;datafile = '/nfs/mwa-09/r1/djc/EoR2013/Aug23/fhd_apb_gen_sourcelist_5/Healpix/' + $
     ;   'Combined_obs_1061311664-1061320816_' + ['even', 'odd']+'_cube.sav'
     
-    datafile = '/nfs/mwa-09/r1/djc/EoR2013/Aug23/fhd_apb_eor_firstpass_10/Healpix/' + $
-    'Combined_obs_1061316296-1061316296_' + ['even', 'odd']+'_cube.sav' 
+    ;datafile = '/nfs/mwa-09/r1/djc/EoR2013/Aug23/fhd_apb_eor_firstpass_10/Healpix/' + $
+    ;'Combined_obs_1061316296-1061316296_' + ['even', 'odd']+'_cube.sav' 
+
+    ;datafile = '/nfs/mwa-09/r1/djc/EoR2013/Aug23/fhd_apb_eor_firstpass_12/Healpix/' + $
+    ;'Combined_obs_1061316176-1061317272_' + ['even', 'odd']+'_cube.sav' 
+
+   ;datafile = '/nfs/mwa-09/r1/djc/EoR2013/Aug23/fhd_apb_gen_sourcelist_8/Healpix/' + $
+   ;  'Combined_obs_1061313616-1061318984_' + ['even', 'odd']+'_cube.sav'
+   
+   ;datafile = '/nfs/mwa-09/r1/djc/EoR2013/Aug23/fhd_apb_pipeline_paper_deep_1/Healpix/' + $
+   ;   'Combined_obs_1061316296-1061316296_' + ['even', 'odd']+'_cube.sav'
+
+  ;datafile = '/nfs/mwa-09/r1/djc/EoR2013/Aug23/fhd_apb_pipeline_paper_snapshot_1/Healpix/' + $
+  ;  'Combined_obs_1061316296-1061316296_' + ['even', 'odd']+'_cube.sav'
+    
+    datafile = '/nfs/mwa-09/r1/djc/EoR2013/Aug23/fhd_apb_pipeline_paper_deep_1/Healpix/' + $
+    'Combined_obs_1061311664-1061323008_' + ['even', 'odd']+'_cube.sav'
   endelse
   
   ;; dft_fchunk applies only to Healpix datasets (it's ignored otherwise) and it specifies how many frequencies to process
