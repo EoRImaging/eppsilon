@@ -33,13 +33,20 @@ Reference: http://slugidl.pbworks.com/w/page/28913708/Adding%20Programs%20to%20Y
 
 3 Install HEALPix, as http://healpix.jpl.nasa.gov/html/install.htm
 
-4 Open a fresh terminal and start IDL to test the installation. Suggested test commands:
+4 Install Imagemagick if not already present (http://www.imagemagick.org)
 
-cgFindCoyoteFiles
-[prints error if coyote library not installed, prints coyote library path if coyote library installed correctly]
+*****
+On eor-01, I had to install the i386 version of Imagemagick even though x86_64 was already installed. Maybe it's important to specify the version. 
+*****
+
+5 Open a fresh terminal and start IDL to test the installation. Suggested test commands:
+
+print,cgHasImageMagick() 
+[prints error if coyote library not installed, returns 0 if coyote library installed but Imagemagick not installed correctly, and returns 1 if both are installed correctly]
 
 astrolib  [prints error if astro IDL library not installed correctly, prints message “ASTROLIB: Astronomy Library system variables have been added” if installed correctly]
 
 init_healpix 
 [prints error if HEALPix not installed correctly]
 
+If the above commands all work, it’s time to try it out on some data
