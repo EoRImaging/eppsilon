@@ -149,7 +149,10 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
   if datavar ne '' and n_elements(frequencies) ne n_freq then $
     message, 'number of frequencies does not match frequency dimension of data'
     
-  if n_elements(freq_ch_range) ne 0 then frequencies = frequencies[min(freq_ch_range):max(freq_ch_range)]
+  if n_elements(freq_ch_range) ne 0 then begin
+    n_freq_orig = n_elements(frequencies)
+    frequencies = frequencies[min(freq_ch_range):max(freq_ch_range)]
+  endif
   n_freq = n_elements(frequencies)
   
   ;; check whether or not the frequencies are evenly spaced.
@@ -234,17 +237,26 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
   
   old_vis_sigma = vis_sigma
   
-  vis_sig_tag = number_formatter(384./n_freq)
+  if n_elements(freq_ch_range) ne 0 then vis_sig_tag = number_formatter(384./n_freq_orig) else vis_sig_tag = number_formatter(384./n_freq)
   vis_sigma_file = file_dirname(file_struct.savefile_froot, /mark_directory) + 'vis_sigma/vis_sigma_measured' + vis_sig_tag + '.sav'
+
   if file_test(vis_sigma_file) then begin
     restore, vis_sigma_file
-    if n_elements(vis_sigma) ne n_freq then stop
+    
+    if n_elements(freq_ch_range) ne 0 then begin
+      if n_elements(vis_sigma) ne n_freq_orig then stop
+      vis_sigma = vis_sigma[min(freq_ch_range):max(freq_ch_range)]
+    endif else if n_elements(vis_sigma) ne n_freq then stop
+    
     wh_nan = where(finite(vis_sigma) eq 0, count_nan)
     if count_nan gt 0 then vis_sigma[wh_nan] = 0
   endif else begin
     ;; make a flat vis_sigma
     vis_sigma = old_vis_sigma*0 + old_vis_sigma[0]
   endelse
+  
+  n_vis = file_struct.n_vis
+  if n_elements(freq_ch_range) ne 0 then n_vis = n_vis * (float(n_freq)/float(n_freq_orig))
   
   if healpix or keyword_set(image) then begin
   
@@ -268,6 +280,41 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
       test_uvf = file_test(file_struct.uvf_savefile[i]) *  (1 - file_test(file_struct.uvf_savefile[i], /zero_length))
       
       test_wt_uvf = file_test(file_struct.uvf_weight_savefile[i]) * (1 - file_test(file_struct.uvf_weight_savefile[i], /zero_length))
+      
+      if test_uvf eq 0 and not keyword_set(dft_refresh_data) and n_elements(freq_ch_range) ne 0 then begin
+        ;; if this is a limited freq. range cube, check for the full cube to avoid redoing the DFT
+        full_uvf_file = strjoin(strsplit(file_struct.uvf_savefile[i], '_ch[0-9]+-[0-9]+', /regex, /extract))
+        test_full_uvf = file_test(full_uvf_file) *  (1 - file_test(full_uvf_file, /zero_length))
+        if test_full_uvf eq 1 then begin
+          restore, full_uvf_file
+          
+          data_cube = data_cube[*, *, min(freq_ch_range):max(freq_ch_range)]
+          
+          if keyword_set(dft_ian) then save, file = file_struct.uvf_savefile[i], u_lambda_vals, v_lambda_vals, data_cube $
+          else save, file = file_struct.uvf_savefile[i], kx_rad_vals, ky_rad_vals, data_cube
+          undefine, data_cube
+          
+          test_uvf = 1
+        endif
+      endif
+      
+      if test_wt_uvf eq 0 and not keyword_set(dft_refresh_weight) and n_elements(freq_ch_range) ne 0 then begin
+        ;; if this is a limited freq. range cube, check for the full cube to avoid redoing the DFT
+        full_uvf_wt_file = strjoin(strsplit(file_struct.uvf_weight_savefile[i], '_ch[0-9]+-[0-9]+', /regex, /extract))
+        test_full_wt_uvf = file_test(full_uvf_wt_file) *  (1 - file_test(full_uvf_wt_file, /zero_length))
+        if test_full_wt_uvf eq 1 then begin
+          restore, full_uvf_wt_file
+          
+          weights_cube = weights_cube[*, *, min(freq_ch_range):max(freq_ch_range)]
+          variance_cube = variance_cube[*, *, min(freq_ch_range):max(freq_ch_range)]
+          
+          if keyword_set(dft_ian) then save, file = file_struct.uvf_weight_savefile[i], u_lambda_vals, v_lambda_vals, weights_cube, variance_cube else $
+            save, file = file_struct.uvf_weight_savefile[i], kx_rad_vals, ky_rad_vals, weights_cube, variance_cube
+          undefine, weights_cube, variance_cube
+          
+          test_wt_uvf = 1
+        endif
+      endif
       
       if test_uvf eq 0 or test_wt_uvf eq 0 or keyword_set(dft_refresh_data) or keyword_set(dft_refresh_weight) then begin
         if datavar eq '' then begin
@@ -577,8 +624,8 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
         
         if min(ky_mpc) lt 0 then begin
           ;; calculate integral of window function before cut for comparison
-          window_int_orig = [total(variance_cube1)*pix_area_rad/file_struct.n_vis[0], $
-            total(variance_cube2)*pix_area_rad/file_struct.n_vis[1]]
+          window_int_orig = [total(variance_cube1)*pix_area_rad/n_vis[0], $
+            total(variance_cube2)*pix_area_rad/n_vis[1]]
             
           ;; negative ky values haven't been cut yet
           ;; need to cut uvf cubes in half because image is real -- we'll cut negative ky
@@ -611,8 +658,8 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
       
       ;; calculate integral of window function (use pix_area_rad for FT normalization)
       ;; already cut out negative ky, so multiply by 2
-      window_int = 2*[total(variance_cube1)*pix_area_rad/file_struct.n_vis[0], $
-        total(variance_cube2)*pix_area_rad/file_struct.n_vis[1]]
+      window_int = 2*[total(variance_cube1)*pix_area_rad/n_vis[0], $
+        total(variance_cube2)*pix_area_rad/n_vis[1]]
         
     endelse
     
@@ -709,7 +756,7 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
         
         ;; calculate integral of window function
         ;; already cut out negative ky, so multiply by 2
-        window_int = 2*total(variance_cube1)*pix_area_rad/file_struct.n_vis
+        window_int = 2*total(variance_cube1)*pix_area_rad/n_vis
         
       endif
       
@@ -741,7 +788,7 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
         
         ;; calculate integral of window function
         ;; already cut out negative ky, so multiply by 2
-        window_int = 2*total(variance_cube1)*pix_area_rad/file_struct.n_vis
+        window_int = 2*total(variance_cube1)*pix_area_rad/n_vis
         
         
       endif
@@ -915,7 +962,7 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
       
     if max(abs(vf_slice)) eq 0 then begin
       nloop = 0
-      while max(abs(vf_slice)) eq 0 do begin
+      while max(abs(vf_slice)) eq 0 and (n_kx/2+nloop) lt (n_kx-1) do begin
         nloop = nloop+1
         vf_slice = uvf_slice(data_cube, kx_mpc, ky_mpc, frequencies, kperp_lambda_conv, delay_params, hubble_param, $
           slice_axis = 0, slice_inds = n_kx/2+nloop, slice_savefile = file_struct.vf_savefile[i])
@@ -1005,7 +1052,7 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
   if nfiles eq 2 then $
     uv_slice = uvf_slice(data_diff, kx_mpc, ky_mpc, frequencies, kperp_lambda_conv, delay_params, hubble_param, slice_axis = 2, $
     slice_inds = 0, slice_savefile = file_struct.uv_diff_savefile)
-        
+    
   ;; apply spectral windowing function if desired
   if n_elements(spec_window_type) ne 0 then begin
     window = spectral_window(n_freq, type = spec_window_type, /periodic)
