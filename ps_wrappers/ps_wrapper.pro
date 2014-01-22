@@ -4,28 +4,29 @@ pro ps_wrapper, rts = rts, refresh_dft = refresh_dft, refresh_ps = refresh_ps, r
   ;; The only required input is the datafile name (including the full path)
     
   if keyword_set(rts) then begin
-     froot = '/data2/MWA/bpindor/RTS/'
-     
-;     data_dir = froot + 'BdaggerV/'
-     data_dir = froot + 'Images/'
-     datafiles = file_search(data_dir + '*.fits')
-     
-;     weights_dir = froot + 'Bdagger1/'
-     weights_dir = froot + 'Weights/'
-     weightfiles = file_search(weights_dir + '*.fits')
-     
-;     variance_dir = froot + 'BdaggerB/'
-     variance_dir = froot + 'Variances/'
-     variancefiles = file_search(variance_dir + '*.fits')
-
-     datafile =  rts_fits2imagecube(datafiles, weightfiles, variancefiles, pol_inc, save_path = froot)
-
+    froot = '/data3/MWA/bpindor/RTS/dec_11/'
+    
+    ;     data_dir = froot + 'BdaggerV/'
+    data_dir = froot + ['PSF0_0/','PSF0_1/']
+    
+    ;     weights_dir = froot + 'Bdagger1/'
+    weights_dir = froot + ['PSF1_0/','PSF1_1/']
+    
+    ;     variance_dir = froot + 'BdaggerB/'
+    variance_dir = froot + ['PSF2_0/','PSF2_1/']
+    
+    datafiles = [[file_search(data_dir[0] + '*.fits')],[file_search(data_dir[1] + '*.fits')]]
+    weightfiles = [[file_search(weights_dir[0] + '*.fits')],[file_search(weights_dir[1] + '*.fits')]]
+    variancefiles = [[file_search(variance_dir[0] + '*.fits')],[file_search(variance_dir[1] + '*.fits')]]
+    
+    datafile =  rts_fits2imagecube(datafiles, weightfiles, variancefiles, pol_inc, save_path = froot)
+    
   endif else begin
   
-     ;;datafile = '/data2/MWA/FHD/DATA/X16/EOR1/145/fhd_v14/Healpix/' + $
-     ;;           'Combined_obs_EOR1_P00_145_20110926193959-EOR1_P00_145_20110926200503_'+['even', 'odd']+'_cube.sav'
-
-    ;;datafile = '/data2/MWA/PowerSpectrad/FHD_healpix_test/multi_freq_residuals_cube_healpix.sav'
+    ;;datafile = '/data2/MWA/FHD/DATA/X16/EOR1/145/fhd_v14/Healpix/' + $
+    ;;           'Combined_obs_EOR1_P00_145_20110926193959-EOR1_P00_145_20110926200503_'+['even', 'odd']+'_cube.sav'
+  
+    ;;datafile = '/data2/MWA/PowerSpectra/FHD_healpix_test/multi_freq_residuals_cube_healpix.sav'
   
     ;datafile = '/data2/MWA/FHD/DATA/X16/EOR1/145/fhd_v14/Healpix/' + $
     ;  'Combined_obs_EOR1_P00_145_20110926193959-EOR1_P00_145_20110926200503_'+['even', 'odd']+'_cube.sav'
@@ -77,7 +78,7 @@ pro ps_wrapper, rts = rts, refresh_dft = refresh_dft, refresh_ps = refresh_ps, r
   if not file_test(save_path, /directory) then file_mkdir, save_path
   
   ;; savefilebase specifies a base name to use for the save files
-   
+  
   ;; plot_path specifies a location to save plot files.
   ;; If this parameter is not set, the plots will be saved in the same directory as the datafile.
   

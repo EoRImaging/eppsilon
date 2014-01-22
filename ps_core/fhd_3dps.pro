@@ -31,10 +31,10 @@ pro fhd_3dps, file_struct, refresh = refresh, kcube_refresh = kcube_refresh, dft
 
         if keyword_set(std_power) then begin
            power_3d = fltarr(n_kx, n_ky, n_kz)
-           power_3d[*,*,0] = (a_0 * conj(a_0))/4d
-           power_3d[*,*,1:n_kz-1] = ((a_n * conj(a_n)) + (b_n * conj(b_n)))/2d
+           power_3d[*,*,0] = (a1_0 * conj(a1_0))/4d
+           power_3d[*,*,1:n_kz-1] = ((a1_n * conj(a1_n)) + (b1_n * conj(b1_n)))/2d
            
-           sigma2_3d = fltarr(n_kx, n_ky, n_kz)
+           sigma2_3d = dblarr(n_kx, n_ky, n_kz)
            sigma2_3d[*,*,0] = sigma_a0^2d
            sigma2_3d[*,*,1:n_kz-1] = 4d*(sigma_an_bn)^2d
            
@@ -42,6 +42,9 @@ pro fhd_3dps, file_struct, refresh = refresh, kcube_refresh = kcube_refresh, dft
            wh_sig0 = where(sigma2_3d eq 0, count_sig0)
            if count_sig0 gt 0 then weights_3d[wh_sig0] = 0
            sigma2_3d=0
+           
+           noise_expval_3d = sqrt(weights_3d)
+
         endif else begin  
  
            ;; now construct weights for power (mag. squared) = 1/power variance
@@ -69,6 +72,7 @@ pro fhd_3dps, file_struct, refresh = refresh, kcube_refresh = kcube_refresh, dft
               power_3d[wh_wt0] = 0
               noise_expval_3d[wh_wt0] = 0
            endif           
+
            undefine, term1, term2
            
         endelse

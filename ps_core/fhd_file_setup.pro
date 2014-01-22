@@ -69,17 +69,17 @@ function fhd_file_setup, datafile, pol_inc, weightfile = weightfile, variancefil
   endelse
   
   ;; check for pre-saved info file. If it exists, restore it and return structure. Otherwise construct structure.
-  info_file = froot + general_filebase + '_info.idlsave'
-  info_filetest = file_test(info_file)
-  if info_filetest eq 1 then begin
-    ;; check if info file has the right polarizations
-    info_pol_inc = getvar_savefile(info_file, 'pol_inc')
-    match2, pol_inc, info_pol_inc, suba, subb
-    if min([suba, subb]) ge 0 then begin
-      restore, info_file
-      return, file_struct_arr
-    endif  
-  endif
+  ;  info_file = froot + general_filebase + '_info.idlsave'
+  ;  info_filetest = file_test(info_file)
+  ;  if info_filetest eq 1 then begin
+  ;    ;; check if info file has the right polarizations
+  ;    info_pol_inc = getvar_savefile(info_file, 'pol_inc')
+  ;    match2, pol_inc, info_pol_inc, suba, subb
+  ;    if min([suba, subb]) ge 0 then begin
+  ;      restore, info_file
+  ;      return, file_struct_arr
+  ;    endif
+  ;  endif
   
   datafile_test = file_test(datafile)
   if min(datafile_test) eq 0 then message, 'datafile not found'
@@ -217,9 +217,11 @@ function fhd_file_setup, datafile, pol_inc, weightfile = weightfile, variancefil
         match_test = strcmp(fileparts_1, fileparts_2)
         wh_diff = where(match_test eq 0, count_diff, complement = wh_same, ncomplement = count_same)
         if count_diff eq 0 then general_filebase = strmid(infilebase[0], 0, temp2[0]) + '_joint' else begin
-          if count_same gt 0 then general_filebase = strjoin(fileparts_1[wh_same], '_') + '__' + strjoin(fileparts_1[wh_diff]) $
-            + '_' + strjoin(fileparts_2[wh_diff]) + '_joint' $
-          else general_filebase = infilebase[0] + infilebase[1] + '_joint'
+          if count_same gt 0 then begin
+            general_filebase = strjoin(fileparts_1[wh_same], '_') + '__' + strjoin(fileparts_1[wh_diff]) $
+              + '_' + strjoin(fileparts_2[wh_diff]) + '_joint'
+            infile_label = [strjoin(fileparts_1[wh_diff]), strjoin(fileparts_2[wh_diff])]
+          endif else general_filebase = infilebase[0] + infilebase[1] + '_joint'
         endelse
         
         general_filebase = general_filebase + fch_tag
@@ -233,7 +235,11 @@ function fhd_file_setup, datafile, pol_inc, weightfile = weightfile, variancefil
           for i=0, nfiles-1 do uvf_froot[i, *] = file_dirname(datafile[i], /mark_directory)
         endelse
         uvf_savefilebase = strarr(nfiles, ncubes)
-        for i=0, nfiles-1 do uvf_savefilebase[i, *] = strmid(infilebase[i], 0, temp2[i]) + fch_tag + file_label + dft_label
+        uvf_label = strarr(nfiles, ncubes)
+        for i=0, nfiles-1 do begin
+          uvf_savefilebase[i, *] = strmid(infilebase[i], 0, temp2[i]) + fch_tag + file_label + dft_label
+          uvf_label[i, *] = infile_label[i] + file_label
+        endfor
       endif
     endelse
   endif
@@ -528,7 +534,7 @@ function fhd_file_setup, datafile, pol_inc, weightfile = weightfile, variancefil
       savefile_froot:froot, savefilebase:savefilebase[i], general_filebase:general_filebase, $
       weight_savefilebase:weight_savefilebase[*,pol_index], $
       res_uvf_inputfiles:res_uvf_inputfiles, res_uvf_varname:res_uvf_varname, $
-      file_label:file_label[i], wt_file_label:wt_file_label[pol_index]}
+      file_label:file_label[i], uvf_label:uvf_label[*,i], wt_file_label:wt_file_label[pol_index]}
       
     if healpix or keyword_set(image) then file_struct = create_struct(file_struct, 'uvf_savefile', uvf_savefile[*,i], $
       'uvf_weight_savefile', uvf_weight_savefile[*, pol_index])
