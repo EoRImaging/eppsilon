@@ -22,10 +22,10 @@ pro kpower_slice_plot, slice_savefile, multi_pos = multi_pos, start_multi_params
       endcase
       
     endif
-    if n_elements(plotfile) eq 0 then begin
-      if keyword_set(eps) then plotfile = 'idl_quick_image.eps' else plotfile = 'idl_quick_image'
+    if n_elements(plotfile) eq 0 and n_elements(multi_pos) eq 0 then begin
+      if keyword_set(eps) then plotfile = 'idl_kpower_slice_plot.eps' else plotfile = 'idl_kpower_slice_plot'
       cd, current = current_dir
-      print, 'no filename specified for quick_image output. Using ' + current_dir + path_sep() + plotfile
+      print, 'no filename specified for kpower_slice_plot output. Using ' + current_dir + path_sep() + plotfile
     endif
     
     if keyword_set(png) and keyword_set(eps) then begin

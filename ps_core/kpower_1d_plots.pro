@@ -20,10 +20,10 @@ pro kpower_1d_plots, power_savefile, plot_weights = plot_weights, multi_pos = mu
       endcase
       
     endif
-    if n_elements(plotfile) eq 0 then begin
-      if keyword_set(eps) then plotfile = 'idl_quick_image.eps' else plotfile = 'idl_quick_image'
+    if n_elements(plotfile) eq 0 and n_elements(multi_pos) eq 0 then begin
+      if keyword_set(eps) then plotfile = 'idl_kpower_1d_plots.eps' else plotfile = 'idl_kpower_1d_plots'
       cd, current = current_dir
-      print, 'no filename specified for quick_image output. Using ' + current_dir + path_sep() + plotfile
+      print, 'no filename specified for kpower_1d_plots output. Using ' + current_dir + path_sep() + plotfile
     endif
     
     if keyword_set(png) and keyword_set(eps) then begin
