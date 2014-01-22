@@ -1,9 +1,48 @@
 pro uvf_slice_plot, slice_savefile, multi_pos = multi_pos, start_multi_params = start_multi_params, plot_xrange = plot_xrange, $
-    plot_yrange = plot_yrange, data_range = data_range, type = type, log=log, pub = pub, plotfile = plotfile, $
+    plot_yrange = plot_yrange, data_range = data_range, type = type, log=log, png = png, eps = eps, plotfile = plotfile, $
     window_num = window_num, title = title, title_prefix = title_prefix, grey_scale = grey_scale, baseline_axis = baseline_axis, hinv = hinv, $
     mark_0 = mark_0, image_space = image_space, color_0amp = color_0amp, charsize = charsize_in, $
     cb_size = cb_size_in, margin = margin_in, cb_margin = cb_margin_in, no_title = no_title
     
+  if n_elements(plotfile) gt 0 or keyword_set(png) or keyword_set(eps) then pub = 1 else pub = 0
+  if pub eq 1 then begin
+    if not (keyword_set(png) or keyword_set(eps)) then begin
+      basename = cgRootName(plotfile, directory=directory, extension=extension)
+      
+      case extension of
+        'eps': eps=1
+        'png': png=1
+        '': png = 1
+        else: begin
+          print, 'Unrecognized extension, using png'
+          png = 1
+        end
+      endcase
+      
+    endif
+    if n_elements(plotfile) eq 0 then begin
+      if keyword_set(eps) then plotfile = 'idl_quick_image.eps' else plotfile = 'idl_quick_image'
+      cd, current = current_dir
+      print, 'no filename specified for quick_image output. Using ' + current_dir + path_sep() + plotfile
+    endif
+    
+    if keyword_set(png) and keyword_set(eps) then begin
+      print, 'both eps and png cannot be set, using png'
+      eps = 0
+    endif
+    
+    case 1 of
+      png: begin
+        plot_exten = '.png'
+        delete_ps = 1
+      end
+      eps: begin
+        plot_exten = '.eps'
+        delete_ps = 0
+      end
+    endcase
+  endif
+  
   if n_elements(window_num) eq 0 then window_num = 1
   
   if n_elements(start_multi_params) gt 0 and n_elements(multi_pos) gt 0 then message, 'If start_multi_params are passed, ' + $
@@ -122,13 +161,13 @@ pro uvf_slice_plot, slice_savefile, multi_pos = multi_pos, start_multi_params = 
     if size(uvf_slice, /type) ne 4 and size(uvf_slice, /type) ne 5 then message, 'weights slices must be floats or doubles'
     plot_slice = uvf_slice / max(uvf_slice)
     cb_title = 'Normalized Weights'
-    plotfile_add = '.eps'
+    plotfile_add = plot_exten
   end
 endcase
 
 if n_elements(plotfile) eq 0 then $
   plotfile = strsplit(slice_savefile, '.idlsave', /regex, /extract) + plotfile_fadd $
-else if strcmp(strmid(plotfile, strlen(plotfile)-4), '.eps', /fold_case) eq 0 then plotfile = plotfile + '.eps'
+else if strcmp(strmid(plotfile, strlen(plotfile)-4), plot_exten, /fold_case) eq 0 then plotfile = plotfile + plot_exten
 
 
 xarr_edges = [xarr - xdelta/2, max(xarr) + xdelta/2]
@@ -289,8 +328,8 @@ if n_elements(multi_pos) eq 4 or n_elements(start_multi_params) gt 0 then begin
     if make_win eq 1 then window, window_num, xsize = xsize, ysize = ysize
     cgerase, background_color
     
-    ;; if pub is set, start ps output
-    if keyword_set(pub) then pson, file = plotfile, /eps
+    ;; if pub is set, start file output
+    if keyword_set(pub) then cgps_open, plotfile, /font, encapsulated=eps
     
     ;; calculate multi_size & multi x/ylen not calculated earlier
     multi_xlen = (multi_pos[2,0]-multi_pos[0,0])
@@ -382,7 +421,7 @@ if keyword_set(pub) then begin
   
   if n_elements(multi_pos) eq 0 then begin
     window, window_num, xsize = xsize, ysize = ysize
-    pson, file = plotfile, /eps
+    cgps_open, plotfile, /font, encapsulated=eps
   endif
   
 endif else begin
@@ -614,7 +653,7 @@ endif else $
   maxrange = cb_range[1], title = cb_title, minor=5, charthick = charthick, xthick = xthick, ythick = ythick
   
 if keyword_set(pub) and n_elements(multi_pos) eq 0 then begin
-  psoff
+  cgps_close, png = png, delete_ps = delete_ps
   wdelete, window_num
 endif
 

@@ -1,8 +1,47 @@
 
 
 pro kpower_1d_plots, power_savefile, plot_weights = plot_weights, multi_pos = multi_pos, data_range = data_range, k_range = k_range, $
-                     pub = pub, plotfile = plotfile, window_num = window_num, colors = colors, names = names, save_text = save_text, $
+                     png = png, eps = eps, plotfile = plotfile, window_num = window_num, colors = colors, names = names, save_text = save_text, $
                      delta = delta, hinv = hinv
+
+  if n_elements(plotfile) gt 0 or keyword_set(png) or keyword_set(eps) then pub = 1 else pub = 0
+  if pub eq 1 then begin
+    if not (keyword_set(png) or keyword_set(eps)) then begin
+      basename = cgRootName(plotfile, directory=directory, extension=extension)
+      
+      case extension of
+        'eps': eps=1
+        'png': png=1
+        '': png = 1
+        else: begin
+          print, 'Unrecognized extension, using png'
+          png = 1
+        end
+      endcase
+      
+    endif
+    if n_elements(plotfile) eq 0 then begin
+      if keyword_set(eps) then plotfile = 'idl_quick_image.eps' else plotfile = 'idl_quick_image'
+      cd, current = current_dir
+      print, 'no filename specified for quick_image output. Using ' + current_dir + path_sep() + plotfile
+    endif
+    
+    if keyword_set(png) and keyword_set(eps) then begin
+      print, 'both eps and png cannot be set, using png'
+      eps = 0
+    endif
+    
+    case 1 of
+      png: begin
+        plot_exten = '.png'
+        delete_ps = 1
+      end
+      eps: begin
+        plot_exten = '.eps'
+        delete_ps = 0
+      end
+    endcase
+  endif
 
   if n_elements(window_num) eq 0 then window_num = 2
 
@@ -30,8 +69,8 @@ pro kpower_1d_plots, power_savefile, plot_weights = plot_weights, multi_pos = mu
 
   endif else no_erase = 0
 
-  if n_elements(plotfile) eq 0 then plotfile = strsplit(power_savefile[0], '.idlsave', /regex, /extract) + '_1dkplot.eps' $
-  else if strcmp(strmid(plotfile, strlen(plotfile)-4), '.eps', /fold_case) eq 0 then plotfile = plotfile + '.eps'
+  if n_elements(plotfile) eq 0 then plotfile = strsplit(power_savefile[0], '.idlsave', /regex, /extract) + '_1dkplot' + plot_exten $
+  else if strcmp(strmid(plotfile, strlen(plotfile)-4), plot_exten, /fold_case) eq 0 then plotfile = plotfile + plot_exten
 
   color_list = ['black', 'PBG5', 'red6', 'GRN3', 'PURPLE', 'ORANGE', 'TG2','TG8']
   
@@ -41,7 +80,7 @@ pro kpower_1d_plots, power_savefile, plot_weights = plot_weights, multi_pos = mu
   endif     
 
   if keyword_set(save_text) then begin
-     text_filename = strsplit(plotfile, '.eps', /regex, /extract) + '.txt'
+     text_filename = strsplit(plotfile, plot_exten, /regex, /extract) + '.txt'
      if nfiles gt 1 then if n_elements(names) ne 0 then text_labels = names else text_labels = strarr(nfiles)
         
      openw, lun, text_filename, /get_lun
@@ -160,7 +199,7 @@ pro kpower_1d_plots, power_savefile, plot_weights = plot_weights, multi_pos = mu
 
     if n_elements(multi_pos) eq 0 then begin
        window, window_num
-       pson, file = plotfile, /eps 
+       cgps_open, plotfile, /font, encapsulated=eps
     endif
   endif else if n_elements(multi_pos) eq 0 then begin
      if windowavailable(window_num) then wset, window_num else window, window_num
@@ -189,7 +228,7 @@ pro kpower_1d_plots, power_savefile, plot_weights = plot_weights, multi_pos = mu
      al_legend, names, textcolor = colors, box = 0, /right, bottom = bottom, charsize = legend_charsize, charthick = charthick
 
   if keyword_set(pub) and n_elements(multi_pos) eq 0 then begin
-     psoff
+     cgps_close, png = png, delete_ps = delete_ps
      wdelete, window_num
   endif
   

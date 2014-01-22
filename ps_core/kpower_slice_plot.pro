@@ -1,11 +1,50 @@
 
 
 pro kpower_slice_plot, slice_savefile, multi_pos = multi_pos, start_multi_params = start_multi_params, plot_xrange = plot_xrange, $
-    plot_yrange = plot_yrange, data_range = data_range, pub = pub, plotfile = plotfile, $
+    plot_yrange = plot_yrange, data_range = data_range, png = png, eps = eps, plotfile = plotfile, $
     color_profile = color_profile, log_cut_val = log_cut_val, window_num = window_num, title = title, title_prefix = title_prefix, $
     grey_scale = grey_scale, plot_wedge_line = plot_wedge_line, wedge_amp = wedge_amp, linear_axes = linear_axes, $
     baseline_axis = baseline_axis, delay_axis = delay_axis, hinv = hinv
     
+  if n_elements(plotfile) gt 0 or keyword_set(png) or keyword_set(eps) then pub = 1 else pub = 0
+  if pub eq 1 then begin
+    if not (keyword_set(png) or keyword_set(eps)) then begin
+      basename = cgRootName(plotfile, directory=directory, extension=extension)
+      
+      case extension of
+        'eps': eps=1
+        'png': png=1
+        '': png = 1
+        else: begin
+          print, 'Unrecognized extension, using png'
+          png = 1
+        end
+      endcase
+      
+    endif
+    if n_elements(plotfile) eq 0 then begin
+      if keyword_set(eps) then plotfile = 'idl_quick_image.eps' else plotfile = 'idl_quick_image'
+      cd, current = current_dir
+      print, 'no filename specified for quick_image output. Using ' + current_dir + path_sep() + plotfile
+    endif
+    
+    if keyword_set(png) and keyword_set(eps) then begin
+      print, 'both eps and png cannot be set, using png'
+      eps = 0
+    endif
+    
+    case 1 of
+      png: begin
+        plot_exten = '.png'
+        delete_ps = 1
+      end
+      eps: begin
+        plot_exten = '.eps'
+        delete_ps = 0
+      end
+    endcase
+  endif
+  
   if n_elements(window_num) eq 0 then window_num = 1
   
   if n_elements(start_multi_params) gt 0 and n_elements(multi_pos) gt 0 then message, 'If start_multi_params are passed, ' + $
@@ -59,8 +98,8 @@ pro kpower_slice_plot, slice_savefile, multi_pos = multi_pos, start_multi_params
   
   
   if n_elements(plotfile) eq 0 then $
-    plotfile = strsplit(slice_savefile, '.idlsave', /regex, /extract) + '.eps' $
-  else if strcmp(strmid(plotfile, strlen(plotfile)-4), '.eps', /fold_case) eq 0 then plotfile = plotfile + '.eps'
+    plotfile = strsplit(slice_savefile, '.idlsave', /regex, /extract) + plot_exten $
+  else if strcmp(strmid(plotfile, strlen(plotfile)-4), plot_exten, /fold_case) eq 0 then plotfile = plotfile + plot_exten
   
   
   if n_x_plot eq 0 or n_y_plot eq 0 then message, 'No data in plot k range'
@@ -306,7 +345,7 @@ pro kpower_slice_plot, slice_savefile, multi_pos = multi_pos, start_multi_params
       cgerase, background_color
       
       ;; if pub is set, start ps output
-      if keyword_set(pub) then pson, file = plotfile, /eps
+      if keyword_set(pub) then cgps_open, plotfile, /font, encapsulated=eps
       
       ;; calculate multi_size & multi x/ylen not calculated earlier
       multi_xlen = (multi_pos[2,0]-multi_pos[0,0])
@@ -392,14 +431,14 @@ pro kpower_slice_plot, slice_savefile, multi_pos = multi_pos, start_multi_params
     ythick = 3
     if n_elements(charsize_in) eq 0 then begin
       if n_elements(multi_pos) gt 0 then begin
-        charsize = 1.2d * (multi_size[0]/float(base_size))
+        charsize = 1.2d * (multi_size[0]/6500.)
       endif else charsize = 2
     endif else charsize = charsize_in
     font = 1
     
     if n_elements(multi_pos) eq 0 then begin
       window, window_num, xsize = xsize, ysize = ysize
-      pson, file = plotfile, /eps
+      cgps_open, plotfile, /font, encapsulated=eps
     endif
     
   endif else begin
@@ -554,41 +593,42 @@ pro kpower_slice_plot, slice_savefile, multi_pos = multi_pos, start_multi_params
     if min(power_slice) lt 0 and min(tick_vals) lt min_pos then begin
       wh = where(tick_vals lt min_pos, count, complement = wh_keep, ncomplement = count_keep)
       
-      if count lt 1 then stop $
-      else if count eq 1 then names = ['<0', '10!U' + strtrim(string(round(alog10(tick_vals[wh_keep]))), 2) + '!N'] $
-    else names = [strarr(count-1), '<0', '10!U' + strtrim(string(round(alog10(tick_vals[wh_keep]))), 2) + '!N']
-    
-  endif else $
-    names = '10!U' + strtrim(string(round(alog10(tick_vals))), 2) + '!N'
-    
-endelse
-
-if (alog10(tick_vals[0]) - log_data_range[0]) gt 10^(-3d) then begin
-  cb_ticknames = [' ', names]
-  cb_ticks = [color_range[0], (alog10(tick_vals) - log_data_range[0]) * n_colors / $
-    (log_data_range[1] - log_data_range[0]) + color_range[0]] - color_range[0]
-endif else begin
-  cb_ticknames = names
-  cb_ticks = ((alog10(tick_vals) - log_data_range[0]) * n_colors / $
-    (log_data_range[1] - log_data_range[0]) + color_range[0]) - color_range[0]
-endelse
-
-if (log_data_range[1] - alog10(max(tick_vals))) gt 10^(-3d) then begin
-  cb_ticknames = [cb_ticknames, ' ']
-  cb_ticks = [cb_ticks, color_range[1]-color_range[0]]
-endif
-
-min_pos_cb_val = ((alog10(min_pos) - log_data_range[0]) * n_colors / $
-  (log_data_range[1] - log_data_range[0]) + color_range[0]) - color_range[0]
-cgcolorbar, color = annotate_color, /vertical, position = cb_pos, bottom = color_range[0], ncolors = n_colors+1, yminor = 0, $
-  ticknames = cb_ticknames, ytickv = cb_ticks, yticks = n_elements(cb_ticks) -1, charsize = charsize, font = font
+      if count lt 1 then stop
+      
+      if count eq 1 then names = ['<0', '10!U' + strtrim(string(round(alog10(tick_vals[wh_keep]))), 2) + '!N'] $
+      else names = [strarr(count-1), '<0', '10!U' + strtrim(string(round(alog10(tick_vals[wh_keep]))), 2) + '!N']
+      
+    endif else $
+      names = '10!U' + strtrim(string(round(alog10(tick_vals))), 2) + '!N'
+      
+  endelse
   
-if keyword_set(pub) and n_elements(multi_pos) eq 0 then begin
-  psoff
-  wdelete, window_num
-endif
-
-tvlct, r, g, b
-if keyword_set(all_zero) then temp = temporary(data_range)
-
+  if (alog10(tick_vals[0]) - log_data_range[0]) gt 10^(-3d) then begin
+    cb_ticknames = [' ', names]
+    cb_ticks = [color_range[0], (alog10(tick_vals) - log_data_range[0]) * n_colors / $
+      (log_data_range[1] - log_data_range[0]) + color_range[0]] - color_range[0]
+  endif else begin
+    cb_ticknames = names
+    cb_ticks = ((alog10(tick_vals) - log_data_range[0]) * n_colors / $
+      (log_data_range[1] - log_data_range[0]) + color_range[0]) - color_range[0]
+  endelse
+  
+  if (log_data_range[1] - alog10(max(tick_vals))) gt 10^(-3d) then begin
+    cb_ticknames = [cb_ticknames, ' ']
+    cb_ticks = [cb_ticks, color_range[1]-color_range[0]]
+  endif
+  
+  min_pos_cb_val = ((alog10(min_pos) - log_data_range[0]) * n_colors / $
+    (log_data_range[1] - log_data_range[0]) + color_range[0]) - color_range[0]
+  cgcolorbar, color = annotate_color, /vertical, position = cb_pos, bottom = color_range[0], ncolors = n_colors+1, yminor = 0, $
+    ticknames = cb_ticknames, ytickv = cb_ticks, yticks = n_elements(cb_ticks) -1, charsize = charsize, font = font
+    
+  if keyword_set(pub) and n_elements(multi_pos) eq 0 then begin
+    cgps_close, png = png, delete_ps = delete_ps
+    wdelete, window_num
+  endif
+  
+  tvlct, r, g, b
+  if keyword_set(all_zero) then temp = temporary(data_range)
+  
 end
