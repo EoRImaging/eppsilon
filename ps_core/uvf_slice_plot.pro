@@ -140,523 +140,522 @@ pro uvf_slice_plot, slice_savefile, multi_pos = multi_pos, start_multi_params = 
     'abs': begin
       plot_slice = abs(uvf_slice)
       cb_title = 'Magnitude'
-      plotfile_fadd = '_abs.eps'
+      if pub then plotfile_fadd = '_abs.eps'
     end
     'phase': begin
       plot_slice = atan(uvf_slice, /phase)
       cb_title = 'Phase (degrees)'
-      plotfile_fadd = '_phase.eps'
+      if pub then plotfile_fadd = '_phase.eps'
     end
     'real': begin
       plot_slice = real_part(uvf_slice)
       cb_title = 'Real Part'
-      plotfile_fadd = '_real.eps'
+      if pub then plotfile_fadd = '_real.eps'
     end
-    'imaginary':  begin
+    'imaginary': begin
       plot_slice = imaginary(uvf_slice)
       cb_title = 'Imaginary Part'
-      plotfile_fadd = '_imaginary.eps'
+      if pub then plotfile_fadd = '_imaginary.eps'
     end
-    'weights':begin
-    if size(uvf_slice, /type) ne 4 and size(uvf_slice, /type) ne 5 then message, 'weights slices must be floats or doubles'
-    plot_slice = uvf_slice / max(uvf_slice)
-    cb_title = 'Normalized Weights'
-    plotfile_add = plot_exten
-  end
-endcase
-
-if n_elements(plotfile) eq 0 then $
-  plotfile = strsplit(slice_savefile, '.idlsave', /regex, /extract) + plotfile_fadd $
-else if strcmp(strmid(plotfile, strlen(plotfile)-4), plot_exten, /fold_case) eq 0 then plotfile = plotfile + plot_exten
-
-
-xarr_edges = [xarr - xdelta/2, max(xarr) + xdelta/2]
-yarr_edges = [yarr - ydelta/2, max(yarr) + ydelta/2]
-
-tvlct, r, g, b, /get
-
-if keyword_set(grey_scale) then begin
-  cgloadct, 0, /reverse
-  background_color = 'white'
-  annotate_color = 'black'
-endif else begin
-  cgloadct, 25, /brewer, /reverse
-  background_color = 'white'
-  annotate_color = 'black'
-endelse
-n_colors = 256
-
-if n_elements(data_range) eq 0 then if not keyword_set(all_zero) then data_range = minmax(plot_slice) else data_range = [-1*!pi, !pi]
-wh = where(plot_slice gt 0d, count)
-if count gt 0 then min_pos = min(plot_slice[wh]) else if keyword_set(all_zero) then min_pos = data_range[0]
-
-if n_x_plot lt 100 or n_y_plot lt 100 then slice_plot = congrid(plot_slice, n_x_plot*10, n_y_plot * 10) else slice_plot = plot_slice
-
-if keyword_set(log) and type eq 'abs' then begin
-  color_range = [0, 255]
+    'weights': begin
+      if size(uvf_slice, /type) ne 4 and size(uvf_slice, /type) ne 5 then message, 'weights slices must be floats or doubles'
+      plot_slice = uvf_slice / max(uvf_slice)
+      cb_title = 'Normalized Weights'
+      if pub then plotfile_add = plot_exten
+    end
+  endcase
   
-  if data_range[0] gt 0 then log_cut_val = alog10(data_range[0]) else $
-    log_cut_val = alog10(min_pos)
-  log_data_range = [log_cut_val, alog10(data_range[1])]
-  
-  data_range = 10^log_data_range
-  
-  slice_log = alog10(plot_slice)
-  wh_under = where(plot_slice lt 10^double(log_cut_val), count)
-  if count ne 0 then slice_log[wh_under] = log_data_range[0]
-  wh_over = where(slice_log gt log_data_range[1], count)
-  if count ne 0 then slice_log[wh_over] = log_data_range[1]
-  
-  slice_plot_norm = (slice_log-log_data_range[0])*n_colors/(log_data_range[1]-log_data_range[0]) + color_range[0]
-  if keyword_set(all_zero) then slice_log_norm = slice_log_norm * 0 + annotate_color
-  
-endif else slice_plot_norm = (slice_plot-data_range[0])*n_colors/(data_range[1]-data_range[0])
-
-tvlct, r2, g2, b2, /get
-plot_dims = size(slice_plot_norm, /dimension)
-slice_plot_norm_rgb = bytarr(3, plot_dims[0], plot_dims[1])
-slice_plot_norm_rgb[0,*,*] = r2[slice_plot_norm]
-slice_plot_norm_rgb[1,*,*] = g2[slice_plot_norm]
-slice_plot_norm_rgb[2,*,*] = b2[slice_plot_norm]
-
-if keyword_set(color_0amp) then begin
-  wh_0amp = where(abs(slice_plot) eq 0, count_0amp)
-  if count_0amp ne 0 then begin
-  
-    for i=0, 2 do begin
-      temp = slice_plot_norm_rgb[i,*,*]
-      temp[wh_0amp] = 255
-      slice_plot_norm_rgb[i,*,*] = temp
-    endfor
-    
+  if pub then begin
+    if n_elements(plotfile) eq 0 then plotfile = strsplit(slice_savefile, '.idlsave', /regex, /extract) + plotfile_fadd $
+    else if strcmp(strmid(plotfile, strlen(plotfile)-4), plot_exten, /fold_case) eq 0 then plotfile = plotfile + plot_exten
   endif
-endif
-
-
-max_ysize = 1000
-max_xsize = 1200
-base_size = 600
-if n_elements(multi_pos) eq 4 then begin
-  ;; work out positions scaled to the area allowed in multi_pos with proper aspect ratio
-  multi_xlen = (multi_pos[2]-multi_pos[0])
-  multi_ylen = (multi_pos[3]-multi_pos[1])
-  multi_center = [multi_pos[0] + multi_xlen/2d, multi_pos[1] + multi_ylen/2d]
   
-  multi_size = [!d.x_vsize*multi_xlen, !d.y_vsize*multi_ylen]
-endif
-
-;; Work out plot & colorbar positions
-;; in units of plot area (incl. margins)
-if n_elements(cb_size_in) eq 0 then cb_size = 0.025 else cb_size = cb_size_in
-if n_elements(margin_in) lt 4 then begin
-  margin = [0.2, 0.25, 0.02, 0.15]
-  if keyword_set(baseline_axis) and not keyword_set(no_title) then margin[3] = 0.22
-  if keyword_set(baseline_axis) and slice_axis eq 2 then margin[2] = 0.1
-endif else margin = margin_in
-
-if n_elements(cb_margin_in) lt 2 then begin
-  cb_margin = [0.15, 0.04]
-endif else cb_margin = cb_margin_in
-
-plot_pos = [margin[0], margin[1], (1-cb_margin[1]-cb_size-cb_margin[0]-margin[2]), (1-margin[3])]
-cb_pos = [(1-cb_margin[1]-cb_size), margin[1], (1-cb_margin[1]), (1-margin[3])]
-
-plot_aspect = (plot_pos[3] - plot_pos[1]) / (plot_pos[2] - plot_pos[0])
-
-plot_xlength = max(xarr_edges) - min(xarr_edges)
-if slice_axis eq 2 then plot_ylength = (max(yarr_edges) - min(yarr_edges)) $
-else plot_ylength = plot_xlength
-
-
-data_aspect = (plot_ylength / plot_xlength)
-aspect_ratio =  data_aspect /plot_aspect
-
-if aspect_ratio gt 1 then begin
-  y_factor = 1.
-  x_factor = 1/aspect_ratio
-endif else begin
-
-  y_factor = aspect_ratio
-  x_factor = 1.
-endelse
-
-if n_elements(multi_pos) eq 4 or n_elements(start_multi_params) gt 0 then begin
-  if n_elements(start_multi_params) gt 0 then begin
-    ;; calculate desired window size and positions for all plots
-    ncol = start_multi_params.ncol
-    nrow = start_multi_params.nrow
+  xarr_edges = [xarr - xdelta/2, max(xarr) + xdelta/2]
+  yarr_edges = [yarr - ydelta/2, max(yarr) + ydelta/2]
+  
+  tvlct, r, g, b, /get
+  
+  if keyword_set(grey_scale) then begin
+    cgloadct, 0, /reverse
+    background_color = 'white'
+    annotate_color = 'black'
+  endif else begin
+    cgloadct, 25, /brewer, /reverse
+    background_color = 'white'
+    annotate_color = 'black'
+  endelse
+  n_colors = 256
+  
+  if n_elements(data_range) eq 0 then if not keyword_set(all_zero) then data_range = minmax(plot_slice) else data_range = [-1*!pi, !pi]
+  wh = where(plot_slice gt 0d, count)
+  if count gt 0 then min_pos = min(plot_slice[wh]) else if keyword_set(all_zero) then min_pos = data_range[0]
+  
+  if n_x_plot lt 100 or n_y_plot lt 100 then slice_plot = congrid(plot_slice, n_x_plot*10, n_y_plot * 10) else slice_plot = plot_slice
+  
+  if keyword_set(log) and type eq 'abs' then begin
+    color_range = [0, 255]
     
-    multi_pos = fltarr(4, ncol*nrow)
+    if data_range[0] gt 0 then log_cut_val = alog10(data_range[0]) else $
+      log_cut_val = alog10(min_pos)
+    log_data_range = [log_cut_val, alog10(data_range[1])]
     
-    if tag_exist(start_multi_params, 'ordering') eq 0 then ordering = 'row' $
-    else ordering = start_multi_params.ordering
+    data_range = 10^log_data_range
     
-    case ordering of
-      'col': begin
-        ;; col-major values
-        col_val = reform(rebin(reform(indgen(ncol), 1, ncol), nrow, ncol), ncol*nrow)
-        row_val = reverse(reform(rebin(indgen(nrow), nrow, ncol), ncol*nrow))
-      end
-      'row': begin
-        ;; row-major values
-        col_val = reform(rebin(indgen(ncol), ncol, nrow), ncol*nrow)
-        row_val = reverse(reform(rebin(reform(indgen(nrow), 1, nrow), ncol, nrow), ncol*nrow))
-      end
-      else: message, 'unrecognized ordering value in start_multi_params, use "col" or "row" '
-    endcase
+    slice_log = alog10(plot_slice)
+    wh_under = where(plot_slice lt 10^double(log_cut_val), count)
+    if count ne 0 then slice_log[wh_under] = log_data_range[0]
+    wh_over = where(slice_log gt log_data_range[1], count)
+    if count ne 0 then slice_log[wh_over] = log_data_range[1]
     
-    multi_pos[0,*] = col_val/double(ncol)
-    multi_pos[1,*] = row_val/double(nrow)
-    multi_pos[2,*] = (col_val+1)/double(ncol)
-    multi_pos[3,*] = (row_val+1)/double(nrow)
+    slice_plot_norm = (slice_log-log_data_range[0])*n_colors/(log_data_range[1]-log_data_range[0]) + color_range[0]
+    if keyword_set(all_zero) then slice_log_norm = slice_log_norm * 0 + annotate_color
     
-    ;; define window size based on aspect ratio
-    base_size_use = base_size
-    xsize = round(base_size * x_factor * ncol)
-    ysize = round(base_size * y_factor * nrow)
-    while (ysize gt max_ysize) or (xsize gt max_xsize) do begin
-      base_size_use = base_size_use - 100
-      xsize = round(base_size_use * x_factor * ncol)
-      ysize = round(base_size_use * y_factor * nrow)
-    endwhile
+  endif else slice_plot_norm = (slice_plot-data_range[0])*n_colors/(data_range[1]-data_range[0])
+  
+  tvlct, r2, g2, b2, /get
+  plot_dims = size(slice_plot_norm, /dimension)
+  slice_plot_norm_rgb = bytarr(3, plot_dims[0], plot_dims[1])
+  slice_plot_norm_rgb[0,*,*] = r2[slice_plot_norm]
+  slice_plot_norm_rgb[1,*,*] = g2[slice_plot_norm]
+  slice_plot_norm_rgb[2,*,*] = b2[slice_plot_norm]
+  
+  if keyword_set(color_0amp) then begin
+    wh_0amp = where(abs(slice_plot) eq 0, count_0amp)
+    if count_0amp ne 0 then begin
     
-    ;; make or set window
-    if windowavailable(window_num) then begin
-      wset, window_num
-      if !d.x_size ne xsize or !d.y_size ne ysize then make_win = 1 else make_win = 0
-    endif else make_win = 1
-    if make_win eq 1 then window, window_num, xsize = xsize, ysize = ysize
-    cgerase, background_color
-    
-    ;; if pub is set, start file output
-    if keyword_set(pub) then cgps_open, plotfile, /font, encapsulated=eps
-    
-    ;; calculate multi_size & multi x/ylen not calculated earlier
-    multi_xlen = (multi_pos[2,0]-multi_pos[0,0])
-    multi_ylen = (multi_pos[3,0]-multi_pos[1,0])
-    multi_center = [multi_pos[0,0] + multi_xlen/2d, multi_pos[1,0] + multi_ylen/2d]
-    
-    ;; This print is necessary because for some reason the pixel
-    ;; size of the window changes after a print and without this
-    ;; statement the first plot has the wrong size. Awesome.
-    temp = [!d.x_vsize,!d.y_vsize]
-    print, temp
+      for i=0, 2 do begin
+        temp = slice_plot_norm_rgb[i,*,*]
+        temp[wh_0amp] = 255
+        slice_plot_norm_rgb[i,*,*] = temp
+      endfor
+      
+    endif
+  endif
+  
+  
+  max_ysize = 1000
+  max_xsize = 1200
+  base_size = 600
+  if n_elements(multi_pos) eq 4 then begin
+    ;; work out positions scaled to the area allowed in multi_pos with proper aspect ratio
+    multi_xlen = (multi_pos[2]-multi_pos[0])
+    multi_ylen = (multi_pos[3]-multi_pos[1])
+    multi_center = [multi_pos[0] + multi_xlen/2d, multi_pos[1] + multi_ylen/2d]
     
     multi_size = [!d.x_vsize*multi_xlen, !d.y_vsize*multi_ylen]
-    
-    multi_pos_use = multi_pos[*,0]
-  endif else multi_pos_use = multi_pos
+  endif
   
-  multi_aspect = multi_size[1]/float(multi_size[0])
+  ;; Work out plot & colorbar positions
+  ;; in units of plot area (incl. margins)
+  if n_elements(cb_size_in) eq 0 then cb_size = 0.025 else cb_size = cb_size_in
+  if n_elements(margin_in) lt 4 then begin
+    margin = [0.2, 0.25, 0.02, 0.15]
+    if keyword_set(baseline_axis) and not keyword_set(no_title) then margin[3] = 0.22
+    if keyword_set(baseline_axis) and slice_axis eq 2 then margin[2] = 0.1
+  endif else margin = margin_in
   
-  new_aspect = aspect_ratio/multi_aspect
-  if new_aspect gt 1 then begin
+  if n_elements(cb_margin_in) lt 2 then begin
+    cb_margin = [0.15, 0.04]
+  endif else cb_margin = cb_margin_in
+  
+  plot_pos = [margin[0], margin[1], (1-cb_margin[1]-cb_size-cb_margin[0]-margin[2]), (1-margin[3])]
+  cb_pos = [(1-cb_margin[1]-cb_size), margin[1], (1-cb_margin[1]), (1-margin[3])]
+  
+  plot_aspect = (plot_pos[3] - plot_pos[1]) / (plot_pos[2] - plot_pos[0])
+  
+  plot_xlength = max(xarr_edges) - min(xarr_edges)
+  if slice_axis eq 2 then plot_ylength = (max(yarr_edges) - min(yarr_edges)) $
+  else plot_ylength = plot_xlength
+  
+  
+  data_aspect = (plot_ylength / plot_xlength)
+  aspect_ratio =  data_aspect /plot_aspect
+  
+  if aspect_ratio gt 1 then begin
     y_factor = 1.
-    x_factor = 1/new_aspect
+    x_factor = 1/aspect_ratio
   endif else begin
-    y_factor = new_aspect
+  
+    y_factor = aspect_ratio
     x_factor = 1.
   endelse
   
-  new_xlen = multi_xlen*x_factor
-  new_ylen = multi_ylen*y_factor
-  new_multi = [multi_center[0] - new_xlen/2d, multi_center[1] - new_ylen*y_factor/2d, $
-    multi_center[0] + new_xlen/2d, multi_center[1] + new_ylen*y_factor/2d]
+  if n_elements(multi_pos) eq 4 or n_elements(start_multi_params) gt 0 then begin
+    if n_elements(start_multi_params) gt 0 then begin
+      ;; calculate desired window size and positions for all plots
+      ncol = start_multi_params.ncol
+      nrow = start_multi_params.nrow
+      
+      multi_pos = fltarr(4, ncol*nrow)
+      
+      if tag_exist(start_multi_params, 'ordering') eq 0 then ordering = 'row' $
+      else ordering = start_multi_params.ordering
+      
+      case ordering of
+        'col': begin
+          ;; col-major values
+          col_val = reform(rebin(reform(indgen(ncol), 1, ncol), nrow, ncol), ncol*nrow)
+          row_val = reverse(reform(rebin(indgen(nrow), nrow, ncol), ncol*nrow))
+        end
+        'row': begin
+          ;; row-major values
+          col_val = reform(rebin(indgen(ncol), ncol, nrow), ncol*nrow)
+          row_val = reverse(reform(rebin(reform(indgen(nrow), 1, nrow), ncol, nrow), ncol*nrow))
+        end
+        else: message, 'unrecognized ordering value in start_multi_params, use "col" or "row" '
+      endcase
+      
+      multi_pos[0,*] = col_val/double(ncol)
+      multi_pos[1,*] = row_val/double(nrow)
+      multi_pos[2,*] = (col_val+1)/double(ncol)
+      multi_pos[3,*] = (row_val+1)/double(nrow)
+      
+      ;; define window size based on aspect ratio
+      base_size_use = base_size
+      xsize = round(base_size * x_factor * ncol)
+      ysize = round(base_size * y_factor * nrow)
+      while (ysize gt max_ysize) or (xsize gt max_xsize) do begin
+        base_size_use = base_size_use - 100
+        xsize = round(base_size_use * x_factor * ncol)
+        ysize = round(base_size_use * y_factor * nrow)
+      endwhile
+      
+      ;; make or set window
+      if windowavailable(window_num) then begin
+        wset, window_num
+        if !d.x_size ne xsize or !d.y_size ne ysize then make_win = 1 else make_win = 0
+      endif else make_win = 1
+      if make_win eq 1 then window, window_num, xsize = xsize, ysize = ysize
+      cgerase, background_color
+      
+      ;; if pub is set, start file output
+      if keyword_set(pub) then cgps_open, plotfile, /font, encapsulated=eps
+      
+      ;; calculate multi_size & multi x/ylen not calculated earlier
+      multi_xlen = (multi_pos[2,0]-multi_pos[0,0])
+      multi_ylen = (multi_pos[3,0]-multi_pos[1,0])
+      multi_center = [multi_pos[0,0] + multi_xlen/2d, multi_pos[1,0] + multi_ylen/2d]
+      
+      ;; This print is necessary because for some reason the pixel
+      ;; size of the window changes after a print and without this
+      ;; statement the first plot has the wrong size. Awesome.
+      temp = [!d.x_vsize,!d.y_vsize]
+      print, temp
+      
+      multi_size = [!d.x_vsize*multi_xlen, !d.y_vsize*multi_ylen]
+      
+      multi_pos_use = multi_pos[*,0]
+    endif else multi_pos_use = multi_pos
     
-  new_pos = [new_xlen * plot_pos[0] + new_multi[0], new_ylen * plot_pos[1] + new_multi[1], $
-    new_xlen * plot_pos[2] + new_multi[0], new_ylen * plot_pos[3] + new_multi[1]]
+    multi_aspect = multi_size[1]/float(multi_size[0])
     
-  new_cb_pos = [new_xlen * cb_pos[0] + new_multi[0], new_ylen * cb_pos[1] + new_multi[1], $
-    new_xlen * cb_pos[2] + new_multi[0], new_ylen * cb_pos[3] + new_multi[1]]
+    new_aspect = aspect_ratio/multi_aspect
+    if new_aspect gt 1 then begin
+      y_factor = 1.
+      x_factor = 1/new_aspect
+    endif else begin
+      y_factor = new_aspect
+      x_factor = 1.
+    endelse
     
-  plot_pos = new_pos
-  cb_pos = new_cb_pos
+    new_xlen = multi_xlen*x_factor
+    new_ylen = multi_ylen*y_factor
+    new_multi = [multi_center[0] - new_xlen/2d, multi_center[1] - new_ylen*y_factor/2d, $
+      multi_center[0] + new_xlen/2d, multi_center[1] + new_ylen*y_factor/2d]
+      
+    new_pos = [new_xlen * plot_pos[0] + new_multi[0], new_ylen * plot_pos[1] + new_multi[1], $
+      new_xlen * plot_pos[2] + new_multi[0], new_ylen * plot_pos[3] + new_multi[1]]
+      
+    new_cb_pos = [new_xlen * cb_pos[0] + new_multi[0], new_ylen * cb_pos[1] + new_multi[1], $
+      new_xlen * cb_pos[2] + new_multi[0], new_ylen * cb_pos[3] + new_multi[1]]
+      
+    plot_pos = new_pos
+    cb_pos = new_cb_pos
+    
+    no_erase = 1
+  endif else begin
+    xsize = round(base_size * x_factor)
+    ysize = round(base_size * y_factor)
+    
+    if not keyword_set(pub) then begin
+      while (ysize gt max_ysize) or (xsize gt max_xsize) do begin
+        base_size = base_size - 100
+        xsize = round(base_size * x_factor)
+        ysize = round(base_size * y_factor)
+      endwhile
+    endif
+    no_erase = 0
+  endelse
   
-  no_erase = 1
-endif else begin
-  xsize = round(base_size * x_factor)
-  ysize = round(base_size * y_factor)
-  
-  if not keyword_set(pub) then begin
-    while (ysize gt max_ysize) or (xsize gt max_xsize) do begin
-      base_size = base_size - 100
-      xsize = round(base_size * x_factor)
-      ysize = round(base_size * y_factor)
-    endwhile
+  if not keyword_set(no_title) then begin
+    xloc_title = (plot_pos[2] - plot_pos[0])/2. + plot_pos[0]
+    if n_elements(multi_pos) gt 0 then yloc_title = plot_pos[3] + 0.7* (multi_pos_use[3]-plot_pos[3]) $
+    else yloc_title = plot_pos[3] + 0.6* (1-plot_pos[3])
   endif
-  no_erase = 0
-endelse
-
-if not keyword_set(no_title) then begin
-  xloc_title = (plot_pos[2] - plot_pos[0])/2. + plot_pos[0]
-  if n_elements(multi_pos) gt 0 then yloc_title = plot_pos[3] + 0.7* (multi_pos_use[3]-plot_pos[3]) $
-  else yloc_title = plot_pos[3] + 0.6* (1-plot_pos[3])
-endif
-
-if n_elements(multi_pos) gt 0 then begin
-  xloc_lambda = plot_pos[0] - 0.1* (plot_pos[0]-multi_pos_use[0])
-  yloc_lambda = plot_pos[3] + 0.1* (multi_pos_use[3]-plot_pos[3])
   
-  xloc2_lambda = plot_pos[2] + 0.1* (multi_pos_use[2]-plot_pos[2])
-  yloc2_lambda = plot_pos[1] - 0.1* (plot_pos[1]-multi_pos_use[1])
-endif else begin
-  xloc_lambda = (plot_pos[2] - plot_pos[0])/2d + plot_pos[0]
-  yloc_lambda = plot_pos[3] + 0.3* (1-plot_pos[3])
+  if n_elements(multi_pos) gt 0 then begin
+    xloc_lambda = plot_pos[0] - 0.1* (plot_pos[0]-multi_pos_use[0])
+    yloc_lambda = plot_pos[3] + 0.1* (multi_pos_use[3]-plot_pos[3])
+    
+    xloc2_lambda = plot_pos[2] + 0.1* (multi_pos_use[2]-plot_pos[2])
+    yloc2_lambda = plot_pos[1] - 0.1* (plot_pos[1]-multi_pos_use[1])
+  endif else begin
+    xloc_lambda = (plot_pos[2] - plot_pos[0])/2d + plot_pos[0]
+    yloc_lambda = plot_pos[3] + 0.3* (1-plot_pos[3])
+    
+    xloc2_lambda = plot_pos[2] + 0.3* (1-plot_pos[2])
+    yloc2_lambda =  (plot_pos[3] - plot_pos[1])/2d + plot_pos[1]
+  endelse
   
-  xloc2_lambda = plot_pos[2] + 0.3* (1-plot_pos[2])
-  yloc2_lambda =  (plot_pos[3] - plot_pos[1])/2d + plot_pos[1]
-endelse
-
-if keyword_set(pub) then begin
-  charthick = 3
-  thick = 3
-  xthick = 3
-  ythick = 3
-  if n_elements(charsize_in) eq 0 then begin
-    if n_elements(multi_pos) gt 0 then begin
-      charsize = 1.5d * (multi_size[0]/6500.)
-    endif else charsize = 2
-  endif else charsize = charsize_in
-  font = 1
+  if keyword_set(pub) then begin
+    charthick = 3
+    thick = 3
+    xthick = 3
+    ythick = 3
+    if n_elements(charsize_in) eq 0 then begin
+      if n_elements(multi_pos) gt 0 then begin
+        charsize = 1.5d * (multi_size[0]/6500.)
+      endif else charsize = 2
+    endif else charsize = charsize_in
+    font = 1
+    
+    if n_elements(multi_pos) eq 0 then begin
+      window, window_num, xsize = xsize, ysize = ysize
+      cgps_open, plotfile, /font, encapsulated=eps
+    endif
+    
+  endif else begin
+    charthick = 1
+    thick = 1
+    xthick = 1
+    ythick = 1
+    font = -1
+    if n_elements(charsize_in) eq 0 then begin
+      if n_elements(multi_pos) gt 0 then begin
+        charsize = 1.2d * (multi_size[0]/float(base_size))
+      endif else charsize = 2
+    endif else charsize = charsize_in
+    
+    if n_elements(multi_pos) eq 0 then begin
+      if windowavailable(window_num) then begin
+        wset, window_num
+        if !d.x_size ne xsize or !d.y_size ne ysize then make_win = 1 else make_win = 0
+      endif else make_win = 1
+      
+      if make_win eq 1 then window, window_num, xsize = xsize, ysize = ysize
+    endif
+  endelse
   
-  if n_elements(multi_pos) eq 0 then begin
-    window, window_num, xsize = xsize, ysize = ysize
-    cgps_open, plotfile, /font, encapsulated=eps
+  
+  if n_elements(title) ne 0 then plot_title = title else begin
+    case type of
+      'abs': plot_title = 'Magnitude in ' + plane_name + ' plane'
+      'phase': plot_title = 'Phase in ' + plane_name + ' plane'
+      'real': plot_title = 'Real part of ' + plane_name + ' plane'
+      'imaginary': plot_title = 'Imaginary part of ' + plane_name + ' plane'
+      'weights': plot_title = plane_name + ' plane weights'
+    endcase
+  endelse
+  if keyword_set(title_prefix) then plot_title = title_prefix + ' ' + plot_title
+  
+  if keyword_set(image_space) then begin
+    case slice_axis of
+      0: begin
+        plot_xtitle = 'theta y (radians)'
+        plot_ytitle = plot_yname + ' (MHz)'
+      end
+      1: begin
+        plot_xtitle = 'theta x (radians)'
+        plot_ytitle = plot_yname + ' (MHz)'
+      end
+      2: begin
+        plot_xtitle = 'theta x (radians)'
+        plot_ytitle = 'theta y (radians)'
+      end
+    endcase
+  endif else begin
+    case slice_axis of
+      0: begin
+        if keyword_set (hinv) then plot_xtitle = textoidl('k_y (h Mpc^{-1})', font = font) $
+        else plot_xtitle = textoidl('k_y (Mpc^{-1})', font = font)
+        plot_ytitle = plot_yname + ' (MHz)'
+        baseline_xtitle = plot_xname + textoidl(' (\lambda)', font = font)
+      end
+      1: begin
+        if keyword_set (hinv) then plot_xtitle = textoidl('k_x (h Mpc^{-1})', font = font) $
+        else plot_xtitle = textoidl('k_x (Mpc^{-1})', font = font)
+        plot_ytitle = plot_yname + ' (MHz)'
+        baseline_xtitle = plot_xname + textoidl(' (\lambda)', font = font)
+      end
+      2: begin
+        if keyword_set (hinv) then plot_xtitle = textoidl('k_x (h Mpc^{-1})', font = font) $
+        else plot_xtitle = textoidl('k_x (Mpc^{-1})', font = font)
+        if keyword_set (hinv) then plot_ytitle = textoidl('k_y (h Mpc^{-1})', font = font) $
+        else plot_ytitle = textoidl('k_y (Mpc^{-1})', font = font)
+        baseline_xtitle = plot_xname + textoidl(' (\lambda)', font = font)
+        baseline_ytitle = plot_yname + textoidl(' (\lambda)', font = font)
+      end
+    endcase
+  endelse
+  
+  plot_xarr = xarr_edges
+  plot_yarr = yarr_edges
+  
+  if keyword_set(baseline_axis) then initial_title = '' else initial_title = plot_title
+  
+  axkeywords = {xstyle: 5, ystyle: 5, thick: thick, charthick: charthick, xthick: xthick, ythick: ythick, $
+    charsize: charsize, font: font}
+    
+  cgimage, slice_plot_norm_rgb, /nointerp, position = plot_pos, xrange = minmax(plot_xarr), yrange = minmax(plot_yarr), $
+    title = initial_title, noerase = no_erase, color = annotate_color, background = background_color, $
+    axkeywords = axkeywords, /axes
+    
+  if keyword_set(mark_0) then begin
+    cgplot, /overplot, plot_yarr * 0d, plot_yarr, color=annotate_color, psym=-0, thick = thick
+    if slice_axis eq 2 then  cgplot, /overplot, plot_xarr, plot_xarr* 0d, color=annotate_color, psym=-3, thick = thick
   endif
   
-endif else begin
-  charthick = 1
-  thick = 1
-  xthick = 1
-  ythick = 1
-  font = -1
-  if n_elements(charsize_in) eq 0 then begin
-    if n_elements(multi_pos) gt 0 then begin
-      charsize = 1.2d * (multi_size[0]/float(base_size))
-    endif else charsize = 2
-  endif else charsize = charsize_in
   
-  if n_elements(multi_pos) eq 0 then begin
-    if windowavailable(window_num) then begin
-      wset, window_num
-      if !d.x_size ne xsize or !d.y_size ne ysize then make_win = 1 else make_win = 0
-    endif else make_win = 1
+  cgaxis, xaxis=0, xtick_get = xticks, xtitle = plot_xtitle, xrange = minmax(plot_xarr), $
+    charthick = charthick, xthick = xthick, ythick = ythick, charsize = charsize, font = font, $
+    xstyle = 1, color = annotate_color
     
-    if make_win eq 1 then window, window_num, xsize = xsize, ysize = ysize
-  endif
-endelse
-
-
-if n_elements(title) ne 0 then plot_title = title $
-else begin
-case type of
-  'abs': plot_title = 'Magnitude in ' + plane_name + ' plane'
-  'phase': plot_title = 'Phase in ' + plane_name + ' plane'
-  'real': plot_title = 'Real part of ' + plane_name + ' plane'
-  'imaginary': plot_title = 'Imaginary part of ' + plane_name + ' plane'
-  'weights': plot_title = plane_name + ' plane weights'
-endcase
-endelse
-if keyword_set(title_prefix) then plot_title = title_prefix + ' ' + plot_title
-
-if keyword_set(image_space) then begin
-  case slice_axis of
-    0:begin
-    plot_xtitle = 'theta y (radians)'
-    plot_ytitle = plot_yname + ' (MHz)'
-  end
-  1: begin
-    plot_xtitle = 'theta x (radians)'
-    plot_ytitle = plot_yname + ' (MHz)'
-  end
-  2: begin
-    plot_xtitle = 'theta x (radians)'
-    plot_ytitle = 'theta y (radians)'
-  end
-endcase
-endif else begin
-  case slice_axis of
-    0:begin
-    if keyword_set (hinv) then plot_xtitle = textoidl('k_y (h Mpc^{-1})', font = font) $
-    else plot_xtitle = textoidl('k_y (Mpc^{-1})', font = font)
-    plot_ytitle = plot_yname + ' (MHz)'
-    baseline_xtitle = plot_xname + textoidl(' (\lambda)', font = font)
-  end
-  1: begin
-    if keyword_set (hinv) then plot_xtitle = textoidl('k_x (h Mpc^{-1})', font = font) $
-    else plot_xtitle = textoidl('k_x (Mpc^{-1})', font = font)
-    plot_ytitle = plot_yname + ' (MHz)'
-    baseline_xtitle = plot_xname + textoidl(' (\lambda)', font = font)
-  end
-  2: begin
-    if keyword_set (hinv) then plot_xtitle = textoidl('k_x (h Mpc^{-1})', font = font) $
-    else plot_xtitle = textoidl('k_x (Mpc^{-1})', font = font)
-    if keyword_set (hinv) then plot_ytitle = textoidl('k_y (h Mpc^{-1})', font = font) $
-    else plot_ytitle = textoidl('k_y (Mpc^{-1})', font = font)
-    baseline_xtitle = plot_xname + textoidl(' (\lambda)', font = font)
-    baseline_ytitle = plot_yname + textoidl(' (\lambda)', font = font)
-  end
-endcase
-endelse
-
-plot_xarr = xarr_edges
-plot_yarr = yarr_edges
-
-if keyword_set(baseline_axis) then initial_title = '' else initial_title = plot_title
-
-axkeywords = {xstyle: 5, ystyle: 5, thick: thick, charthick: charthick, xthick: xthick, ythick: ythick, $
-  charsize: charsize, font: font}
-  
-cgimage, slice_plot_norm_rgb, /nointerp, position = plot_pos, xrange = minmax(plot_xarr), yrange = minmax(plot_yarr), $
-  title = initial_title, noerase = no_erase, color = annotate_color, background = background_color, $
-  axkeywords = axkeywords, /axes
-  
-if keyword_set(mark_0) then begin
-  cgplot, /overplot, plot_yarr * 0d, plot_yarr, color=annotate_color, psym=-0, thick = thick
-  if slice_axis eq 2 then  cgplot, /overplot, plot_xarr, plot_xarr* 0d, color=annotate_color, psym=-3, thick = thick
-endif
-
-
-cgaxis, xaxis=0, xtick_get = xticks, xtitle = plot_xtitle, xrange = minmax(plot_xarr), $
-  charthick = charthick, xthick = xthick, ythick = ythick, charsize = charsize, font = font, $
-  xstyle = 1, color = annotate_color
-  
-cgaxis, yaxis=0, ytick_get = yticks, ytitle = plot_ytitle, yrange = minmax(plot_yarr), $
-  charthick = charthick, xthick = xthick, ythick = ythick, charsize = charsize, font = font, ystyle = 1, color = annotate_color
-  
-if keyword_set(baseline_axis) then begin
-  ;; baselines don't care about hinv -- take it back out.
-  if keyword_set(hinv) then baseline_range = minmax(plot_xarr * hubble_param * kperp_lambda_conv) $
-  else baseline_range = minmax(plot_xarr* kperp_lambda_conv)
-  
-  cgaxis, xaxis=1, xrange = baseline_range, xthick = xthick,  charthick = charthick, ythick = ythick, charsize = charsize, $
-    font = font, xstyle = 1, color = annotate_color, xtitle = baseline_xtitle
+  cgaxis, yaxis=0, ytick_get = yticks, ytitle = plot_ytitle, yrange = minmax(plot_yarr), $
+    charthick = charthick, xthick = xthick, ythick = ythick, charsize = charsize, font = font, ystyle = 1, color = annotate_color
     
-  if not keyword_set(no_title) then cgtext, xloc_title, yloc_title, plot_title, /normal, alignment=0.5, charsize=1.2 * charsize, $
-    color = annotate_color, font = font
-;; cgtext, xloc_lambda, yloc_lambda, baseline_xtitle, /normal, alignment=0.5, charsize=charsize, $
-;;        color = annotate_color, font = font
+  if keyword_set(baseline_axis) then begin
+    ;; baselines don't care about hinv -- take it back out.
+    if keyword_set(hinv) then baseline_range = minmax(plot_xarr * hubble_param * kperp_lambda_conv) $
+    else baseline_range = minmax(plot_xarr* kperp_lambda_conv)
     
-endif else $
-  cgaxis, xaxis=1, xrange = minmax(plot_xarr), xtickv = xticks, xtickname = replicate(' ', n_elements(xticks)), $
-  charthick = charthick, xthick = xthick, ythick = ythick, charsize = charsize, font = font, xstyle = 1, $
-  color = annotate_color
-  
-if keyword_set(baseline_axis) and slice_axis eq 2 then begin
-  ;; baselines don't care about hinv -- take it back out.
-  if keyword_set(hinv) then baseline_range = minmax(plot_yarr * hubble_param * kperp_lambda_conv) $
-  else baseline_range = minmax(plot_yarr* kperp_lambda_conv)
-  
-  cgaxis, yaxis=1, yrange = baseline_range, xthick = xthick, charthick = charthick, ythick = ythick, charsize = charsize, $
-    font = font, ystyle = 1, color = annotate_color, ytitle = baseline_ytitle
+    cgaxis, xaxis=1, xrange = baseline_range, xthick = xthick,  charthick = charthick, ythick = ythick, charsize = charsize, $
+      font = font, xstyle = 1, color = annotate_color, xtitle = baseline_xtitle
+      
+    if not keyword_set(no_title) then cgtext, xloc_title, yloc_title, plot_title, /normal, alignment=0.5, charsize=1.2 * charsize, $
+      color = annotate_color, font = font
+  ;; cgtext, xloc_lambda, yloc_lambda, baseline_xtitle, /normal, alignment=0.5, charsize=charsize, $
+  ;;        color = annotate_color, font = font
+      
+  endif else $
+    cgaxis, xaxis=1, xrange = minmax(plot_xarr), xtickv = xticks, xtickname = replicate(' ', n_elements(xticks)), $
+    charthick = charthick, xthick = xthick, ythick = ythick, charsize = charsize, font = font, xstyle = 1, $
+    color = annotate_color
     
-;; cgtext, xloc2_lambda, yloc2_lambda, baseline_ytitle, /normal, alignment=0.5, charsize=charsize, $
-;;        color = annotate_color, font = font
-endif else $
-  cgaxis, yaxis=1, yrange = minmax(plot_yarr), ytickv = yticks, ytickname = replicate(' ', n_elements(yticks)), $
-  charthick = charthick, xthick = xthick, ythick = ythick, charsize = charsize, font = font, ystyle = 1, $
-  color = annotate_color
-  
-if type eq 'phase' then cb_range = data_range * 180/!dpi else cb_range = data_range
-
-if keyword_set(log) and type eq 'abs' then begin
-  tick_vals = loglevels(10d^[floor(log_data_range[0])-.1, ceil(log_data_range[1])+.1], coarse=0)
-  
-  wh_keep = where(tick_vals gt 10^(log_data_range[0]-0.001) and tick_vals lt 10^(log_data_range[1]+0.001), count_keep)
-  if count_keep gt 0 then tick_vals = tick_vals[wh_keep] else stop
-  
-  ;; want minor tick marks if there aren't very many loglevels.
-  ;; unfortunately cgcolorbar can't do log minor tick marks
-  ;; with specified tick locations (which I have to do b/c
-  ;; can't use divisions=0 with formatting keyword)
-  ;; solution: add regular tickmarks without labels for the minor ones.
-  
-  if n_elements(tick_vals) lt 4 then begin
-    tick_vals_use = loglevels(10d^[floor(log_data_range[0])-.1, ceil(log_data_range[1])+.1], coarse=0)
+  if keyword_set(baseline_axis) and slice_axis eq 2 then begin
+    ;; baselines don't care about hinv -- take it back out.
+    if keyword_set(hinv) then baseline_range = minmax(plot_yarr * hubble_param * kperp_lambda_conv) $
+    else baseline_range = minmax(plot_yarr* kperp_lambda_conv)
     
-    if n_elements(tick_vals) lt 2 then minor_multipliers = dindgen(8)+2 else minor_multipliers = (dindgen(4)+1)*2d
-    n_minor_mult = n_elements(minor_multipliers)
-    n_major = n_elements(tick_vals_use)
+    cgaxis, yaxis=1, yrange = baseline_range, xthick = xthick, charthick = charthick, ythick = ythick, charsize = charsize, $
+      font = font, ystyle = 1, color = annotate_color, ytitle = baseline_ytitle
+      
+  ;; cgtext, xloc2_lambda, yloc2_lambda, baseline_ytitle, /normal, alignment=0.5, charsize=charsize, $
+  ;;        color = annotate_color, font = font
+  endif else $
+    cgaxis, yaxis=1, yrange = minmax(plot_yarr), ytickv = yticks, ytickname = replicate(' ', n_elements(yticks)), $
+    charthick = charthick, xthick = xthick, ythick = ythick, charsize = charsize, font = font, ystyle = 1, $
+    color = annotate_color
     
-    minor_tick_vals = reform(rebin(minor_multipliers, n_minor_mult, n_major), n_minor_mult*n_major) $
-      * reform(rebin(reform(tick_vals_use, 1, n_major), n_minor_mult, n_major), n_minor_mult*n_major)
-    wh_keep = where(minor_tick_vals gt 10^log_data_range[0] and minor_tick_vals lt 10^log_data_range[1], count_keep)
+  if type eq 'phase' then cb_range = data_range * 180/!dpi else cb_range = data_range
+  
+  if keyword_set(log) and type eq 'abs' then begin
+    tick_vals = loglevels(10d^[floor(log_data_range[0])-.1, ceil(log_data_range[1])+.1], coarse=0)
     
-    if count_keep gt 0 then begin
-      minor_tick_vals = minor_tick_vals[wh_keep]
-      n_minor = n_elements(minor_tick_vals)
-      minor_tick_names = strarr(n_minor) + ' '
+    wh_keep = where(tick_vals gt 10^(log_data_range[0]-0.001) and tick_vals lt 10^(log_data_range[1]+0.001), count_keep)
+    if count_keep gt 0 then tick_vals = tick_vals[wh_keep] else stop
+    
+    ;; want minor tick marks if there aren't very many loglevels.
+    ;; unfortunately cgcolorbar can't do log minor tick marks
+    ;; with specified tick locations (which I have to do b/c
+    ;; can't use divisions=0 with formatting keyword)
+    ;; solution: add regular tickmarks without labels for the minor ones.
+    
+    if n_elements(tick_vals) lt 4 then begin
+      tick_vals_use = loglevels(10d^[floor(log_data_range[0])-.1, ceil(log_data_range[1])+.1], coarse=0)
+      
+      if n_elements(tick_vals) lt 2 then minor_multipliers = dindgen(8)+2 else minor_multipliers = (dindgen(4)+1)*2d
+      n_minor_mult = n_elements(minor_multipliers)
+      n_major = n_elements(tick_vals_use)
+      
+      minor_tick_vals = reform(rebin(minor_multipliers, n_minor_mult, n_major), n_minor_mult*n_major) $
+        * reform(rebin(reform(tick_vals_use, 1, n_major), n_minor_mult, n_major), n_minor_mult*n_major)
+      wh_keep = where(minor_tick_vals gt 10^log_data_range[0] and minor_tick_vals lt 10^log_data_range[1], count_keep)
+      
+      if count_keep gt 0 then begin
+        minor_tick_vals = minor_tick_vals[wh_keep]
+        n_minor = n_elements(minor_tick_vals)
+        minor_tick_names = strarr(n_minor) + ' '
+      endif else n_minor = 0
+      
     endif else n_minor = 0
     
-  endif else n_minor = 0
-  
-  nloop = 0
-  while(n_elements(tick_vals) gt 8) do begin
-    nloop = nloop + 1
-    factor = double(nloop+1)
-    if color_profile eq 'sym_log' then begin
-      pos_exp_vals = dindgen(ceil((alog10(max(tick_vals))-alog10(min(tick_vals)) + 1)/(2d*factor)) + 1)*factor
-      if max(pos_exp_vals) gt temp[1] then pos_exp_vals = pos_exp_vals[0:n_elements(pos_exp_vals)-2]
+    nloop = 0
+    while(n_elements(tick_vals) gt 8) do begin
+      nloop = nloop + 1
+      factor = double(nloop+1)
+      if color_profile eq 'sym_log' then begin
+        pos_exp_vals = dindgen(ceil((alog10(max(tick_vals))-alog10(min(tick_vals)) + 1)/(2d*factor)) + 1)*factor
+        if max(pos_exp_vals) gt temp[1] then pos_exp_vals = pos_exp_vals[0:n_elements(pos_exp_vals)-2]
+        
+        exp_vals = [(-1)*reverse(pos_exp_vals[1:*]), pos_exp_vals]
+      endif else begin
+        exp_vals = (dindgen(ceil((alog10(max(tick_vals))-alog10(min(tick_vals)) + 1)/factor) + 1)*factor + alog10(min(tick_vals)))
+        if max(exp_vals) gt alog10(max(tick_vals)) then exp_vals = exp_vals[0:n_elements(exp_vals)-2]
+      endelse
+      tick_vals = 10^exp_vals
+    endwhile
+    
+    
+    if min(plot_slice) lt 0 and min(tick_vals) lt min_pos then begin
+      wh = where(tick_vals lt min_pos, count, complement = wh_keep, ncomplement = count_keep)
       
-      exp_vals = [(-1)*reverse(pos_exp_vals[1:*]), pos_exp_vals]
+      if count lt 1 then stop else if count eq 1 then $
+        names = ['<0', number_formatter(tick_vals[wh_keep], format = '(e0)',/print_exp)] $
+      else names = [strarr(count-1), '<0', number_formatter(tick_vals[wh_keep], format = '(e0)',/print_exp)]
+      
+    endif else names = number_formatter(tick_vals, format = '(e0)',/print_exp)
+    
+    if n_minor gt 0 then begin
+      temp_ticks = [tick_vals, minor_tick_vals]
+      temp_names = [names, minor_tick_names]
+      order = sort(temp_ticks)
+      
+      tick_vals = temp_ticks[order]
+      names = temp_names[order]
+    endif
+    
+    
+    if (alog10(tick_vals[0]) - log_data_range[0]) lt 10^(-3d) then begin
+      cb_ticknames = [' ', names]
+      cb_ticks = [color_range[0]-1, (alog10(tick_vals) - log_data_range[0]) * n_colors / $
+        (log_data_range[1] - log_data_range[0]) + color_range[0]] - color_range[0]
+        
     endif else begin
-      exp_vals = (dindgen(ceil((alog10(max(tick_vals))-alog10(min(tick_vals)) + 1)/factor) + 1)*factor + alog10(min(tick_vals)))
-      if max(exp_vals) gt alog10(max(tick_vals)) then exp_vals = exp_vals[0:n_elements(exp_vals)-2]
+      cb_ticknames = names
+      cb_ticks = ((alog10(tick_vals) - log_data_range[0]) * (n_colors+1) / $
+        (log_data_range[1] - log_data_range[0]) + color_range[0]) - color_range[0]
     endelse
-    tick_vals = 10^exp_vals
-  endwhile
-  
-  
-  if min(plot_slice) lt 0 and min(tick_vals) lt min_pos then begin
-    wh = where(tick_vals lt min_pos, count, complement = wh_keep, ncomplement = count_keep)
     
-    if count lt 1 then stop $
-    else if count eq 1 then names = ['<0', number_formatter(tick_vals[wh_keep], format = '(e0)',/print_exp)] $
-  else names = [strarr(count-1), '<0', number_formatter(tick_vals[wh_keep], format = '(e0)',/print_exp)]
-  
-endif else names = number_formatter(tick_vals, format = '(e0)',/print_exp)
-
-if n_minor gt 0 then begin
-  temp_ticks = [tick_vals, minor_tick_vals]
-  temp_names = [names, minor_tick_names]
-  order = sort(temp_ticks)
-  
-  tick_vals = temp_ticks[order]
-  names = temp_names[order]
-endif
-
-
-if (alog10(tick_vals[0]) - log_data_range[0]) lt 10^(-3d) then begin
-  cb_ticknames = [' ', names]
-  cb_ticks = [color_range[0]-1, (alog10(tick_vals) - log_data_range[0]) * n_colors / $
-    (log_data_range[1] - log_data_range[0]) + color_range[0]] - color_range[0]
+    if (log_data_range[1] - alog10(max(tick_vals))) gt 10^(-3d) then begin
+      cb_ticknames = [cb_ticknames, ' ']
+      cb_ticks = [cb_ticks, color_range[1]-color_range[0]+1]
+    endif
     
-endif else begin
-  cb_ticknames = names
-  cb_ticks = ((alog10(tick_vals) - log_data_range[0]) * (n_colors+1) / $
-    (log_data_range[1] - log_data_range[0]) + color_range[0]) - color_range[0]
-endelse
-
-if (log_data_range[1] - alog10(max(tick_vals))) gt 10^(-3d) then begin
-  cb_ticknames = [cb_ticknames, ' ']
-  cb_ticks = [cb_ticks, color_range[1]-color_range[0]+1]
-endif
-
-min_pos_cb_val = ((alog10(min_pos) - log_data_range[0]) * n_colors / $
-  (log_data_range[1] - log_data_range[0]) + color_range[0]) - color_range[0]
+    min_pos_cb_val = ((alog10(min_pos) - log_data_range[0]) * n_colors / $
+      (log_data_range[1] - log_data_range[0]) + color_range[0]) - color_range[0]
+      
+    cgcolorbar, color = annotate_color, /vertical, position = cb_pos, bottom = color_range[0], ncolors = n_colors, minor = 0, $
+      ticknames = cb_ticknames, ytickv = cb_ticks, yticks = n_elements(cb_ticks) -1, title = units_str, $
+      charsize = charsize, font = font
+  endif else $
+    cgcolorbar, color = annotate_color, /vertical, position = cb_pos, charsize = charsize, font = font, minrange = cb_range[0], $
+    maxrange = cb_range[1], title = cb_title, minor=5, charthick = charthick, xthick = xthick, ythick = ythick
+    
+  if keyword_set(pub) and n_elements(multi_pos) eq 0 then begin
+    cgps_close, png = png, delete_ps = delete_ps
+    wdelete, window_num
+  endif
   
-cgcolorbar, color = annotate_color, /vertical, position = cb_pos, bottom = color_range[0], ncolors = n_colors, minor = 0, $
-  ticknames = cb_ticknames, ytickv = cb_ticks, yticks = n_elements(cb_ticks) -1, title = units_str, $
-  charsize = charsize, font = font
-endif else $
-  cgcolorbar, color = annotate_color, /vertical, position = cb_pos, charsize = charsize, font = font, minrange = cb_range[0], $
-  maxrange = cb_range[1], title = cb_title, minor=5, charthick = charthick, xthick = xthick, ythick = ythick
+  tvlct, r, g, b
   
-if keyword_set(pub) and n_elements(multi_pos) eq 0 then begin
-  cgps_close, png = png, delete_ps = delete_ps
-  wdelete, window_num
-endif
-
-tvlct, r, g, b
-
 end

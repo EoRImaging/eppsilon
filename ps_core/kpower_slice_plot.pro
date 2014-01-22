@@ -96,11 +96,10 @@ pro kpower_slice_plot, slice_savefile, multi_pos = multi_pos, start_multi_params
   wh_x_inrange = where(xarr ge plot_xrange[0] and xarr + xdelta le plot_xrange[1], n_x_plot)
   wh_y_inrange = where(yarr ge plot_yrange[0] and yarr + ydelta le plot_yrange[1], n_y_plot)
   
-  
-  if n_elements(plotfile) eq 0 then $
-    plotfile = strsplit(slice_savefile, '.idlsave', /regex, /extract) + plot_exten $
-  else if strcmp(strmid(plotfile, strlen(plotfile)-4), plot_exten, /fold_case) eq 0 then plotfile = plotfile + plot_exten
-  
+  if pub then begin
+    if n_elements(plotfile) eq 0 then plotfile = strsplit(slice_savefile, '.idlsave', /regex, /extract) + plot_exten $
+    else if strcmp(strmid(plotfile, strlen(plotfile)-4), plot_exten, /fold_case) eq 0 then plotfile = plotfile + plot_exten
+  endif
   
   if n_x_plot eq 0 or n_y_plot eq 0 then message, 'No data in plot k range'
   

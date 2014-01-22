@@ -91,9 +91,12 @@ pro fhd_data_plots, datafile, rts = rts, pol_inc = pol_inc, image = image, $
   
   if n_elements(savefilebase) gt 1 then message, 'savefilebase must be a scalar'
   
+  time0 = systime(1)
   if keyword_set(rts) then file_struct_arr = rts_file_setup(datafile, pol_inc, savefilebase = savefilebase, save_path = save_path, $
     spec_window_type = spec_window_type) else file_struct_arr = fhd_file_setup(datafile, pol_inc, image = image, dft_ian = dft_ian, $
     savefilebase = savefilebase, save_path = save_path, freq_ch_range = freq_ch_range, spec_window_type = spec_window_type, noise_sim = noise_sim)
+  time1 = systime(1)
+  print, 'file setup time: ' + number_formatter(time1-time0)
     
   npol = n_elements(pol_inc)
   n_cubes = n_elements(file_struct_arr)
@@ -205,35 +208,36 @@ pro fhd_data_plots, datafile, rts = rts, pol_inc = pol_inc, image = image, $
   
   if keyword_set(hinv) then kperp_plot_range = kperp_plot_range / hubble_param
   
-  
-  if n_elements(plot_path) ne 0 then plotfile_path = plot_path $
-  else if n_elements(save_path) ne 0 then plotfile_path = save_path else plotfile_path = file_struct_arr.savefile_froot
-  
-  plot_fadd = ''
-  if keyword_set(grey_scale) then plot_fadd = plot_fadd + '_grey'
-  
-  if keyword_set(individual_plots) then begin
-    if n_elements(plot_filebase) eq 0 then begin
-      plotfile_base = plotfile_path + file_struct_arr.savefilebase + fadd
-      plotfile_base_wt = plotfile_path + general_filebase + wt_file_labels[uniq(weight_ind, sort(weight_ind))] + fadd
-      plotfiles_2d_wt = plotfile_base_wt + fadd_2dbin + '_2d' + plot_fadd + plot_exten
-    endif else begin
-      plotfile_base = plotfile_path + plot_filebase + file_struct_arr.file_label + fadd
-      plotfile_base_wt = plotfile_path + plot_filebase + wt_file_labels[uniq(weight_ind, sort(weight_ind))] + fadd
-      plotfiles_2d_wt = plotfile_base_wt + fadd_2dbin + '_2d' + plot_fadd + plot_exten
-    endelse
-  endif else if n_elements(plot_filebase) eq 0 then plotfile_base = plotfile_path + general_filebase + fadd else plotfile_base = plotfile_path + plot_filebase + fadd
-  
-  plotfiles_2d = plotfile_base + fadd_2dbin + '_2dkpower' + plot_fadd + plot_exten
-  plotfiles_2d_error = plotfile_base + fadd_2dbin + '_2derror' + plot_fadd + plot_exten
-  if keyword_set(pub) and keyword_set(individual_plots) then $
-    plotfiles_2d_noise_expval = plotfile_base + fadd_2dbin + '_2dnoise_expval' + plot_fadd + plot_exten
-  plotfiles_2d_noise = plotfile_base + fadd_2dbin + '_2dnoise' + plot_fadd + plot_exten
-  plotfiles_2d_snr = plotfile_base + fadd_2dbin + '_2dsnr' + plot_fadd + plot_exten
-  plotfiles_2d_nnr = plotfile_base + fadd_2dbin + '_2dnnr' + plot_fadd + plot_exten
-  if n_elements(plot_filebase) eq 0 then plotfile_1d = plotfile_path + general_filebase + fadd + fadd_1dbin + '_1dkpower' + plot_exten else $
-    plotfile_1d = plotfile_path + plot_filebase + fadd + fadd_1dbin + '_1dkpower' + plot_exten
+  if pub then begin
+    if n_elements(plot_path) ne 0 then plotfile_path = plot_path $
+    else if n_elements(save_path) ne 0 then plotfile_path = save_path else plotfile_path = file_struct_arr.savefile_froot
     
+    plot_fadd = ''
+    if keyword_set(grey_scale) then plot_fadd = plot_fadd + '_grey'
+    
+    if keyword_set(individual_plots) then begin
+      if n_elements(plot_filebase) eq 0 then begin
+        plotfile_base = plotfile_path + file_struct_arr.savefilebase + fadd
+        plotfile_base_wt = plotfile_path + general_filebase + wt_file_labels[uniq(weight_ind, sort(weight_ind))] + fadd
+        plotfiles_2d_wt = plotfile_base_wt + fadd_2dbin + '_2d' + plot_fadd + plot_exten
+      endif else begin
+        plotfile_base = plotfile_path + plot_filebase + file_struct_arr.file_label + fadd
+        plotfile_base_wt = plotfile_path + plot_filebase + wt_file_labels[uniq(weight_ind, sort(weight_ind))] + fadd
+        plotfiles_2d_wt = plotfile_base_wt + fadd_2dbin + '_2d' + plot_fadd + plot_exten
+      endelse
+    endif else if n_elements(plot_filebase) eq 0 then plotfile_base = plotfile_path + general_filebase + fadd else plotfile_base = plotfile_path + plot_filebase + fadd
+    
+    plotfiles_2d = plotfile_base + fadd_2dbin + '_2dkpower' + plot_fadd + plot_exten
+    plotfiles_2d_error = plotfile_base + fadd_2dbin + '_2derror' + plot_fadd + plot_exten
+    if keyword_set(pub) and keyword_set(individual_plots) then $
+      plotfiles_2d_noise_expval = plotfile_base + fadd_2dbin + '_2dnoise_expval' + plot_fadd + plot_exten
+    plotfiles_2d_noise = plotfile_base + fadd_2dbin + '_2dnoise' + plot_fadd + plot_exten
+    plotfiles_2d_snr = plotfile_base + fadd_2dbin + '_2dsnr' + plot_fadd + plot_exten
+    plotfiles_2d_nnr = plotfile_base + fadd_2dbin + '_2dnnr' + plot_fadd + plot_exten
+    if n_elements(plot_filebase) eq 0 then plotfile_1d = plotfile_path + general_filebase + fadd + fadd_1dbin + '_1dkpower' + plot_exten else $
+      plotfile_1d = plotfile_path + plot_filebase + fadd + fadd_1dbin + '_1dkpower' + plot_exten
+  endif
+  
   if keyword_set(plot_slices) then begin
     if n_elements(slice_type) eq 0 then slice_type = 'sumdiff'
     slice_type_enum = ['raw', 'divided', 'kspace', 'sumdiff']
@@ -244,43 +248,51 @@ pro fhd_data_plots, datafile, rts = rts, pol_inc = pol_inc, image = image, $
       slice_type = 'sumdiff'
     endif
     
-    if slice_type ne 'kspace' then begin
-      uf_slice_plotfile = plotfile_base + '_' + slice_type + '_uf_plane' + plot_fadd + plot_exten
-      vf_slice_plotfile = plotfile_base + '_' + slice_type + '_vf_plane' + plot_fadd + plot_exten
-      uv_slice_plotfile = plotfile_base + '_' + slice_type + '_uv_plane' + plot_fadd + plot_exten
+    if pub then begin
+      if slice_type ne 'kspace' then begin
+        uf_slice_plotfile = plotfile_base + '_' + slice_type + '_uf_plane' + plot_fadd + plot_exten
+        vf_slice_plotfile = plotfile_base + '_' + slice_type + '_vf_plane' + plot_fadd + plot_exten
+        uv_slice_plotfile = plotfile_base + '_' + slice_type + '_uv_plane' + plot_fadd + plot_exten
+      endif else begin
+        uf_slice_plotfile = plotfile_base + '_' + slice_type + '_xz_plane' + plot_fadd + plot_exten
+        vf_slice_plotfile = plotfile_base + '_' + slice_type + '_yz_plane' + plot_fadd + plot_exten
+        uv_slice_plotfile = plotfile_base + '_' + slice_type + '_xy_plane' + plot_fadd + plot_exten
+      endelse
+      
+      case slice_type of
+        'raw': begin
+          uf_slice_savefile = file_struct_arr.uf_raw_savefile
+          vf_slice_savefile = file_struct_arr.vf_raw_savefile
+          uv_slice_savefile = file_struct_arr.uv_raw_savefile
+          slice_titles = file_struct_arr.uvf_label
+        end
+        'divided': begin
+          uf_slice_savefile = file_struct_arr.uf_savefile
+          vf_slice_savefile = file_struct_arr.vf_savefile
+          uv_slice_savefile = file_struct_arr.uv_savefile
+          slice_titles = file_struct_arr.uvf_label
+        end
+        'sumdiff': begin
+          uf_slice_savefile = [file_struct_arr.uf_sum_savefile, file_struct_arr.uf_diff_savefile]
+          vf_slice_savefile = [file_struct_arr.vf_sum_savefile, file_struct_arr.vf_diff_savefile]
+          uv_slice_savefile = [file_struct_arr.uv_sum_savefile, file_struct_arr.uv_diff_savefile]
+          slice_titles = ['sum ' + file_struct_arr.file_label, 'diff ' + file_struct_arr.file_label]
+        end
+        'kspace': begin
+          uf_slice_savefile = file_struct_arr.savefile_froot + file_struct_arr.savefilebase + '_xz_plane.idlsave'
+          vf_slice_savefile = file_struct_arr.savefile_froot + file_struct_arr.savefilebase + '_yz_plane.idlsave'
+          uv_slice_savefile = file_struct_arr.savefile_froot + file_struct_arr.savefilebase + '_xy_plane.idlsave'
+          slice_titles = file_struct_arr.file_label
+        end
+      endcase
     endif else begin
-      uf_slice_plotfile = plotfile_base + '_' + slice_type + '_xz_plane' + plot_fadd + plot_exten
-      vf_slice_plotfile = plotfile_base + '_' + slice_type + '_yz_plane' + plot_fadd + plot_exten
-      uv_slice_plotfile = plotfile_base + '_' + slice_type + '_xy_plane' + plot_fadd + plot_exten
+      case slice_type of
+        'raw': slice_titles = file_struct_arr.uvf_label
+        'divided': slice_titles = file_struct_arr.uvf_label
+        'sumdiff': slice_titles = ['sum ' + file_struct_arr.file_label, 'diff ' + file_struct_arr.file_label]
+        'kspace': slice_titles = file_struct_arr.file_label
+      endcase
     endelse
-    
-    case slice_type of
-      'raw': begin
-        uf_slice_savefile = file_struct_arr.uf_raw_savefile
-        vf_slice_savefile = file_struct_arr.vf_raw_savefile
-        uv_slice_savefile = file_struct_arr.uv_raw_savefile
-        slice_titles = file_struct_arr.uvf_label
-      end
-      'divided': begin
-        uf_slice_savefile = file_struct_arr.uf_savefile
-        vf_slice_savefile = file_struct_arr.vf_savefile
-        uv_slice_savefile = file_struct_arr.uv_savefile
-        slice_titles = file_struct_arr.uvf_label
-      end
-      'sumdiff': begin
-        uf_slice_savefile = [file_struct_arr.uf_sum_savefile, file_struct_arr.uf_diff_savefile]
-        vf_slice_savefile = [file_struct_arr.vf_sum_savefile, file_struct_arr.vf_diff_savefile]
-        uv_slice_savefile = [file_struct_arr.uv_sum_savefile, file_struct_arr.uv_diff_savefile]
-        slice_titles = ['sum ' + file_struct_arr.file_label, 'diff ' + file_struct_arr.file_label]
-      end
-      'kspace': begin
-        uf_slice_savefile = file_struct_arr.savefile_froot + file_struct_arr.savefilebase + '_xz_plane.idlsave'
-        vf_slice_savefile = file_struct_arr.savefile_froot + file_struct_arr.savefilebase + '_yz_plane.idlsave'
-        uv_slice_savefile = file_struct_arr.savefile_froot + file_struct_arr.savefilebase + '_xy_plane.idlsave'
-        slice_titles = file_struct_arr.file_label
-      end
-    endcase
-    
   endif
   
   if keyword_set(plot_wedge_line) then begin
@@ -348,8 +360,14 @@ pro fhd_data_plots, datafile, rts = rts, pol_inc = pol_inc, image = image, $
     endif
   endif else begin
   
-    ncol = ntype
-    nrow = npol
+    if keyword_set(kperp_linear_axis) then begin
+      ;; aspect ratio doesn't work out for kperp_linear with multiple rows
+      ncol = ntype*npol
+      nrow = 1
+    endif else begin
+      ncol = ntype
+      nrow = npol
+    endelse
     start_multi_params = {ncol:ncol, nrow:nrow, ordering:'row'}
     
     window_num = 1
@@ -374,8 +392,14 @@ pro fhd_data_plots, datafile, rts = rts, pol_inc = pol_inc, image = image, $
       wdelete, window_num
     endif
     
-    ncol = 2
-    nrow = npol
+    if keyword_set(kperp_linear_axis) then begin
+      ;; aspect ratio doesn't work out for kperp_linear with multiple rows
+      ncol = 2*npol
+      nrow = 1
+    endif else begin
+      ncol = 2
+      nrow = npol
+    endelse
     start_multi_params = {ncol:ncol, nrow:nrow, ordering:'row'}
     
     window_num = 2
@@ -411,8 +435,14 @@ pro fhd_data_plots, datafile, rts = rts, pol_inc = pol_inc, image = image, $
   
   
   ;; now plot SNR -- no separate sigma plots
-  nrow = npol
-  ncol = ntype
+  if keyword_set(kperp_linear_axis) then begin
+    ;; aspect ratio doesn't work out for kperp_linear with multiple rows
+    ncol = ntype*npol
+    nrow = 1
+  endif else begin
+    ncol = ntype
+    nrow = npol
+  endelse
   start_multi_params = {ncol:ncol, nrow:nrow, ordering:'row'}
   
   window_num = 3
@@ -491,6 +521,15 @@ pro fhd_data_plots, datafile, rts = rts, pol_inc = pol_inc, image = image, $
   
   if keyword_set(plot_slices) then begin
     nrow = npol
+    
+    if keyword_set(kperp_linear_axis) then begin
+      ;; aspect ratio doesn't work out for kperp_linear with multiple rows
+      if slice_type eq 'kspace' then ncol = ntype*npol else ncol = ntype*nfiles*npol
+    endif else begin
+      if slice_type eq 'kspace' then ncol=ntype else ncol = ntype*nfiles
+     endelse
+    start_multi_params = {ncol:ncol, nrow:nrow, ordering:'row'}
+    
     if slice_type eq 'kspace' then ncol=ntype else ncol = ntype*nfiles
     
     window_num = 7

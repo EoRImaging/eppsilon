@@ -25,7 +25,7 @@ pro kpower_2d_plots, power_savefile, multi_pos = multi_pos, start_multi_params =
       endcase
       
     endif
-    if n_elements(plotfile) eq 0 then begin
+    if n_elements(plotfile) eq 0 and n_elements(multi_pos) eq 0 then begin
       if keyword_set(eps) then plotfile = 'idl_quick_image.eps' else plotfile = 'idl_quick_image'
       cd, current = current_dir
       print, 'no filename specified for quick_image output. Using ' + current_dir + path_sep() + plotfile
@@ -202,81 +202,84 @@ pro kpower_2d_plots, power_savefile, multi_pos = multi_pos, start_multi_params =
       else units_str = textoidl(' (mK^2 Mpc^3)', font = font)
       
       plot_title = textoidl('P_k', font = font)
-      plotfile_add = '_2dkpower' + plot_exten
+      if pub then plotfile_add = '_2dkpower' + plot_exten
     end
     'ratio': begin
       units_str = ''
       plot_title = 'Power Ratio'
-      plotfile_add = '_ratio' + plot_exten
+      if pub then plotfile_add = '_ratio' + plot_exten
     end
     'diff': begin
       if keyword_set(hinv) then units_str = textoidl(' (mK^2 h^{-3} Mpc^3)', font = font) $
       else units_str = textoidl(' (mK^2 Mpc^3)', font = font)
       
       plot_title = textoidl('P_k difference', font = font)
-      plotfile_add = '_diff' + plot_exten
+      if pub then plotfile_add = '_diff' + plot_exten
     end
     'weight': begin
       units_str = ''
       plot_title = 'Weights'
-      plotfile_add = '_2dweight' + plot_exten
+      if pub then plotfile_add = '_2dweight' + plot_exten
     end
     'weight_ratio': begin
       units_str = ''
       plot_title = 'Weights Ratio'
-      plotfile_add = '_weight_ratio' + plot_exten
+      if pub then plotfile_add = '_weight_ratio' + plot_exten
     end
     'sigma': begin
       if keyword_set(hinv) then units_str = textoidl(' (mK^2 h^{-3} Mpc^3)', font = font) $
       else units_str = textoidl(' (mK^2 Mpc^3)', font = font)
       
       plot_title = 'Error (sigma)'
-      plotfile_add = '_2dsigma' + plot_exten
+      if pub then plotfile_add = '_2dsigma' + plot_exten
     end
     'sigma_ratio': begin
       units_str = ''
       
       if keyword_set(pub) then sigma_char = textoidl('\sigma', font = 1) else sigma_char = textoidl('\sigma', font = -1)
       plot_title = 'Error (sigma) Ratio'
-      plotfile_add = '_sigma_ratio' + plot_exten
+      if pub then plotfile_add = '_sigma_ratio' + plot_exten
     end
     'exp_noise': begin
       if keyword_set(hinv) then units_str = textoidl(' (mK^2 h^{-3} Mpc^3)', font = font) $
       else units_str = textoidl(' (mK^2 Mpc^3)', font = font)
       
       plot_title = 'Expected Noise'
-      plotfile_add = '_2dnoise_expval' + plot_exten
+      if pub then plotfile_add = '_2dnoise_expval' + plot_exten
     end
     'exp_noise_ratio': begin
       units_str = ''
       plot_title = 'Expected Noise ratio'
-      plotfile_add = '_noise_expval_ratio' + plot_exten
+      if pub then plotfile_add = '_noise_expval_ratio' + plot_exten
     end
     'snr': begin
       units_str = ''
       plot_title = 'SNR (' + textoidl('P_k/N_E', font = font) + ')'
-      plotfile_add = '_2dsnr' + plot_exten
+      if pub then plotfile_add = '_2dsnr' + plot_exten
     end
     'noise': begin
       if keyword_set(hinv) then units_str = textoidl(' (mK^2 h^{-3} Mpc^3)', font = font) $
       else units_str = textoidl(' (mK^2 Mpc^3)', font = font)
       
       plot_title = 'Observed Noise'
-      plotfile_add = '_2dnoise' + plot_exten
+      if pub then plotfile_add = '_2dnoise' + plot_exten
     end
     'nnr': begin
       units_str = ''
       plot_title = 'Noise Ratio (' + textoidl('N_O/N_E', font = font) + ')'
-      plotfile_add = '_2dnnr' + plot_exten
+      if pub then plotfile_add = '_2dnnr' + plot_exten
     end
     'noise_ratio': begin
       units_str = ''
       plot_title = 'Observed Noise Ratio'
-      plotfile_add = '_noise_ratio' + plot_exten
+      if pub then plotfile_add = '_noise_ratio' + plot_exten
     end
   endcase
-  if n_elements(plotfile) eq 0 then plotfile = strsplit(power_savefile[0], '.idlsave', /regex, /extract) + plotfile_add $
-  else if strcmp(strmid(plotfile, strlen(plotfile)-4), plot_exten, /fold_case) eq 0 then plotfile = plotfile + plot_exten
+  
+  if pub then begin
+    if n_elements(plotfile) eq 0 then plotfile = strsplit(power_savefile[0], '.idlsave', /regex, /extract) + plotfile_add $
+    else if strcmp(strmid(plotfile, strlen(plotfile)-4), plot_exten, /fold_case) eq 0 then plotfile = plotfile + plot_exten
+  endif
   
   if keyword_set(no_units) then units_str = ''
   
