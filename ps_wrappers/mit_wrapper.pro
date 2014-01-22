@@ -1,8 +1,59 @@
-pro ps_wrapper, datafile, rts = rts, refresh_dft = refresh_dft, refresh_ps = refresh_ps, refresh_binning = refresh_binning, pol_inc = pol_inc, $
+pro mit_wrapper, rts = rts, refresh_dft = refresh_dft, refresh_ps = refresh_ps, refresh_binning = refresh_binning, pol_inc = pol_inc, $
     no_spec_window = no_spec_window, spec_window_type = spec_window_type,individual_plots = individual_plots, png = png, eps = eps
     
   ;; The only required input is the datafile name (including the full path)
     
+  if keyword_set(rts) then begin
+    froot = '/data3/MWA/bpindor/RTS/dec_11/'
+    
+    ;     data_dir = froot + 'BdaggerV/'
+    data_dir = froot + ['PSF0_0/','PSF0_1/']
+    
+    ;     weights_dir = froot + 'Bdagger1/'
+    weights_dir = froot + ['PSF1_0/','PSF1_1/']
+    
+    ;     variance_dir = froot + 'BdaggerB/'
+    variance_dir = froot + ['PSF2_0/','PSF2_1/']
+    
+    datafiles = [[file_search(data_dir[0] + '*.fits')],[file_search(data_dir[1] + '*.fits')]]
+    weightfiles = [[file_search(weights_dir[0] + '*.fits')],[file_search(weights_dir[1] + '*.fits')]]
+    variancefiles = [[file_search(variance_dir[0] + '*.fits')],[file_search(variance_dir[1] + '*.fits')]]
+    
+    datafile =  rts_fits2imagecube(datafiles, weightfiles, variancefiles, pol_inc, save_path = froot)
+    
+  endif else begin
+  
+    ;;datafile = '/data2/MWA/FHD/DATA/X16/EOR1/145/fhd_v14/Healpix/' + $
+    ;;           'Combined_obs_EOR1_P00_145_20110926193959-EOR1_P00_145_20110926200503_'+['even', 'odd']+'_cube.sav'
+  
+    ;;datafile = '/data2/MWA/PowerSpectra/FHD_healpix_test/multi_freq_residuals_cube_healpix.sav'
+  
+    ;datafile = '/data2/MWA/FHD/DATA/X16/EOR1/145/fhd_v14/Healpix/' + $
+    ;  'Combined_obs_EOR1_P00_145_20110926193959-EOR1_P00_145_20110926200503_'+['even', 'odd']+'_cube.sav'
+    
+    ;datafile = '/nfs/mwa-09/r1/djc/EoR2013/Aug23/fhd_apb_eor_firstpass_8/Healpix/' + $
+
+    ;datafile = '/nfs/mwa-09/r1/djc/EoR2013/Aug23/fhd_apb_gen_sourcelist_5/Healpix/' + $
+    ;   'Combined_obs_1061311664-1061320816_' + ['even', 'odd']+'_cube.sav'
+    
+    ;datafile = '/nfs/mwa-09/r1/djc/EoR2013/Aug23/fhd_apb_eor_firstpass_10/Healpix/' + $
+    ;'Combined_obs_1061316296-1061316296_' + ['even', 'odd']+'_cube.sav' 
+
+    ;datafile = '/nfs/mwa-09/r1/djc/EoR2013/Aug23/fhd_apb_eor_firstpass_12/Healpix/' + $
+    ;'Combined_obs_1061316176-1061317272_' + ['even', 'odd']+'_cube.sav' 
+
+   ;datafile = '/nfs/mwa-09/r1/djc/EoR2013/Aug23/fhd_apb_gen_sourcelist_8/Healpix/' + $
+   ;  'Combined_obs_1061313616-1061318984_' + ['even', 'odd']+'_cube.sav'
+   
+   ;datafile = '/nfs/mwa-09/r1/djc/EoR2013/Aug23/fhd_apb_pipeline_paper_deep_1/Healpix/' + $
+   ;   'Combined_obs_1061316296-1061316296_' + ['even', 'odd']+'_cube.sav'
+
+  ;datafile = '/nfs/mwa-09/r1/djc/EoR2013/Aug23/fhd_apb_pipeline_paper_snapshot_1/Healpix/' + $
+  ;  'Combined_obs_1061316296-1061316296_' + ['even', 'odd']+'_cube.sav'
+    
+    datafile = '/nfs/mwa-09/r1/djc/EoR2013/Aug23/fhd_apb_pipeline_paper_deep_1/Healpix/' + $
+    'Combined_obs_1061311664-1061323008_' + ['even', 'odd']+'_cube.sav'
+  endelse
   
   ;; dft_fchunk applies only to Healpix datasets (it's ignored otherwise) and it specifies how many frequencies to process
   ;;   through the dft at once. This keyword allows for trade-offs between memory use and speed.
@@ -19,7 +70,13 @@ pro ps_wrapper, datafile, rts = rts, refresh_dft = refresh_dft, refresh_ps = ref
   ;; save_path specifies a location to save the power spectrum files.
   ;; This is also where the code looks for intermediate save files to avoid re-running code.
   ;; If this is parameter is not set, the files will be saved in the same directory as the datafile.
-    
+  
+  ;; save_path = '/data2/MWA/FHD/DATA/X16/EOR1/fhd_v5/Healpix/ps/'
+  
+  ;; the following sets the save_path to a 'ps' directory one level up from the datafile directory and creates the directory if it doesn't exist
+  save_path = file_dirname(file_dirname(datafile[0]), /mark_directory) + 'ps' + path_sep()
+  if not file_test(save_path, /directory) then file_mkdir, save_path
+  
   ;; savefilebase specifies a base name to use for the save files
   
   ;; plot_path specifies a location to save plot files.
@@ -30,9 +87,15 @@ pro ps_wrapper, datafile, rts = rts, refresh_dft = refresh_dft, refresh_ps = ref
   
   ;; freq_ch_range specifies which frequency channels to include in the power spectrum.
   ;; Fewer number of channels makes the dfts faster
+  ;; freq_ch_range = [0, 191]
+  ;; freq_ch_range = [288, 480]
+  ;; freq_ch_range = [575, 767]
   
   ;; pol_inc specifies which polarizations to generate the power spectra for.
-  ;; The default is ['xx,'yy']  
+  ;; The default is ['xx,'yy']
+  ;; pol_inc = 'xx'
+  ;; plot_inc = 'yy'
+  
   
   ;; cut_image keyword only applies to Healpix datasets. It allows for limiting the field of view in the
   ;; image plane by only using Healpix pixels inside a 30 degree diameter circle centered in the middle of the field.
@@ -45,6 +108,10 @@ pro ps_wrapper, datafile, rts = rts, refresh_dft = refresh_dft, refresh_ps = ref
   ;; The earliest stage is refresh_dft, which is only used for Healpix datasets (it's ignored otherwise)
   ;; The next stage is refresh_ps and the last stage is refresh_binning.
   ;; To set any of these flags, set them equal to 1 (true)
+  
+  ;;refresh_dft=1
+  ;;refresh_ps=1
+  
   
   ;; options for binning:
   ;; log_kperp, log_kpar and log_k1d are flags: set to 1 (true) for logarithmic bins
@@ -62,8 +129,10 @@ pro ps_wrapper, datafile, rts = rts, refresh_dft = refresh_dft, refresh_ps = ref
   ;; hinv is a flag (defaulted to true) to use h^-1 Mpc rather than physical Mpc in plot units (set to 0 to turn off)
   ;; plot_wedge_line is a flag (defaulted to true) to plot a line marking the wedge (both horizon & FoV) (set to 0 to turn off)
   ;; grey_scale is a flag to use a black/white color scale rather than the default color scale
-  ;; png & eps are flags to make save plots as png or eps files rather than displaying to the screen
-    
+  ;; pub is a flag to make save plots as eps files rather than displaying to the screen
+  
+  ;;pub = 1
+  
   fhd_data_plots, datafile, dft_fchunk=dft_fchunk, plot_path = plot_path, plot_filebase = plot_filebase, save_path = save_path, savefilebase = savefilebase, $
     pol_inc = pol_inc, rts = rts, $
     refresh_dft = refresh_dft, refresh_ps = refresh_ps, refresh_binning = refresh_binning, $

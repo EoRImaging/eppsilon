@@ -1,10 +1,96 @@
-function fhd_file_setup, datafile, pol_inc, weightfile = weightfile, variancefile = variancefile, pixelfile = pixelfile, $
+function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefile = variancefile, pixelfile = pixelfile, $
     dirtyvar = dirtyvar, modelvar = modelvar, weightvar = weightvar, variancevar = variancevar, $
     pixelvar = pixelvar, save_path = save_path, image = image, dft_ian = dft_ian, $
-    weight_savefilebase = weight_savefilebase_in, variance_savefilebase = variance_savefilebase_in, $
+    weight_savefilebase = weight_savefilebase_in, $
     uvf_savefilebase = uvf_savefilebase_in, savefilebase = savefilebase_in, $
     freq_ch_range = freq_ch_range, spec_window_type = spec_window_type, noise_sim = noise_sim
     
+  ;; check to see if filename is an info file
+  wh_info = strpos(filename, '_info.idlsave')
+  if max(wh_info) eq -1 then datafile = filename else begin
+    if n_elements(filename) gt 1 then message, 'only 1 info file can be passed'
+    info_file = filename
+    
+    restore, info_file
+    
+    ;; check to see if datafile(s), uvf, kcube or power files exist
+    files_test = file_test([reform(file_struct_arr.datafile, n_elements(file_struct_arr.datafile)), $
+      reform(file_struct_arr.uvf_savefile, n_elements(file_struct_arr.uvf_savefile)), $
+      reform(file_struct_arr.kcube_savefile, n_elements(file_struct_arr.kcube_savefile)), $
+      reform(file_struct_arr.power_savefile, n_elements(file_struct_arr.power_savefile))])
+    if max(files_test) eq 0 then begin
+    
+      ;; test to see if directories have changed (ie info_file created on different system)
+      ;; if so set them to something reasonable
+      if n_elements(save_path) gt 0 then begin
+        if file_struct_arr.savefile_froot ne save_path then froot = save_path
+        if file_dirname(uvf_savefile) ne save_path then uvf_froot = save_path
+        if file_dirname(uvf_weight_savefile) ne save_path then wt_froot = save_path
+      endif else begin
+        if n_elements(savefilebase_in) then begin
+          savefilebase_dir = file_dirname(savefilebase_in)
+          if file_struct_arr.savefile_froot ne savefilebase_dir then froot = savefilebase_dir
+        endif else begin
+          info_dir = file_dirname(info_file)
+          if file_struct_arr.savefile_froot ne info_dir then froot = info_dir
+        endelse
+        
+        if n_elements(uvf_savefilebase_in) then begin
+          uvf_savefilebase_dir = file_dirname(savefilebase_in)
+          if file_dirname(uvf_savefile) ne uvf_savefilebase_dir then uvf_froot = uvf_savefilebase_dir
+        endif else begin
+          info_dir = file_dirname(info_file)
+          if file_dirname(uvf_savefile) ne info_dir then uvf_froot = info_dir
+        endelse
+        
+        if n_elements(weight_savefilebase_in) then begin
+          wt_savefilebase_dir = file_dirname(savefilebase_in)
+          if file_dirname(uvf_weight_savefile) ne wt_savefilebase_dir then wt_froot = wt_savefilebase_dir
+        endif else begin
+          info_dir = file_dirname(info_file)
+          if file_dirname(uvf_weight_savefile) ne info_dir then wt_froot = info_dir
+        endelse
+        
+      endelse
+      
+      ;; check again (with new directories) to see if datafile(s), uvf, kcube or power files exist
+      files_test = file_test([reform(file_struct_arr.datafile, n_elements(file_struct_arr.datafile)), $
+        reform(file_struct_arr.uvf_savefile, n_elements(file_struct_arr.uvf_savefile)), $
+        reform(file_struct_arr.kcube_savefile, n_elements(file_struct_arr.kcube_savefile)), $
+        reform(file_struct_arr.power_savefile, n_elements(file_struct_arr.power_savefile))])
+        
+    endif
+    
+    if max(files_test) eq 0 then message, 'Cannot find any datafile(s), uvf, kcube or power files, please specify paths using keywords.'
+    
+    if n_elements(froot) ne 0 then begin
+      file_struct_arr.savefile_froot = froot
+      uf_sum_savefile = froot + file_basename(file_struct_arr.uf_sum_savefile)
+      vf_sum_savefile = froot + file_basename(file_struct_arr.vf_sum_savefile)
+      uv_sum_savefile = froot + file_basename(file_struct_arr.uv_sum_savefile)
+      uf_diff_savefile = froot + file_basename(file_struct_arr.uf_diff_savefile)
+      vf_diff_savefile = froot + file_basename(file_struct_arr.vf_diff_savefile)
+      uv_diff_savefile = froot + file_basename(file_struct_arr.uv_diff_savefile)
+      kcube_savefile = froot + file_basename(file_struct_arr.kcube_savefile)
+      power_savefile = froot + file_basename(file_struct_arr.power_savefile)
+      fits_power_savefile = froot + file_basename(file_struct_arr.fits_power_savefile)
+    endif
+    
+    if n_elements(uvf_froot) ne 0 then begin
+      uvf_savefile = uvf_froot + file_basename(file_struct_arr.uvf_savefile)
+      uf_savefile = uvf_froot + file_basename(file_struct_arr.uf_savefile)
+      vf_savefile = uvf_froot + file_basename(file_struct_arr.vf_savefile)
+      uv_savefile = uvf_froot + file_basename(file_struct_arr.uv_savefile)
+      uf_raw_savefile = uvf_froot + file_basename(file_struct_arr.uf_raw_savefile)
+      vf_raw_savefile = uvf_froot + file_basename(file_struct_arr.vf_raw_savefile)
+      uv_raw_savefile = uvf_froot + file_basename(file_struct_arr.uv_raw_savefile)
+    endif
+    
+    if n_elements(wt_froot) ne 0 then uvf_weight_savefile = wt_froot + file_basename(file_struct_arr.uvf_weight_savefile)
+    
+    return, file_struct_arr
+  endelse
+  
   nfiles = n_elements(datafile)
   if nfiles gt 2 then message, 'only 1 or 2 datafiles is supported'
   if nfiles eq 2 then if datafile[0] eq datafile[1] then begin
@@ -31,30 +117,36 @@ function fhd_file_setup, datafile, pol_inc, weightfile = weightfile, variancefil
   endfor
   pol_inc = pol_enum[pol_num[uniq(pol_num, sort(pol_num))]]
   
+  if nfiles eq 1 then infile_label = '' else begin
+    data_filebase = [cgRootName(datafile[0]), cgRootName(datafile[1])]
+    
+    fileparts_1 = strsplit(data_filebase[0], '_', /extract)
+    fileparts_2 = strsplit(data_filebase[1], '_', /extract)
+    match_test = strcmp(fileparts_1, fileparts_2)
+    wh_diff = where(match_test eq 0, count_diff, complement = wh_same, ncomplement = count_same)
+    
+    if count_diff gt 0 then infile_label = [strjoin(fileparts_1[wh_diff]), strjoin(fileparts_2[wh_diff])] $
+    else infile_label = strarr(2)
+  endelse
   
   if n_elements(savefilebase_in) eq 0 then begin
     if nfiles eq 1 then begin
       if n_elements(save_path) ne 0 then froot = save_path $
-      else froot = file_dirname(datafile, /mark_directory)
+      else data_filebase = cgRootName(datafile, directory=froot)
       uvf_froot = froot
-      infilebase = file_basename(datafile)
-      temp2 = strpos(infilebase, '.', /reverse_search)
-      general_filebase = strmid(infilebase, 0, temp2) + fch_tag
+      
+      general_filebase = data_filebase + fch_tag
+      infile_label = ''
       
     endif else begin
       if n_elements(save_path) ne 0 then froot = save_path $
-      else froot = file_dirname(datafile[0], /mark_directory)
-      infilebase = file_basename(datafile)
-      temp2 = strpos(infilebase, '.', /reverse_search)
+      else data_filebase = cgRootName(datafile[0], directory=froot)
+      data_filebase = [data_filebase, cgRootName(datafile[1])]
       
-      fileparts_1 = strsplit(strmid(infilebase[0], 0, temp2[0]), '_', /extract)
-      fileparts_2 = strsplit(strmid(infilebase[1], 0, temp2[1]), '_', /extract)
-      match_test = strcmp(fileparts_1, fileparts_2)
-      wh_diff = where(match_test eq 0, count_diff, complement = wh_same, ncomplement = count_same)
-      if count_diff eq 0 then general_filebase = strmid(infilebase[0], 0, temp2[0]) + '_joint' else begin
+      if count_diff eq 0 then general_filebase = data_filebase[0] + '_joint' else begin
         if count_same gt 0 then general_filebase = strjoin(fileparts_1[wh_same], '_') + '__' + strjoin(fileparts_1[wh_diff]) $
           + '_' + strjoin(fileparts_2[wh_diff]) + '_joint' $
-        else general_filebase = infilebase[0] + infilebase[1] + '_joint'
+        else general_filebase = data_filebase[0] + data_filebase[1] + '_joint'
       endelse
       
       general_filebase = general_filebase + fch_tag
@@ -62,24 +154,28 @@ function fhd_file_setup, datafile, pol_inc, weightfile = weightfile, variancefil
     endelse
   endif else begin
     if n_elements(save_path) gt 0 then froot = save_path else begin
-      temp = file_dirname(savefilebase_in, /mark_directory)
-      if temp ne '.' then froot = temp else froot = file_dirname(datafile[0], /mark_directory)
+      savefilebase_in_base = cgRootName(savefilebase_in[0], directory=froot)
+      if froot eq '.' then data_filebase = cgRootName(datafile[0], directory=froot)
     endelse
-    general_filebase = file_basename(savefilebase_in) + fch_tag
+    
+    general_filebase = savefilebase_in_base + fch_tag
   endelse
   
-  ;; check for pre-saved info file. If it exists, restore it and return structure. Otherwise construct structure.
-  ;  info_file = froot + general_filebase + '_info.idlsave'
-  ;  info_filetest = file_test(info_file)
-  ;  if info_filetest eq 1 then begin
-  ;    ;; check if info file has the right polarizations
-  ;    info_pol_inc = getvar_savefile(info_file, 'pol_inc')
-  ;    match2, pol_inc, info_pol_inc, suba, subb
-  ;    if min([suba, subb]) ge 0 then begin
-  ;      restore, info_file
-  ;      return, file_struct_arr
-  ;    endif
-  ;  endif
+  ; check for pre-saved info file. If it exists, restore it and return structure. Otherwise construct structure.
+  info_file = froot + general_filebase + '_info.idlsave'
+  info_filetest = file_test(info_file)
+  if info_filetest eq 1 then begin
+    ;; check if info file has the right polarizations
+    info_pol_inc = getvar_savefile(info_file, 'pol_inc')
+    match2, pol_inc, info_pol_inc, suba, subb
+    if min([suba, subb]) ge 0 then begin
+      ;; looks good, restore & check for directory structure changes
+      file_struct_arr = fhd_file_setup(info_file, save_path = save_path, weight_savefilebase = weight_savefilebase_in, $
+        uvf_savefilebase = uvf_savefilebase_in, savefilebase = savefilebase_in)
+        
+      return, file_struct_arr
+    endif
+  endif
   
   datafile_test = file_test(datafile)
   if min(datafile_test) eq 0 then message, 'datafile not found'
@@ -195,38 +291,12 @@ function fhd_file_setup, datafile, pol_inc, weightfile = weightfile, variancefil
   
   if n_elements(savefilebase_in) eq 0 or n_elements(uvf_savefilebase_in) lt nfiles then begin
     if nfiles eq 1 then begin
-      if n_elements(save_path) ne 0 then froot = save_path $
-      else froot = file_dirname(datafile, /mark_directory)
-      uvf_froot = froot
-      infilebase = file_basename(datafile)
-      temp2 = strpos(infilebase, '.', /reverse_search)
-      general_filebase = strmid(infilebase, 0, temp2) + fch_tag
       if n_elements(savefilebase_in) eq 0 then savefilebase = general_filebase + file_label + sw_tag
       
       ;; if we're only dealing with one file and uvf_savefilebase isn't specified then use same base for uvf files
       if n_elements(uvf_savefilebase_in) eq 0 then uvf_savefilebase = general_filebase + fch_tag + file_label + dft_label
     endif else begin
-      if n_elements(save_path) ne 0 then froot = save_path $
-      else froot = file_dirname(datafile[0], /mark_directory)
-      infilebase = file_basename(datafile)
-      temp2 = strpos(infilebase, '.', /reverse_search)
-      
-      if n_elements(savefilebase_in) eq 0 then begin
-        fileparts_1 = strsplit(strmid(infilebase[0], 0, temp2[0]), '_', /extract)
-        fileparts_2 = strsplit(strmid(infilebase[1], 0, temp2[1]), '_', /extract)
-        match_test = strcmp(fileparts_1, fileparts_2)
-        wh_diff = where(match_test eq 0, count_diff, complement = wh_same, ncomplement = count_same)
-        if count_diff eq 0 then general_filebase = strmid(infilebase[0], 0, temp2[0]) + '_joint' else begin
-          if count_same gt 0 then begin
-            general_filebase = strjoin(fileparts_1[wh_same], '_') + '__' + strjoin(fileparts_1[wh_diff]) $
-              + '_' + strjoin(fileparts_2[wh_diff]) + '_joint'
-            infile_label = [strjoin(fileparts_1[wh_diff]), strjoin(fileparts_2[wh_diff])]
-          endif else general_filebase = infilebase[0] + infilebase[1] + '_joint'
-        endelse
-        
-        general_filebase = general_filebase + fch_tag
-        savefilebase = general_filebase + file_label + sw_tag
-      endif
+      if n_elements(savefilebase_in) eq 0 then savefilebase = general_filebase + file_label + sw_tag
       
       if n_elements(uvf_savefilebase_in) eq 0 then begin
         ;; need 2 uvf files for each type/pol
@@ -237,21 +307,14 @@ function fhd_file_setup, datafile, pol_inc, weightfile = weightfile, variancefil
         uvf_savefilebase = strarr(nfiles, ncubes)
         uvf_label = strarr(nfiles, ncubes)
         for i=0, nfiles-1 do begin
-          uvf_savefilebase[i, *] = strmid(infilebase[i], 0, temp2[i]) + fch_tag + file_label + dft_label
+          uvf_savefilebase[i, *] = data_filebase[i] + fch_tag + file_label + dft_label
           uvf_label[i, *] = infile_label[i] + file_label
         endfor
       endif
     endelse
   endif
   
-  if n_elements(savefilebase_in) eq 1 then begin
-    if n_elements(save_path) gt 0 then froot = save_path else begin
-      temp = file_dirname(savefilebase_in, /mark_directory)
-      if temp ne '.' then froot = temp else froot = file_dirname(datafile[0], /mark_directory)
-    endelse
-    savefilebase = file_basename(savefilebase_in) + fch_tag + file_label + sw_tag
-    general_filebase = file_basename(savefilebase_in) + fch_tag
-  endif
+  if n_elements(savefilebase_in) eq 1 then savefilebase = file_basename(savefilebase_in) + fch_tag + file_label + sw_tag
   
   ;; add sw tag to general_filebase so that plotfiles have sw_tag in them
   general_filebase = general_filebase + sw_tag
@@ -289,14 +352,12 @@ function fhd_file_setup, datafile, pol_inc, weightfile = weightfile, variancefil
   fits_power_savefile = froot + savefilebase + '_power.fits'
   
   if n_elements(weight_savefilebase_in) eq 0 then begin
-    wt_infilebase = file_basename(weightfile)
-    temp2 = strpos(wt_infilebase, '.', /reverse_search)
+    wt_base = cgrootname(weightfile[0], directory = wt_froot)
     
     if nfiles eq 1 then begin
-      if n_elements(save_path) gt 0 then wt_froot = save_path $
-      else wt_froot = file_dirname(weightfile, /mark_directory)
+      if n_elements(save_path) gt 0 then wt_froot = save_path
       
-      weight_savefilebase = strmid(wt_infilebase, 0, temp2) + fch_tag + wt_file_label
+      weight_savefilebase = wt_base + fch_tag + wt_file_label
     endif else begin
       if n_elements(save_path) gt 0 then wt_froot = save_path else begin
         wt_froot = strarr(nfiles, npol)
@@ -304,7 +365,7 @@ function fhd_file_setup, datafile, pol_inc, weightfile = weightfile, variancefil
       endelse
       
       weight_savefilebase = strarr(nfiles, npol)
-      for i=0, nfiles-1 do weight_savefilebase[i, *] = strmid(wt_infilebase[i], 0, temp2[i]) + fch_tag + wt_file_label
+      for i=0, nfiles-1 do weight_savefilebase[i, *] = cgrootname(weightfile[i]) + fch_tag + wt_file_label
     endelse
   endif else begin
     if n_elements(save_path) gt 0 then wt_froot = save_path else begin
