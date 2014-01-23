@@ -17,74 +17,81 @@ function rts_file_setup, filename, pol_inc, save_path = save_path, $
       reform(file_struct_arr.kcube_savefile, n_elements(file_struct_arr.kcube_savefile)), $
       reform(file_struct_arr.power_savefile, n_elements(file_struct_arr.power_savefile))])
     if max(files_test) eq 0 then begin
-    
+      ;; can't find any of the files
       ;; test to see if directories have changed (ie info_file created on different system)
       ;; if so set them to something reasonable
-      if n_elements(save_path) gt 0 then begin
-        if file_struct_arr.savefile_froot ne save_path then froot = save_path
-        if file_dirname(uvf_savefile) ne save_path then uvf_froot = save_path
-        if file_dirname(uvf_weight_savefile) ne save_path then wt_froot = save_path
-      endif else begin
-        if n_elements(savefilebase_in) then begin
-          savefilebase_dir = file_dirname(savefilebase_in)
-          if file_struct_arr.savefile_froot ne savefilebase_dir then froot = savefilebase_dir
-        endif else begin
-          info_dir = file_dirname(info_file)
-          if file_struct_arr.savefile_froot ne info_dir then froot = info_dir
-        endelse
-        
-        if n_elements(uvf_savefilebase_in) then begin
-          uvf_savefilebase_dir = file_dirname(savefilebase_in)
-          if file_dirname(uvf_savefile) ne uvf_savefilebase_dir then uvf_froot = uvf_savefilebase_dir
-        endif else begin
-          info_dir = file_dirname(info_file)
-          if file_dirname(uvf_savefile) ne info_dir then uvf_froot = info_dir
-        endelse
-        
-        if n_elements(weight_savefilebase_in) then begin
-          wt_savefilebase_dir = file_dirname(savefilebase_in)
-          if file_dirname(uvf_weight_savefile) ne wt_savefilebase_dir then wt_froot = wt_savefilebase_dir
-        endif else begin
-          info_dir = file_dirname(info_file)
-          if file_dirname(uvf_weight_savefile) ne info_dir then wt_froot = info_dir
-        endelse
-        
-      endelse
+    
+      froot_test = file_test(file_struct_arr.savefile_froot, /directory)
+      wh_froot_fail = where(froot_test eq 0, count_froot_fail)
+      uvf_froot_test = file_test(file_dirname(file_struct_arr.uvf_savefile), /directory)
+      wh_uvf_froot_fail = where(uvf_froot_test eq 0, count_uvf_froot_fail)
+      wt_froot_test = file_test(file_dirname(file_struct_arr.uvf_weight_savefile), /directory)
+      wh_wt_froot_fail = where(wt_froot_test eq 0, count_wt_froot_fail)
       
-      ;; check again (with new directories) to see if datafile(s), uvf, kcube or power files exist
-      files_test = file_test([reform(file_struct_arr.datafile, n_elements(file_struct_arr.datafile)), $
-        reform(file_struct_arr.uvf_savefile, n_elements(file_struct_arr.uvf_savefile)), $
-        reform(file_struct_arr.kcube_savefile, n_elements(file_struct_arr.kcube_savefile)), $
-        reform(file_struct_arr.power_savefile, n_elements(file_struct_arr.power_savefile))])
+      if n_elements(save_path) gt 0 then begin
+        if count_froot_fail gt 0 then froot = save_path
+        if count_uvf_froot_fail gt 0 then uvf_froot = save_path
+        if count_wt_froot_fail gt 0 then wt_froot = save_path
+      endif else begin
+        void = cgrootname(info_file, directory = info_dir)
         
+        if count_froot_fail gt 0 then begin
+          if n_elements(savefilebase_in) then begin
+            void = cgrootname(savefilebase_in, directory = savefilebase_dir)
+            froot = savefilebase_dir
+          endif else froot = info_dir
+        endif
+        
+        if count_uvf_froot_fail gt 0 then begin
+          if n_elements(uvf_savefilebase_in) then begin
+            void = cgrootname(uvf_savefilebase_in, directory = uvf_savefilebase_dir)
+            uvf_froot = uvf_savefilebase_dir
+          endif else uvf_froot = info_dir
+        endif
+        
+        if count_wt_froot_fail gt 0 then begin
+          if n_elements(weight_savefilebase_in) then begin
+            void = cgrootname(weight_savefilebase_in, directory = wt_savefilebase_dir)
+            wt_froot = wt_savefilebase_dir
+          endif else  wt_froot = info_dir
+        endif
+      endelse     
+      
     endif
     
-    if max(files_test) eq 0 then message, 'Cannot find any datafile(s), uvf, kcube or power files, please specify paths using keywords.'
-    
     if n_elements(froot) ne 0 then begin
-      file_struct_arr.savefile_froot = froot
-      uf_sum_savefile = froot + file_basename(file_struct_arr.uf_sum_savefile)
-      vf_sum_savefile = froot + file_basename(file_struct_arr.vf_sum_savefile)
-      uv_sum_savefile = froot + file_basename(file_struct_arr.uv_sum_savefile)
-      uf_diff_savefile = froot + file_basename(file_struct_arr.uf_diff_savefile)
-      vf_diff_savefile = froot + file_basename(file_struct_arr.vf_diff_savefile)
-      uv_diff_savefile = froot + file_basename(file_struct_arr.uv_diff_savefile)
-      kcube_savefile = froot + file_basename(file_struct_arr.kcube_savefile)
-      power_savefile = froot + file_basename(file_struct_arr.power_savefile)
-      fits_power_savefile = froot + file_basename(file_struct_arr.fits_power_savefile)
+      file_struct_arr.savefile_froot[*] = froot
+      file_struct_arr.uf_sum_savefile = froot + file_basename(file_struct_arr.uf_sum_savefile)
+      file_struct_arr.vf_sum_savefile = froot + file_basename(file_struct_arr.vf_sum_savefile)
+      file_struct_arr.uv_sum_savefile = froot + file_basename(file_struct_arr.uv_sum_savefile)
+      file_struct_arr.uf_diff_savefile = froot + file_basename(file_struct_arr.uf_diff_savefile)
+      file_struct_arr.vf_diff_savefile = froot + file_basename(file_struct_arr.vf_diff_savefile)
+      file_struct_arr.uv_diff_savefile = froot + file_basename(file_struct_arr.uv_diff_savefile)
+      file_struct_arr.kcube_savefile = froot + file_basename(file_struct_arr.kcube_savefile)
+      file_struct_arr.power_savefile = froot + file_basename(file_struct_arr.power_savefile)
+      file_struct_arr.fits_power_savefile = froot + file_basename(file_struct_arr.fits_power_savefile)
     endif
     
     if n_elements(uvf_froot) ne 0 then begin
-      uvf_savefile = uvf_froot + file_basename(file_struct_arr.uvf_savefile)
-      uf_savefile = uvf_froot + file_basename(file_struct_arr.uf_savefile)
-      vf_savefile = uvf_froot + file_basename(file_struct_arr.vf_savefile)
-      uv_savefile = uvf_froot + file_basename(file_struct_arr.uv_savefile)
-      uf_raw_savefile = uvf_froot + file_basename(file_struct_arr.uf_raw_savefile)
-      vf_raw_savefile = uvf_froot + file_basename(file_struct_arr.vf_raw_savefile)
-      uv_raw_savefile = uvf_froot + file_basename(file_struct_arr.uv_raw_savefile)
+      file_struct_arr.uvf_savefile = uvf_froot + file_basename(file_struct_arr.uvf_savefile)
+      file_struct_arr.uf_savefile = uvf_froot + file_basename(file_struct_arr.uf_savefile)
+      file_struct_arr.vf_savefile = uvf_froot + file_basename(file_struct_arr.vf_savefile)
+      file_struct_arr.uv_savefile = uvf_froot + file_basename(file_struct_arr.uv_savefile)
+      file_struct_arr.uf_raw_savefile = uvf_froot + file_basename(file_struct_arr.uf_raw_savefile)
+      file_struct_arr.vf_raw_savefile = uvf_froot + file_basename(file_struct_arr.vf_raw_savefile)
+      file_struct_arr.uv_raw_savefile = uvf_froot + file_basename(file_struct_arr.uv_raw_savefile)
     endif
     
-    if n_elements(wt_froot) ne 0 then uvf_weight_savefile = wt_froot + file_basename(file_struct_arr.uvf_weight_savefile)
+    if n_elements(wt_froot) ne 0 then file_struct_arr.uvf_weight_savefile = wt_froot + file_basename(file_struct_arr.uvf_weight_savefile)
+    
+    ;; check again (with new directories) to see if datafile(s), uvf, kcube or power files exist
+    files_test = file_test([reform(file_struct_arr.datafile, n_elements(file_struct_arr.datafile)), $
+      reform(file_struct_arr.uvf_savefile, n_elements(file_struct_arr.uvf_savefile)), $
+      reform(file_struct_arr.kcube_savefile, n_elements(file_struct_arr.kcube_savefile)), $
+      reform(file_struct_arr.power_savefile, n_elements(file_struct_arr.power_savefile))])
+      
+    if max(files_test) eq 0 then message, 'Cannot find any datafile(s), uvf, kcube or power files, please specify paths using keywords.'
+    
     
     return, file_struct_arr
   endelse
