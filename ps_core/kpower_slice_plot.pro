@@ -552,21 +552,56 @@ pro kpower_slice_plot, slice_savefile, multi_pos = multi_pos, start_multi_params
   endelse
   
   
-  temp = [ceil(log_data_range[0]), floor(log_data_range[1])]
-  if temp[1] lt temp[0] then temp = reverse(temp)
-  tick_vals = 10^(dindgen(temp[1]-temp[0] + 1) + temp[0])
+  tick_vals = loglevels(10d^[floor(log_data_range[0])-.1, ceil(log_data_range[1])+.1], coarse=0)
+  
+  wh_keep = where(tick_vals gt 10^(log_data_range[0]-0.001) and tick_vals lt 10^(log_data_range[1]+0.001), count_keep)
+  if count_keep gt 0 then tick_vals = tick_vals[wh_keep] else undefine, tick_vals
+  
+  ;; want minor tick marks if there aren't very many loglevels.
+  ;; unfortunately cgcolorbar can't do log minor tick marks
+  ;; with specified tick locations (which I have to do b/c
+  ;; can't use divisions=0 with formatting keyword)
+  ;; solution: add regular tickmarks without labels for the minor ones.
+  
+  if n_elements(tick_vals) lt 4 then begin
+    tick_vals_use = loglevels(10d^[floor(log_data_range[0])-.1, ceil(log_data_range[1])+.1], coarse=0)
+    
+    if n_elements(tick_vals) lt 2 then minor_multipliers = dindgen(8)+2 else minor_multipliers = (dindgen(4)+1)*2d
+    n_minor_mult = n_elements(minor_multipliers)
+    n_major = n_elements(tick_vals_use)
+    
+    minor_tick_vals = reform(rebin(minor_multipliers, n_minor_mult, n_major), n_minor_mult*n_major) $
+      * reform(rebin(reform(tick_vals_use, 1, n_major), n_minor_mult, n_major), n_minor_mult*n_major)
+    wh_keep = where(minor_tick_vals gt 10^log_data_range[0] and minor_tick_vals lt 10^log_data_range[1], count_keep)
+    
+    if count_keep gt 0 then begin
+      minor_tick_vals = minor_tick_vals[wh_keep]
+      n_minor = n_elements(minor_tick_vals)
+      minor_tick_names = strarr(n_minor) + ' '
+    endif else n_minor = 0
+    
+    if n_elements(tick_vals) eq 0 then begin
+      ;; range doesn't include any decade levels. Use minor ticks as major ticks
+      if n_minor gt 0 then begin
+        tick_vals = minor_tick_vals
+        n_minor = 0
+      endif else stop
+    endif
+    
+  endif else n_minor = 0
+  
   nloop = 0
   while(n_elements(tick_vals) gt 8) do begin
     nloop = nloop + 1
     factor = double(nloop+1)
     if color_profile eq 'sym_log' then begin
-      pos_exp_vals = dindgen(ceil((temp[1]-temp[0] + 1)/(2d*factor)) + 1)*factor
+      pos_exp_vals = dindgen(ceil((alog10(max(tick_vals))-alog10(min(tick_vals)) + 1)/(2d*factor)) + 1)*factor
       if max(pos_exp_vals) gt temp[1] then pos_exp_vals = pos_exp_vals[0:n_elements(pos_exp_vals)-2]
       
       exp_vals = [(-1)*reverse(pos_exp_vals[1:*]), pos_exp_vals]
     endif else begin
-      exp_vals = (dindgen(ceil((temp[1]-temp[0] + 1)/factor) + 1)*factor + temp[0])
-      if max(exp_vals) gt temp[1] then exp_vals = exp_vals[0:n_elements(exp_vals)-2]
+      exp_vals = (dindgen(ceil((alog10(max(tick_vals))-alog10(min(tick_vals)) + 1)/factor) + 1)*factor + alog10(min(tick_vals)))
+      if max(exp_vals) gt alog10(max(tick_vals)) then exp_vals = exp_vals[0:n_elements(exp_vals)-2]
     endelse
     tick_vals = 10^exp_vals
   endwhile
@@ -582,26 +617,25 @@ pro kpower_slice_plot, slice_savefile, multi_pos = multi_pos, start_multi_params
     if count_zero gt 0 then names[wh_zero] = '0'
   endif else begin
   
-    ;; if log_data_range[0] lt min_pos then begin
-    ;;    wh = where(tick_vals lt min_pos, count, complement = wh_keep, ncomplement = count_keep)
-    ;;    if count_keep gt 0 then tick_vals = [min_pos, tick_vals[wh_keep]]
-  
-    ;;    names = ['<0', '10!U' + strtrim(string(round(alog10(tick_vals))), 2) + '!N']
-  
-    ;; endif else names = '10!U' + strtrim(string(round(alog10(tick_vals))), 2) + '!N'
-    if min(power_slice) lt 0 and min(tick_vals) lt min_pos then begin
+    if min(power) lt 0 and min(tick_vals) lt min_pos then begin
       wh = where(tick_vals lt min_pos, count, complement = wh_keep, ncomplement = count_keep)
       
-      if count lt 1 then stop
+      if count lt 1 then stop else if count eq 1 then names = ['<0', number_formatter(tick_vals[wh_keep], format = '(e0)',/print_exp)] $
+      else names = [strarr(count-1), '<0', number_formatter(tick_vals[wh_keep], format = '(e0)',/print_exp)]
       
-      if count eq 1 then names = ['<0', '10!U' + strtrim(string(round(alog10(tick_vals[wh_keep]))), 2) + '!N'] $
-      else names = [strarr(count-1), '<0', '10!U' + strtrim(string(round(alog10(tick_vals[wh_keep]))), 2) + '!N']
-      
-    endif else $
-      names = '10!U' + strtrim(string(round(alog10(tick_vals))), 2) + '!N'
-      
+    endif else names = number_formatter(tick_vals, format = '(e0)',/print_exp)
+    
   endelse
   
+  if n_minor gt 0 then begin
+    temp_ticks = [tick_vals, minor_tick_vals]
+    temp_names = [names, minor_tick_names]
+    order = sort(temp_ticks)
+    
+    tick_vals = temp_ticks[order]
+    names = temp_names[order]
+  endif
+   
   if (alog10(tick_vals[0]) - log_data_range[0]) gt 10^(-3d) then begin
     cb_ticknames = [' ', names]
     cb_ticks = [color_range[0], (alog10(tick_vals) - log_data_range[0]) * n_colors / $
@@ -619,8 +653,10 @@ pro kpower_slice_plot, slice_savefile, multi_pos = multi_pos, start_multi_params
   
   min_pos_cb_val = ((alog10(min_pos) - log_data_range[0]) * n_colors / $
     (log_data_range[1] - log_data_range[0]) + color_range[0]) - color_range[0]
-  cgcolorbar, color = annotate_color, /vertical, position = cb_pos, bottom = color_range[0], ncolors = n_colors+1, yminor = 0, $
-    ticknames = cb_ticknames, ytickv = cb_ticks, yticks = n_elements(cb_ticks) -1, charsize = charsize, font = font
+    
+  cgcolorbar, color = annotate_color, /vertical, position = cb_pos, bottom = color_range[0], ncolors = n_colors, minor = 0, $
+    ticknames = cb_ticknames, ytickv = cb_ticks, yticks = n_elements(cb_ticks) -1, title = units_str, $
+    charsize = charsize, font = font
     
   if keyword_set(pub) and n_elements(multi_pos) eq 0 then begin
     cgps_close, png = png, delete_ps = delete_ps

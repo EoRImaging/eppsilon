@@ -562,7 +562,7 @@ pro uvf_slice_plot, slice_savefile, multi_pos = multi_pos, start_multi_params = 
     tick_vals = loglevels(10d^[floor(log_data_range[0])-.1, ceil(log_data_range[1])+.1], coarse=0)
     
     wh_keep = where(tick_vals gt 10^(log_data_range[0]-0.001) and tick_vals lt 10^(log_data_range[1]+0.001), count_keep)
-    if count_keep gt 0 then tick_vals = tick_vals[wh_keep] else stop
+    if count_keep gt 0 then tick_vals = tick_vals[wh_keep] else undefine, tick_vals
     
     ;; want minor tick marks if there aren't very many loglevels.
     ;; unfortunately cgcolorbar can't do log minor tick marks
@@ -586,6 +586,14 @@ pro uvf_slice_plot, slice_savefile, multi_pos = multi_pos, start_multi_params = 
         n_minor = n_elements(minor_tick_vals)
         minor_tick_names = strarr(n_minor) + ' '
       endif else n_minor = 0
+      
+      if n_elements(tick_vals) eq 0 then begin
+        ;; range doesn't include any decade levels. Use minor ticks as major ticks
+        if n_minor gt 0 then begin
+          tick_vals = minor_tick_vals
+          n_minor = 0
+        endif else stop
+      endif
       
     endif else n_minor = 0
     

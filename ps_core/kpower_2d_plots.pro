@@ -919,64 +919,56 @@ pro kpower_2d_plots, power_savefile, multi_pos = multi_pos, start_multi_params =
     if count_zero gt 0 then names[wh_zero] = '0'
   endif else begin
   
-    ;; if log_data_range[0] lt min_pos then begin
-    ;;    wh = where(tick_vals lt min_pos, count, complement = wh_keep, ncomplement = count_keep)
-    ;;    if count_keep gt 0 then tick_vals = [min_pos, tick_vals[wh_keep]]
-  
-    ;;    names = ['<0', '10!U' + strtrim(string(round(alog10(tick_vals))), 2) + '!N']
-  
-    ;; endif else names = '10!U' + strtrim(string(round(alog10(tick_vals))), 2) + '!N'
     if min(power) lt 0 and min(tick_vals) lt min_pos then begin
       wh = where(tick_vals lt min_pos, count, complement = wh_keep, ncomplement = count_keep)
       
-      if count lt 1 then stop $
-      else if count eq 1 then names = ['<0', number_formatter(tick_vals[wh_keep], format = '(e0)',/print_exp)] $
-    else names = [strarr(count-1), '<0', number_formatter(tick_vals[wh_keep], format = '(e0)',/print_exp)]
-    
-  endif else names = number_formatter(tick_vals, format = '(e0)',/print_exp)
-endelse
-
-if n_minor gt 0 then begin
-  temp_ticks = [tick_vals, minor_tick_vals]
-  temp_names = [names, minor_tick_names]
-  order = sort(temp_ticks)
+      if count lt 1 then stop else if count eq 1 then names = ['<0', number_formatter(tick_vals[wh_keep], format = '(e0)',/print_exp)] $
+      else names = [strarr(count-1), '<0', number_formatter(tick_vals[wh_keep], format = '(e0)',/print_exp)]
+      
+    endif else names = number_formatter(tick_vals, format = '(e0)',/print_exp)
+  endelse
   
-  tick_vals = temp_ticks[order]
-  names = temp_names[order]
-endif
-
-
-if (alog10(tick_vals[0]) - log_data_range[0]) lt 10^(-3d) then begin
-  cb_ticknames = [' ', names]
-  cb_ticks = [color_range[0]-1, (alog10(tick_vals) - log_data_range[0]) * n_colors / $
-    (log_data_range[1] - log_data_range[0]) + color_range[0]] - color_range[0]
+  if n_minor gt 0 then begin
+    temp_ticks = [tick_vals, minor_tick_vals]
+    temp_names = [names, minor_tick_names]
+    order = sort(temp_ticks)
     
-endif else begin
-  cb_ticknames = names
-  cb_ticks = ((alog10(tick_vals) - log_data_range[0]) * (n_colors+1) / $
+    tick_vals = temp_ticks[order]
+    names = temp_names[order]
+  endif
+  
+  
+  if (alog10(tick_vals[0]) - log_data_range[0]) lt 10^(-3d) then begin
+    cb_ticknames = [' ', names]
+    cb_ticks = [color_range[0]-1, (alog10(tick_vals) - log_data_range[0]) * n_colors / $
+      (log_data_range[1] - log_data_range[0]) + color_range[0]] - color_range[0]
+      
+  endif else begin
+    cb_ticknames = names
+    cb_ticks = ((alog10(tick_vals) - log_data_range[0]) * (n_colors+1) / $
+      (log_data_range[1] - log_data_range[0]) + color_range[0]) - color_range[0]
+  endelse
+  
+  if (log_data_range[1] - alog10(max(tick_vals))) gt 10^(-3d) then begin
+    cb_ticknames = [cb_ticknames, ' ']
+    cb_ticks = [cb_ticks, color_range[1]-color_range[0]+1]
+  endif
+  
+  min_pos_cb_val = ((alog10(min_pos) - log_data_range[0]) * n_colors / $
     (log_data_range[1] - log_data_range[0]) + color_range[0]) - color_range[0]
-endelse
-
-if (log_data_range[1] - alog10(max(tick_vals))) gt 10^(-3d) then begin
-  cb_ticknames = [cb_ticknames, ' ']
-  cb_ticks = [cb_ticks, color_range[1]-color_range[0]+1]
-endif
-
-min_pos_cb_val = ((alog10(min_pos) - log_data_range[0]) * n_colors / $
-  (log_data_range[1] - log_data_range[0]) + color_range[0]) - color_range[0]
+    
+  cgcolorbar, color = annotate_color, /vertical, position = cb_pos, bottom = color_range[0], ncolors = n_colors, minor = 0, $
+    ticknames = cb_ticknames, ytickv = cb_ticks, yticks = n_elements(cb_ticks) -1, title = units_str, $
+    charsize = charsize, font = font
+  ;; cgcolorbar, color = annotate_color, /vertical, position = cb_pos, bottom = color_range[0]+1, ncolors = n_colors, /ylog, $
+  ;;             range = 10d^log_data_range, format = 'exponent', minor=minor, charsize = charsize, font = font, $
+  ;;             divisions = 0
+    
+  if keyword_set(pub) and n_elements(multi_pos) eq 0 then begin
+    cgps_close, png = png, delete_ps = delete_ps
+    wdelete, window_num
+  endif
   
-cgcolorbar, color = annotate_color, /vertical, position = cb_pos, bottom = color_range[0], ncolors = n_colors, minor = 0, $
-  ticknames = cb_ticknames, ytickv = cb_ticks, yticks = n_elements(cb_ticks) -1, title = units_str, $
-  charsize = charsize, font = font
-;; cgcolorbar, color = annotate_color, /vertical, position = cb_pos, bottom = color_range[0]+1, ncolors = n_colors, /ylog, $
-;;             range = 10d^log_data_range, format = 'exponent', minor=minor, charsize = charsize, font = font, $
-;;             divisions = 0
+  tvlct, r, g, b
   
-if keyword_set(pub) and n_elements(multi_pos) eq 0 then begin
-  cgps_close, png = png, delete_ps = delete_ps
-  wdelete, window_num
-endif
-
-tvlct, r, g, b
-
 end
