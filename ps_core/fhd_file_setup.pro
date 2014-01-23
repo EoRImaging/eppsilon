@@ -191,11 +191,9 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
   datafile_test = file_test(datafile)
   if min(datafile_test) eq 0 then message, 'datafile not found'
   
-  file_obj = obj_new('idl_savefile', datafile[0])
-  varnames = file_obj->names()
+  void = getvar_savefile(datafile[0], names = varnames)
   
-  
-  if keyword_set(noise_sim) then begin    
+  if keyword_set(noise_sim) then begin
     type_inc = ['noisesim']
     ntypes = n_elements(type_inc)
     ncubes = npol * ntypes
@@ -392,19 +390,19 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
   uvf_weight_savefile = wt_froot + weight_savefilebase + '_uvf.idlsave'
   
   for j=0, nfiles-1 do begin
-    file_obj = obj_new('idl_savefile', datafile[j])
-    varnames = file_obj->names()
+    void = getvar_savefile(datafile[j], names = varnames)
     
     wh_nside = where(strlowcase(varnames) eq 'nside', count_nside)
-    data_dims = file_obj->size(cube_varname[0], /dimensions)
+    data_size = getvar_savefile(datafile[j], cube_varname[0], /return_size)
+    if data_size[0] gt 0 then data_dims = data_size[1:data_size[0]]
     if count_nside gt 0 and n_elements(data_dims) eq 2 then this_healpix = 1 else this_healpix = 0
     
     if j gt 0 then if (this_healpix eq 1 and healpix eq 0) or (this_healpix eq 0 and healpix eq 1) then $
       message, 'One datafile is in healpix and the other is not.'
     if this_healpix eq 1 then begin
-      if j eq 0 then file_obj->restore, 'nside' else begin
+      if j eq 0 then nside = getvar_savefile(datafile[j], 'nside') else begin
         nside1 = nside
-        file_obj->restore, 'nside'
+        nside = getvar_savefile(datafile[j], 'nside')
         if nside1 ne nside then message, 'nside parameter does not agree between datafiles'
         undefine, nside1
       endelse
@@ -419,10 +417,10 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
     endif else healpix = 0
     
     wh_obs = where(strlowcase(varnames) eq 'obs', count_obs)
-    if count_obs ne 0 then file_obj->restore, 'obs' else begin
+    if count_obs ne 0 then obs = getvar_savefile(datafile[j], 'obs') else begin
       wh_obs = where(strlowcase(varnames) eq 'obs_arr', count_obs)
       if count_obs ne 0 then begin
-        file_obj->restore, 'obs_arr'
+        obs_arr = getvar_savefile(datafile[j], 'obs_arr')
         if size(obs_arr,/type) eq 10 then begin
           n_obs = n_elements(obs_arr)
           
@@ -534,9 +532,9 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
     
     wh_navg = where(strlowcase(varnames) eq 'n_avg', count_obs)
     if count_obs ne 0 then begin
-      if j eq 0 then file_obj->restore, 'n_avg' else begin
+      if j eq 0 then n_avg = getvar_savefile(datafile[j], 'n_avg') else begin
         n_avg1 = n_avg
-        file_obj->restore, 'n_avg'
+        n_avg = getvar_savefile(datafile[j], 'n_avg')
         if n_avg1 ne n_avg then message, 'n_avg parameter does not agree between datafiles'
         undefine, n_avg1
       endelse
@@ -545,7 +543,6 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
       if j eq 0 then n_avg = 32 else if n_avg ne 32 then message, 'n_avg parameter does not agree between datafiles'
     endelse
     
-    obj_destroy, file_obj
   endfor
   
   ;; fix uvf savefiles for gridded uv
