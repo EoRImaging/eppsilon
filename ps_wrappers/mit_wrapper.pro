@@ -106,7 +106,7 @@ pro mit_wrapper, folder_name, obs_range, rts = rts, refresh_dft = refresh_dft, r
       endelse
     endif else obs_name = ''
     
-    info_file = file_search(folder_name + '/Combined_obs_' + obs_name + '*info*', count = n_infofile)
+    info_file = file_search(folder_name + 'ps/Combined_obs_' + obs_name + '*info*', count = n_infofile)
     if n_infofile gt 0 then begin
       if obs_name eq '' then begin
         if n_infofile gt 1 then print, 'More than 1 info files found, using first one'
@@ -119,8 +119,11 @@ pro mit_wrapper, folder_name, obs_range, rts = rts, refresh_dft = refresh_dft, r
         obs_name = stregex(datafile, '[0-9]+-[0-9]+', /extract)
         obs_range = long(strsplit(obs_name, '-', /extract))
       endelse
+      
+      save_path = folder_name + 'ps/'
+      
     endif else begin
-      cube_files = file_search(folder_name + '/Combined_obs_' + obs_name + '*_cube.sav', count = n_cubefiles)
+      cube_files = file_search(folder_name + 'Healpix/Combined_obs_' + obs_name + '*_cube.sav', count = n_cubefiles)
       if n_cubefiles eq 0 then message, 'No cube or info files found.'
       
       if obs_name eq '' then begin
@@ -140,10 +143,15 @@ pro mit_wrapper, folder_name, obs_range, rts = rts, refresh_dft = refresh_dft, r
         obs_name = obs_name_arr[0]
         obs_range = long(strsplit(obs_name, '-', /extract))
       endelse
+      
+      ;; set the save_path to a 'ps' directory one level up from the datafile directory and create the directory if it doesn't exist
+      save_path = file_dirname(file_dirname(datafile[0]), /mark_directory) + 'ps/'
+      if not file_test(save_path, /directory) then file_mkdir, save_path
+      
     endelse
     
     if obs_range[1] - obs_range[0] gt 0 then integrated = 1 else integrated = 0
-        
+    
     if keyword_set(integrated) then sigma_range = [2e0, 2e2] else sigma_range = [1e2, 2e4]
     if keyword_set(integrated) then nev_range = [5e0, 2e3] else nev_range = [5e2, 2e5]
     data_range = [5e-2, 1e8]
@@ -171,11 +179,6 @@ pro mit_wrapper, folder_name, obs_range, rts = rts, refresh_dft = refresh_dft, r
   ;; This is also where the code looks for intermediate save files to avoid re-running code.
   ;; If this is parameter is not set, the files will be saved in the same directory as the datafile.
   
-  ;; save_path = '/data2/MWA/FHD/DATA/X16/EOR1/fhd_v5/Healpix/ps/'
-  
-  ;; the following sets the save_path to a 'ps' directory one level up from the datafile directory and creates the directory if it doesn't exist
-  save_path = file_dirname(file_dirname(datafile[0]), /mark_directory) + 'ps' + path_sep()
-  if not file_test(save_path, /directory) then file_mkdir, save_path
   
   ;; savefilebase specifies a base name to use for the save files
   
