@@ -69,7 +69,7 @@ pro mit_wrapper, folder_name, obs_range, rts = rts, refresh_dft = refresh_dft, r
     endif
     if folder_test eq 0 then begin
       pos_aug23 = strpos(folder_name, 'Aug23')
-      if pos_fhd_data gt -1 then begin
+      if pos_aug23 gt -1 then begin
         test_name = start_path + 'Aug23/' + strmid(folder_name, pos_aug23)
         folder_test = file_test(test_name, /directory)
         if folder_test eq 1 then folder_name = test_name
@@ -91,8 +91,7 @@ pro mit_wrapper, folder_name, obs_range, rts = rts, refresh_dft = refresh_dft, r
     
     if folder_test eq 0 then message, 'folder not found'
     
-    fhd_type = file_basename(folder_name)
-    
+       
     if n_elements(obs_range) gt 0 then begin
       if size(obs_range,/type) eq 7 then begin
         if n_elements(obs_range) gt 1 then $
