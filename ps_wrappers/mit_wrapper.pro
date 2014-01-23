@@ -57,7 +57,7 @@ pro mit_wrapper, folder_name, obs_range, rts = rts, refresh_dft = refresh_dft, r
     if n_elements(folder_name) eq 0 then folder_name = '/nfs/mwa-09/r1/djc/EoR2013/Aug23/fhd_apb_pipeline_paper_deep_1/Healpix/'
     
     ;; check for folder existence, otherwise look for common folder names to figure out full path. If none found, try '/nfs/mwa-09/r1/djc/EoR2013/Aug23/'
-    start_path = '/nfs/mwa-09/r1/djc/EoR2013/'
+    start_path = '/nfs/mwa-09/r1/djc/'
     folder_test = file_test(folder_name, /directory)
     if folder_test eq 0 then begin
       pos_eor2013 = strpos(folder_name, 'EoR2013')
@@ -70,7 +70,7 @@ pro mit_wrapper, folder_name, obs_range, rts = rts, refresh_dft = refresh_dft, r
     if folder_test eq 0 then begin
       pos_aug23 = strpos(folder_name, 'Aug23')
       if pos_aug23 gt -1 then begin
-        test_name = start_path + 'Aug23/' + strmid(folder_name, pos_aug23)
+        test_name = start_path + 'EoR2013/' + strmid(folder_name, pos_aug23)
         folder_test = file_test(test_name, /directory)
         if folder_test eq 1 then folder_name = test_name
       endif
@@ -78,13 +78,13 @@ pro mit_wrapper, folder_name, obs_range, rts = rts, refresh_dft = refresh_dft, r
     if folder_test eq 0 then begin
       pos_aug26 = strpos(folder_name, 'Aug26')
       if pos_aug26 gt -1 then begin
-        test_name = start_path + 'Aug26/' + strmid(folder_name, pos_aug26)
+        test_name = start_path + 'EoR2013/' + strmid(folder_name, pos_aug26)
         folder_test = file_test(test_name, /directory)
         if folder_test eq 1 then folder_name = test_name
       endif
     endif
     if folder_test eq 0 then begin
-      test_name = start_path + 'Aug23/' + folder_name
+      test_name = start_path + 'EoR2013/Aug23/' + folder_name
       folder_test = file_test(test_name, /directory)
       if folder_test eq 1 then folder_name = test_name
     endif
