@@ -11,14 +11,7 @@ pro fhd_data_plots, datafile, rts = rts, pol_inc = pol_inc, image = image, $
     baseline_axis = baseline_axis, delay_axis = delay_axis, hinv = hinv, plot_wedge_line = plot_wedge_line, $
     grey_scale = grey_scale, individual_plots = individual_plots
     
-  nfiles = n_elements(datafile)
-  if nfiles gt 2 then message, 'only 1 or 2 datafiles is supported'
-  
-  if keyword_set(noise_sim) then begin
-    datafile=datafile[0]
-    nfiles=1
-  endif
-  
+    
   if keyword_set(refresh_dft) then refresh_ps = 1
   if keyword_set(refresh_ps) then refresh_binning = 1
   
@@ -97,7 +90,9 @@ pro fhd_data_plots, datafile, rts = rts, pol_inc = pol_inc, image = image, $
     savefilebase = savefilebase, save_path = save_path, freq_ch_range = freq_ch_range, spec_window_type = spec_window_type, noise_sim = noise_sim)
   time1 = systime(1)
   print, 'file setup time: ' + number_formatter(time1-time0)
-    
+  
+  nfiles = n_elements(file_struct_arr[0].datafile)
+  
   npol = n_elements(pol_inc)
   n_cubes = n_elements(file_struct_arr)
   ntype = n_cubes / npol
@@ -527,7 +522,7 @@ pro fhd_data_plots, datafile, rts = rts, pol_inc = pol_inc, image = image, $
       if slice_type eq 'kspace' then ncol = ntype*npol else ncol = ntype*nfiles*npol
     endif else begin
       if slice_type eq 'kspace' then ncol=ntype else ncol = ntype*nfiles
-     endelse
+    endelse
     start_multi_params = {ncol:ncol, nrow:nrow, ordering:'row'}
     
     if slice_type eq 'kspace' then ncol=ntype else ncol = ntype*nfiles

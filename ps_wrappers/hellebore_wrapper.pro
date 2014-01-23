@@ -51,7 +51,7 @@ pro hellebore_wrapper, folder_name, rts = rts, version = version, refresh_dft = 
       endif
     endif
     if folder_test eq 0 then begin
-      test_name = base_path('data') + 'fhd_ps_data/128T_cubes/' + strmid(folder_name, pos_fhd_128)
+      test_name = base_path('data') + 'fhd_ps_data/128T_cubes/' + folder_name
       folder_test = file_test(test_name, /directory)
       if folder_test eq 1 then folder_name = test_name
     endif
@@ -60,10 +60,13 @@ pro hellebore_wrapper, folder_name, rts = rts, version = version, refresh_dft = 
     
     fhd_type = file_basename(folder_name)
     
-    cube_files = file_search(folder_name + '/Combined_obs_*_cube.sav')
-    
-    if n_elements(cube_files) eq 0 then message, 'No cube files found.'
-    if n_elements(cube_files) le 2 then datafile = cube_files else message, 'More than 2 cube files found.'
+    info_file = file_search(folder_name + '/Combined_obs_*_info*', count = n_infofile)
+    if n_infofile gt 1 then message, 'More than 1 info files found.'
+    if n_infofile eq 1 then datafile = info_file else begin
+      cube_files = file_search(folder_name + '/Combined_obs_*_cube.sav', count = n_cubefiles)
+      if n_cubefiles eq 0 then message, 'No cube or info files found.'
+      if n_cubefiles le 2 then datafile = cube_files else message, 'More than 2 cube files found.'
+    endelse
     
     obs_name = stregex(datafile[0], '[0-9]+-[0-9]+', /extract)
     if n_elements(datafile) eq 2 then begin

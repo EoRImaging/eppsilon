@@ -57,7 +57,7 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
             wt_froot = wt_savefilebase_dir
           endif else  wt_froot = info_dir
         endif
-      endelse     
+      endelse
       
     endif
     
@@ -94,7 +94,6 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
       
     if max(files_test) eq 0 then message, 'Cannot find any datafile(s), uvf, kcube or power files, please specify paths using keywords.'
     
-    
     return, file_struct_arr
   endelse
   
@@ -104,6 +103,11 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
     print, 'datafiles are identical'
     datafile = datafile[0]
     nfiles = 1
+  endif
+  
+  if nfiles eq 2 and keyword_set(noise_sim) then begin
+    datafile=datafile[0]
+    nfiles=1
   endif
   
   if n_elements(savefilebase_in) gt 1 then message, 'only one savefilebase allowed'
@@ -191,10 +195,7 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
   varnames = file_obj->names()
   
   
-  if keyword_set(noise_sim) then begin
-    datafile = datafile[0]
-    nfiles = 1
-    
+  if keyword_set(noise_sim) then begin    
     type_inc = ['noisesim']
     ntypes = n_elements(type_inc)
     ncubes = npol * ntypes
