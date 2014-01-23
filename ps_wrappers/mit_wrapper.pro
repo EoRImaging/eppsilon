@@ -1,4 +1,4 @@
-pro mit_wrapper, datafile, rts = rts, refresh_dft = refresh_dft, refresh_ps = refresh_ps, refresh_binning = refresh_binning, pol_inc = pol_inc, $
+pro mit_wrapper, folder_name, obs_range, rts = rts, refresh_dft = refresh_dft, refresh_ps = refresh_ps, refresh_binning = refresh_binning, pol_inc = pol_inc, $
     no_spec_window = no_spec_window, spec_window_type = spec_window_type,individual_plots = individual_plots, png = png, eps = eps
     
   ;; The only required input is the datafile name (including the full path)
@@ -51,9 +51,108 @@ pro mit_wrapper, datafile, rts = rts, refresh_dft = refresh_dft, refresh_ps = re
     ;datafile = '/nfs/mwa-09/r1/djc/EoR2013/Aug23/fhd_apb_pipeline_paper_snapshot_1/Healpix/' + $
     ;  'Combined_obs_1061316296-1061316296_' + ['even', 'odd']+'_cube.sav'
   
-    if n_elements(datafile) eq 0 then $
-      datafile = '/nfs/mwa-09/r1/djc/EoR2013/Aug23/fhd_apb_pipeline_paper_deep_1/Healpix/' + $
-      'Combined_obs_1061311664-1061323008_' + ['even', 'odd']+'_cube.sav'
+    ;  datafile = '/nfs/mwa-09/r1/djc/EoR2013/Aug23/fhd_apb_pipeline_paper_deep_1/Healpix/' + $
+    ;  'Combined_obs_1061311664-1061323008_' + ['even', 'odd']+'_cube.sav'
+  
+    if n_elements(folder_name) eq 0 then folder_name = '/nfs/mwa-09/r1/djc/EoR2013/Aug23/fhd_apb_pipeline_paper_deep_1/Healpix/'
+    
+    ;; check for folder existence, otherwise look for common folder names to figure out full path. If none found, try '/nfs/mwa-09/r1/djc/EoR2013/Aug23/'
+    start_path = '/nfs/mwa-09/r1/djc/EoR2013/'
+    folder_test = file_test(folder_name, /directory)
+    if folder_test eq 0 then begin
+      pos_eor2013 = strpos(folder_name, 'EoR2013')
+      if pos_fhd_data gt -1 then begin
+        test_name = start_path + strmid(folder_name, pos_eor2013)
+        folder_test = file_test(test_name, /directory)
+        if folder_test eq 1 then folder_name = test_name
+      endif
+    endif
+    if folder_test eq 0 then begin
+      pos_aug23 = strpos(folder_name, 'Aug23')
+      if pos_fhd_data gt -1 then begin
+        test_name = start_path + 'Aug23/' + strmid(folder_name, pos_aug23)
+        folder_test = file_test(test_name, /directory)
+        if folder_test eq 1 then folder_name = test_name
+      endif
+    endif
+    if folder_test eq 0 then begin
+      pos_aug26 = strpos(folder_name, 'Aug26')
+      if pos_aug26 gt -1 then begin
+        test_name = start_path + 'Aug26/' + strmid(folder_name, pos_aug26)
+        folder_test = file_test(test_name, /directory)
+        if folder_test eq 1 then folder_name = test_name
+      endif
+    endif
+    if folder_test eq 0 then begin
+      test_name = start_path + 'Aug23/' + folder_name
+      folder_test = file_test(test_name, /directory)
+      if folder_test eq 1 then folder_name = test_name
+    endif
+    
+    if folder_test eq 0 then message, 'folder not found'
+    
+    fhd_type = file_basename(folder_name)
+    
+    if n_elements(obs_range) gt 0 then begin
+      if size(obs_range,/type) eq 7 then begin
+        if n_elements(obs_range) gt 1 then $
+          message, 'obs_range can be specified as a single string to use as the name or as a 2 element obsid range'
+        obs_name = obs_range
+        obs_range = long(strsplit(obs_name, '-', /extract))
+      endif else begin
+        if n_elements(obs_range) gt 2 then message, 'obs_range can be specified as a single string to use as the name or as a 2 element obsid range'
+        if n_elements(obs_range) eq 2 then obs_name = number_formatter(obs_range[0]) + '-' + number_formatter(obs_range[1]) $
+        else obs_name = number_formatter(obs_range[0]) + '-' + number_formatter(obs_range[0])
+      endelse
+    endif else obs_name = ''
+    
+    info_file = file_search(folder_name + '/Combined_obs_' + obs_name + '*info*', count = n_infofile)
+    if n_infofile gt 0 then begin
+      if obs_name eq '' then begin
+        if n_infofile gt 1 then print, 'More than 1 info files found, using first one'
+        datafile = info_file[0]
+        obs_name = stregex(datafile, '[0-9]+-[0-9]+', /extract)
+        obs_range = long(strsplit(obs_name, '-', /extract))
+      endif else begin
+        if n_infofile gt 1 then message, 'More than one info file found with given obs_range'
+        datafile = info_file[0]
+        obs_name = stregex(datafile, '[0-9]+-[0-9]+', /extract)
+        obs_range = long(strsplit(obs_name, '-', /extract))
+      endelse
+    endif else begin
+      cube_files = file_search(folder_name + '/Combined_obs_' + obs_name + '*_cube.sav', count = n_cubefiles)
+      if n_cubefiles eq 0 then message, 'No cube or info files found.'
+      
+      if obs_name eq '' then begin
+        obs_name_arr = stregex(cube_files, '[0-9]+-[0-9]+', /extract)
+        wh_first = where(obs_name_arr eq obs_name_arr[0], count_first)
+        if count_first lt n_elements(cube_files) then $
+          print, 'More than one obs_range found, using first range (' + obs_name_arr[0] + ', ' + number_formatter(count_first) + ' files)'
+        if count_first gt 2 then message, 'More than two cubes found with first obs_range'
+        datafile = cube_files[wh_first]
+        obs_name = obs_name_arr[0]
+        obs_range = long(strsplit(obs_name, '-', /extract))
+      endif else begin
+        if n_elements(cube_files) gt 2 then message, 'More than two cubes found with given obs_range'
+        
+        obs_name_arr = stregex(cube_files, '[0-9]+-[0-9]+', /extract)
+        if obs_name_arr[1] ne obs_name_arr[0] then message, 'Cube files do not have the same obs ranges.'
+        obs_name = obs_name_arr[0]
+        obs_range = long(strsplit(obs_name, '-', /extract))
+      endelse
+    endelse
+    
+    if obs_range[1] - obs_range[0] gt 0 then integrated = 1 else integrated = 0
+        
+    if keyword_set(integrated) then sigma_range = [2e0, 2e2] else sigma_range = [1e2, 2e4]
+    if keyword_set(integrated) then nev_range = [5e0, 2e3] else nev_range = [5e2, 2e5]
+    data_range = [5e-2, 1e8]
+    nnr_range = [1e-1, 1e1]
+    snr_range = [5e-5, 5e5]
+    
+    noise_range = nev_range
+    
+    
   endelse
   
   ;; dft_fchunk applies only to Healpix datasets (it's ignored otherwise) and it specifies how many frequencies to process
