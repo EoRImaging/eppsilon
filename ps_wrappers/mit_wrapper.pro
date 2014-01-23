@@ -61,7 +61,7 @@ pro mit_wrapper, folder_name, obs_range, rts = rts, refresh_dft = refresh_dft, r
     folder_test = file_test(folder_name, /directory)
     if folder_test eq 0 then begin
       pos_eor2013 = strpos(folder_name, 'EoR2013')
-      if pos_fhd_data gt -1 then begin
+      if pos_eor2013 gt -1 then begin
         test_name = start_path + strmid(folder_name, pos_eor2013)
         folder_test = file_test(test_name, /directory)
         if folder_test eq 1 then folder_name = test_name
