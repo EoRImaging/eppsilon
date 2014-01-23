@@ -1,9 +1,9 @@
-pro hellebore_wrapper, rts = rts, version = version, refresh_dft = refresh_dft, refresh_ps = refresh_ps, dft_ian = dft_ian, $
+pro hellebore_wrapper, folder_name, rts = rts, version = version, refresh_dft = refresh_dft, refresh_ps = refresh_ps, dft_ian = dft_ian, $
     refresh_binning = refresh_binning, pol_inc = pol_inc, sim = sim, freq_ch_range = freq_ch_range, $
     no_spec_window = no_spec_window, spec_window_type = spec_window_type, noise_sim = noise_sim, $
     cut_image = cut_image, individual_plots = individual_plots, plot_filebase = plot_filebase, png = png, eps = eps, $
     plot_slices = plot_slices, slice_type = slice_type, $
-    kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, folder_name = folder_name, t32 = t32
+    kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, t32 = t32
     
   if keyword_set(rts) then begin
     ;    froot = base_path('data') + 'rts_data/test2/'
