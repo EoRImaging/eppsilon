@@ -105,7 +105,7 @@ pro mit_wrapper, folder_name, obs_range, rts = rts, refresh_dft = refresh_dft, r
       endelse
     endif else obs_name = ''
     
-    info_file = file_search(folder_name + 'ps/Combined_obs_' + obs_name + '*info*', count = n_infofile)
+    info_file = file_search(folder_name + '/ps/Combined_obs_' + obs_name + '*info*', count = n_infofile)
     if n_infofile gt 0 then begin
       if obs_name eq '' then begin
         if n_infofile gt 1 then print, 'More than 1 info files found, using first one'
@@ -122,7 +122,7 @@ pro mit_wrapper, folder_name, obs_range, rts = rts, refresh_dft = refresh_dft, r
       save_path = folder_name + 'ps/'
       
     endif else begin
-      cube_files = file_search(folder_name + 'Healpix/Combined_obs_' + obs_name + '*_cube.sav', count = n_cubefiles)
+      cube_files = file_search(folder_name + '/Healpix/Combined_obs_' + obs_name + '*_cube.sav', count = n_cubefiles)
       if n_cubefiles eq 0 then message, 'No cube or info files found.'
       
       if obs_name eq '' then begin
