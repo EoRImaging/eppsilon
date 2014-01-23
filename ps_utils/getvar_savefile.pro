@@ -5,7 +5,7 @@ function getvar_savefile, savefile, varname, pointer_return=pointer_return, name
   endif
   
   savefile_obj = obj_new('idl_savefile', savefile)
-  if arg_present(names) then names = file_obj->names()
+  if arg_present(names) then names = savefile_obj->names()
   
   if n_elements(varname) ne 0 then begin
     if keyword_set(return_size) then begin
