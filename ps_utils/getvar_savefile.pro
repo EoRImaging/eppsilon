@@ -10,6 +10,8 @@ function getvar_savefile, savefile, varname, pointer_return=pointer_return, name
   if n_elements(varname) ne 0 then begin
     if keyword_set(return_size) then begin
       size = file_obj->size(varname)
+      obj_destroy, savefile_obj
+      
       return, size
     endif else begin
       savefile_obj->Restore, varname
@@ -18,6 +20,9 @@ function getvar_savefile, savefile, varname, pointer_return=pointer_return, name
       IF Keyword_Set(pointer_return) THEN p=execute(varname+'=Ptr_new('+varname+')')
       q=execute('return,'+varname)
     endelse
-  endif else return, 0
+  endif else begin
+    obj_destroy, savefile_obj
+    return, 0
+  endelse
 end
 
