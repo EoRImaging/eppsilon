@@ -81,9 +81,9 @@ pro hellebore_wrapper, folder_name, rts = rts, version = version, refresh_dft = 
     
     if keyword_set(integrated) then sigma_range = [2e0, 2e2] else sigma_range = [1e2, 2e4]
     if keyword_set(integrated) then nev_range = [5e0, 2e3] else nev_range = [5e2, 2e5]
-    data_range = [5e-2, 1e8]
+    data_range = [1e-2, 1e8]
     nnr_range = [1e-1, 1e1]
-    snr_range = [5e-5, 5e5]
+    snr_range = [1e-4, 1e6]
     
     noise_range = nev_range
     
