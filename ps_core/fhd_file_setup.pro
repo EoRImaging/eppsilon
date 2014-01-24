@@ -63,6 +63,9 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
     
     if n_elements(froot) ne 0 then begin
       file_struct_arr.savefile_froot[*] = froot
+      file_struct_arr.datafile = froot + file_basename(file_struct_arr.datafile)
+      file_struct_arr.weightfile = froot + file_basename(file_struct_arr.weightfile)
+      file_struct_arr.variancefile = froot + file_basename(file_struct_arr.variancefile)
       file_struct_arr.uf_sum_savefile = froot + file_basename(file_struct_arr.uf_sum_savefile)
       file_struct_arr.vf_sum_savefile = froot + file_basename(file_struct_arr.vf_sum_savefile)
       file_struct_arr.uv_sum_savefile = froot + file_basename(file_struct_arr.uv_sum_savefile)
@@ -393,9 +396,41 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
     void = getvar_savefile(datafile[j], names = varnames)
     
     wh_nside = where(strlowcase(varnames) eq 'nside', count_nside)
-    data_size = getvar_savefile(datafile[j], cube_varname[0], /return_size)
-    if data_size[0] gt 0 then data_dims = data_size[1:data_size[0]]
-    if count_nside gt 0 and n_elements(data_dims) eq 2 then this_healpix = 1 else this_healpix = 0
+    if count_nside gt 0 then this_healpix = 1 else this_healpix = 0
+    
+    for i=0, ncubes-1 do begin
+      wh = where(varnames eq cube_varname[i], count)
+      if count eq 0 then message, cube_varname[i] + ' is not present in datafile (datafile=' + datafile[j] + ')'
+      
+      data_size = getvar_savefile(datafile[j], cube_varname[i], /return_size)
+      if data_size[0] gt 0 then this_data_dims = data_size[1:data_size[0]]
+      
+      if i eq 0 and j eq 0 then data_dims = this_data_dims else if total(abs(this_data_dims - data_dims)) ne 0 then message, 'data dimensions in files do not match'
+    endfor
+    
+    void = getvar_savefile(weightfile[j], names = wt_varnames)
+    void = getvar_savefile(variancefile[j], names = var_varnames)
+    for i=0, npol-1 do begin
+      wh = where(wt_varnames eq weight_varname[i], count)
+      
+      if count eq 0 then message, weight_varname[i] + ' is not present in weightfile (weightfile=' + weightfile[j] + ')'
+      
+      wt_size = getvar_savefile(weightfile[j], weight_varname[i], /return_size)
+      if wt_size[0] gt 0 then wt_dims = wt_size[1:wt_size[0]]
+      if total(abs(wt_dims - data_dims)) ne 0 then message, 'weight and data dimensions in files do not match'
+      
+      wh = where(var_varnames eq variance_varname[i], count)
+      
+      if count eq 0 then begin
+        print, variance_varname[i] + ' is not present in variancefile (variancefile=' + variancefile[j] + '). Using weights^2 instead of variances'
+        no_var = 1
+      endif else begin
+        no_var = 0
+        var_size = getvar_savefile(variancefile[j], variance_varname[i], /return_size)
+        if var_size[0] gt 0 then var_dims = var_size[1:var_size[0]]
+        if total(abs(var_dims - data_dims)) ne 0 then message, 'variance and data dimensions in files do not match'
+      endelse
+    endfor
     
     if j gt 0 then if (this_healpix eq 1 and healpix eq 0) or (this_healpix eq 0 and healpix eq 1) then $
       message, 'One datafile is in healpix and the other is not.'
@@ -414,6 +449,19 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
       if j eq 0 then begin
         if n_elements(pixelvar) eq 0 then pixel_varname = replicate('hpx_inds', nfiles) else pixel_varname =  pixelvar
       endif
+      
+      void = getvar_savefile(pixelfile[j], names = pix_varnames)
+      wh = where(pix_varnames eq pixel_varname, count)
+      
+      if count eq 0 then message, pixel_varname + ' is not present in pixelfile (pixelfile=' + pixelfile[j] + ')'
+      
+      pix_size = getvar_savefile(pixelfile[j], pixel_varname, /return_size)
+      if pix_size[0] gt 0 then pix_dims = pix_size[1:pix_size[0]]
+      if total(abs(pix_dims - data_dims[0])) ne 0 then message, 'Number of Healpix pixels does not match data dimension'
+      
+      
+      
+      
     endif else healpix = 0
     
     wh_obs = where(strlowcase(varnames) eq 'obs', count_obs)
@@ -459,7 +507,8 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
             message, 'frequencies do not agree between datafiles'
           if j eq 0 then n_freq = (*obs_arr[0]).n_freq else if (*obs_arr[0]).n_freq ne n_freq then $
             message, 'n_freq does not agree between datafiles'
-          stop
+          if healpix then data_nfreq = data_dims[1] else data_nfreq = data_dims[2]
+          if n_freq ne data_nfreq then message, 'number of frequencies does not match number of data slices'
         endif else begin
           n_obs = n_elements(obs_arr)
           
@@ -472,7 +521,9 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
           if total(abs(obs_arr.n_freq - obs_arr[0].n_freq)) ne 0 then message, 'inconsistent number of frequencies in obs_arr'
           if j eq 0 then n_freq = obs_arr[0].n_freq else if obs_arr[0].n_freq ne n_freq then $
             message, 'n_freq does not agree between datafiles'
-            
+          if healpix then data_nfreq = data_dims[1] else data_nfreq = data_dims[2]
+          if n_freq ne data_nfreq then message, 'number of frequencies does not match number of data slices'
+          
           if total(abs(obs_arr.degpix - obs_arr[0].degpix)) ne 0 then message, 'inconsistent degpix values in obs_arr'
           if j eq 0 then degpix = obs_arr[0].degpix else if obs_arr[0].degpix ne degpix  then $
             message, 'degpix does not agree between datafiles'
@@ -606,6 +657,9 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
       'uvf_weight_savefile', uvf_weight_savefile[*, pol_index])
       
     if healpix then file_struct = create_struct(file_struct, 'pixelfile', pixelfile, 'pixelvar', pixel_varname, 'nside', nside)
+    
+    if no_var then file_struct = create_struct(file_struct, 'no_var', 1)
+    
     
     if i eq 0 then file_struct_arr = replicate(file_struct, ncubes) else file_struct_arr[i] = file_struct
   endfor

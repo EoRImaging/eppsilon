@@ -3,64 +3,19 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
     noise_sim = noise_sim, std_power = std_power, input_units = input_units, image = image, quiet = quiet
     
   if tag_exist(file_struct, 'nside') ne 0 then healpix = 1 else healpix = 0
+  if keyword_set(image) or tag_exist(file_struct, 'uvf_savefile') ne 0 then image = 1 else image = 0
   nfiles = n_elements(file_struct.datafile)
+  if tag_exist(file_struct, 'no_var') ne 0 then no_var = 1 else no_var = 0
+
   
   if n_elements(input_units) eq 0 then input_units = 'jansky'
   units_enum = ['jansky', 'mk']
   wh = where(units_enum eq input_units, count)
   if count eq 0 then message, 'input units not recognized, options are: ' + units_enum
   
+  
   datavar = strupcase(file_struct.datavar)
-  if datavar ne '' then begin
-    for i=0, nfiles-1 do begin
-      datafile_obj = obj_new('IDL_Savefile', file_struct.datafile[i])
-      datafile_names = datafile_obj->names()
-      wh = where(datafile_names eq datavar, count)
-      if count eq 0 then message, 'specified datavar is not present in datafile (datafile=' + file_struct.datafile[i] + $
-        ', datavar=' + file_struct.datavar + ')'
-      data_dims = datafile_obj->size(file_struct.datavar, /dimensions)
-      obj_destroy, datafile_obj
-      
-      if i gt 0 then if total(abs(data_dims - dims)) ne 0 then message, 'data dimensions in files do not match'
-      
-      weightfile_obj = obj_new('IDL_Savefile', file_struct.weightfile[i])
-      weightfile_names = weightfile_obj->names()
-      weightvar = strupcase(file_struct.weightvar)
-      wh = where(weightfile_names eq weightvar, count)
-      if count eq 0 then message, 'specified weightvar is not present in weightfile (weightfile=' + file_struct.weightfile[i] + $
-        ', weightvar=' + file_struct.weightvar + ')'
-      weight_dims = weightfile_obj->size(weightvar, /dimensions)
-      obj_destroy, weightfile_obj
-      
-      if total(abs(data_dims - weight_dims)) ne 0 then message, 'data and weight dimensions do not match'
-      undefine, weight_dims
-      
-      
-      variancefile_obj = obj_new('IDL_Savefile', file_struct.variancefile[i])
-      variancefile_names = variancefile_obj->names()
-      variancevar = strupcase(file_struct.variancevar)
-      wh = where(variancefile_names eq variancevar, count)
-      if count eq 0 then begin
-        print, 'specified variancevar is not present in variancefile (variancefile=' + file_struct.variancefile[i] $
-          +  ', variancevar=' + file_struct.variancevar + '). Weights will be used instead'
-        no_var = 1
-      endif else begin
-        if n_elements(no_var) eq 0 then no_var = 0
-        
-        variance_dims = variancefile_obj->size(variancevar, /dimensions)
-        if total(abs(data_dims - variance_dims)) ne 0 then message, 'data and variance dimensions do not match'
-        undefine, variance_dims
-      endelse
-      obj_destroy, variancefile_obj
-      
-      dims = data_dims
-      undefine, data_dims
-    endfor
-    
-    if n_elements(dims) eq 3 then healpix = 0
-    
-    if healpix then n_freq = dims[1] else n_freq = dims[2]
-  endif else begin
+  if datavar eq '' then begin
     ;; working with a 'derived' cube (ie residual cube or noise simulation cube) that is constructed from uvf_savefiles
     if keyword_set(noise_sim) then begin
       input_uvf_files = reform(file_struct.res_uvf_inputfiles)
@@ -70,85 +25,13 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
       input_uvf_varname = reform(file_struct.res_uvf_varname, nfiles, 2)
     endelse
     
-    for i=0, n_elements(input_uvf_files)-1 do begin
-      datafile_obj = obj_new('IDL_Savefile', input_uvf_files[i])
-      datafile_names = datafile_obj->names()
-      wh = where(strlowcase(datafile_names) eq strlowcase(input_uvf_varname[i]), count)
-      if count eq 0 then message, 'specified res_uvf_inputfile does not contain a data cube (res_uvf_inputfile=' + $
-        input_uvf_files[i] + ')'
-      data_dims = datafile_obj->size(input_uvf_varname[i], /dimensions)
-      obj_destroy, datafile_obj
-      
-      dims = data_dims
-      if i gt 0 then if total(abs(data_dims - dims)) ne 0 then message, 'data dimensions in files do not match'
-      undefine, data_dims
-    endfor
-    
     if healpix or keyword_set(image) then begin
       input_uvf_wtfiles = file_struct.uvf_weight_savefile
-      for i=0, n_elements(input_uvf_wtfiles)-1 do begin
-        weightfile_obj = obj_new('IDL_Savefile', input_uvf_wtfiles[i])
-        weightfile_names = weightfile_obj->names()
-        wh = where(strlowcase(weightfile_names) eq 'weights_cube', count)
-        if count eq 0 then message, 'specified uvf_weight_savefile does not contain a weights cube (res_uvf_inputfile=' + $
-          input_uvf_wtfiles[i] + ')'
-        weight_dims = weightfile_obj->size('weights_cube', /dimensions)
-        wh = where(strlowcase(weightfile_names) eq 'variance_cube', count)
-        if count eq 0 then begin
-          print, 'specified uvf_weight_savefile does not contain a variance cube (res_uvf_inputfile=' + $
-            input_uvf_wtfiles[i] + '). Weights will be used instead'
-          no_var = 1
-        endif else begin
-          if n_elements(no_var) eq 0 then no_var = 0
-          variance_dims = weightfile_obj->size('variance_cube', /dimensions)
-          obj_destroy, datafile_obj
-          if total(abs(dims - variance_dims)) ne 0 then message, 'data and variance dimensions do not match'
-        endelse
-        
-        if total(abs(dims - weight_dims)) ne 0 then message, 'data and weight dimensions do not match'
-      endfor
-      undefine, weights_dims, variance_dims
-    endif else begin
-      for i=0, nfiles-1 do begin
-        weightfile_obj = obj_new('IDL_Savefile', file_struct.weightfile[i])
-        weightfile_names = weightfile_obj->names()
-        weightvar = strupcase(file_struct.weightvar)
-        wh = where(weightfile_names eq weightvar, count)
-        if count eq 0 then message, 'specified weightvar is not present in weightfile (weightfile=' + file_struct.weightfile[i] + $
-          ', weightvar=' + file_struct.weightvar + ')'
-        weight_dims = weightfile_obj->size(weightvar, /dimensions)
-        obj_destroy, weightfile_obj
-        
-        if total(abs(dims - weight_dims)) ne 0 then message, 'data and weight dimensions do not match'
-        
-        variancefile_obj = obj_new('IDL_Savefile', file_struct.variancefile[i])
-        variancefile_names = variancefile_obj->names()
-        variancevar = strupcase(file_struct.variancevar)
-        wh = where(variancefile_names eq variancevar, count)
-        if count eq 0 then begin
-          print, 'specified variancevar is not present in variancefile (variancefile=' + file_struct.variancefile[i] $
-            +  ', variancevar=' + file_struct.variancevar + '). Weights will be used instead'
-          no_var = 1
-        endif else begin
-          if n_elements(no_var) eq 0 then no_var = 0
-          
-          variance_dims = variancefile_obj->size(variancevar, /dimensions)
-          if total(abs(dims - variance_dims)) ne 0 then message, 'data and variance dimensions do not match'
-        endelse
-        obj_destroy, variancefile_obj
-      endfor
-      undefine, weights_dims, variance_dims
-      
-    endelse
-    
-    n_freq = dims[2]
-    
-  endelse
+    endif
+  endif
   
   frequencies = file_struct.frequencies
-  if datavar ne '' and n_elements(frequencies) ne n_freq then $
-    message, 'number of frequencies does not match frequency dimension of data'
-    
+  
   if n_elements(freq_ch_range) ne 0 then begin
     n_freq_orig = n_elements(frequencies)
     frequencies = frequencies[min(freq_ch_range):max(freq_ch_range)]
@@ -239,7 +122,7 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
   
   if n_elements(freq_ch_range) ne 0 then vis_sig_tag = number_formatter(384./n_freq_orig) else vis_sig_tag = number_formatter(384./n_freq)
   vis_sigma_file = file_dirname(file_struct.savefile_froot, /mark_directory) + 'vis_sigma/vis_sigma_measured' + vis_sig_tag + '.sav'
-
+  
   if file_test(vis_sigma_file) then begin
     restore, vis_sigma_file
     
@@ -258,24 +141,8 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
   n_vis = file_struct.n_vis
   if n_elements(freq_ch_range) ne 0 then n_vis = n_vis * (float(n_freq)/float(n_freq_orig))
   
-  if healpix or keyword_set(image) then begin
+  if healpix or image then begin
   
-    if healpix then begin
-      pixel_nums1 = getvar_savefile(file_struct.pixelfile[0], file_struct.pixelvar[0])
-      
-      pixel_dims = size(pixel_nums1, /dimension)
-      if datavar ne '' and total(abs(dims - pixel_dims)) ne 0 then message, 'pixel and data dimensions do not match'
-      
-      if nfiles eq 2 then begin
-        ;; check that they have the same set of healpix pixels
-        pixel_nums2 = getvar_savefile(file_struct.pixelfile[1], file_struct.pixelvar[1])
-        if n_elements(pixel_nums1) ne n_elements(pixel_nums2) then message, 'Different number of Healpix pixels in cubes'
-        
-        if total(abs(pixel_nums1-pixel_nums2)) ne 0 then message, 'Pixel numbers are not consistent between cubes'
-        
-      endif
-    endif
-    
     for i=0, nfiles-1 do begin
       test_uvf = file_test(file_struct.uvf_savefile[i]) *  (1 - file_test(file_struct.uvf_savefile[i], /zero_length))
       
@@ -353,6 +220,19 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
         endif else begin
         
           if healpix then begin
+            pixel_nums1 = getvar_savefile(file_struct.pixelfile[0], file_struct.pixelvar[0])
+            
+            pixel_dims = size(pixel_nums1, /dimension)
+            if datavar ne '' and total(abs(dims - pixel_dims)) ne 0 then message, 'pixel and data dimensions do not match'
+            
+            if nfiles eq 2 then begin
+              ;; check that they have the same set of healpix pixels
+              pixel_nums2 = getvar_savefile(file_struct.pixelfile[1], file_struct.pixelvar[1])
+              if n_elements(pixel_nums1) ne n_elements(pixel_nums2) then message, 'Different number of Healpix pixels in cubes'
+              
+              if total(abs(pixel_nums1-pixel_nums2)) ne 0 then message, 'Pixel numbers are not consistent between cubes'
+            endif
+            
             ;; get pixel vectors
             pix2vec_ring, file_struct.nside, pixel_nums1, pix_center_vec
             ;; find mid point (work in x/y because of possible jumps in phi)
