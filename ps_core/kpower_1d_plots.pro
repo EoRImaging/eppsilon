@@ -1,5 +1,3 @@
-
-
 pro kpower_1d_plots, power_savefile, plot_weights = plot_weights, multi_pos = multi_pos, data_range = data_range, k_range = k_range, $
     png = png, eps = eps, plotfile = plotfile, window_num = window_num, colors = colors, names = names, save_text = save_text, $
     delta = delta, hinv = hinv
@@ -73,7 +71,7 @@ pro kpower_1d_plots, power_savefile, plot_weights = plot_weights, multi_pos = mu
     if n_elements(plotfile) eq 0 then plotfile = strsplit(power_savefile[0], '.idlsave', /regex, /extract) + '_1dkplot' + plot_exten $
     else if strcmp(strmid(plotfile, strlen(plotfile)-4), plot_exten, /fold_case) eq 0 then plotfile = plotfile + plot_exten
   endif
- 
+  
   color_list = ['black', 'PBG5', 'red6', 'GRN3', 'PURPLE', 'ORANGE', 'TG2','TG8']
   
   if n_elements(colors) eq 0 then begin
@@ -145,6 +143,10 @@ pro kpower_1d_plots, power_savefile, plot_weights = plot_weights, multi_pos = mu
     
     if keyword_set(delta) then power = theory_delta
     
+    wh = where(power gt 0d, count)
+    if count gt 0 then min_pos = min(power[wh]) else if data_range[0] gt 0 then min_pos = data_range[0] else $
+      if data_range[1] gt 0 then min_pos = data_range[1]/10d else min_pos = 0.01d
+      
     wh = where(power eq 0, count, complement = wh_good, ncomplement = count_good)
     if count_good eq 0 then message, 'No non-zero power'
     if count gt 0 then begin
@@ -163,7 +165,7 @@ pro kpower_1d_plots, power_savefile, plot_weights = plot_weights, multi_pos = mu
     
     tag = 'f' + strsplit(string(i),/extract)
     if i eq 0 then begin
-      if n_elements(data_range) eq 0 then yrange = 10.^([floor(alog10(min(power))), ceil(alog10(max(power)))]) $
+      if n_elements(data_range) eq 0 then yrange = 10.^([floor(alog10(min_pos)), ceil(alog10(max(power)))]) $
       else yrange = data_range
       if n_elements(k_range) eq 0 then xrange = minmax(k_mid) else xrange = k_range
       
@@ -171,7 +173,7 @@ pro kpower_1d_plots, power_savefile, plot_weights = plot_weights, multi_pos = mu
       k_plot = create_struct(tag, k_mid)
       
     endif else begin
-      if n_elements(data_range) eq 0 then yrange = minmax([yrange, 10.^([floor(alog10(min(power))), ceil(alog10(max(power)))])])
+      if n_elements(data_range) eq 0 then yrange = minmax([yrange, 10.^([floor(alog10(min_pos)), ceil(alog10(max(power)))])])
       if n_elements(k_range) eq 0 then begin
         xrange_new = minmax(k_mid)
         xrange = minmax([xrange, xrange_new])
@@ -208,33 +210,32 @@ pro kpower_1d_plots, power_savefile, plot_weights = plot_weights, multi_pos = mu
   endif
   
   
+  
   ;;plot, k_plot, power_plot, /ylog, /xlog, xrange = xrange, xstyle=1
   plot_order = sort(tag_names(power_plot))
-  if keyword_set(delta) then ytitle = textoidl('(k^3 P_k /(2\pi^2))^{1/2} (mK)', font = font) $
-  else begin
-  if keyword_set(hinv) then ytitle = textoidl('P_k (mK^2 h^{-3} Mpc^3)', font = font) $
-  else ytitle = textoidl('P_k (mK^2 Mpc^3)', font = font)
-endelse
-if keyword_set(hinv) then xtitle = textoidl('k (h Mpc^{-1})', font = font) $
-else xtitle = textoidl('k (Mpc^{-1})', font = font)
-
-cgplot, k_plot.(plot_order[0]), power_plot.(plot_order[0]), position = new_pos, /ylog, /xlog, xrange = xrange, yrange = yrange, $
-  xstyle=1, ystyle=1, axiscolor = 'black', xtitle = xtitle, ytitle = ytitle, psym=10, xtickformat = 'exponent', $
-  ytickformat = 'exponent', thick = thick, charthick = charthick, xthick = xthick, ythick = ythick, charsize = charsize, $
-  font = font, noerase = no_erase
-for i=0, nfiles - 1 do cgplot, /overplot, k_plot.(plot_order[i]), power_plot.(plot_order[i]), psym=10, color = colors[i], $
-  thick = thick
+  if keyword_set(delta) then ytitle = textoidl('(k^3 P_k /(2\pi^2))^{1/2} (mK)', font = font) else begin
+    if keyword_set(hinv) then ytitle = textoidl('P_k (mK^2 h^{-3} Mpc^3)', font = font) $
+    else ytitle = textoidl('P_k (mK^2 Mpc^3)', font = font)
+  endelse
+  if keyword_set(hinv) then xtitle = textoidl('k (h Mpc^{-1})', font = font) $
+  else xtitle = textoidl('k (Mpc^{-1})', font = font)
   
-if log_bins gt 0 then bottom = 1 else bottom = 0
-if n_elements(names) ne 0 then $
-  al_legend, names, textcolor = colors, box = 0, /right, bottom = bottom, charsize = legend_charsize, charthick = charthick
+  cgplot, k_plot.(plot_order[0]), power_plot.(plot_order[0]), position = new_pos, /ylog, /xlog, xrange = xrange, yrange = yrange, $
+    xstyle=1, ystyle=1, axiscolor = 'black', xtitle = xtitle, ytitle = ytitle, psym=10, xtickformat = 'exponent', $
+    ytickformat = 'exponent', thick = thick, charthick = charthick, xthick = xthick, ythick = ythick, charsize = charsize, $
+    font = font, noerase = no_erase
+  for i=0, nfiles - 1 do cgplot, /overplot, k_plot.(plot_order[i]), power_plot.(plot_order[i]), psym=10, color = colors[i], $
+    thick = thick
+    
+  if log_bins gt 0 then bottom = 1 else bottom = 0
+  if n_elements(names) ne 0 then $
+    al_legend, names, textcolor = colors, box = 0, /right, bottom = bottom, charsize = legend_charsize, charthick = charthick
+    
+  if keyword_set(pub) and n_elements(multi_pos) eq 0 then begin
+    cgps_close, png = png, delete_ps = delete_ps
+    wdelete, window_num
+  endif
   
-if keyword_set(pub) and n_elements(multi_pos) eq 0 then begin
-  cgps_close, png = png, delete_ps = delete_ps
-  wdelete, window_num
-endif
-
-tvlct, r, g, b
-
-
+  tvlct, r, g, b
+  
 end

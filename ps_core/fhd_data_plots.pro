@@ -11,7 +11,7 @@ pro fhd_data_plots, datafile, rts = rts, pol_inc = pol_inc, image = image, $
     baseline_axis = baseline_axis, delay_axis = delay_axis, hinv = hinv, plot_wedge_line = plot_wedge_line, $
     grey_scale = grey_scale, individual_plots = individual_plots
     
-    
+      
   if keyword_set(refresh_dft) then refresh_ps = 1
   if keyword_set(refresh_ps) then refresh_binning = 1
   
@@ -410,226 +410,226 @@ pro fhd_data_plots, datafile, rts = rts, pol_inc = pol_inc, image = image, $
         title_prefix = pol_inc[pol_ind], grey_scale = grey_scale, $
         plot_wedge_line = plot_wedge_line, wedge_amp = wedge_amp, hinv = hinv, baseline_axis = baseline_axis, $
         delay_axis = delay_axis, kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, $
-        window_num = window_num $
-      else kpower_2d_plots, savefiles_2d[pol_ind], multi_pos = pos_use, start_multi_params = start_multi_params, $
-      png = png, eps = eps, /plot_exp_noise, kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
-      data_range = nev_range, title_prefix = pol_inc[pol_ind], $
-      grey_scale = grey_scale, plot_wedge_line = plot_wedge_line, hinv = hinv, $
-      wedge_amp = wedge_amp, baseline_axis = baseline_axis, delay_axis = delay_axis, $
-      kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis
-    if i eq 0 then begin
-      positions = pos_use
-      undefine, start_multi_params
-    endif
-  endfor
-  undefine, positions, pos_use
-  if keyword_set(pub) then begin
-    cgps_close, png = png, delete_ps = delete_ps
-    wdelete, window_num
-  endif
-  
-  
-  ;; now plot SNR -- no separate sigma plots
-  if keyword_set(kperp_linear_axis) then begin
-    ;; aspect ratio doesn't work out for kperp_linear with multiple rows
-    ncol = ntype*npol
-    nrow = 1
-  endif else begin
-    ncol = ntype
-    nrow = npol
-  endelse
-  start_multi_params = {ncol:ncol, nrow:nrow, ordering:'row'}
-  
-  window_num = 3
-  ;;snr_range = [1e0, 1e6]
-  for i=0, n_cubes-1 do begin
-    if i gt 0 then  pos_use = positions[*,i]
-    
-    kpower_2d_plots, savefiles_2d[i], /snr, multi_pos = pos_use, start_multi_params = start_multi_params, png = png, eps = eps, $
-      plotfile = plotfiles_2d_snr, $
-      kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, data_range = snr_range, $
-      title_prefix = titles[i], grey_scale = grey_scale, plot_wedge_line = plot_wedge_line, wedge_amp = wedge_amp, $
-      hinv = hinv, baseline_axis = baseline_axis, delay_axis = delay_axis, kperp_linear_axis = kperp_linear_axis, $
-      kpar_linear_axis = kpar_linear_axis, window_num = window_num
-    if i eq 0 then begin
-      positions = pos_use
-      undefine, start_multi_params
-    endif
-  endfor
-  undefine, positions, pos_use
-  if keyword_set(pub) then begin
-    cgps_close, png = png, delete_ps = delete_ps
-    wdelete, window_num
-  endif
-  
-  if nfiles eq 2 then begin
-  
-    window_num = 4
-    start_multi_params = {ncol:ncol, nrow:nrow, ordering:'row'}
-    
-    ;;noise_range = [1e18, 1e22]
-    for i=0, n_cubes-1 do begin
-      if i gt 0 then  pos_use = positions[*,i]
-      
-      kpower_2d_plots, savefiles_2d[i], /plot_noise, multi_pos = pos_use, start_multi_params = start_multi_params, png = png, eps = eps, $
-        plotfile = plotfiles_2d_noise, $
-        kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, data_range = noise_range, $
-        title_prefix = titles[i], grey_scale = grey_scale, $
-        plot_wedge_line = plot_wedge_line, wedge_amp = wedge_amp, hinv = hinv, $
-        baseline_axis = baseline_axis, delay_axis = delay_axis, kperp_linear_axis = kperp_linear_axis, $
-        kpar_linear_axis = kpar_linear_axis, window_num = window_num
+        window_num = window_num else $
+        kpower_2d_plots, savefiles_2d[pol_ind], multi_pos = pos_use, start_multi_params = start_multi_params, $
+        png = png, eps = eps, /plot_exp_noise, kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
+        data_range = nev_range, title_prefix = pol_inc[pol_ind], $
+        grey_scale = grey_scale, plot_wedge_line = plot_wedge_line, hinv = hinv, $
+        wedge_amp = wedge_amp, baseline_axis = baseline_axis, delay_axis = delay_axis, $
+        kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis
       if i eq 0 then begin
         positions = pos_use
         undefine, start_multi_params
       endif
     endfor
+    undefine, positions, pos_use
     if keyword_set(pub) then begin
       cgps_close, png = png, delete_ps = delete_ps
       wdelete, window_num
     endif
     
-    window_num = 5
-    start_multi_params = {ncol:ncol, nrow:nrow, ordering:'row'}
-    undefine, pos_use
     
-    for i=0, n_cubes-1 do begin
-      if i gt 0 then  pos_use = positions[*,i]
-      
-      kpower_2d_plots, savefiles_2d[i], /nnr, multi_pos = pos_use, start_multi_params = start_multi_params, png = png, eps = eps, $
-        plotfile = plotfiles_2d_nnr, $
-        kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, data_range = nnr_range, $
-        title_prefix = titles[i], $
-        grey_scale = grey_scale, plot_wedge_line = plot_wedge_line, wedge_amp = wedge_amp, hinv = hinv, $
-        baseline_axis = baseline_axis, delay_axis = delay_axis, kperp_linear_axis = kperp_linear_axis, $
-        kpar_linear_axis = kpar_linear_axis, window_num = window_num
-      if i eq 0 then begin
-        positions = pos_use
-        undefine, start_multi_params
-      endif
-    endfor
-    if keyword_set(pub) then begin
-      cgps_close, png = png, delete_ps = delete_ps
-      wdelete, window_num
-    endif
-    
-  endif
-  
-  if keyword_set(plot_slices) then begin
-    nrow = npol
-    
+    ;; now plot SNR -- no separate sigma plots
     if keyword_set(kperp_linear_axis) then begin
       ;; aspect ratio doesn't work out for kperp_linear with multiple rows
-      if slice_type eq 'kspace' then ncol = ntype*npol else ncol = ntype*nfiles*npol
+      ncol = ntype*npol
+      nrow = 1
     endif else begin
-      if slice_type eq 'kspace' then ncol=ntype else ncol = ntype*nfiles
+      ncol = ntype
+      nrow = npol
     endelse
     start_multi_params = {ncol:ncol, nrow:nrow, ordering:'row'}
     
-    if slice_type eq 'kspace' then ncol=ntype else ncol = ntype*nfiles
-    
-    window_num = 7
-    start_multi_params = {ncol:ncol, nrow:nrow, ordering:'row'}
-    undefine, pos_use
-    
-    for i=0, (nrow*ncol)-1 do begin
+    window_num = 3
+    ;;snr_range = [1e0, 1e6]
+    for i=0, n_cubes-1 do begin
       if i gt 0 then  pos_use = positions[*,i]
       
-      if slice_type eq 'kspace' then begin
-        kpower_slice_plot, uf_slice_savefile[i], multi_pos = pos_use, start_multi_params = start_multi_params, png = png, eps = eps, $
-          plotfile = uf_slice_plotfile, plot_xrange = kperp_plot_range, plot_yrange = kpar_plot_range, $
-          title_prefix = slice_titles[i], $
-          grey_scale = grey_scale, plot_wedge_line = plot_wedge_line, wedge_amp = wedge_amp, hinv = hinv, $
-          baseline_axis = baseline_axis, delay_axis = delay_axis, linear_axes = kperp_linear_axis, $
-          window_num = window_num
-      endif else begin
-      
-        uvf_slice_plot, uf_slice_savefile[i], multi_pos = pos_use, start_multi_params = start_multi_params, png = png, eps = eps, $
-          plotfile = uf_slice_plotfile, type = 'abs', title_prefix = slice_titles[i], $
-          grey_scale = grey_scale, hinv = hinv, $
-          baseline_axis = baseline_axis, window_num = window_num
-      endelse
-      
+      kpower_2d_plots, savefiles_2d[i], /snr, multi_pos = pos_use, start_multi_params = start_multi_params, png = png, eps = eps, $
+        plotfile = plotfiles_2d_snr, $
+        kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, data_range = snr_range, $
+        title_prefix = titles[i], grey_scale = grey_scale, plot_wedge_line = plot_wedge_line, wedge_amp = wedge_amp, $
+        hinv = hinv, baseline_axis = baseline_axis, delay_axis = delay_axis, kperp_linear_axis = kperp_linear_axis, $
+        kpar_linear_axis = kpar_linear_axis, window_num = window_num
       if i eq 0 then begin
         positions = pos_use
         undefine, start_multi_params
       endif
     endfor
+    undefine, positions, pos_use
     if keyword_set(pub) then begin
       cgps_close, png = png, delete_ps = delete_ps
       wdelete, window_num
     endif
     
-    window_num = 8
-    start_multi_params = {ncol:ncol, nrow:nrow, ordering:'row'}
-    undefine, pos_use
+    if nfiles eq 2 then begin
     
-    for i=0, (nrow*ncol)-1 do begin
-      if i gt 0 then  pos_use = positions[*,i]
+      window_num = 4
+      start_multi_params = {ncol:ncol, nrow:nrow, ordering:'row'}
       
-      if slice_type eq 'kspace' then begin
-        kpower_slice_plot, vf_slice_savefile[i], multi_pos = pos_use, start_multi_params = start_multi_params, png = png, eps = eps, $
-          plotfile = vf_slice_plotfile, $
-          plot_xrange = kperp_plot_range, plot_yrange = kpar_plot_range, $
-          title_prefix = slice_titles[i], $
-          grey_scale = grey_scale, plot_wedge_line = plot_wedge_line, wedge_amp = wedge_amp, hinv = hinv, $
-          baseline_axis = baseline_axis, delay_axis = delay_axis, linear_axes = kperp_linear_axis, $
-          window_num = window_num
-      endif else begin
-      
-        uvf_slice_plot, vf_slice_savefile[i], multi_pos = pos_use, start_multi_params = start_multi_params, png = png, eps = eps, $
-          plotfile = vf_slice_plotfile, type = 'abs', title_prefix = slice_titles[i], $
-          grey_scale = grey_scale, hinv = hinv, $
-          baseline_axis = baseline_axis, window_num = window_num
-      endelse
-      
-      if i eq 0 then begin
-        positions = pos_use
-        undefine, start_multi_params
+      ;;noise_range = [1e18, 1e22]
+      for i=0, n_cubes-1 do begin
+        if i gt 0 then  pos_use = positions[*,i]
+        
+        kpower_2d_plots, savefiles_2d[i], /plot_noise, multi_pos = pos_use, start_multi_params = start_multi_params, png = png, eps = eps, $
+          plotfile = plotfiles_2d_noise, $
+          kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, data_range = noise_range, $
+          title_prefix = titles[i], grey_scale = grey_scale, $
+          plot_wedge_line = plot_wedge_line, wedge_amp = wedge_amp, hinv = hinv, $
+          baseline_axis = baseline_axis, delay_axis = delay_axis, kperp_linear_axis = kperp_linear_axis, $
+          kpar_linear_axis = kpar_linear_axis, window_num = window_num
+        if i eq 0 then begin
+          positions = pos_use
+          undefine, start_multi_params
+        endif
+      endfor
+      if keyword_set(pub) then begin
+        cgps_close, png = png, delete_ps = delete_ps
+        wdelete, window_num
       endif
-    endfor
-    if keyword_set(pub) then begin
-      cgps_close, png = png, delete_ps = delete_ps
-      wdelete, window_num
-    endif
-    
-    window_num = 9
-    start_multi_params = {ncol:ncol, nrow:nrow, ordering:'row'}
-    undefine, pos_use
-    
-    for i=0, (nrow*ncol)-1 do begin
-      if i gt 0 then  pos_use = positions[*,i]
       
-      if slice_type eq 'kspace' then begin
-        kpower_slice_plot, uv_slice_savefile[i], multi_pos = pos_use, start_multi_params = start_multi_params, png = png, eps = eps, $
-          plotfile = uv_slice_plotfile, $
-          plot_xrange = kperp_plot_range, plot_yrange = kperp_plot_range, $
-          title_prefix = slice_titles[i], $
+      window_num = 5
+      start_multi_params = {ncol:ncol, nrow:nrow, ordering:'row'}
+      undefine, pos_use
+      
+      for i=0, n_cubes-1 do begin
+        if i gt 0 then  pos_use = positions[*,i]
+        
+        kpower_2d_plots, savefiles_2d[i], /nnr, multi_pos = pos_use, start_multi_params = start_multi_params, png = png, eps = eps, $
+          plotfile = plotfiles_2d_nnr, $
+          kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, data_range = nnr_range, $
+          title_prefix = titles[i], $
           grey_scale = grey_scale, plot_wedge_line = plot_wedge_line, wedge_amp = wedge_amp, hinv = hinv, $
-          baseline_axis = baseline_axis, delay_axis = delay_axis, linear_axes = kperp_linear_axis, $
-          window_num = window_num
-      endif else begin
-      
-        uvf_slice_plot, uv_slice_savefile[i], multi_pos = pos_use, start_multi_params = start_multi_params, png = png, eps = eps, $
-          plotfile = uv_slice_plotfile, type = 'abs', title_prefix = slice_titles[i], $
-          grey_scale = grey_scale, hinv = hinv, $
-          baseline_axis = baseline_axis, window_num = window_num
-      endelse
-      
-      if i eq 0 then begin
-        positions = pos_use
-        undefine, start_multi_params
+          baseline_axis = baseline_axis, delay_axis = delay_axis, kperp_linear_axis = kperp_linear_axis, $
+          kpar_linear_axis = kpar_linear_axis, window_num = window_num
+        if i eq 0 then begin
+          positions = pos_use
+          undefine, start_multi_params
+        endif
+      endfor
+      if keyword_set(pub) then begin
+        cgps_close, png = png, delete_ps = delete_ps
+        wdelete, window_num
       endif
-    endfor
-    if keyword_set(pub) then begin
-      cgps_close, png = png, delete_ps = delete_ps
-      wdelete, window_num
+      
     endif
     
-  endif
-endelse
-
-file_arr = savefiles_1d
-kpower_1d_plots, file_arr, window_num = 6, colors = colors, names = titles, delta = delta, hinv = hinv, png = png, eps = eps, $
-  plotfile = plotfile_1d
+    if keyword_set(plot_slices) then begin
+      nrow = npol
+      
+      if keyword_set(kperp_linear_axis) then begin
+        ;; aspect ratio doesn't work out for kperp_linear with multiple rows
+        if slice_type eq 'kspace' then ncol = ntype*npol else ncol = ntype*nfiles*npol
+      endif else begin
+        if slice_type eq 'kspace' then ncol=ntype else ncol = ntype*nfiles
+      endelse
+      start_multi_params = {ncol:ncol, nrow:nrow, ordering:'row'}
+      
+      if slice_type eq 'kspace' then ncol=ntype else ncol = ntype*nfiles
+      
+      window_num = 7
+      start_multi_params = {ncol:ncol, nrow:nrow, ordering:'row'}
+      undefine, pos_use
+      
+      for i=0, (nrow*ncol)-1 do begin
+        if i gt 0 then  pos_use = positions[*,i]
+        
+        if slice_type eq 'kspace' then begin
+          kpower_slice_plot, uf_slice_savefile[i], multi_pos = pos_use, start_multi_params = start_multi_params, png = png, eps = eps, $
+            plotfile = uf_slice_plotfile, plot_xrange = kperp_plot_range, plot_yrange = kpar_plot_range, $
+            title_prefix = slice_titles[i], $
+            grey_scale = grey_scale, plot_wedge_line = plot_wedge_line, wedge_amp = wedge_amp, hinv = hinv, $
+            baseline_axis = baseline_axis, delay_axis = delay_axis, linear_axes = kperp_linear_axis, $
+            window_num = window_num
+        endif else begin
+        
+          uvf_slice_plot, uf_slice_savefile[i], multi_pos = pos_use, start_multi_params = start_multi_params, png = png, eps = eps, $
+            plotfile = uf_slice_plotfile, type = 'abs', title_prefix = slice_titles[i], $
+            grey_scale = grey_scale, hinv = hinv, $
+            baseline_axis = baseline_axis, window_num = window_num
+        endelse
+        
+        if i eq 0 then begin
+          positions = pos_use
+          undefine, start_multi_params
+        endif
+      endfor
+      if keyword_set(pub) then begin
+        cgps_close, png = png, delete_ps = delete_ps
+        wdelete, window_num
+      endif
+      
+      window_num = 8
+      start_multi_params = {ncol:ncol, nrow:nrow, ordering:'row'}
+      undefine, pos_use
+      
+      for i=0, (nrow*ncol)-1 do begin
+        if i gt 0 then  pos_use = positions[*,i]
+        
+        if slice_type eq 'kspace' then begin
+          kpower_slice_plot, vf_slice_savefile[i], multi_pos = pos_use, start_multi_params = start_multi_params, png = png, eps = eps, $
+            plotfile = vf_slice_plotfile, $
+            plot_xrange = kperp_plot_range, plot_yrange = kpar_plot_range, $
+            title_prefix = slice_titles[i], $
+            grey_scale = grey_scale, plot_wedge_line = plot_wedge_line, wedge_amp = wedge_amp, hinv = hinv, $
+            baseline_axis = baseline_axis, delay_axis = delay_axis, linear_axes = kperp_linear_axis, $
+            window_num = window_num
+        endif else begin
+        
+          uvf_slice_plot, vf_slice_savefile[i], multi_pos = pos_use, start_multi_params = start_multi_params, png = png, eps = eps, $
+            plotfile = vf_slice_plotfile, type = 'abs', title_prefix = slice_titles[i], $
+            grey_scale = grey_scale, hinv = hinv, $
+            baseline_axis = baseline_axis, window_num = window_num
+        endelse
+        
+        if i eq 0 then begin
+          positions = pos_use
+          undefine, start_multi_params
+        endif
+      endfor
+      if keyword_set(pub) then begin
+        cgps_close, png = png, delete_ps = delete_ps
+        wdelete, window_num
+      endif
+      
+      window_num = 9
+      start_multi_params = {ncol:ncol, nrow:nrow, ordering:'row'}
+      undefine, pos_use
+      
+      for i=0, (nrow*ncol)-1 do begin
+        if i gt 0 then  pos_use = positions[*,i]
+        
+        if slice_type eq 'kspace' then begin
+          kpower_slice_plot, uv_slice_savefile[i], multi_pos = pos_use, start_multi_params = start_multi_params, png = png, eps = eps, $
+            plotfile = uv_slice_plotfile, $
+            plot_xrange = kperp_plot_range, plot_yrange = kperp_plot_range, $
+            title_prefix = slice_titles[i], $
+            grey_scale = grey_scale, plot_wedge_line = plot_wedge_line, wedge_amp = wedge_amp, hinv = hinv, $
+            baseline_axis = baseline_axis, delay_axis = delay_axis, linear_axes = kperp_linear_axis, $
+            window_num = window_num
+        endif else begin
+        
+          uvf_slice_plot, uv_slice_savefile[i], multi_pos = pos_use, start_multi_params = start_multi_params, png = png, eps = eps, $
+            plotfile = uv_slice_plotfile, type = 'abs', title_prefix = slice_titles[i], $
+            grey_scale = grey_scale, hinv = hinv, $
+            baseline_axis = baseline_axis, window_num = window_num
+        endelse
+        
+        if i eq 0 then begin
+          positions = pos_use
+          undefine, start_multi_params
+        endif
+      endfor
+      if keyword_set(pub) then begin
+        cgps_close, png = png, delete_ps = delete_ps
+        wdelete, window_num
+      endif
+      
+    endif
+  endelse
   
+  file_arr = savefiles_1d
+  kpower_1d_plots, file_arr, window_num = 6, colors = colors, names = titles, delta = delta, hinv = hinv, png = png, eps = eps, $
+    plotfile = plotfile_1d
+   
 end

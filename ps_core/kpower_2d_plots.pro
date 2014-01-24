@@ -8,7 +8,7 @@ pro kpower_2d_plots, power_savefile, multi_pos = multi_pos, start_multi_params =
     baseline_axis = baseline_axis, delay_axis = delay_axis, kperp_linear_axis = kperp_linear_axis, $
     kpar_linear_axis = kpar_linear_axis, no_units = no_units, hinv = hinv, charsize = charsize_in, $
     cb_size = cb_size_in, margin=margin_in, cb_margin = cb_margin_in
-    
+      
   if n_elements(plotfile) gt 0 or keyword_set(png) or keyword_set(eps) then pub = 1 else pub = 0
   if pub eq 1 then begin
     if not (keyword_set(png) or keyword_set(eps)) then begin
@@ -673,12 +673,6 @@ pro kpower_2d_plots, power_savefile, multi_pos = multi_pos, start_multi_params =
       multi_xlen = (multi_pos[2,0]-multi_pos[0,0])
       multi_ylen = (multi_pos[3,0]-multi_pos[1,0])
       multi_center = [multi_pos[0,0] + multi_xlen/2d, multi_pos[1,0] + multi_ylen/2d]
-      
-      ;; This print is necessary because for some reason the pixel
-      ;; size of the window changes after a print and without this
-      ;; statement the first plot has the wrong size. Awesome.
-      temp = [!d.x_vsize,!d.y_vsize]
-      print, temp
       
       multi_size = [!d.x_vsize*multi_xlen, !d.y_vsize*multi_ylen]
       
