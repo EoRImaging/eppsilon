@@ -463,11 +463,56 @@ pro kpower_2d_plots, power_savefile, multi_pos = multi_pos, start_multi_params =
       
       log_data_range = [log_cut_val, alog10(data_range[1])]
       
-      power_log = alog10(power_plot)
-      wh_under = where(power_plot lt 10^double(log_cut_val), count)
-      if count ne 0 then power_log[wh_under] = log_data_range[0]
-      wh_over = where(power_log gt log_data_range[1], count)
-      if count ne 0 then power_log[wh_over] = log_data_range[1]
+      ;; if log_cut_val is less than min_pos then indicate it in the color bar
+      if min(power_plot) le 0 then begin
+      
+      
+        wh_zero = where(power_plot eq 0, count_zero)
+        if count_zero gt 0 then begin
+          min_pos_color = 2
+          zero_color=1
+          zero_val = n_colors/(log_data_range[1]-log_data_range[0])
+          
+          wh_zero = where(power_plot eq 0, count)
+          if count ne 0 then power_log[wh_zero] = zero_val
+          
+          if log_cut_val gt min_pos then log_data_range = [log_cut_val-2*n_colors/(log_data_range[1]-log_data_range[0]), alog10(data_range[1])]
+          
+        endif else begin
+          min_pos_color = 1
+          if log_cut_val gt min_pos then log_data_range = [log_cut_val-n_colors/(log_data_range[1]-log_data_range[0]), alog10(data_range[1])]
+          
+        endelse
+        neg_color=0
+        neg_val = log_data_range[0]
+        
+        power_log = alog10(power_plot)
+        wh_under = where(power_plot lt 10^double(log_cut_val), count)
+        if count ne 0 then power_log[wh_under] = log_data_range[0]
+        wh_neg = where(power_plot lt 0, count)
+        if count ne 0 then power_log[wh_neg] = neg_val
+        wh_over = where(power_log gt log_data_range[1], count)
+        if count ne 0 then power_log[wh_over] = log_data_range[1]
+        
+        oob_low = 0
+        
+        cgloadct, 25, /brewer, /reverse, BOTTOM = min_pos_color, NCOLORS = 256-min_pos_color
+        if count_zero gt 0 then begin
+          cgLoadCT, 0, CLIP=[50, 50], BOTTOM=0, NCOLORS=1
+          cgLoadCT, 0, CLIP=[250, 250], BOTTOM=zero_color, NCOLORS=1
+        endif else cgLoadCT, 0, CLIP=[50, 50], BOTTOM=0, NCOLORS=1
+        
+      endif else begin
+      
+        min_pos_color = 0
+        
+        power_log = alog10(power_plot)
+        wh_under = where(power_plot lt 10^double(log_cut_val), count)
+        if count ne 0 then power_log[wh_under] = log_data_range[0]
+        wh_over = where(power_log gt log_data_range[1], count)
+        if count ne 0 then power_log[wh_over] = log_data_range[1]
+        
+      endelse
       
       if no_input_data_range eq 1 then data_range = 10^log_data_range
     end
@@ -710,7 +755,7 @@ pro kpower_2d_plots, power_savefile, multi_pos = multi_pos, start_multi_params =
     ythick = 3
     if n_elements(charsize_in) eq 0 then begin
       if n_elements(multi_pos) gt 0 then begin
-        charsize = 1.5d * (multi_size[0]/6500.)
+        charsize = 1.5d * (multi_size[0]/10000.)
       endif else charsize = 2
     endif else charsize = charsize_in
     
@@ -919,13 +964,16 @@ pro kpower_2d_plots, power_savefile, multi_pos = multi_pos, start_multi_params =
     if count_zero gt 0 then names[wh_zero] = '0'
   endif else begin
   
-    if min(power) lt 0 and min(tick_vals) lt min_pos then begin
-      wh = where(tick_vals lt min_pos, count, complement = wh_keep, ncomplement = count_keep)
+    if min_pos_color gt 0 then begin
+      new_tick_vals = [10^log_data_range[0], tick_vals]
       
-      if count lt 1 then stop else if count eq 1 then names = ['<0', number_formatter(tick_vals[wh_keep], format = '(e0)',/print_exp)] $
-      else names = [strarr(count-1), '<0', number_formatter(tick_vals[wh_keep], format = '(e0)',/print_exp)]
+      min_tick_color = (alog10(min(tick_vals))-log_data_range[0])*n_colors/(log_data_range[1]-log_data_range[0]) + color_range[0]
+      if min_tick_color lt 10 then names = ['<0', ' ', number_formatter(tick_vals[1:*], format = '(e0)',/print_exp)] $
+      else names = ['<0',  number_formatter(tick_vals, format = '(e0)',/print_exp)]
       
+      tick_vals = new_tick_vals
     endif else names = number_formatter(tick_vals, format = '(e0)',/print_exp)
+    
   endelse
   
   if n_minor gt 0 then begin
@@ -959,7 +1007,7 @@ pro kpower_2d_plots, power_savefile, multi_pos = multi_pos, start_multi_params =
     
   cgcolorbar, color = annotate_color, /vertical, position = cb_pos, bottom = color_range[0], ncolors = n_colors, minor = 0, $
     ticknames = cb_ticknames, ytickv = cb_ticks, yticks = n_elements(cb_ticks) -1, title = units_str, $
-    charsize = charsize, font = font
+    charsize = charsize, font = font, oob_low = oob_low
   ;; cgcolorbar, color = annotate_color, /vertical, position = cb_pos, bottom = color_range[0]+1, ncolors = n_colors, /ylog, $
   ;;             range = 10d^log_data_range, format = 'exponent', minor=minor, charsize = charsize, font = font, $
   ;;             divisions = 0
