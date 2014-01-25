@@ -3,7 +3,7 @@ pro hellebore_wrapper, folder_name, rts = rts, version = version, refresh_dft = 
     no_spec_window = no_spec_window, spec_window_type = spec_window_type, noise_sim = noise_sim, $
     cut_image = cut_image, individual_plots = individual_plots, plot_filebase = plot_filebase, png = png, eps = eps, $
     plot_slices = plot_slices, slice_type = slice_type, $
-    kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, t32 = t32
+    kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, t32 = t32, set_data_ranges = set_data_ranges
     
   if keyword_set(rts) then begin
     ;    froot = base_path('data') + 'rts_data/test2/'
@@ -25,11 +25,7 @@ pro hellebore_wrapper, folder_name, rts = rts, version = version, refresh_dft = 
     datafile = base_path('data') + 'fhd_sim_data/fhd_v300/Healpix/Sim_obs_' + ['even','odd']+ '_cube.sav'
     
   endif else begin
-    ;;datafile = base_path('data') + 'fhd_ps_data/X16_EOR1/multi_freq_residuals_cube_healpix.sav'
-    ;;datafile = base_path('data') + 'fhd_ps_data/X16_EOR1/fhd_v101/Combined_obs_EOR1_P00_145_20110926193959-' + $
-    ;;           'EOR1_P00_145_20110926193959_' + $
-    ;;datafile = base_path('data') + 'fhd_ps_data/X16_EOR1/fhd_v15/Combined_obs_EOR1_P00_145_20110926193959-' + $
-    ;;           'EOR1_P00_145_20110926200503_' + $
+
     if n_elements(folder_name) eq 0 then folder_name = base_path('data') + 'fhd_ps_data/128T_cubes/firstpass/'
     
     ;; check for folder existence, otherwise look for common folder names to figure out full path. If none found, try base_path('data') + 'fhd_ps_data/128T_cubes/'
@@ -79,14 +75,17 @@ pro hellebore_wrapper, folder_name, rts = rts, version = version, refresh_dft = 
     
     plot_filebase = fhd_type + '_' + obs_name
     
-    if keyword_set(integrated) then sigma_range = [2e0, 2e2] else sigma_range = [1e2, 2e4]
-    if keyword_set(integrated) then nev_range = [5e0, 2e3] else nev_range = [5e2, 2e5]
-    data_range = [1e-2, 1e8]
-    nnr_range = [1e-1, 1e1]
-    snr_range = [1e-4, 1e6]
-    
-    noise_range = nev_range
-    
+    if n_elements(set_data_ranges) eq 0 then set_data_ranges = 1   
+    if keyword_set(set_data_ranges) then begin
+      if keyword_set(integrated) then sigma_range = [2e0, 2e2] else sigma_range = [1e2, 2e4]
+      if keyword_set(integrated) then nev_range = [5e0, 2e3] else nev_range = [5e2, 2e5]
+      
+      data_range = [1e-2, 1e8]
+      nnr_range = [1e-1, 1e1]
+      snr_range = [1e-4, 1e6]
+      
+      noise_range = nev_range
+    endif
   endelse
   
   
@@ -191,4 +190,13 @@ pro hellebore_wrapper, folder_name, rts = rts, version = version, refresh_dft = 
     baseline_axis = baseline_axis, delay_axis = delay_axis, hinv = hinv, $
     plot_wedge_line = plot_wedge_line, grey_scale = grey_scale, individual_plots = individual_plots, png = png, eps = eps
     
+    
+  if not keyword_set(set_data_ranges) then begin
+    print, 'data_range used: ', number_formatter(data_range, format = '(e7.1)')
+    print, 'sigma_range used: ', number_formatter(sigma_range, format = '(e7.1)')
+    print, 'nev_range used: ', number_formatter(nev_range, format = '(e7.1)')
+    print, 'nnr_range used: ', number_formatter(nnr_range, format = '(e7.1)')
+    print, 'snr_range used: ', number_formatter(snr_range, format = '(e7.1)')
+    print, 'noise_range used: ', number_formatter(noise_range, format = '(e7.1)')
+   endif
 end
