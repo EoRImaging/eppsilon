@@ -496,11 +496,11 @@ pro kpower_2d_plots, power_savefile, multi_pos = multi_pos, start_multi_params =
         
         oob_low = 0
         
-        cgloadct, 25, /brewer, /reverse, BOTTOM = min_pos_color, NCOLORS = 256-min_pos_color
+        cgloadct, 25, /brewer, /reverse, BOTTOM = min_pos_color, NCOLORS = 256-min_pos_color, clip = [0, 235]
         if count_zero gt 0 then begin
-          cgLoadCT, 0, CLIP=[50, 50], BOTTOM=0, NCOLORS=1
-          cgLoadCT, 0, CLIP=[250, 250], BOTTOM=zero_color, NCOLORS=1
-        endif else cgLoadCT, 0, CLIP=[50, 50], BOTTOM=0, NCOLORS=1
+          cgLoadCT, 25, /brewer, /reverse, CLIP=[255, 255], BOTTOM=0, NCOLORS=1
+          cgLoadCT, 25, /brewer, /reverse, CLIP=[245, 245], BOTTOM=zero_color, NCOLORS=1
+        endif else cgLoadCT, 25, /brewer, /reverse, CLIP=[255, 255], BOTTOM=0, NCOLORS=1
         
       endif else begin
       

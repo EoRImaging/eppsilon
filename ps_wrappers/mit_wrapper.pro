@@ -1,5 +1,8 @@
-pro mit_wrapper, folder_name, obs_range, rts = rts, refresh_dft = refresh_dft, refresh_ps = refresh_ps, refresh_binning = refresh_binning, pol_inc = pol_inc, $
-    no_spec_window = no_spec_window, spec_window_type = spec_window_type,individual_plots = individual_plots, png = png, eps = eps
+pro mit_wrapper, folder_name, obs_range, rts = rts, refresh_dft = refresh_dft, refresh_ps = refresh_ps, $
+    refresh_binning = refresh_binning, pol_inc = pol_inc, no_spec_window = no_spec_window, $
+    spec_window_type = spec_window_type, freq_ch_range = freq_ch_range, ,individual_plots = individual_plots, $
+    png = png, eps = eps, plot_slices = plot_slices, slice_type = slice_type, $
+    kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, set_data_ranges = set_data_ranges
     
   ;; The only required input is the datafile name (including the full path)
     
@@ -22,37 +25,6 @@ pro mit_wrapper, folder_name, obs_range, rts = rts, refresh_dft = refresh_dft, r
     datafile =  rts_fits2imagecube(datafiles, weightfiles, variancefiles, pol_inc, save_path = froot)
     
   endif else begin
-  
-    ;;datafile = '/data2/MWA/FHD/DATA/X16/EOR1/145/fhd_v14/Healpix/' + $
-    ;;           'Combined_obs_EOR1_P00_145_20110926193959-EOR1_P00_145_20110926200503_'+['even', 'odd']+'_cube.sav'
-  
-    ;;datafile = '/data2/MWA/PowerSpectra/FHD_healpix_test/multi_freq_residuals_cube_healpix.sav'
-  
-    ;datafile = '/data2/MWA/FHD/DATA/X16/EOR1/145/fhd_v14/Healpix/' + $
-    ;  'Combined_obs_EOR1_P00_145_20110926193959-EOR1_P00_145_20110926200503_'+['even', 'odd']+'_cube.sav'
-  
-    ;datafile = '/nfs/mwa-09/r1/djc/EoR2013/Aug23/fhd_apb_eor_firstpass_8/Healpix/' + $
-  
-    ;datafile = '/nfs/mwa-09/r1/djc/EoR2013/Aug23/fhd_apb_gen_sourcelist_5/Healpix/' + $
-    ;   'Combined_obs_1061311664-1061320816_' + ['even', 'odd']+'_cube.sav'
-  
-    ;datafile = '/nfs/mwa-09/r1/djc/EoR2013/Aug23/fhd_apb_eor_firstpass_10/Healpix/' + $
-    ;'Combined_obs_1061316296-1061316296_' + ['even', 'odd']+'_cube.sav'
-  
-    ;datafile = '/nfs/mwa-09/r1/djc/EoR2013/Aug23/fhd_apb_eor_firstpass_12/Healpix/' + $
-    ;'Combined_obs_1061316176-1061317272_' + ['even', 'odd']+'_cube.sav'
-  
-    ;datafile = '/nfs/mwa-09/r1/djc/EoR2013/Aug23/fhd_apb_gen_sourcelist_8/Healpix/' + $
-    ;  'Combined_obs_1061313616-1061318984_' + ['even', 'odd']+'_cube.sav'
-  
-    ;datafile = '/nfs/mwa-09/r1/djc/EoR2013/Aug23/fhd_apb_pipeline_paper_deep_1/Healpix/' + $
-    ;   'Combined_obs_1061316296-1061316296_' + ['even', 'odd']+'_cube.sav'
-  
-    ;datafile = '/nfs/mwa-09/r1/djc/EoR2013/Aug23/fhd_apb_pipeline_paper_snapshot_1/Healpix/' + $
-    ;  'Combined_obs_1061316296-1061316296_' + ['even', 'odd']+'_cube.sav'
-  
-    ;  datafile = '/nfs/mwa-09/r1/djc/EoR2013/Aug23/fhd_apb_pipeline_paper_deep_1/Healpix/' + $
-    ;  'Combined_obs_1061311664-1061323008_' + ['even', 'odd']+'_cube.sav'
   
     if n_elements(folder_name) eq 0 then folder_name = '/nfs/mwa-09/r1/djc/EoR2013/Aug23/fhd_apb_pipeline_paper_deep_1/Healpix/'
     
@@ -91,7 +63,7 @@ pro mit_wrapper, folder_name, obs_range, rts = rts, refresh_dft = refresh_dft, r
     
     if folder_test eq 0 then message, 'folder not found'
     
-       
+    
     if n_elements(obs_range) gt 0 then begin
       if size(obs_range,/type) eq 7 then begin
         if n_elements(obs_range) gt 1 then $
@@ -151,13 +123,17 @@ pro mit_wrapper, folder_name, obs_range, rts = rts, refresh_dft = refresh_dft, r
     
     if obs_range[1] - obs_range[0] gt 0 then integrated = 1 else integrated = 0
     
-    if keyword_set(integrated) then sigma_range = [2e0, 2e2] else sigma_range = [1e2, 2e4]
-    if keyword_set(integrated) then nev_range = [5e0, 2e3] else nev_range = [5e2, 2e5]
-    data_range = [1e-2, 1e8]
-    nnr_range = [1e-1, 1e1]
-    snr_range = [1e-4, 1e6]
-    
-    noise_range = nev_range
+    if n_elements(set_data_ranges) eq 0 then set_data_ranges = 1
+    if keyword_set(set_data_ranges) then begin
+      if keyword_set(integrated) then sigma_range = [2e0, 2e2] else sigma_range = [1e2, 2e4]
+      if keyword_set(integrated) then nev_range = [5e0, 2e3] else nev_range = [5e2, 2e5]
+      
+      data_range = [1e-2, 1e8]
+      nnr_range = [1e-1, 1e1]
+      snr_range = [1e-4, 1e6]
+      
+      noise_range = nev_range
+    endif
     
     
   endelse
@@ -189,15 +165,9 @@ pro mit_wrapper, folder_name, obs_range, rts = rts, refresh_dft = refresh_dft, r
   
   ;; freq_ch_range specifies which frequency channels to include in the power spectrum.
   ;; Fewer number of channels makes the dfts faster
-  ;; freq_ch_range = [0, 191]
-  ;; freq_ch_range = [288, 480]
-  ;; freq_ch_range = [575, 767]
   
   ;; pol_inc specifies which polarizations to generate the power spectra for.
   ;; The default is ['xx,'yy']
-  ;; pol_inc = 'xx'
-  ;; plot_inc = 'yy'
-  
   
   ;; cut_image keyword only applies to Healpix datasets. It allows for limiting the field of view in the
   ;; image plane by only using Healpix pixels inside a 30 degree diameter circle centered in the middle of the field.
@@ -210,10 +180,6 @@ pro mit_wrapper, folder_name, obs_range, rts = rts, refresh_dft = refresh_dft, r
   ;; The earliest stage is refresh_dft, which is only used for Healpix datasets (it's ignored otherwise)
   ;; The next stage is refresh_ps and the last stage is refresh_binning.
   ;; To set any of these flags, set them equal to 1 (true)
-  
-  ;;refresh_dft=1
-  ;;refresh_ps=1
-  
   
   ;; options for binning:
   ;; log_kperp, log_kpar and log_k1d are flags: set to 1 (true) for logarithmic bins
@@ -233,7 +199,6 @@ pro mit_wrapper, folder_name, obs_range, rts = rts, refresh_dft = refresh_dft, r
   ;; grey_scale is a flag to use a black/white color scale rather than the default color scale
   ;; pub is a flag to make save plots as eps files rather than displaying to the screen
   
-  ;;pub = 1
   
   fhd_data_plots, datafile, dft_fchunk=dft_fchunk, plot_path = plot_path, plot_filebase = plot_filebase, save_path = save_path, savefilebase = savefilebase, $
     pol_inc = pol_inc, rts = rts, $
@@ -246,4 +211,13 @@ pro mit_wrapper, folder_name, obs_range, rts = rts, refresh_dft = refresh_dft, r
     baseline_axis = baseline_axis, delay_axis = delay_axis, hinv = hinv, $
     plot_wedge_line = plot_wedge_line, grey_scale = grey_scale, individual_plots = individual_plot, png = png, eps = eps
     
+  if not keyword_set(set_data_ranges) then begin
+    print, 'data_range used: ', number_formatter(data_range, format = '(e7.1)')
+    print, 'sigma_range used: ', number_formatter(sigma_range, format = '(e7.1)')
+    print, 'nev_range used: ', number_formatter(nev_range, format = '(e7.1)')
+    print, 'nnr_range used: ', number_formatter(nnr_range, format = '(e7.1)')
+    print, 'snr_range used: ', number_formatter(snr_range, format = '(e7.1)')
+    print, 'noise_range used: ', number_formatter(noise_range, format = '(e7.1)')
+  endif
+  
 end
