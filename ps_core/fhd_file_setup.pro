@@ -399,7 +399,7 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
     if count_nside gt 0 then this_healpix = 1 else this_healpix = 0
     
     for i=0, ncubes-1 do begin
-      wh = where(varnames eq cube_varname[i], count)
+      wh = where(strlowcase(varnames) eq cube_varname[i], count)
       if count eq 0 then message, cube_varname[i] + ' is not present in datafile (datafile=' + datafile[j] + ')'
       
       data_size = getvar_savefile(datafile[j], cube_varname[i], /return_size)
@@ -411,7 +411,7 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
     void = getvar_savefile(weightfile[j], names = wt_varnames)
     void = getvar_savefile(variancefile[j], names = var_varnames)
     for i=0, npol-1 do begin
-      wh = where(wt_varnames eq weight_varname[i], count)
+      wh = where(strlowcase(wt_varnames) eq weight_varname[i], count)
       
       if count eq 0 then message, weight_varname[i] + ' is not present in weightfile (weightfile=' + weightfile[j] + ')'
       
@@ -419,7 +419,7 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
       if wt_size[0] gt 0 then wt_dims = wt_size[1:wt_size[0]]
       if total(abs(wt_dims - data_dims)) ne 0 then message, 'weight and data dimensions in files do not match'
       
-      wh = where(var_varnames eq variance_varname[i], count)
+      wh = where(strlowcase(var_varnames) eq variance_varname[i], count)
       
       if count eq 0 then begin
         print, variance_varname[i] + ' is not present in variancefile (variancefile=' + variancefile[j] + '). Using weights^2 instead of variances'
@@ -444,16 +444,16 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
       healpix = 1
       
       if n_elements(pixelfile) ne nfiles then begin
-        if j eq 0 then pixelfile = datafile[j] else pixelfile = [pixelfile, datafile[j]]
+        if j eq 0 then pixelfile = [datafile[j]] else pixelfile = [pixelfile, datafile[j]]
       endif
       if j eq 0 then begin
         if n_elements(pixelvar) eq 0 then pixel_varname = replicate('hpx_inds', nfiles) else pixel_varname =  pixelvar
       endif
       
       void = getvar_savefile(pixelfile[j], names = pix_varnames)
-      wh = where(pix_varnames eq pixel_varname, count)
+      wh = where(strlowcase(pix_varnames) eq pixel_varname, count)
       
-      if count eq 0 then message, pixel_varname + ' is not present in pixelfile (pixelfile=' + pixelfile[j] + ')'
+      if count eq 0 then message, pixel_varname[j] + ' is not present in pixelfile (pixelfile=' + pixelfile[j] + ')'
       
       pix_size = getvar_savefile(pixelfile[j], pixel_varname, /return_size)
       if pix_size[0] gt 0 then pix_dims = pix_size[1:pix_size[0]]
