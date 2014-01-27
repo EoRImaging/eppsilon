@@ -221,10 +221,7 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
         
           if healpix then begin
             pixel_nums1 = getvar_savefile(file_struct.pixelfile[0], file_struct.pixelvar[0])
-            
-            pixel_dims = size(pixel_nums1, /dimension)
-            if datavar ne '' and total(abs(dims - pixel_dims)) ne 0 then message, 'pixel and data dimensions do not match'
-            
+                        
             if nfiles eq 2 then begin
               ;; check that they have the same set of healpix pixels
               pixel_nums2 = getvar_savefile(file_struct.pixelfile[1], file_struct.pixelvar[1])

@@ -399,7 +399,7 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
     if count_nside gt 0 then this_healpix = 1 else this_healpix = 0
     
     for i=0, ncubes-1 do begin
-      wh = where(strlowcase(varnames) eq cube_varname[i], count)
+      wh = where(strlowcase(varnames) eq strlowcase(cube_varname[i]), count)
       if count eq 0 then message, cube_varname[i] + ' is not present in datafile (datafile=' + datafile[j] + ')'
       
       data_size = getvar_savefile(datafile[j], cube_varname[i], /return_size)
@@ -411,7 +411,7 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
     void = getvar_savefile(weightfile[j], names = wt_varnames)
     void = getvar_savefile(variancefile[j], names = var_varnames)
     for i=0, npol-1 do begin
-      wh = where(strlowcase(wt_varnames) eq weight_varname[i], count)
+      wh = where(strlowcase(wt_varnames) eq strlowcase(weight_varname[i]), count)
       
       if count eq 0 then message, weight_varname[i] + ' is not present in weightfile (weightfile=' + weightfile[j] + ')'
       
@@ -419,7 +419,7 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
       if wt_size[0] gt 0 then wt_dims = wt_size[1:wt_size[0]]
       if total(abs(wt_dims - data_dims)) ne 0 then message, 'weight and data dimensions in files do not match'
       
-      wh = where(strlowcase(var_varnames) eq variance_varname[i], count)
+      wh = where(strlowcase(var_varnames) eq strlowcase(variance_varname[i]), count)
       
       if count eq 0 then begin
         print, variance_varname[i] + ' is not present in variancefile (variancefile=' + variancefile[j] + '). Using weights^2 instead of variances'
@@ -451,11 +451,11 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
       endif
       
       void = getvar_savefile(pixelfile[j], names = pix_varnames)
-      wh = where(strlowcase(pix_varnames) eq pixel_varname, count)
+      wh = where(strlowcase(pix_varnames) eq strlowcase(pixel_varname[j]), count)
       
       if count eq 0 then message, pixel_varname[j] + ' is not present in pixelfile (pixelfile=' + pixelfile[j] + ')'
       
-      pix_size = getvar_savefile(pixelfile[j], pixel_varname, /return_size)
+      pix_size = getvar_savefile(pixelfile[j], pixel_varname[j], /return_size)
       if pix_size[0] gt 0 then pix_dims = pix_size[1:pix_size[0]]
       if total(abs(pix_dims - data_dims[0])) ne 0 then message, 'Number of Healpix pixels does not match data dimension'
       
@@ -521,9 +521,7 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
           if total(abs(obs_arr.n_freq - obs_arr[0].n_freq)) ne 0 then message, 'inconsistent number of frequencies in obs_arr'
           if j eq 0 then n_freq = obs_arr[0].n_freq else if obs_arr[0].n_freq ne n_freq then $
             message, 'n_freq does not agree between datafiles'
-          if healpix then data_nfreq = data_dims[1] else data_nfreq = data_dims[2]
-          if n_freq ne data_nfreq then message, 'number of frequencies does not match number of data slices'
-          
+            
           if total(abs(obs_arr.degpix - obs_arr[0].degpix)) ne 0 then message, 'inconsistent degpix values in obs_arr'
           if j eq 0 then degpix = obs_arr[0].degpix else if obs_arr[0].degpix ne degpix  then $
             message, 'degpix does not agree between datafiles'
@@ -593,6 +591,10 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
       print, 'no n_avg present, assuming n_avg=32'
       if j eq 0 then n_avg = 32 else if n_avg ne 32 then message, 'n_avg parameter does not agree between datafiles'
     endelse
+    if healpix then data_nfreq = data_dims[1] else data_nfreq = data_dims[2]
+    if n_freq/n_avg ne data_nfreq then message, 'number of frequencies does not match number of data slices'
+    
+    
     
   endfor
   
@@ -607,6 +609,7 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
   for i=0, n_freqbins-1 do begin
     frequencies[i] = mean(freq[i*n_avg:i*n_avg+(n_avg-1)]) / 1e6 ;; in MHz
   endfor
+  
   
   for i=0, ncubes-1 do begin
     pol_index = i / ntypes
