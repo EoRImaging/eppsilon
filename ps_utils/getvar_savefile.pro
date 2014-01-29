@@ -1,4 +1,4 @@
-function getvar_savefile, savefile, varname, pointer_return=pointer_return, names = names, return_size = return_size
+function getvar_savefile, savefile, varname, pointer_return=pointer_return, names = names, return_size = return_size, verbose = verbose
   if file_test(savefile) eq 0 then begin
     print, 'getvar_savefile: file ' + string(savefile) + ' not found'
     return, 0
