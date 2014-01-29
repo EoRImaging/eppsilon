@@ -209,6 +209,10 @@ pro fhd_data_plots, datafile, rts = rts, pol_inc = pol_inc, image = image, $
     
     plot_fadd = ''
     if keyword_set(grey_scale) then plot_fadd = plot_fadd + '_grey'
+    if keyword_set(kperp_linear_axis) and keyword_set(kpar_linear_axis) then plot_fadd = plot_fadd + '_linaxes' else begin
+      if keyword_set(kperp_linear_axis) then plot_fadd = plot_fadd + '_kperplinaxis'
+      if keyword_set(kpar_linear_axis) then plot_fadd = plot_fadd + '_kparlinaxis'
+    endelse
     
     if keyword_set(individual_plots) then begin
       if n_elements(plot_filebase) eq 0 then begin
