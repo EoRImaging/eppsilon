@@ -128,7 +128,7 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
       endif else no_var = 0
       
       
-    ;save, filename = info_file, metadata_struct, pol_inc
+    save, filename = info_file, metadata_struct, pol_inc
       
     endif
     
