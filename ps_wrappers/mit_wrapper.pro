@@ -91,7 +91,7 @@ pro mit_wrapper, folder_name, obs_range, rts = rts, refresh_dft = refresh_dft, r
         obs_range = long(strsplit(obs_name, '-', /extract))
       endelse
       
-      save_path = folder_name + 'ps/'
+      save_path = folder_name + '/ps/'
       
     endif else begin
       cube_files = file_search(folder_name + '/Healpix/Combined_obs_' + obs_name + '*_cube.sav', count = n_cubefiles)
@@ -198,8 +198,7 @@ pro mit_wrapper, folder_name, obs_range, rts = rts, refresh_dft = refresh_dft, r
   ;; plot_wedge_line is a flag (defaulted to true) to plot a line marking the wedge (both horizon & FoV) (set to 0 to turn off)
   ;; grey_scale is a flag to use a black/white color scale rather than the default color scale
   ;; pub is a flag to make save plots as eps files rather than displaying to the screen
-  
-  
+    
   fhd_data_plots, datafile, dft_fchunk=dft_fchunk, plot_path = plot_path, plot_filebase = plot_filebase, save_path = save_path, savefilebase = savefilebase, $
     pol_inc = pol_inc, rts = rts, $
     refresh_dft = refresh_dft, refresh_ps = refresh_ps, refresh_binning = refresh_binning, $
