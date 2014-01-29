@@ -150,31 +150,31 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
     
     nfiles = n_elements(datafile)
     ;; look for polarization labels in the filename
-    pol_pos = stregex(datafile, '[x-y][x-y]')
-    if min(pol_pos) eq -1 then begin
-      if nfiles gt 2 then message, 'Only 1 or 2 datafiles supported'
-      if nfiles eq 2 then if datafile[0] eq datafile[1] then begin
-        print, 'datafiles are identical'
-        datafile = datafile[0]
-        nfiles = 1
-      endif
-      temp = strarr(nfiles, npol)
-      for i = 0, nfiles-1 do temp[i,*] = datafile[i]
-    endif else begin
-      if nfiles ne 2*npol and nfiles ne npol then message, 'Only 1 or 2 datafiles per polarization supported'
-      if nfiles eq npol then nfiles = 1 else nfiles = 2
-      temp = strarr(nfiles, npol)
-      for i=0, npol do begin
-        this_pol = where(strpos(datafile, pol_inc[i]) ne -1, count)
-        if count ne nfiles then message, 'Expected ' + numberformatter(nfiles) + ' for ' + pol_inc[i] + ' polarization, only found ' + count
-        temp[*, i] = datafile[this_pol]
-      endfor
-      for i=0, nfiles*npol do begin
-        wh_duplicate = where(temp eq temp[i], count_duplicate)
-        if count_duplicate gt 0 then message, 'multiple identical datafiles indentified.'
-      endfor
-      datafile = temp
-    endelse
+    ;    pol_pos = stregex(datafile, '[x-y][x-y]')
+    ;    if min(pol_pos) eq -1 then begin
+    if nfiles gt 2 then message, 'Only 1 or 2 datafiles supported'
+    if nfiles eq 2 then if datafile[0] eq datafile[1] then begin
+      print, 'datafiles are identical'
+      datafile = datafile[0]
+      nfiles = 1
+    endif
+    ;      temp = strarr(nfiles, npol)
+    ;      for i = 0, nfiles-1 do temp[i,*] = datafile[i]
+    ;    endif else begin
+    ;      if nfiles ne 2*npol and nfiles ne npol then message, 'Only 1 or 2 datafiles per polarization supported'
+    ;      if nfiles eq npol then nfiles = 1 else nfiles = 2
+    ;      temp = strarr(nfiles, npol)
+    ;      for i=0, npol do begin
+    ;        this_pol = where(strpos(datafile, pol_inc[i]) ne -1, count)
+    ;        if count ne nfiles then message, 'Expected ' + numberformatter(nfiles) + ' for ' + pol_inc[i] + ' polarization, only found ' + count
+    ;        temp[*, i] = datafile[this_pol]
+    ;      endfor
+    ;      for i=0, nfiles*npol do begin
+    ;        wh_duplicate = where(temp eq temp[i], count_duplicate)
+    ;        if count_duplicate gt 0 then message, 'multiple identical datafiles indentified.'
+    ;      endfor
+    ;      datafile = temp
+    ;    endelse
     
     if nfiles eq 2 and keyword_set(noise_sim) then begin
       datafile=datafile[0, *]
