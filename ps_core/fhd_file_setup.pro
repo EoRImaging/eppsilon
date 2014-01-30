@@ -203,7 +203,7 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
         else data_filebase = cgRootName(datafile, directory=froot)
         uvf_froot = froot
         
-        general_filebase = data_filebase + fch_tag
+        general_filebase = data_filebase
         
       endif else begin
         if n_elements(save_path) ne 0 then froot = save_path $
@@ -216,7 +216,7 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
           else general_filebase = data_filebase[0] + data_filebase[1] + '_joint'
         endelse
         
-        general_filebase = general_filebase + fch_tag
+        general_filebase = general_filebase
         
       endelse
     endif else begin
@@ -225,7 +225,7 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
         if froot eq '.' then data_filebase = cgRootName(datafile[0], directory=froot)
       endelse
       
-      general_filebase = savefilebase_in_base + fch_tag
+      general_filebase = savefilebase_in_base
     endelse
     
     ; check for pre-saved info file. If it exists, restore it and return structure. Otherwise construct structure.
