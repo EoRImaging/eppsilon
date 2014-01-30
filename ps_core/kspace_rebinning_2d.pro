@@ -59,6 +59,8 @@ function kspace_rebinning_2d, power_3d, kx_mpc, ky_mpc, kz_mpc, kperp_edges_mpc,
      else weighted_noise_expval = weights * noise_expval
   endif else begin
      noise_expval = 1/sqrt(weights)
+     wh_wt0 = where(weights eq 0, count_wt0)
+     if count_wt0 gt 0 then noise_expval[wh_wt0] = 0
      weighted_noise_expval = sqrt(weights)
   endelse
 

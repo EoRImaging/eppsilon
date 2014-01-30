@@ -1,6 +1,6 @@
 pro hellebore_wrapper, folder_name, rts = rts, version = version, refresh_dft = refresh_dft, refresh_ps = refresh_ps, dft_ian = dft_ian, $
-    refresh_binning = refresh_binning, pol_inc = pol_inc, sim = sim, freq_ch_range = freq_ch_range, $
-    no_spec_window = no_spec_window, spec_window_type = spec_window_type, noise_sim = noise_sim, $
+    refresh_binning = refresh_binning, pol_inc = pol_inc, sim = sim, freq_ch_range = freq_ch_range, freq_flag_name = freq_flag_name, $
+    no_spec_window = no_spec_window, spec_window_type = spec_window_type, std_power = std_power, noise_sim = noise_sim, $
     cut_image = cut_image, individual_plots = individual_plots, plot_filebase = plot_filebase, png = png, eps = eps, $
     plot_slices = plot_slices, slice_type = slice_type, $
     kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, t32 = t32, set_data_ranges = set_data_ranges
@@ -25,7 +25,7 @@ pro hellebore_wrapper, folder_name, rts = rts, version = version, refresh_dft = 
     datafile = base_path('data') + 'fhd_sim_data/fhd_v300/Healpix/Sim_obs_' + ['even','odd']+ '_cube.sav'
     
   endif else begin
-
+  
     if n_elements(folder_name) eq 0 then folder_name = base_path('data') + 'fhd_ps_data/128T_cubes/firstpass/'
     
     ;; check for folder existence, otherwise look for common folder names to figure out full path. If none found, try base_path('data') + 'fhd_ps_data/128T_cubes/'
@@ -75,7 +75,7 @@ pro hellebore_wrapper, folder_name, rts = rts, version = version, refresh_dft = 
     
     plot_filebase = fhd_type + '_' + obs_name
     
-    if n_elements(set_data_ranges) eq 0 then set_data_ranges = 1   
+    if n_elements(set_data_ranges) eq 0 then set_data_ranges = 1
     if keyword_set(set_data_ranges) then begin
       if keyword_set(integrated) then sigma_range = [2e0, 2e2] else sigma_range = [1e2, 2e4]
       if keyword_set(integrated) then nev_range = [5e0, 2e3] else nev_range = [5e2, 2e5]
@@ -86,6 +86,22 @@ pro hellebore_wrapper, folder_name, rts = rts, version = version, refresh_dft = 
       
       noise_range = nev_range
     endif
+    
+    if n_elements(freq_flag_name) ne 0 then begin
+      case freq_flag_name of
+        'low': freq_flags = [0,7,8,15,16,23,24,31,32,39,40,47,48,55,56,63,64,71,72,79,80,87,88,95,$
+          96,103,104,111,112,119,120,127,128,135,136,143,144,151,152,159,160,167,168,175,176,183,184,191]
+          
+        'edge': freq_flags = [0,1,6,7,8,9,14,15,16,17,22,23,24,25,30,31,32,33,38,39,40,41,46,47,48,$
+          49,54,55,56,57,62,63,64,65,70,71,72,73,78,79,80,81,86,87,88,89,94,95,96,97,102,103,104,105,$
+          110,111,112,113,118,119,120,121,126,127,128,129,134,135,136,137,142,143,144,145,150,151,152,$
+          153,158,159,160,161,166,167,168,169,174,175,176,177,182,183,184,185,190,191]
+          
+        else: message, 'freq_flag_name not recognized'
+      endcase
+    endif
+    
+    
   endelse
   
   
@@ -181,7 +197,8 @@ pro hellebore_wrapper, folder_name, rts = rts, version = version, refresh_dft = 
   fhd_data_plots, datafile, dft_fchunk=dft_fchunk, plot_path = plot_path, plot_filebase = plot_filebase, save_path = save_path, savefilebase = savefilebase, $
     pol_inc = pol_inc, rts = rts, $
     refresh_dft = refresh_dft, refresh_ps = refresh_ps, refresh_binning = refresh_binning, $
-    freq_ch_range = freq_ch_range, no_spec_window = no_spec_window, spec_window_type = spec_window_type, $
+    freq_ch_range = freq_ch_range, freq_flags = freq_flags, freq_flag_name = freq_flag_name, $
+    no_spec_window = no_spec_window, spec_window_type = spec_window_type, std_power = std_power, $
     noise_sim = noise_sim, cut_image = cut_image, dft_ian = dft_ian, $
     log_kpar = log_kpar, log_kperp = log_kperp, kpar_bin = kpar_bin, kperp_bin = kperp_bin, $
     log_k1d = log_k1d, k1d_bin = k1d_bin, kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, $
@@ -198,5 +215,5 @@ pro hellebore_wrapper, folder_name, rts = rts, version = version, refresh_dft = 
     print, 'nnr_range used: ', number_formatter(nnr_range, format = '(e7.1)')
     print, 'snr_range used: ', number_formatter(snr_range, format = '(e7.1)')
     print, 'noise_range used: ', number_formatter(noise_range, format = '(e7.1)')
-   endif
+  endif
 end

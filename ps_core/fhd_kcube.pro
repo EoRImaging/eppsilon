@@ -1,12 +1,13 @@
 pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weight = dft_refresh_weight, dft_ian = dft_ian, $
-    dft_fchunk = dft_fchunk, freq_ch_range = freq_ch_range, spec_window_type = spec_window_type, cut_image = cut_image, $
+    dft_fchunk = dft_fchunk, freq_ch_range = freq_ch_range, freq_flags = freq_flags, $
+    spec_window_type = spec_window_type, cut_image = cut_image, $
     noise_sim = noise_sim, std_power = std_power, input_units = input_units, image = image, quiet = quiet
     
   if tag_exist(file_struct, 'nside') ne 0 then healpix = 1 else healpix = 0
   if keyword_set(image) or tag_exist(file_struct, 'uvf_savefile') ne 0 then image = 1 else image = 0
   nfiles = n_elements(file_struct.datafile)
   if tag_exist(file_struct, 'no_var') ne 0 then no_var = 1 else no_var = 0
-
+  
   
   if n_elements(input_units) eq 0 then input_units = 'jansky'
   units_enum = ['jansky', 'mk']
@@ -31,6 +32,8 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
   endif
   
   frequencies = file_struct.frequencies
+  
+  if n_elements(freq_flags) ne 0 then freq_mask = file_struct.freq_mask
   
   if n_elements(freq_ch_range) ne 0 then begin
     n_freq_orig = n_elements(frequencies)
@@ -148,39 +151,65 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
       
       test_wt_uvf = file_test(file_struct.uvf_weight_savefile[i]) * (1 - file_test(file_struct.uvf_weight_savefile[i], /zero_length))
       
-      if test_uvf eq 0 and not keyword_set(dft_refresh_data) and n_elements(freq_ch_range) ne 0 then begin
+      if test_uvf eq 1 and n_elements(freq_mask) ne 0 then begin
+        old_freq_mask = getvar_savefile(file_struct.uvf_savefile[i], 'freq_mask')
+        if total(abs(old_freq_mask - freq_mask)) ne 0 then test_uvf = 0
+      endif
+      
+      if test_wt_uvf eq 1 and n_elements(freq_mask) ne 0 then begin
+        old_freq_mask = getvar_savefile(file_struct.uvf_savefile[i], 'freq_mask')
+        if total(abs(old_freq_mask - freq_mask)) ne 0 then test_uvf = 0
+      endif
+      
+      if test_uvf eq 0 and not keyword_set(dft_refresh_data) and (n_elements(freq_ch_range) ne 0 or n_elements(freq_flags) ne 0) then begin
         ;; if this is a limited freq. range cube, check for the full cube to avoid redoing the DFT
-        full_uvf_file = strjoin(strsplit(file_struct.uvf_savefile[i], '_ch[0-9]+-[0-9]+', /regex, /extract))
+        full_uvf_file = file_struct.uvf_savefile[i]
+        if n_elements(freq_ch_range) ne 0 then full_uvf_file = strjoin(strsplit(full_uvf_file, '_ch[0-9]+-[0-9]+', /regex, /extract))
+        if n_elements(freq_flags) ne 0 then full_uvf_file = strjoin(strsplit(full_uvf_file, '_flag[a-z0-9]+', /regex, /extract))
         test_full_uvf = file_test(full_uvf_file) *  (1 - file_test(full_uvf_file, /zero_length))
+        
         if test_full_uvf eq 1 then begin
           restore, full_uvf_file
           
-          data_cube = data_cube[*, *, min(freq_ch_range):max(freq_ch_range)]
+          if n_elements(freq_flags) ne 0 then data_cube = data_cube * rebin(reform(freq_mask, 1, 1, n_elements(file_struct.frequencies)), size(data_cube, /dimension), /sample)
+          if n_elements(freq_ch_range) ne 0 then data_cube = data_cube[*, *, min(freq_ch_range):max(freq_ch_range)]
           
-          if keyword_set(dft_ian) then save, file = file_struct.uvf_savefile[i], u_lambda_vals, v_lambda_vals, data_cube $
-          else save, file = file_struct.uvf_savefile[i], kx_rad_vals, ky_rad_vals, data_cube
+          if keyword_set(dft_ian) then save, file = file_struct.uvf_savefile[i], u_lambda_vals, v_lambda_vals, data_cube, freq_mask $
+          else save, file = file_struct.uvf_savefile[i], kx_rad_vals, ky_rad_vals, data_cube, freq_mask
           undefine, data_cube
           
           test_uvf = 1
         endif
+        
       endif
       
-      if test_wt_uvf eq 0 and not keyword_set(dft_refresh_weight) and n_elements(freq_ch_range) ne 0 then begin
+      if test_wt_uvf eq 0 and not keyword_set(dft_refresh_weight) and (n_elements(freq_ch_range) ne 0 or n_elements(freq_flags) ne 0) then begin
         ;; if this is a limited freq. range cube, check for the full cube to avoid redoing the DFT
-        full_uvf_wt_file = strjoin(strsplit(file_struct.uvf_weight_savefile[i], '_ch[0-9]+-[0-9]+', /regex, /extract))
+        full_uvf_wt_file = file_struct.uvf_weight_savefile[i]
+        if n_elements(freq_ch_range) ne 0 then full_uvf_wt_file = strjoin(strsplit(full_uvf_wt_file, '_ch[0-9]+-[0-9]+', /regex, /extract))
+        if n_elements(freq_flags) ne 0 then full_uvf_wt_file = strjoin(strsplit(full_uvf_wt_file, '_flag[a-z0-9]+', /regex, /extract))
         test_full_wt_uvf = file_test(full_uvf_wt_file) *  (1 - file_test(full_uvf_wt_file, /zero_length))
         if test_full_wt_uvf eq 1 then begin
           restore, full_uvf_wt_file
           
-          weights_cube = weights_cube[*, *, min(freq_ch_range):max(freq_ch_range)]
-          variance_cube = variance_cube[*, *, min(freq_ch_range):max(freq_ch_range)]
+          if n_elements(freq_flags) ne 0 then begin
+            flag_arr = rebin(reform(freq_mask, 1, 1, n_elements(file_struct.frequencies)), size(weights_cube, /dimension), /sample)
+            weights_cube = weights_cube * flag_arr
+            variance_cube = variance_cube * flag_arr
+          endif
           
-          if keyword_set(dft_ian) then save, file = file_struct.uvf_weight_savefile[i], u_lambda_vals, v_lambda_vals, weights_cube, variance_cube else $
-            save, file = file_struct.uvf_weight_savefile[i], kx_rad_vals, ky_rad_vals, weights_cube, variance_cube
+          if n_elements(freq_ch_range) ne 0 then begin
+            weights_cube = weights_cube[*, *, min(freq_ch_range):max(freq_ch_range)]
+            variance_cube = variance_cube[*, *, min(freq_ch_range):max(freq_ch_range)]
+          endif
+          
+          if keyword_set(dft_ian) then save, file = file_struct.uvf_weight_savefile[i], u_lambda_vals, v_lambda_vals, weights_cube, variance_cube, freq_mask else $
+            save, file = file_struct.uvf_weight_savefile[i], kx_rad_vals, ky_rad_vals, weights_cube, variance_cube, freq_mask
           undefine, weights_cube, variance_cube
           
           test_wt_uvf = 1
         endif
+        
       endif
       
       if test_uvf eq 0 or test_wt_uvf eq 0 or keyword_set(dft_refresh_data) or keyword_set(dft_refresh_weight) then begin
@@ -192,12 +221,17 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
             kx_rad_vals = getvar_savefile(file_struct.uvf_weight_savefile[i], 'kx_rad_vals')
             ky_rad_vals = getvar_savefile(file_struct.uvf_weight_savefile[i], 'ky_rad_vals')
             
+            if n_elements(freq_mask) ne 0 then begin
+              old_freq_mask = getvar_savefile(file_struct.uvf_weight_savefile[i], 'freq_mask')
+              if total(abs(old_freq_mask - freq_mask)) ne 0 then message, 'freq_mask of variance file does not match current freq_mask'
+            endif
+            
             seed = systime(1)
             noise = randomn(seed, dims) * sqrt(variance_cube) + $
               complex(0,1)*randomn(seed, dims) * sqrt(variance_cube)
             data_cube = temporary(noise)
-            if keyword_set(dft_ian) then save, file = file_struct.uvf_savefile[i], u_lambda_vals, v_lambda_vals, data_cube $
-            else save, file = file_struct.uvf_savefile[i], kx_rad_vals, ky_rad_vals, data_cube
+            if keyword_set(dft_ian) then save, file = file_struct.uvf_savefile[i], u_lambda_vals, v_lambda_vals, data_cube, freq_mask $
+            else save, file = file_struct.uvf_savefile[i], kx_rad_vals, ky_rad_vals, data_cube, freq_mask
             undefine, data_cube, seed, variance_cube
           endif else begin
             dirty_cube = getvar_savefile(input_uvf_files[i,0], input_uvf_varname[i,0])
@@ -208,20 +242,27 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
             kx_rad_vals = getvar_savefile(input_uvf_files[i,1], 'kx_rad_vals')
             ky_rad_vals = getvar_savefile(input_uvf_files[i,1], 'ky_rad_vals')
             
+            if n_elements(freq_mask) ne 0 then begin
+              dirty_freq_mask = getvar_savefile(input_uvf_files[i,0], 'freq_mask')
+              model_freq_mask = getvar_savefile(input_uvf_files[i,1], 'freq_mask')
+              if total(abs(dirty_freq_mask - freq_mask)) ne 0 then message, 'freq_mask of dirty file does not match current freq_mask'
+              if total(abs(model_freq_mask - freq_mask)) ne 0 then message, 'freq_mask of model file does not match current freq_mask'
+            endif
+            
             if total(abs(kx_rad_vals - kx_dirty)) ne 0 then message, 'kx_rad_vals for dirty and model cubes must match'
             if total(abs(ky_rad_vals - ky_dirty)) ne 0 then message, 'kx_rad_vals for dirty and model cubes must match'
             undefine, kx_dirty, ky_dirty
           endelse
           
           data_cube = temporary(dirty_cube) - temporary(model_cube)
-          if keyword_set(dft_ian) then save, file = file_struct.uvf_savefile[i], u_lambda_vals, v_lambda_vals, data_cube $
-          else save, file = file_struct.uvf_savefile[i], kx_rad_vals, ky_rad_vals, data_cube
+          if keyword_set(dft_ian) then save, file = file_struct.uvf_savefile[i], u_lambda_vals, v_lambda_vals, data_cube, freq_mask $
+          else save, file = file_struct.uvf_savefile[i], kx_rad_vals, ky_rad_vals, data_cube, freq_mask
           undefine, data_cube
         endif else begin
         
           if healpix then begin
             pixel_nums1 = getvar_savefile(file_struct.pixelfile[0], file_struct.pixelvar[0])
-                        
+            
             if nfiles eq 2 then begin
               ;; check that they have the same set of healpix pixels
               pixel_nums2 = getvar_savefile(file_struct.pixelfile[1], file_struct.pixelvar[1])
@@ -338,6 +379,7 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
             
             if count_far ne 0 then arr = arr[wh_close, *]
             if n_elements(freq_ch_range) ne 0 then arr = arr[*, min(freq_ch_range):max(freq_ch_range)]
+            if n_elements(freq_flags) ne 0 then arr = arr * rebin(reform(freq_mask, 1, n_elements(file_struct.frequencies)), size(arr, /dimension), /sample)
             
             if keyword_set(dft_ian) then begin
               transform = discrete_ft_2D_fast(new_pix_vec[*,0], new_pix_vec[*,1], arr, u_lambda_vals, v_lambda_vals, /exp2pi, $
@@ -349,8 +391,8 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
             data_cube = temporary(transform)
             undefine, arr
             
-            if keyword_set(dft_ian) then save, file = file_struct.uvf_savefile[i], u_lambda_vals, v_lambda_vals, data_cube $
-            else save, file = file_struct.uvf_savefile[i], kx_rad_vals, ky_rad_vals, data_cube
+            if keyword_set(dft_ian) then save, file = file_struct.uvf_savefile[i], u_lambda_vals, v_lambda_vals, data_cube, freq_mask $
+            else save, file = file_struct.uvf_savefile[i], kx_rad_vals, ky_rad_vals, data_cube, freq_mask
             undefine, data_cube
           endif
           
@@ -364,6 +406,7 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
             
             if count_far ne 0 then arr = arr[wh_close, *]
             if n_elements(freq_ch_range) ne 0 then arr = arr[*, min(freq_ch_range):max(freq_ch_range)]
+            if n_elements(freq_flags) ne 0 then arr = arr * rebin(reform(freq_mask, 1, n_elements(file_struct.frequencies)), size(arr, /dimension), /sample)
             
             if keyword_set(dft_ian) then begin
               transform = discrete_ft_2D_fast(new_pix_vec[*,0], new_pix_vec[*,1], arr, u_lambda_vals, v_lambda_vals, /exp2pi, $
@@ -385,6 +428,7 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
               
               if count_far ne 0 then arr = arr[wh_close, *]
               if n_elements(freq_ch_range) ne 0 then arr = arr[*, min(freq_ch_range):max(freq_ch_range)]
+              if n_elements(freq_flags) ne 0 then arr = arr * rebin(reform(freq_mask, 1, n_elements(file_struct.frequencies)), size(arr, /dimension), /sample)
               
               if keyword_set(dft_ian) then begin
                 transform = discrete_ft_2D_fast(new_pix_vec[*,0], new_pix_vec[*,1], arr, u_lambda_vals, v_lambda_vals, /exp2pi, $
@@ -398,8 +442,8 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
             endif
             
             if keyword_set(dft_ian) then $
-              save, file = file_struct.uvf_weight_savefile[i], u_lambda_vals, v_lambda_vals, weights_cube, variance_cube else $
-              save, file = file_struct.uvf_weight_savefile[i], kx_rad_vals, ky_rad_vals, weights_cube, variance_cube
+              save, file = file_struct.uvf_weight_savefile[i], u_lambda_vals, v_lambda_vals, weights_cube, variance_cube, freq_mask else $
+              save, file = file_struct.uvf_weight_savefile[i], kx_rad_vals, ky_rad_vals, weights_cube, variance_cube, freq_mask
             undefine, new_pix_vec, weights_cube, variance_cube
           endif
         endelse
@@ -466,38 +510,45 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
   endelse
   
   if nfiles eq 2 then begin
-    if no_var then begin
-      ;; use 1/abs(weights) instead
-      if healpix or keyword_set(image) then begin
-        weights_cube1 = getvar_savefile(file_struct.uvf_weight_savefile[0], 'weights_cube')
-        weights_cube2 = getvar_savefile(file_struct.uvf_weight_savefile[1], 'weights_cube')
-        
-        if min(ky_mpc) lt 0 then begin
-          ;; negative ky values haven't been cut yet
-          ;; need to cut uvf cubes in half because image is real -- we'll cut negative ky
-          weights_cube1 = weights_cube1[*, n_ky/2:n_ky-1,*]
-          weights_cube2 = weights_cube2[*, n_ky/2:n_ky-1,*]
-        endif
-        
-      endif else begin
-        weights_cube1 = getvar_savefile(file_struct.weightfile[0], file_struct.weightvar)
-        weights_cube2 = getvar_savefile(file_struct.weightfile[1], file_struct.weightvar)
-        
+    if healpix or keyword_set(image) then begin
+      weights_cube1 = getvar_savefile(file_struct.uvf_weight_savefile[0], 'weights_cube')
+      weights_cube2 = getvar_savefile(file_struct.uvf_weight_savefile[1], 'weights_cube')
+      
+      if min(ky_mpc) lt 0 then begin
+        ;; negative ky values haven't been cut yet
         ;; need to cut uvf cubes in half because image is real -- we'll cut negative ky
         weights_cube1 = weights_cube1[*, n_ky/2:n_ky-1,*]
         weights_cube2 = weights_cube2[*, n_ky/2:n_ky-1,*]
-      endelse
-      
-      ;; Also need to drop 1/2 of ky=0 line -- drop ky=0, kx<0
-      weights_cube1[0:n_kx/2-1, 0, *] = 0
-      weights_cube2[0:n_kx/2-1, 0, *] = 0
+      endif
       
     endif else begin
+      weights_cube1 = getvar_savefile(file_struct.weightfile[0], file_struct.weightvar)
+      weights_cube2 = getvar_savefile(file_struct.weightfile[1], file_struct.weightvar)
+      
+      if n_elements(freq_ch_range) ne 0 then begin
+        weights_cube1 = weights_cube1[*, *, min(freq_ch_range):max(freq_ch_range)]
+        weights_cube2 = weights_cube2[*, *, min(freq_ch_range):max(freq_ch_range)]
+      endif
+      if n_elements(freq_flags) ne 0 then begin
+        flag_arr = rebin(reform(freq_mask, 1, 1, n_elements(file_struct.frequencies)), size(weights_cube1,/dimension), /sample)
+        weights_cube1 = weights_cube1 * flag_arr
+        weights_cube1 = weights_cube1 * flag_arr
+      endif
+      
+      ;; need to cut uvf cubes in half because image is real -- we'll cut negative ky
+      weights_cube1 = weights_cube1[*, n_ky/2:n_ky-1,*]
+      weights_cube2 = weights_cube2[*, n_ky/2:n_ky-1,*]
+    endelse
+    
+    ;; Also need to drop 1/2 of ky=0 line -- drop ky=0, kx<0
+    weights_cube1[0:n_kx/2-1, 0, *] = 0
+    weights_cube2[0:n_kx/2-1, 0, *] = 0
+    
+    
+    if not no_var then begin
       if healpix or keyword_set(image) then begin
         variance_cube1 = getvar_savefile(file_struct.uvf_weight_savefile[0], 'variance_cube')
         variance_cube2 = getvar_savefile(file_struct.uvf_weight_savefile[1], 'variance_cube')
-        weights_cube1 = getvar_savefile(file_struct.uvf_weight_savefile[0], 'weights_cube')
-        weights_cube2 = getvar_savefile(file_struct.uvf_weight_savefile[1], 'weights_cube')
         
         if min(ky_mpc) lt 0 then begin
           ;; calculate integral of window function before cut for comparison
@@ -508,8 +559,6 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
           ;; need to cut uvf cubes in half because image is real -- we'll cut negative ky
           variance_cube1 = variance_cube1[*, n_ky/2:n_ky-1,*]
           variance_cube2 = variance_cube2[*, n_ky/2:n_ky-1,*]
-          weights_cube1 = weights_cube1[*, n_ky/2:n_ky-1,*]
-          weights_cube2 = weights_cube2[*, n_ky/2:n_ky-1,*]
         endif
         
       endif else begin
@@ -521,15 +570,19 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
         if max(abs(imaginary(variance_cube2))) gt 0 then stop else variance_cube2 = real_part(variance_cube2)
         variance_cube2 = variance_cube2[*, n_ky/2:n_ky-1,*]
         
-        weights_cube1 = getvar_savefile(file_struct.weightfile[0], file_struct.weightvar)
-        weights_cube1 = weights_cube1[*, n_ky/2:n_ky-1,*]
-        weights_cube2 = getvar_savefile(file_struct.weightfile[1], file_struct.weightvar)
-        weights_cube2 = weights_cube2[*, n_ky/2:n_ky-1,*]
+        if n_elements(freq_ch_range) ne 0 then begin
+          variance_cube1 = variance_cube1[*, *, min(freq_ch_range):max(freq_ch_range)]
+          variance_cube2 = variance_cube2[*, *, min(freq_ch_range):max(freq_ch_range)]
+        endif
+        if n_elements(freq_flags) ne 0 then begin
+          flag_arr = rebin(reform(freq_mask, 1, 1, n_elements(file_struct.frequencies)), size(variance_cube1,/dimension), /sample)
+          variance_cube1 = variance_cube1 * flag_arr
+          variance_cube2 = variance_cube2 * flag_arr
+        endif
+        
       endelse
       
       ;; Also need to drop 1/2 of ky=0 line -- drop ky=0, kx<0
-      weights_cube1[0:n_kx/2-1, 0, *] = 0
-      weights_cube2[0:n_kx/2-1, 0, *] = 0
       variance_cube1[0:n_kx/2-1, 0, *] = 0
       variance_cube2[0:n_kx/2-1, 0, *] = 0
       
@@ -538,7 +591,7 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
       window_int = 2*[total(variance_cube1)*pix_area_rad/n_vis[0], $
         total(variance_cube2)*pix_area_rad/n_vis[1]]
         
-    endelse
+    endif
     
     ;; now get data cubes
     if healpix or keyword_set(image) then begin
@@ -565,11 +618,21 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
           variance_cube2 = getvar_savefile(file_struct.variancefile[1], file_struct.variancevar)
           variance_cube2 = variance_cube2[*, n_ky/2:n_ky-1,*]
           
+          if n_elements(freq_ch_range) ne 0 then begin
+            variance_cube1 = variance_cube1[*, *, min(freq_ch_range):max(freq_ch_range)]
+            variance_cube2 = variance_cube2[*, *, min(freq_ch_range):max(freq_ch_range)]
+          endif
+          if n_elements(freq_flags) ne 0 then begin
+            flag_arr = rebin(reform(freq_mask, 1, 1, n_elements(file_struct.frequencies)), size(variance_cube1,/dimension), /sample)
+            variance_cube1 = variance_cube1 * flag_arr
+            variance_cube2 = variance_cube2 * flag_arr
+          endif
+          
           seed = systime(1)
           noise = randomn(seed, dims) * sqrt(variance_cube) + $
             complex(0,1)*randomn(seed, dims) * sqrt(variance_cube)
           data_cube = temporary(noise)
-          save, file = file_struct.uvf_savefile[i], kx_rad_vals, ky_rad_vals, data_cube
+          save, file = file_struct.uvf_savefile[i], kx_rad_vals, ky_rad_vals, data_cube, freq_mask
           undefine, data_cube, seed, variance_cube
         endif else begin
           ;; need to cut uvf cubes in half because image is real -- we'll cut negative ky
@@ -584,6 +647,17 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
           model_cube2 = getvar_savefile(input_uvf_files[1,1], input_uvf_varname[1,1])
           model_cube2 = model_cube2[*, n_ky/2:n_ky-1,*]
           data_cube2 = temporary(dirty_cube2) - temporary(model_cube2)
+          
+          if n_elements(freq_ch_range) ne 0 then begin
+            data_cube1 = data_cube1[*, *, min(freq_ch_range):max(freq_ch_range)]
+            data_cube2 = data_cube2[*, *, min(freq_ch_range):max(freq_ch_range)]
+          endif
+          if n_elements(freq_flags) ne 0 then begin
+            flag_arr = rebin(reform(freq_mask, 1, 1, n_elements(file_struct.frequencies)), size(data_cube1,/dimension), /sample)
+            data_cube1 = data_cube1 * flag_arr
+            data_cube2 = data_cube2 * flag_arr
+          endif
+          
         endelse
       endif else begin
         ;; need to cut uvf cubes in half because image is real -- we'll cut negative ky
@@ -591,6 +665,17 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
         data_cube1 = data_cube1[*, n_ky/2:n_ky-1,*]
         data_cube2 = getvar_savefile(file_struct.datafile[1], file_struct.datavar)
         data_cube2 = data_cube2[*, n_ky/2:n_ky-1,*]
+        
+        if n_elements(freq_ch_range) ne 0 then begin
+          data_cube1 = data_cube1[*, *, min(freq_ch_range):max(freq_ch_range)]
+          data_cube2 = data_cube2[*, *, min(freq_ch_range):max(freq_ch_range)]
+        endif
+        if n_elements(freq_flags) ne 0 then begin
+          flag_arr = rebin(reform(freq_mask, 1, 1, n_elements(file_struct.frequencies)), size(data_cube1,/dimension), /sample)
+          data_cube1 = data_cube1 * flag_arr
+          data_cube2 = data_cube2 * flag_arr
+        endif
+        
       endelse
       
       ky_mpc = ky_mpc[n_ky/2:n_ky-1]
@@ -651,6 +736,16 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
       weights_cube1 = getvar_savefile(file_struct.weightfile, file_struct.weightvar)
       weights_cube1 = weights_cube1[*, n_ky/2:n_ky-1,*]
       
+      if n_elements(freq_ch_range) ne 0 then begin
+        data_cube1 = data_cube1[*, *, min(freq_ch_range):max(freq_ch_range)]
+        weights_cube1 = weights_cube1[*, *, min(freq_ch_range):max(freq_ch_range)]
+      endif
+      if n_elements(freq_flags) ne 0 then begin
+        flag_arr = rebin(reform(freq_mask, 1, 1, n_elements(file_struct.frequencies)), size(data_cube1,/dimension), /sample)
+        data_cube1 = data_cube1 * flag_arr
+        weights_cube1 = weights_cube1 * flag_arr
+      endif
+      
       ;; Also need to drop 1/2 of ky=0 line -- drop ky=0, kx<0
       weights_cube1[0:n_kx/2-1, 0, *] = 0
       data_cube1[0:n_kx/2-1, 0, *] = 0
@@ -659,6 +754,9 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
         variance_cube1 = getvar_savefile(file_struct.variancefile, file_struct.variance_var)
         ;; need to cut uvf cubes in half because image is real -- we'll cut negative ky
         variance_cube1 = variance_cube1[*, n_ky/2:n_ky-1,*]
+        
+        if n_elements(freq_ch_range) ne 0 then variance_cube1 = variance_cube1[*, *, min(freq_ch_range):max(freq_ch_range)]
+        if n_elements(freq_flags) ne 0 then variance_cube1 = variance_cube1 * flag_arr
         
         ;; Also need to drop 1/2 of ky=0 line -- drop ky=0, kx<0
         variance_cube1[0:n_kx/2-1, 0, *] = 0
@@ -1001,7 +1099,7 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
     undefine, sigma2_ft
     
     save, file = file_struct.kcube_savefile, a1_0, a1_n, b1_n, a2_0, a2_n, b2_n, sigma_a0, sigma_an_bn, $
-      kx_mpc, ky_mpc, kz_mpc, kperp_lambda_conv, delay_params, hubble_param, n_freq_contrib
+      kx_mpc, ky_mpc, kz_mpc, kperp_lambda_conv, delay_params, hubble_param, n_freq_contrib, freq_mask
       
   endif else begin
   
@@ -1108,7 +1206,7 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
     endif
     
     save, file = file_struct.kcube_savefile, data_sum_1, data_sum_2, data_diff_1, data_diff_2, sigma2_1, sigma2_2, $
-      kx_mpc, ky_mpc, kz_mpc, kperp_lambda_conv, delay_params, hubble_param, n_freq_contrib
+      kx_mpc, ky_mpc, kz_mpc, kperp_lambda_conv, delay_params, hubble_param, n_freq_contrib, freq_mask
   endelse
   
 end

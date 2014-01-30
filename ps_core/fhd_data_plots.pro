@@ -1,7 +1,8 @@
 pro fhd_data_plots, datafile, rts = rts, pol_inc = pol_inc, image = image, $
     save_path = save_path, savefilebase = savefilebase, plot_path = plot_path, plot_filebase = plot_filebase, png = png, eps = eps, $
     refresh_dft = refresh_dft, dft_fchunk = dft_fchunk, refresh_ps = refresh_ps, refresh_binning = refresh_binning, $
-    freq_ch_range = freq_ch_range, no_spec_window = no_spec_window, spec_window_type = spec_window_type, $
+    freq_ch_range = freq_ch_range, freq_flags = freq_flags, freq_flag_name = freq_flag_name, $
+    no_spec_window = no_spec_window, spec_window_type = spec_window_type, $
     cut_image = cut_image, dft_ian = dft_ian, noise_sim = noise_sim, std_power = std_power, no_kzero = no_kzero, $
     plot_slices = plot_slices, slice_type = slice_type, $
     data_range = data_range, sigma_range = sigma_range, nev_range = nev_range, $
@@ -11,7 +12,7 @@ pro fhd_data_plots, datafile, rts = rts, pol_inc = pol_inc, image = image, $
     baseline_axis = baseline_axis, delay_axis = delay_axis, hinv = hinv, plot_wedge_line = plot_wedge_line, $
     grey_scale = grey_scale, individual_plots = individual_plots
     
-      
+    
   if keyword_set(refresh_dft) then refresh_ps = 1
   if keyword_set(refresh_ps) then refresh_binning = 1
   
@@ -53,41 +54,14 @@ pro fhd_data_plots, datafile, rts = rts, pol_inc = pol_inc, image = image, $
     endcase
   endif else plot_exten = ''
   
-  if n_elements(freq_ch_range) ne 0 then begin
-    if min(freq_ch_range) lt 0 or max(freq_ch_range) - min(freq_ch_range) lt 3 then message, 'invalid freq_ch_range'
-    fch_tag = '_ch' + number_formatter(min(freq_ch_range)) + '-' + number_formatter(max(freq_ch_range))
-  endif else fch_tag = ''
-  
-  fadd = fch_tag
-  if keyword_set(std_power) then fadd = fadd + '_sp'
-  
-  fadd_2dbin = ''
-  wt_fadd_2dbin = ''
-  ;;if keyword_set(fill_holes) then fadd_2dbin = fadd_2dbin + '_nohole'
-  if keyword_set(no_kzero) then begin
-    fadd_2dbin = fadd_2dbin + '_nok0'
-    wt_fadd_2dbin = wt_fadd_2dbin + '_nok0'
-  endif
-  if keyword_set(log_kpar) then begin
-    fadd_2dbin = fadd_2dbin + '_logkpar'
-    wt_fadd_2dbin = wt_fadd_2dbin + '_logkpar'
-  endif
-  if keyword_set(log_kperp) then begin
-    fadd_2dbin = fadd_2dbin + '_logkperp'
-    wt_fadd_2dbin = wt_fadd_2dbin + '_logkperp'
-  endif
-  
-  fadd_1dbin = ''
-  if keyword_set(log_k) then fadd_1dbin = fadd_1dbin + '_logk'
-  
-  
   
   if n_elements(savefilebase) gt 1 then message, 'savefilebase must be a scalar'
   
   time0 = systime(1)
   if keyword_set(rts) then file_struct_arr = rts_file_setup(datafile, pol_inc, savefilebase = savefilebase, save_path = save_path, $
     spec_window_type = spec_window_type) else file_struct_arr = fhd_file_setup(datafile, pol_inc, image = image, dft_ian = dft_ian, $
-    savefilebase = savefilebase, save_path = save_path, freq_ch_range = freq_ch_range, spec_window_type = spec_window_type, noise_sim = noise_sim)
+    savefilebase = savefilebase, save_path = save_path, freq_ch_range = freq_ch_range, freq_flags = freq_flags, freq_flag_name = freq_flag_name, $
+    spec_window_type = spec_window_type, noise_sim = noise_sim, std_power = std_power)
   time1 = systime(1)
   print, 'file setup time: ' + number_formatter(time1-time0)
   
@@ -107,14 +81,28 @@ pro fhd_data_plots, datafile, rts = rts, pol_inc = pol_inc, image = image, $
   for i=0, npol-1 do weight_ind[where(strpos(strlowcase(file_struct_arr.wt_file_label), strlowcase(pol_inc[i])) ge 0) ] = i
   weight_labels = strupcase(pol_inc[weight_ind])
   
+  
+  power_tag = file_struct_arr[0].power_tag
+  
+  fadd_2dbin = ''
+  ;;if keyword_set(fill_holes) then fadd_2dbin = fadd_2dbin + '_nohole'
+  if keyword_set(no_kzero) then fadd_2dbin = fadd_2dbin + '_nok0'
+  if keyword_set(log_kpar) then fadd_2dbin = fadd_2dbin + '_logkpar'
+  if keyword_set(log_kperp) then fadd_2dbin = fadd_2dbin + '_logkperp'
+  
+  fadd_1dbin = ''
+  if keyword_set(log_k) then fadd_1dbin = fadd_1dbin + '_logk'
+  
+  
+  
   ;; need general_filebase for 1D plotfiles, make sure it doesn't have a full path
   general_filebase = file_struct_arr(0).general_filebase
   for i=0, n_cubes-1 do if file_struct_arr(i).general_filebase ne general_filebase then stop
   
-  savefiles_2d = file_struct_arr.savefile_froot + file_struct_arr.savefilebase + fadd_2dbin + '_2dkpower.idlsave'
+  savefiles_2d = file_struct_arr.savefile_froot + file_struct_arr.savefilebase + power_tag + fadd_2dbin + '_2dkpower.idlsave'
   test_save_2d = file_test(savefiles_2d) *  (1 - file_test(savefiles_2d, /zero_length))
   
-  savefiles_1d = file_struct_arr.savefile_froot + file_struct_arr.savefilebase + fadd_1dbin + '_1dkpower.idlsave'
+  savefiles_1d = file_struct_arr.savefile_froot + file_struct_arr.savefilebase + power_tag + fadd_1dbin + '_1dkpower.idlsave'
   test_save_1d = file_test(savefiles_1d) *  (1 - file_test(savefiles_1d, /zero_length))
   
   if keyword_set(refresh_binning) then begin
@@ -153,6 +141,16 @@ pro fhd_data_plots, datafile, rts = rts, pol_inc = pol_inc, image = image, $
       if abs(k_bin - k_bin_file) gt 0. then test_save_1d[i]=0
     endif
     
+    if test_save_2d[i] gt 0 and n_elements(freq_flags) ne 0 then begin
+      old_freq_mask = getvar_savefile(savefiles_2d[i], 'freq_mask')
+      if total(abs(old_freq_mask - file_struct_arr[i].freq_mask)) ne 0 then test_save_2d[i] = 0
+    endif
+    
+    if test_save_1d[i] gt 0 and n_elements(freq_flags) ne 0 then begin
+      old_freq_mask = getvar_savefile(savefiles_1d[i], 'freq_mask')
+      if total(abs(old_freq_mask - file_struct_arr[i].freq_mask)) ne 0 then test_save_1d[i] = 0
+    endif
+    
     test = test_save_2d[i] * test_save_1d[i]
     
     if test eq 0 then begin
@@ -166,13 +164,14 @@ pro fhd_data_plots, datafile, rts = rts, pol_inc = pol_inc, image = image, $
         
         fhd_3dps, file_struct_arr[i], kcube_refresh = refresh_ps, dft_refresh_data = refresh_dft, $
           dft_refresh_weight = weight_refresh[i], dft_ian = dft_ian, cut_image = cut_image, image = image, $
-          dft_fchunk = dft_fchunk, freq_ch_range = freq_ch_range, spec_window_type = spec_window_type, $
+          dft_fchunk = dft_fchunk, freq_ch_range = freq_ch_range, freq_flags = freq_flags, $
+          spec_window_type = spec_window_type, $
           noise_sim = noise_sim, std_power = std_power, no_kzero = no_kzero, $
           log_kpar = log_kpar, log_kperp = log_kperp, kpar_bin = kpar_bin, kperp_bin = kperp_bin, $
           /quiet
       endif else $
         fhd_3dps, file_struct_arr[i], kcube_refresh = refresh_ps, freq_ch_range = freq_ch_range, $
-        spec_window_type = spec_window_type, $
+        freq_flags = freq_flags, spec_window_type = spec_window_type, $
         noise_sim = noise_sim, std_power = std_power, no_kzero = no_kzero, $
         log_kpar = log_kpar, log_kperp = log_kperp, kpar_bin = kpar_bin, kperp_bin = kperp_bin, /quiet
     endif
@@ -216,15 +215,16 @@ pro fhd_data_plots, datafile, rts = rts, pol_inc = pol_inc, image = image, $
     
     if keyword_set(individual_plots) then begin
       if n_elements(plot_filebase) eq 0 then begin
-        plotfile_base = plotfile_path + file_struct_arr.savefilebase + fadd
-        plotfile_base_wt = plotfile_path + general_filebase + wt_file_labels[uniq(weight_ind, sort(weight_ind))] + fadd
+        plotfile_base = plotfile_path + file_struct_arr[0].savefilebase + power_tag
+        plotfile_base_wt = plotfile_path + general_filebase + wt_file_labels[uniq(weight_ind, sort(weight_ind))] + power_tag
         plotfiles_2d_wt = plotfile_base_wt + fadd_2dbin + '_2d' + plot_fadd + plot_exten
       endif else begin
-        plotfile_base = plotfile_path + plot_filebase + file_struct_arr.file_label + fadd
-        plotfile_base_wt = plotfile_path + plot_filebase + wt_file_labels[uniq(weight_ind, sort(weight_ind))] + fadd
+        plotfile_base = plotfile_path + plot_filebase + file_struct_arr[0].fch_tag + file_struct_arr.file_label + power_tag
+        plotfile_base_wt = plotfile_path + plot_filebase + file_struct_arr[0].fch_tag + wt_file_labels[uniq(weight_ind, sort(weight_ind))] + power_tag
         plotfiles_2d_wt = plotfile_base_wt + fadd_2dbin + '_2d' + plot_fadd + plot_exten
       endelse
-    endif else if n_elements(plot_filebase) eq 0 then plotfile_base = plotfile_path + general_filebase + fadd else plotfile_base = plotfile_path + plot_filebase + fadd
+    endif else if n_elements(plot_filebase) eq 0 then plotfile_base = plotfile_path + general_filebase + power_tag $
+    else plotfile_base = plotfile_path + plot_filebase + file_struct_arr[0].fch_tag + power_tag
     
     plotfiles_2d = plotfile_base + fadd_2dbin + '_2dkpower' + plot_fadd + plot_exten
     plotfiles_2d_error = plotfile_base + fadd_2dbin + '_2derror' + plot_fadd + plot_exten
@@ -233,8 +233,8 @@ pro fhd_data_plots, datafile, rts = rts, pol_inc = pol_inc, image = image, $
     plotfiles_2d_noise = plotfile_base + fadd_2dbin + '_2dnoise' + plot_fadd + plot_exten
     plotfiles_2d_snr = plotfile_base + fadd_2dbin + '_2dsnr' + plot_fadd + plot_exten
     plotfiles_2d_nnr = plotfile_base + fadd_2dbin + '_2dnnr' + plot_fadd + plot_exten
-    if n_elements(plot_filebase) eq 0 then plotfile_1d = plotfile_path + general_filebase + fadd + fadd_1dbin + '_1dkpower' + plot_exten else $
-      plotfile_1d = plotfile_path + plot_filebase + fadd + fadd_1dbin + '_1dkpower' + plot_exten
+    if n_elements(plot_filebase) eq 0 then plotfile_1d = plotfile_path + general_filebase + power_tag + fadd_1dbin + '_1dkpower' + plot_exten else $
+      plotfile_1d = plotfile_path + plot_filebase + file_struct_arr[0].fch_tag + power_tag + fadd_1dbin + '_1dkpower' + plot_exten
   endif
   
   if keyword_set(plot_slices) then begin
@@ -278,9 +278,9 @@ pro fhd_data_plots, datafile, rts = rts, pol_inc = pol_inc, image = image, $
           slice_titles = ['sum ' + file_struct_arr.file_label, 'diff ' + file_struct_arr.file_label]
         end
         'kspace': begin
-          uf_slice_savefile = file_struct_arr.savefile_froot + file_struct_arr.savefilebase + '_xz_plane.idlsave'
-          vf_slice_savefile = file_struct_arr.savefile_froot + file_struct_arr.savefilebase + '_yz_plane.idlsave'
-          uv_slice_savefile = file_struct_arr.savefile_froot + file_struct_arr.savefilebase + '_xy_plane.idlsave'
+          uf_slice_savefile = file_struct_arr.savefile_froot + file_struct_arr.savefilebase + power_tag + '_xz_plane.idlsave'
+          vf_slice_savefile = file_struct_arr.savefile_froot + file_struct_arr.savefilebase + power_tag + '_yz_plane.idlsave'
+          uv_slice_savefile = file_struct_arr.savefile_froot + file_struct_arr.savefilebase + power_tag + '_xy_plane.idlsave'
           slice_titles = file_struct_arr.file_label
         end
       endcase
@@ -635,5 +635,5 @@ pro fhd_data_plots, datafile, rts = rts, pol_inc = pol_inc, image = image, $
   file_arr = savefiles_1d
   kpower_1d_plots, file_arr, window_num = 6, colors = colors, names = titles, delta = delta, hinv = hinv, png = png, eps = eps, $
     plotfile = plotfile_1d
-   
+    
 end

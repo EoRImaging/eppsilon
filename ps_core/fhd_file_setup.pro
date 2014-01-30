@@ -3,7 +3,9 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
     pixelvar = pixelvar, save_path = save_path, image = image, dft_ian = dft_ian, $
     weight_savefilebase = weight_savefilebase_in, $
     uvf_savefilebase = uvf_savefilebase_in, savefilebase = savefilebase_in, $
-    freq_ch_range = freq_ch_range, spec_window_type = spec_window_type, noise_sim = noise_sim
+    freq_ch_range = freq_ch_range, freq_flags = freq_flags, freq_flag_name = freq_flag_name, $
+    spec_window_type = spec_window_type, noise_sim = noise_sim, std_power = std_power
+    
     
   ;; check to see if filename is an info file
   wh_info = strpos(filename, '_info.idlsave')
@@ -16,7 +18,7 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
     if n_elements(save_path) ne 0 then froot = save_path $
     else info_filebase = cgRootName(info_file, directory=froot)
     
-    if n_elements(metadata_struct_arr) eq 0 then begin
+    if n_elements(metadata_struct) eq 0 then begin
     
       npol = n_elements(pol_inc)
       
@@ -128,7 +130,7 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
       endif else no_var = 0
       
       
-    save, filename = info_file, metadata_struct, pol_inc
+      save, filename = info_file, metadata_struct, pol_inc
       
     endif
     
@@ -568,6 +570,7 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
     save, filename = info_file, metadata_struct, pol_inc
   endelse
   
+  npol = n_elements(pol_inc)
   nfiles = n_elements(metadata_struct.datafile)
   ncubes = npol * metadata_struct.ntypes
   if tag_exist(metadata_struct, 'nside') then healpix = 1 else healpix = 0
@@ -583,17 +586,36 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
     endelse
   endif else sw_tag = ''
   
+  if n_elements(freq_flags) ne 0 then begin
+    freq_mask = intarr(n_elements(metadata_struct.frequencies)) + 1
+    freq_mask[freq_flags] = 0
+    
+    wh_freq_use = where(freq_mask gt 0, count_freq_use)
+    if count_freq_use lt 3 then message, 'Too many frequencies flagged'
+       
+  endif  
+  
   if n_elements(freq_ch_range) ne 0 then begin
     if min(freq_ch_range) lt 0 or max(freq_ch_range) - min(freq_ch_range) lt 3 then message, 'invalid freq_ch_range'
     fch_tag = '_ch' + number_formatter(min(freq_ch_range)) + '-' + number_formatter(max(freq_ch_range))
   endif else fch_tag = ''
   
+  if n_elements(freq_flags) ne 0 then begin
+    if min(freq_flags) lt 0 or max(freq_flags) gt n_elements(metadata_struct.frequencies) then message, 'invalid freq_ch_range'
+    if n_elements(freq_flag_name) eq 0 then freq_flag_name = '' else $
+      if size(freq_flag_name, /type) ne 7 then freq_flag_name = number_formatter(freq_flag_name)
+    flag_tag = '_flag' + freq_flag_name
+  endif else flag_tag = ''
+  fch_tag = fch_tag + flag_tag
+  
+  if keyword_set(std_power) then power_tag = '_stdp' else power_tag = ''
+  power_tag = power_tag + sw_tag
   
   if keyword_set(dft_ian) then dft_label = '_ian' else dft_label = ''
   
   wt_file_label = '_weights_' + strlowcase(pol_inc)
   file_label = '_' + strlowcase(metadata_struct.type_pol_str)
-  savefilebase = metadata_struct.general_filebase + file_label + sw_tag
+  savefilebase = metadata_struct.general_filebase + fch_tag + file_label
   
   if n_elements(uvf_savefilebase_in) lt nfiles then begin
     if nfiles eq 1 then begin
@@ -613,7 +635,7 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
       uvf_label = strarr(nfiles, ncubes)
       for i=0, nfiles-1 do begin
         uvf_savefilebase[i, *] = cgRootName(metadata_struct.datafile[i]) + fch_tag + file_label + dft_label
-        uvf_label[i, *] = infile_label[i] + file_label
+        uvf_label[i, *] = metadata_struct.infile_label[i] + file_label
       endfor
     endelse
   endif else begin
@@ -630,8 +652,8 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
     uvf_savefilebase = file_basename(uvf_savefilebase_in) + fch_tag + file_label + dft_label
   endelse
   
-  ;; add sw tag to general_filebase so that plotfiles have sw_tag in them
-  general_filebase = metadata_struct.general_filebase + sw_tag
+  ;; add sw tag to general_filebase so that plotfiles have fch_tag & sw_tag in them
+  general_filebase = metadata_struct.general_filebase + fch_tag
   
   
   uvf_savefile = uvf_froot + uvf_savefilebase + '_uvf.idlsave'
@@ -652,13 +674,13 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
   uv_diff_savefile = froot + savefilebase + '_diff_uv_plane.idlsave'
   
   
-  kcube_savefile = froot + savefilebase + '_kcube.idlsave'
-  power_savefile = froot + savefilebase + '_power.idlsave'
-  fits_power_savefile = froot + savefilebase + '_power.fits'
+  kcube_savefile = froot + savefilebase + power_tag + '_kcube.idlsave'
+  power_savefile = froot + savefilebase + power_tag + '_power.idlsave'
+  fits_power_savefile = froot + savefilebase + power_tag + '_power.fits'
   
   if n_elements(weight_savefilebase_in) eq 0 then begin
     wt_base = cgrootname(metadata_struct.weightfile[0], directory = wt_froot)
-    if file_test(wt_froot) eq 0 then wt_froot = froot
+    if file_test(wt_froot, /directory) eq 0 then wt_froot = froot
     
     if nfiles eq 1 then begin
       if n_elements(save_path) gt 0 then wt_froot = save_path
@@ -667,7 +689,10 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
     endif else begin
       if n_elements(save_path) gt 0 then wt_froot = save_path else begin
         wt_froot = strarr(nfiles, npol)
-        for i=0, nfiles-1 do wt_froot[i,*] = file_dirname(metadata_struct.weightfile[i], /mark_directory)
+        for i=0, nfiles-1 do begin
+          wtfile_path = file_dirname(metadata_struct.weightfile[i], /mark_directory)
+          if file_test(wtfile_path, /directory) then wt_froot[i, *] = wtfile_path else wt_froot[i, *] = froot
+        endfor
       endelse
       
       weight_savefilebase = strarr(nfiles, npol)
@@ -686,7 +711,7 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
         for i=0, nfiles-1 do begin
           if temp[i] ne '.' then uvf_froot[i,*] = temp[i] else begin
             wtfile_path = file_dirname(metadata_struct.weightfile[i], /mark_directory)
-            if file_test(wtfile_path, /directory) then wt_froot[i, *] = datafile_path else wt_froot[i, *] = froot
+            if file_test(wtfile_path, /directory) then wt_froot[i, *] = wtfile_path else wt_froot[i, *] = froot
           endelse
         endfor
       endelse
@@ -697,8 +722,8 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
   uvf_weight_savefile = wt_froot + weight_savefilebase + '_uvf.idlsave'
   
   for i=0, ncubes-1 do begin
-    pol_index = i / ntypes
-    type_index = i mod ntypes
+    pol_index = i / metadata_struct.ntypes
+    type_index = i mod metadata_struct.ntypes
     
     if keyword_set(noise_sim) then begin
       data_varname = ''
@@ -706,13 +731,13 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
         strmid(uvf_savefile[i], strpos(uvf_savefile[i], 'noisesim')+strlen('noisesim'))
       res_uvf_varname = strarr(n_elements(res_uvf_inputfiles)) + 'data_cube'
     endif else begin
-      if ntypes gt 1 then data_varname = metadata_struct.cube_varname[type_index, pol_index] else data_varname = metadata_struct.cube_varname[pol_index]
+      if metadata_struct.ntypes gt 1 then data_varname = metadata_struct.cube_varname[type_index, pol_index] else data_varname = metadata_struct.cube_varname[pol_index]
       if data_varname ne '' then begin
         res_uvf_inputfiles = strarr(nfiles,2)
         res_uvf_varname = strarr(nfiles,2)
       endif else begin
         if healpix or keyword_set(image) then begin
-          res_uvf_inputfiles = uvf_savefile[*, ntypes*pol_index:ntypes*pol_index+1]
+          res_uvf_inputfiles = uvf_savefile[*, metadata_struct.ntypes*pol_index:metadata_struct.ntypes*pol_index+1]
           res_uvf_varname = strarr(nfiles, 2) + 'data_cube'
         endif else begin
           res_uvf_inputfiles = strarr(nfiles,2)
@@ -740,7 +765,7 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
       savefile_froot:froot, savefilebase:savefilebase[i], general_filebase:general_filebase, $
       weight_savefilebase:weight_savefilebase[*,pol_index], $
       res_uvf_inputfiles:res_uvf_inputfiles, res_uvf_varname:res_uvf_varname, $
-      file_label:file_label[i], uvf_label:uvf_label[*,i], wt_file_label:wt_file_label[pol_index]}
+      file_label:file_label[i], uvf_label:uvf_label[*,i], wt_file_label:wt_file_label[pol_index], fch_tag:fch_tag, power_tag:power_tag}
       
     if healpix or keyword_set(image) then file_struct = create_struct(file_struct, 'uvf_savefile', uvf_savefile[*,i], $
       'uvf_weight_savefile', uvf_weight_savefile[*, pol_index])
@@ -750,6 +775,7 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
       
     if no_var then file_struct = create_struct(file_struct, 'no_var', 1)
     
+    if n_elements(freq_mask) gt 0 then file_struct = create_struct(file_struct, 'freq_mask', freq_mask)
     
     if i eq 0 then file_struct_arr = replicate(file_struct, ncubes) else file_struct_arr[i] = file_struct
   endfor
