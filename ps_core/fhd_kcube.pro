@@ -371,7 +371,11 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
           if test_uvf eq 0 or keyword_set(dft_refresh_data) then begin
             print, 'calculating DFT for ' + file_struct.datavar + ' in ' + file_struct.datafile[i]
             
+            time0 = systime(1)
             arr = getvar_savefile(file_struct.datafile[i], file_struct.datavar)
+            time1 = systime(1)
+            
+            if time1 - time0 gt 60 then print, 'Time to restore cube was ' + number_formatter((time1 - time0)/60.) + ' minutes'
             
             if size(arr,/type) eq 6 or size(arr,/type) eq 9 then $
               if max(abs(imaginary(arr))) eq 0 then arr = real_part(arr) else stop
@@ -398,7 +402,12 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
           
           if test_wt_uvf eq 0 or keyword_set(dft_refresh_weight) then begin
             print, 'calculating DFT for ' + file_struct.weightvar + ' in ' + file_struct.weightfile[i]
+            
+            time0 = systime(1)
             arr = getvar_savefile(file_struct.weightfile[i], file_struct.weightvar)
+            time1 = systime(1)
+            
+            if time1 - time0 gt 60 then print, 'Time to restore cube was ' + number_formatter((time1 - time0)/60.) + ' minutes'
             
             if size(arr,/type) eq 6 or size(arr,/type) eq 9 then $
               if max(abs(imaginary(arr))) eq 0 then arr = real_part(arr) else stop
@@ -420,7 +429,12 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
             
             if not no_var then begin
               print, 'calculating DFT for ' + file_struct.variancevar + ' in ' + file_struct.variancefile[i]
+              
+              time0 = systime(1)
               arr = getvar_savefile(file_struct.variancefile[i], file_struct.variancevar)
+              time1 = systime(1)
+              
+              if time1 - time0 gt 60 then print, 'Time to restore cube was ' + number_formatter((time1 - time0)/60.) + ' minutes'
               
               if size(arr,/type) eq 6 or size(arr,/type) eq 9 then $
                 if max(abs(imaginary(arr))) eq 0 then arr = real_part(arr) else stop
