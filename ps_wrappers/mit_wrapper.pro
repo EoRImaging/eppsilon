@@ -70,13 +70,20 @@ pro mit_wrapper, folder_name, obs_range, rts = rts, refresh_dft = refresh_dft, r
           message, 'obs_range can be specified as a single string to use as the name or as a 2 element obsid range'
         obs_name = obs_range
         obs_range = long(strsplit(obs_name, '-', /extract))
+        if n_elements(obs_range) eq 1 then obs_name_single = obs_name
       endif else begin
         if n_elements(obs_range) gt 2 then message, 'obs_range can be specified as a single string to use as the name or as a 2 element obsid range'
-        if n_elements(obs_range) eq 2 then obs_name = number_formatter(obs_range[0]) + '-' + number_formatter(obs_range[1]) $
-        else obs_name = number_formatter(obs_range[0]) + '-' + number_formatter(obs_range[0])
+        if n_elements(obs_range) eq 2 then obs_name = number_formatter(obs_range[0]) + '-' + number_formatter(obs_range[1]) else begin
+          obs_name = number_formatter(obs_range[0]) + '-' + number_formatter(obs_range[0])
+          obs_name_single = number_formatter(obs_range[0])
+        endelse
       endelse
-    endif else obs_name = ''
+    endif else begin
+      obs_name = ''
+      obs_name_single = ''
+    endelse
     
+    ;; first look for integrated info files with names like Combined_obs_...
     info_file = file_search(folder_name + '/ps/Combined_obs_' + obs_name + '*info*', count = n_infofile)
     if n_infofile gt 0 then begin
       if obs_name eq '' then begin
@@ -92,34 +99,81 @@ pro mit_wrapper, folder_name, obs_range, rts = rts, refresh_dft = refresh_dft, r
       endelse
       
       save_path = folder_name + '/ps/'
-      
-    endif else begin
-      cube_files = file_search(folder_name + '/Healpix/Combined_obs_' + obs_name + '*_cube.sav', count = n_cubefiles)
-      if n_cubefiles eq 0 then message, 'No cube or info files found.'
-      
-      if obs_name eq '' then begin
-        obs_name_arr = stregex(cube_files, '[0-9]+-[0-9]+', /extract)
-        wh_first = where(obs_name_arr eq obs_name_arr[0], count_first)
-        if count_first lt n_elements(cube_files) then $
-          print, 'More than one obs_range found, using first range (' + obs_name_arr[0] + ', ' + number_formatter(count_first) + ' files)'
-        if count_first gt 2 then message, 'More than two cubes found with first obs_range'
-        datafile = cube_files[wh_first]
-        obs_name = obs_name_arr[0]
-        obs_range = long(strsplit(obs_name, '-', /extract))
-      endif else begin
-        if n_elements(cube_files) gt 2 then message, 'More than two cubes found with given obs_range'
+    endif else if n_elements(obs_range) lt 2 then begin
+      ;; then look for single obs info files
+      info_file = file_search(folder_name + '/ps/' + obs_name_single + '*info*', count = n_infofile)
+      if n_infofile gt 0 then begin
+        if obs_name eq '' then begin
+          if n_infofile gt 1 then print, 'More than 1 info files found, using first one'
+          datafile = info_file[0]
+          obs_name = stregex(datafile, '[0-9]+', /extract)
+          obs_range = long(obs_name)
+        endif else begin
+          if n_infofile gt 1 then message, 'More than one info file found with given obs_range'
+          datafile = info_file[0]
+          obs_name = stregex(datafile, '[0-9]+', /extract)
+          obs_range = long(obs_name)
+        endelse
         
-        obs_name_arr = stregex(cube_files, '[0-9]+-[0-9]+', /extract)
-        if obs_name_arr[1] ne obs_name_arr[0] then message, 'Cube files do not have the same obs ranges.'
-        obs_name = obs_name_arr[0]
-        obs_range = long(strsplit(obs_name, '-', /extract))
-      endelse
-      
-      ;; set the save_path to a 'ps' directory one level up from the datafile directory and create the directory if it doesn't exist
-      save_path = file_dirname(file_dirname(datafile[0]), /mark_directory) + 'ps/'
-      if not file_test(save_path, /directory) then file_mkdir, save_path
-      
-    endelse
+        save_path = folder_name + '/ps/'
+      endif
+    endif
+    
+    if n_infofile eq 0 then begin
+      ;; first look for integrated cube files with names like Combined_obs_...
+      cube_files = file_search(folder_name + '/Healpix/Combined_obs_' + obs_name + '*_cube.sav', count = n_cubefiles)
+      if n_cube_files gt 0 then begin
+        if obs_name eq '' then begin
+          obs_name_arr = stregex(cube_files, '[0-9]+-[0-9]+', /extract)
+          wh_first = where(obs_name_arr eq obs_name_arr[0], count_first)
+          if count_first lt n_elements(cube_files) then $
+            print, 'More than one obs_range found, using first range (' + obs_name_arr[0] + ', ' + number_formatter(count_first) + ' files)'
+          if count_first gt 2 then message, 'More than two cubes found with first obs_range'
+          datafile = cube_files[wh_first]
+          obs_name = obs_name_arr[0]
+          obs_range = long(strsplit(obs_name, '-', /extract))
+        endif else begin
+          if n_elements(cube_files) gt 2 then message, 'More than two cubes found with given obs_range'
+          
+          obs_name_arr = stregex(cube_files, '[0-9]+-[0-9]+', /extract)
+          if obs_name_arr[1] ne obs_name_arr[0] then message, 'Cube files do not have the same obs ranges.'
+          obs_name = obs_name_arr[0]
+          obs_range = long(strsplit(obs_name, '-', /extract))
+        endelse
+        
+        ;; set the save_path to a 'ps' directory one level up from the datafile directory and create the directory if it doesn't exist
+        save_path = file_dirname(file_dirname(datafile[0]), /mark_directory) + 'ps/'
+        if not file_test(save_path, /directory) then file_mkdir, save_path
+      endif else if n_elements(obs_range) lt 2 then begin
+        ;; then look for single obs cube files
+        cube_files = file_search(folder_name + '/' + obs_name + '*_cube.sav', count = n_cubefiles)
+        if n_cube_files gt 0 then begin
+          if obs_name eq '' then begin
+            obs_name_arr = stregex(cube_files, '[0-9]+', /extract)
+            wh_first = where(obs_name_arr eq obs_name_arr[0], count_first)
+            if count_first lt n_elements(cube_files) then $
+              print, 'More than one obs_range found, using first range (' + obs_name_arr[0] + ', ' + number_formatter(count_first) + ' files)'
+            if count_first gt 2 then message, 'More than two cubes found with first obs_range'
+            datafile = cube_files[wh_first]
+            obs_name = obs_name_arr[0]
+            obs_range = long(obs_name)
+          endif else begin
+            if n_elements(cube_files) gt 2 then message, 'More than two cubes found with given obs_range'
+            
+            obs_name_arr = stregex(cube_files, '[0-9]+', /extract)
+            if obs_name_arr[1] ne obs_name_arr[0] then message, 'Cube files do not have the same obs ranges.'
+            obs_name = obs_name_arr[0]
+            obs_range = long(obs_name)
+          endelse
+          
+          ;; set the save_path to a 'ps' directory in the datafile directory and create the directory if it doesn't exist
+          save_path = file_dirname(datafile[0], /mark_directory) + 'ps/'
+          if not file_test(save_path, /directory) then file_mkdir, save_path
+        endif
+      endif
+    endif
+     
+    if n_elements(datafile) eq 0 then message, 'No cube or info files found in folder ' + folder_name
     
     if obs_range[1] - obs_range[0] gt 0 then integrated = 1 else integrated = 0
     
@@ -198,7 +252,7 @@ pro mit_wrapper, folder_name, obs_range, rts = rts, refresh_dft = refresh_dft, r
   ;; plot_wedge_line is a flag (defaulted to true) to plot a line marking the wedge (both horizon & FoV) (set to 0 to turn off)
   ;; grey_scale is a flag to use a black/white color scale rather than the default color scale
   ;; pub is a flag to make save plots as eps files rather than displaying to the screen
-    
+  
   fhd_data_plots, datafile, dft_fchunk=dft_fchunk, plot_path = plot_path, plot_filebase = plot_filebase, save_path = save_path, savefilebase = savefilebase, $
     pol_inc = pol_inc, rts = rts, $
     refresh_dft = refresh_dft, refresh_ps = refresh_ps, refresh_binning = refresh_binning, refresh_info = refresh_info, $
