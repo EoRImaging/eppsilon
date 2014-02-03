@@ -25,7 +25,7 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
     endif
     
     if keyword_set(refresh_info) then begin
-      if n_elements(metadata_struct) eq 0 then datafile = metadata_struct.datafile $
+      if n_elements(metadata_struct) gt 0 then datafile = metadata_struct.datafile $
       else datafile = file_struct_arr[0].datafile
       
       datafile_test = file_test(datafile)
@@ -164,7 +164,7 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
   endif
   
   if keyword_set(refresh_info) or max(wh_info) eq -1 then begin
-    datafile = filename
+    if n_elements(datafile) eq 0 then datafile = filename
     
     if n_elements(pol_inc) eq 0 then pol_inc = ['xx', 'yy']
     pol_enum = ['xx', 'yy']
@@ -227,8 +227,9 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
     
     if n_elements(savefilebase_in) eq 0 then begin
       if nfiles eq 1 then begin
+        data_filebase = cgRootName(datafile, directory=datafile_dir)
         if n_elements(save_path) ne 0 then froot = save_path $
-        else data_filebase = cgRootName(datafile, directory=froot)
+        else froot = datafile_dir
         uvf_froot = froot
         
         general_filebase = data_filebase
