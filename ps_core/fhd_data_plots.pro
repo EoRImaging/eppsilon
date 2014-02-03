@@ -1,7 +1,7 @@
 pro fhd_data_plots, datafile, rts = rts, pol_inc = pol_inc, image = image, $
     save_path = save_path, savefilebase = savefilebase, plot_path = plot_path, plot_filebase = plot_filebase, png = png, eps = eps, $
-    refresh_dft = refresh_dft, dft_fchunk = dft_fchunk, refresh_ps = refresh_ps, refresh_binning = refresh_binning, $
-    freq_ch_range = freq_ch_range, freq_flags = freq_flags, freq_flag_name = freq_flag_name, $
+    refresh_dft = refresh_dft, refresh_ps = refresh_ps, refresh_binning = refresh_binning, refresh_info = refresh_info, $
+    dft_fchunk = dft_fchunk, freq_ch_range = freq_ch_range, freq_flags = freq_flags, freq_flag_name = freq_flag_name, $
     no_spec_window = no_spec_window, spec_window_type = spec_window_type, $
     cut_image = cut_image, dft_ian = dft_ian, noise_sim = noise_sim, std_power = std_power, no_kzero = no_kzero, $
     plot_slices = plot_slices, slice_type = slice_type, $
@@ -61,7 +61,7 @@ pro fhd_data_plots, datafile, rts = rts, pol_inc = pol_inc, image = image, $
   if keyword_set(rts) then file_struct_arr = rts_file_setup(datafile, pol_inc, savefilebase = savefilebase, save_path = save_path, $
     spec_window_type = spec_window_type) else file_struct_arr = fhd_file_setup(datafile, pol_inc, image = image, dft_ian = dft_ian, $
     savefilebase = savefilebase, save_path = save_path, freq_ch_range = freq_ch_range, freq_flags = freq_flags, freq_flag_name = freq_flag_name, $
-    spec_window_type = spec_window_type, noise_sim = noise_sim, std_power = std_power)
+    spec_window_type = spec_window_type, noise_sim = noise_sim, std_power = std_power, refresh_info = refresh_info)
   time1 = systime(1)
   print, 'file setup time: ' + number_formatter(time1-time0)
   

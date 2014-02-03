@@ -4,9 +4,10 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
     weight_savefilebase = weight_savefilebase_in, $
     uvf_savefilebase = uvf_savefilebase_in, savefilebase = savefilebase_in, $
     freq_ch_range = freq_ch_range, freq_flags = freq_flags, freq_flag_name = freq_flag_name, $
-    spec_window_type = spec_window_type, noise_sim = noise_sim, std_power = std_power
+    spec_window_type = spec_window_type, noise_sim = noise_sim, std_power = std_power, refresh_info = refresh_info
     
-    
+  if n_elements(pol_inc) ne 0 then pol_inc_in = pol_inc
+  
   ;; check to see if filename is an info file
   wh_info = strpos(filename, '_info.idlsave')
   if max(wh_info) gt -1 then  begin
@@ -18,124 +19,151 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
     if n_elements(save_path) ne 0 then froot = save_path $
     else info_filebase = cgRootName(info_file, directory=froot)
     
-    if n_elements(metadata_struct) eq 0 then begin
-    
-      npol = n_elements(pol_inc)
-      
-      if keyword_set(noise_sim) then begin
-        type_inc = ['noisesim']
-        ntypes = n_elements(type_inc)
-        ncubes = npol * ntypes
-        type_pol_str = strarr(ncubes)
-        for i=0, npol-1 do type_pol_str[ntypes*i:i*ntypes+(ntypes-1)] = type_inc + '_' + pol_inc[i]
-      endif else begin
-        ;; check for the existence of dirty, model, residual cubes
-        if max(strmatch(file_struct_arr.datavar, 'dirty*cube',/fold_case)) then begin
-          if n_elements(dirtyvar) eq 0 then dirty_varname = strupcase('dirty_' + pol_inc + '_cube') else dirty_varname = dirtyvar
-          if n_elements(dirty_varname) ne npol then $
-            if n_elements(dirty_varname) eq 1 then dirty_varname = replicate(dirty_varname, npol) $
-          else message, 'dirtyvar must be a scalar or have the same number of elements as pol_inc'
-          
-          type_inc = ['dirty']
-          if npol gt 1 then cube_varname = transpose(dirty_varname) else cube_varname = dirty_varname
-        endif
-        
-        if max(strmatch(file_struct_arr.datavar, 'model*cube',/fold_case)) then begin
-          if n_elements(modelvar) eq 0 then model_varname = strupcase('model_' + pol_inc + '_cube') else model_varname = modelvar
-          if n_elements(model_varname) ne npol then $
-            if n_elements(model_varname) eq 1 then model_varname = replicate(model_varname, npol) $
-          else message, 'modelvar must be a scalar or have the same number of elements as pol_inc'
-          
-          if n_elements(type_inc) eq 0 then begin
-            type_inc = ['model']
-            if npol gt 1 then cube_varname = transpose(model_varname) else cube_varname = model_varname
-          endif else begin
-            type_inc = [type_inc, 'model']
-            if npol gt 1 then cube_varname = [cube_varname,transpose(model_varname)] else cube_varname = [cube_varname, model_varname]
-          endelse
-        endif
-        
-        if max(strmatch(file_struct_arr.datavar, 'res*cube',/fold_case)) then begin
-          if n_elements(residualvar) eq 0 then residual_varname = strupcase('res_' + pol_inc + '_cube') else residual_varname = residualvar
-          if n_elements(residual_varname) ne npol then $
-            if n_elements(residual_varname) eq 1 then residual_varname = replicate(residual_varname, npol) $
-          else message, 'residualvar must be a scalar or have the same number of elements as pol_inc'
-          
-          if n_elements(type_inc) eq 0 then begin
-            type_inc = ['res']
-            if npol gt 1 then cube_varname = transpose(residual_varname) else cube_varname = residual_varname
-          endif else begin
-            type_inc = [type_inc, 'res']
-            if npol gt 1 then cube_varname = [cube_varname,transpose(residual_varname)] else cube_varname = [cube_varname, residual_varname]
-          endelse
-        endif else if type_inc eq ['dirty', 'model'] then begin
-          ;; residual can be constructed from dirty-model
-          type_inc = [type_inc, 'res']
-          if npol gt 1 then cube_varname = [cube_varname,transpose(strarr(npol))] else cube_varname = [cube_varname, '']
-        endif
-        ntypes = n_elements(type_inc)
-        ncubes = npol * ntypes
-        type_pol_str = strarr(ncubes)
-        for i=0, npol-1 do type_pol_str[ntypes*i:i*ntypes+(ntypes-1)] = type_inc + '_' + pol_inc[i]
-      endelse
-      undefine, type_inc, ncubes, dirty_varname, residual_varname, model_varname, cube_varname
-      
-      nfiles = n_elements(file_struct_arr[0].datafile)
-      if nfiles eq 1 then infile_label = '' else begin
-        data_filebase = [cgRootName(file_struct_arr[0].datafile[0]), cgRootName(file_struct_arr[0].datafile[1])]
-        
-        fileparts_1 = strsplit(data_filebase[0], '_', /extract)
-        fileparts_2 = strsplit(data_filebase[1], '_', /extract)
-        match_test = strcmp(fileparts_1, fileparts_2)
-        wh_diff = where(match_test eq 0, count_diff, complement = wh_same, ncomplement = count_same)
-        
-        if count_diff gt 0 then infile_label = [strjoin(fileparts_1[wh_diff]), strjoin(fileparts_2[wh_diff])] $
-        else infile_label = strarr(2)
-        
-        undefine, data_filebase, fileparts_1, fileparts_2, match_test, wh_diff, count_diff, wh_same, count_same
-      endelse
-      undefine, nfiles
-      
-      
-      ;; test for sw_tag in general_filebase and remove it if present.
-      sw_tag_list = ['hann', 'ham', 'blm', 'ntl', 'bn', 'bh']
-      for i=0, n_elements(sw_tag_list)-1 do begin
-        sw_pos = strpos(file_struct_arr[0].general_filebase, '_' + sw_tag_list[i], /reverse_search)
-        if sw_pos ne -1 then begin
-          general_filebase = strmid(file_struct_arr[0].general_filebase, 0, sw_pos)
-          break
-        endif
-      endfor
-      if n_elements(general_filebase) eq 0 then general_filebase = file_struct_arr[0].general_filebase
-      undefine, sw_tag_list
-      
-      metadata_struct = {datafile:file_struct_arr[0].datafile, weightfile:file_struct_arr[0].weightfile, $
-        variancefile:file_struct_arr[0].variancefile, cube_varname:reform(file_struct_arr.datavar, ntypes, npol), $
-        weight_varname:file_struct_arr.weightvar, variance_varname:file_struct_arr.variancevar, $
-        frequencies:file_struct_arr[0].frequencies, freq_resolution:file_struct_arr[0].freq_resolution, $
-        time_resolution:file_struct_arr[0].time_resolution, n_vis:file_struct_arr[0].n_vis, $
-        max_baseline_lambda:file_struct_arr[0].max_baseline_lambda, max_theta:file_struct_arr[0].max_theta, $
-        degpix:file_struct_arr[0].degpix, kpix:file_struct_arr[0].kpix, kspan:file_struct_arr[0].kspan, $
-        general_filebase:general_filebase, type_pol_str:type_pol_str, infile_label:infile_label, ntypes:ntypes}
-        
-      if tag_exist(file_struct_arr[0], 'nside') then begin
-        healpix = 1
-        metadata_struct = create_struct(metadata_struct, 'pixelfile', file_struct_arr[0].pixelfile, 'pixel_varname', $
-          file_struct_arr[0].pixelvar, 'nside', file_struct_arr[0].nside)
-      endif else healpix = 0
-      
-      if tag_exist(file_struct_arr[0], 'no_var') then begin
-        metadata_struct = create_struct(metadata_struct, 'no_var', 1)
-        no_var = 1
-      endif else no_var = 0
-      
-      
-      save, filename = info_file, metadata_struct, pol_inc
-      
+    if n_elements(pol_inc_in) ne 0 then begin
+      match, pol_inc, pol_inc_in, suba, subb, count = count_pol
+      if count_pol ne n_elements(pol_inc_in) then refresh_info = 1
     endif
     
-  endif else begin
+    if keyword_set(refresh_info) then begin
+      if n_elements(metadata_struct) eq 0 then datafile = metadata_struct.datafile $
+      else datafile = file_struct_arr[0].datafile
+      
+      datafile_test = file_test(datafile)
+      if min(datafile_test) eq 0 then begin
+        ;; can't find datafile. try some other potential folders
+        if n_elements(save_path) ne 0 then begin
+          datafile_test = file_test(save_path + file_basename(datafile))
+          if min(datafile_test) gt 0 then datafile = save_path + file_basename(datafile)
+        endif
+        
+        if min(datafile_test) eq 0 then begin
+          datafile_test = file_test(file_dirname(info_file, /mark_directory) + file_basename(datafile))
+          if min(datafile_test) gt 0 then datafile = file_dirname(info_file, /mark_directory) + file_basename(datafile)
+        endif
+        
+        if min(datafile_test) eq 0 then message, 'refresh_info is set but datafile cannot be found'
+      endif
+      
+    endif else begin
+    
+      if n_elements(metadata_struct) eq 0 then begin
+      
+        npol = n_elements(pol_inc)
+        
+        if keyword_set(noise_sim) then begin
+          type_inc = ['noisesim']
+          ntypes = n_elements(type_inc)
+          ncubes = npol * ntypes
+          type_pol_str = strarr(ncubes)
+          for i=0, npol-1 do type_pol_str[ntypes*i:i*ntypes+(ntypes-1)] = type_inc + '_' + pol_inc[i]
+        endif else begin
+          ;; check for the existence of dirty, model, residual cubes
+          if max(strmatch(file_struct_arr.datavar, 'dirty*cube',/fold_case)) then begin
+            if n_elements(dirtyvar) eq 0 then dirty_varname = strupcase('dirty_' + pol_inc + '_cube') else dirty_varname = dirtyvar
+            if n_elements(dirty_varname) ne npol then $
+              if n_elements(dirty_varname) eq 1 then dirty_varname = replicate(dirty_varname, npol) $
+            else message, 'dirtyvar must be a scalar or have the same number of elements as pol_inc'
+            
+            type_inc = ['dirty']
+            if npol gt 1 then cube_varname = transpose(dirty_varname) else cube_varname = dirty_varname
+          endif
+          
+          if max(strmatch(file_struct_arr.datavar, 'model*cube',/fold_case)) then begin
+            if n_elements(modelvar) eq 0 then model_varname = strupcase('model_' + pol_inc + '_cube') else model_varname = modelvar
+            if n_elements(model_varname) ne npol then $
+              if n_elements(model_varname) eq 1 then model_varname = replicate(model_varname, npol) $
+            else message, 'modelvar must be a scalar or have the same number of elements as pol_inc'
+            
+            if n_elements(type_inc) eq 0 then begin
+              type_inc = ['model']
+              if npol gt 1 then cube_varname = transpose(model_varname) else cube_varname = model_varname
+            endif else begin
+              type_inc = [type_inc, 'model']
+              if npol gt 1 then cube_varname = [cube_varname,transpose(model_varname)] else cube_varname = [cube_varname, model_varname]
+            endelse
+          endif
+          
+          if max(strmatch(file_struct_arr.datavar, 'res*cube',/fold_case)) then begin
+            if n_elements(residualvar) eq 0 then residual_varname = strupcase('res_' + pol_inc + '_cube') else residual_varname = residualvar
+            if n_elements(residual_varname) ne npol then $
+              if n_elements(residual_varname) eq 1 then residual_varname = replicate(residual_varname, npol) $
+            else message, 'residualvar must be a scalar or have the same number of elements as pol_inc'
+            
+            if n_elements(type_inc) eq 0 then begin
+              type_inc = ['res']
+              if npol gt 1 then cube_varname = transpose(residual_varname) else cube_varname = residual_varname
+            endif else begin
+              type_inc = [type_inc, 'res']
+              if npol gt 1 then cube_varname = [cube_varname,transpose(residual_varname)] else cube_varname = [cube_varname, residual_varname]
+            endelse
+          endif else if type_inc eq ['dirty', 'model'] then begin
+            ;; residual can be constructed from dirty-model
+            type_inc = [type_inc, 'res']
+            if npol gt 1 then cube_varname = [cube_varname,transpose(strarr(npol))] else cube_varname = [cube_varname, '']
+          endif
+          ntypes = n_elements(type_inc)
+          ncubes = npol * ntypes
+          type_pol_str = strarr(ncubes)
+          for i=0, npol-1 do type_pol_str[ntypes*i:i*ntypes+(ntypes-1)] = type_inc + '_' + pol_inc[i]
+        endelse
+        undefine, type_inc, ncubes, dirty_varname, residual_varname, model_varname, cube_varname
+        
+        nfiles = n_elements(file_struct_arr[0].datafile)
+        if nfiles eq 1 then infile_label = '' else begin
+          data_filebase = [cgRootName(file_struct_arr[0].datafile[0]), cgRootName(file_struct_arr[0].datafile[1])]
+          
+          fileparts_1 = strsplit(data_filebase[0], '_', /extract)
+          fileparts_2 = strsplit(data_filebase[1], '_', /extract)
+          match_test = strcmp(fileparts_1, fileparts_2)
+          wh_diff = where(match_test eq 0, count_diff, complement = wh_same, ncomplement = count_same)
+          
+          if count_diff gt 0 then infile_label = [strjoin(fileparts_1[wh_diff]), strjoin(fileparts_2[wh_diff])] $
+          else infile_label = strarr(2)
+          
+          undefine, data_filebase, fileparts_1, fileparts_2, match_test, wh_diff, count_diff, wh_same, count_same
+        endelse
+        undefine, nfiles
+        
+        
+        ;; test for sw_tag in general_filebase and remove it if present.
+        sw_tag_list = ['hann', 'ham', 'blm', 'ntl', 'bn', 'bh']
+        for i=0, n_elements(sw_tag_list)-1 do begin
+          sw_pos = strpos(file_struct_arr[0].general_filebase, '_' + sw_tag_list[i], /reverse_search)
+          if sw_pos ne -1 then begin
+            general_filebase = strmid(file_struct_arr[0].general_filebase, 0, sw_pos)
+            break
+          endif
+        endfor
+        if n_elements(general_filebase) eq 0 then general_filebase = file_struct_arr[0].general_filebase
+        undefine, sw_tag_list
+        
+        metadata_struct = {datafile:file_struct_arr[0].datafile, weightfile:file_struct_arr[0].weightfile, $
+          variancefile:file_struct_arr[0].variancefile, cube_varname:reform(file_struct_arr.datavar, ntypes, npol), $
+          weight_varname:file_struct_arr.weightvar, variance_varname:file_struct_arr.variancevar, $
+          frequencies:file_struct_arr[0].frequencies, freq_resolution:file_struct_arr[0].freq_resolution, $
+          time_resolution:file_struct_arr[0].time_resolution, n_vis:file_struct_arr[0].n_vis, $
+          max_baseline_lambda:file_struct_arr[0].max_baseline_lambda, max_theta:file_struct_arr[0].max_theta, $
+          degpix:file_struct_arr[0].degpix, kpix:file_struct_arr[0].kpix, kspan:file_struct_arr[0].kspan, $
+          general_filebase:general_filebase, type_pol_str:type_pol_str, infile_label:infile_label, ntypes:ntypes}
+          
+        if tag_exist(file_struct_arr[0], 'nside') then begin
+          healpix = 1
+          metadata_struct = create_struct(metadata_struct, 'pixelfile', file_struct_arr[0].pixelfile, 'pixel_varname', $
+            file_struct_arr[0].pixelvar, 'nside', file_struct_arr[0].nside)
+        endif else healpix = 0
+        
+        if tag_exist(file_struct_arr[0], 'no_var') then begin
+          metadata_struct = create_struct(metadata_struct, 'no_var', 1)
+          no_var = 1
+        endif else no_var = 0
+        
+        
+        save, filename = info_file, metadata_struct, pol_inc
+      endif
+    endelse
+  endif
   
+  if keyword_set(refresh_info) or max(wh_info) eq -1 then begin
     datafile = filename
     
     if n_elements(pol_inc) eq 0 then pol_inc = ['xx', 'yy']
@@ -568,7 +596,7 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
     
     
     save, filename = info_file, metadata_struct, pol_inc
-  endelse
+  endif
   
   npol = n_elements(pol_inc)
   nfiles = n_elements(metadata_struct.datafile)
@@ -592,8 +620,8 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
     
     wh_freq_use = where(freq_mask gt 0, count_freq_use)
     if count_freq_use lt 3 then message, 'Too many frequencies flagged'
-       
-  endif  
+    
+  endif
   
   if n_elements(freq_ch_range) ne 0 then begin
     if min(freq_ch_range) lt 0 or max(freq_ch_range) - min(freq_ch_range) lt 3 then message, 'invalid freq_ch_range'
@@ -765,7 +793,8 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
       savefile_froot:froot, savefilebase:savefilebase[i], general_filebase:general_filebase, $
       weight_savefilebase:weight_savefilebase[*,pol_index], $
       res_uvf_inputfiles:res_uvf_inputfiles, res_uvf_varname:res_uvf_varname, $
-      file_label:file_label[i], uvf_label:uvf_label[*,i], wt_file_label:wt_file_label[pol_index], fch_tag:fch_tag, power_tag:power_tag}
+      file_label:file_label[i], uvf_label:uvf_label[*,i], wt_file_label:wt_file_label[pol_index], $
+      fch_tag:fch_tag, power_tag:power_tag, type_pol_str:metadata_struct.type_pol_str[i]}
       
     if healpix or keyword_set(image) then file_struct = create_struct(file_struct, 'uvf_savefile', uvf_savefile[*,i], $
       'uvf_weight_savefile', uvf_weight_savefile[*, pol_index])
