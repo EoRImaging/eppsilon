@@ -256,22 +256,23 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
       general_filebase = savefilebase_in_base
     endelse
     
-    ; check for pre-saved info file. If it exists, restore it and return structure. Otherwise construct structure.
-    info_file = froot + general_filebase + '_info.idlsave'
-    info_filetest = file_test(info_file)
-    if info_filetest eq 1 then begin
-      ;; check if info file has the right polarizations
-      info_pol_inc = getvar_savefile(info_file, 'pol_inc')
-      match2, pol_inc, info_pol_inc, suba, subb
-      if min([suba, subb]) ge 0 then begin
-        ;; looks good, restore & check for directory structure changes
-        file_struct_arr = fhd_file_setup(info_file, save_path = save_path, weight_savefilebase = weight_savefilebase_in, $
-          uvf_savefilebase = uvf_savefilebase_in, savefilebase = savefilebase_in)
-          
-        return, file_struct_arr
+    if not keyword_set(refresh_info) then begin
+      ; check for pre-saved info file. If it exists, restore it and return structure. Otherwise construct structure.
+      info_file = froot + general_filebase + '_info.idlsave'
+      info_filetest = file_test(info_file)
+      if info_filetest eq 1 then begin
+        ;; check if info file has the right polarizations
+        info_pol_inc = getvar_savefile(info_file, 'pol_inc')
+        match2, pol_inc, info_pol_inc, suba, subb
+        if min([suba, subb]) ge 0 then begin
+          ;; looks good, restore & check for directory structure changes
+          file_struct_arr = fhd_file_setup(info_file, save_path = save_path, weight_savefilebase = weight_savefilebase_in, $
+            uvf_savefilebase = uvf_savefilebase_in, savefilebase = savefilebase_in)
+            
+          return, file_struct_arr
+        endif
       endif
     endif
-    
     
     datafile_test = file_test(datafile)
     if min(datafile_test) eq 0 then message, 'datafile not found'
