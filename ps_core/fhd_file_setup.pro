@@ -440,119 +440,79 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
       endif else healpix = 0
       
       wh_obs = where(strlowcase(varnames) eq 'obs', count_obs)
-      if count_obs ne 0 then obs = getvar_savefile(datafile[j], 'obs') else begin
+      if count_obs ne 0 then obs_arr = getvar_savefile(datafile[j], 'obs') else begin
         wh_obs = where(strlowcase(varnames) eq 'obs_arr', count_obs)
-        if count_obs ne 0 then begin
-          obs_arr = getvar_savefile(datafile[j], 'obs_arr')
-          if size(obs_arr,/type) eq 10 then begin
-            n_obs = n_elements(obs_arr)
-            
-            max_baseline_vals = dblarr(n_obs)
-            obs_radec_vals = dblarr(n_obs, 2)
-            zen_radec_vals = dblarr(n_obs, 2)
-            for i=0, n_obs-1 do begin
-              if abs((*obs_arr[i]).degpix - (*obs_arr[0]).degpix) gt 0 then message, 'inconsistent degpix values in obs_arr'
-              if abs((*obs_arr[i]).kpix - (*obs_arr[0]).kpix) gt 0 then message, 'inconsistent kpix values in obs_arr'
-              if total(abs((*obs_arr[i]).freq - (*obs_arr[0]).freq)) gt 0 then message, 'inconsistent freq values in obs_arr'
-              if abs((*obs_arr[i]).n_freq - (*obs_arr[0]).n_freq) gt 0 then message, 'inconsistent n_freq values in obs_arr'
-              
-              max_baseline_vals[i] = (*obs_arr[i]).max_baseline
-              obs_radec_vals[i, *] = [(*obs_arr[i]).obsra, (*obs_arr[i]).obsdec]
-              zen_radec_vals[i, *] = [(*obs_arr[i]).zenra, (*obs_arr[i]).zendec]
-            endfor
-            
-            if j eq 0 then max_baseline_lambda = max(max_baseline_vals) $
-            else max_baseline_lambda = max([max_baseline_lambda, max_baseline_vals])
-            
-            if j eq 0 then degpix = (*obs_arr[0]).degpix else if (*obs_arr[0]).degpix ne degpix then $
-              message, 'degpix does not agree between datafiles'
-            if j eq 0 then kpix = (*obs_arr[0]).kpix else if (*obs_arr[0]).kpix ne kpix then $
-              message, 'kpix does not agree between datafiles'
-              
-            if j eq 0 then fhd_dim = (*obs_arr[0]).dimension else if (*obs_arr[0]).dimension ne fhd_dim then $
-              message, 'dimension does not agree between datafiles'
-            if j eq 0 then fhd_elem = (*obs_arr[0]).elements else if (*obs_arr[0]).elements ne fhd_elem then $
-              message, 'elements does not agree between datafiles'
-              
-            if fhd_dim ne fhd_elem then message, 'fhd image is not square in x & y'
-            kspan = kpix * fhd_dim
-            
-            
-            if j eq 0 then freq = (*obs_arr[0]).freq else if total(abs(freq-(*obs_arr[0]).freq)) ne 0 then $
-              message, 'frequencies do not agree between datafiles'
-            if j eq 0 then n_freq = (*obs_arr[0]).n_freq else if (*obs_arr[0]).n_freq ne n_freq then $
-              message, 'n_freq does not agree between datafiles'
-            if healpix then data_nfreq = data_dims[1] else data_nfreq = data_dims[2]
-            if n_freq ne data_nfreq then message, 'number of frequencies does not match number of data slices'
-          endif else begin
-            n_obs = n_elements(obs_arr)
-            
-            if j eq 0 then max_baseline_lambda = max(obs_arr.max_baseline) $
-            else max_baseline_lambda = max([max_baseline_lambda, obs_arr.max_baseline])
-            
-            obs_radec_vals = [[obs_arr.obsra],[obs_arr.obsdec]]
-            zen_radec_vals = [[obs_arr.zenra],[obs_arr.zendec]]
-            
-            if total(abs(obs_arr.n_freq - obs_arr[0].n_freq)) ne 0 then message, 'inconsistent number of frequencies in obs_arr'
-            if j eq 0 then n_freq = obs_arr[0].n_freq else if obs_arr[0].n_freq ne n_freq then $
-              message, 'n_freq does not agree between datafiles'
-              
-            if total(abs(obs_arr.degpix - obs_arr[0].degpix)) ne 0 then message, 'inconsistent degpix values in obs_arr'
-            if j eq 0 then degpix = obs_arr[0].degpix else if obs_arr[0].degpix ne degpix  then $
-              message, 'degpix does not agree between datafiles'
-              
-            if total(abs(obs_arr.kpix - obs_arr[0].kpix)) ne 0 then message, 'inconsistent kpix values in obs_arr'
-            if j eq 0 then kpix = obs_arr[0].kpix else if obs_arr[0].kpix ne kpix then $
-              message, 'kpix does not agree between datafiles'
-              
-            if total(abs(obs_arr.dimension - obs_arr[0].dimension)) ne 0 then message, 'inconsistent dimension values in obs_arr'
-            if j eq 0 then fhd_dim = obs_arr[0].dimension else if obs_arr[0].dimension ne fhd_dim then $
-              message, 'dimension does not agree between datafiles'
-              
-            if total(abs(obs_arr.elements - obs_arr[0].elements)) ne 0 then message, 'inconsistent elements values in obs_arr'
-            if j eq 0 then fhd_elem = obs_arr[0].elements else if obs_arr[0].elements ne fhd_elem then $
-              message, 'elements does not agree between datafiles'
-              
-            if fhd_dim ne fhd_elem then message, 'fhd image is not square in x & y'
-            kspan = kpix * fhd_dim
-            
-            obs_tags = tag_names(obs_arr)
-            wh_freq = where(strlowcase(obs_tags) eq 'freq', count_freq)
-            if count_freq ne 0 then freq_vals = obs_arr.freq else begin
-              wh_bin = where(strlowcase(obs_tags) eq 'bin', count_bin)
-              wh_base_info = where(strlowcase(obs_tags) eq 'baseline_info', count_base_info)
-              if count_bin ne 0 or count_base_info then begin
-                freq_vals = dblarr(n_freq, n_obs)
-                if count_bin ne 0 then for i=0, n_obs-1 do freq_vals[*,i] = (*obs_arr[i].bin).freq $
-                else for i=0, n_obs-1 do freq_vals[*,i] = (*obs_arr[i].baseline_info).freq
-              endif else stop
-            endelse
-            if total(abs(freq_vals - rebin(freq_vals[*,0], n_freq, n_obs))) ne 0 then message, 'inconsistent freq values in obs_arr'
-            if j eq 0 then freq = freq_vals[*,0] else if total(abs(freq - freq_vals[*,0])) ne 0 then $
-              message, 'frequencies do not agree between datafiles'
-            freq_resolution = freq[1]-freq[0]
-            
-            dt_vals = dblarr(n_obs)
-            for i=0, n_obs-1 do begin
-              times = (*obs_arr[i].baseline_info).jdate
-              ;; only allow time resolutions of n*.5 sec
-              dt_vals[i] = round(((times[1]-times[0])*24*3600)*2.)/2.
-            endfor
-            if total(abs(dt_vals - dt_vals[0])) ne 0 then message, 'inconsistent time averaging in obs_arr'
-            if j eq 0 then time_resolution = dt_vals[0] else $
-              if total(abs(time_resolution - dt_vals[0])) ne 0 then message, 'time averaging does not agree between datafiles'
-              
-          endelse
-          
-          theta_vals = angle_difference(obs_radec_vals[*,1], obs_radec_vals[*,0], zen_radec_vals[*,1], zen_radec_vals[*,0], $
-            /degree, /nearest)
-          if j eq 0 then max_theta = max(theta_vals) else max_theta = max([max_theta, theta_vals])
-          
-          if j eq 0 then n_vis = fltarr(nfiles)
-          n_vis[j] = total(obs_arr.n_vis)
-          
-        endif else message, 'no obs or obs_arr in datafile'
+        obs_arr = getvar_savefile(datafile[j], 'obs_arr')
       endelse
+      
+      if count_obs ne 0 then begin
+      
+        n_obs = n_elements(obs_arr)
+        
+        if j eq 0 then max_baseline_lambda = max(obs_arr.max_baseline) $
+        else max_baseline_lambda = max([max_baseline_lambda, obs_arr.max_baseline])
+        
+        obs_radec_vals = [[obs_arr.obsra],[obs_arr.obsdec]]
+        zen_radec_vals = [[obs_arr.zenra],[obs_arr.zendec]]
+        
+        if total(abs(obs_arr.n_freq - obs_arr[0].n_freq)) ne 0 then message, 'inconsistent number of frequencies in obs_arr'
+        if j eq 0 then n_freq = obs_arr[0].n_freq else if obs_arr[0].n_freq ne n_freq then $
+          message, 'n_freq does not agree between datafiles'
+          
+        if total(abs(obs_arr.degpix - obs_arr[0].degpix)) ne 0 then message, 'inconsistent degpix values in obs_arr'
+        if j eq 0 then degpix = obs_arr[0].degpix else if obs_arr[0].degpix ne degpix  then $
+          message, 'degpix does not agree between datafiles'
+          
+        if total(abs(obs_arr.kpix - obs_arr[0].kpix)) ne 0 then message, 'inconsistent kpix values in obs_arr'
+        if j eq 0 then kpix = obs_arr[0].kpix else if obs_arr[0].kpix ne kpix then $
+          message, 'kpix does not agree between datafiles'
+          
+        if total(abs(obs_arr.dimension - obs_arr[0].dimension)) ne 0 then message, 'inconsistent dimension values in obs_arr'
+        if j eq 0 then fhd_dim = obs_arr[0].dimension else if obs_arr[0].dimension ne fhd_dim then $
+          message, 'dimension does not agree between datafiles'
+          
+        if total(abs(obs_arr.elements - obs_arr[0].elements)) ne 0 then message, 'inconsistent elements values in obs_arr'
+        if j eq 0 then fhd_elem = obs_arr[0].elements else if obs_arr[0].elements ne fhd_elem then $
+          message, 'elements does not agree between datafiles'
+          
+        if fhd_dim ne fhd_elem then message, 'fhd image is not square in x & y'
+        kspan = kpix * fhd_dim
+        
+        obs_tags = tag_names(obs_arr)
+        wh_freq = where(strlowcase(obs_tags) eq 'freq', count_freq)
+        if count_freq ne 0 then freq_vals = obs_arr.freq else begin
+          wh_bin = where(strlowcase(obs_tags) eq 'bin', count_bin)
+          wh_base_info = where(strlowcase(obs_tags) eq 'baseline_info', count_base_info)
+          if count_bin ne 0 or count_base_info then begin
+            freq_vals = dblarr(n_freq, n_obs)
+            if count_bin ne 0 then for i=0, n_obs-1 do freq_vals[*,i] = (*obs_arr[i].bin).freq $
+            else for i=0, n_obs-1 do freq_vals[*,i] = (*obs_arr[i].baseline_info).freq
+          endif else stop
+        endelse
+        if total(abs(freq_vals - rebin(freq_vals[*,0], n_freq, n_obs))) ne 0 then message, 'inconsistent freq values in obs_arr'
+        if j eq 0 then freq = freq_vals[*,0] else if total(abs(freq - freq_vals[*,0])) ne 0 then $
+          message, 'frequencies do not agree between datafiles'
+        freq_resolution = freq[1]-freq[0]
+        
+        dt_vals = dblarr(n_obs)
+        for i=0, n_obs-1 do begin
+          times = (*obs_arr[i].baseline_info).jdate
+          ;; only allow time resolutions of n*.5 sec
+          dt_vals[i] = round(((times[1]-times[0])*24*3600)*2.)/2.
+        endfor
+        if total(abs(dt_vals - dt_vals[0])) ne 0 then message, 'inconsistent time averaging in obs_arr'
+        if j eq 0 then time_resolution = dt_vals[0] else $
+          if total(abs(time_resolution - dt_vals[0])) ne 0 then message, 'time averaging does not agree between datafiles'
+          
+        theta_vals = angle_difference(obs_radec_vals[*,1], obs_radec_vals[*,0], zen_radec_vals[*,1], zen_radec_vals[*,0], $
+          /degree, /nearest)
+        if j eq 0 then max_theta = max(theta_vals) else max_theta = max([max_theta, theta_vals])
+        
+        if j eq 0 then n_vis = fltarr(nfiles)
+        n_vis[j] = total(obs_arr.n_vis)
+        
+      endif else message, 'no obs or obs_arr in datafile'
+      
       
       wh_navg = where(strlowcase(varnames) eq 'n_avg', count_obs)
       if count_obs ne 0 then begin
