@@ -1,5 +1,5 @@
 pro quick_image, image, xvals, yvals, data_range = data_range, xrange = xrange, yrange = yrange, log=log, xtitle = xtitle, ytitle = ytitle, title = title, $
-    grey_scale = grey_scale, xlog = xlog, ylog = ylog, missing_value = missing_value, noerase = noerase, savefile = savefile, png = png, eps = eps
+    charsize = charsize, grey_scale = grey_scale, xlog = xlog, ylog = ylog, missing_value = missing_value, noerase = noerase, savefile = savefile, png = png, eps = eps
     
   if n_elements(savefile) gt 0 or keyword_set(png) or keyword_set(eps) then pub = 1 else pub = 0
   if pub eq 1 then begin
@@ -111,10 +111,10 @@ pro quick_image, image, xvals, yvals, data_range = data_range, xrange = xrange, 
   
   cgimage, plot_image, maxvalue = img_range[1], minvalue = img_range[0], position = [.15,.1,.8,.95], /axes, xrange = xrange, $
     yrange = yrange, xtitle = xtitle, ytitle = ytitle, title = title, axkeywords = axkeywords, missing_value = missing_value, noerase = noerase, $
-    alphabackgroundimage = alphabackgroundimage
+    alphabackgroundimage = alphabackgroundimage, charsize = charsize
     
   cgcolorbar, range=data_range, position = [.92, .1,.95,.95], /vertical, ylog = cb_log, minor = minor, ticknames = ticknames, $
-    divisions=divisions, ytickv = ticks, tickinterval=tickinterval, format='exponent'
+    divisions=divisions, ytickv = ticks, tickinterval=tickinterval, format='exponent', charsize = charsize
     
     
   if keyword_set(pub) then cgps_close, png = png, delete_ps = delete_ps
