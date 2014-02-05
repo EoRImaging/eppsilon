@@ -122,7 +122,7 @@ pro mit_wrapper, folder_name, obs_range, rts = rts, refresh_dft = refresh_dft, r
     if n_infofile eq 0 then begin
       ;; first look for integrated cube files with names like Combined_obs_...
       cube_files = file_search(folder_name + '/Healpix/Combined_obs_' + obs_name + '*_cube.sav', count = n_cubefiles)
-      if n_cube_files gt 0 then begin
+      if n_cubefiles gt 0 then begin
         if obs_name eq '' then begin
           obs_name_arr = stregex(cube_files, '[0-9]+-[0-9]+', /extract)
           wh_first = where(obs_name_arr eq obs_name_arr[0], count_first)
@@ -147,7 +147,7 @@ pro mit_wrapper, folder_name, obs_range, rts = rts, refresh_dft = refresh_dft, r
       endif else if n_elements(obs_range) lt 2 then begin
         ;; then look for single obs cube files
         cube_files = file_search(folder_name + '/' + obs_name + '*_cube.sav', count = n_cubefiles)
-        if n_cube_files gt 0 then begin
+        if n_cubefiles gt 0 then begin
           if obs_name eq '' then begin
             obs_name_arr = stregex(cube_files, '[0-9]+', /extract)
             wh_first = where(obs_name_arr eq obs_name_arr[0], count_first)
@@ -175,7 +175,7 @@ pro mit_wrapper, folder_name, obs_range, rts = rts, refresh_dft = refresh_dft, r
      
     if n_elements(datafile) eq 0 then message, 'No cube or info files found in folder ' + folder_name
     
-    if obs_range[1] - obs_range[0] gt 0 then integrated = 1 else integrated = 0
+    if n_elements(obs_range) eq 1 then integrated = 0 else if obs_range[1] - obs_range[0] gt 0 then integrated = 1 else integrated = 0
     
     if n_elements(set_data_ranges) eq 0 then set_data_ranges = 1
     if keyword_set(set_data_ranges) then begin
