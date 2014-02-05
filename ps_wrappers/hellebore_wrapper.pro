@@ -57,22 +57,111 @@ pro hellebore_wrapper, folder_name, rts = rts, version = version, refresh_dft = 
     
     fhd_type = file_basename(folder_name)
     
-    info_file = file_search(folder_name + '/Combined_obs_*_info*', count = n_infofile)
-    if n_infofile gt 1 then message, 'More than 1 info files found.'
-    if n_infofile eq 1 then datafile = info_file else begin
-      cube_files = file_search(folder_name + '/Combined_obs_*_cube.sav', count = n_cubefiles)
-      if n_cubefiles eq 0 then message, 'No cube or info files found.'
-      if n_cubefiles le 2 then datafile = cube_files else message, 'More than 2 cube files found.'
+    if n_elements(obs_range) gt 0 then begin
+      if size(obs_range,/type) eq 7 then begin
+        if n_elements(obs_range) gt 1 then $
+          message, 'obs_range can be specified as a single string to use as the name or as a 2 element obsid range'
+        obs_name = obs_range
+        obs_range = long(strsplit(obs_name, '-', /extract))
+        if n_elements(obs_range) eq 1 then obs_name_single = obs_name
+      endif else begin
+        if n_elements(obs_range) gt 2 then message, 'obs_range can be specified as a single string to use as the name or as a 2 element obsid range'
+        if n_elements(obs_range) eq 2 then obs_name = number_formatter(obs_range[0]) + '-' + number_formatter(obs_range[1]) else begin
+          obs_name = number_formatter(obs_range[0]) + '-' + number_formatter(obs_range[0])
+          obs_name_single = number_formatter(obs_range[0])
+        endelse
+      endelse
+    endif else begin
+      obs_name = ''
+      obs_name_single = ''
     endelse
     
-    obs_name = stregex(datafile[0], '[0-9]+-[0-9]+', /extract)
-    if n_elements(datafile) eq 2 then begin
-      obs_name2 = stregex(datafile[1], '[0-9]+-[0-9]+', /extract)
-      if obs_name2 ne obs_name then message, 'Cube files do not have the same obs ranges.'
+    ;; first look for integrated info files with names like Combined_obs_...
+    info_file = file_search(folder_name + '/Combined_obs_*info*', count = n_infofile)
+    if n_infofile gt 0 then begin
+      if obs_name eq '' then begin
+        if n_infofile gt 1 then print, 'More than 1 info files found, using first one'
+        datafile = info_file[0]
+        obs_name = stregex(datafile, '[0-9]+-[0-9]+', /extract)
+        obs_range = long(strsplit(obs_name, '-', /extract))
+      endif else begin
+        if n_infofile gt 1 then message, 'More than one info file found with given obs_range'
+        datafile = info_file[0]
+        obs_name = stregex(datafile, '[0-9]+-[0-9]+', /extract)
+        obs_range = long(strsplit(obs_name, '-', /extract))
+      endelse
+      
+    endif else if n_elements(obs_range) lt 2 then begin
+      ;; then look for single obs info files
+      info_file = file_search(folder_name + '/' + obs_name_single + '*info*', count = n_infofile)
+      if n_infofile gt 0 then begin
+        if obs_name eq '' then begin
+          if n_infofile gt 1 then print, 'More than 1 info files found, using first one'
+          datafile = info_file[0]
+          obs_name = stregex(datafile, '[0-9]+', /extract)
+          obs_range = long(obs_name)
+        endif else begin
+          if n_infofile gt 1 then message, 'More than one info file found with given obs_range'
+          datafile = info_file[0]
+          obs_name = stregex(datafile, '[0-9]+', /extract)
+          obs_range = long(obs_name)
+        endelse
+        
+      endif
     endif
     
-    obs_range = long(strsplit(obs_name, '-', /extract))
-    if obs_range[1] - obs_range[0] gt 0 then integrated = 1 else integrated = 0
+    if n_infofile eq 0 then begin
+      ;; first look for integrated cube files with names like Combined_obs_...
+      cube_files = file_search(folder_name + '/Combined_obs_' + obs_name + '*_cube.sav', count = n_cubefiles)
+      if n_cubefiles gt 0 then begin
+        if obs_name eq '' then begin
+          obs_name_arr = stregex(cube_files, '[0-9]+-[0-9]+', /extract)
+          wh_first = where(obs_name_arr eq obs_name_arr[0], count_first)
+          if count_first lt n_elements(cube_files) then $
+            print, 'More than one obs_range found, using first range (' + obs_name_arr[0] + ', ' + number_formatter(count_first) + ' files)'
+          if count_first gt 2 then message, 'More than two cubes found with first obs_range'
+          datafile = cube_files[wh_first]
+          obs_name = obs_name_arr[0]
+          obs_range = long(strsplit(obs_name, '-', /extract))
+        endif else begin
+          if n_elements(cube_files) gt 2 then message, 'More than two cubes found with given obs_range'
+          
+          obs_name_arr = stregex(cube_files, '[0-9]+-[0-9]+', /extract)
+          if obs_name_arr[1] ne obs_name_arr[0] then message, 'Cube files do not have the same obs ranges.'
+          obs_name = obs_name_arr[0]
+          obs_range = long(strsplit(obs_name, '-', /extract))
+        endelse
+        
+      endif else if n_elements(obs_range) lt 2 then begin
+        ;; then look for single obs cube files
+        cube_files = file_search(folder_name + '/' + obs_name + '*_cube.sav', count = n_cubefiles)
+        if n_cubefiles gt 0 then begin
+          if obs_name eq '' then begin
+            obs_name_arr = stregex(cube_files, '[0-9]+', /extract)
+            wh_first = where(obs_name_arr eq obs_name_arr[0], count_first)
+            if count_first lt n_elements(cube_files) then $
+              print, 'More than one obs_range found, using first range (' + obs_name_arr[0] + ', ' + number_formatter(count_first) + ' files)'
+            if count_first gt 2 then message, 'More than two cubes found with first obs_range'
+            datafile = cube_files[wh_first]
+            obs_name = obs_name_arr[0]
+            obs_range = long(obs_name)
+          endif else begin
+            if n_elements(cube_files) gt 2 then message, 'More than two cubes found with given obs_range'
+            
+            obs_name_arr = stregex(cube_files, '[0-9]+', /extract)
+            if obs_name_arr[1] ne obs_name_arr[0] then message, 'Cube files do not have the same obs ranges.'
+            obs_name = obs_name_arr[0]
+            obs_range = long(obs_name)
+          endelse
+          
+        endif
+      endif
+    endif
+    
+    if n_elements(datafile) eq 0 then message, 'No cube or info files found in folder ' + folder_name
+    
+    
+    if n_elements(obs_range) eq 1 then integrated = 0 else if obs_range[1] - obs_range[0] gt 0 then integrated = 1 else integrated = 0
     
     plot_filebase = fhd_type + '_' + obs_name
     
