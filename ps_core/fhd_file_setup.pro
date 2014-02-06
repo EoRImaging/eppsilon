@@ -511,6 +511,14 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
         if j eq 0 then n_vis = fltarr(nfiles)
         n_vis[j] = total(obs_arr.n_vis)
         
+        if tag_exist(obs_arr[0], 'vis_noise') then begin
+          vis_noise_arr = fltarr([n_obs, size(*obs_arr[0].vis_noise, /dimension)])
+          for i=0, n_obs-1 do vis_noise_arr[i, *, *] = *obs_arr[i].vis_noise
+          vis_noise = total(vis_noise_arr, 1)/n_obs
+          noise_dims = size(vis_noise, /dimensions)
+          if noise_dims[0] ne npol or noise_dims[1] ne n_freq then message, 'vis_noise dimensions do not match npol, n_freq'
+        endif
+        
       endif else message, 'no obs or obs_arr in datafile'
       
       
@@ -541,9 +549,12 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
     
     n_freqbins = n_freq / n_avg
     frequencies = dblarr(n_freqbins)
+    if n_elements(vis_noise) gt 0 then vis_noise_avg = fltarr(npol, n_freqbins)
     for i=0, n_freqbins-1 do begin
       frequencies[i] = mean(freq[i*n_avg:i*n_avg+(n_avg-1)]) / 1e6 ;; in MHz
+      if n_elements(vis_noise) gt 0 then vis_noise_avg[*, i] = total(vis_noise[*, i*n_avg:i*n_avg+(n_avg-1)], 2) / sqrt(float(n_avg))
     endfor
+    if n_elements(vis_noise) gt 0 then vis_noise = vis_noise_avg
     
     metadata_struct = {datafile: datafile, weightfile: weightfile, variancefile:variancefile, $
       cube_varname:cube_varname, weight_varname:weight_varname, variance_varname:variance_varname, $
@@ -555,7 +566,7 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
     
     if no_var then metadata_struct = create_struct(metadata_struct, 'no_var', 1)
     
-    
+    if n_elements(vis_noise) gt 0 then metadata_struct = create_struct(metadata_struct, 'vis_noise', vis_noise)
     
     save, filename = info_file, metadata_struct, pol_inc
   endif
@@ -767,6 +778,8 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
     if no_var then file_struct = create_struct(file_struct, 'no_var', 1)
     
     if n_elements(freq_mask) gt 0 then file_struct = create_struct(file_struct, 'freq_mask', freq_mask)
+    
+    if tag_exist(metadata_struct, 'vis_noise') gt 0 then file_struct = create_struct(file_struct, 'vis_noise', metadata_struct.vis_noise[pol_index, *])
     
     if i eq 0 then file_struct_arr = replicate(file_struct, ncubes) else file_struct_arr[i] = file_struct
   endfor

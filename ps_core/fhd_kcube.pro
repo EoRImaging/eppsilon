@@ -123,22 +123,25 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
   
   old_vis_sigma = vis_sigma
   
-  if n_elements(freq_ch_range) ne 0 then vis_sig_tag = number_formatter(384./n_freq_orig) else vis_sig_tag = number_formatter(384./n_freq)
-  vis_sigma_file = file_dirname(file_struct.savefile_froot, /mark_directory) + 'vis_sigma/vis_sigma_measured' + vis_sig_tag + '.sav'
-  
-  if file_test(vis_sigma_file) then begin
-    restore, vis_sigma_file
+  if tag_exist(file_struct, 'vis_noise') then if max(file_struct.vis_noise) gt 5. then vis_sigma = file_struct.vis_noise else begin
+    ;; nothing in file_struct, look for file
+    if n_elements(freq_ch_range) ne 0 then vis_sig_tag = number_formatter(384./n_freq_orig) else vis_sig_tag = number_formatter(384./n_freq)
+    vis_sigma_file = file_dirname(file_struct.savefile_froot, /mark_directory) + 'vis_sigma/vis_sigma_measured' + vis_sig_tag + '.sav'
     
-    if n_elements(freq_ch_range) ne 0 then begin
-      if n_elements(vis_sigma) ne n_freq_orig then stop
-      vis_sigma = vis_sigma[min(freq_ch_range):max(freq_ch_range)]
-    endif else if n_elements(vis_sigma) ne n_freq then stop
-    
-    wh_nan = where(finite(vis_sigma) eq 0, count_nan)
-    if count_nan gt 0 then vis_sigma[wh_nan] = 0
-  endif else begin
-    ;; make a flat vis_sigma
-    vis_sigma = old_vis_sigma*0 + old_vis_sigma[0]
+    if file_test(vis_sigma_file) then begin
+      restore, vis_sigma_file
+      
+      if n_elements(freq_ch_range) ne 0 then begin
+        if n_elements(vis_sigma) ne n_freq_orig then stop
+        vis_sigma = vis_sigma[min(freq_ch_range):max(freq_ch_range)]
+      endif else if n_elements(vis_sigma) ne n_freq then stop
+      
+      wh_nan = where(finite(vis_sigma) eq 0, count_nan)
+      if count_nan gt 0 then vis_sigma[wh_nan] = 0
+    endif else begin
+      ;; no vis_sigma information, make a flat vis_sigma
+      vis_sigma = old_vis_sigma*0 + old_vis_sigma[0]
+    endelse
   endelse
   
   n_vis = file_struct.n_vis
