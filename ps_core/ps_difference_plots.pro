@@ -1,6 +1,6 @@
 pro ps_difference_plots, info_files, cube_types, pols, $
     plot_path = plot_path, plot_filebase = plot_filebase, save_path = save_path, savefilebase = savefilebase, $
-    quiet = quiet, png = png, eps = eps
+    quiet = quiet, kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, png = png, eps = eps
     
   if n_elements(info_files) gt 2 then message, 'Only 1 or 2 info_files can be used'
   if n_elements(cube_types) gt 2 then message, 'Only 1 or 2 info_files can be used'
@@ -62,6 +62,7 @@ pro ps_difference_plots, info_files, cube_types, pols, $
   power1 = getvar_savefile(power_file1, 'power_3d')
   power2 = getvar_savefile(power_file2, 'power_3d')
   power_diff = power1 - power2
+  if minmax(power_diff) eq 0 then message, 'The cubes are identical -- power difference is zero everywhere'
   undefine, power1, power2
   
   weights1 = getvar_savefile(power_file1, 'weights_3d')
@@ -81,7 +82,7 @@ pro ps_difference_plots, info_files, cube_types, pols, $
   if count_wt1_0 gt 0 then weight_diff[wh_wt1_0] = 0
   if count_wt2_0 gt 0 then weight_diff[wh_wt2_0] = 0
   undefine, var1, var2, var_diff
-
+  
   
   power_rebin = kspace_rebinning_2d(power_diff, kx1, ky1, kz1, kperp_edges_mpc, kpar_edges_mpc, log_kpar = log_kpar, $
     log_kperp = log_kperp, kperp_bin = kperp_bin, kpar_bin = kpar_bin, weights = weight_diff, $
@@ -119,10 +120,13 @@ pro ps_difference_plots, info_files, cube_types, pols, $
     
   if not keyword_set(quiet) then begin
     kpower_2d_plots, savefile, kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
-      data_range = data_range, png = png, eps = eps, plotfile = plotfile, full_title=title, color_profile = 'sym_log'
+      data_range = data_range, png = png, eps = eps, plotfile = plotfile, full_title=title, color_profile = 'sym_log', $
+      kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis
       
     kpower_2d_plots, savefile, /plot_weights, kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
-      window_num = 2, full_title=title + 'Weights'
+      window_num = 2, full_title=title + 'Weights', $
+      kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis
+      
       
   endif
   
