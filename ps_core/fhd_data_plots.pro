@@ -257,33 +257,6 @@ pro fhd_data_plots, datafile, rts = rts, pol_inc = pol_inc, image = image, $
         vf_slice_plotfile = plotfile_base + '_' + slice_type + '_yz_plane' + plot_fadd + plot_exten
         uv_slice_plotfile = plotfile_base + '_' + slice_type + '_xy_plane' + plot_fadd + plot_exten
       endelse
-      
-      case slice_type of
-        'raw': begin
-          uf_slice_savefile = file_struct_arr.uf_raw_savefile
-          vf_slice_savefile = file_struct_arr.vf_raw_savefile
-          uv_slice_savefile = file_struct_arr.uv_raw_savefile
-          slice_titles = file_struct_arr.uvf_label
-        end
-        'divided': begin
-          uf_slice_savefile = file_struct_arr.uf_savefile
-          vf_slice_savefile = file_struct_arr.vf_savefile
-          uv_slice_savefile = file_struct_arr.uv_savefile
-          slice_titles = file_struct_arr.uvf_label
-        end
-        'sumdiff': begin
-          uf_slice_savefile = [file_struct_arr.uf_sum_savefile, file_struct_arr.uf_diff_savefile]
-          vf_slice_savefile = [file_struct_arr.vf_sum_savefile, file_struct_arr.vf_diff_savefile]
-          uv_slice_savefile = [file_struct_arr.uv_sum_savefile, file_struct_arr.uv_diff_savefile]
-          slice_titles = ['sum ' + file_struct_arr.file_label, 'diff ' + file_struct_arr.file_label]
-        end
-        'kspace': begin
-          uf_slice_savefile = file_struct_arr.savefile_froot + file_struct_arr.savefilebase + power_tag + '_xz_plane.idlsave'
-          vf_slice_savefile = file_struct_arr.savefile_froot + file_struct_arr.savefilebase + power_tag + '_yz_plane.idlsave'
-          uv_slice_savefile = file_struct_arr.savefile_froot + file_struct_arr.savefilebase + power_tag + '_xy_plane.idlsave'
-          slice_titles = file_struct_arr.file_label
-        end
-      endcase
     endif else begin
       case slice_type of
         'raw': slice_titles = file_struct_arr.uvf_label
@@ -292,6 +265,33 @@ pro fhd_data_plots, datafile, rts = rts, pol_inc = pol_inc, image = image, $
         'kspace': slice_titles = file_struct_arr.file_label
       endcase
     endelse
+    
+    case slice_type of
+      'raw': begin
+        uf_slice_savefile = file_struct_arr.uf_raw_savefile
+        vf_slice_savefile = file_struct_arr.vf_raw_savefile
+        uv_slice_savefile = file_struct_arr.uv_raw_savefile
+        slice_titles = file_struct_arr.uvf_label
+      end
+      'divided': begin
+        uf_slice_savefile = file_struct_arr.uf_savefile
+        vf_slice_savefile = file_struct_arr.vf_savefile
+        uv_slice_savefile = file_struct_arr.uv_savefile
+        slice_titles = file_struct_arr.uvf_label
+      end
+      'sumdiff': begin
+        uf_slice_savefile = [file_struct_arr.uf_sum_savefile, file_struct_arr.uf_diff_savefile]
+        vf_slice_savefile = [file_struct_arr.vf_sum_savefile, file_struct_arr.vf_diff_savefile]
+        uv_slice_savefile = [file_struct_arr.uv_sum_savefile, file_struct_arr.uv_diff_savefile]
+        slice_titles = ['sum ' + file_struct_arr.file_label, 'diff ' + file_struct_arr.file_label]
+      end
+      'kspace': begin
+        uf_slice_savefile = file_struct_arr.savefile_froot + file_struct_arr.savefilebase + power_tag + '_xz_plane.idlsave'
+        vf_slice_savefile = file_struct_arr.savefile_froot + file_struct_arr.savefilebase + power_tag + '_yz_plane.idlsave'
+        uv_slice_savefile = file_struct_arr.savefile_froot + file_struct_arr.savefilebase + power_tag + '_xy_plane.idlsave'
+        slice_titles = file_struct_arr.file_label
+      end
+    endcase
   endif
   
   if keyword_set(plot_wedge_line) then begin
