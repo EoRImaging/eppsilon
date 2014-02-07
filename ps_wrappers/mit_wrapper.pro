@@ -103,15 +103,16 @@ pro mit_wrapper, folder_name, obs_range, rts = rts, refresh_dft = refresh_dft, r
       ;; then look for single obs info files
       info_file = file_search(folder_name + '/ps/' + obs_name_single + '*info*', count = n_infofile)
       if n_infofile gt 0 then begin
+        info_basename = file_basename(info_file)
         if obs_name eq '' then begin
           if n_infofile gt 1 then print, 'More than 1 info files found, using first one'
           datafile = info_file[0]
-          obs_name = stregex(datafile, '[0-9]+', /extract)
+          obs_name = stregex(info_basename[0], '[0-9]+', /extract)
           obs_range = long(obs_name)
         endif else begin
           if n_infofile gt 1 then message, 'More than one info file found with given obs_range'
           datafile = info_file[0]
-          obs_name = stregex(datafile, '[0-9]+', /extract)
+          obs_name = stregex(info_basename[0], '[0-9]+', /extract)
           obs_range = long(obs_name)
         endelse
         

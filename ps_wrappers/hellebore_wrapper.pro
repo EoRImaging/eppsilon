@@ -95,15 +95,16 @@ pro hellebore_wrapper, folder_name, rts = rts, version = version, refresh_dft = 
       ;; then look for single obs info files
       info_file = file_search(folder_name + '/' + obs_name_single + '*info*', count = n_infofile)
       if n_infofile gt 0 then begin
+        info_basename = file_basename(info_file)
         if obs_name eq '' then begin
           if n_infofile gt 1 then print, 'More than 1 info files found, using first one'
           datafile = info_file[0]
-          obs_name = stregex(datafile, '[0-9]+', /extract)
+          obs_name = stregex(info_basename[0], '[0-9]+', /extract)
           obs_range = long(obs_name)
         endif else begin
           if n_infofile gt 1 then message, 'More than one info file found with given obs_range'
           datafile = info_file[0]
-          obs_name = stregex(datafile, '[0-9]+', /extract)
+          obs_name = stregex(info_basename[0], '[0-9]+', /extract)
           obs_range = long(obs_name)
         endelse
         
@@ -136,8 +137,9 @@ pro hellebore_wrapper, folder_name, rts = rts, version = version, refresh_dft = 
         ;; then look for single obs cube files
         cube_files = file_search(folder_name + '/' + obs_name + '*_cube.sav', count = n_cubefiles)
         if n_cubefiles gt 0 then begin
+          cube_basename = file_basename(cube_files)
           if obs_name eq '' then begin
-            obs_name_arr = stregex(cube_files, '[0-9]+', /extract)
+            obs_name_arr = stregex(cube_basename, '[0-9]+', /extract)
             wh_first = where(obs_name_arr eq obs_name_arr[0], count_first)
             if count_first lt n_elements(cube_files) then $
               print, 'More than one obs_range found, using first range (' + obs_name_arr[0] + ', ' + number_formatter(count_first) + ' files)'
@@ -148,7 +150,8 @@ pro hellebore_wrapper, folder_name, rts = rts, version = version, refresh_dft = 
           endif else begin
             if n_elements(cube_files) gt 2 then message, 'More than two cubes found with given obs_range'
             
-            obs_name_arr = stregex(cube_files, '[0-9]+', /extract)
+            datafile = cube_files
+            obs_name_arr = stregex(cube_basename, '[0-9]+', /extract)
             if obs_name_arr[1] ne obs_name_arr[0] then message, 'Cube files do not have the same obs ranges.'
             obs_name = obs_name_arr[0]
             obs_range = long(obs_name)
