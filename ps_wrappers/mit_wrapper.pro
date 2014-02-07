@@ -146,10 +146,11 @@ pro mit_wrapper, folder_name, obs_range, rts = rts, refresh_dft = refresh_dft, r
         if not file_test(save_path, /directory) then file_mkdir, save_path
       endif else if n_elements(obs_range) lt 2 then begin
         ;; then look for single obs cube files
-        cube_files = file_search(folder_name + '/' + obs_name + '*_cube.sav', count = n_cubefiles)
+        cube_files = file_search(folder_name + '/' + obs_name_single + '*_cube.sav', count = n_cubefiles)
         if n_cubefiles gt 0 then begin
+          cube_basename = file_basename(cube_files)
           if obs_name eq '' then begin
-            obs_name_arr = stregex(cube_files, '[0-9]+', /extract)
+            obs_name_arr = stregex(cube_basename, '[0-9]+', /extract)
             wh_first = where(obs_name_arr eq obs_name_arr[0], count_first)
             if count_first lt n_elements(cube_files) then $
               print, 'More than one obs_range found, using first range (' + obs_name_arr[0] + ', ' + number_formatter(count_first) + ' files)'
@@ -160,7 +161,8 @@ pro mit_wrapper, folder_name, obs_range, rts = rts, refresh_dft = refresh_dft, r
           endif else begin
             if n_elements(cube_files) gt 2 then message, 'More than two cubes found with given obs_range'
             
-            obs_name_arr = stregex(cube_files, '[0-9]+', /extract)
+            datafile = cube_files
+            obs_name_arr = stregex(cube_basename, '[0-9]+', /extract)
             if obs_name_arr[1] ne obs_name_arr[0] then message, 'Cube files do not have the same obs ranges.'
             obs_name = obs_name_arr[0]
             obs_range = long(obs_name)
