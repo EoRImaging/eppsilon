@@ -1,5 +1,7 @@
-pro quick_image, image, xvals, yvals, data_range = data_range, xrange = xrange, yrange = yrange, log=log, xtitle = xtitle, ytitle = ytitle, title = title, $
-    charsize = charsize, grey_scale = grey_scale, xlog = xlog, ylog = ylog, missing_value = missing_value, noerase = noerase, savefile = savefile, png = png, eps = eps
+pro quick_image, image, xvals, yvals, data_range = data_range, xrange = xrange, yrange = yrange, $
+    log=log, color_profile = color_profile, xtitle = xtitle, ytitle = ytitle, title = title, $
+    charsize = charsize, grey_scale = grey_scale, xlog = xlog, ylog = ylog, $
+    missing_value = missing_value, noerase = noerase, savefile = savefile, png = png, eps = eps
     
   if n_elements(savefile) gt 0 or keyword_set(png) or keyword_set(eps) then pub = 1 else pub = 0
   if pub eq 1 then begin
@@ -49,38 +51,12 @@ pro quick_image, image, xvals, yvals, data_range = data_range, xrange = xrange, 
   endif else good_locs = indgen(n_elements(image))
   
   if keyword_set(log) then begin
-    wh_low = where(image le 0, count_low, complement = wh_good, ncomplement = count_good)
-    if count_low eq 0 then plot_image = alog10(image) else begin
-      if count_good eq 0 then begin
-        print, 'Entire image is 0 or negative -- log scaling will not work.'
-        return
-      endif else print, 'Warning: part of the image is 0 or negative, setting those values to a small value for log scaling'
+  
+    log_color_calc, image, plot_image, cb_ticks, cb_ticknames, color_range, n_colors, data_range = data_range, $
+      color_profile = color_profile, log_cut_val = log_cut_val, grey_scale = grey_scale, oob_low = oob_low
       
-      min_good = min(image[wh_good])
-      
-      plot_image = image*0.
-      plot_image[wh_good] = alog10(image[wh_good])
-      plot_image[wh_low] = alog10(min_good/10.)
-    endelse
+    img_range = color_range
     
-    if n_elements(data_range) eq 0 then data_range = 10^minmax(plot_image[good_locs])
-    img_range = alog10(data_range)
-    
-    cb_log = 1
-    ticks = loglevels(data_range)
-    while n_elements(ticks) lt 2 do begin
-      if n_elements(log_binsize) eq 0 then exp = floor(alog10(data_range[0])) else exp = exp-1
-      
-      nbins = ceil((data_range[1] - data_range[0]) / 10.^exp)+2
-      if nbins gt 1 then begin
-        temp = (findgen(nbins)+floor(data_range[0]/10.^exp))*10.^exp
-        wh_inrange = where(temp ge data_range[0] and temp le data_range[1], count_inrange)
-        if count_inrange ne 0 then ticks = temp[wh_inrange]
-      endif
-    endwhile
-    divisions = n_elements(ticks)-1
-    ticknames = number_formatter(ticks, format='(e13.2)', /print_exp)
-    minor=0
   endif else begin
     plot_image = image
     if n_elements(data_range) eq 0 then data_range = minmax(plot_image[good_locs])
@@ -113,10 +89,15 @@ pro quick_image, image, xvals, yvals, data_range = data_range, xrange = xrange, 
     yrange = yrange, xtitle = xtitle, ytitle = ytitle, title = title, axkeywords = axkeywords, missing_value = missing_value, noerase = noerase, $
     alphabackgroundimage = alphabackgroundimage, charsize = charsize
     
-  cgcolorbar, range=data_range, position = [.92, .1,.95,.95], /vertical, ylog = cb_log, minor = minor, ticknames = ticknames, $
-    divisions=divisions, ytickv = ticks, tickinterval=tickinterval, format='exponent', charsize = charsize
-    
-    
+  if keyword_set(log) then begin
+    cgcolorbar, /vertical, position = cb_pos, bottom = color_range[0], ncolors = n_colors, minor = 0, $
+      ticknames = cb_ticknames, ytickv = cb_ticks, yticks = n_elements(cb_ticks) -1, $
+      charsize = charsize, font = font, oob_low = oob_low
+      
+  endif else begin
+    cgcolorbar, range=data_range, position = [.92, .1,.95,.95], /vertical, format='exponent', charsize = charsize, font = font
+  endelse
+  
   if keyword_set(pub) then cgps_close, png = png, delete_ps = delete_ps
   
   tvlct, r, g, b
