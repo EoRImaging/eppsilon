@@ -62,7 +62,7 @@ pro ps_difference_plots, info_files, cube_types, pols, $
   power1 = getvar_savefile(power_file1, 'power_3d')
   power2 = getvar_savefile(power_file2, 'power_3d')
   power_diff = power1 - power2
-  if minmax(power_diff) eq 0 then message, 'The cubes are identical -- power difference is zero everywhere'
+  if max(abs(power_diff)) eq 0 then message, 'The cubes are identical -- power difference is zero everywhere'
   undefine, power1, power2
   
   weights1 = getvar_savefile(power_file1, 'weights_3d')
@@ -123,9 +123,9 @@ pro ps_difference_plots, info_files, cube_types, pols, $
       data_range = data_range, png = png, eps = eps, plotfile = plotfile, full_title=title, color_profile = 'sym_log', $
       kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis
       
-    kpower_2d_plots, savefile, /plot_weights, kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
-      window_num = 2, full_title=title + 'Weights', $
-      kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis
+    ;kpower_2d_plots, savefile, /plot_weights, kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
+    ;  window_num = 2, full_title=title + 'Weights', $
+    ;  kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis
       
       
   endif
