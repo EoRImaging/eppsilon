@@ -1,5 +1,6 @@
 pro log_color_calc, data, data_log_norm, cb_ticks, cb_ticknames, color_range, n_colors, data_range = data_range, $
-    color_profile = color_profile, log_cut_val = log_cut_val, grey_scale = grey_scale, oob_low = oob_low
+    color_profile = color_profile, log_cut_val = log_cut_val, grey_scale = grey_scale, oob_low = oob_low, $
+    missing_value = missing_value, missing_color = missing_color
     
     
   color_profile_enum = ['log_cut', 'sym_log', 'abs']
@@ -21,7 +22,15 @@ pro log_color_calc, data, data_log_norm, cb_ticks, cb_ticknames, color_range, n_
   if color_profile eq 'sym_log' and data_range[0] gt 0 then color_profile = 'log_cut'
   
   color_range = [0, 255]
-  n_colors = color_range[1] - color_range[0]
+  if n_elements(missing_value) ne 0 then begin
+    wh_missing = where(data eq missing_value, count_missing)
+    if count_missing gt 0 then begin
+      missing_color = 255
+      data_color_range = [0, 254]
+    endif else data_color_range = color_range
+  endif else data_color_range = [0, 255]
+  n_colors = color_range[1] - color_range[0] + 1
+  data_n_colors = data_color_range[1] - data_color_range[0] + 1
   
   wh = where(data gt 0d, count)
   if count gt 0 then min_pos = min(data[wh]) else if data_range[0] gt 0 then min_pos = data_range[0] else $
@@ -50,13 +59,13 @@ pro log_color_calc, data, data_log_norm, cb_ticks, cb_ticknames, color_range, n_
         if count_zero gt 0 then begin
           min_pos_color = 2
           zero_color=1
-          zero_val = n_colors/(log_data_range[1]-log_data_range[0])
+          zero_val = data_n_colors/(log_data_range[1]-log_data_range[0])
           
-          if log_cut_val gt min_pos then log_data_range = [log_cut_val-2*n_colors/(log_data_range[1]-log_data_range[0]), alog10(data_range[1])]
+          if log_cut_val gt min_pos then log_data_range = [log_cut_val-2*data_n_colors/(log_data_range[1]-log_data_range[0]), alog10(data_range[1])]
           
         endif else begin
           min_pos_color = 1
-          if log_cut_val gt min_pos then log_data_range = [log_cut_val-n_colors/(log_data_range[1]-log_data_range[0]), alog10(data_range[1])]
+          if log_cut_val gt min_pos then log_data_range = [log_cut_val-data_n_colors/(log_data_range[1]-log_data_range[0]), alog10(data_range[1])]
           
         endelse
         neg_color=0
@@ -101,7 +110,7 @@ pro log_color_calc, data, data_log_norm, cb_ticks, cb_ticknames, color_range, n_
       
       if no_input_data_range eq 1 then data_range = 10^log_data_range
       
-      data_log_norm = (data_log-log_data_range[0])*n_colors/(log_data_range[1]-log_data_range[0]) + color_range[0]
+      data_log_norm = (data_log-log_data_range[0])*data_n_colors/(log_data_range[1]-log_data_range[0]) + data_color_range[0]
       
     end
     'sym_log': begin
@@ -111,15 +120,14 @@ pro log_color_calc, data, data_log_norm, cb_ticks, cb_ticknames, color_range, n_
       
       log_data_range = alog10([min_abs, max_abs])
       
-      neg_color_range = [0, 126]
-      zero_color = 127
-      pos_color_range = [128,254]
-      n_pos_neg_colors = 127
-      n_colors = 255
+      neg_color_range = [0, floor(data_n_colors/2)-1]
+      zero_color = floor(data_n_colors/2)
+      pos_color_range = [floor(data_n_colors/2)+1,data_n_colors]
+      n_pos_neg_colors = floor(data_n_colors/2)
       
-      cgLoadCT, 16, /brewer, /reverse, clip=[20, 220], bottom=0, ncolors=127
+      cgLoadCT, 16, /brewer, /reverse, clip=[20, 220], bottom=0, ncolors=floor(data_n_colors/2)
       cgloadct, 0, clip = [255, 255], bottom = zero_color, ncolors = 1
-      cgLoadCT, 13, /brewer, clip=[20, 220], bottom=zero_color+1, ncolors=128
+      cgLoadCT, 13, /brewer, clip=[20, 220], bottom=zero_color+1, ncolors=data_n_colors-floor(data_n_colors/2)
       
       
       ;; construct 2 separate data logs (for negative & positive)
@@ -149,10 +157,15 @@ pro log_color_calc, data, data_log_norm, cb_ticks, cb_ticknames, color_range, n_
       
       abs_data = 0
       
-      data_log_norm = (data_log-log_data_range[0])*n_colors/(log_data_range[1]-log_data_range[0]) + color_range[0]
+      data_log_norm = (data_log-log_data_range[0])*data_n_colors/(log_data_range[1]-log_data_range[0]) + data_color_range[0]
+      cgloadct, 25, /brewer, /reverse
       
     end
   endcase
+  
+  if n_elements(missing_value) gt 0 then begin
+    if count_missing gt 0 then data_log_norm[wh_missing] = missing_color
+  endif
   
   
   if color_profile eq 'sym_log' then begin
