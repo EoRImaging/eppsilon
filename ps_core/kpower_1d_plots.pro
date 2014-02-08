@@ -29,16 +29,13 @@ pro kpower_1d_plots, power_savefile, plot_weights = plot_weights, multi_pos = mu
       eps = 0
     endif
     
-    case 1 of
-      png: begin
+    if keyword_set(png) then begin
         plot_exten = '.png'
         delete_ps = 1
-      end
-      eps: begin
-        plot_exten = '.eps'
+    endif else if keyword_set(eps) then begin
+         plot_exten = '.eps'
         delete_ps = 0
-      end
-    endcase
+    endif 
   endif
   
   if n_elements(window_num) eq 0 then window_num = 2

@@ -42,16 +42,13 @@ pro fhd_data_plots, datafile, rts = rts, pol_inc = pol_inc, image = image, $
       eps = 0
     endif
     
-    case 1 of
-      png: begin
+    if keyword_set(png) then begin
         plot_exten = '.png'
         delete_ps = 1
-      end
-      eps: begin
-        plot_exten = '.eps'
+    endif else if keyword_set(eps) then begin
+         plot_exten = '.eps'
         delete_ps = 0
-      end
-    endcase
+    endif 
   endif else plot_exten = ''
   
   
