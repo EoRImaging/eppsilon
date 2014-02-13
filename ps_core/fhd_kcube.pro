@@ -121,28 +121,44 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
   vis_sigma = (2. * (1.38065e-23) * 1e26) * t_sys / (eff_area * sqrt(df * tau)) ;; in Jy
   vis_sigma = float(vis_sigma)
   
-  old_vis_sigma = vis_sigma
+  old_vis_sigma = temporary(vis_sigma)
   
-  if tag_exist(file_struct, 'vis_noise') then if max(file_struct.vis_noise) gt 5. then vis_sigma = file_struct.vis_noise else begin
-    ;; nothing in file_struct, look for file
-    if n_elements(freq_ch_range) ne 0 then vis_sig_tag = number_formatter(384./n_freq_orig) else vis_sig_tag = number_formatter(384./n_freq)
-    vis_sigma_file = file_dirname(file_struct.savefile_froot, /mark_directory) + 'vis_sigma/vis_sigma_measured' + vis_sig_tag + '.sav'
+  if tag_exist(file_struct, 'vis_noise') then vis_sigma_ian = file_struct.vis_noise
+  
+  if n_elements(freq_ch_range) ne 0 then vis_sig_tag = number_formatter(384./n_freq_orig) else vis_sig_tag = number_formatter(384./n_freq)
+  vis_sigma_file = file_dirname(file_struct.savefile_froot, /mark_directory) + 'vis_sigma/vis_sigma_measured' + vis_sig_tag + '.sav'
+  if file_test(vis_sigma_file) then begin
+    vis_sigma_adam = getvar_savefile(vis_sigma_file, 'vis_sigma')
     
-    if file_test(vis_sigma_file) then begin
-      restore, vis_sigma_file
-      
-      if n_elements(freq_ch_range) ne 0 then begin
-        if n_elements(vis_sigma) ne n_freq_orig then stop
-        vis_sigma = vis_sigma[min(freq_ch_range):max(freq_ch_range)]
-      endif else if n_elements(vis_sigma) ne n_freq then stop
-      
-      wh_nan = where(finite(vis_sigma) eq 0, count_nan)
-      if count_nan gt 0 then vis_sigma[wh_nan] = 0
+    if n_elements(freq_ch_range) ne 0 then begin
+      if n_elements(vis_sigma_adam) ne n_freq_orig then stop
+      vis_sigma_adam = vis_sigma_adam[min(freq_ch_range):max(freq_ch_range)]
+    endif else if n_elements(vis_sigma_adam) ne n_freq then stop
+    
+    wh_nan = where(finite(vis_sigma_adam) eq 0, count_nan)
+    if count_nan gt 0 then vis_sigma_adam[wh_nan] = 0
+  endif
+    
+  if n_elements(vis_sigma_ian) gt 0 then begin 
+    if max(vis_sigma_ian) gt 5. then begin
+      vis_sigma = vis_sigma_ian
+      vs_name = 'ian'
+    endif
+  endif
+  
+  if n_elements(vis_sigma) eq 0 then begin
+    if n_elements(vis_sigma_adam) gt 0 then begin
+      ;; nothing in file struct, use file if available
+      vis_sigma = vis_sigma_adam
+      vs_name = 'adam_high'
     endif else begin
       ;; no vis_sigma information, make a flat vis_sigma
       vis_sigma = old_vis_sigma*0 + old_vis_sigma[0]
+      vs_name = 'calc_flat'
     endelse
-  endelse
+  endif
+  
+  vs_mean = mean(vis_sigma)
   
   n_vis = file_struct.n_vis
   if n_elements(freq_ch_range) ne 0 then n_vis = n_vis * (float(n_freq)/float(n_freq_orig))
@@ -1116,7 +1132,7 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
     undefine, sigma2_ft
     
     save, file = file_struct.kcube_savefile, a1_0, a1_n, b1_n, a2_0, a2_n, b2_n, sigma_a0, sigma_an_bn, $
-      kx_mpc, ky_mpc, kz_mpc, kperp_lambda_conv, delay_params, hubble_param, n_freq_contrib, freq_mask
+      kx_mpc, ky_mpc, kz_mpc, kperp_lambda_conv, delay_params, hubble_param, n_freq_contrib, freq_mask, vs_name, vs_mean
       
   endif else begin
   
@@ -1223,7 +1239,7 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
     endif
     
     save, file = file_struct.kcube_savefile, data_sum_1, data_sum_2, data_diff_1, data_diff_2, sigma2_1, sigma2_2, $
-      kx_mpc, ky_mpc, kz_mpc, kperp_lambda_conv, delay_params, hubble_param, n_freq_contrib, freq_mask
+      kx_mpc, ky_mpc, kz_mpc, kperp_lambda_conv, delay_params, hubble_param, n_freq_contrib, freq_mask, vs_name, vs_mean
   endelse
   
 end

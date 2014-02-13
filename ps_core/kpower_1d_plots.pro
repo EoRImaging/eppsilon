@@ -199,8 +199,7 @@ pro kpower_1d_plots, power_savefile, plot_weights = plot_weights, multi_pos = mu
     if nfiles gt 3 then legend_charsize = charsize / (nfiles/4.5d)  else legend_charsize = 2
     
     if n_elements(multi_pos) eq 0 then begin
-      window, window_num
-      cgps_open, plotfile, /font, encapsulated=eps
+       cgps_open, plotfile, /font, encapsulated=eps
     endif
   endif else if n_elements(multi_pos) eq 0 then begin
     if windowavailable(window_num) then wset, window_num else window, window_num
@@ -230,7 +229,6 @@ pro kpower_1d_plots, power_savefile, plot_weights = plot_weights, multi_pos = mu
     
   if keyword_set(pub) and n_elements(multi_pos) eq 0 then begin
     cgps_close, png = png, delete_ps = delete_ps
-    wdelete, window_num
   endif
   
   tvlct, r, g, b
