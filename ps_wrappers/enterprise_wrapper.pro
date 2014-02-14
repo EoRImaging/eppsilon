@@ -63,12 +63,12 @@ pro enterprise_wrapper, folder_name, obs_range, rts = rts, refresh_dft = refresh
     if n_infofile gt 0 then begin
       if obs_name eq '' then begin
         if n_infofile gt 1 then print, 'More than 1 info files found, using first one'
-        datafiles = info_file[0]
-        obs_name = stregex(datafiles, '[0-9]+.[0-9]+_', /extract)
+        datafile = info_file[0]
+        obs_name = stregex(datafile, '[0-9]+.[0-9]+_', /extract)
       endif else begin
         if n_infofile gt 1 then message, 'More than one info file found with given obs_range'
-        datafiles = info_file[0]
-        obs_name = stregex(datafiles, '[0-9]+.[0-9]+_', /extract)
+        datafile = info_file[0]
+        obs_name = stregex(datafile, '[0-9]+.[0-9]+_', /extract)
       endelse
       
       save_path = folder_name + '/ps/'
@@ -104,11 +104,13 @@ pro enterprise_wrapper, folder_name, obs_range, rts = rts, refresh_dft = refresh
       
       variancefile = file_search(folder_name + '/' + obs_name + '*_weights*.fits', count = n_variles)
       if n_varfiles ne n_elements(datafiles) then message 'number of variance files does not match number of datafiles'
+      
+      datafile =  rts_fits2imagecube(datafiles, weightfiles, variancefiles, pol_inc, save_path = froot)
+      
     endif
     
     if n_elements(datafiles) eq 0 then message, 'No cube or info files found in folder ' + folder_name
     
-    datafile =  rts_fits2imagecube(datafiles, weightfiles, variancefiles, pol_inc, save_path = froot)
     
   endif else begin
   
