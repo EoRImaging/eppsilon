@@ -136,6 +136,7 @@ pro mit_wrapper, folder_name, obs_range, rts = rts, refresh_dft = refresh_dft, r
         endif else begin
           if n_elements(cube_files) gt 2 then message, 'More than two cubes found with given obs_range'
           
+          datafile = cube_files
           obs_name_arr = stregex(cube_files, '[0-9]+-[0-9]+', /extract)
           if obs_name_arr[1] ne obs_name_arr[0] then message, 'Cube files do not have the same obs ranges.'
           obs_name = obs_name_arr[0]
