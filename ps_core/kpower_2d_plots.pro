@@ -3,8 +3,9 @@ pro kpower_2d_plots, power_savefile, multi_pos = multi_pos, start_multi_params =
     ratio = ratio, diff = diff, snr = snr, nnr = nnr, $
     kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, data_range = data_range, $
     color_profile = color_profile, log_cut_val = log_cut_val, plotfile = plotfile, png = png, eps = eps, $
-    no_title = no_title, full_title = full_title, title_prefix = title_prefix, norm_2d = norm_2d, $
-    norm_factor = norm_factor, grey_scale = grey_scale, wedge_amp = wedge_amp, plot_wedge_line = plot_wedge_line, $
+    no_title = no_title, full_title = full_title, title_prefix = title_prefix, note = note, $
+    norm_2d = norm_2d, norm_factor = norm_factor, grey_scale = grey_scale, $
+    wedge_amp = wedge_amp, plot_wedge_line = plot_wedge_line, $
     baseline_axis = baseline_axis, delay_axis = delay_axis, kperp_linear_axis = kperp_linear_axis, $
     kpar_linear_axis = kpar_linear_axis, no_units = no_units, hinv = hinv, charsize = charsize_in, $
     cb_size = cb_size_in, margin=margin_in, cb_margin = cb_margin_in
@@ -37,12 +38,12 @@ pro kpower_2d_plots, power_savefile, multi_pos = multi_pos, start_multi_params =
     endif
     
     if keyword_set(png) then begin
-        plot_exten = '.png'
-        delete_ps = 1
+      plot_exten = '.png'
+      delete_ps = 1
     endif else if keyword_set(eps) then begin
-         plot_exten = '.eps'
-        delete_ps = 0
-    endif 
+      plot_exten = '.eps'
+      delete_ps = 0
+    endif
   endif
   
   
@@ -526,24 +527,59 @@ pro kpower_2d_plots, power_savefile, multi_pos = multi_pos, start_multi_params =
       
       ;; define window size based on aspect ratio
       base_size_use = base_size
-      xsize = round(base_size * x_factor * ncol)
-      ysize = round(base_size * y_factor * nrow)
-      while (ysize gt max_ysize) or (xsize gt max_xsize) do begin
-        base_size_use = base_size_use - 100
-        xsize = round(base_size_use * x_factor * ncol)
-        ysize = round(base_size_use * y_factor * nrow)
-      endwhile
-      
-      ;; make or set window
-      if windowavailable(window_num) then begin
-        wset, window_num
-        if !d.x_size ne xsize or !d.y_size ne ysize then make_win = 1 else make_win = 0
-      endif else make_win = 1
-      if make_win eq 1 then window, window_num, xsize = xsize, ysize = ysize
-      cgerase, background_color
+      xsize = round(base_size * x_factor * double(ncol))
+      ysize = round(base_size * y_factor * double(nrow))
+      if not keyword_set(pub) then begin
+        while (ysize gt max_ysize) or (xsize gt max_xsize) do begin
+          base_size_use = base_size_use - 100
+          xsize = round(base_size_use * x_factor * double(ncol))
+          ysize = round(base_size_use * y_factor * double(nrow))
+        endwhile
+      endif
       
       ;; if pub is set, start ps output
-      if keyword_set(pub) then cgps_open, plotfile, /font, encapsulated=eps
+      if keyword_set(pub) then begin
+        ps_aspect = (y_factor * double(nrow)) / (x_factor * double(ncol))
+        
+;        if ps_aspect gt 1. then begin
+          ; Now calculate the correct size on a Portrait page.
+          ps_xsize = 8.0
+          ps_ysize = ps_xsize * ps_aspect
+          IF ps_ysize GT 10.5 THEN BEGIN
+            ps_ysize = 10.5
+            ps_xsize = ps_ysize / ps_aspect
+          ENDIF
+          
+          ; Calculate the offsets, so the output window is not off the page.
+          ps_xoffset = (8.5 - ps_xsize) / 2.0
+          ps_yoffset = (11.0 - ps_ysize) / 2.0
+;        endif else begin
+;          ; Now calculate the correct size on a Landscape page.
+;          ps_xsize = 10.5
+;          ps_ysize = ps_xsize * ps_aspect
+;          IF ps_ysize GT 8.0 THEN BEGIN
+;            ps_ysize = 8.0
+;            ps_xsize = ps_ysize / ps_aspect
+;          ENDIF
+;          
+;          ; Calculate the offsets, so the output window is not off the page.
+;          ps_xoffset = (11.0 - ps_xsize) / 2.0
+;          ps_yoffset = (8.5 - ps_ysize) / 2.0
+;          
+;          landscape=1
+;        endelse
+        
+        cgps_open, plotfile, /font, encapsulated=eps, /nomatch, landscape = landscape, $
+          xsize = ps_xsize, ysize = ps_ysize, xoffset = ps_xoffset, yoffset = ps_yoffset
+      endif else begin
+        ;; make or set window
+        if windowavailable(window_num) then begin
+          wset, window_num
+          if !d.x_size ne xsize or !d.y_size ne ysize then make_win = 1 else make_win = 0
+        endif else make_win = 1
+        if make_win eq 1 then window, window_num, xsize = xsize, ysize = ysize
+        cgerase, background_color
+      endelse
       
       ;; calculate multi_size & multi x/ylen not calculated earlier
       multi_xlen = (multi_pos[2,0]-multi_pos[0,0])
@@ -610,12 +646,18 @@ pro kpower_2d_plots, power_savefile, multi_pos = multi_pos, start_multi_params =
     ;; yloc_delay = (plot_pos[3] - plot_pos[1])/2d + plot_pos[1]
     xloc_delay = plot_pos[2] + 0.15 * (multi_pos_use[2]-plot_pos[2])
     yloc_delay = plot_pos[1] + 0.1* (plot_pos[1]-multi_pos_use[1])
+    
+    xloc_note = plot_pos[2]
+    yloc_note = multi_pos_use[1] + 0.1* (plot_pos[1]-multi_pos_use[1])
   endif else begin
     xloc_lambda = plot_pos[0] - 0.1* (plot_pos[0]-0)
     yloc_lambda = plot_pos[3] + 0.1* (1-plot_pos[3])
     
     xloc_delay = plot_pos[2] + 0.1*(1-plot_pos[2])
     yloc_delay = plot_pos[1] +0.1*(plot_pos[1]-0)
+    
+    xloc_note = plot_pos[2]
+    yloc_note = 0 + 0.1* (plot_pos[1]-0)
   endelse
   
   if keyword_set(pub) then begin
@@ -632,8 +674,38 @@ pro kpower_2d_plots, power_savefile, multi_pos = multi_pos, start_multi_params =
     font = 1
     
     if n_elements(multi_pos) eq 0 then begin
-      window, window_num, xsize = xsize, ysize = ysize
-      cgps_open, plotfile, /font, encapsulated=eps
+    
+      ps_aspect = (ysize / xsize)
+;      if ps_aspect gt 1. then begin
+        ; Now calculate the correct size on a Portrait page.
+        ps_xsize = 8.0
+        ps_ysize = ps_xsize * ps_aspect
+        IF ps_ysize GT 10.5 THEN BEGIN
+          ps_ysize = 10.5
+          ps_xsize = ps_ysize / ps_aspect
+        ENDIF
+        
+        ; Calculate the offsets, so the output window is not off the page.
+        ps_xoffset = (8.5 - ps_xsize) / 2.0
+        ps_yoffset = (11.0 - ps_ysize) / 2.0
+;      endif else begin
+;        ; Now calculate the correct size on a Landscape page.
+;        ps_xsize = 10.5
+;        ps_ysize = ps_xsize * ps_aspect
+;        IF ps_ysize GT 8.0 THEN BEGIN
+;          ps_ysize = 8.0
+;          ps_xsize = ps_ysize / ps_aspect
+;        ENDIF
+;        
+;        ; Calculate the offsets, so the output window is not off the page.
+;        ps_xoffset = (11.0 - ps_xsize) / 2.0
+;        ps_yoffset = (8.5 - ps_ysize) / 2.0
+;        
+;        landscape=1
+;      endelse
+      
+      cgps_open, plotfile, /font, encapsulated=eps, /nomatch, landscape = landscape, $
+        xsize = ps_xsize, ysize = ps_ysize, xoffset = ps_xoffset, yoffset = ps_yoffset
     endif
     
     DEVICE, /ISOLATIN1
@@ -769,6 +841,11 @@ pro kpower_2d_plots, power_savefile, multi_pos = multi_pos, start_multi_params =
     charthick = charthick, xthick = xthick, ythick = ythick, charsize = charsize, font = font, ystyle = 1, $
     color = annotate_color
     
+  if n_elements(note) ne 0 then begin
+    if keyword_set(pub) then char_factor = 0.75 else char_factor = 1
+    cgtext, xloc_note, yloc_note, note, /normal, alignment=0, charsize = char_factor*charsize, color = annotate_color, font = font
+  endif
+  
   cgcolorbar, color = annotate_color, /vertical, position = cb_pos, bottom = color_range[0], ncolors = n_colors, minor = 0, $
     ticknames = cb_ticknames, ytickv = cb_ticks, yticks = n_elements(cb_ticks) -1, title = units_str, $
     charsize = charsize, font = font, oob_low = oob_low
@@ -778,7 +855,6 @@ pro kpower_2d_plots, power_savefile, multi_pos = multi_pos, start_multi_params =
     
   if keyword_set(pub) and n_elements(multi_pos) eq 0 then begin
     cgps_close, png = png, delete_ps = delete_ps
-    wdelete, window_num
   endif
   
   tvlct, r, g, b
