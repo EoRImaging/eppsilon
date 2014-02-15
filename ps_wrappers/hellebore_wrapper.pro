@@ -18,9 +18,9 @@ pro hellebore_wrapper, folder_name, rts = rts, version = version, refresh_dft = 
     ;    variance_dir = froot + 'BdaggerB/'
     ;    variancefiles = file_search(variance_dir + '*.fits')
     ;
-    ;    datafile =  rts_fits2imagecube(datafiles, weightfiles, variancefiles, pol_inc, save_path = froot)
+    ;    datafile =  rts_fits2idlcube(datafiles, weightfiles, variancefiles, pol_inc, save_path = froot)
   
-    datafile = file_search(base_path('data') + 'rts_data/wellington_data2/*imagecube.idlsave')
+    datafile = file_search(base_path('data') + 'rts_data/wellington_data2/*idlcube.idlsave')
     
   endif else if keyword_set(sim) then begin
     datafile = base_path('data') + 'fhd_sim_data/fhd_v300/Healpix/Sim_obs_' + ['even','odd']+ '_cube.sav'
