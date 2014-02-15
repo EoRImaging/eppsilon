@@ -7,20 +7,20 @@ pro enterprise_wrapper, folder_name, obs_range, rts = rts, refresh_dft = refresh
   ;; The only required input is the datafile name (including the full path)
     
   if keyword_set(rts) then begin
-    froot = '/data3/MWA/bpindor/RTS/dec_11/'
-    
-    ;     data_dir = froot + 'BdaggerV/'
-    data_dir = froot + ['PSF0_0/','PSF0_1/']
-    
-    ;     weights_dir = froot + 'Bdagger1/'
-    weights_dir = froot + ['PSF1_0/','PSF1_1/']
-    
-    ;     variance_dir = froot + 'BdaggerB/'
-    variance_dir = froot + ['PSF2_0/','PSF2_1/']
-    
-    datafiles = [[file_search(data_dir[0] + '*.fits')],[file_search(data_dir[1] + '*.fits')]]
-    weightfiles = [[file_search(weights_dir[0] + '*.fits')],[file_search(weights_dir[1] + '*.fits')]]
-    variancefiles = [[file_search(variance_dir[0] + '*.fits')],[file_search(variance_dir[1] + '*.fits')]]
+;    froot = '/data3/MWA/bpindor/RTS/dec_11/'
+;    
+;    ;     data_dir = froot + 'BdaggerV/'
+;    data_dir = froot + ['PSF0_0/','PSF0_1/']
+;    
+;    ;     weights_dir = froot + 'Bdagger1/'
+;    weights_dir = froot + ['PSF1_0/','PSF1_1/']
+;    
+;    ;     variance_dir = froot + 'BdaggerB/'
+;    variance_dir = froot + ['PSF2_0/','PSF2_1/']
+;    
+;    datafiles = [[file_search(data_dir[0] + '*.fits')],[file_search(data_dir[1] + '*.fits')]]
+;    weightfiles = [[file_search(weights_dir[0] + '*.fits')],[file_search(weights_dir[1] + '*.fits')]]
+;    variancefiles = [[file_search(variance_dir[0] + '*.fits')],[file_search(variance_dir[1] + '*.fits')]]
     
     
     
@@ -105,7 +105,7 @@ pro enterprise_wrapper, folder_name, obs_range, rts = rts, refresh_dft = refresh
       variancefile = file_search(folder_name + '/' + obs_name + '*_weights*.fits', count = n_variles)
       if n_varfiles ne n_elements(datafiles) then message, 'number of variance files does not match number of datafiles'
       
-      datafile =  rts_fits2idlcube(datafiles, weightfiles, variancefiles, pol_inc, save_path = froot)
+      datafile =  rts_fits2idlcube(datafiles, weightfiles, variancefiles, pol_inc, save_path = folder_name)
       
     endif
     
