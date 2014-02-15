@@ -227,9 +227,9 @@ function rts_file_setup, filename, pol_inc, save_path = save_path, $
         message, 'frequencies do not match between datafiles'
       if j eq 0 then nside = getvar_savefile(datafile[j], 'nside') else if nside ne getvar_savefile(datafile[j], 'nside') then $
         message, 'nside does not match between datafiles'
-      ;if j eq 0 then time_resolution = getvar_savefile(datafile[j], 'time_resolution') else $
-      ;  if time_resolution ne getvar_savefile(datafile[j], 'time_resolution') then $
-      ;  message, 'time_resolution does not match between datafiles'
+      if j eq 0 then time_resolution = getvar_savefile(datafile[j], 'time_resolution') else $
+        if time_resolution ne getvar_savefile(datafile[j], 'time_resolution') then $
+        message, 'time_resolution does not match between datafiles'
       ;    if i eq 0 then obs_ra = getvar_savefile(datafile[i], 'obs_ra') else if obs_ra ne getvar_savefile(datafile[i], 'obs_ra') then $
       ;      message, 'obs_ra does not match between datafiles'
       ;    if i eq 0 then obs_dec = getvar_savefile(datafile[i], 'obs_dec') else if obs_dec ne getvar_savefile(datafile[i], 'obs_dec') then $

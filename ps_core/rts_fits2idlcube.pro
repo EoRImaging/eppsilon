@@ -1,8 +1,8 @@
 function rts_fits2idlcube, datafiles, weightfiles, variancefiles, pol_inc, save_path = save_path
 
-  if n_freq eq 0 then message, 'no files in specified directory: ' + data_dir
-  if n_elements(weightfiles) ne n_freq*nfiles then message, 'different number of weightfiles and datafiles'
-  if n_elements(variancefiles) ne n_freq*nfiles then message, 'different number of variancefiles and datafiles'
+  if n_elements(datafiles) eq 0 then message, 'datafiles must be passed in'
+  if n_elements(weightfiles) ne n_elements(datafiles) then message, 'different number of weightfiles and datafiles'
+  if n_elements(variancefiles) ne n_elements(datafiles) then message, 'different number of variancefiles and datafiles'
   
   ;; check for even/odd files, separate them if present
   even_mask = stregex(datafiles, 'even', /boolean)
@@ -21,7 +21,7 @@ function rts_fits2idlcube, datafiles, weightfiles, variancefiles, pol_inc, save_
     nfiles = 2
     n_freq = n_even
     
-    datafile_arr = strarr(n_freq, n_files)
+    datafile_arr = strarr(n_freq, nfiles)
     datafile_arr[*,0] = datafiles[where(even_mask gt 0)]
     datafile_arr[*,1] = datafiles[where(odd_mask gt 0)]
     
@@ -31,7 +31,7 @@ function rts_fits2idlcube, datafiles, weightfiles, variancefiles, pol_inc, save_
     wt_n_odd = total(wt_odd_mask)
     if wt_n_even ne n_even or wt_n_odd ne n_odd then message, 'number of even and odd weight files do not match datafiles'
     
-    weightfile_arr = strarr(n_freq, n_files)
+    weightfile_arr = strarr(n_freq, nfiles)
     weightfile_arr[*,0] = weightfiles[where(even_mask gt 0)]
     weightfile_arr[*,1] = weightfiles[where(odd_mask gt 0)]
     
@@ -41,7 +41,7 @@ function rts_fits2idlcube, datafiles, weightfiles, variancefiles, pol_inc, save_
     var_n_odd = total(var_odd_mask)
     if var_n_even ne n_even or var_n_odd ne n_odd then message, 'number of even and odd variance files do not match datafiles'
     
-    variancefile_arr = strarr(n_freq, n_files)
+    variancefile_arr = strarr(n_freq, nfiles)
     variancefile_arr[*,0] = variancefiles[where(even_mask gt 0)]
     variancefile_arr[*,1] = variancefiles[where(odd_mask gt 0)]
   endelse
@@ -68,7 +68,7 @@ function rts_fits2idlcube, datafiles, weightfiles, variancefiles, pol_inc, save_
     for i=0, n_freq-1 do begin
       this_fileparts = strsplit(strmid(infilebase[i], 0, temp2[i]), '_', /extract)
       if i eq 0 then fileparts = this_fileparts else begin
-        this_test = strcmp(fileparts, this_fileparts)
+        this_test = long(strcmp(fileparts, this_fileparts))
         if i eq 1 then match_test = this_test else match_test = match_test + this_test
       endelse
     endfor
@@ -130,7 +130,7 @@ function rts_fits2idlcube, datafiles, weightfiles, variancefiles, pol_inc, save_
         freq_col = where(strpos(strlowcase(col_types2), 'freq') gt -1, count)
         if count ne 1 then stop else freq_col = freq_col[0]
         freq_arr = data.(freq_col)
-        if total(abs(freq_arr - freq_arr[0])) gt 1e-3 then message, 'inconsistent frequencies in file ' + datafile_arr[i, file_i]
+        if max(abs(freq_arr - freq_arr[0])) gt 0 then print, 'frequencies in file ' + datafile_arr[i, file_i] + 'vary by ' + number_formatter(max(abs(freq_arr - freq_arr[0])))
         frequencies2[i] = freq_arr[0]
         
         time_col = where(strpos(strlowcase(col_types2), 'fracmjd') gt -1, count)
@@ -335,7 +335,7 @@ function rts_fits2idlcube, datafiles, weightfiles, variancefiles, pol_inc, save_
         
       endfor
       
-      save, file = idl_cube_savefile[file_i], nside, frequencies, frequencies2, time_resolution, $;obs_ra, obs_dec, zen_ra, zen_dec, $
+      save, file = idl_cube_savefile[file_i], nside, frequencies, time_resolution, $;obs_ra, obs_dec, zen_ra, zen_dec, $
         pixel_nums, xx_data, yy_data, xx_weights, yy_weights, xx_variances, yy_variances
         
     endif
@@ -366,8 +366,8 @@ function rts_fits2idlcube, datafiles, weightfiles, variancefiles, pol_inc, save_
           xx_variances = xx_variances[pix_use, *]
           yy_variances = yy_variances[pix_use, *]
           
-          save, file = idl_cube_savefile[i], nside, frequencies, pixel_nums, xx_data, yy_data, xx_weights, yy_weights, $
-            xx_variances, yy_variances
+          save, file = idl_cube_savefile[file_i], nside, frequencies, time_resolution, $;obs_ra, obs_dec, zen_ra, zen_dec, $
+            pixel_nums, xx_data, yy_data, xx_weights, yy_weights, xx_variances, yy_variances
             
         endif
       endfor
