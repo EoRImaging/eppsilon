@@ -10,7 +10,7 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
   
   ;; check to see if filename is an info file
   wh_info = strpos(filename, '_info.idlsave')
-  if max(wh_info) gt -1 then  begin
+  if max(wh_info) gt -1 then begin
     if n_elements(filename) gt 1 then message, 'only 1 info file can be passed'
     info_file = filename
     
@@ -553,7 +553,7 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
     if n_elements(vis_noise) gt 0 then vis_noise_avg = fltarr(npol, n_freqbins)
     for i=0, n_freqbins-1 do begin
       frequencies[i] = mean(freq[i*n_avg:i*n_avg+(n_avg-1)]) / 1e6 ;; in MHz
-      if n_elements(vis_noise) gt 0 then vis_noise_avg[*, i] = total(vis_noise[*, i*n_avg:i*n_avg+(n_avg-1)], 2) / sqrt(float(n_avg))
+      if n_elements(vis_noise) gt 0 then vis_noise_avg[*, i] = sqrt(total(vis_noise[*, i*n_avg:i*n_avg+(n_avg-1)]^2., 2))
     endfor
     if n_elements(vis_noise) gt 0 then vis_noise = vis_noise_avg
     
