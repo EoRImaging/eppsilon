@@ -130,7 +130,7 @@ function rts_fits2idlcube, datafiles, weightfiles, variancefiles, pol_inc, save_
         freq_col = where(strpos(strlowcase(col_types2), 'freq') gt -1, count)
         if count ne 1 then stop else freq_col = freq_col[0]
         freq_arr = data.(freq_col)
-        if max(abs(freq_arr - freq_arr[0])) gt 0 then print, 'frequencies in file ' + datafile_arr[i, file_i] + 'vary by ' + number_formatter(max(abs(freq_arr - freq_arr[0])))
+        if max(abs(freq_arr - freq_arr[0])) gt 0 then print, 'frequencies in file ' + datafile_arr[i, file_i] + ' vary by ' + number_formatter(max(abs(freq_arr - freq_arr[0])))
         frequencies2[i] = freq_arr[0]
         
         time_col = where(strpos(strlowcase(col_types2), 'fracmjd') gt -1, count)
@@ -138,8 +138,8 @@ function rts_fits2idlcube, datafiles, weightfiles, variancefiles, pol_inc, save_
         time_arr = data.(time_col)
         time_diffs = ((time_arr - shift(time_arr, 1))[1:*])*3600*24 ;fractional days to seconds
         time_diffs = round(time_diffs*2.)/2. ;round to nearest 1/2 second
-        if total(abs(time_diffs - time_diffs[0])) gt 0 then message, 'inconsistent time resolutions in file ' + datafile_arr[i, file_i]
-        if i eq 0 then time_resolution = time_diffs[0] else if abs(time_resolution - time_diffs[0]) ne 0 then $
+        if total(abs(time_diffs - time_diffs[0])) gt 0 then print, 'inconsistent time resolutions in file ' + datafile_arr[i, file_i] + ' using the smallest value.'
+        if i eq 0 then time_resolution = min(time_diffs) else if abs(time_resolution - min(time_diffs)) ne 0 then $
           message, 'time resolutions are not the same between frequency files'
           
           
@@ -216,7 +216,7 @@ function rts_fits2idlcube, datafiles, weightfiles, variancefiles, pol_inc, save_
         freq_col = where(strpos(strlowcase(col_types2), 'freq') gt -1, count)
         if count ne 1 then stop else freq_col = freq_col[0]
         freq_arr = data.(freq_col)
-        if total(abs(freq_arr - freq_arr[0])) gt 1e-3 then message, 'inconsistent frequencies in file ' + weightfile_arr[i, file_i]
+        if max(abs(freq_arr - freq_arr[0])) gt 0 then print, 'frequencies in file ' + weightfile_arr[i, file_i] + ' vary by ' + number_formatter(max(abs(freq_arr - freq_arr[0])))
         if abs(frequencies2[i] - freq_arr[0]) gt 1e-3 then message, 'frequencies are not the same in weights and data files.'
         
         time_col = where(strpos(strlowcase(col_types2), 'fracmjd') gt -1, count)
@@ -224,8 +224,8 @@ function rts_fits2idlcube, datafiles, weightfiles, variancefiles, pol_inc, save_
         time_arr = data.(time_col)
         time_diffs = ((time_arr - shift(time_arr, 1))[1:*])*3600*24 ;fractional days to seconds
         time_diffs = round(time_diffs*2.)/2. ;round to nearest 1/2 second
-        if total(abs(time_diffs - time_diffs[0])) gt 0 then message, 'inconsistent time resolutions in file ' + weightfile_arr[i, file_i]
-        if abs(time_resolution - time_diffs[0]) ne 0 then message, 'time resolutions are not the same in weights and data files'
+        if total(abs(time_diffs - time_diffs[0])) gt 0 then print, 'inconsistent time resolutions in file ' + weightfile_arr[i, file_i] + ' using the smallest value.'
+        if abs(time_resolution - min(time_diffs)) ne 0 then message, 'time resolutions are not the same in weights and data files'
         
         
       ;        obs_ra_col = where(strpos(strlowcase(col_types2), 'ha_pt') gt -1, count)
@@ -297,7 +297,7 @@ function rts_fits2idlcube, datafiles, weightfiles, variancefiles, pol_inc, save_
         freq_col = where(strpos(strlowcase(col_types2), 'freq') gt -1, count)
         if count ne 1 then stop else freq_col = freq_col[0]
         freq_arr = data.(freq_col)
-        if total(abs(freq_arr - freq_arr[0])) gt 1e-3 then message, 'inconsistent frequencies in file ' + variancefile_arr[i, file_i]
+        if max(abs(freq_arr - freq_arr[0])) gt 0 then print, 'frequencies in file ' + variancefile_arr[i, file_i] + ' vary by ' + number_formatter(max(abs(freq_arr - freq_arr[0])))
         if abs(frequencies2[i] - freq_arr[0]) gt 1e-3 then message, 'frequencies are not the same in variance and data files.'
         
         time_col = where(strpos(strlowcase(col_types2), 'fracmjd') gt -1, count)
@@ -305,8 +305,8 @@ function rts_fits2idlcube, datafiles, weightfiles, variancefiles, pol_inc, save_
         time_arr = data.(time_col)
         time_diffs = ((time_arr - shift(time_arr, 1))[1:*])*3600*24 ;fractional days to seconds
         time_diffs = round(time_diffs*2.)/2. ;round to nearest 1/2 second
-        if total(abs(time_diffs - time_diffs[0])) gt 0 then message, 'inconsistent time resolutions in file ' + variancefile_arr[i, file_i]
-        if abs(time_resolution - time_diffs[0]) ne 0 then message, 'time resolutions are not the same in variance and data files'
+        if total(abs(time_diffs - time_diffs[0])) gt 0 then print, 'inconsistent time resolutions in file ' + variancefile_arr[i, file_i] + ' using the smallest value.'
+        if abs(time_resolution - min(time_diffs)) ne 0 then message, 'time resolutions are not the same in variance and data files'
         
         
       ;        obs_ra_col = where(strpos(strlowcase(col_types2), 'ha_pt') gt -1, count)
@@ -335,7 +335,7 @@ function rts_fits2idlcube, datafiles, weightfiles, variancefiles, pol_inc, save_
         
       endfor
       
-      save, file = idl_cube_savefile[file_i], nside, frequencies, time_resolution, $;obs_ra, obs_dec, zen_ra, zen_dec, $
+      save, file = idl_cube_savefile[file_i], nside, frequencies, frequencies2, time_resolution, $;obs_ra, obs_dec, zen_ra, zen_dec, $
         pixel_nums, xx_data, yy_data, xx_weights, yy_weights, xx_variances, yy_variances
         
     endif
@@ -366,7 +366,7 @@ function rts_fits2idlcube, datafiles, weightfiles, variancefiles, pol_inc, save_
           xx_variances = xx_variances[pix_use, *]
           yy_variances = yy_variances[pix_use, *]
           
-          save, file = idl_cube_savefile[file_i], nside, frequencies, time_resolution, $;obs_ra, obs_dec, zen_ra, zen_dec, $
+          save, file = idl_cube_savefile[file_i], nside, frequencies, frequencies2, time_resolution, $;obs_ra, obs_dec, zen_ra, zen_dec, $
             pixel_nums, xx_data, yy_data, xx_weights, yy_weights, xx_variances, yy_variances
             
         endif

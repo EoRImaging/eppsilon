@@ -7,7 +7,7 @@ function rts_file_setup, filename, pol_inc, save_path = save_path, $
   
   ;; check to see if filename is an info file
   wh_info = strpos(filename, '_info.idlsave')
-  if max(wh_info) eq -1 then begin
+  if max(wh_info) gt -1 then begin
     if n_elements(filename) gt 1 then message, 'only 1 info file can be passed'
     info_file = filename
     
@@ -238,7 +238,7 @@ function rts_file_setup, filename, pol_inc, save_path = save_path, $
       ;      message, 'zen_ra does not match between datafiles'
       ;    if i eq 0 then zen_dec = getvar_savefile(datafile[i], 'zen_dec') else if zen_dec ne getvar_savefile(datafile[i], 'zen_dec') then $
       ;      message, 'zen_dec does not match between datafiles'
-      if i eq 0 then pixels = getvar_savefile(datafile[j], pixel_varname[j]) else begin
+      if j eq 0 then pixels = getvar_savefile(datafile[j], pixel_varname[j]) else begin
         if total(abs(pixels - getvar_savefile(datafile[j], pixel_varname[j]))) ne 0 then $
           message, 'pixel nums do not match between datafiles, using common set.'
       endelse
