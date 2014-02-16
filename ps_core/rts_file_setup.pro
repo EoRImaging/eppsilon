@@ -258,13 +258,16 @@ function rts_file_setup, filename, pol_inc, save_path = save_path, $
     ;; pointing offset from zenith (for calculating horizon distance for wedge line)
     max_theta = 0
     
+    ;; degpix
+    degpix = (2.*!pi/(kspan*2.))*(180./!pi)
+    
     metadata_struct = {datafile:datafile, weightfile: datafile, variancefile:datafile, $
       cube_varname:data_varname, weight_varname:weight_varname, variance_varname:variance_varname, $
       frequencies:frequencies, freq_resolution:freq_resolution, time_resolution:time_resolution, $
       n_vis:n_vis, max_baseline_lambda:max_baseline_lambda, max_theta:max_theta, degpix:degpix, kpix:kpix, kspan:kspan, $
       general_filebase:general_filebase, type_pol_str:type_pol_str, infile_label:infile_label, ntypes:ntypes}
       
-    if healpix then metadata_struct = create_struct(metadata_struct, 'pixelfile', datafile, 'pixel_varname', pixel_varname, 'nside', nside)
+    metadata_struct = create_struct(metadata_struct, 'pixelfile', datafile, 'pixel_varname', pixel_varname, 'nside', nside)
     
     if no_var then metadata_struct = create_struct(metadata_struct, 'no_var', 1)
     
@@ -429,8 +432,12 @@ function rts_file_setup, filename, pol_inc, save_path = save_path, $
     pol_index = i / metadata_struct.ntypes
     type_index = i mod metadata_struct.ntypes
     
+    res_uvf_inputfiles = strarr(nfiles, 2)
+    res_uvf_varname = strarr(nfiles, 2)
+    
+    
     file_struct = {datafile:metadata_struct.datafile, weightfile:metadata_struct.weightfile, variancefile:metadata_struct.variancefile, $
-      datavar:data_varname, weightvar:metadata_struct.weight_varname[pol_index], variancevar:metadata_struct.variance_varname[pol_index], $
+      datavar:metadata_struct.cube_varname[i], weightvar:metadata_struct.weight_varname[pol_index], variancevar:metadata_struct.variance_varname[pol_index], $
       frequencies:metadata_struct.frequencies, freq_resolution:metadata_struct.freq_resolution, time_resolution:metadata_struct.time_resolution, $
       n_vis:metadata_struct.n_vis, max_baseline_lambda:metadata_struct.max_baseline_lambda, max_theta:metadata_struct.max_theta, $
       degpix:metadata_struct.degpix, kpix:metadata_struct.kpix, kspan:metadata_struct.kspan, $

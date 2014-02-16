@@ -109,7 +109,7 @@ pro enterprise_wrapper, folder_name, obs_range, rts = rts, refresh_dft = refresh
       
     endif
     
-    if n_elements(datafiles) eq 0 then message, 'No cube or info files found in folder ' + folder_name
+    if n_elements(datafile) eq 0 then message, 'No cube or info files found in folder ' + folder_name
     
     
   endif else begin
