@@ -20,14 +20,104 @@ pro hellebore_wrapper, folder_name, rts = rts, version = version, refresh_dft = 
     ;
     ;    datafile =  rts_fits2idlcube(datafiles, weightfiles, variancefiles, pol_inc, save_path = froot)
   
-    datafile = file_search(base_path('data') + 'rts_data/wellington_data2/*idlcube.idlsave')
+    ;datafile = file_search(base_path('data') + 'rts_data/wellington_data2/*idlcube.idlsave')
+  
+    if n_elements(folder_name) eq 0 then folder_name = base_path('data') + 'rts_data/aug26'
+    
+    ;; check for folder existence, otherwise look for common folder names to figure out full path. If none found, try base_path('data') + 'fhd_ps_data/128T_cubes/'
+    folder_test = file_test(folder_name, /directory)
+    if folder_test eq 0 then begin
+      pos_rts_data = strpos(folder_name, 'rts_data')
+      if pos_rts_data gt -1 then begin
+        test_name = base_path('data') + strmid(folder_name, pos_rts_data)
+        folder_test = file_test(test_name, /directory)
+        if folder_test eq 1 then folder_name = test_name
+      endif
+    endif
+    if folder_test eq 0 then begin
+      test_name = base_path('data') + 'rts_data/' + folder_name
+      folder_test = file_test(test_name, /directory)
+      if folder_test eq 1 then folder_name = test_name
+    endif
+    
+    if folder_test eq 0 then message, 'folder not found'
+    
+    rts_type = file_basename(folder_name)
+    
+    if n_elements(obs_range) gt 0 then begin
+      if size(obs_range,/type) eq 7 then begin
+        if n_elements(obs_range) gt 1 then $
+          message, 'obs_range must be a single value for RTS  (string or number)'
+        obs_name = obs_range
+      endif else begin
+        if n_elements(obs_range) gt 1 then message, 'obs_range must be a single value for RTS  (string or number)'
+        obs_name = number_formatter(obs_range[0])
+      endelse
+    endif else begin
+      obs_name = ''
+    endelse
+    
+    ;; first look for info files
+    info_file = file_search(folder_name + '/' + obs_name + '*info*', count = n_infofile)
+    if n_infofile gt 0 then begin
+      if obs_name eq '' then begin
+        if n_infofile gt 1 then print, 'More than 1 info files found, using first one'
+        datafile = info_file[0]
+        obs_name = stregex(datafile, '[0-9]+.[0-9]+_', /extract)
+      endif else begin
+        if n_infofile gt 1 then message, 'More than one info file found with given obs_range'
+        datafile = info_file[0]
+        obs_name = stregex(datafile, '[0-9]+.[0-9]+_', /extract)
+      endelse
+      
+    endif
+    
+    if n_infofile eq 0 then begin
+      ;; then look for cube files
+      cube_files = file_search(folder_name + '/' + obs_name + '*_image*.fits', count = n_cubefiles)
+      if n_cubefiles gt 0 then begin
+        if obs_name eq '' then begin
+          obs_name_arr = stregex(cube_files, '[0-9]+.[0-9]+_', /extract)
+          wh_first = where(obs_name_arr eq obs_name_arr[0], count_first)
+          if count_first lt n_elements(cube_files) then $
+            print, 'More than one obs_range found, using first range (' + obs_name_arr[0] + ', ' + number_formatter(count_first) + ' files)'
+          datafiles = cube_files[wh_first]
+          obs_name = obs_name_arr[0]
+        endif else begin
+        
+          datafiles = cube_files
+          obs_name_arr = stregex(cube_files, '[0-9]+.[0-9]+_', /extract)
+          if obs_name_arr[1] ne obs_name_arr[0] then message, 'Cube files do not have the same obs ranges.'
+          obs_name = obs_name_arr[0]
+        endelse
+        
+       endif
+      
+      ;; now get weights & variance files
+      weightfiles = file_search(folder_name + '/' + obs_name + '*_weights*.fits', count = n_wtfiles)
+      if n_wtfiles ne n_elements(datafiles) then message, 'number of weight files does not match number of datafiles'
+      
+      variancefiles = file_search(folder_name + '/' + obs_name + '*_weights*.fits', count = n_varfiles)
+      if n_varfiles ne n_elements(datafiles) then message, 'number of variance files does not match number of datafiles'
+      
+      datafile =  rts_fits2idlcube(datafiles, weightfiles, variancefiles, pol_inc, save_path = folder_name)
+      
+    endif
+    
+    if n_elements(datafile) eq 0 then message, 'No cube or info files found in folder ' + folder_name
+    
+    plot_filebase = rts_type + '_' + obs_name
+    
+    
+    
+    
     
   endif else if keyword_set(sim) then begin
     datafile = base_path('data') + 'fhd_sim_data/fhd_v300/Healpix/Sim_obs_' + ['even','odd']+ '_cube.sav'
     
   endif else begin
   
-    if n_elements(folder_name) eq 0 then folder_name = base_path('data') + 'fhd_ps_data/128T_cubes/aug23_3hr_first/'
+    if n_elements(folder_name) eq 0 then folder_name = base_path('data') + 'fhd_ps_data/128T_cubes/aug23_3hr_first'
     
     ;; check for folder existence, otherwise look for common folder names to figure out full path. If none found, try base_path('data') + 'fhd_ps_data/128T_cubes/'
     folder_test = file_test(folder_name, /directory)
