@@ -230,14 +230,30 @@ function rts_file_setup, filename, pol_inc, save_path = save_path, $
       if j eq 0 then time_resolution = getvar_savefile(datafile[j], 'time_resolution') else $
         if time_resolution ne getvar_savefile(datafile[j], 'time_resolution') then $
         message, 'time_resolution does not match between datafiles'
-      ;    if i eq 0 then obs_ra = getvar_savefile(datafile[i], 'obs_ra') else if obs_ra ne getvar_savefile(datafile[i], 'obs_ra') then $
-      ;      message, 'obs_ra does not match between datafiles'
-      ;    if i eq 0 then obs_dec = getvar_savefile(datafile[i], 'obs_dec') else if obs_dec ne getvar_savefile(datafile[i], 'obs_dec') then $
-      ;      message, 'obs_dec does not match between datafiles'
-      ;    if i eq 0 then zen_ra = getvar_savefile(datafile[i], 'zen_ra') else if zen_ra ne getvar_savefile(datafile[i], 'zen_ra') then $
-      ;      message, 'zen_ra does not match between datafiles'
-      ;    if i eq 0 then zen_dec = getvar_savefile(datafile[i], 'zen_dec') else if zen_dec ne getvar_savefile(datafile[i], 'zen_dec') then $
-      ;      message, 'zen_dec does not match between datafiles'
+        
+      if j eq 0 then n_vis = fltarr(nfiles)
+      n_vis[j] = total(getvar_savefile(datafile[j], 'n_vis_arr'))
+      
+      if j eq 0 then kpix = getvar_savefile(datafile[j], 'kpix') else if kpix ne getvar_savefile(datafile[j], 'kpix') then $
+        message, 'kpix does not match between datafiles'
+      if j eq 0 then kspan = getvar_savefile(datafile[j], 'kspan') else if kspan ne getvar_savefile(datafile[j], 'kspan') then $
+        message, 'kspan does not match between datafiles'
+      if j eq 0 then time_integration = getvar_savefile(datafile[j], 'time_integration') else $
+        if time_integration ne getvar_savefile(datafile[j], 'time_integration') then $
+        message, 'time_integration does not match between datafiles'
+      if j eq 0 then max_baseline = getvar_savefile(datafile[j], 'max_baseline') else $
+        if max_baseline ne getvar_savefile(datafile[j], 'max_baseline') then $
+        message, 'max_baseline does not match between datafiles'
+        
+      if i eq 0 then obs_ra = getvar_savefile(datafile[i], 'obs_ra') else if obs_ra ne getvar_savefile(datafile[i], 'obs_ra') then $
+        message, 'obs_ra does not match between datafiles'
+      if i eq 0 then obs_dec = getvar_savefile(datafile[i], 'obs_dec') else if obs_dec ne getvar_savefile(datafile[i], 'obs_dec') then $
+        message, 'obs_dec does not match between datafiles'
+      if i eq 0 then zen_ra = getvar_savefile(datafile[i], 'zen_ra') else if zen_ra ne getvar_savefile(datafile[i], 'zen_ra') then $
+        message, 'zen_ra does not match between datafiles'
+      if i eq 0 then zen_dec = getvar_savefile(datafile[i], 'zen_dec') else if zen_dec ne getvar_savefile(datafile[i], 'zen_dec') then $
+        message, 'zen_dec does not match between datafiles'
+  
       if j eq 0 then pixels = getvar_savefile(datafile[j], pixel_varname[j]) else begin
         if total(abs(pixels - getvar_savefile(datafile[j], pixel_varname[j]))) ne 0 then $
           message, 'pixel nums do not match between datafiles, using common set.'
@@ -247,16 +263,10 @@ function rts_file_setup, filename, pol_inc, save_path = save_path, $
     n_freq = n_elements(frequencies)
     freq_resolution = frequencies[1] - frequencies[0]
     npix = n_elements(temporary(pixels))
-    
-    ;; these are totally made up for now
-    ;time_resolution = 16
-    n_vis = fltarr(nfiles)+(112*111)*n_freq*(6.)
-    max_baseline_lambda = 1500 * max(frequencies*1e6) / (3e8)
-    kspan = 300.
-    kpix = 3.46697 * 1.41555e+08 / (3e8)
+    max_baseline_lambda = max_baseline * max(frequencies*1e6) / (3e8)
     
     ;; pointing offset from zenith (for calculating horizon distance for wedge line)
-    max_theta = 0
+    max_theta = angle_difference(obs_dec, obs_ra, zen_dec, zen_ra, /degree)
     
     ;; degpix
     degpix = (2.*!pi/(kspan*2.))*(180./!pi)
