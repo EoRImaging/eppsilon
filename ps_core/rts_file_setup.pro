@@ -1,4 +1,4 @@
-function rts_file_setup, filename, pol_inc, save_path = save_path, $
+function rts_file_setup, filename, pol_inc, save_path = save_path, refresh_info = refresh_info, $
     weight_savefilebase = weight_savefilebase_in, variance_savefilebase = variance_savefilebase_in, $
     uvf_savefilebase = uvf_savefilebase_in, savefilebase = savefilebase_in, $
     spec_window_type = spec_window_type
@@ -234,10 +234,12 @@ function rts_file_setup, filename, pol_inc, save_path = save_path, $
       if j eq 0 then n_vis = fltarr(nfiles)
       n_vis[j] = total(getvar_savefile(datafile[j], 'n_vis_arr'))
       
-      if j eq 0 then kpix = getvar_savefile(datafile[j], 'kpix') else if kpix ne getvar_savefile(datafile[j], 'kpix') then $
-        message, 'kpix does not match between datafiles'
-      if j eq 0 then kspan = getvar_savefile(datafile[j], 'kspan') else if kspan ne getvar_savefile(datafile[j], 'kspan') then $
-        message, 'kspan does not match between datafiles'
+      if j eq 0 then kpix_arr = getvar_savefile(datafile[j], 'kpix_arr') else $
+        if total(abs(kpix_arr- getvar_savefile(datafile[j], 'kpix_arr'))) ne 0 then $
+        message, 'kpix_arr does not match between datafiles'
+      if j eq 0 then kspan_arr = getvar_savefile(datafile[j], 'kspan_arr') else $
+        if total(abs(kspan_arr - getvar_savefile(datafile[j], 'kspan_arr'))) ne 0 then $
+        message, 'kspan_arr does not match between datafiles'
       if j eq 0 then time_integration = getvar_savefile(datafile[j], 'time_integration') else $
         if time_integration ne getvar_savefile(datafile[j], 'time_integration') then $
         message, 'time_integration does not match between datafiles'
@@ -245,25 +247,41 @@ function rts_file_setup, filename, pol_inc, save_path = save_path, $
         if max_baseline ne getvar_savefile(datafile[j], 'max_baseline') then $
         message, 'max_baseline does not match between datafiles'
         
-      if i eq 0 then obs_ra = getvar_savefile(datafile[i], 'obs_ra') else if obs_ra ne getvar_savefile(datafile[i], 'obs_ra') then $
+      if j eq 0 then obs_ra = getvar_savefile(datafile[j], 'obs_ra') else if obs_ra ne getvar_savefile(datafile[j], 'obs_ra') then $
         message, 'obs_ra does not match between datafiles'
-      if i eq 0 then obs_dec = getvar_savefile(datafile[i], 'obs_dec') else if obs_dec ne getvar_savefile(datafile[i], 'obs_dec') then $
+      if j eq 0 then obs_dec = getvar_savefile(datafile[j], 'obs_dec') else if obs_dec ne getvar_savefile(datafile[j], 'obs_dec') then $
         message, 'obs_dec does not match between datafiles'
-      if i eq 0 then zen_ra = getvar_savefile(datafile[i], 'zen_ra') else if zen_ra ne getvar_savefile(datafile[i], 'zen_ra') then $
+      if j eq 0 then zen_ra = getvar_savefile(datafile[j], 'zen_ra') else if zen_ra ne getvar_savefile(datafile[j], 'zen_ra') then $
         message, 'zen_ra does not match between datafiles'
-      if i eq 0 then zen_dec = getvar_savefile(datafile[i], 'zen_dec') else if zen_dec ne getvar_savefile(datafile[i], 'zen_dec') then $
+      if j eq 0 then zen_dec = getvar_savefile(datafile[j], 'zen_dec') else if zen_dec ne getvar_savefile(datafile[j], 'zen_dec') then $
         message, 'zen_dec does not match between datafiles'
-  
+        
       if j eq 0 then pixels = getvar_savefile(datafile[j], pixel_varname[j]) else begin
         if total(abs(pixels - getvar_savefile(datafile[j], pixel_varname[j]))) ne 0 then $
           message, 'pixel nums do not match between datafiles, using common set.'
       endelse
     endfor
     
+    if max(kspan_arr) - min(kspan_arr) ne 0 then begin
+      print, 'kspan varies with frequency, using mean'
+      kspan = mean(kspan_arr)
+    endif
+    
+    if max(kpix_arr) - min(kpix_arr) ne 0 then begin
+      print, 'kpix varies with frequency, using mean'
+      kpix = mean(kpix_arr)
+    endif
+    
+    ;; convert to MHz if in Hz
+    if mean(frequencies) gt 1000. then frequencies = frequencies/1e6
+    
     n_freq = n_elements(frequencies)
-    freq_resolution = frequencies[1] - frequencies[0]
     npix = n_elements(temporary(pixels))
     max_baseline_lambda = max_baseline * max(frequencies*1e6) / (3e8)
+    
+    ;; made up for now
+    freq_resolution = 8e3;; native resolution of visibilities in Hz
+    time_resolution = 2;; native resolution of visibilities in s
     
     ;; pointing offset from zenith (for calculating horizon distance for wedge line)
     max_theta = angle_difference(obs_dec, obs_ra, zen_dec, zen_ra, /degree)

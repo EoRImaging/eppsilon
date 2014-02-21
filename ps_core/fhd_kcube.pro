@@ -57,7 +57,7 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
     even_freq = 0
     
     freq_diff_hist = histogram(freq_diff, binsize = min(freq_diff)*.1, locations=locs, reverse_indices = ri)
-    if max(freq_diff_hist)/float(n_freq) lt .9 then stop else begin
+    if max(freq_diff_hist)/float(n_freq) lt .5 then stop else begin
       peak_bin = (where(freq_diff_hist eq max(freq_diff_hist), count_peak))[0]
       if count_peak eq 1 then peak_diffs = freq_diff[ri[ri[peak_bin] : ri[peak_bin+1]-1]]
       
@@ -110,7 +110,7 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
     conv_factor = conv_factor * z_mpc_mean^2.
     
   endif else conv_factor = 1. + fltarr(n_freq)
-  
+ 
   ;;t_sys = 440. ; K
   ;;t_sys = 280. * sqrt(2.)* ((1+redshifts)/7.5)^2.3 ;; from skew w/ stu + srt(2) for single pol -- Adam says wrong for Ian's normalization
   t_sys = 280. * ((1+redshifts)/7.5)^2.3 / sqrt(2.) ;; from skew w/ stu + srt(2) for single pol

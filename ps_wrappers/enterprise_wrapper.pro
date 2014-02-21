@@ -1,5 +1,6 @@
-pro enterprise_wrapper, folder_name, obs_range, rts = rts, refresh_dft = refresh_dft, refresh_ps = refresh_ps, $
-    refresh_binning = refresh_binning, refresh_info = refresh_info, pol_inc = pol_inc, no_spec_window = no_spec_window, $
+pro enterprise_wrapper, folder_name, obs_range, rts = rts, $
+    refresh_dft = refresh_dft, refresh_ps = refresh_ps, refresh_info = refresh_info, refresh_rtscube = refresh_rtscube, $
+    refresh_binning = refresh_binning, pol_inc = pol_inc, no_spec_window = no_spec_window, $
     spec_window_type = spec_window_type, freq_ch_range = freq_ch_range, individual_plots = individual_plots, $
     png = png, eps = eps, plot_slices = plot_slices, slice_type = slice_type, $
     kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, set_data_ranges = set_data_ranges
@@ -7,23 +8,23 @@ pro enterprise_wrapper, folder_name, obs_range, rts = rts, refresh_dft = refresh
   ;; The only required input is the datafile name (including the full path)
     
   if keyword_set(rts) then begin
-;    froot = '/data3/MWA/bpindor/RTS/dec_11/'
-;    
-;    ;     data_dir = froot + 'BdaggerV/'
-;    data_dir = froot + ['PSF0_0/','PSF0_1/']
-;    
-;    ;     weights_dir = froot + 'Bdagger1/'
-;    weights_dir = froot + ['PSF1_0/','PSF1_1/']
-;    
-;    ;     variance_dir = froot + 'BdaggerB/'
-;    variance_dir = froot + ['PSF2_0/','PSF2_1/']
-;    
-;    datafiles = [[file_search(data_dir[0] + '*.fits')],[file_search(data_dir[1] + '*.fits')]]
-;    weightfiles = [[file_search(weights_dir[0] + '*.fits')],[file_search(weights_dir[1] + '*.fits')]]
-;    variancefiles = [[file_search(variance_dir[0] + '*.fits')],[file_search(variance_dir[1] + '*.fits')]]
-    
-    
-    
+    ;    froot = '/data3/MWA/bpindor/RTS/dec_11/'
+    ;
+    ;    ;     data_dir = froot + 'BdaggerV/'
+    ;    data_dir = froot + ['PSF0_0/','PSF0_1/']
+    ;
+    ;    ;     weights_dir = froot + 'Bdagger1/'
+    ;    weights_dir = froot + ['PSF1_0/','PSF1_1/']
+    ;
+    ;    ;     variance_dir = froot + 'BdaggerB/'
+    ;    variance_dir = froot + ['PSF2_0/','PSF2_1/']
+    ;
+    ;    datafiles = [[file_search(data_dir[0] + '*.fits')],[file_search(data_dir[1] + '*.fits')]]
+    ;    weightfiles = [[file_search(weights_dir[0] + '*.fits')],[file_search(weights_dir[1] + '*.fits')]]
+    ;    variancefiles = [[file_search(variance_dir[0] + '*.fits')],[file_search(variance_dir[1] + '*.fits')]]
+  
+  
+  
     if n_elements(folder_name) eq 0 then folder_name = '/data3/MWA/bpindor/RTS/feb_9/'
     
     ;; check for folder existence, otherwise look for common folder names to figure out full path. If none found, try '/data3/MWA/bpindor/RTS/'
@@ -105,7 +106,7 @@ pro enterprise_wrapper, folder_name, obs_range, rts = rts, refresh_dft = refresh
       variancefiles = file_search(folder_name + '/' + obs_name + '*_weights*.fits', count = n_varfiles)
       if n_varfiles ne n_elements(datafiles) then message, 'number of variance files does not match number of datafiles'
       
-      datafile =  rts_fits2idlcube(datafiles, weightfiles, variancefiles, pol_inc, save_path = folder_name)
+      datafile =  rts_fits2idlcube(datafiles, weightfiles, variancefiles, pol_inc, save_path = folder_name, refresh = refresh_rtscube)
       
     endif
     
