@@ -281,7 +281,7 @@ function rts_file_setup, filename, pol_inc, save_path = save_path, refresh_info 
     
     ;; made up for now
     freq_resolution = 8e3;; native resolution of visibilities in Hz
-    time_resolution = 2;; native resolution of visibilities in s
+    time_resolution = 0.5;; native resolution of visibilities in s
     
     ;; pointing offset from zenith (for calculating horizon distance for wedge line)
     max_theta = angle_difference(obs_dec, obs_ra, zen_dec, zen_ra, /degree)
