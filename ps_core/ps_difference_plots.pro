@@ -1,6 +1,7 @@
 pro ps_difference_plots, info_files, cube_types, pols, $
     plot_path = plot_path, plot_filebase = plot_filebase, save_path = save_path, savefilebase = savefilebase, $
-    quiet = quiet, kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, png = png, eps = eps
+    kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, plot_wedge_line = plot_wedge_line, $
+    quiet = quiet, png = png, eps = eps
     
   if n_elements(info_files) gt 2 then message, 'Only 1 or 2 info_files can be used'
   if n_elements(cube_types) gt 2 then message, 'Only 1 or 2 info_files can be used'
@@ -17,6 +18,9 @@ pro ps_difference_plots, info_files, cube_types, pols, $
   if not keyword_set(no_spec_window) then begin
     if n_elements(spec_window_type) eq 0 then spec_window_type = 'Blackman-Harris'
   endif else undefine, spec_window_type
+  
+  ;; default to plot wedge line
+  if n_elements(plot_wedge_line) eq 0 then plot_wedge_line=1
   
   
   file_struct_arr1 = fhd_file_setup(info_files[0], pol_inc, spec_window_type = spec_window_type)
@@ -102,9 +106,24 @@ pro ps_difference_plots, info_files, cube_types, pols, $
   if n_elements(save_path) eq 0 then save_path = file_dirname(info_files[0], /mark_directory)
   if n_elements(plot_path) eq 0 then plot_path = save_path
   
+  if n_elements(info_files) eq 2 then begin
+    fileparts_1 = strsplit(file_struct_arr1[0].general_filebase, '_', /extract)
+    fileparts_2 = strsplit(file_struct_arr2[0].general_filebase, '_', /extract)
+    match_test = strcmp(fileparts_1, fileparts_2)
+    wh_diff = where(match_test eq 0, count_diff, complement = wh_same, ncomplement = count_same)
+  endif
+  
   if n_elements(savefilebase) eq 0 then begin
-    if n_elements(info_files) eq 1 then savefilebase = file_struct_arr1[0].general_filebase + '_' + type_pol_str[0] + '_minus_' + type_pol_str[1] $
-    else savefilebase = file_struct_arr1[0].general_filebase + '_' + type_pol_str[0] + '_minus_' + file_struct_arr2[0].general_filebase + '_' + type_pol_str[1] + '_diff'
+    if n_elements(info_files) eq 1 then savefilebase = file_struct_arr1[0].general_filebase + $
+      '_' + type_pol_str[0] + '_minus_' + type_pol_str[1] else begin
+      if count_diff eq 0 then savefilebase = file_struct_arr1[0].general_filebase + '_diff' else begin
+        if count_same gt 0 then savefilebase = strjoin(fileparts_1[wh_same], '_') + '__' + $
+          strjoin(fileparts_1[wh_diff]) + '_minus_' + strjoin(fileparts_2[wh_diff]) $
+        else $
+          savefilebase = file_struct_arr1[0].general_filebase + '_' + type_pol_str[0] + $
+          '_minus_' + file_struct_arr2[0].general_filebase + '_' + type_pol_str[1]
+      endelse
+    endelse
   endif
   if n_elements(plot_filebase) eq 0 then plot_filebase = savefilebase
   
@@ -112,20 +131,43 @@ pro ps_difference_plots, info_files, cube_types, pols, $
   if keyword_set(png) or keyword_set(eps) then pub = 1 else pub = 0
   if pub then plotfile = plot_path + plot_filebase
   
-  if n_elements(info_files) eq 1 then title = type_pol_str[0] + '-' + type_pol_str[1] $
-  else title = file_struct_arr1[0].general_filebase + ' ' + type_pol_str[0] + '-' + file_struct_arr2[0].general_filebase + ' ' + type_pol_str[1] + '_diff'
+  if n_elements(info_files) eq 1 then title = type_pol_str[0] + '-' + type_pol_str[1] else begin
+  
+    if count_diff eq 0 then title = file_struct_arr1[0].general_filebase + 'diff' $
+    else title = strjoin(fileparts_1[wh_diff]) + ' - !C' + strjoin(fileparts_2[wh_diff])
+    
+  endelse
   
   save, file = savefile, power, weights, kperp_edges, kpar_edges, kperp_bin, kpar_bin, $
     kperp_lambda_conv, delay_params, hubble_param
     
+    
+  if keyword_set(plot_wedge_line) then begin
+    z0_freq = 1420.40 ;; MHz
+    redshifts1 = z0_freq/file_struct_arr1[0].frequencies - 1
+    redshifts2 = z0_freq/file_struct_arr2[0].frequencies - 1
+    mean_redshift = mean([redshifts1, redshifts2])
+    
+    cosmology_measures, mean_redshift, wedge_factor = wedge_factor
+    ;; assume 20 degrees from pointing center to first null
+    source_dist = 20d * !dpi / 180d
+    fov_amp = wedge_factor * source_dist
+    
+    ;; calculate angular distance to horizon
+    max_theta = max([file_struct_arr1[0].max_theta, file_struct_arr2[0].max_theta])
+    horizon_amp = wedge_factor * ((max_theta+90d) * !dpi / 180d)
+    
+    wedge_amp = [fov_amp, horizon_amp]
+  endif else wedge_amp = 0d
+  
   if not keyword_set(quiet) then begin
     kpower_2d_plots, savefile, kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
       data_range = data_range, png = png, eps = eps, plotfile = plotfile, full_title=title, color_profile = 'sym_log', $
-      kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis
+      kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, wedge_amp = wedge_amp, plot_wedge_line = plot_wedge_line
       
-    ;kpower_2d_plots, savefile, /plot_weights, kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
-    ;  window_num = 2, full_title=title + 'Weights', $
-    ;  kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis
+  ;kpower_2d_plots, savefile, /plot_weights, kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
+  ;  window_num = 2, full_title=title + 'Weights', $
+  ;  kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis
       
       
   endif
