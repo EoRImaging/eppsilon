@@ -103,7 +103,7 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
     ;; if max(conv_factor-conv_factor[0]) gt 1e-8 then stop else conv_factor = conv_factor[0]
     ;; conv_factor = float(2. * max_baseline^2. / (!pi * 1.38065))
   
-    ;; converting from Jy (in u,v,f) to mK*str (10^-26 * c^2 * 10^-3/ (2*f^2*kb))
+    ;; converting from Jy (in u,v,f) to mK*str (10^-26 * c^2 * 10^3/ (2*f^2*kb))
     conv_factor = float((3e8)^2 / (2. * (frequencies*1e6)^2. * 1.38065))
     
     ;; convert from mk*str to mK*Mpc^2
