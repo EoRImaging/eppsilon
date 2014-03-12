@@ -12,10 +12,10 @@ echo JOBID ${JOB_ID}
 #Integrate cubes
 unset int_pids
 
-input_file="$file_path_cubes""*even_cube.sav"
+input_file="$file_path_cubes"/"*even_cube.sav"
 /usr/local/bin/idl -IDL_DEVICE ps -IDL_CPU_TPOOL_NTHREADS $nperint -e integrate_healpix_cubes -args "$input_file" $starting_index $ending_index &
 int_pids+=( $! )
-input_file="$file_path_cubes""*odd_cube.sav"
+input_file="$file_path_cubes"/"*odd_cube.sav"
 /usr/local/bin/idl -IDL_DEVICE ps -IDL_CPU_TPOOL_NTHREADS $nperint -e integrate_healpix_cubes -args "$input_file" $starting_index $ending_index &
 int_pids+=( $! )
 wait ${int_pids[@]} # Wait for integration to finish before making PS
@@ -24,5 +24,5 @@ wait ${int_pids[@]} # Wait for integration to finish before making PS
 
 input_file="$file_path_cubes""Healpix/"
 
-idl -IDL_DEVICE ps -IDL_CPU_TPOOL_NTHREADS $nslots -e mit_PS_job -args $input_file '${obsid_in_name_even[$starting_index]}-${obsid_in_name_even[$ending_index]}'
+idl -IDL_DEVICE ps -IDL_CPU_TPOOL_NTHREADS $nslots -e mit_ps_job -args $input_file '${obsid_in_name_even[$starting_index]}-${obsid_in_name_even[$ending_index]}'
 
