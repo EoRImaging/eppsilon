@@ -13,13 +13,13 @@ echo JOBID ${JOB_ID}
 #Integrate cubes
 unset int_pids
 
-#input_file="$file_path_cubes"/"*even_cube.sav"
-#/usr/local/bin/idl -IDL_DEVICE ps -IDL_CPU_TPOOL_NTHREADS $nperint -e integrate_healpix_cubes -args "$input_file" $starting_index $ending_index &
-#int_pids+=( $! )
-#input_file="$file_path_cubes"/"*odd_cube.sav"
-#/usr/local/bin/idl -IDL_DEVICE ps -IDL_CPU_TPOOL_NTHREADS $nperint -e integrate_healpix_cubes -args "$input_file" $starting_index $ending_index &
-#int_pids+=( $! )
-#wait ${int_pids[@]} # Wait for integration to finish before making PS
+input_file="$file_path_cubes"/"*even_cube.sav"
+/usr/local/bin/idl -IDL_DEVICE ps -IDL_CPU_TPOOL_NTHREADS $nperint -e integrate_healpix_cubes -args "$input_file" $starting_index $ending_index &
+int_pids+=( $! )
+input_file="$file_path_cubes"/"*odd_cube.sav"
+/usr/local/bin/idl -IDL_DEVICE ps -IDL_CPU_TPOOL_NTHREADS $nperint -e integrate_healpix_cubes -args "$input_file" $starting_index $ending_index &
+int_pids+=( $! )
+wait ${int_pids[@]} # Wait for integration to finish before making PS
 
 #Make power spectra through a ps wrapper in idl
 
