@@ -9,7 +9,6 @@ pro mit_ps_job, folder_name, obs_range, rts = rts, refresh_dft = refresh_dft, re
   folder_name=args[0]
   obs_range=args[1]
     
-    
   ;; The only required input is the datafile name (including the full path)
     
   if keyword_set(rts) then begin

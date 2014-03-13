@@ -1,4 +1,5 @@
 #!/bin/bash
+# Top level script to integrate healpix cubes and run power spectrum code.
 
 #Parse flags for inputs
 while getopts ":f:s:e:" option
@@ -33,8 +34,8 @@ fi
 
 #generate the file names in the folder for even and odd
 
-name_array_even_unsorted=($(find $file_path_cubes -name "*even_cube.sav"))
-name_array_odd_unsorted=($(find $file_path_cubes -name "*odd_cube.sav"))
+name_array_even_unsorted=($(find $file_path_cubes -name "[[:digit:]]*even_cube.sav")) # ensure the first character is a numeral (to avoid Combined... getting lumped in.)
+name_array_odd_unsorted=($(find $file_path_cubes -name "[[:digit:]]*odd_cube.sav"))
 
 #arrange them in order of increasing obs id...which isn't done automatically
 
@@ -101,8 +102,11 @@ then
    fi
 else
   len=${#name_array_even[*]}
-  ending_index=$(expr $len - 2)
+  ending_index=$(expr $len - 1)
 fi
+
+min_obs=${obsid_in_name_even[$starting_index]}
+max_obs=${obsid_in_name_even[$ending_index]}
 
 PSpath=$(idl -e 'print,rootdir("ps")') ### NOTE this only works if idlstartup doesn't have any print statements (e.g. healpix check)
 mem=4G ## per core. this should be an option to the script
@@ -111,7 +115,7 @@ nslots=10 # cores to use
 outfile=${file_path_cubes}/${obsid_in_name_even[$starting_index]}_${obsid_in_name_even[$ending_index]}_out.log
 errfile=${file_path_cubes}/${obsid_in_name_even[$starting_index]}_${obsid_in_name_even[$ending_index]}_err.log
 
-qsub -l h_vmem=$mem,h_stack=512k -V -v file_path_cubes=$file_path_cubes,obsid_in_name_even=$obsid_in_name_even,starting_index=$starting_index,ending_index=$ending_index,nslots=$nslots -e $errfile -o $outfile -pe chost $nslots ${PSpath}ps_wrappers/PS_job.sh
+qsub -l h_vmem=$mem,h_stack=512k -V -v file_path_cubes=$file_path_cubes,min_obs=$min_obs,max_obs=$max_obs,starting_index=$starting_index,ending_index=$ending_index,nslots=$nslots -e $errfile -o $outfile -pe chost $nslots ${PSpath}ps_wrappers/PS_job.sh
 
 ## The rest is done in PS_job.sh now.
 
