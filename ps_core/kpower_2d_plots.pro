@@ -443,10 +443,10 @@ pro kpower_2d_plots, power_savefile, multi_pos = multi_pos, start_multi_params =
   ;; in units of plot area (incl. margins)
   if n_elements(cb_size_in) eq 0 then cb_size = 0.025 else cb_size = cb_size_in
   if n_elements(margin_in) lt 4 then begin
-    margin = [0.2, 0.17, 0.02, 0.1]
+    margin = [0.2, 0.2, 0.02, 0.1]
     if keyword_set(baseline_axis) and not keyword_set(no_title) then margin[3] = 0.15
     if keyword_set(delay_axis) then margin[2] = 0.07
-  endif else margin = margin_in
+   endif else margin = margin_in
   
   if n_elements(cb_margin_in) lt 2 then begin
     cb_margin = [0.2, 0.02]
@@ -647,7 +647,7 @@ pro kpower_2d_plots, power_savefile, multi_pos = multi_pos, start_multi_params =
     xloc_delay = plot_pos[2] + 0.15 * (multi_pos_use[2]-plot_pos[2])
     yloc_delay = plot_pos[1] + 0.1* (plot_pos[1]-multi_pos_use[1])
     
-    xloc_note = plot_pos[2]
+    xloc_note = .99*multi_pos_use[2]
     yloc_note = multi_pos_use[1] + 0.1* (plot_pos[1]-multi_pos_use[1])
   endif else begin
     xloc_lambda = plot_pos[0] - 0.1* (plot_pos[0]-0)
@@ -656,7 +656,7 @@ pro kpower_2d_plots, power_savefile, multi_pos = multi_pos, start_multi_params =
     xloc_delay = plot_pos[2] + 0.1*(1-plot_pos[2])
     yloc_delay = plot_pos[1] +0.1*(plot_pos[1]-0)
     
-    xloc_note = plot_pos[2]
+    xloc_note = .99
     yloc_note = 0 + 0.1* (plot_pos[1]-0)
   endelse
   
@@ -675,7 +675,7 @@ pro kpower_2d_plots, power_savefile, multi_pos = multi_pos, start_multi_params =
     
     if n_elements(multi_pos) eq 0 then begin
     
-      ps_aspect = (ysize / xsize)
+      ps_aspect = ysize / float(xsize)
 ;      if ps_aspect gt 1. then begin
         ; Now calculate the correct size on a Portrait page.
         ps_xsize = 8.0
@@ -843,7 +843,7 @@ pro kpower_2d_plots, power_savefile, multi_pos = multi_pos, start_multi_params =
     
   if n_elements(note) ne 0 then begin
     if keyword_set(pub) then char_factor = 0.75 else char_factor = 1
-    cgtext, xloc_note, yloc_note, note, /normal, alignment=0, charsize = char_factor*charsize, color = annotate_color, font = font
+    cgtext, xloc_note, yloc_note, note, /normal, alignment=1, charsize = char_factor*charsize, color = annotate_color, font = font
   endif
   
   cgcolorbar, color = annotate_color, /vertical, position = cb_pos, bottom = color_range[0], ncolors = n_colors, minor = 0, $

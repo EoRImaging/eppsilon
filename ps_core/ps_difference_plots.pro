@@ -1,5 +1,6 @@
 pro ps_difference_plots, info_files, cube_types, pols, $
     plot_path = plot_path, plot_filebase = plot_filebase, save_path = save_path, savefilebase = savefilebase, $
+    note = note, $
     kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, plot_wedge_line = plot_wedge_line, $
     quiet = quiet, png = png, eps = eps
     
@@ -13,6 +14,10 @@ pro ps_difference_plots, info_files, cube_types, pols, $
   if n_elements(cube_types) eq 1 then cube_types = [cube_types, cube_types]
   if n_elements(pols) eq 1 then pols = [pols, pols]
   type_pol_str = cube_types + '_' + pols
+  
+  ;; default to including baseline axis & delay axis
+  if n_elements(baseline_axis) eq 0 then baseline_axis = 1
+  if n_elements(delay_axis) eq 0 then delay_axis = 1
   
   ;; default to blackman-harris spectral window
   if not keyword_set(no_spec_window) then begin
@@ -31,6 +36,8 @@ pro ps_difference_plots, info_files, cube_types, pols, $
   cube_ind1 = where(file_struct_arr1.type_pol_str eq type_pol_str[0], count_typepol)
   if count_typepol eq 0 then message, 'type ' + cube_types[0] + ' not included in info_file: ' + info_files[0]
   
+  power2dfile_1 = file_struct_arr1[cube_ind1].savefile_froot + file_struct_arr1[cube_ind1].savefilebase + file_struct_arr1[cube_ind1].power_tag + '_2dkpower.idlsave'
+  
   power_file1 = file_struct_arr1[cube_ind1].power_savefile
   if file_test(power_file1) eq 0 then message, 'No power file for ' + type_pol_str[0] + ' and info_file: ' + info_files[0]
   
@@ -43,9 +50,10 @@ pro ps_difference_plots, info_files, cube_types, pols, $
   cube_ind2 = where(file_struct_arr2.type_pol_str eq type_pol_str[1], count_typepol)
   if count_typepol eq 0 then message, 'type ' + cube_types[1] + ' not included in info_file: ' + info_files[n_elements(info_files)-1]
   
+  power2dfile_2 = file_struct_arr2[cube_ind2].savefile_froot + file_struct_arr2[cube_ind2].savefilebase + file_struct_arr2[cube_ind2].power_tag + '_2dkpower.idlsave'
+  
   power_file2 = file_struct_arr2[cube_ind2].power_savefile
   if file_test(power_file2) eq 0 then message, 'No power file for ' + type_pol_str[1] + ' and info_file: ' + info_files[n_elements(info_files)-1]
-  
   
   kx1 = getvar_savefile(power_file1, 'kx_mpc')
   kx2 = getvar_savefile(power_file2, 'kx_mpc')
@@ -129,15 +137,15 @@ pro ps_difference_plots, info_files, cube_types, pols, $
   
   savefile = save_path + savefilebase + '.idlsave'
   if keyword_set(png) or keyword_set(eps) then pub = 1 else pub = 0
-  if pub then plotfile = plot_path + plot_filebase
-  
-  if n_elements(info_files) eq 1 then title = type_pol_str[0] + '-' + type_pol_str[1] else begin
-  
-    if count_diff eq 0 then title = file_struct_arr1[0].general_filebase + 'diff' $
-    else title = strjoin(fileparts_1[wh_diff]) + ' - !C' + strjoin(fileparts_2[wh_diff])
+  if pub then begin
+    plotfile = plot_path + plot_filebase
     
-  endelse
+    plotfile_2d_1 = plot_path + file_struct_arr1[cube_ind1].savefilebase + '_2dkpower'
+    plotfile_2d_2 = plot_path + file_struct_arr2[cube_ind2].savefilebase + '_2dkpower'
+  endif
   
+  title = type_pol_str[0] + '-' + type_pol_str[1]
+
   save, file = savefile, power, weights, kperp_edges, kpar_edges, kperp_bin, kpar_bin, $
     kperp_lambda_conv, delay_params, hubble_param
     
@@ -160,16 +168,23 @@ pro ps_difference_plots, info_files, cube_types, pols, $
     wedge_amp = [fov_amp, horizon_amp]
   endif else wedge_amp = 0d
   
+  if keyword_set(pub) then font = 1 else font = -1
+  
   if not keyword_set(quiet) then begin
-    kpower_2d_plots, savefile, kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
-      data_range = data_range, png = png, eps = eps, plotfile = plotfile, full_title=title, color_profile = 'sym_log', $
-      kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, wedge_amp = wedge_amp, plot_wedge_line = plot_wedge_line
+    kpower_2d_plots, power2dfile_1, kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
+      data_range = data_range, png = png, eps = eps, plotfile = plotfile_2d_1, full_title=title, window_num = 1, $
+      kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, baseline_axis = baseline_axis, delay_axis = delay_axis, $
+      wedge_amp = wedge_amp, plot_wedge_line = plot_wedge_line
       
-  ;kpower_2d_plots, savefile, /plot_weights, kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
-  ;  window_num = 2, full_title=title + 'Weights', $
-  ;  kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis
-      
-      
+    kpower_2d_plots, power2dfile_2, kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
+      data_range = data_range, png = png, eps = eps, plotfile = plotfile_2d_2, full_title=title, window_num = 2, $
+      kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, baseline_axis = baseline_axis, delay_axis = delay_axis, $
+      wedge_amp = wedge_amp, plot_wedge_line = plot_wedge_line
+
+    kpower_2d_plots, savefile, kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, note = note, $
+      data_range = diff_range, png = png, eps = eps, plotfile = plotfile, full_title=title, window_num = 3, color_profile = 'sym_log', $
+      kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, baseline_axis = baseline_axis, delay_axis = delay_axis, $
+      wedge_amp = wedge_amp, plot_wedge_line = plot_wedge_line
   endif
   
 end
