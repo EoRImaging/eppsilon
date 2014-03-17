@@ -103,7 +103,7 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
     ;; if max(conv_factor-conv_factor[0]) gt 1e-8 then stop else conv_factor = conv_factor[0]
     ;; conv_factor = float(2. * max_baseline^2. / (!pi * 1.38065))
   
-    ;; converting from Jy (in u,v,f) to mK*str (10^-26 * c^2 * 10^3/ (2*f^2*kb))
+    ;; converting from Jy (in u,v,f) to mK*str (10^-26 * c^2 * 10^-3/ (2*f^2*kb))
     conv_factor = float((3e8)^2 / (2. * (frequencies*1e6)^2. * 1.38065))
     
     ;; convert from mk*str to mK*Mpc^2
@@ -1106,6 +1106,7 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
   ;; convention (they down by a factor of 2) but they make more sense
   ;; and remove factors of 2 we'd otherwise have in the power
   ;; and variance calculations
+  ;; note that the 0th mode will have higher noise because there's half as many measurements going into it
   a1_0 = data_sum_ft[*,*,where(n_val eq 0)]
   a1_n = (data_sum_ft[*,*, where(n_val gt 0)] + data_sum_ft[*,*, reverse(where(n_val lt 0))])/2.
   b1_n = complex(0,1) * (data_sum_ft[*,*, where(n_val gt 0)] - data_sum_ft[*,*, reverse(where(n_val lt 0))])/2.
@@ -1155,13 +1156,13 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
     
     data_sum_cos = complex(fltarr(n_kx, n_ky, n_kz))
     data_sum_sin = complex(fltarr(n_kx, n_ky, n_kz))
-    data_sum_cos[*, *, 0] = a1_0 /2.
+    data_sum_cos[*, *, 0] = a1_0 ;/2. changed 3/12/14.
     data_sum_cos[*, *, 1:n_kz-1] = a1_n
     data_sum_sin[*, *, 1:n_kz-1] = b1_n
     if nfiles gt 1 then begin
       data_diff_cos = complex(fltarr(n_kx, n_ky, n_kz))
       data_diff_sin = complex(fltarr(n_kx, n_ky, n_kz))
-      data_diff_cos[*, *, 0] = a2_0 /2.
+      data_diff_cos[*, *, 0] = a2_0 ;/2. changed 3/12/14.
       data_diff_cos[*, *, 1:n_kz-1] = a2_n
       data_diff_sin[*, *, 1:n_kz-1] = b2_n
     endif
@@ -1206,8 +1207,9 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
       undefine, mask_fewfreq
     endif
     
-    ;; cos 0 term has different normalization
-    covar_cos[*,*,0] = covar_cos[*,*,0]/4d
+    ;; cos 0 term does NOT have a different normalization
+    ;; changed 3/12/14 -- the noise is higher in 0th bin because there are only half as many measurements
+    ;;covar_cos[*,*,0] = covar_cos[*,*,0]/4d
     undefine, sum_sigma2, freq_kz_arr, cos_arr, sin_arr
     
     ;; factor to go to eor theory FT convention
