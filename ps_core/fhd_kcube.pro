@@ -110,7 +110,7 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
     conv_factor = conv_factor * z_mpc_mean^2.
     
   endif else conv_factor = 1. + fltarr(n_freq)
- 
+  
   ;;t_sys = 440. ; K
   ;;t_sys = 280. * sqrt(2.)* ((1+redshifts)/7.5)^2.3 ;; from skew w/ stu + srt(2) for single pol -- Adam says wrong for Ian's normalization
   t_sys = 280. * ((1+redshifts)/7.5)^2.3 / sqrt(2.) ;; from skew w/ stu + srt(2) for single pol
@@ -138,8 +138,8 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
     wh_nan = where(finite(vis_sigma_adam) eq 0, count_nan)
     if count_nan gt 0 then vis_sigma_adam[wh_nan] = 0
   endif
-    
-  if n_elements(vis_sigma_ian) gt 0 then begin 
+  
+  if n_elements(vis_sigma_ian) gt 0 then begin
     if max(vis_sigma_ian) gt 5. then begin
       vis_sigma = vis_sigma_ian
       vs_name = 'ian'
@@ -828,6 +828,16 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
     
     uv_slice = uvf_slice(data_cube, kx_mpc, ky_mpc, frequencies, kperp_lambda_conv, delay_params, hubble_param, slice_axis = 2, $
       slice_inds = 0, slice_savefile = file_struct.uv_raw_savefile[i])
+      
+    if max(abs(uv_slice)) eq 0 then begin
+      nloop = 0
+      while max(abs(uv_slice)) eq 0 do begin
+        nloop = nloop+1
+        uv_slice = uvf_slice(data_cube, kx_mpc, ky_mpc, frequencies, kperp_lambda_conv, delay_params, hubble_param, slice_axis = 2, $
+          slice_inds = nloop, slice_savefile = file_struct.uv_raw_savefile[i])
+      endwhile
+    endif
+    
   endfor
   
   if healpix or keyword_set(image) then begin
@@ -979,6 +989,16 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
     
     uv_slice = uvf_slice(data_cube, kx_mpc, ky_mpc, frequencies, kperp_lambda_conv, delay_params, hubble_param, slice_axis = 2, $
       slice_inds = 0, slice_savefile = file_struct.uv_savefile[i])
+
+    if max(abs(uv_slice)) eq 0 then begin
+      nloop = 0
+      while max(abs(uv_slice)) eq 0 do begin
+        nloop = nloop+1
+        uv_slice = uvf_slice(data_cube, kx_mpc, ky_mpc, frequencies, kperp_lambda_conv, delay_params, hubble_param, slice_axis = 2, $
+          slice_inds = nloop, slice_savefile = file_struct.uv_savefile[i])
+      endwhile
+    endif
+
   endfor
   
   if nfiles eq 2 then begin
@@ -1058,8 +1078,29 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
   uv_slice = uvf_slice(data_sum, kx_mpc, ky_mpc, frequencies, kperp_lambda_conv, delay_params, hubble_param, slice_axis = 2, $
     slice_inds = 0, slice_savefile = file_struct.uv_sum_savefile)
   if nfiles eq 2 then $
-    uv_slice = uvf_slice(data_diff, kx_mpc, ky_mpc, frequencies, kperp_lambda_conv, delay_params, hubble_param, slice_axis = 2, $
-    slice_inds = 0, slice_savefile = file_struct.uv_diff_savefile)
+    uv_slice2 = uvf_slice(data_diff, kx_mpc, ky_mpc, frequencies, kperp_lambda_conv, delay_params, hubble_param, slice_axis = 2, $
+    slice_inds = 0, slice_savefile = file_struct.uv_diff_savefile) $
+  else uv_slice2 = uv_slice
+
+  test_uv = 1
+  if max(abs(uv_slice)) eq 0 then test_uv=0
+  if nfiles eq 2 then if max(uv_slice2) eq 0 and max(abs(data_diff)) gt 0 then test_uv=0
+  
+  if test_uv eq 0 then begin
+    nloop = 0
+    while test_uv eq 0 do begin
+      nloop = nloop+1
+      uv_slice = uvf_slice(data_sum, kx_mpc, ky_mpc, frequencies, kperp_lambda_conv, delay_params, hubble_param, $
+        slice_axis = 2, slice_inds = nloop, slice_savefile = file_struct.uv_sum_savefile)
+      if nfiles eq 2 then $
+        uv_slice2 = uvf_slice(data_diff, kx_mpc, ky_mpc, frequencies, kperp_lambda_conv, delay_params, hubble_param, $
+        slice_axis = 2, slice_inds = nloop, slice_savefile = file_struct.uv_diff_savefile)
+        
+      test_uv = 1
+      if max(abs(uv_slice)) eq 0 then test_uv=0
+      if nfiles eq 2 then if max(uv_slice2) eq 0 and max(abs(data_diff)) gt 0 then test_uv=0
+    endwhile
+  endif
     
   ;; apply spectral windowing function if desired
   if n_elements(spec_window_type) ne 0 then begin

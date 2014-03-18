@@ -446,7 +446,7 @@ pro kpower_2d_plots, power_savefile, multi_pos = multi_pos, start_multi_params =
     margin = [0.2, 0.2, 0.02, 0.1]
     if keyword_set(baseline_axis) and not keyword_set(no_title) then margin[3] = 0.15
     if keyword_set(delay_axis) then margin[2] = 0.07
-   endif else margin = margin_in
+  endif else margin = margin_in
   
   if n_elements(cb_margin_in) lt 2 then begin
     cb_margin = [0.2, 0.02]
@@ -484,7 +484,7 @@ pro kpower_2d_plots, power_savefile, multi_pos = multi_pos, start_multi_params =
       
     endif else kperp_length = max(kperp_log_edges) - min(kperp_log_edges)
   endelse
-  data_aspect = (kpar_length / kperp_length)
+  data_aspect = float(kpar_length / kperp_length)
   
   aspect_ratio =  data_aspect /plot_aspect
   if aspect_ratio gt 1 then begin
@@ -536,41 +536,18 @@ pro kpower_2d_plots, power_savefile, multi_pos = multi_pos, start_multi_params =
           ysize = round(base_size_use * y_factor * double(nrow))
         endwhile
       endif
-      
+           
       ;; if pub is set, start ps output
       if keyword_set(pub) then begin
-        ps_aspect = (y_factor * double(nrow)) / (x_factor * double(ncol))
+        ps_aspect = (y_factor * float(nrow)) / (x_factor * float(ncol))
         
-;        if ps_aspect gt 1. then begin
-          ; Now calculate the correct size on a Portrait page.
-          ps_xsize = 8.0
-          ps_ysize = ps_xsize * ps_aspect
-          IF ps_ysize GT 10.5 THEN BEGIN
-            ps_ysize = 10.5
-            ps_xsize = ps_ysize / ps_aspect
-          ENDIF
+        if ps_aspect lt 1 then landscape = 1 else landscape = 0
+        IF Keyword_Set(eps) THEN landscape = 0
+        sizes = PSWindow(LANDSCAPE=landscape, aspectRatio = ps_aspect)
+        
+        cgps_open, plotfile, /font, encapsulated=eps, /nomatch, inches=sizes.inches, xsize=sizes.xsize, ysize=sizes.ysize, $
+          xoffset=sizes.xoffset, yoffset=sizes.yoffset, landscape = landscape
           
-          ; Calculate the offsets, so the output window is not off the page.
-          ps_xoffset = (8.5 - ps_xsize) / 2.0
-          ps_yoffset = (11.0 - ps_ysize) / 2.0
-;        endif else begin
-;          ; Now calculate the correct size on a Landscape page.
-;          ps_xsize = 10.5
-;          ps_ysize = ps_xsize * ps_aspect
-;          IF ps_ysize GT 8.0 THEN BEGIN
-;            ps_ysize = 8.0
-;            ps_xsize = ps_ysize / ps_aspect
-;          ENDIF
-;          
-;          ; Calculate the offsets, so the output window is not off the page.
-;          ps_xoffset = (11.0 - ps_xsize) / 2.0
-;          ps_yoffset = (8.5 - ps_ysize) / 2.0
-;          
-;          landscape=1
-;        endelse
-        
-        cgps_open, plotfile, /font, encapsulated=eps, /nomatch, landscape = landscape, $
-          xsize = ps_xsize, ysize = ps_ysize, xoffset = ps_xoffset, yoffset = ps_yoffset
       endif else begin
         ;; make or set window
         if windowavailable(window_num) then begin
@@ -667,7 +644,7 @@ pro kpower_2d_plots, power_savefile, multi_pos = multi_pos, start_multi_params =
     ythick = 3
     if n_elements(charsize_in) eq 0 then begin
       if n_elements(multi_pos) gt 0 then begin
-        charsize = 1.5d * (multi_size[0]/10000.)
+        charsize = 1.2d * (mean(multi_size)/10000.)
       endif else charsize = 2
     endif else charsize = charsize_in
     
@@ -676,33 +653,10 @@ pro kpower_2d_plots, power_savefile, multi_pos = multi_pos, start_multi_params =
     if n_elements(multi_pos) eq 0 then begin
     
       ps_aspect = ysize / float(xsize)
-;      if ps_aspect gt 1. then begin
-        ; Now calculate the correct size on a Portrait page.
-        ps_xsize = 8.0
-        ps_ysize = ps_xsize * ps_aspect
-        IF ps_ysize GT 10.5 THEN BEGIN
-          ps_ysize = 10.5
-          ps_xsize = ps_ysize / ps_aspect
-        ENDIF
-        
-        ; Calculate the offsets, so the output window is not off the page.
-        ps_xoffset = (8.5 - ps_xsize) / 2.0
-        ps_yoffset = (11.0 - ps_ysize) / 2.0
-;      endif else begin
-;        ; Now calculate the correct size on a Landscape page.
-;        ps_xsize = 10.5
-;        ps_ysize = ps_xsize * ps_aspect
-;        IF ps_ysize GT 8.0 THEN BEGIN
-;          ps_ysize = 8.0
-;          ps_xsize = ps_ysize / ps_aspect
-;        ENDIF
-;        
-;        ; Calculate the offsets, so the output window is not off the page.
-;        ps_xoffset = (11.0 - ps_xsize) / 2.0
-;        ps_yoffset = (8.5 - ps_ysize) / 2.0
-;        
-;        landscape=1
-;      endelse
+      
+      if ps_aspect lt 1 then landscape = 1 else landscape = 0
+      IF Keyword_Set(eps) THEN landscape = 0
+      sizes = PSWindow(LANDSCAPE=landscape, aspectRatio = ps_aspect)
       
       cgps_open, plotfile, /font, encapsulated=eps, /nomatch, landscape = landscape, $
         xsize = ps_xsize, ysize = ps_ysize, xoffset = ps_xoffset, yoffset = ps_yoffset

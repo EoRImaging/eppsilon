@@ -518,17 +518,22 @@ pro fhd_data_plots, datafile, rts = rts, pol_inc = pol_inc, image = image, $
     endif
     
     if keyword_set(plot_slices) then begin
-      nrow = npol
-      
+    
       if keyword_set(kperp_linear_axis) then begin
         ;; aspect ratio doesn't work out for kperp_linear with multiple rows
+        nrow = 1
         if slice_type eq 'kspace' then ncol = ntype*npol else ncol = ntype*nfiles*npol
       endif else begin
-        if slice_type eq 'kspace' then ncol=ntype else ncol = ntype*nfiles
+        ncol=ntype
+        if slice_type eq 'kspace' then nrow = npol else nrow = npol*nfiles
       endelse
-      start_multi_params = {ncol:ncol, nrow:nrow, ordering:'row'}
       
-      if slice_type eq 'kspace' then ncol=ntype else ncol = ntype*nfiles
+      if slice_type eq 'raw' or slice_type eq 'divided' then begin
+        slice_titles = transpose(slice_titles)
+        uf_slice_savefile = transpose(uf_slice_savefile)
+        vf_slice_savefile = transpose(vf_slice_savefile)
+        uv_slice_savefile = transpose(uv_slice_savefile)
+      endif
       
       window_num = 7
       start_multi_params = {ncol:ncol, nrow:nrow, ordering:'row'}
@@ -536,12 +541,12 @@ pro fhd_data_plots, datafile, rts = rts, pol_inc = pol_inc, image = image, $
       
       for i=0, (nrow*ncol)-1 do begin
         if i gt 0 then  pos_use = positions[*,i]
-        if i eq n_cubes-1 and n_elements(note) gt 0 then note_use = note else undefine, note_use
+        if i eq (nrow*ncol)-1 and n_elements(note) gt 0 then note_use = note else undefine, note_use
         
         if slice_type eq 'kspace' then begin
           kpower_slice_plot, uf_slice_savefile[i], multi_pos = pos_use, start_multi_params = start_multi_params, png = png, eps = eps, $
             plotfile = uf_slice_plotfile, plot_xrange = kperp_plot_range, plot_yrange = kpar_plot_range, $
-            title_prefix = slice_titles[i], note = note_use, $
+            title_prefix = slice_titles[i], note = note_use, data_range = slice_range, $
             grey_scale = grey_scale, plot_wedge_line = plot_wedge_line, wedge_amp = wedge_amp, hinv = hinv, $
             baseline_axis = baseline_axis, delay_axis = delay_axis, linear_axes = kperp_linear_axis, $
             window_num = window_num
@@ -549,7 +554,7 @@ pro fhd_data_plots, datafile, rts = rts, pol_inc = pol_inc, image = image, $
         
           uvf_slice_plot, uf_slice_savefile[i], multi_pos = pos_use, start_multi_params = start_multi_params, png = png, eps = eps, $
             plotfile = uf_slice_plotfile, type = 'abs', title_prefix = slice_titles[i], note = note_use, $
-            grey_scale = grey_scale, hinv = hinv, $
+            grey_scale = grey_scale, hinv = hinv, data_range = slice_range, $
             baseline_axis = baseline_axis, window_num = window_num
         endelse
         
@@ -568,13 +573,13 @@ pro fhd_data_plots, datafile, rts = rts, pol_inc = pol_inc, image = image, $
       
       for i=0, (nrow*ncol)-1 do begin
         if i gt 0 then  pos_use = positions[*,i]
-        if i eq n_cubes-1 and n_elements(note) gt 0 then note_use = note else undefine, note_use
+        if i eq (nrow*ncol)-1 and n_elements(note) gt 0 then note_use = note else undefine, note_use
         
         if slice_type eq 'kspace' then begin
           kpower_slice_plot, vf_slice_savefile[i], multi_pos = pos_use, start_multi_params = start_multi_params, png = png, eps = eps, $
             plotfile = vf_slice_plotfile, $
             plot_xrange = kperp_plot_range, plot_yrange = kpar_plot_range, $
-            title_prefix = slice_titles[i], note = note_use, $
+            title_prefix = slice_titles[i], note = note_use, data_range = slice_range, $
             grey_scale = grey_scale, plot_wedge_line = plot_wedge_line, wedge_amp = wedge_amp, hinv = hinv, $
             baseline_axis = baseline_axis, delay_axis = delay_axis, linear_axes = kperp_linear_axis, $
             window_num = window_num
@@ -582,7 +587,7 @@ pro fhd_data_plots, datafile, rts = rts, pol_inc = pol_inc, image = image, $
         
           uvf_slice_plot, vf_slice_savefile[i], multi_pos = pos_use, start_multi_params = start_multi_params, png = png, eps = eps, $
             plotfile = vf_slice_plotfile, type = 'abs', title_prefix = slice_titles[i], note = note_use, $
-            grey_scale = grey_scale, hinv = hinv, $
+            grey_scale = grey_scale, hinv = hinv, data_range = slice_range, $
             baseline_axis = baseline_axis, window_num = window_num
         endelse
         
@@ -601,13 +606,13 @@ pro fhd_data_plots, datafile, rts = rts, pol_inc = pol_inc, image = image, $
       
       for i=0, (nrow*ncol)-1 do begin
         if i gt 0 then  pos_use = positions[*,i]
-        if i eq n_cubes-1 and n_elements(note) gt 0 then note_use = note else undefine, note_use
+        if i eq (nrow*ncol)-1 and n_elements(note) gt 0 then note_use = note else undefine, note_use
         
         if slice_type eq 'kspace' then begin
           kpower_slice_plot, uv_slice_savefile[i], multi_pos = pos_use, start_multi_params = start_multi_params, png = png, eps = eps, $
             plotfile = uv_slice_plotfile, $
             plot_xrange = kperp_plot_range, plot_yrange = kperp_plot_range, $
-            title_prefix = slice_titles[i], note = note_use, $
+            title_prefix = slice_titles[i], note = note_use, data_range = slice_range, $
             grey_scale = grey_scale, plot_wedge_line = plot_wedge_line, wedge_amp = wedge_amp, hinv = hinv, $
             baseline_axis = baseline_axis, delay_axis = delay_axis, linear_axes = kperp_linear_axis, $
             window_num = window_num
@@ -615,7 +620,7 @@ pro fhd_data_plots, datafile, rts = rts, pol_inc = pol_inc, image = image, $
         
           uvf_slice_plot, uv_slice_savefile[i], multi_pos = pos_use, start_multi_params = start_multi_params, png = png, eps = eps, $
             plotfile = uv_slice_plotfile, type = 'abs', title_prefix = slice_titles[i], note = note_use, $
-            grey_scale = grey_scale, hinv = hinv, $
+            grey_scale = grey_scale, hinv = hinv, data_range = slice_range, $
             baseline_axis = baseline_axis, window_num = window_num
         endelse
         
@@ -626,7 +631,6 @@ pro fhd_data_plots, datafile, rts = rts, pol_inc = pol_inc, image = image, $
       endfor
       if keyword_set(pub) then begin
         cgps_close, png = png, delete_ps = delete_ps
-        wdelete, window_num
       endif
       
     endif
