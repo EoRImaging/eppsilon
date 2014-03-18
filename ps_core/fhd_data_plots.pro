@@ -1,5 +1,6 @@
 pro fhd_data_plots, datafile, rts = rts, pol_inc = pol_inc, image = image, $
-    save_path = save_path, savefilebase = savefilebase, plot_path = plot_path, plot_filebase = plot_filebase, png = png, eps = eps, $
+    save_path = save_path, savefilebase = savefilebase, plot_path = plot_path, plot_filebase = plot_filebase, $
+    note = note, png = png, eps = eps, $
     refresh_dft = refresh_dft, refresh_ps = refresh_ps, refresh_binning = refresh_binning, refresh_info = refresh_info, $
     dft_fchunk = dft_fchunk, freq_ch_range = freq_ch_range, freq_flags = freq_flags, freq_flag_name = freq_flag_name, $
     no_spec_window = no_spec_window, spec_window_type = spec_window_type, $
@@ -176,7 +177,7 @@ pro fhd_data_plots, datafile, rts = rts, pol_inc = pol_inc, image = image, $
   
   
   restore, savefiles_2d[0]
-  if n_elements(vs_name) ne 0 then note = vs_name + ': ~' + number_formatter(vs_mean, format = '(f10.2)')
+  if n_elements(vs_name) ne 0 then vs_note = vs_name + ': ~' + number_formatter(vs_mean, format = '(f10.2)')
   ;;   baselines = get_baselines(/quiet, freq_mhz = 185)
   ;;   quick_histplot, baselines, title = spec_window_type, xstyle=1, ystyle = 8, xrange = [0, max(kperp_edges)*kperp_lambda_conv], $
   ;;                   position = [.1, .1, .9, .9], ytitle = 'number of baselines', xtitle = 'Baseline length ' + textoidl('(\lambda)')
@@ -313,21 +314,21 @@ pro fhd_data_plots, datafile, rts = rts, pol_inc = pol_inc, image = image, $
   if keyword_set(pub) and keyword_set(individual_plots) then begin
     for i=0, n_cubes-1 do kpower_2d_plots, savefiles_2d[i], png = png, eps = eps, plotfile = plotfiles_2d[i], $
       kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
-      data_range = data_range, title_prefix = titles[i], grey_scale = grey_scale, $
-      plot_wedge_line = plot_wedge_line, hinv = hinv, $
+      data_range = data_range, title_prefix = titles[i], note = note, $
+      grey_scale = grey_scale, plot_wedge_line = plot_wedge_line, hinv = hinv, $
       wedge_amp = wedge_amp, baseline_axis = baseline_axis, delay_axis = delay_axis, $
       kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis
       
     for i=0, npol -1 do kpower_2d_plots, savefiles_2d[i], /plot_sigma, png = png, eps = eps, plotfile = plotfiles_2d_error[i],$
       kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
-      data_range = sigma_range, title_prefix = pol_inc[i], note = note, $
+      data_range = sigma_range, title_prefix = pol_inc[i], note = note + ' ' + vs_note, $
       grey_scale = grey_scale, plot_wedge_line = plot_wedge_line, hinv = hinv, $
       wedge_amp = wedge_amp, baseline_axis = baseline_axis, delay_axis = delay_axis, $
       kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis
       
     for i=0, npol -1 do kpower_2d_plots, savefiles_2d[i], /plot_exp_noise, png = png, eps = eps, plotfile = plotfiles_2d_noise_expval[i],$
       kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
-      data_range = nev_range, title_prefix = pol_inc[i], note = note, $
+      data_range = nev_range, title_prefix = pol_inc[i], note = note + ' ' + vs_note, $
       grey_scale = grey_scale, plot_wedge_line = plot_wedge_line, hinv = hinv, $
       wedge_amp = wedge_amp, baseline_axis = baseline_axis, delay_axis = delay_axis, $
       kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis
@@ -335,7 +336,7 @@ pro fhd_data_plots, datafile, rts = rts, pol_inc = pol_inc, image = image, $
       
     for i=0, n_cubes-1 do kpower_2d_plots, savefiles_2d[i], png = png, eps = eps, /snr, plotfile = plotfiles_2d_snr[i], $
       kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
-      data_range = snr_range, title_prefix = titles[i], $
+      data_range = snr_range, title_prefix = titles[i], note = note, $
       grey_scale = grey_scale, plot_wedge_line = plot_wedge_line, hinv = hinv, $
       wedge_amp = wedge_amp, baseline_axis = baseline_axis, delay_axis = delay_axis, $
       kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis
@@ -343,14 +344,14 @@ pro fhd_data_plots, datafile, rts = rts, pol_inc = pol_inc, image = image, $
     if nfiles eq 2 then begin
       for i=0, n_cubes-1 do kpower_2d_plots, savefiles_2d[i], png = png, eps = eps, /plot_noise, plotfile = plotfiles_2d_noise[i], $
         kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
-        data_range = noise_range, title_prefix = titles[i], note = note, $
+        data_range = noise_range, title_prefix = titles[i], note = note + ' ' + vs_note, $
         grey_scale = grey_scale, plot_wedge_line = plot_wedge_line, hinv = hinv, $
         wedge_amp = wedge_amp, baseline_axis = baseline_axis, delay_axis = delay_axis, $
         kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis
         
       for i=0, n_cubes-1 do kpower_2d_plots, savefiles_2d[i], png = png, eps = eps, /nnr, plotfile = plotfiles_2d_nnr[i], $
         kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
-        data_range = nnr_range, title_prefix = titles[i], note = note, $
+        data_range = nnr_range, title_prefix = titles[i], note = note + ' ' + vs_note, $
         grey_scale = grey_scale, plot_wedge_line = plot_wedge_line, hinv = hinv, $
         wedge_amp = wedge_amp, baseline_axis = baseline_axis, delay_axis = delay_axis, $
         kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis
@@ -370,11 +371,12 @@ pro fhd_data_plots, datafile, rts = rts, pol_inc = pol_inc, image = image, $
     window_num = 1
     for i=0, n_cubes-1 do begin
       if i gt 0 then  pos_use = positions[*,i]
+      if i eq n_cubes-1 and n_elements(note) gt 0 then note_use = note else undefine, note_use
       
       kpower_2d_plots, savefiles_2d[i], multi_pos = pos_use, start_multi_params = start_multi_params, png = png, eps = eps, $
         plotfile = plotfiles_2d, kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
-        data_range = data_range, title_prefix = titles[i], grey_scale = grey_scale, $
-        plot_wedge_line = plot_wedge_line, hinv = hinv, $
+        data_range = data_range, title_prefix = titles[i], note = note_use, $
+        grey_scale = grey_scale, plot_wedge_line = plot_wedge_line, hinv = hinv, $
         wedge_amp = wedge_amp, baseline_axis = baseline_axis, delay_axis = delay_axis, $
         kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, window_num = window_num
         
@@ -401,7 +403,7 @@ pro fhd_data_plots, datafile, rts = rts, pol_inc = pol_inc, image = image, $
     window_num = 2
     for i=0, npol*2-1 do begin
       if i gt 0 then pos_use = positions[*,i]
-      if i eq npol*2-1 and n_elements(note) gt 0 then note_use = note else undefine, note_use
+      if i eq npol*2-1 and n_elements(note) gt 0 then note_use = note + ' ' + vs_note else undefine, note_use
       
       pol_ind = i / 2
       
@@ -445,11 +447,12 @@ pro fhd_data_plots, datafile, rts = rts, pol_inc = pol_inc, image = image, $
     ;;snr_range = [1e0, 1e6]
     for i=0, n_cubes-1 do begin
       if i gt 0 then  pos_use = positions[*,i]
+      if i eq n_cubes-1 and n_elements(note) gt 0 then note_use = note else undefine, note_use
       
       kpower_2d_plots, savefiles_2d[i], /snr, multi_pos = pos_use, start_multi_params = start_multi_params, png = png, eps = eps, $
-        plotfile = plotfiles_2d_snr, $
-        kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, data_range = snr_range, $
-        title_prefix = titles[i], grey_scale = grey_scale, plot_wedge_line = plot_wedge_line, wedge_amp = wedge_amp, $
+        plotfile = plotfiles_2d_snr, kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
+        data_range = snr_range, title_prefix = titles[i], note = note_use, $
+        grey_scale = grey_scale, plot_wedge_line = plot_wedge_line, wedge_amp = wedge_amp, $
         hinv = hinv, baseline_axis = baseline_axis, delay_axis = delay_axis, kperp_linear_axis = kperp_linear_axis, $
         kpar_linear_axis = kpar_linear_axis, window_num = window_num
       if i eq 0 then begin
@@ -470,7 +473,7 @@ pro fhd_data_plots, datafile, rts = rts, pol_inc = pol_inc, image = image, $
       ;;noise_range = [1e18, 1e22]
       for i=0, n_cubes-1 do begin
         if i gt 0 then  pos_use = positions[*,i]
-        if i eq n_cubes-1 and n_elements(note) gt 0 then note_use = note else undefine, note_use
+        if i eq n_cubes-1 and n_elements(note) gt 0 then note_use = note + ' ' + vs_note else undefine, note_use
         
         kpower_2d_plots, savefiles_2d[i], /plot_noise, multi_pos = pos_use, start_multi_params = start_multi_params, png = png, eps = eps, $
           plotfile = plotfiles_2d_noise, $
@@ -494,7 +497,7 @@ pro fhd_data_plots, datafile, rts = rts, pol_inc = pol_inc, image = image, $
       
       for i=0, n_cubes-1 do begin
         if i gt 0 then  pos_use = positions[*,i]
-        if i eq n_cubes-1 and n_elements(note) gt 0 then note_use = note else undefine, note_use
+        if i eq n_cubes-1 and n_elements(note) gt 0 then note_use = note + ' ' + vs_note else undefine, note_use
         
         kpower_2d_plots, savefiles_2d[i], /nnr, multi_pos = pos_use, start_multi_params = start_multi_params, png = png, eps = eps, $
           plotfile = plotfiles_2d_nnr, $
@@ -533,18 +536,19 @@ pro fhd_data_plots, datafile, rts = rts, pol_inc = pol_inc, image = image, $
       
       for i=0, (nrow*ncol)-1 do begin
         if i gt 0 then  pos_use = positions[*,i]
+        if i eq n_cubes-1 and n_elements(note) gt 0 then note_use = note else undefine, note_use
         
         if slice_type eq 'kspace' then begin
           kpower_slice_plot, uf_slice_savefile[i], multi_pos = pos_use, start_multi_params = start_multi_params, png = png, eps = eps, $
             plotfile = uf_slice_plotfile, plot_xrange = kperp_plot_range, plot_yrange = kpar_plot_range, $
-            title_prefix = slice_titles[i], $
+            title_prefix = slice_titles[i], note = note_use, $
             grey_scale = grey_scale, plot_wedge_line = plot_wedge_line, wedge_amp = wedge_amp, hinv = hinv, $
             baseline_axis = baseline_axis, delay_axis = delay_axis, linear_axes = kperp_linear_axis, $
             window_num = window_num
         endif else begin
         
           uvf_slice_plot, uf_slice_savefile[i], multi_pos = pos_use, start_multi_params = start_multi_params, png = png, eps = eps, $
-            plotfile = uf_slice_plotfile, type = 'abs', title_prefix = slice_titles[i], $
+            plotfile = uf_slice_plotfile, type = 'abs', title_prefix = slice_titles[i], note = note_use, $
             grey_scale = grey_scale, hinv = hinv, $
             baseline_axis = baseline_axis, window_num = window_num
         endelse
@@ -564,19 +568,20 @@ pro fhd_data_plots, datafile, rts = rts, pol_inc = pol_inc, image = image, $
       
       for i=0, (nrow*ncol)-1 do begin
         if i gt 0 then  pos_use = positions[*,i]
+        if i eq n_cubes-1 and n_elements(note) gt 0 then note_use = note else undefine, note_use
         
         if slice_type eq 'kspace' then begin
           kpower_slice_plot, vf_slice_savefile[i], multi_pos = pos_use, start_multi_params = start_multi_params, png = png, eps = eps, $
             plotfile = vf_slice_plotfile, $
             plot_xrange = kperp_plot_range, plot_yrange = kpar_plot_range, $
-            title_prefix = slice_titles[i], $
+            title_prefix = slice_titles[i], note = note_use, $
             grey_scale = grey_scale, plot_wedge_line = plot_wedge_line, wedge_amp = wedge_amp, hinv = hinv, $
             baseline_axis = baseline_axis, delay_axis = delay_axis, linear_axes = kperp_linear_axis, $
             window_num = window_num
         endif else begin
         
           uvf_slice_plot, vf_slice_savefile[i], multi_pos = pos_use, start_multi_params = start_multi_params, png = png, eps = eps, $
-            plotfile = vf_slice_plotfile, type = 'abs', title_prefix = slice_titles[i], $
+            plotfile = vf_slice_plotfile, type = 'abs', title_prefix = slice_titles[i], note = note_use, $
             grey_scale = grey_scale, hinv = hinv, $
             baseline_axis = baseline_axis, window_num = window_num
         endelse
@@ -596,19 +601,20 @@ pro fhd_data_plots, datafile, rts = rts, pol_inc = pol_inc, image = image, $
       
       for i=0, (nrow*ncol)-1 do begin
         if i gt 0 then  pos_use = positions[*,i]
+        if i eq n_cubes-1 and n_elements(note) gt 0 then note_use = note else undefine, note_use
         
         if slice_type eq 'kspace' then begin
           kpower_slice_plot, uv_slice_savefile[i], multi_pos = pos_use, start_multi_params = start_multi_params, png = png, eps = eps, $
             plotfile = uv_slice_plotfile, $
             plot_xrange = kperp_plot_range, plot_yrange = kperp_plot_range, $
-            title_prefix = slice_titles[i], $
+            title_prefix = slice_titles[i], note = note_use, $
             grey_scale = grey_scale, plot_wedge_line = plot_wedge_line, wedge_amp = wedge_amp, hinv = hinv, $
             baseline_axis = baseline_axis, delay_axis = delay_axis, linear_axes = kperp_linear_axis, $
             window_num = window_num
         endif else begin
         
           uvf_slice_plot, uv_slice_savefile[i], multi_pos = pos_use, start_multi_params = start_multi_params, png = png, eps = eps, $
-            plotfile = uv_slice_plotfile, type = 'abs', title_prefix = slice_titles[i], $
+            plotfile = uv_slice_plotfile, type = 'abs', title_prefix = slice_titles[i], note = note_use, $
             grey_scale = grey_scale, hinv = hinv, $
             baseline_axis = baseline_axis, window_num = window_num
         endelse

@@ -257,6 +257,7 @@ pro hellebore_wrapper, folder_name, rts = rts, version = version, refresh_dft = 
     if n_elements(obs_range) eq 1 then integrated = 0 else if obs_range[1] - obs_range[0] gt 0 then integrated = 1 else integrated = 0
     
     plot_filebase = fhd_type + '_' + obs_name
+    note = fhd_type
     
     if n_elements(set_data_ranges) eq 0 then set_data_ranges = 1
     if keyword_set(set_data_ranges) then begin
@@ -388,7 +389,7 @@ pro hellebore_wrapper, folder_name, rts = rts, version = version, refresh_dft = 
     plot_slices = plot_slices, slice_type = slice_type, $
     data_range = data_range, sigma_range = sigma_range, nev_range = nev_range, snr_range = snr_range, noise_range = noise_range, nnr_range = nnr_range, $
     baseline_axis = baseline_axis, delay_axis = delay_axis, hinv = hinv, $
-    plot_wedge_line = plot_wedge_line, grey_scale = grey_scale, individual_plots = individual_plots, png = png, eps = eps
+    plot_wedge_line = plot_wedge_line, grey_scale = grey_scale, individual_plots = individual_plots, note = note, png = png, eps = eps
     
     
   if not keyword_set(set_data_ranges) then begin
