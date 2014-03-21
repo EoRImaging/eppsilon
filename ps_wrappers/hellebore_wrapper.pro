@@ -22,7 +22,7 @@ pro hellebore_wrapper, folder_name, rts = rts, version = version, refresh_dft = 
   
     ;datafile = file_search(base_path('data') + 'rts_data/wellington_data2/*idlcube.idlsave')
   
-    if n_elements(folder_name) eq 0 then folder_name = base_path('data') + 'rts_data/aug26'
+    if n_elements(folder_name) eq 0 then folder_name = base_path('data') + 'rts_data/aug23'
     
     ;; check for folder existence, otherwise look for common folder names to figure out full path. If none found, try base_path('data') + 'fhd_ps_data/128T_cubes/'
     folder_test = file_test(folder_name, /directory)
@@ -91,7 +91,7 @@ pro hellebore_wrapper, folder_name, rts = rts, version = version, refresh_dft = 
           obs_name = obs_name_arr[0]
         endelse
         
-       endif
+      endif
       
       ;; now get weights & variance files
       weightfiles = file_search(folder_name + '/' + obs_name + '*_weights*.fits', count = n_wtfiles)
@@ -109,6 +109,17 @@ pro hellebore_wrapper, folder_name, rts = rts, version = version, refresh_dft = 
     plot_filebase = rts_type + '_' + obs_name
     
     
+    if n_elements(set_data_ranges) eq 0 then set_data_ranges = 1
+    if keyword_set(set_data_ranges) then begin
+      sigma_range = [1e15, 1e17]
+      nev_range = [1e16, 1e18]
+      
+      data_range = [1e6, 2e13]
+      nnr_range = [1e-8, 1e-6]
+      snr_range = [1e-10, 1e-2]
+      
+      noise_range = [1e9, 1e12]
+    endif
     
     
     
