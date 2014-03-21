@@ -27,6 +27,8 @@ pro ps_difference_plots, info_files, cube_types, pols, $
   ;; default to plot wedge line
   if n_elements(plot_wedge_line) eq 0 then plot_wedge_line=1
   
+  ;; default to hinv
+  if n_elements(hinv) eq 0 then hinv = 1
   
   file_struct_arr1 = fhd_file_setup(info_files[0], pol_inc, spec_window_type = spec_window_type)
   
@@ -145,11 +147,14 @@ pro ps_difference_plots, info_files, cube_types, pols, $
   endif
   
   title = type_pol_str[0] + '-' + type_pol_str[1]
-
+  
   save, file = savefile, power, weights, kperp_edges, kpar_edges, kperp_bin, kpar_bin, $
     kperp_lambda_conv, delay_params, hubble_param
     
-    
+  kperp_plot_range = [5./kperp_lambda_conv, min([file_struct_arr1.kspan/2.,file_struct_arr1.max_baseline_lambda])/kperp_lambda_conv]
+  
+  if keyword_set(hinv) then kperp_plot_range = kperp_plot_range / hubble_param
+  
   if keyword_set(plot_wedge_line) then begin
     z0_freq = 1420.40 ;; MHz
     redshifts1 = z0_freq/file_struct_arr1[0].frequencies - 1
@@ -174,17 +179,17 @@ pro ps_difference_plots, info_files, cube_types, pols, $
     kpower_2d_plots, power2dfile_1, kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
       data_range = data_range, png = png, eps = eps, plotfile = plotfile_2d_1, full_title=title, window_num = 1, $
       kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, baseline_axis = baseline_axis, delay_axis = delay_axis, $
-      wedge_amp = wedge_amp, plot_wedge_line = plot_wedge_line
+      wedge_amp = wedge_amp, plot_wedge_line = plot_wedge_line, hinv = hinv
       
     kpower_2d_plots, power2dfile_2, kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
       data_range = data_range, png = png, eps = eps, plotfile = plotfile_2d_2, full_title=title, window_num = 2, $
       kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, baseline_axis = baseline_axis, delay_axis = delay_axis, $
-      wedge_amp = wedge_amp, plot_wedge_line = plot_wedge_line
-
+      wedge_amp = wedge_amp, plot_wedge_line = plot_wedge_line, hinv = hinv
+      
     kpower_2d_plots, savefile, kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, note = note, $
       data_range = diff_range, png = png, eps = eps, plotfile = plotfile, full_title=title, window_num = 3, color_profile = 'sym_log', $
       kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, baseline_axis = baseline_axis, delay_axis = delay_axis, $
-      wedge_amp = wedge_amp, plot_wedge_line = plot_wedge_line
+      wedge_amp = wedge_amp, plot_wedge_line = plot_wedge_line, hinv = hinv
   endif
   
 end
