@@ -304,16 +304,23 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
             rot_matrix = get_rot_matrix(theta0, phi0, /inverse)
             new_pix_vec = rot_matrix ## pix_center_vec
             
+            ;; then rotate to make as rectangular as possible
+            pred_angle = healpix_rot(new_pix_vec[*,0], new_pix_vec[*,1])
+            
+            x_rot = new_pix_vec[*,0] * cos(pred_angle) - new_pix_vec[*,1] * sin(pred_angle)
+            y_rot = new_pix_vec[*,0] * sin(pred_angle) + new_pix_vec[*,1] * cos(pred_angle)
+            
+            
           endif else begin
             ;; gridded image to dft to parallel Healpix computation
             pix_size_rad = abs(file_struct.degpix) * !pi / 180d
             x_vec = (findgen(dims[0]) - dims[0]/2.) * pix_size_rad
             y_vec = (findgen(dims[1]) - dims[1]/2.) * pix_size_rad
             
-            new_pix_vec = fltarr(dims[0]*dims[1], 3)
-            new_pix_vec[*,0] = reform(rebin(x_vec, dims[0], dims[1], /sample), dims[0]*dims[1])
-            new_pix_vec[*,1] = reform(rebin(reform(y_vec, 1, dims[1]), dims[0], dims[1], /sample), dims[0]*dims[1])
-            new_pix_vec[*,2] = 1.
+            x_rot = fltarr(dims[0]*dims[1])
+            y_rot = fltarr(dims[0]*dims[1])
+            x_rot = reform(rebin(x_vec, dims[0], dims[1], /sample), dims[0]*dims[1])
+            y_rot = reform(rebin(reform(y_vec, 1, dims[1]), dims[0], dims[1], /sample), dims[0]*dims[1])
           endelse
           
           ;; figure out k values to calculate dft
@@ -330,16 +337,51 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
             if keyword_set(cut_image) then begin
               ;; limit field of view to match calculated k-modes
               xy_len = 1/delta_u_lambda
-              wh_close = where(new_pix_vec[*,0] le xy_len/2 and new_pix_vec[*,0] ge -1*xy_len/2 and $
-                new_pix_vec[*,1] le xy_len/2 and new_pix_vec[*,1] ge -1*xy_len/2, count_close, $
+              wh_close = where(x_rot le xy_len/2 and x_rot ge -1*xy_len/2 and $
+                y_rot le xy_len/2 and y_rot ge -1*xy_len/2, count_close, $
                 ncomplement = count_far)
-              if count_far ne 0 then new_pix_vec = new_pix_vec[wh_close, *] else begin
+              if count_far ne 0 then begin
+                x_rot = x_rot[wh_close]
+                y_rot = y_rot[wh_close]
+              endif else begin
                 ;; image may be smaller than expected, may need to adjust delta_kperp_rad
-                image_len = max(sqrt(new_pix_vec[*,0]^2. + new_pix_vec[*,1]^2.))*2.
-                if image_len/xy_len lt .9 then begin
+              
+                ;; get surrounding pixels
+                dists = sqrt((pix_center_vec[*,0]-vec_mid[0])^2d + (pix_center_vec[*,1]-vec_mid[1])^2d + (pix_center_vec[*,2]-vec_mid[2])^2d)
+                radius = max(dists)*1.1
+                query_disc, file_struct.nside, vec_mid, radius, listpix, nlist, /inc
+                min_pix = min([pixel_nums1, listpix])
+                wh2 = where(histogram(listpix, min=min_pix) eq 0 and histogram(pixel_nums1, min=min_pix) gt 0, count2)
+                while count2 gt 0 do begin
+                  radius = radius*1.1
+                  query_disc, nside, vec_mid, radius, listpix, nlist, /inc
+                  min_pix = min([pixel_nums1, listpix])
+                  wh2 = where(histogram(listpix, min=min_pix) eq 0 and histogram(pixel_nums1, min=min_pix) gt 0, count2)
+                endwhile
+                
+                ;; remove pixels from listpix that are in my image -- only want nearby pixels not in my image
+                min_pix = min([pixel_nums1, listpix])
+                max_pix = max([pixel_nums1, listpix])
+                wh = where(histogram(listpix, min = min_pix, max = max_pix) gt 0 and histogram(pixel_nums1, min = min_pix, max = max_pix) eq 0, count_out)
+                if count_out gt 0 then outside_pix = wh + min_pix else stop
+                pix2vec_ring, file_struct.nside, outside_pix, out_center_vec
+                new_out_vec = rot_matrix ## out_center_vec
+                x_out_rot = new_out_vec[*,0] * cos(pred_angle) - new_out_vec[*,1] * sin(pred_angle)
+                y_out_rot = new_out_vec[*,0] * sin(pred_angle) + new_out_vec[*,1] * cos(pred_angle)
+                limits = healpix_limits(x_rot, y_rot, x_out_rot, y_out_rot)
+                
+                image_len = min([limits[2]-limits[0],limits[3]-limits[1]])
+                if image_len lt xy_len then begin
                   print, 'Image FoV is smaller than expected, increasing delta kperp to match image FoV'
-                  delta_kperp_rad = 1/image_len
-                endif
+                  delta_kperp_rad = 1./image_len
+                  
+                  wh_close = where(x_rot le (limits[0]+image_len) and x_rot ge limits[0] and $
+                    y_rot le (limits[1]+image_len) and y_rot ge limits[1], count_close, $
+                    ncomplement = count_far)
+                endif else wh_close = where(x_rot le (limits[0]+xy_len) and x_rot ge limits[0] and $
+                  y_rot le (limits[1]+xy_len) and y_rot ge limits[1], count_close, $
+                  ncomplement = count_far)
+                  
               endelse
             endif else count_far = 0
             
@@ -364,16 +406,51 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
             if keyword_set(cut_image) then begin
               ;; limit field of view to match calculated k-modes
               xy_len = 2*!pi/delta_kperp_rad
-              wh_close = where(new_pix_vec[*,0] le xy_len/2 and new_pix_vec[*,0] ge -1*xy_len/2 and $
-                new_pix_vec[*,1] le xy_len/2 and new_pix_vec[*,1] ge -1*xy_len/2, count_close, $
+              wh_close = where(x_rot le xy_len/2 and x_rot ge -1*xy_len/2 and $
+                y_rot le xy_len/2 and y_rot ge -1*xy_len/2, count_close, $
                 ncomplement = count_far)
-              if count_far ne 0 then new_pix_vec = new_pix_vec[wh_close, *] else begin
+              if count_far ne 0 then begin
+                x_rot = x_rot[wh_close]
+                y_rot = y_rot[wh_close]
+              endif else begin
                 ;; image may be smaller than expected, may need to adjust delta_kperp_rad
-                image_len = max(sqrt(new_pix_vec[*,0]^2. + new_pix_vec[*,1]^2.))*2.
-                if image_len/xy_len lt .9 then begin
+              
+                ;; get surrounding pixels
+                dists = sqrt((pix_center_vec[*,0]-vec_mid[0])^2d + (pix_center_vec[*,1]-vec_mid[1])^2d + (pix_center_vec[*,2]-vec_mid[2])^2d)
+                radius = max(dists)*1.1
+                query_disc, file_struct.nside, vec_mid, radius, listpix, nlist, /inc
+                min_pix = min([pixel_nums1, listpix])
+                wh2 = where(histogram(listpix, min=min_pix) eq 0 and histogram(pixel_nums1, min=min_pix) gt 0, count2)
+                while count2 gt 0 do begin
+                  radius = radius*1.1
+                  query_disc, nside, vec_mid, radius, listpix, nlist, /inc
+                  min_pix = min([pixel_nums1, listpix])
+                  wh2 = where(histogram(listpix, min=min_pix) eq 0 and histogram(pixel_nums1, min=min_pix) gt 0, count2)
+                endwhile
+                
+                ;; remove pixels from listpix that are in my image -- only want nearby pixels not in my image
+                min_pix = min([pixel_nums1, listpix])
+                max_pix = max([pixel_nums1, listpix])
+                wh = where(histogram(listpix, min = min_pix, max = max_pix) gt 0 and histogram(pixel_nums1, min = min_pix, max = max_pix) eq 0, count_out)
+                if count_out gt 0 then outside_pix = wh + min_pix else stop
+                pix2vec_ring, file_struct.nside, outside_pix, out_center_vec
+                new_out_vec = rot_matrix ## out_center_vec
+                x_out_rot = new_out_vec[*,0] * cos(pred_angle) - new_out_vec[*,1] * sin(pred_angle)
+                y_out_rot = new_out_vec[*,0] * sin(pred_angle) + new_out_vec[*,1] * cos(pred_angle)
+                limits = healpix_limits(x_rot, y_rot, x_out_rot, y_out_rot)
+                
+                image_len = min([limits[2]-limits[0],limits[3]-limits[1]])
+                if image_len lt xy_len then begin
                   print, 'Image FoV is smaller than expected, increasing delta kperp to match image FoV'
                   delta_kperp_rad = 2*!pi/image_len
-                endif
+                  
+                  wh_close = where(x_rot le (limits[0]+image_len) and x_rot ge limits[0] and $
+                    y_rot le (limits[1]+image_len) and y_rot ge limits[1], count_close, $
+                    ncomplement = count_far)
+                endif else wh_close = where(x_rot le (limits[0]+xy_len) and x_rot ge limits[0] and $
+                  y_rot le (limits[1]+xy_len) and y_rot ge limits[1], count_close, $
+                  ncomplement = count_far)
+                  
               endelse
             endif else count_far = 0
             
@@ -405,10 +482,10 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
             if n_elements(freq_flags) ne 0 then arr = arr * rebin(reform(freq_mask, 1, n_elements(file_struct.frequencies)), size(arr, /dimension), /sample)
             
             if keyword_set(dft_ian) then begin
-              transform = discrete_ft_2D_fast(new_pix_vec[*,0], new_pix_vec[*,1], arr, u_lambda_vals, v_lambda_vals, /exp2pi, $
+              transform = discrete_ft_2D_fast(x_rot, y_rot, arr, u_lambda_vals, v_lambda_vals, /exp2pi, $
                 timing = ft_time, fchunk = dft_fchunk)
             endif else begin
-              transform = discrete_ft_2D_fast(new_pix_vec[*,0], new_pix_vec[*,1], arr, kx_rad_vals, ky_rad_vals, $
+              transform = discrete_ft_2D_fast(x_rot, y_rot, arr, kx_rad_vals, ky_rad_vals, $
                 timing = ft_time, fchunk = dft_fchunk)
             endelse
             data_cube = temporary(transform)
@@ -437,10 +514,10 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
             if n_elements(freq_flags) ne 0 then arr = arr * rebin(reform(freq_mask, 1, n_elements(file_struct.frequencies)), size(arr, /dimension), /sample)
             
             if keyword_set(dft_ian) then begin
-              transform = discrete_ft_2D_fast(new_pix_vec[*,0], new_pix_vec[*,1], arr, u_lambda_vals, v_lambda_vals, /exp2pi, $
+              transform = discrete_ft_2D_fast(x_rot, y_rot, arr, u_lambda_vals, v_lambda_vals, /exp2pi, $
                 timing = ft_time, fchunk = dft_fchunk)
             endif else begin
-              transform = discrete_ft_2D_fast(new_pix_vec[*,0], new_pix_vec[*,1], arr, kx_rad_vals, ky_rad_vals, $
+              transform = discrete_ft_2D_fast(x_rot, y_rot, arr, kx_rad_vals, ky_rad_vals, $
                 timing = ft_time, fchunk = dft_fchunk)
             endelse
             
@@ -464,10 +541,10 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
               if n_elements(freq_flags) ne 0 then arr = arr * rebin(reform(freq_mask, 1, n_elements(file_struct.frequencies)), size(arr, /dimension), /sample)
               
               if keyword_set(dft_ian) then begin
-                transform = discrete_ft_2D_fast(new_pix_vec[*,0], new_pix_vec[*,1], arr, u_lambda_vals, v_lambda_vals, /exp2pi, $
+                transform = discrete_ft_2D_fast(x_rot, y_rot, arr, u_lambda_vals, v_lambda_vals, /exp2pi, $
                   timing = ft_time, fchunk = dft_fchunk)
               endif else begin
-                transform = discrete_ft_2D_fast(new_pix_vec[*,0], new_pix_vec[*,1], arr, kx_rad_vals, ky_rad_vals, $
+                transform = discrete_ft_2D_fast(x_rot, y_rot, arr, kx_rad_vals, ky_rad_vals, $
                   timing = ft_time, fchunk = dft_fchunk)
               endelse
               variance_cube = abs(temporary(transform)) ;; make variances real, positive definite (amplitude)
@@ -989,7 +1066,7 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
     
     uv_slice = uvf_slice(data_cube, kx_mpc, ky_mpc, frequencies, kperp_lambda_conv, delay_params, hubble_param, slice_axis = 2, $
       slice_inds = 0, slice_savefile = file_struct.uv_savefile[i])
-
+      
     if max(abs(uv_slice)) eq 0 then begin
       nloop = 0
       while max(abs(uv_slice)) eq 0 do begin
@@ -998,7 +1075,7 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
           slice_inds = nloop, slice_savefile = file_struct.uv_savefile[i])
       endwhile
     endif
-
+    
   endfor
   
   if nfiles eq 2 then begin
@@ -1081,7 +1158,7 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
     uv_slice2 = uvf_slice(data_diff, kx_mpc, ky_mpc, frequencies, kperp_lambda_conv, delay_params, hubble_param, slice_axis = 2, $
     slice_inds = 0, slice_savefile = file_struct.uv_diff_savefile) $
   else uv_slice2 = uv_slice
-
+  
   test_uv = 1
   if max(abs(uv_slice)) eq 0 then test_uv=0
   if nfiles eq 2 then if max(uv_slice2) eq 0 and max(abs(data_diff)) gt 0 then test_uv=0
@@ -1101,7 +1178,7 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
       if nfiles eq 2 then if max(uv_slice2) eq 0 and max(abs(data_diff)) gt 0 then test_uv=0
     endwhile
   endif
-    
+  
   ;; apply spectral windowing function if desired
   if n_elements(spec_window_type) ne 0 then begin
     window = spectral_window(n_freq, type = spec_window_type, /periodic)
