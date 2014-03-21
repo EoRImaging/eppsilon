@@ -100,31 +100,16 @@ pro fhd_3dps, file_struct, refresh = refresh, kcube_refresh = kcube_refresh, dft
       n_ky = n_elements(ky_mpc)
       n_kz = n_elements(kz_mpc)
       
-      if keyword_set(std_power) then begin
-        cube1_an = complex(fltarr(n_kx, n_ky, n_kz))
-        cube1_an[*,*,0] = temporary(a1_0)/2d
-        cube1_an[*,*,1:n_kz-1] = temporary(a1_n)/sqrt(2d)
-        cube1_bn = complex(fltarr(n_kx, n_ky, n_kz))
-        cube1_bn[*,*,1:n_kz-1] = temporary(b1_n)/sqrt(2d)
-        
+      if keyword_set(std_power) then begin        
         sigsqr = fltarr(n_kx, n_ky, n_kz)
         sigsqr[*,*,0] = temporary(sigma_a0)/2d
-        sigsqr[*,*,1:n_kz-1] = temporary(sigma_an_bn)
+        sigsqr[*,*,1:n_kz-1] = temporary(sigma_an_bn)        
         
-        cube2_an = complex(fltarr(n_kx, n_ky, n_kz))
-        cube2_an[*,*,0] = temporary(a2_0)/2d
-        cube2_an[*,*,1:n_kz-1] = temporary(a2_n)/sqrt(2d)
-        cube2_bn = complex(fltarr(n_kx, n_ky, n_kz))
-        cube2_bn[*,*,1:n_kz-1] = temporary(b2_n)/sqrt(2d)
+        term1 = (abs(data_sum_cos)^2. - abs(data_diff_cos)^2.)
+        term2 = (abs(data_sum_sin)^2. - abs(data_diff_sin)^2.)
+        noise_3d = abs(data_diff_cos)^2. + abs(data_diff_sin)^2.
+        undefine, sum_an, diff_an, sum_bn, diff_bn
         
-        
-        term1 = 4. * real_part(cube1_an * conj(cube2_an))
-        term2 = 4. * real_part(cube1_bn * conj(cube2_bn))
-        noise_3d = abs(cube1_an - cube2_an)^2. + abs(cube1_bn - cube2_bn)^2.
-        undefine, cube1_an, cube2_an, cube1_bn, cube2_bn
-        
-        ;;power_main = abs(term1 + term2)
-        ;;power_cross = abs(term3 + term4)
         power_3d = term1 + term2
         undefine, term1, term2
         

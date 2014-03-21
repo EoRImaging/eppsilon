@@ -1163,6 +1163,36 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
   kz_mpc = kz_mpc_orig[where(n_val ge 0)]
   n_kz = n_elements(kz_mpc)
   
+  ;; drop pixels with less than 1/3 of the frequencies (set weights to 0)
+  wh_fewfreq = where(n_freq_contrib lt ceil(n_freq/3d), count_fewfreq)
+  if count_fewfreq gt 0 then begin
+    mask_fewfreq = n_freq_contrib * 0 + 1
+    mask_fewfreq[wh_fewfreq] = 0
+    mask_fewfreq = rebin(temporary(mask_fewfreq), n_kx, n_ky, n_kz)
+    
+    a1_0 = temporary(a1_0) * mask_fewfreq[*,*,0]
+    a1_n = temporary(a1_n) * mask_fewfreq[*,*,1:*]
+    b1_n = temporary(b1_n) * mask_fewfreq[*,*,1:*]
+    if nfiles gt 1 then begin
+      a2_0 = temporary(a2_0) * mask_fewfreq[*,*,0]
+      a2_n = temporary(a2_n) * mask_fewfreq[*,*,1:*]
+      b2_n = temporary(b2_n) * mask_fewfreq[*,*,1:*]
+    endif
+  endif
+  
+  data_sum_cos = complex(fltarr(n_kx, n_ky, n_kz))
+  data_sum_sin = complex(fltarr(n_kx, n_ky, n_kz))
+  data_sum_cos[*, *, 0] = a1_0 ;/2. changed 3/12/14.
+  data_sum_cos[*, *, 1:n_kz-1] = a1_n
+  data_sum_sin[*, *, 1:n_kz-1] = b1_n
+  if nfiles gt 1 then begin
+    data_diff_cos = complex(fltarr(n_kx, n_ky, n_kz))
+    data_diff_sin = complex(fltarr(n_kx, n_ky, n_kz))
+    data_diff_cos[*, *, 0] = a2_0 ;/2. changed 3/12/14.
+    data_diff_cos[*, *, 1:n_kz-1] = a2_n
+    data_diff_sin[*, *, 1:n_kz-1] = b2_n
+  endif
+  
   if keyword_set(std_power) then begin
     ;; for standard power calc. just need ft of sigma2 (sigma has squared units relative to data, so use z_mpc_delta^2d)
     sigma2_ft = fft(sum_sigma2, dimension=3) * n_freq * z_mpc_delta^2. / (2.*!pi)
@@ -1173,41 +1203,12 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
     sigma_an_bn = sqrt(abs(sigma2_ft[*,*, where(n_val gt 0)])^2. + abs(sigma2_ft[*,*, reverse(where(n_val lt 0))])^2.)/2.
     undefine, sigma2_ft
     
-    save, file = file_struct.kcube_savefile, a1_0, a1_n, b1_n, a2_0, a2_n, b2_n, sigma_a0, sigma_an_bn, $
+    save, file = file_struct.kcube_savefile, data_sum_cos, data_sum_sin, data_diff_cos, data_diff_sin, sigma_a0, sigma_an_bn, $
       kx_mpc, ky_mpc, kz_mpc, kperp_lambda_conv, delay_params, hubble_param, n_freq_contrib, freq_mask, vs_name, vs_mean
       
   endif else begin
   
-    ;; drop pixels with less than 1/3 of the frequencies (set weights to 0)
-    wh_fewfreq = where(n_freq_contrib lt ceil(n_freq/3d), count_fewfreq)
-    if count_fewfreq gt 0 then begin
-      mask_fewfreq = n_freq_contrib * 0 + 1
-      mask_fewfreq[wh_fewfreq] = 0
-      mask_fewfreq = rebin(temporary(mask_fewfreq), n_kx, n_ky, n_kz)
-      
-      a1_0 = temporary(a1_0) * mask_fewfreq[*,*,0]
-      a1_n = temporary(a1_n) * mask_fewfreq[*,*,1:*]
-      b1_n = temporary(b1_n) * mask_fewfreq[*,*,1:*]
-      if nfiles gt 1 then begin
-        a2_0 = temporary(a2_0) * mask_fewfreq[*,*,0]
-        a2_n = temporary(a2_n) * mask_fewfreq[*,*,1:*]
-        b2_n = temporary(b2_n) * mask_fewfreq[*,*,1:*]
-      endif
-    endif
-    
-    data_sum_cos = complex(fltarr(n_kx, n_ky, n_kz))
-    data_sum_sin = complex(fltarr(n_kx, n_ky, n_kz))
-    data_sum_cos[*, *, 0] = a1_0 ;/2. changed 3/12/14.
-    data_sum_cos[*, *, 1:n_kz-1] = a1_n
-    data_sum_sin[*, *, 1:n_kz-1] = b1_n
-    if nfiles gt 1 then begin
-      data_diff_cos = complex(fltarr(n_kx, n_ky, n_kz))
-      data_diff_sin = complex(fltarr(n_kx, n_ky, n_kz))
-      data_diff_cos[*, *, 0] = a2_0 ;/2. changed 3/12/14.
-      data_diff_cos[*, *, 1:n_kz-1] = a2_n
-      data_diff_sin[*, *, 1:n_kz-1] = b2_n
-    endif
-    
+  
     ;; for new power calc, need cos2, sin2, cos*sin transforms
     ;; have to do this in a for loop for memory's sake
     covar_cos = fltarr(n_kx, n_ky, n_kz)
@@ -1270,6 +1271,9 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
     sigma2_1 = covar_cos*cos_theta^2. + 2.*covar_cross*cos_theta*sin_theta + covar_sin*sin_theta^2.
     sigma2_2 = covar_cos*sin_theta^2. - 2.*covar_cross*cos_theta*sin_theta + covar_sin*cos_theta^2.
     
+    ;    sigma2_1 = covar_cos
+    ;    sigma2_2 = covar_sin
+    
     undefine, covar_cos, covar_sin, covar_cross
     
     data_sum_1 = data_sum_cos*cos_theta + data_sum_sin*sin_theta
@@ -1280,6 +1284,15 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
       data_diff_2 = (-1d)*data_diff_cos*sin_theta + data_diff_sin*cos_theta
       undefine, data_diff_cos, data_diff_sin
     endif
+    
+    ;    data_sum_1 = data_sum_cos
+    ;    data_sum_2 = data_sum_sin
+    ;    undefine, data_sum_cos, data_sum_sin
+    ;    if nfiles eq 2 then begin
+    ;      data_diff_1 = data_diff_cos
+    ;      data_diff_2 = data_diff_sin
+    ;      undefine, data_diff_cos, data_diff_sin
+    ;    endif
     
     save, file = file_struct.kcube_savefile, data_sum_1, data_sum_2, data_diff_1, data_diff_2, sigma2_1, sigma2_2, $
       kx_mpc, ky_mpc, kz_mpc, kperp_lambda_conv, delay_params, hubble_param, n_freq_contrib, freq_mask, vs_name, vs_mean
