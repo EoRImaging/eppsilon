@@ -482,10 +482,10 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
             if n_elements(freq_flags) ne 0 then arr = arr * rebin(reform(freq_mask, 1, n_elements(file_struct.frequencies)), size(arr, /dimension), /sample)
             
             if keyword_set(dft_ian) then begin
-              transform = discrete_ft_2D_fast(x_rot, y_rot, arr, u_lambda_vals, v_lambda_vals, /exp2pi, $
+              transform = discrete_ft_2D_fast(x_rot[wh_close], y_rot[wh_close], arr, u_lambda_vals, v_lambda_vals, /exp2pi, $
                 timing = ft_time, fchunk = dft_fchunk)
             endif else begin
-              transform = discrete_ft_2D_fast(x_rot, y_rot, arr, kx_rad_vals, ky_rad_vals, $
+              transform = discrete_ft_2D_fast(x_rot[wh_close], y_rot[wh_close], arr, kx_rad_vals, ky_rad_vals, $
                 timing = ft_time, fchunk = dft_fchunk)
             endelse
             data_cube = temporary(transform)
@@ -514,10 +514,10 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
             if n_elements(freq_flags) ne 0 then arr = arr * rebin(reform(freq_mask, 1, n_elements(file_struct.frequencies)), size(arr, /dimension), /sample)
             
             if keyword_set(dft_ian) then begin
-              transform = discrete_ft_2D_fast(x_rot, y_rot, arr, u_lambda_vals, v_lambda_vals, /exp2pi, $
+              transform = discrete_ft_2D_fast(x_rot[wh_close], y_rot[wh_close], arr, u_lambda_vals, v_lambda_vals, /exp2pi, $
                 timing = ft_time, fchunk = dft_fchunk)
             endif else begin
-              transform = discrete_ft_2D_fast(x_rot, y_rot, arr, kx_rad_vals, ky_rad_vals, $
+              transform = discrete_ft_2D_fast(x_rot[wh_close], y_rot[wh_close], arr, kx_rad_vals, ky_rad_vals, $
                 timing = ft_time, fchunk = dft_fchunk)
             endelse
             
@@ -541,10 +541,10 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
               if n_elements(freq_flags) ne 0 then arr = arr * rebin(reform(freq_mask, 1, n_elements(file_struct.frequencies)), size(arr, /dimension), /sample)
               
               if keyword_set(dft_ian) then begin
-                transform = discrete_ft_2D_fast(x_rot, y_rot, arr, u_lambda_vals, v_lambda_vals, /exp2pi, $
+                transform = discrete_ft_2D_fast(x_rot[wh_close], y_rot[wh_close], arr, u_lambda_vals, v_lambda_vals, /exp2pi, $
                   timing = ft_time, fchunk = dft_fchunk)
               endif else begin
-                transform = discrete_ft_2D_fast(x_rot, y_rot, arr, kx_rad_vals, ky_rad_vals, $
+                transform = discrete_ft_2D_fast(x_rot[wh_close], y_rot[wh_close], arr, kx_rad_vals, ky_rad_vals, $
                   timing = ft_time, fchunk = dft_fchunk)
               endelse
               variance_cube = abs(temporary(transform)) ;; make variances real, positive definite (amplitude)
