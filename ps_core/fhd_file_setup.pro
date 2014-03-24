@@ -551,10 +551,15 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
     n_freqbins = n_freq / n_avg
     frequencies = dblarr(n_freqbins)
     if n_elements(vis_noise) gt 0 then vis_noise_avg = fltarr(npol, n_freqbins)
-    for i=0, n_freqbins-1 do begin
-      frequencies[i] = mean(freq[i*n_avg:i*n_avg+(n_avg-1)]) / 1e6 ;; in MHz
-      if n_elements(vis_noise) gt 0 then vis_noise_avg[*, i] = sqrt(total(vis_noise[*, i*n_avg:i*n_avg+(n_avg-1)]^2., 2))
-    endfor
+    if n_avg gt 1 then begin
+      for i=0, n_freqbins-1 do begin
+        frequencies[i] = mean(freq[i*n_avg:i*n_avg+(n_avg-1)]) / 1e6 ;; in MHz
+        if n_elements(vis_noise) gt 0 then vis_noise_avg[*, i] = sqrt(total(vis_noise[*, i*n_avg:i*n_avg+(n_avg-1)]^2., 2))
+      endfor
+    endif else begin
+      frequencies = freq / 1e6 ;; in MHz
+      if n_elements(vis_noise) gt 0 then vis_noise_avg = vis_noise
+    endelse
     if n_elements(vis_noise) gt 0 then vis_noise = vis_noise_avg
     
     metadata_struct = {datafile: datafile, weightfile: weightfile, variancefile:variancefile, $
