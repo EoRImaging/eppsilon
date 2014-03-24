@@ -5,7 +5,7 @@ pro fhd_data_plots, datafile, rts = rts, pol_inc = pol_inc, image = image, $
     dft_fchunk = dft_fchunk, freq_ch_range = freq_ch_range, freq_flags = freq_flags, freq_flag_name = freq_flag_name, $
     no_spec_window = no_spec_window, spec_window_type = spec_window_type, $
     cut_image = cut_image, dft_ian = dft_ian, noise_sim = noise_sim, std_power = std_power, no_kzero = no_kzero, $
-    plot_slices = plot_slices, slice_type = slice_type, $
+    plot_slices = plot_slices, slice_type = slice_type, uvf_plot_type = uvf_plot_type, $
     data_range = data_range, sigma_range = sigma_range, nev_range = nev_range, $
     snr_range = snr_range, noise_range = noise_range, nnr_range = nnr_range, $
     log_kpar = log_kpar, log_kperp = log_kperp, kpar_bin = kpar_bin, kperp_bin = kperp_bin, log_k1d = log_k1d, $
@@ -244,6 +244,13 @@ pro fhd_data_plots, datafile, rts = rts, pol_inc = pol_inc, image = image, $
     if count_slice_type eq 0 then begin
       print, 'slice_type not recognized, using default'
       slice_type = 'sumdiff'
+    endif
+    
+    if slice_type ne 'kspace' then begin
+      uvf_type_enum = ['abs', 'phase', 'real', 'imaginary']
+      if n_elements(uvf_plot_type) eq 0 then type = 'abs'
+      wh = where(uvf_type_enum eq uvf_plot_type, count_uvf_type)
+      if count_uvf_type eq 0 then message, 'unknown uvf_plot_type. Use one of: ' + print, strjoin(uvf_type_enum, ', ')
     endif
     
     if pub then begin
@@ -553,8 +560,8 @@ pro fhd_data_plots, datafile, rts = rts, pol_inc = pol_inc, image = image, $
         endif else begin
         
           uvf_slice_plot, uf_slice_savefile[i], multi_pos = pos_use, start_multi_params = start_multi_params, png = png, eps = eps, $
-            plotfile = uf_slice_plotfile, type = 'abs', title_prefix = slice_titles[i], note = note_use, $
-            grey_scale = grey_scale, hinv = hinv, data_range = slice_range, $
+            plotfile = uf_slice_plotfile, type = uvf_plot_type, title_prefix = slice_titles[i], note = note_use, $
+            grey_scale = grey_scale, hinv = hinv, data_range = slice_range, /log, $
             baseline_axis = baseline_axis, window_num = window_num
         endelse
         
@@ -586,8 +593,8 @@ pro fhd_data_plots, datafile, rts = rts, pol_inc = pol_inc, image = image, $
         endif else begin
         
           uvf_slice_plot, vf_slice_savefile[i], multi_pos = pos_use, start_multi_params = start_multi_params, png = png, eps = eps, $
-            plotfile = vf_slice_plotfile, type = 'abs', title_prefix = slice_titles[i], note = note_use, $
-            grey_scale = grey_scale, hinv = hinv, data_range = slice_range, $
+            plotfile = vf_slice_plotfile, type = uvf_plot_type, title_prefix = slice_titles[i], note = note_use, $
+            grey_scale = grey_scale, hinv = hinv, data_range = slice_range, /log, $
             baseline_axis = baseline_axis, window_num = window_num
         endelse
         
@@ -619,8 +626,8 @@ pro fhd_data_plots, datafile, rts = rts, pol_inc = pol_inc, image = image, $
         endif else begin
         
           uvf_slice_plot, uv_slice_savefile[i], multi_pos = pos_use, start_multi_params = start_multi_params, png = png, eps = eps, $
-            plotfile = uv_slice_plotfile, type = 'abs', title_prefix = slice_titles[i], note = note_use, $
-            grey_scale = grey_scale, hinv = hinv, data_range = slice_range, $
+            plotfile = uv_slice_plotfile, type = uvf_plot_type, title_prefix = slice_titles[i], note = note_use, $
+            grey_scale = grey_scale, hinv = hinv, data_range = slice_range, /log, $
             baseline_axis = baseline_axis, window_num = window_num
         endelse
         
