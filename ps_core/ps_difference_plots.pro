@@ -59,13 +59,13 @@ pro ps_difference_plots, info_files, cube_types, pols, $
   
   kx1 = getvar_savefile(power_file1, 'kx_mpc')
   kx2 = getvar_savefile(power_file2, 'kx_mpc')
-  if n_elements(kx1) ne n_elements(kx2) or total(abs(kx1 - kx2)) ne 0 then message, 'kx_mpc does not match between cubes'
+  if n_elements(kx1) ne n_elements(kx2) or max(abs(kx1 - kx2)) gt 1e-3 then message, 'kx_mpc does not match between cubes'
   ky1 = getvar_savefile(power_file1, 'ky_mpc')
   ky2 = getvar_savefile(power_file2, 'ky_mpc')
-  if n_elements(ky1) ne n_elements(ky2) or total(abs(ky1 - ky2)) ne 0 then message, 'ky_mpc does not match between cubes'
+  if n_elements(ky1) ne n_elements(ky2) or max(abs(ky1 - ky2)) gt 1e-3 then message, 'ky_mpc does not match between cubes'
   kz1 = getvar_savefile(power_file1, 'kz_mpc')
   kz2 = getvar_savefile(power_file2, 'kz_mpc')
-  if n_elements(kz1) ne n_elements(kz2) or total(abs(kz1 - kz2)) ne 0 then message, 'kz_mpc does not match between cubes'
+  if n_elements(kz1) ne n_elements(kz2) or max(abs(kz1 - kz2)) gt 1e-3 then message, 'kz_mpc does not match between cubes'
   
   ;; if kx, ky, and kz are all the same these should be too
   kperp_lambda_conv = getvar_savefile(power_file1, 'kperp_lambda_conv')
