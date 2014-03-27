@@ -337,12 +337,9 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
             if keyword_set(cut_image) then begin
               ;; limit field of view to match calculated k-modes
               xy_len = 1/delta_u_lambda
-              wh_close = where(x_rot le xy_len/2 and x_rot ge -1*xy_len/2 and $
-                y_rot le xy_len/2 and y_rot ge -1*xy_len/2, count_close, $
-                ncomplement = count_far)
-                
+              
               ;; image may be smaller than expected, may need to adjust delta_kperp_rad
-                
+              
               ;; get surrounding pixels
               dists = sqrt((pix_center_vec[*,0]-vec_mid[0])^2d + (pix_center_vec[*,1]-vec_mid[1])^2d + (pix_center_vec[*,2]-vec_mid[2])^2d)
               radius = max(dists)*1.1
@@ -372,11 +369,11 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
                 print, 'Image FoV is smaller than expected, increasing delta kperp to match image FoV'
                 delta_kperp_rad = 1./image_len
                 
-                wh_close = where(x_rot le (limits[0]+image_len) and x_rot ge limits[0] and $
-                  y_rot le (limits[1]+image_len) and y_rot ge limits[1], count_close, $
+                wh_close = where(x_rot le image_len/2. and x_rot ge -1.*image_len/2. and $
+                  y_rot le image_len/2. and y_rot ge -1.*image_len/2., count_close, $
                   ncomplement = count_far)
-              endif else wh_close = where(x_rot le (limits[0]+xy_len) and x_rot ge limits[0] and $
-                y_rot le (limits[1]+xy_len) and y_rot ge limits[1], count_close, $
+              endif else wh_close = where(x_rot le xy_len/2. and x_rot ge -1.*xy_len/2. and $
+                y_rot le xy_len/2. and y_rot ge -1.*xy_len/2., count_close, $
                 ncomplement = count_far)
                 
             endif else count_far = 0
@@ -402,12 +399,9 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
             if keyword_set(cut_image) then begin
               ;; limit field of view to match calculated k-modes
               xy_len = 2*!pi/delta_kperp_rad
-              wh_close = where(x_rot le xy_len/2 and x_rot ge -1*xy_len/2 and $
-                y_rot le xy_len/2 and y_rot ge -1*xy_len/2, count_close, $
-                ncomplement = count_far)
-                
+              
               ;; image may be smaller than expected, may need to adjust delta_kperp_rad
-                
+              
               ;; get surrounding pixels
               dists = sqrt((pix_center_vec[*,0]-vec_mid[0])^2d + (pix_center_vec[*,1]-vec_mid[1])^2d + (pix_center_vec[*,2]-vec_mid[2])^2d)
               radius = max(dists)*1.1
@@ -437,14 +431,33 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
                 print, 'Image FoV is smaller than expected, increasing delta kperp to match image FoV'
                 delta_kperp_rad = 2*!pi/image_len
                 
-                wh_close = where(x_rot le (limits[0]+image_len) and x_rot ge limits[0] and $
-                  y_rot le (limits[1]+image_len) and y_rot ge limits[1], count_close, $
+                wh_close = where(x_rot le image_len/2. and x_rot ge -1.*image_len/2. and $
+                  y_rot le image_len/2. and y_rot ge -1.*image_len/2., count_close, $
                   ncomplement = count_far)
-              endif else wh_close = where(x_rot le (limits[0]+xy_len) and x_rot ge limits[0] and $
-                y_rot le (limits[1]+xy_len) and y_rot ge limits[1], count_close, $
+              endif else wh_close = where(x_rot le xy_len/2. and x_rot ge -1.*xy_len/2. and $
+                y_rot le xy_len/2. and y_rot ge -1.*xy_len/2., count_close, $
                 ncomplement = count_far)
                 
             endif else count_far = 0
+            
+            ;; for deciding on pixel sets:
+            ;            consv_delta_kperp_rad = 4.5* mean(frequencies*1e6) * z_mpc_mean / (3e8 * kperp_lambda_conv)
+            ;            consv_xy_len = 2*!pi/consv_delta_kperp_rad
+            ;            radius = consv_xy_len/2.*sqrt(2)*1.1
+            ;            query_disc, file_struct.nside, vec_mid, radius, listpix, nlist, /inc
+            ;            pix2vec_ring, file_struct.nside, listpix, list_center_vec
+            ;            new_list_vec = rot_matrix ## list_center_vec
+            ;            x_list_rot = new_list_vec[*,0] * cos(pred_angle) - new_list_vec[*,1] * sin(pred_angle)
+            ;            y_list_rot = new_list_vec[*,0] * sin(pred_angle) + new_list_vec[*,1] * cos(pred_angle)
+            ;            cgplot, x_list_rot, y_list_rot, psym=3
+            ;            consv_lims = [-1*consv_xy_len/2., -1*consv_xy_len/2., consv_xy_len/2., consv_xy_len/2.]
+            ;            cgpolygon, reform(rebin(consv_lims[[0,2]], 2,2),4), reform(rebin(reform(consv_lims[[1,3]],1,2), 2,2),4), color='aqua'
+            ;            wh_listpix_close = where(x_list_rot ge consv_lims[0] and x_list_rot le consv_lims[2] and $
+            ;              y_list_rot ge consv_lims[1] and y_list_rot le consv_lims[3], count_list_close)
+            ;            hpx_inds = listpix[wh_listpix_close]
+            ;            stop
+            ;            save, file='/Users/bryna/Documents/Physics/FHD/Observations/EoR0_low_healpix_inds.idlsave', hpx_inds
+            
             
             n_kperp = round(max_kperp_rad / delta_kperp_rad) * 2 + 1
             kx_rad_vals = (findgen(n_kperp) - (n_kperp-1)/2) * delta_kperp_rad
