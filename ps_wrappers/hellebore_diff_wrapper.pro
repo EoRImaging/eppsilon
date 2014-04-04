@@ -81,8 +81,12 @@ pro hellebore_diff_wrapper, folder_names, cube_types = cube_types, pols = pols, 
       if strmid(folder_names[0], 0,1) eq path_sep() then joint_path = path_sep() + joint_path
       
       
-      fnameparts_1 = strsplit(file_basename(folder_names[0]), '_', /extract)
-      fnameparts_2 = strsplit(file_basename(folder_names[1]), '_', /extract)
+      fnameparts_1 = strsplit(file_basename(folder_names[0]), '_', /extract, count = nfileparts_1)
+      fnameparts_2 = strsplit(file_basename(folder_names[1]), '_', /extract, count = nfileparts_2)
+      if nfileparts_1 ne nfileparts_2 then begin
+        if nfileparts_1 gt nfileparts_2 then fnameparts_2 = [fnameparts_2, strarr(nfileparts_1-nfileparts_2)] $
+        else fnameparts_1 = [fnameparts_1, strarr(nfileparts_2-nfileparts_1)]
+      endif
       match_name_test = strcmp(fnameparts_1, fnameparts_2)
       wh_name_diff = where(match_name_test eq 0, count_name_diff, complement = wh_name_same, ncomplement = count_name_same)
       
@@ -90,8 +94,26 @@ pro hellebore_diff_wrapper, folder_names, cube_types = cube_types, pols = pols, 
         diff_dir = file_basename(folder_names[0]) + '_diff'
         note = strjoin(folderparts_1[wh_diff], path_sep()) + ' - ' + strjoin(folderparts_2[wh_diff], path_sep()) + ' ' + file_basename(folder_names[0])
       endif else begin
-        diff_dir = strjoin(fnameparts_1[wh_name_same], '_') + '__' + strjoin(fnameparts_1[wh_name_diff], '_') + '_minus_' + strjoin(fnameparts_2[wh_name_diff], '_')
-        note = strjoin(fnameparts_1[wh_name_same], '_') + ' ' + strjoin(fnameparts_1[wh_name_diff], '_') + ' - ' + strjoin(fnameparts_2[wh_name_diff], '_')
+        if min(wh_name_diff) gt nfileparts_1 or min(wh_name_diff) gt nfileparts_2 then begin
+          wh_name_diff = [max(wh_name_same), wh_name_diff]
+          count_name_diff = count_name_diff + 1
+          if count_name_same gt 1 then begin
+            wh_name_same = wh_name_same[0:count_name_same-2]
+            count_name_same = count_name_same-1
+          endif else count_name_same = 0
+        endif
+        
+        str1_diff = strjoin(fnameparts_1[wh_name_diff[where((wh_name_diff lt nfileparts_1) gt 0)]], '_')
+        str2_diff = strjoin(fnameparts_2[wh_name_diff[where((wh_name_diff lt nfileparts_2) gt 0)]], '_')
+        
+        if count_name_same gt 0 then begin
+          str_same = strjoin(fnameparts_1[wh_name_same], '_')
+          diff_dir = str_same + '__' + str1_diff + '_minus_' + str2_diff
+          note = str_same + ' ' + str1_diff + ' - ' + str2_diff
+        endif else begin
+          diff_dir = str1_diff + '_minus_' + str2_diff
+          note = str1_diff + ' - ' + str2_diff
+        endelse
       endelse
       
       save_path = joint_path + path_sep() + diff_dir + path_sep()
