@@ -337,12 +337,9 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
             if keyword_set(cut_image) then begin
               ;; limit field of view to match calculated k-modes
               xy_len = 1/delta_u_lambda
-              wh_close = where(x_rot le xy_len/2 and x_rot ge -1*xy_len/2 and $
-                y_rot le xy_len/2 and y_rot ge -1*xy_len/2, count_close, $
-                ncomplement = count_far)
-                
+              
               ;; image may be smaller than expected, may need to adjust delta_kperp_rad
-                
+              
               ;; get surrounding pixels
               dists = sqrt((pix_center_vec[*,0]-vec_mid[0])^2d + (pix_center_vec[*,1]-vec_mid[1])^2d + (pix_center_vec[*,2]-vec_mid[2])^2d)
               radius = max(dists)*1.1
@@ -372,11 +369,11 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
                 print, 'Image FoV is smaller than expected, increasing delta kperp to match image FoV'
                 delta_kperp_rad = 1./image_len
                 
-                wh_close = where(x_rot le (limits[0]+image_len) and x_rot ge limits[0] and $
-                  y_rot le (limits[1]+image_len) and y_rot ge limits[1], count_close, $
+                wh_close = where(x_rot le image_len/2. and x_rot ge -1.*image_len/2. and $
+                  y_rot le image_len/2. and y_rot ge -1.*image_len/2., count_close, $
                   ncomplement = count_far)
-              endif else wh_close = where(x_rot le (limits[0]+xy_len) and x_rot ge limits[0] and $
-                y_rot le (limits[1]+xy_len) and y_rot ge limits[1], count_close, $
+              endif else wh_close = where(x_rot le xy_len/2. and x_rot ge -1.*xy_len/2. and $
+                y_rot le xy_len/2. and y_rot ge -1.*xy_len/2., count_close, $
                 ncomplement = count_far)
                 
             endif else count_far = 0
@@ -402,12 +399,9 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
             if keyword_set(cut_image) then begin
               ;; limit field of view to match calculated k-modes
               xy_len = 2*!pi/delta_kperp_rad
-              wh_close = where(x_rot le xy_len/2 and x_rot ge -1*xy_len/2 and $
-                y_rot le xy_len/2 and y_rot ge -1*xy_len/2, count_close, $
-                ncomplement = count_far)
-                
+              
               ;; image may be smaller than expected, may need to adjust delta_kperp_rad
-                
+              
               ;; get surrounding pixels
               dists = sqrt((pix_center_vec[*,0]-vec_mid[0])^2d + (pix_center_vec[*,1]-vec_mid[1])^2d + (pix_center_vec[*,2]-vec_mid[2])^2d)
               radius = max(dists)*1.1
@@ -437,14 +431,33 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
                 print, 'Image FoV is smaller than expected, increasing delta kperp to match image FoV'
                 delta_kperp_rad = 2*!pi/image_len
                 
-                wh_close = where(x_rot le (limits[0]+image_len) and x_rot ge limits[0] and $
-                  y_rot le (limits[1]+image_len) and y_rot ge limits[1], count_close, $
+                wh_close = where(x_rot le image_len/2. and x_rot ge -1.*image_len/2. and $
+                  y_rot le image_len/2. and y_rot ge -1.*image_len/2., count_close, $
                   ncomplement = count_far)
-              endif else wh_close = where(x_rot le (limits[0]+xy_len) and x_rot ge limits[0] and $
-                y_rot le (limits[1]+xy_len) and y_rot ge limits[1], count_close, $
+              endif else wh_close = where(x_rot le xy_len/2. and x_rot ge -1.*xy_len/2. and $
+                y_rot le xy_len/2. and y_rot ge -1.*xy_len/2., count_close, $
                 ncomplement = count_far)
                 
             endif else count_far = 0
+            
+            ;; for deciding on pixel sets:
+            ;            consv_delta_kperp_rad = 4.5* mean(frequencies*1e6) * z_mpc_mean / (3e8 * kperp_lambda_conv)
+            ;            consv_xy_len = 2*!pi/consv_delta_kperp_rad
+            ;            radius = consv_xy_len/2.*sqrt(2)*1.1
+            ;            query_disc, file_struct.nside, vec_mid, radius, listpix, nlist, /inc
+            ;            pix2vec_ring, file_struct.nside, listpix, list_center_vec
+            ;            new_list_vec = rot_matrix ## list_center_vec
+            ;            x_list_rot = new_list_vec[*,0] * cos(pred_angle) - new_list_vec[*,1] * sin(pred_angle)
+            ;            y_list_rot = new_list_vec[*,0] * sin(pred_angle) + new_list_vec[*,1] * cos(pred_angle)
+            ;            cgplot, x_list_rot, y_list_rot, psym=3
+            ;            consv_lims = [-1*consv_xy_len/2., -1*consv_xy_len/2., consv_xy_len/2., consv_xy_len/2.]
+            ;            cgpolygon, reform(rebin(consv_lims[[0,2]], 2,2),4), reform(rebin(reform(consv_lims[[1,3]],1,2), 2,2),4), color='aqua'
+            ;            wh_listpix_close = where(x_list_rot ge consv_lims[0] and x_list_rot le consv_lims[2] and $
+            ;              y_list_rot ge consv_lims[1] and y_list_rot le consv_lims[3], count_list_close)
+            ;            hpx_inds = listpix[wh_listpix_close]
+            ;            stop
+            ;            save, file='/Users/bryna/Documents/Physics/FHD/Observations/EoR0_low_healpix_inds.idlsave', hpx_inds
+            
             
             n_kperp = round(max_kperp_rad / delta_kperp_rad) * 2 + 1
             kx_rad_vals = (findgen(n_kperp) - (n_kperp-1)/2) * delta_kperp_rad
@@ -1212,72 +1225,109 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
   
   n_val = round(kz_mpc_orig / kz_mpc_delta)
   kz_mpc_orig[where(n_val eq 0)] = 0
-  ;; these an and bn calculations don't match the standard
-  ;; convention (they down by a factor of 2) but they make more sense
-  ;; and remove factors of 2 we'd otherwise have in the power
-  ;; and variance calculations
-  ;; note that the 0th mode will have higher noise because there's half as many measurements going into it
-  a1_0 = data_sum_ft[*,*,where(n_val eq 0)]
-  a1_n = (data_sum_ft[*,*, where(n_val gt 0)] + data_sum_ft[*,*, reverse(where(n_val lt 0))])/2.
-  b1_n = complex(0,1) * (data_sum_ft[*,*, where(n_val gt 0)] - data_sum_ft[*,*, reverse(where(n_val lt 0))])/2.
-  undefine, data_sum_ft
-  
-  if nfiles gt 1 then begin
-    a2_0 = data_diff_ft[*,*,where(n_val eq 0)]
-    a2_n = (data_diff_ft[*,*, where(n_val gt 0)] + data_diff_ft[*,*, reverse(where(n_val lt 0))])/2.
-    b2_n = complex(0,1) * (data_diff_ft[*,*, where(n_val gt 0)] - data_diff_ft[*,*, reverse(where(n_val lt 0))])/2.
-    undefine, data_diff_ft
-  endif
   
   kz_mpc = kz_mpc_orig[where(n_val ge 0)]
   n_kz = n_elements(kz_mpc)
   
-  ;; drop pixels with less than 1/3 of the frequencies (set weights to 0)
-  wh_fewfreq = where(n_freq_contrib lt ceil(n_freq/3d), count_fewfreq)
-  if count_fewfreq gt 0 then begin
-    mask_fewfreq = n_freq_contrib * 0 + 1
-    mask_fewfreq[wh_fewfreq] = 0
-    mask_fewfreq = rebin(temporary(mask_fewfreq), n_kx, n_ky, n_kz)
-    
-    a1_0 = temporary(a1_0) * mask_fewfreq[*,*,0]
-    a1_n = temporary(a1_n) * mask_fewfreq[*,*,1:*]
-    b1_n = temporary(b1_n) * mask_fewfreq[*,*,1:*]
-    if nfiles gt 1 then begin
-      a2_0 = temporary(a2_0) * mask_fewfreq[*,*,0]
-      a2_n = temporary(a2_n) * mask_fewfreq[*,*,1:*]
-      b2_n = temporary(b2_n) * mask_fewfreq[*,*,1:*]
-    endif
-  endif
-  
-  data_sum_cos = complex(fltarr(n_kx, n_ky, n_kz))
-  data_sum_sin = complex(fltarr(n_kx, n_ky, n_kz))
-  data_sum_cos[*, *, 0] = a1_0 ;/2. changed 3/12/14.
-  data_sum_cos[*, *, 1:n_kz-1] = a1_n
-  data_sum_sin[*, *, 1:n_kz-1] = b1_n
-  if nfiles gt 1 then begin
-    data_diff_cos = complex(fltarr(n_kx, n_ky, n_kz))
-    data_diff_sin = complex(fltarr(n_kx, n_ky, n_kz))
-    data_diff_cos[*, *, 0] = a2_0 ;/2. changed 3/12/14.
-    data_diff_cos[*, *, 1:n_kz-1] = a2_n
-    data_diff_sin[*, *, 1:n_kz-1] = b2_n
-  endif
   
   if keyword_set(std_power) then begin
+    ;; comov_dist_los goes from large to small z
+    z_relative = dindgen(n_freq)*z_mpc_delta
+    freq_kz_arr = rebin(reform(kz_mpc_orig, 1, n_elements(kz_mpc_orig)), n_freq, n_elements(kz_mpc_orig)) * rebin(z_relative, n_freq, n_elements(kz_mpc_orig))
+    
+    ;kz_arr = rebin(reform(kz_mpc_orig, 1, n_elements(kz_mpc_orig)), n_elements(kz_mpc_orig), n_elements(kz_mpc_orig)) - $
+    ;  rebin(kz_mpc_orig, n_elements(kz_mpc_orig), n_elements(kz_mpc_orig))
+    ;full_freq_kz_arr = rebin(reform(kz_arr, 1, n_elements(kz_mpc_orig)^2), n_freq, n_elements(kz_mpc_orig)^2) * rebin(z_relative, n_freq, n_elements(kz_mpc_orig)^2)
+    
     ;; for standard power calc. just need ft of sigma2 (sigma has squared units relative to data, so use z_mpc_delta^2d)
-    sigma2_ft = fft(sum_sigma2, dimension=3) * n_freq * z_mpc_delta^2. / (2.*!pi)
-    sigma2_ft = shift(sigma2_ft, [0,0,n_kz/2])
+    sigma2_ft = matrix_multiply(reform(sum_sigma2, n_kx*n_ky, n_freq), exp(-1.*complex(0,1)*freq_kz_arr)*exp(1.*complex(0,1)*freq_kz_arr)) * (z_mpc_delta^2. / (2.*!pi))^2d
+    sigma2_ft = reform(sigma2_ft, n_kx, n_ky, n_elements(kz_mpc_orig))
+    
+    sigma2_ft_cov = matrix_multiply(reform(sum_sigma2, n_kx*n_ky, n_freq), exp(-1.*complex(0,1)*freq_kz_arr)*exp(-1.*complex(0,1)*freq_kz_arr)) * (z_mpc_delta^2. / (2.*!pi))^2d
+    sigma2_ft_cov = reform(sigma2_ft_cov, n_kx, n_ky, n_elements(kz_mpc_orig))
+    sigma2_ft_cov[*,*, where(n_val eq 0)] = 0
+    
+    ;sigma2_ft_full = matrix_multiply(reform(sum_sigma2, n_kx*n_ky, n_freq), exp(1.*complex(0,1)*full_freq_kz_arr)) * (z_mpc_delta^2. / (2.*!pi))^2d
+    ;sigma2_ft_full = reform(sigma2_ft_full, n_kx, n_ky, n_elements(kz_mpc_orig), n_elements(kz_mpc_orig))
     undefine, sum_sigma2
     
-    sigma_a0 = abs(sigma2_ft[*,*,where(n_val eq 0)])
-    sigma_an_bn = sqrt(abs(sigma2_ft[*,*, where(n_val gt 0)])^2. + abs(sigma2_ft[*,*, reverse(where(n_val lt 0))])^2.)/2.
-    undefine, sigma2_ft
+    ;; diagonalize to get rid of covariance
+    theta = atan(2*sigma2_ft_cov[*,*,where(n_val ge 0)], sigma2_ft[*,*,where(n_val ge 0)]-sigma2_ft[*,*,where(n_val le 0)])/2.
     
-    save, file = file_struct.kcube_savefile, data_sum_cos, data_sum_sin, data_diff_cos, data_diff_sin, sigma_a0, sigma_an_bn, $
+    theta[where(sigma2_ft_cov[*,*,where(n_val ge 0)] eq 0)] = 0
+    
+    cos_theta = cos(theta)
+    sin_theta = sin(theta)
+    undefine, theta
+    
+    sigma2_1 = sigma2_ft[*,*,where(n_val ge 0)]*cos_theta^2. + 2.*sigma2_ft_cov[*,*,where(n_val ge 0)]*cos_theta*sin_theta + sigma2_ft[*,*,where(n_val le 0)]*sin_theta^2.
+    sigma2_2 = sigma2_ft[*,*,where(n_val ge 0)]*sin_theta^2. - 2.*sigma2_ft_cov[*,*,where(n_val ge 0)]*cos_theta*sin_theta + sigma2_ft[*,*,where(n_val le 0)]*cos_theta^2.
+    sigma2_2[*,*,0] = 0.
+    undefine, sigma2_ft, sigma2_ft_cov
+    
+    data_sum_1 = data_sum_ft[*,*,where(n_val ge 0)]*cos_theta + data_sum_ft[*,*,where(n_val le 0)]*sin_theta
+    data_sum_2 = (-1d)*data_sum_ft[*,*,where(n_val ge 0)]*sin_theta + data_sum_ft[*,*,where(n_val le 0)]*cos_theta
+    data_sum_2[*,*,0] = 0.
+    undefine, data_sum_ft
+    if nfiles eq 2 then begin
+      data_diff_1 = data_diff_ft[*,*,where(n_val ge 0)]*cos_theta + data_diff_ft[*,*,where(n_val le 0)]*sin_theta
+      data_diff_2 = (-1d)*data_diff_ft[*,*,where(n_val ge 0)]*sin_theta + data_diff_ft[*,*,where(n_val le 0)]*cos_theta
+      data_diff_2[*,*,0] = 0.
+      undefine, data_diff_ft
+    endif
+    
+    save, file = file_struct.kcube_savefile, data_sum_1, data_sum_2, data_diff_1, data_diff_2, sigma2_1, sigma2_2, n_val, $
       kx_mpc, ky_mpc, kz_mpc, kperp_lambda_conv, delay_params, hubble_param, n_freq_contrib, freq_mask, vs_name, vs_mean
       
   endif else begin
-  
-  
+    ;; these an and bn calculations don't match the standard
+    ;; convention (they down by a factor of 2) but they make more sense
+    ;; and remove factors of 2 we'd otherwise have in the power
+    ;; and variance calculations
+    ;; note that the 0th mode will have higher noise because there's half as many measurements going into it
+    a1_0 = data_sum_ft[*,*,where(n_val eq 0)]
+    a1_n = (data_sum_ft[*,*, where(n_val gt 0)] + data_sum_ft[*,*, reverse(where(n_val lt 0))])/2.
+    b1_n = complex(0,1) * (data_sum_ft[*,*, where(n_val gt 0)] - data_sum_ft[*,*, reverse(where(n_val lt 0))])/2.
+    undefine, data_sum_ft
+    
+    if nfiles gt 1 then begin
+      a2_0 = data_diff_ft[*,*,where(n_val eq 0)]
+      a2_n = (data_diff_ft[*,*, where(n_val gt 0)] + data_diff_ft[*,*, reverse(where(n_val lt 0))])/2.
+      b2_n = complex(0,1) * (data_diff_ft[*,*, where(n_val gt 0)] - data_diff_ft[*,*, reverse(where(n_val lt 0))])/2.
+      undefine, data_diff_ft
+    endif
+    
+    ;; drop pixels with less than 1/3 of the frequencies (set weights to 0)
+    wh_fewfreq = where(n_freq_contrib lt ceil(n_freq/3d), count_fewfreq)
+    if count_fewfreq gt 0 then begin
+      mask_fewfreq = n_freq_contrib * 0 + 1
+      mask_fewfreq[wh_fewfreq] = 0
+      mask_fewfreq = rebin(temporary(mask_fewfreq), n_kx, n_ky, n_kz)
+      
+      a1_0 = temporary(a1_0) * mask_fewfreq[*,*,0]
+      a1_n = temporary(a1_n) * mask_fewfreq[*,*,1:*]
+      b1_n = temporary(b1_n) * mask_fewfreq[*,*,1:*]
+      if nfiles gt 1 then begin
+        a2_0 = temporary(a2_0) * mask_fewfreq[*,*,0]
+        a2_n = temporary(a2_n) * mask_fewfreq[*,*,1:*]
+        b2_n = temporary(b2_n) * mask_fewfreq[*,*,1:*]
+      endif
+    endif
+    
+    data_sum_cos = complex(fltarr(n_kx, n_ky, n_kz))
+    data_sum_sin = complex(fltarr(n_kx, n_ky, n_kz))
+    data_sum_cos[*, *, 0] = a1_0 ;/2. changed 3/12/14.
+    data_sum_cos[*, *, 1:n_kz-1] = a1_n
+    data_sum_sin[*, *, 1:n_kz-1] = b1_n
+    if nfiles gt 1 then begin
+      data_diff_cos = complex(fltarr(n_kx, n_ky, n_kz))
+      data_diff_sin = complex(fltarr(n_kx, n_ky, n_kz))
+      data_diff_cos[*, *, 0] = a2_0 ;/2. changed 3/12/14.
+      data_diff_cos[*, *, 1:n_kz-1] = a2_n
+      data_diff_sin[*, *, 1:n_kz-1] = b2_n
+    endif
+    
+    
     ;; for new power calc, need cos2, sin2, cos*sin transforms
     ;; have to do this in a for loop for memory's sake
     covar_cos = fltarr(n_kx, n_ky, n_kz)

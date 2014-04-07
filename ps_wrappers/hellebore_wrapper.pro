@@ -3,7 +3,7 @@ pro hellebore_wrapper, folder_name, rts = rts, version = version, refresh_dft = 
     pol_inc = pol_inc, sim = sim, freq_ch_range = freq_ch_range, freq_flag_name = freq_flag_name, $
     no_spec_window = no_spec_window, spec_window_type = spec_window_type, std_power = std_power, noise_sim = noise_sim, $
     cut_image = cut_image, individual_plots = individual_plots, plot_filebase = plot_filebase, png = png, eps = eps, $
-    plot_slices = plot_slices, slice_type = slice_type, $
+    plot_slices = plot_slices, slice_type = slice_type, uvf_plot_type = uvf_plot_type, $
     kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, t32 = t32, set_data_ranges = set_data_ranges
     
   if keyword_set(rts) then begin
@@ -397,7 +397,7 @@ pro hellebore_wrapper, folder_name, rts = rts, version = version, refresh_dft = 
     noise_sim = noise_sim, cut_image = cut_image, dft_ian = dft_ian, $
     log_kpar = log_kpar, log_kperp = log_kperp, kpar_bin = kpar_bin, kperp_bin = kperp_bin, $
     log_k1d = log_k1d, k1d_bin = k1d_bin, kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, $
-    plot_slices = plot_slices, slice_type = slice_type, $
+    plot_slices = plot_slices, slice_type = slice_type, uvf_plot_type = uvf_plot_type, $
     data_range = data_range, sigma_range = sigma_range, nev_range = nev_range, snr_range = snr_range, noise_range = noise_range, nnr_range = nnr_range, $
     baseline_axis = baseline_axis, delay_axis = delay_axis, hinv = hinv, $
     plot_wedge_line = plot_wedge_line, grey_scale = grey_scale, individual_plots = individual_plots, note = note, png = png, eps = eps
