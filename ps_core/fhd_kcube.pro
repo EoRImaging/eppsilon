@@ -441,7 +441,7 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
             endif else count_far = 0
             
             ;; for deciding on pixel sets:
-            ;            consv_delta_kperp_rad = 4.5* mean(frequencies*1e6) * z_mpc_mean / (3e8 * kperp_lambda_conv)
+            ;            consv_delta_kperp_rad = 4.5* mean(frequencies*1e6) * z_mpc_mean / (3e8 * kperp_lambda_conv) ;use 4.5m to be conservative
             ;            consv_xy_len = 2*!pi/consv_delta_kperp_rad
             ;            radius = consv_xy_len/2.*sqrt(2)*1.1
             ;            query_disc, file_struct.nside, vec_mid, radius, listpix, nlist, /inc
@@ -923,42 +923,16 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
   endfor
   
   if healpix or keyword_set(image) then begin
-    if keyword_set (dft_ian) then begin
-      ;; multiply data, weights & variance cubes by pixel_area_rad to get proper units from DFT
-      ;; (not squared for variance because they weren't treated as units squared in FHD code)
-      data_cube1 = data_cube1 * pix_area_rad
-      weights_cube1 = weights_cube1 * pix_area_rad
-      variance_cube1 = variance_cube1 * pix_area_rad
-      if nfiles eq 2 then begin
-        data_cube2 = data_cube2 * pix_area_rad
-        weights_cube2 = weights_cube2 * pix_area_rad
-        variance_cube2 = variance_cube2 * pix_area_rad
-      endif
-      
-    endif else begin
-      ;; multiply data, weights & variance cubes by pixel_area_mpc to get proper units from DFT
-      ;; divide by (2*!pi)^2d to get right FT convention
-      ;; (not squared for variance because they weren't treated as units squared in FHD code)
-      data_cube1 = data_cube1 * pix_area_mpc
-      weights_cube1 = weights_cube1 * pix_area_mpc
-      variance_cube1 = variance_cube1 * pix_area_mpc
-      if nfiles eq 2 then begin
-        data_cube2 = data_cube2 * pix_area_mpc
-        weights_cube2 = weights_cube2 * pix_area_mpc
-        variance_cube2 = variance_cube2 * pix_area_mpc
-      endif
-      
-      ;; apply FT jacobian because fft was in Jy/str and dft was in Jy/Mpc^2
-      ;; same for variance as data
-      data_cube1 = data_cube1 / (z_mpc_mean^2.)
-      weights_cube1 = weights_cube1 / (z_mpc_mean^2.)
-      variance_cube1 = variance_cube1 / (z_mpc_mean^2.)
-      if nfiles eq 2 then begin
-        data_cube2 = data_cube2 / (z_mpc_mean^2.)
-        weights_cube2 = weights_cube2 / (z_mpc_mean^2.)
-        variance_cube2 = variance_cube2 / (z_mpc_mean^2.)
-      endif
-    endelse
+    ;; multiply data, weights & variance cubes by pixel_area_rad to get proper units from DFT
+    ;; (not squared for variance because they weren't treated as units squared in FHD code)
+    data_cube1 = data_cube1 * pix_area_rad
+    weights_cube1 = weights_cube1 * pix_area_rad
+    variance_cube1 = variance_cube1 * pix_area_rad
+    if nfiles eq 2 then begin
+      data_cube2 = data_cube2 * pix_area_rad
+      weights_cube2 = weights_cube2 * pix_area_rad
+      variance_cube2 = variance_cube2 * pix_area_rad
+    endif
   endif
   
   ;; make sigma2 cubes
@@ -1031,7 +1005,8 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
   print, 'window integral in r^3: ' + number_formatter(window_int_r[0], format='(e10.4)')
   
   ;; need window integral in k^3
-  window_int = window_int_r * (2*!dpi)^3.
+  ;; We actually want 1/(2pi)^3 * window_int_k which is equal to window_int_r
+  window_int = window_int_r ;* (2*!dpi)^3.
   
   ;; divide data by sqrt(window_int) and sigma2 by window_int
   data_cube1 = data_cube1 / sqrt(window_int[0])
