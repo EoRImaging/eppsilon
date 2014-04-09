@@ -272,10 +272,10 @@ pro hellebore_wrapper, folder_name, rts = rts, version = version, refresh_dft = 
     
     if n_elements(set_data_ranges) eq 0 then set_data_ranges = 1
     if keyword_set(set_data_ranges) then begin
-      if keyword_set(integrated) then sigma_range = [2e0, 2e2] else sigma_range = [1e2, 2e4]
-      if keyword_set(integrated) then nev_range = [5e0, 2e3] else nev_range = [5e2, 2e5]
+      if keyword_set(integrated) then sigma_range = [2e2, 2e4] else sigma_range = [1e4, 2e6]
+      if keyword_set(integrated) then nev_range = [5e2, 2e5] else nev_range = [5e4, 2e7]
       
-      data_range = [1e-2, 1e8]
+      data_range = [1e0, 1e10]
       nnr_range = [1e-1, 1e1]
       snr_range = [1e-4, 1e6]
       
