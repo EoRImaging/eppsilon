@@ -94,7 +94,7 @@ pro hellebore_diff_wrapper, folder_names, cube_types = cube_types, pols = pols, 
         diff_dir = file_basename(folder_names[0]) + '_diff'
         note = strjoin(folderparts_1[wh_diff], path_sep()) + ' - ' + strjoin(folderparts_2[wh_diff], path_sep()) + ' ' + file_basename(folder_names[0])
       endif else begin
-        if min(wh_name_diff) gt nfileparts_1 or min(wh_name_diff) gt nfileparts_2 then begin
+        if min(wh_name_diff) ge nfileparts_1 or min(wh_name_diff) ge nfileparts_2 then begin
           wh_name_diff = [max(wh_name_same), wh_name_diff]
           count_name_diff = count_name_diff + 1
           if count_name_same gt 1 then begin
