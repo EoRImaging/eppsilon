@@ -27,10 +27,10 @@ done < $obs_list_path
 unset int_pids
 
 save_file="$file_path_cubes"/Healpix/Combined_${version}_even.sav
-/usr/local/bin/idl -IDL_DEVICE ps -IDL_CPU_TPOOL_NTHREADS $nperint -e integrate_healpix_cubes -args "$even_file_paths", "$save_file" &
+/usr/local/bin/idl -IDL_DEVICE ps -IDL_CPU_TPOOL_NTHREADS $nperint -e integrate_healpix_cubes -args "$even_file_paths" "$save_file" &
 int_pids+=( $! )
 save_file="$file_path_cubes"/Healpix/Combined_${version}_odd.sav
-/usr/local/bin/idl -IDL_DEVICE ps -IDL_CPU_TPOOL_NTHREADS $nperint -e integrate_healpix_cubes -args "$odd_file_paths", "$save_file" &
+/usr/local/bin/idl -IDL_DEVICE ps -IDL_CPU_TPOOL_NTHREADS $nperint -e integrate_healpix_cubes -args "$odd_file_paths" "$save_file" &
 int_pids+=( $! )
 wait ${int_pids[@]} # Wait for integration to finish before making PS
 
