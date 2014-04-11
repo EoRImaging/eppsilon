@@ -1,4 +1,4 @@
-pro mit_ps_job, folder_name, obs_range, rts = rts, refresh_dft = refresh_dft, refresh_ps = refresh_ps, $
+pro mit_ps_job, folder_name, obs_range, n_obs=n_obs, rts = rts, refresh_dft = refresh_dft, refresh_ps = refresh_ps, $
     refresh_binning = refresh_binning, refresh_info = refresh_info, pol_inc = pol_inc, no_spec_window = no_spec_window, $
     spec_window_type = spec_window_type, freq_ch_range = freq_ch_range, individual_plots = individual_plots, $
     png = png, eps = eps, plot_slices = plot_slices, slice_type = slice_type, $
@@ -8,6 +8,7 @@ pro mit_ps_job, folder_name, obs_range, rts = rts, refresh_dft = refresh_dft, re
   args = Command_Line_Args(count=nargs)
   folder_name=args[0]
   obs_range=args[1]
+  if (nargs eq 3) then n_obs=args[2]
     
   ;; The only required input is the datafile name (including the full path)
     
@@ -74,8 +75,11 @@ pro mit_ps_job, folder_name, obs_range, rts = rts, refresh_dft = refresh_dft, re
         if n_elements(obs_range) gt 1 then $
           message, 'obs_range can be specified as a single string to use as the name or as a 2 element obsid range'
         obs_name = obs_range
-        obs_range = long(strsplit(obs_name, '-', /extract))
-        if n_elements(obs_range) eq 1 then obs_name_single = obs_name
+        if n_elements(n_obs) eq 0 then begin
+          obs_range = long(strsplit(obs_name, '-', /extract))
+          n_obs = (obs_range[1]-obs_range[0])/120. + 1
+          if n_elements(obs_range) eq 1 then obs_name_single = obs_name
+        endif else obs_name_single = obs_name
       endif else begin
         if n_elements(obs_range) gt 2 then message, 'obs_range can be specified as a single string to use as the name or as a 2 element obsid range'
         if n_elements(obs_range) eq 2 then obs_name = number_formatter(obs_range[0]) + '-' + number_formatter(obs_range[1]) else begin
@@ -96,11 +100,10 @@ pro mit_ps_job, folder_name, obs_range, rts = rts, refresh_dft = refresh_dft, re
         datafile = info_file[0]
         obs_name = stregex(datafile, '[0-9]+-[0-9]+', /extract)
         obs_range = long(strsplit(obs_name, '-', /extract))
+        n_obs = (obs_range[1]-obs_range[0])/120. + 1
       endif else begin
         if n_infofile gt 1 then message, 'More than one info file found with given obs_range'
         datafile = info_file[0]
-        obs_name = stregex(datafile, '[0-9]+-[0-9]+', /extract)
-        obs_range = long(strsplit(obs_name, '-', /extract))
       endelse
       
       save_path = folder_name + '/ps/'
@@ -114,11 +117,11 @@ pro mit_ps_job, folder_name, obs_range, rts = rts, refresh_dft = refresh_dft, re
           datafile = info_file[0]
           obs_name = stregex(info_basename[0], '[0-9]+', /extract)
           obs_range = long(obs_name)
+          n_obs=1
         endif else begin
           if n_infofile gt 1 then message, 'More than one info file found with given obs_range'
           datafile = info_file[0]
-          obs_name = stregex(info_basename[0], '[0-9]+', /extract)
-          obs_range = long(obs_name)
+          n_obs=1
         endelse
         
         save_path = folder_name + '/ps/'
@@ -138,14 +141,13 @@ pro mit_ps_job, folder_name, obs_range, rts = rts, refresh_dft = refresh_dft, re
           datafile = cube_files[wh_first]
           obs_name = obs_name_arr[0]
           obs_range = long(strsplit(obs_name, '-', /extract))
+          n_obs = (obs_range[1]-obs_range[0])/120. + 1
         endif else begin
           if n_elements(cube_files) gt 2 then message, 'More than two cubes found with given obs_range'
           
           datafile = cube_files
           obs_name_arr = stregex(cube_files, '[0-9]+-[0-9]+', /extract)
-          if obs_name_arr[1] ne obs_name_arr[0] then message, 'Cube files do not have the same obs ranges.'
-          obs_name = obs_name_arr[0]
-          obs_range = long(strsplit(obs_name, '-', /extract))
+          if obs_name_arr[1] ne obs_name_arr[0] then message, 'Cube files do not have the same obs names.'
         endelse
         
         ;; set the save_path to a 'ps' directory one level up from the datafile directory and create the directory if it doesn't exist
@@ -165,14 +167,12 @@ pro mit_ps_job, folder_name, obs_range, rts = rts, refresh_dft = refresh_dft, re
             datafile = cube_files[wh_first]
             obs_name = obs_name_arr[0]
             obs_range = long(obs_name)
+            n_obs=1
           endif else begin
             if n_elements(cube_files) gt 2 then message, 'More than two cubes found with given obs_range'
             
             datafile = cube_files
-            obs_name_arr = stregex(cube_basename, '[0-9]+', /extract)
-            if obs_name_arr[1] ne obs_name_arr[0] then message, 'Cube files do not have the same obs ranges.'
-            obs_name = obs_name_arr[0]
-            obs_range = long(obs_name)
+            n_obs=1
           endelse
           
           ;; set the save_path to a 'ps' directory in the datafile directory and create the directory if it doesn't exist
@@ -181,10 +181,10 @@ pro mit_ps_job, folder_name, obs_range, rts = rts, refresh_dft = refresh_dft, re
         endif
       endif
     endif
-     
+    
     if n_elements(datafile) eq 0 then message, 'No cube or info files found in folder ' + folder_name
     
-    if n_elements(obs_range) eq 1 then integrated = 0 else if obs_range[1] - obs_range[0] gt 0 then integrated = 1 else integrated = 0
+    if n_obs eq 1 then integrated = 0 else if obs_range[1] - obs_range[0] gt 0 then integrated = 1
     
     if n_elements(set_data_ranges) eq 0 then set_data_ranges = 1
     if keyword_set(set_data_ranges) then begin
