@@ -3,7 +3,7 @@
 # This version will take a file with a list of obsids to include in the integration
 
 #Parse flags for inputs
-while getopts ":f:s:e:" option
+while getopts ":f:o:e:" option
 do
    case $option in
         f) file_path_cubes="$OPTARG";;
@@ -47,10 +47,13 @@ PSpath=$(idl -e 'print,rootdir("ps")') ### NOTE this only works if idlstartup do
 mem=4G ## per core. this should be an option to the script
 nslots=10 # cores to use
 
-version=$(basename obs_list_path) # get filename
+version=$(basename $obs_list_path) # get filename
 version="${version%.*}" # strip extension
+echo Version is $version
 
 outfile=${file_path_cubes}/${version}_out.log
 errfile=${file_path_cubes}/${version}_err.log
+echo outfile is $outfile
+echo errfile is $errfile
 
-qsub -l h_vmem=$mem,h_stack=512k -V -v file_path_cubes=$file_path_cubes,obs_list_path=$obs_list_path,version=$version,nslots=$nslots -e $errfile -o $outfile -pe chost $nslots ${PSpath}ps_wrappers/PS_job.sh
+qsub -l h_vmem=$mem,h_stack=512k -V -v file_path_cubes=$file_path_cubes,obs_list_path=$obs_list_path,version=$version,nslots=$nslots -e $errfile -o $outfile -pe chost $nslots ${PSpath}ps_wrappers/PS_list_job.sh
