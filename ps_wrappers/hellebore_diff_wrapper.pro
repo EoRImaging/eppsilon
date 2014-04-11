@@ -28,7 +28,7 @@ pro hellebore_diff_wrapper, folder_names, cube_types = cube_types, pols = pols, 
       pos_fhd_128 = strpos(folder_names[i], '128T_cubes')
       if pos_fhd_128 gt -1 then begin
         test_name = base_path('data') + 'fhd_ps_data/' + strmid(folder_names[i], pos_fhd_128)
-        folder_test = file_test(test_names[i], /directory)
+        folder_test = file_test(test_name, /directory)
         if folder_test eq 1 then folder_names[i] = test_name
       endif
     endif
