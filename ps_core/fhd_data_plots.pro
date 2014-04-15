@@ -1,6 +1,6 @@
 pro fhd_data_plots, datafile, rts = rts, pol_inc = pol_inc, image = image, $
     save_path = save_path, savefilebase = savefilebase, plot_path = plot_path, plot_filebase = plot_filebase, $
-    note = note, png = png, eps = eps, $
+    note = note, png = png, eps = eps, pdf = pdf, $
     refresh_dft = refresh_dft, refresh_ps = refresh_ps, refresh_binning = refresh_binning, refresh_info = refresh_info, $
     dft_fchunk = dft_fchunk, freq_ch_range = freq_ch_range, freq_flags = freq_flags, freq_flag_name = freq_flag_name, $
     no_spec_window = no_spec_window, spec_window_type = spec_window_type, $
@@ -35,16 +35,19 @@ pro fhd_data_plots, datafile, rts = rts, pol_inc = pol_inc, image = image, $
   ;; default to cutting in image space (down to 30 degree diameter circle)
   if n_elements(cut_image) eq 0 then cut_image = 1
   
-  if keyword_set(png) or keyword_set(eps) then pub = 1 else pub = 0
+  if keyword_set(png) or keyword_set(eps) or keyword_set(pdf) then pub = 1 else pub = 0
   if pub eq 1 then begin
   
-    if keyword_set(png) and keyword_set(eps) then begin
-      print, 'both eps and png cannot be set, using png'
+    if keyword_set(png) and keyword_set(eps) and keyword_set(pdf) then begin
+      print, 'only one of eps, pdf and png can be set, using png'
       eps = 0
     endif
     
     if keyword_set(png) then begin
       plot_exten = '.png'
+      delete_ps = 1
+    endif else if keyword_set(pdf) then begin
+      plot_exten = '.pdf'
       delete_ps = 1
     endif else if keyword_set(eps) then begin
       plot_exten = '.eps'
@@ -319,21 +322,21 @@ pro fhd_data_plots, datafile, rts = rts, pol_inc = pol_inc, image = image, $
   if keyword_set(pub) then font = 1 else font = -1
   
   if keyword_set(pub) and keyword_set(individual_plots) then begin
-    for i=0, n_cubes-1 do kpower_2d_plots, savefiles_2d[i], png = png, eps = eps, plotfile = plotfiles_2d[i], $
+    for i=0, n_cubes-1 do kpower_2d_plots, savefiles_2d[i], png = png, eps = eps, pdf = pdf, plotfile = plotfiles_2d[i], $
       kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
       data_range = data_range, title_prefix = titles[i], note = note, $
       grey_scale = grey_scale, plot_wedge_line = plot_wedge_line, hinv = hinv, $
       wedge_amp = wedge_amp, baseline_axis = baseline_axis, delay_axis = delay_axis, $
       kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis
       
-    for i=0, npol -1 do kpower_2d_plots, savefiles_2d[i], /plot_sigma, png = png, eps = eps, plotfile = plotfiles_2d_error[i],$
+    for i=0, npol -1 do kpower_2d_plots, savefiles_2d[i], /plot_sigma, png = png, eps = eps, pdf = pdf, plotfile = plotfiles_2d_error[i],$
       kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
       data_range = sigma_range, title_prefix = pol_inc[i], note = note + ' ' + vs_note, $
       grey_scale = grey_scale, plot_wedge_line = plot_wedge_line, hinv = hinv, $
       wedge_amp = wedge_amp, baseline_axis = baseline_axis, delay_axis = delay_axis, $
       kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis
       
-    for i=0, npol -1 do kpower_2d_plots, savefiles_2d[i], /plot_exp_noise, png = png, eps = eps, plotfile = plotfiles_2d_noise_expval[i],$
+    for i=0, npol -1 do kpower_2d_plots, savefiles_2d[i], /plot_exp_noise, png = png, eps = eps, pdf = pdf, plotfile = plotfiles_2d_noise_expval[i],$
       kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
       data_range = nev_range, title_prefix = pol_inc[i], note = note + ' ' + vs_note, $
       grey_scale = grey_scale, plot_wedge_line = plot_wedge_line, hinv = hinv, $
@@ -341,7 +344,7 @@ pro fhd_data_plots, datafile, rts = rts, pol_inc = pol_inc, image = image, $
       kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis
       
       
-    for i=0, n_cubes-1 do kpower_2d_plots, savefiles_2d[i], png = png, eps = eps, /snr, plotfile = plotfiles_2d_snr[i], $
+    for i=0, n_cubes-1 do kpower_2d_plots, savefiles_2d[i], png = png, eps = eps, pdf = pdf, /snr, plotfile = plotfiles_2d_snr[i], $
       kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
       data_range = snr_range, title_prefix = titles[i], note = note, $
       grey_scale = grey_scale, plot_wedge_line = plot_wedge_line, hinv = hinv, $
@@ -349,14 +352,14 @@ pro fhd_data_plots, datafile, rts = rts, pol_inc = pol_inc, image = image, $
       kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis
       
     if nfiles eq 2 then begin
-      for i=0, n_cubes-1 do kpower_2d_plots, savefiles_2d[i], png = png, eps = eps, /plot_noise, plotfile = plotfiles_2d_noise[i], $
+      for i=0, n_cubes-1 do kpower_2d_plots, savefiles_2d[i], png = png, eps = eps, pdf = pdf, /plot_noise, plotfile = plotfiles_2d_noise[i], $
         kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
         data_range = noise_range, title_prefix = titles[i], note = note + ' ' + vs_note, $
         grey_scale = grey_scale, plot_wedge_line = plot_wedge_line, hinv = hinv, $
         wedge_amp = wedge_amp, baseline_axis = baseline_axis, delay_axis = delay_axis, $
         kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis
         
-      for i=0, n_cubes-1 do kpower_2d_plots, savefiles_2d[i], png = png, eps = eps, /nnr, plotfile = plotfiles_2d_nnr[i], $
+      for i=0, n_cubes-1 do kpower_2d_plots, savefiles_2d[i], png = png, eps = eps, pdf = pdf, /nnr, plotfile = plotfiles_2d_nnr[i], $
         kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
         data_range = nnr_range, title_prefix = titles[i], note = note + ' ' + vs_note, $
         grey_scale = grey_scale, plot_wedge_line = plot_wedge_line, hinv = hinv, $
@@ -380,7 +383,7 @@ pro fhd_data_plots, datafile, rts = rts, pol_inc = pol_inc, image = image, $
       if i gt 0 then  pos_use = positions[*,i]
       if i eq n_cubes-1 and n_elements(note) gt 0 then note_use = note else undefine, note_use
       
-      kpower_2d_plots, savefiles_2d[i], multi_pos = pos_use, start_multi_params = start_multi_params, png = png, eps = eps, $
+      kpower_2d_plots, savefiles_2d[i], multi_pos = pos_use, start_multi_params = start_multi_params, png = png, eps = eps, pdf = pdf, $
         plotfile = plotfiles_2d, kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
         data_range = data_range, title_prefix = titles[i], note = note_use, $
         grey_scale = grey_scale, plot_wedge_line = plot_wedge_line, hinv = hinv, $
@@ -394,7 +397,7 @@ pro fhd_data_plots, datafile, rts = rts, pol_inc = pol_inc, image = image, $
     endfor
     undefine, positions, pos_use
     if keyword_set(pub) then begin
-      cgps_close, png = png, delete_ps = delete_ps
+      cgps_close, png = png, pdf = pdf, delete_ps = delete_ps
     endif
     
     if keyword_set(kperp_linear_axis) then begin
@@ -415,7 +418,7 @@ pro fhd_data_plots, datafile, rts = rts, pol_inc = pol_inc, image = image, $
       pol_ind = i / 2
       
       if i mod 2 eq 0 then $
-        kpower_2d_plots, savefiles_2d[pol_ind], multi_pos = pos_use, start_multi_params = start_multi_params, png = png, eps = eps, $
+        kpower_2d_plots, savefiles_2d[pol_ind], multi_pos = pos_use, start_multi_params = start_multi_params, png = png, eps = eps, pdf = pdf, $
         plotfile = plotfiles_2d_error, /plot_sigma, data_range = sigma_range, $
         kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
         title_prefix = pol_inc[pol_ind], grey_scale = grey_scale, $
@@ -423,7 +426,7 @@ pro fhd_data_plots, datafile, rts = rts, pol_inc = pol_inc, image = image, $
         delay_axis = delay_axis, kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, $
         window_num = window_num else $
         kpower_2d_plots, savefiles_2d[pol_ind], multi_pos = pos_use, start_multi_params = start_multi_params, $
-        png = png, eps = eps, /plot_exp_noise, kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
+        png = png, eps = eps, pdf = pdf, /plot_exp_noise, kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
         data_range = nev_range, title_prefix = pol_inc[pol_ind], note = note_use, $
         grey_scale = grey_scale, plot_wedge_line = plot_wedge_line, hinv = hinv, $
         wedge_amp = wedge_amp, baseline_axis = baseline_axis, delay_axis = delay_axis, $
@@ -435,7 +438,7 @@ pro fhd_data_plots, datafile, rts = rts, pol_inc = pol_inc, image = image, $
     endfor
     undefine, positions, pos_use
     if keyword_set(pub) then begin
-      cgps_close, png = png, delete_ps = delete_ps
+      cgps_close, png = png, pdf = pdf, delete_ps = delete_ps
     endif
     
     
@@ -456,7 +459,7 @@ pro fhd_data_plots, datafile, rts = rts, pol_inc = pol_inc, image = image, $
       if i gt 0 then  pos_use = positions[*,i]
       if i eq n_cubes-1 and n_elements(note) gt 0 then note_use = note else undefine, note_use
       
-      kpower_2d_plots, savefiles_2d[i], /snr, multi_pos = pos_use, start_multi_params = start_multi_params, png = png, eps = eps, $
+      kpower_2d_plots, savefiles_2d[i], /snr, multi_pos = pos_use, start_multi_params = start_multi_params, png = png, eps = eps, pdf = pdf, $
         plotfile = plotfiles_2d_snr, kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
         data_range = snr_range, title_prefix = titles[i], note = note_use, $
         grey_scale = grey_scale, plot_wedge_line = plot_wedge_line, wedge_amp = wedge_amp, $
@@ -469,7 +472,7 @@ pro fhd_data_plots, datafile, rts = rts, pol_inc = pol_inc, image = image, $
     endfor
     undefine, positions, pos_use
     if keyword_set(pub) then begin
-      cgps_close, png = png, delete_ps = delete_ps
+      cgps_close, png = png, pdf = pdf, delete_ps = delete_ps
     endif
     
     if nfiles eq 2 then begin
@@ -482,7 +485,7 @@ pro fhd_data_plots, datafile, rts = rts, pol_inc = pol_inc, image = image, $
         if i gt 0 then  pos_use = positions[*,i]
         if i eq n_cubes-1 and n_elements(note) gt 0 then note_use = note + ' ' + vs_note else undefine, note_use
         
-        kpower_2d_plots, savefiles_2d[i], /plot_noise, multi_pos = pos_use, start_multi_params = start_multi_params, png = png, eps = eps, $
+        kpower_2d_plots, savefiles_2d[i], /plot_noise, multi_pos = pos_use, start_multi_params = start_multi_params, png = png, eps = eps, pdf = pdf, $
           plotfile = plotfiles_2d_noise, $
           kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, data_range = noise_range, $
           title_prefix = titles[i], note = note_use, grey_scale = grey_scale, $
@@ -495,7 +498,7 @@ pro fhd_data_plots, datafile, rts = rts, pol_inc = pol_inc, image = image, $
         endif
       endfor
       if keyword_set(pub) then begin
-        cgps_close, png = png, delete_ps = delete_ps
+        cgps_close, png = png, pdf = pdf, delete_ps = delete_ps
       endif
       
       window_num = 5
@@ -506,7 +509,7 @@ pro fhd_data_plots, datafile, rts = rts, pol_inc = pol_inc, image = image, $
         if i gt 0 then  pos_use = positions[*,i]
         if i eq n_cubes-1 and n_elements(note) gt 0 then note_use = note + ' ' + vs_note else undefine, note_use
         
-        kpower_2d_plots, savefiles_2d[i], /nnr, multi_pos = pos_use, start_multi_params = start_multi_params, png = png, eps = eps, $
+        kpower_2d_plots, savefiles_2d[i], /nnr, multi_pos = pos_use, start_multi_params = start_multi_params, png = png, eps = eps, pdf = pdf, $
           plotfile = plotfiles_2d_nnr, $
           kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, data_range = nnr_range, $
           title_prefix = titles[i], note = note_use, $
@@ -519,7 +522,7 @@ pro fhd_data_plots, datafile, rts = rts, pol_inc = pol_inc, image = image, $
         endif
       endfor
       if keyword_set(pub) then begin
-        cgps_close, png = png, delete_ps = delete_ps
+        cgps_close, png = png, pdf = pdf, delete_ps = delete_ps
       endif
       
     endif
@@ -551,7 +554,7 @@ pro fhd_data_plots, datafile, rts = rts, pol_inc = pol_inc, image = image, $
         if i eq (nrow*ncol)-1 and n_elements(note) gt 0 then note_use = note else undefine, note_use
         
         if slice_type eq 'kspace' then begin
-          kpower_slice_plot, uf_slice_savefile[i], multi_pos = pos_use, start_multi_params = start_multi_params, png = png, eps = eps, $
+          kpower_slice_plot, uf_slice_savefile[i], multi_pos = pos_use, start_multi_params = start_multi_params, png = png, eps = eps, pdf = pdf, $
             plotfile = uf_slice_plotfile, plot_xrange = kperp_plot_range, plot_yrange = kpar_plot_range, $
             title_prefix = slice_titles[i], note = note_use, data_range = slice_range, $
             grey_scale = grey_scale, plot_wedge_line = plot_wedge_line, wedge_amp = wedge_amp, hinv = hinv, $
@@ -559,7 +562,7 @@ pro fhd_data_plots, datafile, rts = rts, pol_inc = pol_inc, image = image, $
             window_num = window_num
         endif else begin
         
-          uvf_slice_plot, uf_slice_savefile[i], multi_pos = pos_use, start_multi_params = start_multi_params, png = png, eps = eps, $
+          uvf_slice_plot, uf_slice_savefile[i], multi_pos = pos_use, start_multi_params = start_multi_params, png = png, eps = eps, pdf = pdf, $
             plotfile = uf_slice_plotfile, type = uvf_plot_type, title_prefix = slice_titles[i], note = note_use, $
             grey_scale = grey_scale, hinv = hinv, data_range = slice_range, /log, $
             baseline_axis = baseline_axis, window_num = window_num
@@ -571,7 +574,7 @@ pro fhd_data_plots, datafile, rts = rts, pol_inc = pol_inc, image = image, $
         endif
       endfor
       if keyword_set(pub) then begin
-        cgps_close, png = png, delete_ps = delete_ps
+        cgps_close, png = png, pdf = pdf, delete_ps = delete_ps
       endif
       
       window_num = 8
@@ -583,7 +586,7 @@ pro fhd_data_plots, datafile, rts = rts, pol_inc = pol_inc, image = image, $
         if i eq (nrow*ncol)-1 and n_elements(note) gt 0 then note_use = note else undefine, note_use
         
         if slice_type eq 'kspace' then begin
-          kpower_slice_plot, vf_slice_savefile[i], multi_pos = pos_use, start_multi_params = start_multi_params, png = png, eps = eps, $
+          kpower_slice_plot, vf_slice_savefile[i], multi_pos = pos_use, start_multi_params = start_multi_params, png = png, eps = eps, pdf = pdf, $
             plotfile = vf_slice_plotfile, $
             plot_xrange = kperp_plot_range, plot_yrange = kpar_plot_range, $
             title_prefix = slice_titles[i], note = note_use, data_range = slice_range, $
@@ -592,7 +595,7 @@ pro fhd_data_plots, datafile, rts = rts, pol_inc = pol_inc, image = image, $
             window_num = window_num
         endif else begin
         
-          uvf_slice_plot, vf_slice_savefile[i], multi_pos = pos_use, start_multi_params = start_multi_params, png = png, eps = eps, $
+          uvf_slice_plot, vf_slice_savefile[i], multi_pos = pos_use, start_multi_params = start_multi_params, png = png, eps = eps, pdf = pdf, $
             plotfile = vf_slice_plotfile, type = uvf_plot_type, title_prefix = slice_titles[i], note = note_use, $
             grey_scale = grey_scale, hinv = hinv, data_range = slice_range, /log, $
             baseline_axis = baseline_axis, window_num = window_num
@@ -604,7 +607,7 @@ pro fhd_data_plots, datafile, rts = rts, pol_inc = pol_inc, image = image, $
         endif
       endfor
       if keyword_set(pub) then begin
-        cgps_close, png = png, delete_ps = delete_ps
+        cgps_close, png = png, pdf = pdf, delete_ps = delete_ps
       endif
       
       window_num = 9
@@ -616,7 +619,7 @@ pro fhd_data_plots, datafile, rts = rts, pol_inc = pol_inc, image = image, $
         if i eq (nrow*ncol)-1 and n_elements(note) gt 0 then note_use = note else undefine, note_use
         
         if slice_type eq 'kspace' then begin
-          kpower_slice_plot, uv_slice_savefile[i], multi_pos = pos_use, start_multi_params = start_multi_params, png = png, eps = eps, $
+          kpower_slice_plot, uv_slice_savefile[i], multi_pos = pos_use, start_multi_params = start_multi_params, png = png, eps = eps, pdf = pdf, $
             plotfile = uv_slice_plotfile, $
             plot_xrange = kperp_plot_range, plot_yrange = kperp_plot_range, $
             title_prefix = slice_titles[i], note = note_use, data_range = slice_range, $
@@ -625,7 +628,7 @@ pro fhd_data_plots, datafile, rts = rts, pol_inc = pol_inc, image = image, $
             window_num = window_num
         endif else begin
         
-          uvf_slice_plot, uv_slice_savefile[i], multi_pos = pos_use, start_multi_params = start_multi_params, png = png, eps = eps, $
+          uvf_slice_plot, uv_slice_savefile[i], multi_pos = pos_use, start_multi_params = start_multi_params, png = png, eps = eps, pdf = pdf, $
             plotfile = uv_slice_plotfile, type = uvf_plot_type, title_prefix = slice_titles[i], note = note_use, $
             grey_scale = grey_scale, hinv = hinv, data_range = slice_range, /log, $
             baseline_axis = baseline_axis, window_num = window_num
@@ -637,14 +640,14 @@ pro fhd_data_plots, datafile, rts = rts, pol_inc = pol_inc, image = image, $
         endif
       endfor
       if keyword_set(pub) then begin
-        cgps_close, png = png, delete_ps = delete_ps
+        cgps_close, png = png, pdf = pdf, delete_ps = delete_ps
       endif
       
     endif
   endelse
   
   file_arr = savefiles_1d
-  kpower_1d_plots, file_arr, window_num = 6, colors = colors, names = titles, delta = delta, hinv = hinv, png = png, eps = eps, $
+  kpower_1d_plots, file_arr, window_num = 6, colors = colors, names = titles, delta = delta, hinv = hinv, png = png, eps = eps, pdf = pdf, $
     plotfile = plotfile_1d
     
 end

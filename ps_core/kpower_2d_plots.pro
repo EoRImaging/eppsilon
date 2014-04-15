@@ -2,7 +2,7 @@ pro kpower_2d_plots, power_savefile, multi_pos = multi_pos, start_multi_params =
     plot_weights = plot_weights, plot_noise = plot_noise, plot_sigma = plot_sigma, plot_exp_noise = plot_exp_noise, $
     ratio = ratio, diff = diff, snr = snr, nnr = nnr, $
     kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, data_range = data_range, $
-    color_profile = color_profile, log_cut_val = log_cut_val, plotfile = plotfile, png = png, eps = eps, $
+    color_profile = color_profile, log_cut_val = log_cut_val, plotfile = plotfile, png = png, eps = eps, pdf = pdf, $
     no_title = no_title, full_title = full_title, title_prefix = title_prefix, note = note, $
     norm_2d = norm_2d, norm_factor = norm_factor, grey_scale = grey_scale, $
     wedge_amp = wedge_amp, plot_wedge_line = plot_wedge_line, $
@@ -10,14 +10,15 @@ pro kpower_2d_plots, power_savefile, multi_pos = multi_pos, start_multi_params =
     kpar_linear_axis = kpar_linear_axis, no_units = no_units, hinv = hinv, charsize = charsize_in, $
     cb_size = cb_size_in, margin=margin_in, cb_margin = cb_margin_in
     
-  if n_elements(plotfile) gt 0 or keyword_set(png) or keyword_set(eps) then pub = 1 else pub = 0
+  if n_elements(plotfile) gt 0 or keyword_set(png) or keyword_set(eps) or keyword_set(pdf) then pub = 1 else pub = 0
   if pub eq 1 then begin
-    if not (keyword_set(png) or keyword_set(eps)) then begin
+    if not (keyword_set(png) or keyword_set(eps) or keyword_set(pdf)) then begin
       basename = cgRootName(plotfile, directory=directory, extension=extension)
       
       case extension of
         'eps': eps=1
         'png': png=1
+        'pdf': pdf=1
         '': png = 1
         else: begin
           print, 'Unrecognized extension, using png'
@@ -32,14 +33,17 @@ pro kpower_2d_plots, power_savefile, multi_pos = multi_pos, start_multi_params =
       print, 'no filename specified for kpower_2d_plots output. Using ' + current_dir + path_sep() + plotfile
     endif
     
-    if keyword_set(png) and keyword_set(eps) then begin
-      print, 'both eps and png cannot be set, using png'
+    if keyword_set(png) and keyword_set(eps) and keyword_set(pdf) then begin
+      print, 'only one of eps, pdf and png can be set, using png'
       eps = 0
     endif
     
     if keyword_set(png) then begin
       plot_exten = '.png'
       delete_ps = 1
+    endif else if keyword_set(pdf) then begin
+      plot_exten = '.pdf'
+      delete_ps = 1    
     endif else if keyword_set(eps) then begin
       plot_exten = '.eps'
       delete_ps = 0
@@ -536,7 +540,7 @@ pro kpower_2d_plots, power_savefile, multi_pos = multi_pos, start_multi_params =
           ysize = round(base_size_use * y_factor * double(nrow))
         endwhile
       endif
-           
+      
       ;; if pub is set, start ps output
       if keyword_set(pub) then begin
         ps_aspect = (y_factor * float(nrow)) / (x_factor * float(ncol))
@@ -808,7 +812,7 @@ pro kpower_2d_plots, power_savefile, multi_pos = multi_pos, start_multi_params =
   ;;             divisions = 0
     
   if keyword_set(pub) and n_elements(multi_pos) eq 0 then begin
-    cgps_close, png = png, delete_ps = delete_ps
+    cgps_close, png = png, pdf = pdf, delete_ps = delete_ps
   endif
   
   tvlct, r, g, b
