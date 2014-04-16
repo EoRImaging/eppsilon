@@ -1,15 +1,16 @@
 pro kpower_1d_plots, power_savefile, plot_weights = plot_weights, multi_pos = multi_pos, data_range = data_range, k_range = k_range, $
-    png = png, eps = eps, plotfile = plotfile, window_num = window_num, colors = colors, names = names, save_text = save_text, $
+    png = png, eps = eps, pdf = pdf, plotfile = plotfile, window_num = window_num, colors = colors, names = names, save_text = save_text, $
     delta = delta, hinv = hinv
     
-  if n_elements(plotfile) gt 0 or keyword_set(png) or keyword_set(eps) then pub = 1 else pub = 0
+  if n_elements(plotfile) gt 0 or keyword_set(png) or keyword_set(eps) or keyword_set(pdf) then pub = 1 else pub = 0
   if pub eq 1 then begin
-    if not (keyword_set(png) or keyword_set(eps)) then begin
+    if not (keyword_set(png) or keyword_set(eps) or keyword_set(pdf)) then begin
       basename = cgRootName(plotfile, directory=directory, extension=extension)
       
       case extension of
         'eps': eps=1
         'png': png=1
+        'pdf': pdf=1
         '': png = 1
         else: begin
           print, 'Unrecognized extension, using png'
@@ -18,24 +19,27 @@ pro kpower_1d_plots, power_savefile, plot_weights = plot_weights, multi_pos = mu
       endcase
       
     endif
-    if n_elements(plotfile) eq 0 and n_elements(multi_pos) eq 0 then begin
+   if n_elements(plotfile) eq 0 and n_elements(multi_pos) eq 0 then begin
       if keyword_set(eps) then plotfile = 'idl_kpower_1d_plots.eps' else plotfile = 'idl_kpower_1d_plots'
       cd, current = current_dir
       print, 'no filename specified for kpower_1d_plots output. Using ' + current_dir + path_sep() + plotfile
     endif
-    
-    if keyword_set(png) and keyword_set(eps) then begin
-      print, 'both eps and png cannot be set, using png'
+     
+    if keyword_set(png) and keyword_set(eps) and keyword_set(pdf) then begin
+      print, 'only one of eps, pdf and png can be set, using png'
       eps = 0
     endif
     
     if keyword_set(png) then begin
-        plot_exten = '.png'
-        delete_ps = 1
+      plot_exten = '.png'
+      delete_ps = 1
+    endif else if keyword_set(pdf) then begin
+      plot_exten = '.pdf'
+      delete_ps = 1    
     endif else if keyword_set(eps) then begin
-         plot_exten = '.eps'
-        delete_ps = 0
-    endif 
+      plot_exten = '.eps'
+      delete_ps = 0
+    endif
   endif
   
   if n_elements(window_num) eq 0 then window_num = 2
@@ -228,7 +232,7 @@ pro kpower_1d_plots, power_savefile, plot_weights = plot_weights, multi_pos = mu
     al_legend, names, textcolor = colors, box = 0, /right, bottom = bottom, charsize = legend_charsize, charthick = charthick
     
   if keyword_set(pub) and n_elements(multi_pos) eq 0 then begin
-    cgps_close, png = png, delete_ps = delete_ps
+    cgps_close, png = png, pdf = pdf, delete_ps = delete_ps
   endif
   
   tvlct, r, g, b

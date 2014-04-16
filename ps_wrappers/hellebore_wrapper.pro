@@ -2,7 +2,7 @@ pro hellebore_wrapper, folder_name, rts = rts, version = version, refresh_dft = 
     refresh_binning = refresh_binning, refresh_info = refresh_info, dft_ian = dft_ian, $
     pol_inc = pol_inc, sim = sim, freq_ch_range = freq_ch_range, freq_flag_name = freq_flag_name, $
     no_spec_window = no_spec_window, spec_window_type = spec_window_type, std_power = std_power, noise_sim = noise_sim, $
-    cut_image = cut_image, individual_plots = individual_plots, plot_filebase = plot_filebase, png = png, eps = eps, $
+    cut_image = cut_image, individual_plots = individual_plots, plot_filebase = plot_filebase, png = png, eps = eps, pdf = pdf, $
     plot_slices = plot_slices, slice_type = slice_type, uvf_plot_type = uvf_plot_type, $
     kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, t32 = t32, set_data_ranges = set_data_ranges
     
@@ -123,14 +123,20 @@ pro hellebore_wrapper, folder_name, rts = rts, version = version, refresh_dft = 
     
     
     
-  endif else if keyword_set(sim) then begin
-    datafile = base_path('data') + 'fhd_sim_data/fhd_v300/Healpix/Sim_obs_' + ['even','odd']+ '_cube.sav'
-    
   endif else begin
   
     if n_elements(folder_name) eq 0 then folder_name = base_path('data') + 'fhd_ps_data/128T_cubes/aug23_3hr_first'
     
     ;; check for folder existence, otherwise look for common folder names to figure out full path. If none found, try base_path('data') + 'fhd_ps_data/128T_cubes/'
+    folder_test = file_test(folder_name, /directory)
+    if folder_test eq 0 then begin
+      pos_sim_data = strpos(folder_name, 'fhd_sim_data')
+      if pos_sim_data gt -1 then begin
+        test_name = base_path('data') + strmid(folder_name, pos_sim_data)
+        folder_test = file_test(test_name, /directory)
+        if folder_test eq 1 then folder_name = test_name
+      endif
+    endif
     folder_test = file_test(folder_name, /directory)
     if folder_test eq 0 then begin
       pos_fhd_data = strpos(folder_name, 'fhd_ps_data')
@@ -163,8 +169,7 @@ pro hellebore_wrapper, folder_name, rts = rts, version = version, refresh_dft = 
         if n_elements(obs_range) gt 1 then $
           message, 'obs_range can be specified as a single string to use as the name or as a 2 element obsid range'
         obs_name = obs_range
-        obs_range = long(strsplit(obs_name, '-', /extract))
-        if n_elements(obs_range) eq 1 then obs_name_single = obs_name
+        obs_name_single = obs_name
       endif else begin
         if n_elements(obs_range) gt 2 then message, 'obs_range can be specified as a single string to use as the name or as a 2 element obsid range'
         if n_elements(obs_range) eq 2 then obs_name = number_formatter(obs_range[0]) + '-' + number_formatter(obs_range[1]) else begin
@@ -183,14 +188,21 @@ pro hellebore_wrapper, folder_name, rts = rts, version = version, refresh_dft = 
       if obs_name eq '' then begin
         if n_infofile gt 1 then print, 'More than 1 info files found, using first one'
         datafile = info_file[0]
-        obs_name = stregex(datafile, '[0-9]+-[0-9]+', /extract)
-        obs_range = long(strsplit(obs_name, '-', /extract))
+        if stregex(datafile, '[0-9]+-[0-9]+', /boolean) then obs_name = stregex(datafile, '[0-9]+-[0-9]+', /extract) else begin
+          start_pos = strpos(info_file, 'Combined_obs_') + strlen('Combined_obs_')
+          end_pos = strpos(strmid(info_file, start_pos), '_cube')
+          obs_name = strmid(info_file, start_pos, end_pos)
+        endelse
       endif else begin
         if n_infofile gt 1 then message, 'More than one info file found with given obs_range'
         datafile = info_file[0]
-        obs_name = stregex(datafile, '[0-9]+-[0-9]+', /extract)
-        obs_range = long(strsplit(obs_name, '-', /extract))
+        if stregex(datafile, '[0-9]+-[0-9]+', /boolean) then obs_name = stregex(datafile, '[0-9]+-[0-9]+', /extract) else begin
+          start_pos = strpos(info_file, 'Combined_obs_') + strlen('Combined_obs_')
+          end_pos = strpos(strmid(info_file, start_pos), '_cube')
+          obs_name = strmid(info_file, start_pos, end_pos)
+        endelse
       endelse
+      integrated=1
       
     endif else if n_elements(obs_range) lt 2 then begin
       ;; then look for single obs info files
@@ -200,14 +212,19 @@ pro hellebore_wrapper, folder_name, rts = rts, version = version, refresh_dft = 
         if obs_name eq '' then begin
           if n_infofile gt 1 then print, 'More than 1 info files found, using first one'
           datafile = info_file[0]
-          obs_name = stregex(info_basename[0], '[0-9]+', /extract)
-          obs_range = long(obs_name)
+          if stregex(info_basename[0], '[0-9]+', /boolean) then obs_name = stregex(info_basename[0], '[0-9]+', /extract) else begin
+            end_pos = strpos(info_basename[0], '_cube')
+            obs_name = strmid(info_basename[0], 0, end_pos)
+          endelse
         endif else begin
           if n_infofile gt 1 then message, 'More than one info file found with given obs_range'
           datafile = info_file[0]
-          obs_name = stregex(info_basename[0], '[0-9]+', /extract)
-          obs_range = long(obs_name)
+          if stregex(info_basename[0], '[0-9]+', /boolean) then obs_name = stregex(info_basename[0], '[0-9]+', /extract) else begin
+            end_pos = strpos(info_basename[0], '_cube')
+            obs_name = strmid(info_basename[0], 0, end_pos)
+          endelse
         endelse
+        integrated=0
         
       endif
     endif
@@ -217,22 +234,28 @@ pro hellebore_wrapper, folder_name, rts = rts, version = version, refresh_dft = 
       cube_files = file_search(folder_name + '/Combined_obs_' + obs_name + '*_cube.sav', count = n_cubefiles)
       if n_cubefiles gt 0 then begin
         if obs_name eq '' then begin
-          obs_name_arr = stregex(cube_files, '[0-9]+-[0-9]+', /extract)
+          start_pos = strpos(cube_files, 'Combined_obs_') + strlen('Combined_obs_')
+          end_pos_even = strpos(strmid(info_file, start_pos), '_even')
+          end_pos_odd = strpos(strmid(info_file, start_pos), '_odd')
+          end_pos_cube = strpos(strmid(info_file, start_pos), '_cube') ;; always > -1
+          end_pos = end_pos_even > end_pos_odd
+          wh_noend = where(end_pos eq -1, count_noend)
+          if count_noend gt 0 then end_pos[wh_noend] = end_pos_cube[wh_noend]
+          
+          ;obs_name_arr = stregex(cube_files, '[0-9]+-[0-9]+', /extract)
+          obs_name_arr = strmid(info_file, transpose(start_pos), transpose(end_pos))
+          
           wh_first = where(obs_name_arr eq obs_name_arr[0], count_first)
           if count_first lt n_elements(cube_files) then $
             print, 'More than one obs_range found, using first range (' + obs_name_arr[0] + ', ' + number_formatter(count_first) + ' files)'
           if count_first gt 2 then message, 'More than two cubes found with first obs_range'
           datafile = cube_files[wh_first]
           obs_name = obs_name_arr[0]
-          obs_range = long(strsplit(obs_name, '-', /extract))
-        endif else begin
-          if n_elements(cube_files) gt 2 then message, 'More than two cubes found with given obs_range'
           
-          obs_name_arr = stregex(cube_files, '[0-9]+-[0-9]+', /extract)
-          if obs_name_arr[1] ne obs_name_arr[0] then message, 'Cube files do not have the same obs ranges.'
-          obs_name = obs_name_arr[0]
-          obs_range = long(strsplit(obs_name, '-', /extract))
+        endif else begin
+          if n_elements(cube_files) gt 2 then message, 'More than two cubes found with given obs_name'
         endelse
+        integrated=1
         
       endif else if n_elements(obs_range) lt 2 then begin
         ;; then look for single obs cube files
@@ -240,42 +263,34 @@ pro hellebore_wrapper, folder_name, rts = rts, version = version, refresh_dft = 
         if n_cubefiles gt 0 then begin
           cube_basename = file_basename(cube_files)
           if obs_name eq '' then begin
-            obs_name_arr = stregex(cube_basename, '[0-9]+', /extract)
+            end_pos = strpos(cube_basename[0], '_cube')
+            obs_name_arr = strmid(cube_basename[0], intarr(1, n_cubefiles), transpose(end_pos))
+            
             wh_first = where(obs_name_arr eq obs_name_arr[0], count_first)
             if count_first lt n_elements(cube_files) then $
               print, 'More than one obs_range found, using first range (' + obs_name_arr[0] + ', ' + number_formatter(count_first) + ' files)'
             if count_first gt 2 then message, 'More than two cubes found with first obs_range'
             datafile = cube_files[wh_first]
             obs_name = obs_name_arr[0]
-            obs_range = long(obs_name)
           endif else begin
             if n_elements(cube_files) gt 2 then message, 'More than two cubes found with given obs_range'
-            
-            datafile = cube_files
-            obs_name_arr = stregex(cube_basename, '[0-9]+', /extract)
-            if obs_name_arr[1] ne obs_name_arr[0] then message, 'Cube files do not have the same obs ranges.'
-            obs_name = obs_name_arr[0]
-            obs_range = long(obs_name)
           endelse
-          
+          integrate=0
         endif
       endif
     endif
     
     if n_elements(datafile) eq 0 then message, 'No cube or info files found in folder ' + folder_name
     
-    
-    if n_elements(obs_range) eq 1 then integrated = 0 else if obs_range[1] - obs_range[0] gt 0 then integrated = 1 else integrated = 0
-    
     plot_filebase = fhd_type + '_' + obs_name
     note = fhd_type
     
     if n_elements(set_data_ranges) eq 0 then set_data_ranges = 1
     if keyword_set(set_data_ranges) then begin
-      if keyword_set(integrated) then sigma_range = [2e2, 2e4] else sigma_range = [1e4, 2e6]
+      if keyword_set(integrated) then sigma_range = [2e0, 2e4] else sigma_range = [1e4, 2e6]
       if keyword_set(integrated) then nev_range = [5e2, 2e5] else nev_range = [5e4, 2e7]
       
-      data_range = [1e0, 1e10]
+      if keyword_set(sim) then data_range = [1e0, 1e12] else data_range = [1e0, 1e10]
       nnr_range = [1e-1, 1e1]
       snr_range = [1e-4, 1e6]
       
@@ -400,7 +415,7 @@ pro hellebore_wrapper, folder_name, rts = rts, version = version, refresh_dft = 
     plot_slices = plot_slices, slice_type = slice_type, uvf_plot_type = uvf_plot_type, $
     data_range = data_range, sigma_range = sigma_range, nev_range = nev_range, snr_range = snr_range, noise_range = noise_range, nnr_range = nnr_range, $
     baseline_axis = baseline_axis, delay_axis = delay_axis, hinv = hinv, $
-    plot_wedge_line = plot_wedge_line, grey_scale = grey_scale, individual_plots = individual_plots, note = note, png = png, eps = eps
+    plot_wedge_line = plot_wedge_line, grey_scale = grey_scale, individual_plots = individual_plots, note = note, png = png, eps = eps, pdf = pdf
     
     
   if not keyword_set(set_data_ranges) then begin
