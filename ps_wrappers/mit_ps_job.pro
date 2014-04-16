@@ -184,8 +184,13 @@ pro mit_ps_job, folder_name, obs_range, n_obs=n_obs, rts = rts, refresh_dft = re
     
     if n_elements(datafile) eq 0 then message, 'No cube or info files found in folder ' + folder_name
     
-    if n_obs eq 1 then integrated = 0 else if obs_range[1] - obs_range[0] gt 0 then integrated = 1
-    
+    if nargs eq 3 then begin
+       ; special case where nobs was passed in
+       if n_obs gt 1 then integrated=1 else integrated=0
+    endif else begin
+       if n_obs eq 1 then integrated = 0 else if obs_range[1] - obs_range[0] gt 0 then integrated = 1
+    endelse
+
     if n_elements(set_data_ranges) eq 0 then set_data_ranges = 1
     if keyword_set(set_data_ranges) then begin
       if keyword_set(integrated) then sigma_range = [2e0, 2e2] else sigma_range = [1e2, 2e4]
