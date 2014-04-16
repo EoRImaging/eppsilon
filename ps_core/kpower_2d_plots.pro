@@ -547,7 +547,7 @@ pro kpower_2d_plots, power_savefile, multi_pos = multi_pos, start_multi_params =
         
         if ps_aspect lt 1 then landscape = 1 else landscape = 0
         IF Keyword_Set(eps) THEN landscape = 0
-        sizes = PSWindow(LANDSCAPE=landscape, aspectRatio = ps_aspect)
+        sizes = cgpswindow(LANDSCAPE=landscape, aspectRatio = ps_aspect)
         
         cgps_open, plotfile, /font, encapsulated=eps, /nomatch, inches=sizes.inches, xsize=sizes.xsize, ysize=sizes.ysize, $
           xoffset=sizes.xoffset, yoffset=sizes.yoffset, landscape = landscape
@@ -660,7 +660,7 @@ pro kpower_2d_plots, power_savefile, multi_pos = multi_pos, start_multi_params =
       
       if ps_aspect lt 1 then landscape = 1 else landscape = 0
       IF Keyword_Set(eps) THEN landscape = 0
-      sizes = PSWindow(LANDSCAPE=landscape, aspectRatio = ps_aspect)
+      sizes = cgpswindow(LANDSCAPE=landscape, aspectRatio = ps_aspect)
       
       cgps_open, plotfile, /font, encapsulated=eps, /nomatch, landscape = landscape, $
         xsize = ps_xsize, ysize = ps_ysize, xoffset = ps_xoffset, yoffset = ps_yoffset
