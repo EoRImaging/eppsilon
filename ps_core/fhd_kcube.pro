@@ -999,8 +999,11 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
   endfor
   
   ;; fix units on window funtion integral -- now they should be Mpc^3
-  ;; use delta f for native visibility frequency resolution
-  ;; calculate integral of window in r^3 to compare w/ Adam
+  ;; checked vs Adam's analytic calculation and it matches to within a factor of 4
+  ;; We are using total(weight) = Nvis for Ian's uv plane and multiplying by a factor to convert between Ian's and my uv plane
+  ;;   the factor is ((2*!pi)^2*(delta_uv)^2) /  (delta_kperp)^2 * Dm^2 which comes in squared in the denominator.
+  ;;   see eq 21e from Adam's memo. Also note that delta D is delta z * n_freq
+  ;;   note that we can convert both the weights and variance to uvf from kperp,rz and all jacobians will cancel
   window_int_r = window_int * (z_mpc_delta * n_freq) * (kx_mpc_delta * ky_mpc_delta)*z_mpc_mean^4./((2.*!dpi)^2.*file_struct.kpix^4.)
   print, 'window integral in r^3: ' + number_formatter(window_int_r[0], format='(e10.4)')
   
