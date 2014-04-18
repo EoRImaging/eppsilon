@@ -128,37 +128,46 @@ pro hellebore_wrapper, folder_name, rts = rts, version = version, refresh_dft = 
     if n_elements(folder_name) eq 0 then folder_name = base_path('data') + 'fhd_ps_data/128T_cubes/aug23_3hr_first'
     
     ;; check for folder existence, otherwise look for common folder names to figure out full path. If none found, try base_path('data') + 'fhd_ps_data/128T_cubes/'
-    folder_test = file_test(folder_name, /directory)
-    if folder_test eq 0 then begin
-      pos_sim_data = strpos(folder_name, 'fhd_sim_data')
-      if pos_sim_data gt -1 then begin
-        test_name = base_path('data') + strmid(folder_name, pos_sim_data)
+    if keyword_set(sim) then begin
+      folder_test = file_test(folder_name, /directory)
+      if folder_test eq 0 then begin
+        pos_sim_data = strpos(folder_name, 'fhd_sim_data')
+        if pos_sim_data gt -1 then begin
+          test_name = base_path('data') + strmid(folder_name, pos_sim_data)
+          folder_test = file_test(test_name, /directory)
+          if folder_test eq 1 then folder_name = test_name
+        endif
+      endif
+      if folder_test eq 0 then begin
+        test_name = base_path('data') + 'fhd_sim_data/' + folder_name
         folder_test = file_test(test_name, /directory)
         if folder_test eq 1 then folder_name = test_name
       endif
-    endif
-    folder_test = file_test(folder_name, /directory)
-    if folder_test eq 0 then begin
-      pos_fhd_data = strpos(folder_name, 'fhd_ps_data')
-      if pos_fhd_data gt -1 then begin
-        test_name = base_path('data') + strmid(folder_name, pos_fhd_data)
+      
+    endif else begin
+      folder_test = file_test(folder_name, /directory)
+      if folder_test eq 0 then begin
+        pos_fhd_data = strpos(folder_name, 'fhd_ps_data')
+        if pos_fhd_data gt -1 then begin
+          test_name = base_path('data') + strmid(folder_name, pos_fhd_data)
+          folder_test = file_test(test_name, /directory)
+          if folder_test eq 1 then folder_name = test_name
+        endif
+      endif
+      if folder_test eq 0 then begin
+        pos_fhd_128 = strpos(folder_name, '128T_cubes')
+        if pos_fhd_128 gt -1 then begin
+          test_name = base_path('data') + 'fhd_ps_data/' + strmid(folder_name, pos_fhd_128)
+          folder_test = file_test(test_name, /directory)
+          if folder_test eq 1 then folder_name = test_name
+        endif
+      endif
+      if folder_test eq 0 then begin
+        test_name = base_path('data') + 'fhd_ps_data/128T_cubes/' + folder_name
         folder_test = file_test(test_name, /directory)
         if folder_test eq 1 then folder_name = test_name
       endif
-    endif
-    if folder_test eq 0 then begin
-      pos_fhd_128 = strpos(folder_name, '128T_cubes')
-      if pos_fhd_128 gt -1 then begin
-        test_name = base_path('data') + 'fhd_ps_data/' + strmid(folder_name, pos_fhd_128)
-        folder_test = file_test(test_name, /directory)
-        if folder_test eq 1 then folder_name = test_name
-      endif
-    endif
-    if folder_test eq 0 then begin
-      test_name = base_path('data') + 'fhd_ps_data/128T_cubes/' + folder_name
-      folder_test = file_test(test_name, /directory)
-      if folder_test eq 1 then folder_name = test_name
-    endif
+    endelse
     
     if folder_test eq 0 then message, 'folder not found'
     
@@ -285,12 +294,14 @@ pro hellebore_wrapper, folder_name, rts = rts, version = version, refresh_dft = 
     plot_filebase = fhd_type + '_' + obs_name
     note = fhd_type
     
+    if keyword_set(sim) then plot_eor_1d=1
+    
     if n_elements(set_data_ranges) eq 0 then set_data_ranges = 1
     if keyword_set(set_data_ranges) then begin
       if keyword_set(integrated) then sigma_range = [2e0, 2e4] else sigma_range = [1e4, 2e6]
       if keyword_set(integrated) then nev_range = [5e2, 2e5] else nev_range = [5e4, 2e7]
       
-      if keyword_set(sim) then data_range = [1e0, 1e12] else data_range = [1e0, 1e10]
+      data_range = [1e0, 1e10]
       nnr_range = [1e-1, 1e1]
       snr_range = [1e-4, 1e6]
       
@@ -415,7 +426,8 @@ pro hellebore_wrapper, folder_name, rts = rts, version = version, refresh_dft = 
     plot_slices = plot_slices, slice_type = slice_type, uvf_plot_type = uvf_plot_type, $
     data_range = data_range, sigma_range = sigma_range, nev_range = nev_range, snr_range = snr_range, noise_range = noise_range, nnr_range = nnr_range, $
     baseline_axis = baseline_axis, delay_axis = delay_axis, hinv = hinv, $
-    plot_wedge_line = plot_wedge_line, grey_scale = grey_scale, individual_plots = individual_plots, note = note, png = png, eps = eps, pdf = pdf
+    plot_wedge_line = plot_wedge_line, plot_eor_1d = plot_eor_1d, grey_scale = grey_scale, $
+    individual_plots = individual_plots, note = note, png = png, eps = eps, pdf = pdf
     
     
   if not keyword_set(set_data_ranges) then begin

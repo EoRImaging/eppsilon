@@ -19,12 +19,12 @@ pro kpower_1d_plots, power_savefile, plot_weights = plot_weights, multi_pos = mu
       endcase
       
     endif
-   if n_elements(plotfile) eq 0 and n_elements(multi_pos) eq 0 then begin
+    if n_elements(plotfile) eq 0 and n_elements(multi_pos) eq 0 then begin
       if keyword_set(eps) then plotfile = 'idl_kpower_1d_plots.eps' else plotfile = 'idl_kpower_1d_plots'
       cd, current = current_dir
       print, 'no filename specified for kpower_1d_plots output. Using ' + current_dir + path_sep() + plotfile
     endif
-     
+    
     if keyword_set(png) and keyword_set(eps) and keyword_set(pdf) then begin
       print, 'only one of eps, pdf and png can be set, using png'
       eps = 0
@@ -35,7 +35,7 @@ pro kpower_1d_plots, power_savefile, plot_weights = plot_weights, multi_pos = mu
       delete_ps = 1
     endif else if keyword_set(pdf) then begin
       plot_exten = '.pdf'
-      delete_ps = 1    
+      delete_ps = 1
     endif else if keyword_set(eps) then begin
       plot_exten = '.eps'
       delete_ps = 0
@@ -124,6 +124,22 @@ pro kpower_1d_plots, power_savefile, plot_weights = plot_weights, multi_pos = mu
       if log_bins then k_mid = 10^(alog10(k_edges[1:*]) - k_bin/2.) else k_mid = k_edges[1:*] - k_bin/2.
     endelse
     
+    ;; limit to k_range if set
+    if keyword_set(k_range) then begin
+      wh_k_inrange = where(k_edges ge k_range[0] and k_edges[1:*] le k_range[1], n_k_plot)
+      
+      if n_k_plot eq 0 then message, 'No data in plot k range'
+      
+      if n_k_plot ne n_k then begin
+        power = power[wh_k_inrange]
+        k_mid = k_mid[wh_k_inrange]
+        temp = [wh_k_inrange, wh_k_inrange[n_k_plot-1]+1]
+        k_edges = k_edges[temp]
+        n_k = n_k_plot
+      endif
+      
+    endif
+    
     theory_delta = (power * k_mid^3d / (2d*!pi^2d)) ^(1/2d)
     
     if keyword_set(save_text) then begin
@@ -203,7 +219,7 @@ pro kpower_1d_plots, power_savefile, plot_weights = plot_weights, multi_pos = mu
     if nfiles gt 3 then legend_charsize = charsize / (nfiles/4.5d)  else legend_charsize = 2
     
     if n_elements(multi_pos) eq 0 then begin
-       cgps_open, plotfile, /font, encapsulated=eps
+      cgps_open, plotfile, /font, encapsulated=eps
     endif
   endif else if n_elements(multi_pos) eq 0 then begin
     if windowavailable(window_num) then wset, window_num else window, window_num

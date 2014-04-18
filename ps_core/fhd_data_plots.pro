@@ -11,7 +11,7 @@ pro fhd_data_plots, datafile, rts = rts, pol_inc = pol_inc, image = image, $
     log_kpar = log_kpar, log_kperp = log_kperp, kpar_bin = kpar_bin, kperp_bin = kperp_bin, log_k1d = log_k1d, $
     k1d_bin = k1d_bin, kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, $
     baseline_axis = baseline_axis, delay_axis = delay_axis, hinv = hinv, plot_wedge_line = plot_wedge_line, $
-    grey_scale = grey_scale, individual_plots = individual_plots
+    plot_eor_1d = plot_eor_1d, grey_scale = grey_scale, individual_plots = individual_plots
     
     
   if keyword_set(refresh_dft) then refresh_ps = 1
@@ -647,7 +647,16 @@ pro fhd_data_plots, datafile, rts = rts, pol_inc = pol_inc, image = image, $
   endelse
   
   file_arr = savefiles_1d
+  
+  if keyword_set(plot_eor_1d) then begin
+    ;eor_file_1d = base_path() + 'power_spectrum/eor_data/eor_power_1d.idlsave'
+    eor_file_1d = filepath('eor_power_1d.idlsave',root=rootdir('FHD'),subdir='catalog_data')
+    file_arr = [file_arr, eor_file_1d]
+    titles = [titles, 'EoR signal']
+    k_range = minmax([kperp_plot_range, kpar_bin, kpar_plot_range[1]])
+  endif
+  
   kpower_1d_plots, file_arr, window_num = 6, colors = colors, names = titles, delta = delta, hinv = hinv, png = png, eps = eps, pdf = pdf, $
-    plotfile = plotfile_1d
+    plotfile = plotfile_1d, k_range = k_range
     
 end
