@@ -2,7 +2,7 @@ pro fhd_3dps, file_struct, refresh = refresh, kcube_refresh = kcube_refresh, dft
     dft_refresh_weight = dft_refresh_weight, dft_ian = dft_ian, cut_image = cut_image, image = image, $
     dft_fchunk = dft_fchunk, freq_ch_range = freq_ch_range, freq_flags = freq_flags, $
     spec_window_type = spec_window_type, $
-    noise_sim = noise_sim, std_power = std_power, no_kzero = no_kzero, log_kpar = log_kpar, $
+    std_power = std_power, no_kzero = no_kzero, log_kpar = log_kpar, $
     log_kperp = log_kperp, kperp_bin = kperp_bin, kpar_bin = kpar_bin, log_k1d = log_k1d, k1d_bin = k1d_bin, $
     input_units = input_units, fill_holes = fill_holes, quiet = quiet
     
@@ -37,7 +37,7 @@ pro fhd_3dps, file_struct, refresh = refresh, kcube_refresh = kcube_refresh, dft
       fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weight = dft_refresh_weight, dft_ian = dft_ian, $
       dft_fchunk = dft_fchunk, freq_ch_range = freq_ch_range, freq_flags = freq_flags, $
       cut_image = cut_image, image = image, $
-      spec_window_type = spec_window_type, noise_sim = noise_sim, std_power = std_power, input_units = input_units, /quiet
+      spec_window_type = spec_window_type, std_power = std_power, input_units = input_units, /quiet
       
     if nfiles eq 1 then begin
       restore, file_struct.kcube_savefile

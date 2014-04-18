@@ -1,7 +1,7 @@
 pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weight = dft_refresh_weight, dft_ian = dft_ian, $
     dft_fchunk = dft_fchunk, freq_ch_range = freq_ch_range, freq_flags = freq_flags, $
     spec_window_type = spec_window_type, cut_image = cut_image, $
-    noise_sim = noise_sim, std_power = std_power, input_units = input_units, image = image, quiet = quiet
+    std_power = std_power, input_units = input_units, image = image, quiet = quiet
     
   if tag_exist(file_struct, 'nside') ne 0 then healpix = 1 else healpix = 0
   if keyword_set(image) or tag_exist(file_struct, 'uvf_savefile') ne 0 then image = 1 else image = 0
@@ -17,14 +17,9 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
   
   datavar = strupcase(file_struct.datavar)
   if datavar eq '' then begin
-    ;; working with a 'derived' cube (ie residual cube or noise simulation cube) that is constructed from uvf_savefiles
-    if keyword_set(noise_sim) then begin
-      input_uvf_files = reform(file_struct.res_uvf_inputfiles)
-      input_uvf_varname = reform(file_struct.res_uvf_varname)
-    endif else begin
-      input_uvf_files = reform(file_struct.res_uvf_inputfiles, nfiles, 2)
-      input_uvf_varname = reform(file_struct.res_uvf_varname, nfiles, 2)
-    endelse
+    ;; working with a 'derived' cube (ie residual cube) that is constructed from uvf_savefiles
+    input_uvf_files = reform(file_struct.res_uvf_inputfiles, nfiles, 2)
+    input_uvf_varname = reform(file_struct.res_uvf_varname, nfiles, 2)
     
     if healpix or keyword_set(image) then begin
       input_uvf_wtfiles = file_struct.uvf_weight_savefile
@@ -233,45 +228,26 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
       
       if test_uvf eq 0 or test_wt_uvf eq 0 or keyword_set(dft_refresh_data) or keyword_set(dft_refresh_weight) then begin
         if datavar eq '' then begin
-          ;; working with a 'derived' cube (ie residual cube or noise simulation cube) that is constructed from uvf_savefiles
+          ;; working with a 'derived' cube (ie residual cube) that is constructed from uvf_savefiles
         
-          if keyword_set(noise_sim) then begin
-            variance_cube = getvar_savefile(file_struct.uvf_weight_savefile[i], 'variance_cube')
-            kx_rad_vals = getvar_savefile(file_struct.uvf_weight_savefile[i], 'kx_rad_vals')
-            ky_rad_vals = getvar_savefile(file_struct.uvf_weight_savefile[i], 'ky_rad_vals')
-            
-            if n_elements(freq_mask) ne 0 then begin
-              old_freq_mask = getvar_savefile(file_struct.uvf_weight_savefile[i], 'freq_mask')
-              if total(abs(old_freq_mask - freq_mask)) ne 0 then message, 'freq_mask of variance file does not match current freq_mask'
-            endif
-            
-            seed = systime(1)
-            noise = randomn(seed, dims) * sqrt(variance_cube) + $
-              complex(0,1)*randomn(seed, dims) * sqrt(variance_cube)
-            data_cube = temporary(noise)
-            if keyword_set(dft_ian) then save, file = file_struct.uvf_savefile[i], u_lambda_vals, v_lambda_vals, data_cube, freq_mask $
-            else save, file = file_struct.uvf_savefile[i], kx_rad_vals, ky_rad_vals, data_cube, freq_mask
-            undefine, data_cube, seed, variance_cube
-          endif else begin
-            dirty_cube = getvar_savefile(input_uvf_files[i,0], input_uvf_varname[i,0])
-            kx_dirty = getvar_savefile(input_uvf_files[i,0], 'kx_rad_vals')
-            ky_dirty = getvar_savefile(input_uvf_files[i,0], 'ky_rad_vals')
-            
-            model_cube = getvar_savefile(input_uvf_files[i,1], input_uvf_varname[i,1])
-            kx_rad_vals = getvar_savefile(input_uvf_files[i,1], 'kx_rad_vals')
-            ky_rad_vals = getvar_savefile(input_uvf_files[i,1], 'ky_rad_vals')
-            
-            if n_elements(freq_mask) ne 0 then begin
-              dirty_freq_mask = getvar_savefile(input_uvf_files[i,0], 'freq_mask')
-              model_freq_mask = getvar_savefile(input_uvf_files[i,1], 'freq_mask')
-              if total(abs(dirty_freq_mask - freq_mask)) ne 0 then message, 'freq_mask of dirty file does not match current freq_mask'
-              if total(abs(model_freq_mask - freq_mask)) ne 0 then message, 'freq_mask of model file does not match current freq_mask'
-            endif
-            
-            if total(abs(kx_rad_vals - kx_dirty)) ne 0 then message, 'kx_rad_vals for dirty and model cubes must match'
-            if total(abs(ky_rad_vals - ky_dirty)) ne 0 then message, 'kx_rad_vals for dirty and model cubes must match'
-            undefine, kx_dirty, ky_dirty
-          endelse
+          dirty_cube = getvar_savefile(input_uvf_files[i,0], input_uvf_varname[i,0])
+          kx_dirty = getvar_savefile(input_uvf_files[i,0], 'kx_rad_vals')
+          ky_dirty = getvar_savefile(input_uvf_files[i,0], 'ky_rad_vals')
+          
+          model_cube = getvar_savefile(input_uvf_files[i,1], input_uvf_varname[i,1])
+          kx_rad_vals = getvar_savefile(input_uvf_files[i,1], 'kx_rad_vals')
+          ky_rad_vals = getvar_savefile(input_uvf_files[i,1], 'ky_rad_vals')
+          
+          if n_elements(freq_mask) ne 0 then begin
+            dirty_freq_mask = getvar_savefile(input_uvf_files[i,0], 'freq_mask')
+            model_freq_mask = getvar_savefile(input_uvf_files[i,1], 'freq_mask')
+            if total(abs(dirty_freq_mask - freq_mask)) ne 0 then message, 'freq_mask of dirty file does not match current freq_mask'
+            if total(abs(model_freq_mask - freq_mask)) ne 0 then message, 'freq_mask of model file does not match current freq_mask'
+          endif
+          
+          if total(abs(kx_rad_vals - kx_dirty)) ne 0 then message, 'kx_rad_vals for dirty and model cubes must match'
+          if total(abs(ky_rad_vals - ky_dirty)) ne 0 then message, 'kx_rad_vals for dirty and model cubes must match'
+          undefine, kx_dirty, ky_dirty
           
           data_cube = temporary(dirty_cube) - temporary(model_cube)
           if keyword_set(dft_ian) then save, file = file_struct.uvf_savefile[i], u_lambda_vals, v_lambda_vals, data_cube, freq_mask $
@@ -725,55 +701,30 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
       
     endif else begin
       if datavar eq '' then begin
-        ;; working with a 'derived' cube (ie residual cube or noise simulation cube) that is constructed from other cubes
-        if keyword_set(noise_sim) then begin
-          ;; need to cut uvf cubes in half because image is real -- we'll cut negative ky
-          variance_cube1 = getvar_savefile(file_struct.variancefile[0], file_struct.variancevar)
-          variance_cube1 = variance_cube1[*, n_ky/2:n_ky-1,*]
-          variance_cube2 = getvar_savefile(file_struct.variancefile[1], file_struct.variancevar)
-          variance_cube2 = variance_cube2[*, n_ky/2:n_ky-1,*]
-          
-          if n_elements(freq_ch_range) ne 0 then begin
-            variance_cube1 = variance_cube1[*, *, min(freq_ch_range):max(freq_ch_range)]
-            variance_cube2 = variance_cube2[*, *, min(freq_ch_range):max(freq_ch_range)]
-          endif
-          if n_elements(freq_flags) ne 0 then begin
-            flag_arr = rebin(reform(freq_mask, 1, 1, n_elements(file_struct.frequencies)), size(variance_cube1,/dimension), /sample)
-            variance_cube1 = variance_cube1 * flag_arr
-            variance_cube2 = variance_cube2 * flag_arr
-          endif
-          
-          seed = systime(1)
-          noise = randomn(seed, dims) * sqrt(variance_cube) + $
-            complex(0,1)*randomn(seed, dims) * sqrt(variance_cube)
-          data_cube = temporary(noise)
-          save, file = file_struct.uvf_savefile[i], kx_rad_vals, ky_rad_vals, data_cube, freq_mask
-          undefine, data_cube, seed, variance_cube
-        endif else begin
-          ;; need to cut uvf cubes in half because image is real -- we'll cut negative ky
-          dirty_cube1 = getvar_savefile(input_uvf_files[0,0], input_uvf_varname[0,0])
-          dirty_cube1 = dirty_cube1[*, n_ky/2:n_ky-1,*]
-          model_cube1 = getvar_savefile(input_uvf_files[0,1], input_uvf_varname[0,1])
-          model_cube1 = model_cube1[*, n_ky/2:n_ky-1,*]
-          data_cube1 = temporary(dirty_cube1) - temporary(model_cube1)
-          
-          dirty_cube2 = getvar_savefile(input_uvf_files[1,0], input_uvf_varname[1,0])
-          dirty_cube2 = dirty_cube2[*, n_ky/2:n_ky-1,*]
-          model_cube2 = getvar_savefile(input_uvf_files[1,1], input_uvf_varname[1,1])
-          model_cube2 = model_cube2[*, n_ky/2:n_ky-1,*]
-          data_cube2 = temporary(dirty_cube2) - temporary(model_cube2)
-          
-          if n_elements(freq_ch_range) ne 0 then begin
-            data_cube1 = data_cube1[*, *, min(freq_ch_range):max(freq_ch_range)]
-            data_cube2 = data_cube2[*, *, min(freq_ch_range):max(freq_ch_range)]
-          endif
-          if n_elements(freq_flags) ne 0 then begin
-            flag_arr = rebin(reform(freq_mask, 1, 1, n_elements(file_struct.frequencies)), size(data_cube1,/dimension), /sample)
-            data_cube1 = data_cube1 * flag_arr
-            data_cube2 = data_cube2 * flag_arr
-          endif
-          
-        endelse
+        ;; working with a 'derived' cube (ie residual cube) that is constructed from other cubes
+        ;; need to cut uvf cubes in half because image is real -- we'll cut negative ky
+        dirty_cube1 = getvar_savefile(input_uvf_files[0,0], input_uvf_varname[0,0])
+        dirty_cube1 = dirty_cube1[*, n_ky/2:n_ky-1,*]
+        model_cube1 = getvar_savefile(input_uvf_files[0,1], input_uvf_varname[0,1])
+        model_cube1 = model_cube1[*, n_ky/2:n_ky-1,*]
+        data_cube1 = temporary(dirty_cube1) - temporary(model_cube1)
+        
+        dirty_cube2 = getvar_savefile(input_uvf_files[1,0], input_uvf_varname[1,0])
+        dirty_cube2 = dirty_cube2[*, n_ky/2:n_ky-1,*]
+        model_cube2 = getvar_savefile(input_uvf_files[1,1], input_uvf_varname[1,1])
+        model_cube2 = model_cube2[*, n_ky/2:n_ky-1,*]
+        data_cube2 = temporary(dirty_cube2) - temporary(model_cube2)
+        
+        if n_elements(freq_ch_range) ne 0 then begin
+          data_cube1 = data_cube1[*, *, min(freq_ch_range):max(freq_ch_range)]
+          data_cube2 = data_cube2[*, *, min(freq_ch_range):max(freq_ch_range)]
+        endif
+        if n_elements(freq_flags) ne 0 then begin
+          flag_arr = rebin(reform(freq_mask, 1, 1, n_elements(file_struct.frequencies)), size(data_cube1,/dimension), /sample)
+          data_cube1 = data_cube1 * flag_arr
+          data_cube2 = data_cube2 * flag_arr
+        endif
+        
       endif else begin
         ;; need to cut uvf cubes in half because image is real -- we'll cut negative ky
         data_cube1 = getvar_savefile(file_struct.datafile[0], file_struct.datavar)
@@ -969,13 +920,7 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
     if count_wt2_0 ne 0 then data_cube2[wh_wt2_0] = 0
     undefine, weights_cube2, wh_wt2_0, count_wt2_0
   endif
-  
-  if keyword_set(noise_sim) then begin
-    noise = randomn(seed, dims) * sqrt(sigma2_cube1) + $
-      complex(0,1)*randomn(seed, dims) * sqrt(sigma2_cube1)
-    data_cube1 = temporary(noise)
-  endif
-  
+   
   ;; take care of FT convention for EoR
   data_cube1 = data_cube1 / (2.*!pi)^2.
   sigma2_cube1 = sigma2_cube1 / (2.*!pi)^4.

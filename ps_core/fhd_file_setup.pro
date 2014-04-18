@@ -4,7 +4,7 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
     weight_savefilebase = weight_savefilebase_in, $
     uvf_savefilebase = uvf_savefilebase_in, savefilebase = savefilebase_in, $
     freq_ch_range = freq_ch_range, freq_flags = freq_flags, freq_flag_name = freq_flag_name, $
-    spec_window_type = spec_window_type, noise_sim = noise_sim, std_power = std_power, refresh_info = refresh_info
+    spec_window_type = spec_window_type, sim = sim, std_power = std_power, refresh_info = refresh_info
     
   if n_elements(pol_inc) ne 0 then pol_inc_in = pol_inc
   
@@ -50,8 +50,8 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
       
         npol = n_elements(pol_inc)
         
-        if keyword_set(noise_sim) then begin
-          type_inc = ['noisesim']
+        if keyword_set(sim) then begin
+          type_inc = ['model']
           ntypes = n_elements(type_inc)
           ncubes = npol * ntypes
           type_pol_str = strarr(ncubes)
@@ -206,11 +206,6 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
     ;      datafile = temp
     ;    endelse
     
-    if nfiles eq 2 and keyword_set(noise_sim) then begin
-      datafile=datafile[0, *]
-      nfiles=1
-    endif
-    
     if n_elements(savefilebase_in) gt 1 then message, 'only one savefilebase allowed'
     
     if nfiles eq 1 then infile_label = '' else begin
@@ -280,8 +275,8 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
     
     void = getvar_savefile(datafile[0], names = varnames)
     
-    if keyword_set(noise_sim) then begin
-      type_inc = ['noisesim']
+    if keyword_set(sim) then begin
+      type_inc = ['model']
       ntypes = n_elements(type_inc)
       ncubes = npol * ntypes
       type_pol_str = strarr(ncubes)
@@ -732,28 +727,21 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
     pol_index = i / metadata_struct.ntypes
     type_index = i mod metadata_struct.ntypes
     
-    if keyword_set(noise_sim) then begin
-      data_varname = ''
-      res_uvf_inputfiles = strmid(uvf_savefile[i], 0, strpos(uvf_savefile[i], 'noisesim')) + 'dirty' + $
-        strmid(uvf_savefile[i], strpos(uvf_savefile[i], 'noisesim')+strlen('noisesim'))
-      res_uvf_varname = strarr(n_elements(res_uvf_inputfiles)) + 'data_cube'
+    if metadata_struct.ntypes gt 1 then data_varname = metadata_struct.cube_varname[type_index, pol_index] else data_varname = metadata_struct.cube_varname[pol_index]
+    if data_varname ne '' then begin
+      res_uvf_inputfiles = strarr(nfiles,2)
+      res_uvf_varname = strarr(nfiles,2)
     endif else begin
-      if metadata_struct.ntypes gt 1 then data_varname = metadata_struct.cube_varname[type_index, pol_index] else data_varname = metadata_struct.cube_varname[pol_index]
-      if data_varname ne '' then begin
+      if healpix or keyword_set(image) then begin
+        res_uvf_inputfiles = uvf_savefile[*, metadata_struct.ntypes*pol_index:metadata_struct.ntypes*pol_index+1]
+        res_uvf_varname = strarr(nfiles, 2) + 'data_cube'
+      endif else begin
         res_uvf_inputfiles = strarr(nfiles,2)
         res_uvf_varname = strarr(nfiles,2)
-      endif else begin
-        if healpix or keyword_set(image) then begin
-          res_uvf_inputfiles = uvf_savefile[*, metadata_struct.ntypes*pol_index:metadata_struct.ntypes*pol_index+1]
-          res_uvf_varname = strarr(nfiles, 2) + 'data_cube'
-        endif else begin
-          res_uvf_inputfiles = strarr(nfiles,2)
-          res_uvf_varname = strarr(nfiles,2)
-          for j=0, nfiles-1 do begin
-            res_uvf_inputfiles[j,*] = datafile[j]
-            res_uvf_varname[j,*] = [metadata_struct.cube_varname[0, pol_index], metadata_struct.cube_varname[1, pol_index]]
-          endfor
-        endelse
+        for j=0, nfiles-1 do begin
+          res_uvf_inputfiles[j,*] = datafile[j]
+          res_uvf_varname[j,*] = [metadata_struct.cube_varname[0, pol_index], metadata_struct.cube_varname[1, pol_index]]
+        endfor
       endelse
     endelse
     
