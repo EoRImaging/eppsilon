@@ -276,7 +276,15 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
     void = getvar_savefile(datafile[0], names = varnames)
     
     if keyword_set(sim) then begin
-      type_inc = ['model']
+      if max(strmatch(varnames, 'model*cube',/fold_case)) then begin
+        if n_elements(modelvar) eq 0 then model_varname = strupcase('model_' + pol_inc + '_cube') else model_varname = modelvar
+        if n_elements(model_varname) ne npol then $
+          if n_elements(model_varname) eq 1 then model_varname = replicate(model_varname, npol) $
+        else message, 'modelvar must be a scalar or have the same number of elements as pol_inc'
+        
+        type_inc = ['model']
+        if npol gt 1 then cube_varname = transpose(model_varname) else cube_varname = model_varname
+      endif else message, 'sim files must contain model cubes'
       ntypes = n_elements(type_inc)
       ncubes = npol * ntypes
       type_pol_str = strarr(ncubes)
@@ -331,7 +339,6 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
       type_pol_str = strarr(ncubes)
       for i=0, npol-1 do type_pol_str[ntypes*i:i*ntypes+(ntypes-1)] = type_inc + '_' + pol_inc[i]
     endelse
-    
     
     if n_elements(weightvar) eq 0 then weight_varname = strupcase('weights_' + pol_inc + '_cube') else weight_varname = weightvar
     if n_elements(weight_varname) ne npol then $
