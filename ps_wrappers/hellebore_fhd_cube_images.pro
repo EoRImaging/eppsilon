@@ -1,18 +1,25 @@
-pro hellebore_fhd_cube_images, folder_names, cube_types = cube_types, pols = pols, evenodd = evenodd, $
+pro hellebore_fhd_cube_images, folder_names, obs_names_in, cube_types = cube_types, pols = pols, evenodd = evenodd, $
     png = png, eps = eps, slice_range = slice_range
     
     
   if n_elements(folder_names) eq 0 then folder_names = base_path('data') + 'fhd_ps_data/128T_cubes/aug23_3hr_first/'
+  if n_elements(folder_names) gt 2 then message, 'No more than 2 folder_names can be supplied'
   if n_elements(evenodd) eq 0 then evenodd = 'even'
+  if n_elements(evenodd) gt 2 then message, 'No more than 2 evenodd values can be supplied'
+  if n_elements(obs_names_in) gt 2 then message, 'No more than 2 obs_names can be supplied'
   
-  filenames = strarr(max([n_elements(folder_names), n_elements(evenodd)]))
+  filenames = strarr(max([n_elements(folder_names), n_elements(evenodd), n_elements(obs_names_in)]))
+  
+  if n_elements(folder_names) lt n_elements(obs_names_in) then folder_names = replicate(folder_names, n_elements(obs_names_in))
+  if n_elements(obs_names_in) lt n_elements(folder_names) then obs_names_in = replicate(obs_names_in, n_elements(folder_names))
   
   if n_elements(cube_types) eq 0 then cube_types = 'res'
+  if n_elements(cube_types) gt 2 then message, 'No more than 2 cube_types can be supplied'
   if n_elements(pols) eq 0 then pols = 'xx'
+  if n_elements(pols) gt 2 then message, 'No more than 2 pols can be supplied'
   
   n_cubes = max([n_elements(filenames), n_elements(cube_types), n_elements(pols)])
   
-  info_files = strarr(n_elements(folder_names))
   obs_names = strarr(n_elements(folder_names))
   fhd_types = strarr(n_elements(folder_names))
   
@@ -45,23 +52,34 @@ pro hellebore_fhd_cube_images, folder_names, cube_types = cube_types, pols = pol
     
     fhd_types[i] = file_basename(folder_names[i])
     
+    if n_elements(obs_names_in) gt 0 then begin
+      if size(obs_names_in,/type) eq 7 then begin
+        obs_names[i] = obs_names_in[i]
+        obs_name_single = obs_names[i]
+      endif else begin
+        obs_names[i] = number_formatter(obs_names_in[i])
+        obs_name_single = obs_names[i]
+      endelse
+    endif else begin
+      obs_names[i] = ''
+      obs_name_single = ''
+    endelse
+    
     ;; first look for integrated cube files with names like Combined_obs_...
-    cube_files = file_search(folder_names[i] + '/Combined_obs_*_cube.sav', count = n_cubefiles)
+    cube_files = file_search(folder_names[i] + '/Combined_obs_' + obs_names[i] + '*_cube.sav', count = n_cubefiles)
     if n_cubefiles gt 0 then begin
-      obs_name_arr = stregex(cube_files, '[0-9]+-[0-9]+', /extract)
-      wh_first = where(obs_name_arr eq obs_name_arr[0], count_first)
-      if count_first lt n_elements(cube_files) then $
-        print, 'More than one obs_range found, using first range (' + obs_name_arr[0] + ', ' + number_formatter(count_first) + ' files)'
-      if count_first gt 2 then message, 'More than two cubes found with first obs_range'
-      datafile = cube_files[wh_first]
-      obs_names[i] = obs_name_arr[0]
-      
-    endif else if n_elements(obs_range) lt 2 then begin
-      ;; then look for single obs cube files
-      cube_files = file_search(folder_names[i] + '/*_cube.sav', count = n_cubefiles)
-      if n_cubefiles gt 0 then begin
-        cube_basename = file_basename(cube_files)
-        obs_name_arr = stregex(cube_basename, '[0-9]+', /extract)
+      if obs_names[i] eq '' then begin
+        start_pos = strpos(cube_files, 'Combined_obs_') + strlen('Combined_obs_')
+        end_pos_even = strpos(strmid(cube_files, start_pos), '_even')
+        end_pos_odd = strpos(strmid(cube_files, start_pos), '_odd')
+        end_pos_cube = strpos(strmid(cube_files, start_pos), '_cube') ;; always > -1
+        end_pos = end_pos_even > end_pos_odd
+        wh_noend = where(end_pos eq -1, count_noend)
+        if count_noend gt 0 then end_pos[wh_noend] = end_pos_cube[wh_noend]
+        
+        ;obs_name_arr = stregex(cube_files, '[0-9]+-[0-9]+', /extract)
+        obs_name_arr = strmid(cube_files, transpose(start_pos), transpose(end_pos))
+        
         wh_first = where(obs_name_arr eq obs_name_arr[0], count_first)
         if count_first lt n_elements(cube_files) then $
           print, 'More than one obs_range found, using first range (' + obs_name_arr[0] + ', ' + number_formatter(count_first) + ' files)'
@@ -69,7 +87,39 @@ pro hellebore_fhd_cube_images, folder_names, cube_types = cube_types, pols = pol
         datafile = cube_files[wh_first]
         obs_names[i] = obs_name_arr[0]
         
+      endif else begin
+        if n_elements(cube_files) gt 2 then message, 'More than two cubes found with given obs_name'
+        datafile = cube_files
+      endelse
+      
+    endif else if n_elements(obs_range) lt 2 then begin
+      ;; then look for single obs cube files
+      cube_files = file_search(folder_names[i] + '/' + obs_names[i] + '*_cube.sav', count = n_cubefiles)
+      if n_cubefiles gt 0 then begin
+        cube_basename = file_basename(cube_files)
+        if obs_names[i] eq '' then begin
+          end_pos_even = strpos(strmid(cube_basename, start_pos), '_even')
+          end_pos_odd = strpos(strmid(cube_basename, start_pos), '_odd')
+          end_pos_cube = strpos(strmid(cube_basename, start_pos), '_cube') ;; always > -1
+          end_pos = end_pos_even > end_pos_odd
+          wh_noend = where(end_pos eq -1, count_noend)
+          if count_noend gt 0 then end_pos[wh_noend] = end_pos_cube[wh_noend]
+          
+          obs_name_arr = strmid(cube_basename, intarr(1,n_cubefiles), transpose(end_pos))
+          ;obs_name_arr = stregex(cube_basename, '[0-9]+', /extract)
+          
+          wh_first = where(obs_name_arr eq obs_name_arr[0], count_first)
+          if count_first lt n_elements(cube_files) then $
+            print, 'More than one obs_range found, using first range (' + obs_name_arr[0] + ', ' + number_formatter(count_first) + ' files)'
+          if count_first gt 2 then message, 'More than two cubes found with first obs_range'
+          datafile = cube_files[wh_first]
+          obs_names[i] = obs_name_arr[0]
+        endif else begin
+          if n_elements(cube_files) gt 2 then message, 'More than two cubes found with given obs_range'
+          datafile = cube_files
+        endelse
       endif
+      
     endif
     
     if n_elements(filenames) eq 1 then begin
@@ -99,9 +149,6 @@ pro hellebore_fhd_cube_images, folder_names, cube_types = cube_types, pols = pol
     undefine, datafile
   endfor
   
-  ;; save_path specifies a location to save the power spectrum files.
-  ;; This is also where the code looks for intermediate save files to avoid re-running code.
-  
   std_savepath = base_path('data') + 'fhd_ps_data/'
   
   if n_elements(folder_names) eq 2 then begin
@@ -113,8 +160,8 @@ pro hellebore_fhd_cube_images, folder_names, cube_types = cube_types, pols = pol
     if count_diff eq 0 then begin
       ;; folders are the same
       folder_names = folder_names[0]
-      note = file_basename(info_file)
-      save_path = file_dirname(info_file, /mark_directory)
+      note = fhd_types[0]
+      save_path = folder_names[0] + path_sep()
     endif else begin
       joint_path = strjoin(folderparts_1[wh_same], path_sep())
       if strmid(folder_names[0], 0,1) eq path_sep() then joint_path = path_sep() + joint_path
@@ -193,7 +240,7 @@ pro hellebore_fhd_cube_images, folder_names, cube_types = cube_types, pols = pol
     nside2 = getvar_savefile(filenames[1], 'nside')
     if total(abs(hpx_inds2-hpx_inds1)) gt 0 then message, 'nsides do not match between the 2 files'
   endif
-    
+  
   cube1 = getvar_savefile(filenames[0], cube_types[0] + '_' + pols[0] + '_cube')
   n_freq1 = (size(cube1,/dimension))[1]
   if n_cubes gt 1 then begin
@@ -210,7 +257,7 @@ pro hellebore_fhd_cube_images, folder_names, cube_types = cube_types, pols = pol
       title_range = 'freq. added'
     end
     1: begin
-       title_range = 'slice ' + number_formatter(slice_range)
+      title_range = 'slice ' + number_formatter(slice_range)
     end
     2: begin
       if min(slice_range) lt 0 then message, 'slice_range cannot be less than zero'

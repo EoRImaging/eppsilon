@@ -1,4 +1,4 @@
-pro hellebore_wrapper, folder_name, rts = rts, version = version, refresh_dft = refresh_dft, refresh_ps = refresh_ps, $
+pro hellebore_wrapper, folder_name, obs_range, rts = rts, version = version, refresh_dft = refresh_dft, refresh_ps = refresh_ps, $
     refresh_binning = refresh_binning, refresh_info = refresh_info, dft_ian = dft_ian, $
     pol_inc = pol_inc, sim = sim, freq_ch_range = freq_ch_range, freq_flag_name = freq_flag_name, $
     no_spec_window = no_spec_window, spec_window_type = spec_window_type, std_power = std_power, $
@@ -244,15 +244,15 @@ pro hellebore_wrapper, folder_name, rts = rts, version = version, refresh_dft = 
       if n_cubefiles gt 0 then begin
         if obs_name eq '' then begin
           start_pos = strpos(cube_files, 'Combined_obs_') + strlen('Combined_obs_')
-          end_pos_even = strpos(strmid(info_file, start_pos), '_even')
-          end_pos_odd = strpos(strmid(info_file, start_pos), '_odd')
-          end_pos_cube = strpos(strmid(info_file, start_pos), '_cube') ;; always > -1
+          end_pos_even = strpos(strmid(cube_files, start_pos), '_even')
+          end_pos_odd = strpos(strmid(cube_files, start_pos), '_odd')
+          end_pos_cube = strpos(strmid(cube_files, start_pos), '_cube') ;; always > -1
           end_pos = end_pos_even > end_pos_odd
           wh_noend = where(end_pos eq -1, count_noend)
           if count_noend gt 0 then end_pos[wh_noend] = end_pos_cube[wh_noend]
           
           ;obs_name_arr = stregex(cube_files, '[0-9]+-[0-9]+', /extract)
-          obs_name_arr = strmid(info_file, transpose(start_pos), transpose(end_pos))
+          obs_name_arr = strmid(cube_files, transpose(start_pos), transpose(end_pos))
           
           wh_first = where(obs_name_arr eq obs_name_arr[0], count_first)
           if count_first lt n_elements(cube_files) then $
@@ -263,6 +263,7 @@ pro hellebore_wrapper, folder_name, rts = rts, version = version, refresh_dft = 
           
         endif else begin
           if n_elements(cube_files) gt 2 then message, 'More than two cubes found with given obs_name'
+          datafile = cube_files
         endelse
         integrated=1
         
@@ -272,8 +273,15 @@ pro hellebore_wrapper, folder_name, rts = rts, version = version, refresh_dft = 
         if n_cubefiles gt 0 then begin
           cube_basename = file_basename(cube_files)
           if obs_name eq '' then begin
-            end_pos = strpos(cube_basename[0], '_cube')
-            obs_name_arr = strmid(cube_basename[0], intarr(1, n_cubefiles), transpose(end_pos))
+            end_pos_even = strpos(strmid(cube_basename, start_pos), '_even')
+            end_pos_odd = strpos(strmid(cube_basename, start_pos), '_odd')
+            end_pos_cube = strpos(strmid(cube_basename, start_pos), '_cube') ;; always > -1
+            end_pos = end_pos_even > end_pos_odd
+            wh_noend = where(end_pos eq -1, count_noend)
+            if count_noend gt 0 then end_pos[wh_noend] = end_pos_cube[wh_noend]
+            
+            obs_name_arr = strmid(cube_basename, intarr(1,n_cubefiles), transpose(end_pos))
+            ;obs_name_arr = stregex(cube_basename, '[0-9]+', /extract)
             
             wh_first = where(obs_name_arr eq obs_name_arr[0], count_first)
             if count_first lt n_elements(cube_files) then $
@@ -283,6 +291,7 @@ pro hellebore_wrapper, folder_name, rts = rts, version = version, refresh_dft = 
             obs_name = obs_name_arr[0]
           endif else begin
             if n_elements(cube_files) gt 2 then message, 'More than two cubes found with given obs_range'
+            datafile = cube_files
           endelse
           integrate=0
         endif
