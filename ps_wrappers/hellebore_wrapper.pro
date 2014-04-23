@@ -273,9 +273,9 @@ pro hellebore_wrapper, folder_name, obs_range, rts = rts, version = version, ref
         if n_cubefiles gt 0 then begin
           cube_basename = file_basename(cube_files)
           if obs_name eq '' then begin
-            end_pos_even = strpos(strmid(cube_basename, start_pos), '_even')
-            end_pos_odd = strpos(strmid(cube_basename, start_pos), '_odd')
-            end_pos_cube = strpos(strmid(cube_basename, start_pos), '_cube') ;; always > -1
+            end_pos_even = strpos(strmid(cube_basename, 0), '_even')
+            end_pos_odd = strpos(strmid(cube_basename, 0), '_odd')
+            end_pos_cube = strpos(strmid(cube_basename, 0), '_cube') ;; always > -1
             end_pos = end_pos_even > end_pos_odd
             wh_noend = where(end_pos eq -1, count_noend)
             if count_noend gt 0 then end_pos[wh_noend] = end_pos_cube[wh_noend]

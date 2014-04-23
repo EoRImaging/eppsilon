@@ -11,7 +11,7 @@ pro hellebore_fhd_cube_images, folder_names, obs_names_in, cube_types = cube_typ
   filenames = strarr(max([n_elements(folder_names), n_elements(evenodd), n_elements(obs_names_in)]))
   
   if n_elements(folder_names) lt n_elements(obs_names_in) then folder_names = replicate(folder_names, n_elements(obs_names_in))
-  if n_elements(obs_names_in) lt n_elements(folder_names) then obs_names_in = replicate(obs_names_in, n_elements(folder_names))
+  if n_elements(obs_names_in) gt 0 and n_elements(obs_names_in) lt n_elements(folder_names) then obs_names_in = replicate(obs_names_in, n_elements(folder_names))
   
   if n_elements(cube_types) eq 0 then cube_types = 'res'
   if n_elements(cube_types) gt 2 then message, 'No more than 2 cube_types can be supplied'
@@ -98,9 +98,9 @@ pro hellebore_fhd_cube_images, folder_names, obs_names_in, cube_types = cube_typ
       if n_cubefiles gt 0 then begin
         cube_basename = file_basename(cube_files)
         if obs_names[i] eq '' then begin
-          end_pos_even = strpos(strmid(cube_basename, start_pos), '_even')
-          end_pos_odd = strpos(strmid(cube_basename, start_pos), '_odd')
-          end_pos_cube = strpos(strmid(cube_basename, start_pos), '_cube') ;; always > -1
+          end_pos_even = strpos(strmid(cube_basename, 0), '_even')
+          end_pos_odd = strpos(strmid(cube_basename, 0), '_odd')
+          end_pos_cube = strpos(strmid(cube_basename, 0), '_cube') ;; always > -1
           end_pos = end_pos_even > end_pos_odd
           wh_noend = where(end_pos eq -1, count_noend)
           if count_noend gt 0 then end_pos[wh_noend] = end_pos_cube[wh_noend]
