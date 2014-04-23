@@ -431,8 +431,9 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
             ;            wh_listpix_close = where(x_list_rot ge consv_lims[0] and x_list_rot le consv_lims[2] and $
             ;              y_list_rot ge consv_lims[1] and y_list_rot le consv_lims[3], count_list_close)
             ;            hpx_inds = listpix[wh_listpix_close]
+            ;            nside = file_struct.nside
             ;            stop
-            ;            save, file='/Users/bryna/Documents/Physics/FHD/Observations/EoR0_low_healpix_inds.idlsave', hpx_inds
+            ;            save, file='/Users/bryna/Documents/Physics/FHD/Observations/EoR1_low_healpix_inds.idlsave', nside, hpx_inds
             
             
             n_kperp = round(max_kperp_rad / delta_kperp_rad) * 2 + 1
@@ -920,7 +921,7 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
     if count_wt2_0 ne 0 then data_cube2[wh_wt2_0] = 0
     undefine, weights_cube2, wh_wt2_0, count_wt2_0
   endif
-   
+  
   ;; take care of FT convention for EoR
   data_cube1 = data_cube1 / (2.*!pi)^2.
   sigma2_cube1 = sigma2_cube1 / (2.*!pi)^4.
