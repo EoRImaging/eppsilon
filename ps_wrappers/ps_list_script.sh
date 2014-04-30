@@ -87,15 +87,15 @@ if [ "$nchunk" -gt "1" ]; then
 else
     # Just one integrator
     chunk=0
-    outfile=${file_path_cubes}/${version}_int_chunk${chunk}_out.log
-    errfile=${file_path_cubes}/${version}_int_chunk${chunk}_err.log
+    outfile=${file_path_cubes}/Healpix/${version}_int_chunk${chunk}_out.log
+    errfile=${file_path_cubes}/Healpix/${version}_int_chunk${chunk}_err.log
     message=$(qsub -l h_vmem=$mem,h_stack=512k -V -v file_path_cubes=$file_path_cubes,obs_list_path=$obs_list_path,version=$version,chunk=$chunk,nslots=$nslots -e $errfile -o $outfile -pe chost $nslots ${PSpath}ps_wrappers/integrate_job.sh)
     message=($message)
     master_id=${message[2]}
 fi
 
 
-outfile=${file_path_cubes}/${version}_ps_out.log
-errfile=${file_path_cubes}/${version}_ps_err.log
+outfile=${file_path_cubes}/ps/${version}_ps_out.log
+errfile=${file_path_cubes}/ps/${version}_ps_err.log
 
 qsub -hold_jid $master_id -l h_vmem=$mem,h_stack=512k -V -v file_path_cubes=$file_path_cubes,obs_list_path=$obs_list_path,version=$version,nslots=$nslots -e $errfile -o $outfile -pe chost $nslots ${PSpath}ps_wrappers/PS_list_job.sh
