@@ -98,4 +98,8 @@ fi
 outfile=${file_path_cubes}/ps/${version}_ps_out.log
 errfile=${file_path_cubes}/ps/${version}_ps_err.log
 
+if [ ! -d ${file_path_cubes}/ps ]; then
+    mkdir ${file_path_cubes}/ps
+fi
+
 qsub -hold_jid $master_id -l h_vmem=$mem,h_stack=512k -V -v file_path_cubes=$file_path_cubes,obs_list_path=$obs_list_path,version=$version,nslots=$nslots -e $errfile -o $outfile -pe chost $nslots ${PSpath}ps_wrappers/PS_list_job.sh
