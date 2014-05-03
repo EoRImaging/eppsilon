@@ -1,17 +1,15 @@
 pro hellebore_fhd_cube_images, folder_names, obs_names_in, cube_types = cube_types, pols = pols, evenodd = evenodd, $
-    png = png, eps = eps, slice_range = slice_range
+    png = png, eps = eps, slice_range = slice_range, diff_ratio = diff_ratio, $
+    log = log, data_range = data_range, color_profile = color_profile, sym_color = sym_color
     
-    
-  if n_elements(folder_names) eq 0 then folder_names = base_path('data') + 'fhd_ps_data/128T_cubes/aug23_3hr_first/'
   if n_elements(folder_names) gt 2 then message, 'No more than 2 folder_names can be supplied'
   if n_elements(evenodd) eq 0 then evenodd = 'even'
   if n_elements(evenodd) gt 2 then message, 'No more than 2 evenodd values can be supplied'
   if n_elements(obs_names_in) gt 2 then message, 'No more than 2 obs_names can be supplied'
   
-  filenames = strarr(max([n_elements(folder_names), n_elements(evenodd), n_elements(obs_names_in)]))
+  obs_info = hellebore_filenames(folder_names, obs_names_in)
   
-  if n_elements(folder_names) lt n_elements(obs_names_in) then folder_names = replicate(folder_names, n_elements(obs_names_in))
-  if n_elements(obs_names_in) gt 0 and n_elements(obs_names_in) lt n_elements(folder_names) then obs_names_in = replicate(obs_names_in, n_elements(folder_names))
+  filenames = strarr(max([n_elements(obs_info.obs_names), n_elements(evenodd)]))
   
   if n_elements(cube_types) eq 0 then cube_types = 'res'
   if n_elements(cube_types) gt 2 then message, 'No more than 2 cube_types can be supplied'
@@ -19,200 +17,55 @@ pro hellebore_fhd_cube_images, folder_names, obs_names_in, cube_types = cube_typ
   if n_elements(pols) gt 2 then message, 'No more than 2 pols can be supplied'
   
   n_cubes = max([n_elements(filenames), n_elements(cube_types), n_elements(pols)])
+  if keyword_set(diff_ratio) and n_cubes eq 1 then begin
+    print, 'diff_ratio keyword only applies when 2 cubes are specified.'
+    undefine, diff_ratio
+  endif
   
-  obs_names = strarr(n_elements(folder_names))
-  fhd_types = strarr(n_elements(folder_names))
+  if n_cubes eq 2 and n_elements(data_range) eq 0 and n_elements(sym_color) eq 0 then sym_color=1
+  if keyword_set(sym_color) and keyword_set(log) then color_profile = 'sym_log'
   
   for i=0, n_elements(folder_names)-1 do begin
-    ;; check for folder existence, otherwise look for common folder names to figure out full path. If none found, try base_path('data') + 'fhd_ps_data/128T_cubes/'
-    folder_test = file_test(folder_names[i], /directory)
-    if folder_test eq 0 then begin
-      pos_fhd_data = strpos(folder_names[i], 'fhd_ps_data')
-      if pos_fhd_data gt -1 then begin
-        test_name = base_path('data') + strmid(folder_names[i], pos_fhd_data)
-        folder_test = file_test(test_name, /directory)
-        if folder_test eq 1 then folder_names[i] = test_name
-      endif
-    endif
-    if folder_test eq 0 then begin
-      pos_fhd_128 = strpos(folder_names[i], '128T_cubes')
-      if pos_fhd_128 gt -1 then begin
-        test_name = base_path('data') + 'fhd_ps_data/' + strmid(folder_names[i], pos_fhd_128)
-        folder_test = file_test(test_name, /directory)
-        if folder_test eq 1 then folder_names[i] = test_name
-      endif
-    endif
-    if folder_test eq 0 then begin
-      test_name = base_path('data') + 'fhd_ps_data/128T_cubes/' + folder_names[i]
-      folder_test = file_test(test_name, /directory)
-      if folder_test eq 1 then folder_names[i] = test_name
-    endif
-    
-    if folder_test eq 0 then message, 'folder not found'
-    
-    fhd_types[i] = file_basename(folder_names[i])
-    
-    if n_elements(obs_names_in) gt 0 then begin
-      if size(obs_names_in,/type) eq 7 then begin
-        obs_names[i] = obs_names_in[i]
-        obs_name_single = obs_names[i]
-      endif else begin
-        obs_names[i] = number_formatter(obs_names_in[i])
-        obs_name_single = obs_names[i]
-      endelse
-    endif else begin
-      obs_names[i] = ''
-      obs_name_single = ''
-    endelse
-    
-    ;; first look for integrated cube files with names like Combined_obs_...
-    cube_files = file_search(folder_names[i] + '/Combined_obs_' + obs_names[i] + '*_cube.sav', count = n_cubefiles)
-    if n_cubefiles gt 0 then begin
-      if obs_names[i] eq '' then begin
-        start_pos = strpos(cube_files, 'Combined_obs_') + strlen('Combined_obs_')
-        end_pos_even = strpos(strmid(cube_files, start_pos), '_even')
-        end_pos_odd = strpos(strmid(cube_files, start_pos), '_odd')
-        end_pos_cube = strpos(strmid(cube_files, start_pos), '_cube') ;; always > -1
-        end_pos = end_pos_even > end_pos_odd
-        wh_noend = where(end_pos eq -1, count_noend)
-        if count_noend gt 0 then end_pos[wh_noend] = end_pos_cube[wh_noend]
-        
-        ;obs_name_arr = stregex(cube_files, '[0-9]+-[0-9]+', /extract)
-        obs_name_arr = strmid(cube_files, transpose(start_pos), transpose(end_pos))
-        
-        wh_first = where(obs_name_arr eq obs_name_arr[0], count_first)
-        if count_first lt n_elements(cube_files) then $
-          print, 'More than one obs_range found, using first range (' + obs_name_arr[0] + ', ' + number_formatter(count_first) + ' files)'
-        if count_first gt 2 then message, 'More than two cubes found with first obs_range'
-        datafile = cube_files[wh_first]
-        obs_names[i] = obs_name_arr[0]
-        
-      endif else begin
-        if n_elements(cube_files) gt 2 then message, 'More than two cubes found with given obs_name'
-        datafile = cube_files
-      endelse
-      
-    endif else if n_elements(obs_range) lt 2 then begin
-      ;; then look for single obs cube files
-      cube_files = file_search(folder_names[i] + '/' + obs_names[i] + '*_cube.sav', count = n_cubefiles)
-      if n_cubefiles gt 0 then begin
-        cube_basename = file_basename(cube_files)
-        if obs_names[i] eq '' then begin
-          end_pos_even = strpos(strmid(cube_basename, 0), '_even')
-          end_pos_odd = strpos(strmid(cube_basename, 0), '_odd')
-          end_pos_cube = strpos(strmid(cube_basename, 0), '_cube') ;; always > -1
-          end_pos = end_pos_even > end_pos_odd
-          wh_noend = where(end_pos eq -1, count_noend)
-          if count_noend gt 0 then end_pos[wh_noend] = end_pos_cube[wh_noend]
-          
-          obs_name_arr = strmid(cube_basename, intarr(1,n_cubefiles), transpose(end_pos))
-          ;obs_name_arr = stregex(cube_basename, '[0-9]+', /extract)
-          
-          wh_first = where(obs_name_arr eq obs_name_arr[0], count_first)
-          if count_first lt n_elements(cube_files) then $
-            print, 'More than one obs_range found, using first range (' + obs_name_arr[0] + ', ' + number_formatter(count_first) + ' files)'
-          if count_first gt 2 then message, 'More than two cubes found with first obs_range'
-          datafile = cube_files[wh_first]
-          obs_names[i] = obs_name_arr[0]
-        endif else begin
-          if n_elements(cube_files) gt 2 then message, 'More than two cubes found with given obs_range'
-          datafile = cube_files
-        endelse
-      endif
-      
-    endif
-    
+  
     if n_elements(filenames) eq 1 then begin
       ;; only 1 folder name & 1 evenodd
-      evenodd_mask = stregex(datafile, evenodd, /boolean)
-      if total(evenodd_mask) gt 0 then filenames = datafile[(where(evenodd_mask eq 1))[0]] else message, 'requested file does not exist'
+      evenodd_mask = stregex(obs_info.cube_files.(i), evenodd, /boolean)
+      if total(evenodd_mask) gt 0 then filenames = obs_info.cube_files.(i)[(where(evenodd_mask eq 1))[0]] else message, 'requested file does not exist'
     endif else begin
       ;; 2 of folder name and/or evenodd
       if n_elements(evenodd) eq 1 then begin
         ;; 2 folder names, 1 evenodd
-        evenodd_mask = stregex(datafile, evenodd, /boolean)
-        if total(evenodd_mask) gt 0 then filenames[i] = datafile[(where(evenodd_mask eq 1))[0]] else message, 'requested file does not exist'
+        evenodd_mask = stregex(obs_info.cube_files.(i), evenodd, /boolean)
+        if total(evenodd_mask) gt 0 then filenames[i] = obs_info.cube_files.(i)[(where(evenodd_mask eq 1))[0]] else message, 'requested file does not exist'
       endif else begin
         if n_elements(folder_names) gt 1 then begin
           ;; 2 of each folder name & evenodd
-          evenodd_mask = stregex(datafile, evenodd[i], /boolean)
-          if total(evenodd_mask) gt 0 then filenames[i] = datafile[(where(evenodd_mask eq 1))[0]] else message, 'requested file does not exist'
+          evenodd_mask = stregex(obs_info.cube_files.(i), evenodd[i], /boolean)
+          if total(evenodd_mask) gt 0 then filenames[i] = obs_info.cube_files.(i)[(where(evenodd_mask eq 1))[0]] else message, 'requested file does not exist'
         endif else begin
           ;; 1 foldername, 2 evenodd
           for j=0, n_elements(evenodd)-1 do begin
-            evenodd_mask = stregex(datafile, evenodd[j], /boolean)
-            if total(evenodd_mask) gt 0 then filenames[j] = datafile[(where(evenodd_mask eq 1))[0]] else message, 'requested file does not exist'
+            evenodd_mask = stregex(obs_info.cube_files.(i), evenodd[j], /boolean)
+            if total(evenodd_mask) gt 0 then filenames[j] = obs_info.cube_files.(i)[(where(evenodd_mask eq 1))[0]] else message, 'requested file does not exist'
           endfor
         endelse
       endelse
     endelse
-    undefine, datafile
+    
   endfor
   
-  std_savepath = base_path('data') + 'fhd_ps_data/'
   
-  if n_elements(folder_names) eq 2 then begin
-    folderparts_1 = strsplit(folder_names[0], path_sep(), /extract)
-    folderparts_2 = strsplit(folder_names[1], path_sep(), /extract)
-    match_test = strcmp(folderparts_1, folderparts_2)
-    wh_diff = where(match_test eq 0, count_diff, complement = wh_same, ncomplement = count_same)
-    
-    if count_diff eq 0 then begin
-      ;; folders are the same
-      folder_names = folder_names[0]
-      note = fhd_types[0]
-      save_path = folder_names[0] + path_sep()
-    endif else begin
-      joint_path = strjoin(folderparts_1[wh_same], path_sep())
-      if strmid(folder_names[0], 0,1) eq path_sep() then joint_path = path_sep() + joint_path
-      
-      
-      fnameparts_1 = strsplit(file_basename(folder_names[0]), '_', /extract, count = nfileparts_1)
-      fnameparts_2 = strsplit(file_basename(folder_names[1]), '_', /extract, count = nfileparts_2)
-      if nfileparts_1 ne nfileparts_2 then begin
-        if nfileparts_1 gt nfileparts_2 then fnameparts_2 = [fnameparts_2, strarr(nfileparts_1-nfileparts_2)] $
-        else fnameparts_1 = [fnameparts_1, strarr(nfileparts_2-nfileparts_1)]
-      endif
-      match_name_test = strcmp(fnameparts_1, fnameparts_2)
-      wh_name_diff = where(match_name_test eq 0, count_name_diff, complement = wh_name_same, ncomplement = count_name_same)
-      
-      if count_name_diff eq 0 then begin
-        diff_dir = file_basename(folder_names[0]) + '_diff'
-        note = strjoin(folderparts_1[wh_diff], path_sep()) + ' - ' + strjoin(folderparts_2[wh_diff], path_sep()) + ' ' + file_basename(folder_names[0])
-      endif else begin
-        if min(wh_name_diff) ge nfileparts_1 or min(wh_name_diff) ge nfileparts_2 then begin
-          wh_name_diff = [max(wh_name_same), wh_name_diff]
-          count_name_diff = count_name_diff + 1
-          if count_name_same gt 1 then begin
-            wh_name_same = wh_name_same[0:count_name_same-2]
-            count_name_same = count_name_same-1
-          endif else count_name_same = 0
-        endif
-        
-        str1_diff = strjoin(fnameparts_1[wh_name_diff[where((wh_name_diff lt nfileparts_1) gt 0)]], '_')
-        str2_diff = strjoin(fnameparts_2[wh_name_diff[where((wh_name_diff lt nfileparts_2) gt 0)]], '_')
-        
-        if count_name_same gt 0 then begin
-          str_same = strjoin(fnameparts_1[wh_name_same], '_')
-          diff_dir = str_same + '__' + str1_diff + '_minus_' + str2_diff
-          note = str_same + ' ' + str1_diff + ' - ' + str2_diff
-        endif else begin
-          diff_dir = str1_diff + '_minus_' + str2_diff
-          note = str1_diff + ' - ' + str2_diff
-        endelse
-      endelse
-      
-      save_path = joint_path + path_sep() + diff_dir + path_sep()
-    endelse
-    if file_test(save_path) eq 0 then file_mkdir, save_path
+  if n_elements(obs_info.folder_names) eq 2 then begin
+    save_path = obs_info.diff_save_path
+    note = obs_info.diff_note
+    plot_path = obs_info.diff_plot_path
   endif else begin
-    save_path = folder_names[0] + path_sep()
-    note = fhd_types[0]
+    save_path = obs_info.folder_names[0] + path_sep()
+    note = obs_info.fhd_types[0]
+    plot_path = obs_info.plot_paths[0]
   endelse
   
-  pos = strpos(save_path, std_savepath)
-  if pos ne -1 then save_path_ext = strmid(save_path, pos + strlen(std_savepath)) $
-  else save_path_ext = ''
+  if file_test(save_path) eq 0 then file_mkdir, save_path
   
   max_file = n_elements(filenames)-1
   max_type = n_elements(cube_types)-1
@@ -274,31 +127,50 @@ pro hellebore_fhd_cube_images, folder_names, obs_names_in, cube_types = cube_typ
   
   if keyword_set(png) or keyword_set(eps) then pub = 1 else pub = 0
   if pub then begin
-    ;; plot_path specifies a location to save plot files.
-    plot_path = base_path('plots') + 'power_spectrum/fhd_data/' + save_path_ext
-    
+  
     if not file_test(plot_path, /directory) then file_mkdir, plot_path
     
     ;; plot_filebase specifies a base name to use for the plot files
     if n_cubes gt 1 then begin
-      if n_elements(folder_names) eq 1 then plot_filebase = fhd_types[0] + '_' + evenodd[0] + '_' + cube_types[0] + '_' + pols[0] + $
-        '_minus_' + evenodd[max_eo] + '_' + cube_types[max_type] + '_' + pols[max_pol] $
-      else $
-        plot_filebase = strjoin(fnameparts_1[wh_name_same], '_') + '__' + strjoin([fnameparts_1[wh_name_diff], evenodd[0], cube_types[0], pols[0]], '_')  + $
-        '_minus_' + strjoin([fnameparts_2[wh_name_diff], evenodd[max_eo], cube_types[max_type], pols[max_pol]], '_')
-    endif else plot_filebase = fhd_types[0] + '_' + evenodd[0] + '_' + cube_types[0] + '_' + pols[0]
+      if n_elements(folder_names) eq 1 then begin
+        if n_elements(obs_info.obs_names) gt 1 then begin
+          plot_filebase = obs_info.fhd_types[0] + '_' + obs_info.obs_names[0] + '_' + evenodd[0] + '_' + cube_types[0] + '_' + pols[0] + $
+            '_minus_' + obs_info.obs_names[0] + '_' + evenodd[max_eo] + '_' + cube_types[max_type] + '_' + pols[max_pol]
+        endif else begin
+          if obs_info.integrated[0] eq 0 then plot_start = obs_info.fhd_types[0] + '_' + obs_info.obs_names[0] else plot_start = obs_info.fhd_types[0]
+          
+          plot_filebase = plot_start + '_' + evenodd[0] + '_' + cube_types[0] + '_' + pols[0] + $
+            '_minus_' + evenodd[max_eo] + '_' + cube_types[max_type] + '_' + pols[max_pol]
+        endelse
+      endif else plot_filebase = obs_info.name_same_parts + '__' + strjoin([obs_info.name_diff_parts[0], evenodd[0], cube_types[0], pols[0]], '_')  + $
+        '_minus_' + strjoin([obs_info.name_diff_parts[1], evenodd[max_eo], cube_types[max_type], pols[max_pol]], '_')
+    endif else begin
+      if obs_info.integrated[0] eq 0 then plot_start = obs_info.fhd_types[0] + '_' + obs_info.obs_names[0] else plot_start = obs_info.fhd_types[0]
+      
+      plot_filebase = plot_start + '_' + evenodd[0] + '_' + cube_types[0] + '_' + pols[0]
+    endelse
     
-    plotfile = plot_path + plot_filebase + '_image'
+    if keyword_set(diff_ratio) then plotfile = plot_path + plot_filebase + '_imageratio' else plotfile = plot_path + plot_filebase + '_image'
   endif
   
   if n_cubes gt 1 then begin
-    temp = cube1-cube2
-    if max(abs(temp)) eq 0 then message, 'cubes are identical.'
+    if max(abs(cube1-cube2)) eq 0 then message, 'cubes are identical.'
+    if keyword_set(diff_ratio) then begin
+      print, max(cube1), max(cube2), max(cube1)/max(cube2)
+      temp = (cube1/max(cube1) - cube2/max(cube2)) * mean([max(cube1), max(cube2)])
+      note = note + ', peak ratio = ' + number_formatter(max(cube1)/max(cube2), format = '(f5.2)')
+    endif else temp = cube1-cube2
+    
     if n_elements(slice_range) eq 1 then temp = temp[*,slice_range] else temp = total(temp[*, slice_range[0]:slice_range[1]],2)
   endif else if n_elements(slice_range) eq 1 then temp = cube1[*,slice_range] else temp = total(cube1[*, slice_range[0]:slice_range[1]],2)
   
-  title = diff_title + ', ' + title_range
+  if keyword_set(sym_color) and not keyword_set(log) then begin
+    if n_elements(data_range) eq 0 then data_range = [-1,1]*max(abs(temp)) $
+    else data_range = [-1,1]*max(abs(data_range))
+  endif
+  if keyword_set(diff_ratio) then title = diff_title + ', peak norm., ' + title_range else title = diff_title + ', ' + title_range
   
-  healpix_quickimage, temp, hpx_inds1, nside1, title = title, savefile = plotfile, note=note, slice_ind = slice_ind
-  
+  healpix_quickimage, temp, hpx_inds1, nside1, title = title, savefile = plotfile, note=note, slice_ind = slice_ind, $
+    log = log, color_profile = color_profile, data_range = data_range
+    
 end
