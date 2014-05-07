@@ -568,7 +568,7 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
       cube_varname:cube_varname, weight_varname:weight_varname, variance_varname:variance_varname, $
       frequencies:frequencies, freq_resolution:freq_resolution, time_resolution:time_resolution, $
       n_vis:n_vis, max_baseline_lambda:max_baseline_lambda, max_theta:max_theta, degpix:degpix, kpix:kpix, kspan:kspan, $
-      general_filebase:general_filebase, type_pol_str:type_pol_str, infile_label:infile_label, ntypes:ntypes}
+      general_filebase:general_filebase, type_pol_str:type_pol_str, infile_label:infile_label, ntypes:ntypes, n_obs:n_obs}
       
     if healpix then metadata_struct = create_struct(metadata_struct, 'pixelfile', pixelfile, 'pixel_varname', pixel_varname, 'nside', nside)
     
@@ -625,11 +625,22 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
   wt_file_label = '_weights_' + strlowcase(pol_inc)
   file_label = '_' + strlowcase(metadata_struct.type_pol_str)
   savefilebase = metadata_struct.general_filebase + fch_tag + file_label
-  
+
   if n_elements(uvf_savefilebase_in) lt nfiles then begin
     if nfiles eq 1 then begin
       ;; if we're only dealing with one file and uvf_savefilebase isn't specified then use same base for uvf files
-      uvf_savefilebase = general_filebase + fch_tag + file_label + dft_label
+      uvf_savefilebase = strarr(nfiles, ncubes)
+      uvf_savefilebase[0,*] = metadata_struct.general_filebase + fch_tag + file_label + dft_label
+      uvf_label = strarr(nfiles, ncubes)
+      
+      if n_elements(save_path) ne 0 then uvf_froot = replicate(save_path, nfiles, ncubes) else begin
+        uvf_froot = strarr(nfiles, ncubes)
+        ;; test datafile path to see if it exists. if not, use froot
+        for i=0, nfiles-1 do begin
+          datafile_path = file_dirname(metadata_struct.datafile[i], /mark_directory)
+          if file_test(datafile_path, /directory) then uvf_froot[i, *] = datafile_path else uvf_froot[i, *] = froot
+        endfor
+      endelse
     endif else begin
       ;; need 2 uvf files for each type/pol
       if n_elements(save_path) ne 0 then uvf_froot = replicate(save_path, nfiles, ncubes) else begin
@@ -694,7 +705,8 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
     if nfiles eq 1 then begin
       if n_elements(save_path) gt 0 then wt_froot = save_path
       
-      weight_savefilebase = wt_base + fch_tag + wt_file_label
+      weight_savefilebase = strarr(nfiles, npol)
+      weight_savefilebase[0,*] = wt_base + fch_tag + wt_file_label
     endif else begin
       if n_elements(save_path) gt 0 then wt_froot = save_path else begin
         wt_froot = strarr(nfiles, npol)

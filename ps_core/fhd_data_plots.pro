@@ -66,9 +66,12 @@ pro fhd_data_plots, datafile, rts = rts, pol_inc = pol_inc, image = image, $
   time1 = systime(1)
   print, 'file setup time: ' + number_formatter(time1-time0)
   
-  print, 'n_vis % difference between even & odd cubes: ' + number_formatter((file_struct_arr[0].n_vis[1]-file_struct_arr[0].n_vis[0])*100/mean(file_struct_arr[0].n_vis))
-  
   nfiles = n_elements(file_struct_arr[0].datafile)
+  
+  if nfiles gt 1 then print, 'n_vis % difference between even & odd cubes: ' + $
+    number_formatter((file_struct_arr[0].n_vis[1]-file_struct_arr[0].n_vis[0])*100/mean(file_struct_arr[0].n_vis))
+    
+  if tag_exist(file_struct_arr, 'n_obs') then print, 'n_obs, ' + file_struct_arr.n_obs
   
   npol = n_elements(pol_inc)
   n_cubes = n_elements(file_struct_arr)
