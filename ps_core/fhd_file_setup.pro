@@ -368,7 +368,7 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
       message, 'if uvf_savefilebase is specified it must have the same number of elements as datafiles'
       
       
-      
+    n_obs = lonarr(nfiles)
     for j=0, nfiles-1 do begin
       void = getvar_savefile(datafile[j], names = varnames)
       
@@ -449,7 +449,7 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
       
       if count_obs ne 0 then begin
       
-        n_obs = n_elements(obs_arr)
+        n_obs[j] = n_elements(obs_arr)
         
         if j eq 0 then max_baseline_lambda = max(obs_arr.max_baseline) $
         else max_baseline_lambda = max([max_baseline_lambda, obs_arr.max_baseline])
@@ -486,18 +486,18 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
           wh_bin = where(strlowcase(obs_tags) eq 'bin', count_bin)
           wh_base_info = where(strlowcase(obs_tags) eq 'baseline_info', count_base_info)
           if count_bin ne 0 or count_base_info then begin
-            freq_vals = dblarr(n_freq, n_obs)
-            if count_bin ne 0 then for i=0, n_obs-1 do freq_vals[*,i] = (*obs_arr[i].bin).freq $
-            else for i=0, n_obs-1 do freq_vals[*,i] = (*obs_arr[i].baseline_info).freq
+            freq_vals = dblarr(n_freq, n_obs[j])
+            if count_bin ne 0 then for i=0, n_obs[j]-1 do freq_vals[*,i] = (*obs_arr[i].bin).freq $
+            else for i=0, n_obs[j]-1 do freq_vals[*,i] = (*obs_arr[i].baseline_info).freq
           endif else stop
         endelse
-        if total(abs(freq_vals - rebin(freq_vals[*,0], n_freq, n_obs))) ne 0 then message, 'inconsistent freq values in obs_arr'
+        if total(abs(freq_vals - rebin(freq_vals[*,0], n_freq, n_obs[j]))) ne 0 then message, 'inconsistent freq values in obs_arr'
         if j eq 0 then freq = freq_vals[*,0] else if total(abs(freq - freq_vals[*,0])) ne 0 then $
           message, 'frequencies do not agree between datafiles'
         freq_resolution = freq[1]-freq[0]
         
-        dt_vals = dblarr(n_obs)
-        for i=0, n_obs-1 do begin
+        dt_vals = dblarr(n_obs[j])
+        for i=0, n_obs[j]-1 do begin
           times = (*obs_arr[i].baseline_info).jdate
           ;; only allow time resolutions of n*.5 sec
           dt_vals[i] = round(((times[1]-times[0])*24*3600)*2.)/2.
@@ -514,9 +514,9 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
         n_vis[j] = total(obs_arr.n_vis)
         
         if tag_exist(obs_arr[0], 'vis_noise') then begin
-          vis_noise_arr = fltarr([n_obs, size(*obs_arr[0].vis_noise, /dimension)])
-          for i=0, n_obs-1 do vis_noise_arr[i, *, *] = *obs_arr[i].vis_noise
-          vis_noise_arr = total(vis_noise_arr, 1)/n_obs
+          vis_noise_arr = fltarr([n_obs[j], size(*obs_arr[0].vis_noise, /dimension)])
+          for i=0, n_obs[j]-1 do vis_noise_arr[i, *, *] = *obs_arr[i].vis_noise
+          vis_noise_arr = total(vis_noise_arr, 1)/n_obs[j]
           noise_dims = size(vis_noise_arr, /dimensions)
           if noise_dims[0] ne npol or noise_dims[1] ne n_freq then message, 'vis_noise dimensions do not match npol, n_freq'
           if j eq 0 then vis_noise = vis_noise_arr else vis_noise = (vis_noise_arr + vis_noise*j)/(j+1.)
@@ -569,7 +569,7 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
       frequencies:frequencies, freq_resolution:freq_resolution, time_resolution:time_resolution, $
       n_vis:n_vis, max_baseline_lambda:max_baseline_lambda, max_theta:max_theta, degpix:degpix, kpix:kpix, kspan:kspan, $
       general_filebase:general_filebase, type_pol_str:type_pol_str, infile_label:infile_label, ntypes:ntypes, n_obs:n_obs}
-      
+     
     if healpix then metadata_struct = create_struct(metadata_struct, 'pixelfile', pixelfile, 'pixel_varname', pixel_varname, 'nside', nside)
     
     if no_var then metadata_struct = create_struct(metadata_struct, 'no_var', 1)
@@ -768,7 +768,7 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
       datavar:data_varname, weightvar:metadata_struct.weight_varname[pol_index], variancevar:metadata_struct.variance_varname[pol_index], $
       frequencies:metadata_struct.frequencies, freq_resolution:metadata_struct.freq_resolution, time_resolution:metadata_struct.time_resolution, $
       n_vis:metadata_struct.n_vis, max_baseline_lambda:metadata_struct.max_baseline_lambda, max_theta:metadata_struct.max_theta, $
-      degpix:metadata_struct.degpix, kpix:metadata_struct.kpix, kspan:metadata_struct.kspan, $
+      degpix:metadata_struct.degpix, kpix:metadata_struct.kpix, kspan:metadata_struct.kspan, $;n_obs:metadata_struct.n_obs, $
       uf_savefile:uf_savefile[*,i], vf_savefile:vf_savefile[*,i], uv_savefile:uv_savefile[*,i], $
       uf_raw_savefile:uf_raw_savefile[*,i], vf_raw_savefile:vf_raw_savefile[*,i], $
       uv_raw_savefile:uv_raw_savefile[*,i], $
@@ -781,6 +781,8 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
       res_uvf_inputfiles:res_uvf_inputfiles, res_uvf_varname:res_uvf_varname, $
       file_label:file_label[i], uvf_label:uvf_label[*,i], wt_file_label:wt_file_label[pol_index], $
       fch_tag:fch_tag, power_tag:power_tag, type_pol_str:metadata_struct.type_pol_str[i]}
+
+    if tag_exist(metadata_struct, 'n_obs') gt 0 then file_struct = create_struct(file_struct, 'n_obs', metadata_struct.n_obs)
       
     if healpix or keyword_set(image) then file_struct = create_struct(file_struct, 'uvf_savefile', uvf_savefile[*,i], $
       'uvf_weight_savefile', uvf_weight_savefile[*, pol_index])

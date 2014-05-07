@@ -71,7 +71,10 @@ pro fhd_data_plots, datafile, rts = rts, pol_inc = pol_inc, image = image, $
   if nfiles gt 1 then print, 'n_vis % difference between even & odd cubes: ' + $
     number_formatter((file_struct_arr[0].n_vis[1]-file_struct_arr[0].n_vis[0])*100/mean(file_struct_arr[0].n_vis))
     
-  if tag_exist(file_struct_arr, 'n_obs') then print, 'n_obs, ' + file_struct_arr.n_obs
+  if tag_exist(file_struct_arr, 'n_obs') then begin
+    print, 'n_obs: ', file_struct_arr[0].n_obs
+    note = note + ' (' + number_formatter(round(mean(file_struct_arr[0].n_obs))) + ')'
+  endif
   
   npol = n_elements(pol_inc)
   n_cubes = n_elements(file_struct_arr)
