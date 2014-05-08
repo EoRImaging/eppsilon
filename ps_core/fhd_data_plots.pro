@@ -11,7 +11,7 @@ pro fhd_data_plots, datafile, rts = rts, pol_inc = pol_inc, image = image, $
     log_kpar = log_kpar, log_kperp = log_kperp, kpar_bin = kpar_bin, kperp_bin = kperp_bin, log_k1d = log_k1d, $
     k1d_bin = k1d_bin, kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, $
     baseline_axis = baseline_axis, delay_axis = delay_axis, hinv = hinv, plot_wedge_line = plot_wedge_line, $
-    plot_eor_1d = plot_eor_1d, grey_scale = grey_scale, individual_plots = individual_plots
+    plot_eor_1d = plot_eor_1d, individual_plots = individual_plots
     
     
   if keyword_set(refresh_dft) then refresh_ps = 1
@@ -217,7 +217,6 @@ pro fhd_data_plots, datafile, rts = rts, pol_inc = pol_inc, image = image, $
     else if n_elements(save_path) ne 0 then plotfile_path = save_path else plotfile_path = file_struct_arr.savefile_froot
     
     plot_fadd = ''
-    if keyword_set(grey_scale) then plot_fadd = plot_fadd + '_grey'
     if keyword_set(kperp_linear_axis) and keyword_set(kpar_linear_axis) then plot_fadd = plot_fadd + '_linaxes' else begin
       if keyword_set(kperp_linear_axis) then plot_fadd = plot_fadd + '_kperplinaxis'
       if keyword_set(kpar_linear_axis) then plot_fadd = plot_fadd + '_kparlinaxis'
@@ -333,21 +332,21 @@ pro fhd_data_plots, datafile, rts = rts, pol_inc = pol_inc, image = image, $
     for i=0, n_cubes-1 do kpower_2d_plots, savefiles_2d[i], png = png, eps = eps, pdf = pdf, plotfile = plotfiles_2d[i], $
       kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
       data_range = data_range, title_prefix = titles[i], note = note, $
-      grey_scale = grey_scale, plot_wedge_line = plot_wedge_line, hinv = hinv, $
+      plot_wedge_line = plot_wedge_line, hinv = hinv, $
       wedge_amp = wedge_amp, baseline_axis = baseline_axis, delay_axis = delay_axis, $
       kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis
       
     for i=0, npol -1 do kpower_2d_plots, savefiles_2d[i], /plot_sigma, png = png, eps = eps, pdf = pdf, plotfile = plotfiles_2d_error[i],$
       kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
       data_range = sigma_range, title_prefix = pol_inc[i], note = note + ' ' + vs_note, $
-      grey_scale = grey_scale, plot_wedge_line = plot_wedge_line, hinv = hinv, $
+      plot_wedge_line = plot_wedge_line, hinv = hinv, $
       wedge_amp = wedge_amp, baseline_axis = baseline_axis, delay_axis = delay_axis, $
       kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis
       
     for i=0, npol -1 do kpower_2d_plots, savefiles_2d[i], /plot_exp_noise, png = png, eps = eps, pdf = pdf, plotfile = plotfiles_2d_noise_expval[i],$
       kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
       data_range = nev_range, title_prefix = pol_inc[i], note = note + ' ' + vs_note, $
-      grey_scale = grey_scale, plot_wedge_line = plot_wedge_line, hinv = hinv, $
+      plot_wedge_line = plot_wedge_line, hinv = hinv, $
       wedge_amp = wedge_amp, baseline_axis = baseline_axis, delay_axis = delay_axis, $
       kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis
       
@@ -355,7 +354,7 @@ pro fhd_data_plots, datafile, rts = rts, pol_inc = pol_inc, image = image, $
     for i=0, n_cubes-1 do kpower_2d_plots, savefiles_2d[i], png = png, eps = eps, pdf = pdf, /snr, plotfile = plotfiles_2d_snr[i], $
       kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
       data_range = snr_range, title_prefix = titles[i], note = note, $
-      grey_scale = grey_scale, plot_wedge_line = plot_wedge_line, hinv = hinv, $
+      plot_wedge_line = plot_wedge_line, hinv = hinv, $
       wedge_amp = wedge_amp, baseline_axis = baseline_axis, delay_axis = delay_axis, $
       kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis
       
@@ -363,14 +362,14 @@ pro fhd_data_plots, datafile, rts = rts, pol_inc = pol_inc, image = image, $
       for i=0, n_cubes-1 do kpower_2d_plots, savefiles_2d[i], png = png, eps = eps, pdf = pdf, /plot_noise, plotfile = plotfiles_2d_noise[i], $
         kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
         data_range = noise_range, title_prefix = titles[i], note = note + ' ' + vs_note, $
-        grey_scale = grey_scale, plot_wedge_line = plot_wedge_line, hinv = hinv, $
+        plot_wedge_line = plot_wedge_line, hinv = hinv, $
         wedge_amp = wedge_amp, baseline_axis = baseline_axis, delay_axis = delay_axis, $
         kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis
         
       for i=0, n_cubes-1 do kpower_2d_plots, savefiles_2d[i], png = png, eps = eps, pdf = pdf, /nnr, plotfile = plotfiles_2d_nnr[i], $
         kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
         data_range = nnr_range, title_prefix = titles[i], note = note + ' ' + vs_note, $
-        grey_scale = grey_scale, plot_wedge_line = plot_wedge_line, hinv = hinv, $
+        plot_wedge_line = plot_wedge_line, hinv = hinv, $
         wedge_amp = wedge_amp, baseline_axis = baseline_axis, delay_axis = delay_axis, $
         kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis
     endif
@@ -394,7 +393,7 @@ pro fhd_data_plots, datafile, rts = rts, pol_inc = pol_inc, image = image, $
       kpower_2d_plots, savefiles_2d[i], multi_pos = pos_use, start_multi_params = start_multi_params, png = png, eps = eps, pdf = pdf, $
         plotfile = plotfiles_2d, kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
         data_range = data_range, title_prefix = titles[i], note = note_use, $
-        grey_scale = grey_scale, plot_wedge_line = plot_wedge_line, hinv = hinv, $
+        plot_wedge_line = plot_wedge_line, hinv = hinv, $
         wedge_amp = wedge_amp, baseline_axis = baseline_axis, delay_axis = delay_axis, $
         kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, window_num = window_num
         
@@ -429,14 +428,14 @@ pro fhd_data_plots, datafile, rts = rts, pol_inc = pol_inc, image = image, $
         kpower_2d_plots, savefiles_2d[pol_ind], multi_pos = pos_use, start_multi_params = start_multi_params, png = png, eps = eps, pdf = pdf, $
         plotfile = plotfiles_2d_error, /plot_sigma, data_range = sigma_range, $
         kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
-        title_prefix = pol_inc[pol_ind], grey_scale = grey_scale, $
+        title_prefix = pol_inc[pol_ind], $
         plot_wedge_line = plot_wedge_line, wedge_amp = wedge_amp, hinv = hinv, baseline_axis = baseline_axis, $
         delay_axis = delay_axis, kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, $
         window_num = window_num else $
         kpower_2d_plots, savefiles_2d[pol_ind], multi_pos = pos_use, start_multi_params = start_multi_params, $
         png = png, eps = eps, pdf = pdf, /plot_exp_noise, kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
         data_range = nev_range, title_prefix = pol_inc[pol_ind], note = note_use, $
-        grey_scale = grey_scale, plot_wedge_line = plot_wedge_line, hinv = hinv, $
+        plot_wedge_line = plot_wedge_line, hinv = hinv, $
         wedge_amp = wedge_amp, baseline_axis = baseline_axis, delay_axis = delay_axis, $
         kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis
       if i eq 0 then begin
@@ -470,7 +469,7 @@ pro fhd_data_plots, datafile, rts = rts, pol_inc = pol_inc, image = image, $
       kpower_2d_plots, savefiles_2d[i], /snr, multi_pos = pos_use, start_multi_params = start_multi_params, png = png, eps = eps, pdf = pdf, $
         plotfile = plotfiles_2d_snr, kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
         data_range = snr_range, title_prefix = titles[i], note = note_use, $
-        grey_scale = grey_scale, plot_wedge_line = plot_wedge_line, wedge_amp = wedge_amp, $
+        plot_wedge_line = plot_wedge_line, wedge_amp = wedge_amp, $
         hinv = hinv, baseline_axis = baseline_axis, delay_axis = delay_axis, kperp_linear_axis = kperp_linear_axis, $
         kpar_linear_axis = kpar_linear_axis, window_num = window_num
       if i eq 0 then begin
@@ -496,7 +495,7 @@ pro fhd_data_plots, datafile, rts = rts, pol_inc = pol_inc, image = image, $
         kpower_2d_plots, savefiles_2d[i], /plot_noise, multi_pos = pos_use, start_multi_params = start_multi_params, png = png, eps = eps, pdf = pdf, $
           plotfile = plotfiles_2d_noise, $
           kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, data_range = noise_range, $
-          title_prefix = titles[i], note = note_use, grey_scale = grey_scale, $
+          title_prefix = titles[i], note = note_use, $
           plot_wedge_line = plot_wedge_line, wedge_amp = wedge_amp, hinv = hinv, $
           baseline_axis = baseline_axis, delay_axis = delay_axis, kperp_linear_axis = kperp_linear_axis, $
           kpar_linear_axis = kpar_linear_axis, window_num = window_num
@@ -521,7 +520,7 @@ pro fhd_data_plots, datafile, rts = rts, pol_inc = pol_inc, image = image, $
           plotfile = plotfiles_2d_nnr, $
           kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, data_range = nnr_range, $
           title_prefix = titles[i], note = note_use, $
-          grey_scale = grey_scale, plot_wedge_line = plot_wedge_line, wedge_amp = wedge_amp, hinv = hinv, $
+          plot_wedge_line = plot_wedge_line, wedge_amp = wedge_amp, hinv = hinv, $
           baseline_axis = baseline_axis, delay_axis = delay_axis, kperp_linear_axis = kperp_linear_axis, $
           kpar_linear_axis = kpar_linear_axis, window_num = window_num
         if i eq 0 then begin
@@ -565,14 +564,14 @@ pro fhd_data_plots, datafile, rts = rts, pol_inc = pol_inc, image = image, $
           kpower_slice_plot, uf_slice_savefile[i], multi_pos = pos_use, start_multi_params = start_multi_params, png = png, eps = eps, pdf = pdf, $
             plotfile = uf_slice_plotfile, plot_xrange = kperp_plot_range, plot_yrange = kpar_plot_range, $
             title_prefix = slice_titles[i], note = note_use, data_range = slice_range, $
-            grey_scale = grey_scale, plot_wedge_line = plot_wedge_line, wedge_amp = wedge_amp, hinv = hinv, $
+            plot_wedge_line = plot_wedge_line, wedge_amp = wedge_amp, hinv = hinv, $
             baseline_axis = baseline_axis, delay_axis = delay_axis, linear_axes = kperp_linear_axis, $
             window_num = window_num
         endif else begin
         
           uvf_slice_plot, uf_slice_savefile[i], multi_pos = pos_use, start_multi_params = start_multi_params, png = png, eps = eps, pdf = pdf, $
             plotfile = uf_slice_plotfile, type = uvf_plot_type, title_prefix = slice_titles[i], note = note_use, $
-            grey_scale = grey_scale, hinv = hinv, data_range = slice_range, /log, $
+            hinv = hinv, data_range = slice_range, /log, $
             baseline_axis = baseline_axis, window_num = window_num
         endelse
         
@@ -598,14 +597,14 @@ pro fhd_data_plots, datafile, rts = rts, pol_inc = pol_inc, image = image, $
             plotfile = vf_slice_plotfile, $
             plot_xrange = kperp_plot_range, plot_yrange = kpar_plot_range, $
             title_prefix = slice_titles[i], note = note_use, data_range = slice_range, $
-            grey_scale = grey_scale, plot_wedge_line = plot_wedge_line, wedge_amp = wedge_amp, hinv = hinv, $
+            plot_wedge_line = plot_wedge_line, wedge_amp = wedge_amp, hinv = hinv, $
             baseline_axis = baseline_axis, delay_axis = delay_axis, linear_axes = kperp_linear_axis, $
             window_num = window_num
         endif else begin
         
           uvf_slice_plot, vf_slice_savefile[i], multi_pos = pos_use, start_multi_params = start_multi_params, png = png, eps = eps, pdf = pdf, $
             plotfile = vf_slice_plotfile, type = uvf_plot_type, title_prefix = slice_titles[i], note = note_use, $
-            grey_scale = grey_scale, hinv = hinv, data_range = slice_range, /log, $
+            hinv = hinv, data_range = slice_range, /log, $
             baseline_axis = baseline_axis, window_num = window_num
         endelse
         
@@ -631,14 +630,14 @@ pro fhd_data_plots, datafile, rts = rts, pol_inc = pol_inc, image = image, $
             plotfile = uv_slice_plotfile, $
             plot_xrange = kperp_plot_range, plot_yrange = kperp_plot_range, $
             title_prefix = slice_titles[i], note = note_use, data_range = slice_range, $
-            grey_scale = grey_scale, plot_wedge_line = plot_wedge_line, wedge_amp = wedge_amp, hinv = hinv, $
+            plot_wedge_line = plot_wedge_line, wedge_amp = wedge_amp, hinv = hinv, $
             baseline_axis = baseline_axis, delay_axis = delay_axis, linear_axes = kperp_linear_axis, $
             window_num = window_num
         endif else begin
         
           uvf_slice_plot, uv_slice_savefile[i], multi_pos = pos_use, start_multi_params = start_multi_params, png = png, eps = eps, pdf = pdf, $
             plotfile = uv_slice_plotfile, type = uvf_plot_type, title_prefix = slice_titles[i], note = note_use, $
-            grey_scale = grey_scale, hinv = hinv, data_range = slice_range, /log, $
+            hinv = hinv, data_range = slice_range, /log, $
             baseline_axis = baseline_axis, window_num = window_num
         endelse
         
