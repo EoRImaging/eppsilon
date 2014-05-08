@@ -1,10 +1,86 @@
-pro kpower_2d_plots, power_savefile, multi_pos = multi_pos, start_multi_params = start_multi_params, window_num = window_num, $
+;; Program to make 2D k-space plots. Either supply an idlsave file with the following variables:
+;;     power, noise, weights, noise_expval, kperp_edges, kpar_edges, kperp_bin, kpar_bin, kperp_lambda_conv, delay_params, hubble_param
+;; or supply them as keywords with the same name.
+;;
+;; Note that all input values are assumed to be in real Mpc, to convert to h^-1 Mpc, supply hubble_param and set hinv keyword (defaulted to set)
+;;
+;; Keywords:
+;;  Inputs (can alternatively be supplied in power_savefile)
+;;   power: a 2d power array in kperp, kpar space (either linearly or exponentially binned)
+;;   noise: a 2d measured noise array in same space as power
+;;   weights: a 2d array of the inverse variances in same space as power
+;;   noise_expval: a 2d expected noise array in same space as power
+;;   kperp_edges: a vector of the bin edges for kperp (should have one more element than the 1st power dimension)
+;;   kpar_edges: a vector of the bin edges for kpar (should have one more element than the 2nd power dimension)
+;;   kperp_lambda_conv: conversion factor to convert between kperp and lambda (only needed if plotting baseline axis)
+;;   delay_params: a 2 element vector [delay_delta, delay_max] used if plotting delay axis
+;;   hubble_param: value of h used in calculations, only needed if hinv is set
+;;
+;;   hinv: if set, pull h out of arrays and k values so everything is in h^-1 Mpc rather than real Mpc
+;;
+;;  Plot type flags: set only one of the following to dictate what to plot, power will be plotted if none are set
+;;    plot_weights: inverse variance plot
+;;    plot_noise: measured noise plot
+;;    plot_sigma: sqrt(variance) = 1/sqrt(weights) plot
+;;    plot_exp_noise: expected noise plot
+;;    snr: power to expected noise ratio plot
+;;    nnr: measured noise to expected noise ratio plot
+;;    plot_noise: measured noise plot
+;;    plot_noise: measured noise plot
+;;
+;;  Saving plots keywords
+;;   plotfile: name of file to save plot to. If a recognized extension is present, plot will be saved as that type of file. Otherwise a png type will be used
+;;   png: flag to save plot as a png. Overridden by plotfile extension if present
+;;   eps: flag to save plot as encapsulated postscript. Overridden by plotfile extension if present
+;;   pdf: flag to save plot as a pdf. Overridden by plotfile extension if present
+;;
+;;  Plot window & multi plot keywords
+;;   start_multi_params: structure with tags {ncol, nrow, ordering} to indicate the beginning of a multi plot.
+;;     If set, plot positions for future plots on the same page are returned in multi_pos
+;;   multi_pos: either an output array of dimension [4, nplots] (if start_multi_params is set) containing plot positions for all plots
+;;     or a 4 element vector input containing the plot positions for the current plot
+;;     Only one of start_multi_params and multi_pos can be set.
+;;   window_num: which idl window number to plot to. Window will be created if it doesn't exist, with a size based on the plot aspect ratio
+;;
+;;  Plot text keywords
+;;   full_title: full plot title. Nothing will be added
+;;   title_prefix: Beginning of plot file, descriptors of plot type will be added
+;;   no_title: enforce no plot title
+;;   note: text to be written at bottom right corner of plot
+;;   no_units: don't print units on color bar
+;;   charsize: parameter to control text size on plots.
+;;
+;;  Plot axes and lines keywords
+;;   baseline_axis: if set, plot a baseline axis at the top of the plot. Requires kperp_lambda_conv to be present
+;;   delay_axis: if set, plot a delay axis on right hand side of the plot. Requires delay_params to be present
+;;   kperp_linear_axis: if set, use a linear axis for kperp. Either log or linear axes can be used with log or linearly binned data
+;;   kpar_linear_axis: if set, use a linear axis for kpar. Either log or linear axes can be used with log or linearly binned data
+;;   plot_wedge_line: if set, plot line to indicate wedge & EoR window
+;;   wedge_amp: vector wedge amplitudes to plot lines at (ie 1st null, horizon)
+;;
+;;  Plot appearance keywords
+;;   kperp_plot_range: range of kperp values to include [kperp_min, kperp_max]
+;;   kpar_plot_range: range of kpar values to include [kpar_min, kpar_max]
+;;   data_range: color bar range. plotted array will be clipped to these values.
+;;   color_profile: type of color bar, passed to log_color_calc. allowed values are:['log_cut', 'sym_log', 'abs'] default is 'log_cut'
+;;   log_cut_val: minimum value to limit color array to, defaults to data_range[0] or the minimum positive value in the array.
+;;     Only applies if color_profile is 'log_cut'. 
+;;   norm_2D: if set, normalize plot by norm_factor
+;;   norm_factor: factor to use for normalizing plots if norm_2d is set. If not set, max of plotted array will be used and passed back in this keyword
+;;   cb_size: color bar size (width) in normal units.
+;;   margin: 4 element vector of margin sizes (x0, y0, x1, y1) in normal coordinates
+;;   cb_margin: 2 element vector of margins on left & right of color bar in normal coordinates
+
+pro kpower_2d_plots, power_savefile, power = power, noise = noise, weights = weights, noise_expval = noise_expval, $
+    kperp_edges = kperp_edges, kpar_edges = kpar_edges, kperp_bin = kperp_bin, kpar_bin = kpar_bin, $
+    kperp_lambda_conv = kperp_lambda_conv, delay_params = delay_params, hubble_param = hubble_param, $
+    multi_pos = multi_pos, start_multi_params = start_multi_params, window_num = window_num, $
     plot_weights = plot_weights, plot_noise = plot_noise, plot_sigma = plot_sigma, plot_exp_noise = plot_exp_noise, $
-    ratio = ratio, diff = diff, snr = snr, nnr = nnr, $
+    snr = snr, nnr = nnr, $
     kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, data_range = data_range, $
     color_profile = color_profile, log_cut_val = log_cut_val, plotfile = plotfile, png = png, eps = eps, pdf = pdf, $
     no_title = no_title, full_title = full_title, title_prefix = title_prefix, note = note, $
-    norm_2d = norm_2d, norm_factor = norm_factor, grey_scale = grey_scale, $
+    norm_2d = norm_2d, norm_factor = norm_factor, $
     wedge_amp = wedge_amp, plot_wedge_line = plot_wedge_line, $
     baseline_axis = baseline_axis, delay_axis = delay_axis, kperp_linear_axis = kperp_linear_axis, $
     kpar_linear_axis = kpar_linear_axis, no_units = no_units, hinv = hinv, charsize = charsize_in, $
@@ -43,7 +119,7 @@ pro kpower_2d_plots, power_savefile, multi_pos = multi_pos, start_multi_params =
       delete_ps = 1
     endif else if keyword_set(pdf) then begin
       plot_exten = '.pdf'
-      delete_ps = 1    
+      delete_ps = 1
     endif else if keyword_set(eps) then begin
       plot_exten = '.eps'
       delete_ps = 0
@@ -68,114 +144,51 @@ pro kpower_2d_plots, power_savefile, multi_pos = multi_pos, start_multi_params =
     keyword_set(plot_noise), keyword_set(snr), keyword_set(nnr)]) gt 1 then $
     message, 'only one of [plot_noise, plot_sigma, plot_exp_noise, plot_weights, snr, nnr] keywords can be set'
     
+  if n_elements(power_savefile) gt 1 then message, $
+    'Only 1 file can be specified in power_savefile'
     
-  if keyword_set(ratio) or keyword_set(diff) then begin
-    if keyword_set(ratio) and keyword_set(diff) then message, 'Ratio and diff keywords cannot be set simultaneously'
-    if n_elements(power_savefile) gt 2 then message, 'Only 2 files can be specified in power_savefile if ratio or diff keyword is set'
-    restore, power_savefile[0]
-    power1 = power
-    weights1 = weights
-    weights1 = weights
-    noise_expval1 = noise_expval
-    if n_elements(noise) ne 0 then noise1 = noise
-    kperp1 = kperp_edges
-    kpar1 = kpar_edges
-    kpar_bin1 = kpar_bin
-    kperp_bin1 = kperp_bin
+  if n_elements(power_savefile) gt 0 then restore, power_savefile
+  
+  if keyword_set(snr) then begin
+    power = power / noise_expval
+    wh_err0 = where(noise_expval eq 0, count_err0)
+    if count_err0 gt 0 then power[wh_err0] = 0
     
-    restore, power_savefile[1]
-    power2 = power
-    if n_elements(noise) ne 0 then noise2 = noise
-    weights2 = weights
-    noise_expval2 = noise_expval
+    plot_type = 'snr'
+  endif
+  
+  if keyword_set(plot_weights) then begin
+    power = weights
+    plot_type = 'weight'
+  endif
+  
+  if keyword_set(plot_sigma) then begin
+    power = 1/sqrt(weights)
+    wh_wt0 = where(weights eq 0, count_wt0)
+    if count_wt0 gt 0 then power[wh_wt0 ] = 0
+    plot_type = 'sigma'
+  endif
+  
+  if keyword_set(plot_exp_noise) then begin
+    power = noise_expval
+    plot_type = 'exp_noise'
+  endif
+  
+  if keyword_set(plot_noise) then begin
+    if n_elements(noise) eq 0 then message, 'noise is undefined in this file'
+    power = noise
+    plot_type = 'noise'
+  endif
+  
+  if keyword_set(nnr) then begin
+    power = noise / noise_expval
+    wh_err0 = where(noise_expval eq 0, count_err0)
+    if count_err0 gt 0 then power[wh_err0] = 0
     
-    if total(abs(kperp1 - kperp_edges)) ne 0 or total(abs(kpar1 - kpar_edges)) ne 0 or $
-      total(abs(size(power1,/dimension) - size(power2, /dimension))) ne 0 then $
-      message, 'dimensions and kperp/kpar edges must be the same in both files'
-      
-    if keyword_set(snr) then message, 'snr keyword cannot be used with ratio keyword'
-    
-    if (keyword_set(plot_noise) or keyword_set(nnr)) and (n_elements(noise1) eq 0 or n_elements(noise2) eq 0) then $
-      message, 'Noise is not included in one or both files'
-      
-    if keyword_set(diff) then begin
-      power = power1 - power2
-      plot_type = 'diff'
-    endif
-    
-    if keyword_set(plot_weights) then begin
-      power = weights1 / weights2
-      plot_type = 'weight_ratio'
-    endif
-    
-    if keyword_set(plot_sigma) then begin
-      power = sqrt(weights2 / weights1)
-      plot_type = 'sigma_ratio'
-    endif
-    
-    if keyword_set(plot_noise_exp) then begin
-      power = noise_expval1 / noise_expval2
-      plot_type = 'exp_noise_ratio'
-    endif
-    
-    if keyword_set(plot_noise) then begin
-      power = noise1 / noise2
-      plot_type = 'noise_ratio'
-    endif
-    
-    if n_elements(plot_type) eq 0 then begin
-      power = power1 / power2
-      plot_type = 'ratio'
-    endif
-    
-  endif else begin
-    if n_elements(power_savefile) gt 1 then message, $
-      'Only 1 file can be specified in power_savefile unless ratio or diff keyword is set'
-      
-    restore, power_savefile
-    
-    if keyword_set(snr) then begin
-      power = power / noise_expval
-      wh_err0 = where(noise_expval eq 0, count_err0)
-      if count_err0 gt 0 then power[wh_err0] = 0
-      
-      plot_type = 'snr'
-    endif
-    
-    if keyword_set(plot_weights) then begin
-      power = weights
-      plot_type = 'weight'
-    endif
-    
-    if keyword_set(plot_sigma) then begin
-      power = 1/sqrt(weights)
-      wh_wt0 = where(weights eq 0, count_wt0)
-      if count_wt0 gt 0 then power[wh_wt0 ] = 0
-      plot_type = 'sigma'
-    endif
-    
-    if keyword_set(plot_exp_noise) then begin
-      power = noise_expval
-      plot_type = 'exp_noise'
-    endif
-    
-    if keyword_set(plot_noise) then begin
-      if n_elements(noise) eq 0 then message, 'noise is undefined in this file'
-      power = noise
-      plot_type = 'noise'
-    endif
-    
-    if keyword_set(nnr) then begin
-      power = noise / noise_expval
-      wh_err0 = where(noise_expval eq 0, count_err0)
-      if count_err0 gt 0 then power[wh_err0] = 0
-      
-      plot_type = 'nnr'
-    endif
-    
-    if n_elements(plot_type) eq 0 then plot_type = 'power'
-    
-  endelse
+    plot_type = 'nnr'
+  endif
+  
+  if n_elements(plot_type) eq 0 then plot_type = 'power'
   
   
   dims = size(power, /dimension)
@@ -201,27 +214,10 @@ pro kpower_2d_plots, power_savefile, multi_pos = multi_pos, start_multi_params =
       plot_title = textoidl('P_k', font = font)
       if pub then plotfile_add = '_2dkpower' + plot_exten
     end
-    'ratio': begin
-      units_str = ''
-      plot_title = 'Power Ratio'
-      if pub then plotfile_add = '_ratio' + plot_exten
-    end
-    'diff': begin
-      if keyword_set(hinv) then units_str = textoidl(' (mK^2 h^{-3} Mpc^3)', font = font) $
-      else units_str = textoidl(' (mK^2 Mpc^3)', font = font)
-      
-      plot_title = textoidl('P_k difference', font = font)
-      if pub then plotfile_add = '_diff' + plot_exten
-    end
     'weight': begin
       units_str = ''
       plot_title = 'Weights'
       if pub then plotfile_add = '_2dweight' + plot_exten
-    end
-    'weight_ratio': begin
-      units_str = ''
-      plot_title = 'Weights Ratio'
-      if pub then plotfile_add = '_weight_ratio' + plot_exten
     end
     'sigma': begin
       if keyword_set(hinv) then units_str = textoidl(' (mK^2 h^{-3} Mpc^3)', font = font) $
@@ -230,24 +226,12 @@ pro kpower_2d_plots, power_savefile, multi_pos = multi_pos, start_multi_params =
       plot_title = 'Error (sigma)'
       if pub then plotfile_add = '_2dsigma' + plot_exten
     end
-    'sigma_ratio': begin
-      units_str = ''
-      
-      if keyword_set(pub) then sigma_char = textoidl('\sigma', font = 1) else sigma_char = textoidl('\sigma', font = -1)
-      plot_title = 'Error (sigma) Ratio'
-      if pub then plotfile_add = '_sigma_ratio' + plot_exten
-    end
     'exp_noise': begin
       if keyword_set(hinv) then units_str = textoidl(' (mK^2 h^{-3} Mpc^3)', font = font) $
       else units_str = textoidl(' (mK^2 Mpc^3)', font = font)
       
       plot_title = 'Expected Noise'
       if pub then plotfile_add = '_2dnoise_expval' + plot_exten
-    end
-    'exp_noise_ratio': begin
-      units_str = ''
-      plot_title = 'Expected Noise ratio'
-      if pub then plotfile_add = '_noise_expval_ratio' + plot_exten
     end
     'snr': begin
       units_str = ''
@@ -265,11 +249,6 @@ pro kpower_2d_plots, power_savefile, multi_pos = multi_pos, start_multi_params =
       units_str = ''
       plot_title = 'Noise Ratio (' + textoidl('N_O/N_E', font = font) + ')'
       if pub then plotfile_add = '_2dnnr' + plot_exten
-    end
-    'noise_ratio': begin
-      units_str = ''
-      plot_title = 'Observed Noise Ratio'
-      if pub then plotfile_add = '_noise_ratio' + plot_exten
     end
   endcase
   
@@ -429,7 +408,7 @@ pro kpower_2d_plots, power_savefile, multi_pos = multi_pos, start_multi_params =
   annotate_color = 'black'
   
   log_color_calc, power_plot, power_log_norm, cb_ticks, cb_ticknames, color_range, n_colors, data_range = data_range, $
-    color_profile = color_profile, log_cut_val = log_cut_val, grey_scale = grey_scale, oob_low = oob_low
+    color_profile = color_profile, log_cut_val = log_cut_val, oob_low = oob_low
     
   max_ysize = 1000
   max_xsize = 1200
