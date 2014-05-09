@@ -191,7 +191,7 @@ pro mit_wrapper, folder_name, obs_range, n_obs=n_obs, rts = rts, refresh_dft = r
       endelse
 
 
-      data_range = [1e-2, 1e8]
+      data_range = [1e0, 1e10]
       nnr_range = [1e-1, 1e1]
       snr_range = [1e-4, 1e6]
       
