@@ -386,7 +386,7 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
               wh2 = where(histogram(listpix, min=min_pix) eq 0 and histogram(pixel_nums1, min=min_pix) gt 0, count2)
               while count2 gt 0 do begin
                 radius = radius*1.1
-                query_disc, nside, vec_mid, radius, listpix, nlist, /inc
+                query_disc, file_struct.nside, vec_mid, radius, listpix, nlist, /inc
                 min_pix = min([pixel_nums1, listpix])
                 wh2 = where(histogram(listpix, min=min_pix) eq 0 and histogram(pixel_nums1, min=min_pix) gt 0, count2)
               endwhile
