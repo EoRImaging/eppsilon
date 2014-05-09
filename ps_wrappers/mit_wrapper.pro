@@ -181,10 +181,16 @@ pro mit_wrapper, folder_name, obs_range, n_obs=n_obs, rts = rts, refresh_dft = r
     if n_obs eq 1 then integrated = 0 else if obs_range[1] - obs_range[0] gt 0 then integrated = 1
     
     if n_elements(set_data_ranges) eq 0 then set_data_ranges = 1
-    if keyword_set(set_data_ranges) then begin
-      if keyword_set(integrated) then sigma_range = [2e0, 2e2] else sigma_range = [1e2, 2e4]
-      if keyword_set(integrated) then nev_range = [5e0, 2e3] else nev_range = [5e2, 2e5]
-      
+    if keyword_set(set_data_ranges) then begin     
+      if keyword_set(integrated) then begin
+        sigma_range = [2e0, 2e4]
+        nev_range = [5e2, 2e5]
+      endif else begin
+        sigma_range = [1e4, 2e6]
+        nev_range = [5e4, 2e7]
+      endelse
+
+
       data_range = [1e-2, 1e8]
       nnr_range = [1e-1, 1e1]
       snr_range = [1e-4, 1e6]
