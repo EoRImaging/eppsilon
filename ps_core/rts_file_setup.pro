@@ -13,7 +13,6 @@ function rts_file_setup, filename, pol_inc, save_path = save_path, refresh_info 
     
     restore, info_file
     
-    
     if n_elements(save_path) ne 0 then froot = save_path $
     else info_filebase = cgRootName(info_file, directory=froot)
     
@@ -87,12 +86,7 @@ function rts_file_setup, filename, pol_inc, save_path = save_path, refresh_info 
     ;      endfor
     ;      datafile = temp
     ;    endelse
-    
-    if nfiles eq 2 and keyword_set(noise_sim) then begin
-      datafile=datafile[0, *]
-      nfiles=1
-    endif
-    
+        
     if n_elements(savefilebase_in) gt 1 then message, 'only one savefilebase allowed'
     
     if nfiles eq 1 then infile_label = '' else begin
@@ -344,8 +338,6 @@ function rts_file_setup, filename, pol_inc, save_path = save_path, refresh_info 
   
   if keyword_set(std_power) then power_tag = '_stdp' else power_tag = ''
   power_tag = power_tag + sw_tag
-  
-  if keyword_set(dft_ian) then dft_label = '_ian' else dft_label = ''
   
   wt_file_label = '_weights_' + strlowcase(pol_inc)
   file_label = '_' + strlowcase(metadata_struct.type_pol_str)
