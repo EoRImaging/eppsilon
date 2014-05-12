@@ -201,7 +201,7 @@ pro hellebore_wrapper, folder_name, obs_range, rts = rts, version = version, ref
     plot_slices = plot_slices, slice_type = slice_type, uvf_plot_type = uvf_plot_type, $
     data_range = data_range, sigma_range = sigma_range, nev_range = nev_range, snr_range = snr_range, noise_range = noise_range, nnr_range = nnr_range, $
     baseline_axis = baseline_axis, delay_axis = delay_axis, hinv = hinv, $
-    plot_wedge_line = plot_wedge_line, plot_eor_1d = plot_eor_1d, grey_scale = grey_scale, $
+    plot_wedge_line = plot_wedge_line, plot_eor_1d = plot_eor_1d, $
     individual_plots = individual_plots, note = note, png = png, eps = eps, pdf = pdf
     
     
