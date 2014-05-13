@@ -1,4 +1,4 @@
-pro hellebore_wrapper, folder_name, obs_range, rts = rts, version = version, refresh_dft = refresh_dft, refresh_ps = refresh_ps, $
+pro hellebore_wrapper, folder_name, obs_range, rts = rts, casa = casa, version = version, refresh_dft = refresh_dft, refresh_ps = refresh_ps, $
     refresh_binning = refresh_binning, refresh_info = refresh_info, dft_ian = dft_ian, $
     pol_inc = pol_inc, sim = sim, freq_ch_range = freq_ch_range, freq_flag_name = freq_flag_name, $
     no_spec_window = no_spec_window, spec_window_type = spec_window_type, std_power = std_power, $
@@ -23,30 +23,36 @@ pro hellebore_wrapper, folder_name, obs_range, rts = rts, version = version, ref
     endelse
   endif
   
-  obs_info = hellebore_filenames(folder_name, obs_name, sim = sim, rts = rts)
-  
+  obs_info = hellebore_filenames(folder_name, obs_name, sim = sim, rts = rts, casa = casa)
+ 
   if keyword_set(rts) then begin
-    ;    froot = base_path('data') + 'rts_data/test2/'
-    ;
-    ;    data_dir = froot + 'BdaggerV/'
-    ;    datafiles = file_search(data_dir + '*.fits')
-    ;
-    ;    weights_dir = froot + 'Bdagger1/'
-    ;    weightfiles = file_search(weights_dir + '*.fits')
-    ;
-    ;    variance_dir = froot + 'BdaggerB/'
-    ;    variancefiles = file_search(variance_dir + '*.fits')
-    ;
-    ;    datafile =  rts_fits2idlcube(datafiles, weightfiles, variancefiles, pol_inc, save_path = froot)
-  
-    ;datafile = file_search(base_path('data') + 'rts_data/wellington_data2/*idlcube.idlsave')
-  
+    if keyword_set(casa) then message, 'rts and casa keywords cannot both be set'
+    
     if obs_info.info_files[0] ne '' then datafile = obs_info.info_files[0] $
-    else datafile = rts_fits2idlcube(obs_info.cube_files.(0), obs_info.weightfiles.(0), obs_info.variancefiles.(0), pol_inc, save_path = obs_info.folder_names[0])
+    else datafile = rts_fits2idlcube(obs_info.cube_files.(0), obs_info.weightfiles.(0), obs_info.variancefiles.(0), pol_inc, save_path = obs_info.folder_names[0]+path_sep())
     
     plot_filebase = obs_info.rts_types[0] + '_' + obs_info.obs_names[0]
     
     if n_elements(set_data_ranges) eq 0 then set_data_ranges = 1
+    if keyword_set(set_data_ranges) then begin
+      sigma_range = [1e15, 1e17]
+      nev_range = [1e16, 1e18]
+      
+      data_range = [1e6, 2e13]
+      nnr_range = [1e-8, 1e-6]
+      snr_range = [1e-10, 1e-2]
+      
+      noise_range = [1e9, 1e12]
+    endif
+    
+  endif else if keyword_set(casa) then begin
+  
+    if obs_info.info_files[0] ne '' then datafile = obs_info.info_files[0] $
+    else datafile = casa_fits2idlcube(obs_info.cube_files.(0), obs_info.weightfiles.(0), obs_info.variancefiles.(0), pol_inc, save_path = obs_info.folder_names[0]+path_sep())
+    
+    plot_filebase = obs_info.casa_types[0] ;+ '_' + obs_info.obs_names[0]
+    
+    if n_elements(set_data_ranges) eq 0 then set_data_ranges = 0
     if keyword_set(set_data_ranges) then begin
       sigma_range = [1e15, 1e17]
       nev_range = [1e16, 1e18]
@@ -191,7 +197,7 @@ pro hellebore_wrapper, folder_name, obs_range, rts = rts, version = version, ref
   
   
   fhd_data_plots, datafile, dft_fchunk=dft_fchunk, plot_path = plot_path, plot_filebase = plot_filebase, save_path = save_path, savefilebase = savefilebase, $
-    pol_inc = pol_inc, rts = rts, $
+    pol_inc = pol_inc, rts = rts, casa = casa, $
     refresh_dft = refresh_dft, refresh_ps = refresh_ps, refresh_binning = refresh_binning, refresh_info = refresh_info, $
     freq_ch_range = freq_ch_range, freq_flags = freq_flags, freq_flag_name = freq_flag_name, $
     no_spec_window = no_spec_window, spec_window_type = spec_window_type, std_power = std_power, $

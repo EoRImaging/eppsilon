@@ -1,4 +1,4 @@
-pro fhd_data_plots, datafile, rts = rts, pol_inc = pol_inc, image = image, $
+pro fhd_data_plots, datafile, rts = rts, casa = casa, pol_inc = pol_inc, image = image, $
     save_path = save_path, savefilebase = savefilebase, plot_path = plot_path, plot_filebase = plot_filebase, $
     note = note, png = png, eps = eps, pdf = pdf, $
     refresh_dft = refresh_dft, refresh_ps = refresh_ps, refresh_binning = refresh_binning, refresh_info = refresh_info, $
@@ -59,10 +59,17 @@ pro fhd_data_plots, datafile, rts = rts, pol_inc = pol_inc, image = image, $
   if n_elements(savefilebase) gt 1 then message, 'savefilebase must be a scalar'
   
   time0 = systime(1)
-  if keyword_set(rts) then file_struct_arr = rts_file_setup(datafile, pol_inc, savefilebase = savefilebase, save_path = save_path, $
-    spec_window_type = spec_window_type, refresh_info = refresh_info) else file_struct_arr = fhd_file_setup(datafile, pol_inc, image = image, dft_ian = dft_ian, $
-    savefilebase = savefilebase, save_path = save_path, freq_ch_range = freq_ch_range, freq_flags = freq_flags, freq_flag_name = freq_flag_name, $
-    spec_window_type = spec_window_type, sim = sim, std_power = std_power, refresh_info = refresh_info)
+  if keyword_set(rts) then begin
+    file_struct_arr = rts_file_setup(datafile, pol_inc, savefilebase = savefilebase, save_path = save_path, $
+      spec_window_type = spec_window_type, refresh_info = refresh_info)
+  endif else if keyword_set(casa) then begin
+    file_struct_arr = casa_file_setup(datafile, pol_inc, savefilebase = savefilebase, save_path = save_path, $
+      spec_window_type = spec_window_type, refresh_info = refresh_info)
+  endif else begin
+    file_struct_arr = fhd_file_setup(datafile, pol_inc, image = image, dft_ian = dft_ian, $
+      savefilebase = savefilebase, save_path = save_path, freq_ch_range = freq_ch_range, freq_flags = freq_flags, freq_flag_name = freq_flag_name, $
+      spec_window_type = spec_window_type, sim = sim, std_power = std_power, refresh_info = refresh_info)
+  endelse
   time1 = systime(1)
   print, 'file setup time: ' + number_formatter(time1-time0)
   
@@ -120,6 +127,8 @@ pro fhd_data_plots, datafile, rts = rts, pol_inc = pol_inc, image = image, $
   endif
   
   if tag_exist(file_struct_arr[0], 'nside') ne 0 then healpix = 1 else healpix = 0
+  
+  if tag_exist(file_struct_arr, 'uvf_savefile') then image = 1 else image = 0
   
   n_freq = n_elements(file_struct_arr[0].frequencies)
   if n_elements(freq_ch_range) ne 0 then if max(freq_ch_range) gt n_freq-1 then message, 'invalid freq_ch_range'
