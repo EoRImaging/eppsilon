@@ -1,14 +1,13 @@
-pro mit_ps_job, folder_name, obs_range, n_obs=n_obs, rts = rts, refresh_dft = refresh_dft, refresh_ps = refresh_ps, $
-    refresh_binning = refresh_binning, refresh_info = refresh_info, pol_inc = pol_inc, no_spec_window = no_spec_window, $
-    spec_window_type = spec_window_type, freq_ch_range = freq_ch_range, individual_plots = individual_plots, $
-    png = png, eps = eps, plot_slices = plot_slices, slice_type = slice_type, $
-    kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, set_data_ranges = set_data_ranges
+pro mit_ps_job
+  ;; scripted version of mit_wrapper to be called directly from shell
     
   compile_opt strictarr
   args = Command_Line_Args(count=nargs)
   folder_name=args[0]
   obs_range=args[1]
   if (nargs eq 3) then n_obs=args[2]
+  print,'folder_name   '+folder_name
+  print,'obs_range     '+obs_range
     
   ;; The only required input is the datafile name (including the full path)
     
@@ -90,7 +89,8 @@ pro mit_ps_job, folder_name, obs_range, n_obs=n_obs, rts = rts, refresh_dft = re
     endif else begin
       obs_name = ''
       obs_name_single = ''
-    endelse
+   endelse
+    print,'obs_name=   '+obs_name
     
     ;; first look for integrated info files with names like Combined_obs_...
     info_file = file_search(folder_name + '/ps/Combined_obs_' + obs_name + '*info*', count = n_infofile)
@@ -185,6 +185,7 @@ pro mit_ps_job, folder_name, obs_range, n_obs=n_obs, rts = rts, refresh_dft = re
     endif
     
     if n_elements(datafile) eq 0 then message, 'No cube or info files found in folder ' + folder_name
+    print,'datafile = '+datafile
     
     if nargs eq 3 then begin
        ; special case where nobs was passed in
