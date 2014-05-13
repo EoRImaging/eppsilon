@@ -177,7 +177,7 @@ function rts_file_setup, filename, pol_inc, save_path = save_path, refresh_info 
       
       for i=0, ncubes-1 do begin
         wh = where(strlowcase(varnames) eq strlowcase(data_varname[i]), count)
-        if count eq 0 then message, cube_varname[i] + ' is not present in datafile (datafile=' + datafile[j] + ')'
+        if count eq 0 then message, data_varname[i] + ' is not present in datafile (datafile=' + datafile[j] + ')'
         
         data_size = getvar_savefile(datafile[j], data_varname[i], /return_size)
         if data_size[0] gt 0 then this_data_dims = data_size[1:data_size[0]]
