@@ -267,7 +267,7 @@ pro fhd_data_plots, datafile, rts = rts, casa = casa, pol_inc = pol_inc, image =
     
     if slice_type ne 'kspace' then begin
       uvf_type_enum = ['abs', 'phase', 'real', 'imaginary']
-      if n_elements(uvf_plot_type) eq 0 then type = 'abs'
+      if n_elements(uvf_plot_type) eq 0 then uvf_plot_type = 'abs'
       wh = where(uvf_type_enum eq uvf_plot_type, count_uvf_type)
       if count_uvf_type eq 0 then message, 'unknown uvf_plot_type. Use one of: ' + print, strjoin(uvf_type_enum, ', ')
     endif
