@@ -290,6 +290,11 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
           endif else begin
             ;; gridded image to dft to parallel Healpix computation
             pix_size_rad = abs(file_struct.degpix) * !pi / 180d
+            
+            data_size = getvar_savefile(file_struct.datafile[i], file_struct.datavar, /return_size)
+            
+            dims = data_size[1:data_size(0)]
+            
             x_vec = (findgen(dims[0]) - dims[0]/2.) * pix_size_rad
             y_vec = (findgen(dims[1]) - dims[1]/2.) * pix_size_rad
             
@@ -297,6 +302,7 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
             y_rot = fltarr(dims[0]*dims[1])
             x_rot = reform(rebin(x_vec, dims[0], dims[1], /sample), dims[0]*dims[1])
             y_rot = reform(rebin(reform(y_vec, 1, dims[1]), dims[0], dims[1], /sample), dims[0]*dims[1])
+
           endelse
           
           ;; figure out k values to calculate dft
@@ -316,29 +322,33 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
               
               ;; image may be smaller than expected, may need to adjust delta_kperp_rad
               
-              ;; get surrounding pixels
-              dists = sqrt((pix_center_vec[*,0]-vec_mid[0])^2d + (pix_center_vec[*,1]-vec_mid[1])^2d + (pix_center_vec[*,2]-vec_mid[2])^2d)
-              radius = max(dists)*1.1
-              query_disc, file_struct.nside, vec_mid, radius, listpix, nlist, /inc
-              min_pix = min([pixel_nums1, listpix])
-              wh2 = where(histogram(listpix, min=min_pix) eq 0 and histogram(pixel_nums1, min=min_pix) gt 0, count2)
-              while count2 gt 0 do begin
-                radius = radius*1.1
-                query_disc, nside, vec_mid, radius, listpix, nlist, /inc
+              if healpix then begin
+                ;; get surrounding pixels
+                dists = sqrt((pix_center_vec[*,0]-vec_mid[0])^2d + (pix_center_vec[*,1]-vec_mid[1])^2d + (pix_center_vec[*,2]-vec_mid[2])^2d)
+                radius = max(dists)*1.1
+                query_disc, file_struct.nside, vec_mid, radius, listpix, nlist, /inc
                 min_pix = min([pixel_nums1, listpix])
                 wh2 = where(histogram(listpix, min=min_pix) eq 0 and histogram(pixel_nums1, min=min_pix) gt 0, count2)
-              endwhile
-              
-              ;; remove pixels from listpix that are in my image -- only want nearby pixels not in my image
-              min_pix = min([pixel_nums1, listpix])
-              max_pix = max([pixel_nums1, listpix])
-              wh = where(histogram(listpix, min = min_pix, max = max_pix) gt 0 and histogram(pixel_nums1, min = min_pix, max = max_pix) eq 0, count_out)
-              if count_out gt 0 then outside_pix = wh + min_pix else stop
-              pix2vec_ring, file_struct.nside, outside_pix, out_center_vec
-              new_out_vec = rot_matrix ## out_center_vec
-              x_out_rot = new_out_vec[*,0] * cos(pred_angle) - new_out_vec[*,1] * sin(pred_angle)
-              y_out_rot = new_out_vec[*,0] * sin(pred_angle) + new_out_vec[*,1] * cos(pred_angle)
-              limits = healpix_limits(x_rot, y_rot, x_out_rot, y_out_rot)
+                while count2 gt 0 do begin
+                  radius = radius*1.1
+                  query_disc, nside, vec_mid, radius, listpix, nlist, /inc
+                  min_pix = min([pixel_nums1, listpix])
+                  wh2 = where(histogram(listpix, min=min_pix) eq 0 and histogram(pixel_nums1, min=min_pix) gt 0, count2)
+                endwhile
+                
+                ;; remove pixels from listpix that are in my image -- only want nearby pixels not in my image
+                min_pix = min([pixel_nums1, listpix])
+                max_pix = max([pixel_nums1, listpix])
+                wh = where(histogram(listpix, min = min_pix, max = max_pix) gt 0 and histogram(pixel_nums1, min = min_pix, max = max_pix) eq 0, count_out)
+                if count_out gt 0 then outside_pix = wh + min_pix else stop
+                pix2vec_ring, file_struct.nside, outside_pix, out_center_vec
+                new_out_vec = rot_matrix ## out_center_vec
+                x_out_rot = new_out_vec[*,0] * cos(pred_angle) - new_out_vec[*,1] * sin(pred_angle)
+                y_out_rot = new_out_vec[*,0] * sin(pred_angle) + new_out_vec[*,1] * cos(pred_angle)
+                limits = healpix_limits(x_rot, y_rot, x_out_rot, y_out_rot)
+              endif else begin
+                limits = [min(x_vec), min(y_vec), max(x_vec), max(y_vec)]
+              endelse
               
               image_len = min([limits[2]-limits[0],limits[3]-limits[1]])
               if image_len lt xy_len then begin
@@ -378,29 +388,33 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
               
               ;; image may be smaller than expected, may need to adjust delta_kperp_rad
               
-              ;; get surrounding pixels
-              dists = sqrt((pix_center_vec[*,0]-vec_mid[0])^2d + (pix_center_vec[*,1]-vec_mid[1])^2d + (pix_center_vec[*,2]-vec_mid[2])^2d)
-              radius = max(dists)*1.1
-              query_disc, file_struct.nside, vec_mid, radius, listpix, nlist, /inc
-              min_pix = min([pixel_nums1, listpix])
-              wh2 = where(histogram(listpix, min=min_pix) eq 0 and histogram(pixel_nums1, min=min_pix) gt 0, count2)
-              while count2 gt 0 do begin
-                radius = radius*1.1
+              if healpix then begin
+                ;; get surrounding pixels
+                dists = sqrt((pix_center_vec[*,0]-vec_mid[0])^2d + (pix_center_vec[*,1]-vec_mid[1])^2d + (pix_center_vec[*,2]-vec_mid[2])^2d)
+                radius = max(dists)*1.1
                 query_disc, file_struct.nside, vec_mid, radius, listpix, nlist, /inc
                 min_pix = min([pixel_nums1, listpix])
                 wh2 = where(histogram(listpix, min=min_pix) eq 0 and histogram(pixel_nums1, min=min_pix) gt 0, count2)
-              endwhile
-              
-              ;; remove pixels from listpix that are in my image -- only want nearby pixels not in my image
-              min_pix = min([pixel_nums1, listpix])
-              max_pix = max([pixel_nums1, listpix])
-              wh = where(histogram(listpix, min = min_pix, max = max_pix) gt 0 and histogram(pixel_nums1, min = min_pix, max = max_pix) eq 0, count_out)
-              if count_out gt 0 then outside_pix = wh + min_pix else stop
-              pix2vec_ring, file_struct.nside, outside_pix, out_center_vec
-              new_out_vec = rot_matrix ## out_center_vec
-              x_out_rot = new_out_vec[*,0] * cos(pred_angle) - new_out_vec[*,1] * sin(pred_angle)
-              y_out_rot = new_out_vec[*,0] * sin(pred_angle) + new_out_vec[*,1] * cos(pred_angle)
-              limits = healpix_limits(x_rot, y_rot, x_out_rot, y_out_rot)
+                while count2 gt 0 do begin
+                  radius = radius*1.1
+                  query_disc, file_struct.nside, vec_mid, radius, listpix, nlist, /inc
+                  min_pix = min([pixel_nums1, listpix])
+                  wh2 = where(histogram(listpix, min=min_pix) eq 0 and histogram(pixel_nums1, min=min_pix) gt 0, count2)
+                endwhile
+                
+                ;; remove pixels from listpix that are in my image -- only want nearby pixels not in my image
+                min_pix = min([pixel_nums1, listpix])
+                max_pix = max([pixel_nums1, listpix])
+                wh = where(histogram(listpix, min = min_pix, max = max_pix) gt 0 and histogram(pixel_nums1, min = min_pix, max = max_pix) eq 0, count_out)
+                if count_out gt 0 then outside_pix = wh + min_pix else stop
+                pix2vec_ring, file_struct.nside, outside_pix, out_center_vec
+                new_out_vec = rot_matrix ## out_center_vec
+                x_out_rot = new_out_vec[*,0] * cos(pred_angle) - new_out_vec[*,1] * sin(pred_angle)
+                y_out_rot = new_out_vec[*,0] * sin(pred_angle) + new_out_vec[*,1] * cos(pred_angle)
+                limits = healpix_limits(x_rot, y_rot, x_out_rot, y_out_rot)
+              endif else begin
+                limits = [min(x_vec), min(y_vec), max(x_vec), max(y_vec)]
+              endelse
               
               image_len = min([limits[2]-limits[0],limits[3]-limits[1]])
               if image_len lt xy_len then begin

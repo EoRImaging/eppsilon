@@ -1,9 +1,10 @@
-function rts_file_setup, filename, pol_inc, save_path = save_path, refresh_info = refresh_info, $
+function casa_file_setup, filename, pol_inc, save_path = save_path, refresh_info = refresh_info, $
     weight_savefilebase = weight_savefilebase_in, variance_savefilebase = variance_savefilebase_in, $
     uvf_savefilebase = uvf_savefilebase_in, savefilebase = savefilebase_in, $
     spec_window_type = spec_window_type
     
   if n_elements(pol_inc) ne 0 then pol_inc_in = pol_inc
+  
   
   ;; check to see if filename is an info file
   wh_info = strpos(filename, '_info.idlsave')
@@ -60,33 +61,14 @@ function rts_file_setup, filename, pol_inc, save_path = save_path, refresh_info 
     
     
     nfiles = n_elements(datafile)
-    ;; look for polarization labels in the filename
-    ;    pol_pos = stregex(datafile, '[x-y][x-y]')
-    ;    if min(pol_pos) eq -1 then begin
+    
     if nfiles gt 2 then message, 'Only 1 or 2 datafiles supported'
     if nfiles eq 2 then if datafile[0] eq datafile[1] then begin
       print, 'datafiles are identical'
       datafile = datafile[0]
       nfiles = 1
     endif
-    ;      temp = strarr(nfiles, npol)
-    ;      for i = 0, nfiles-1 do temp[i,*] = datafile[i]
-    ;    endif else begin
-    ;      if nfiles ne 2*npol and nfiles ne npol then message, 'Only 1 or 2 datafiles per polarization supported'
-    ;      if nfiles eq npol then nfiles = 1 else nfiles = 2
-    ;      temp = strarr(nfiles, npol)
-    ;      for i=0, npol do begin
-    ;        this_pol = where(strpos(datafile, pol_inc[i]) ne -1, count)
-    ;        if count ne nfiles then message, 'Expected ' + numberformatter(nfiles) + ' for ' + pol_inc[i] + ' polarization, only found ' + count
-    ;        temp[*, i] = datafile[this_pol]
-    ;      endfor
-    ;      for i=0, nfiles*npol do begin
-    ;        wh_duplicate = where(temp eq temp[i], count_duplicate)
-    ;        if count_duplicate gt 0 then message, 'multiple identical datafiles indentified.'
-    ;      endfor
-    ;      datafile = temp
-    ;    endelse
-        
+    
     if n_elements(savefilebase_in) gt 1 then message, 'only one savefilebase allowed'
     
     if nfiles eq 1 then infile_label = '' else begin
@@ -165,7 +147,6 @@ function rts_file_setup, filename, pol_inc, save_path = save_path, refresh_info 
     data_varname = pol_inc + '_data'
     weight_varname = pol_inc + '_weights'
     variance_varname = pol_inc + '_variances'
-    pixel_varname = strarr(nfiles) + 'pixel_nums'
     
     if n_elements(weight_savefilebase_in) gt 0 and n_elements(weight_savefilebase_in) ne nfiles then $
       message, 'if weight_savefilebase is specified it must have the same number of elements as datafiles'
@@ -207,81 +188,39 @@ function rts_file_setup, filename, pol_inc, save_path = save_path, refresh_info 
         endelse
       endfor
       
-      
-      wh = where(strlowcase(varnames) eq strlowcase(pixel_varname[j]), count)
-      
-      if count eq 0 then message, pixel_varname[j] + ' is not present in datafile (datafile=' + datafile[j] + ')'
-      
-      pix_size = getvar_savefile(datafile[j], pixel_varname[j], /return_size)
-      if pix_size[0] gt 0 then pix_dims = pix_size[1:pix_size[0]]
-      if total(abs(pix_dims - data_dims[0])) ne 0 then message, 'Number of Healpix pixels does not match data dimension'
-      
       if j eq 0 then frequencies = getvar_savefile(datafile[j], 'frequencies') else $
         if total(abs(frequencies-getvar_savefile(datafile[j], 'frequencies'))) ne 0 then $
         message, 'frequencies do not match between datafiles'
-      if j eq 0 then nside = getvar_savefile(datafile[j], 'nside') else if nside ne getvar_savefile(datafile[j], 'nside') then $
-        message, 'nside does not match between datafiles'
-      if j eq 0 then time_resolution = getvar_savefile(datafile[j], 'time_resolution') else $
-        if time_resolution ne getvar_savefile(datafile[j], 'time_resolution') then $
-        message, 'time_resolution does not match between datafiles'
         
-      if j eq 0 then n_vis = fltarr(nfiles)
-      n_vis[j] = total(getvar_savefile(datafile[j], 'n_vis_arr'))
-      
-      if j eq 0 then kpix_arr = getvar_savefile(datafile[j], 'kpix_arr') else $
-        if total(abs(kpix_arr- getvar_savefile(datafile[j], 'kpix_arr'))) ne 0 then $
-        message, 'kpix_arr does not match between datafiles'
-      if j eq 0 then kspan_arr = getvar_savefile(datafile[j], 'kspan_arr') else $
-        if total(abs(kspan_arr - getvar_savefile(datafile[j], 'kspan_arr'))) ne 0 then $
-        message, 'kspan_arr does not match between datafiles'
-      if j eq 0 then time_integration = getvar_savefile(datafile[j], 'time_integration') else $
-        if time_integration ne getvar_savefile(datafile[j], 'time_integration') then $
-        message, 'time_integration does not match between datafiles'
-      if j eq 0 then max_baseline = getvar_savefile(datafile[j], 'max_baseline') else $
-        if max_baseline ne getvar_savefile(datafile[j], 'max_baseline') then $
-        message, 'max_baseline does not match between datafiles'
-        
-      if j eq 0 then obs_ra = getvar_savefile(datafile[j], 'obs_ra') else if obs_ra ne getvar_savefile(datafile[j], 'obs_ra') then $
-        message, 'obs_ra does not match between datafiles'
-      if j eq 0 then obs_dec = getvar_savefile(datafile[j], 'obs_dec') else if obs_dec ne getvar_savefile(datafile[j], 'obs_dec') then $
-        message, 'obs_dec does not match between datafiles'
-      if j eq 0 then zen_ra = getvar_savefile(datafile[j], 'zen_ra') else if zen_ra ne getvar_savefile(datafile[j], 'zen_ra') then $
-        message, 'zen_ra does not match between datafiles'
-      if j eq 0 then zen_dec = getvar_savefile(datafile[j], 'zen_dec') else if zen_dec ne getvar_savefile(datafile[j], 'zen_dec') then $
-        message, 'zen_dec does not match between datafiles'
-        
-      if j eq 0 then pixels = getvar_savefile(datafile[j], pixel_varname[j]) else begin
-        if total(abs(pixels - getvar_savefile(datafile[j], pixel_varname[j]))) ne 0 then $
-          message, 'pixel nums do not match between datafiles, using common set.'
-      endelse
+      if j eq 0 then ra_vals = getvar_savefile(datafile[j], 'ra_vals') else $
+        if total(abs(ra_vals-getvar_savefile(datafile[j], 'ra_vals'))) ne 0 then $
+        message, 'ra_vals do not match between datafiles'
+
+       if j eq 0 then dec_vals = getvar_savefile(datafile[j], 'dec_vals') else $
+        if total(abs(dec_vals-getvar_savefile(datafile[j], 'dec_vals'))) ne 0 then $
+        message, 'dec_vals do not match between datafiles'
     endfor
-    
-    if max(kspan_arr) - min(kspan_arr) ne 0 then begin
-      print, 'kspan varies with frequency, using mean'
-      kspan = mean(kspan_arr)
-    endif
-    
-    if max(kpix_arr) - min(kpix_arr) ne 0 then begin
-      print, 'kpix varies with frequency, using mean'
-      kpix = mean(kpix_arr)
-    endif
     
     ;; convert to MHz if in Hz
     if mean(frequencies) gt 1000. then frequencies = frequencies/1e6
     
     n_freq = n_elements(frequencies)
-    npix = n_elements(temporary(pixels))
-    max_baseline_lambda = max_baseline * max(frequencies*1e6) / (3e8)
     
     ;; made up for now
-    freq_resolution = 8e3;; native resolution of visibilities in Hz
-    time_resolution = 0.5;; native resolution of visibilities in s
+    freq_resolution = (frequencies[1]-frequencies[0])*1e6;; native resolution of visibilities in Hz
+    time_resolution = 2.;; native resolution of visibilities in s
+    n_vis = 1e9 + fltarr(nfiles)
     
     ;; pointing offset from zenith (for calculating horizon distance for wedge line)
-    max_theta = angle_difference(obs_dec, obs_ra, zen_dec, zen_ra, /degree)
+    max_theta = 0.
     
     ;; degpix
-    degpix = (2.*!pi/(kspan*2.))*(180./!pi)
+    degpix = mean(abs([ra_vals[1]-ra_vals[0], dec_vals[1]-dec_vals[0]]))
+    
+    ;; making up based on image size/resolution
+    kspan = 1/(degpix * !pi/180.)
+    kpix = kspan/mean([n_elements(ra_vals), n_elements(dec_vals)])
+    max_baseline_lambda = kspan
     
     metadata_struct = {datafile:datafile, weightfile: datafile, variancefile:datafile, $
       cube_varname:data_varname, weight_varname:weight_varname, variance_varname:variance_varname, $
@@ -289,8 +228,6 @@ function rts_file_setup, filename, pol_inc, save_path = save_path, refresh_info 
       n_vis:n_vis, max_baseline_lambda:max_baseline_lambda, max_theta:max_theta, degpix:degpix, kpix:kpix, kspan:kspan, $
       general_filebase:general_filebase, type_pol_str:type_pol_str, infile_label:infile_label, ntypes:ntypes}
       
-    metadata_struct = create_struct(metadata_struct, 'pixelfile', datafile, 'pixel_varname', pixel_varname, 'nside', nside)
-    
     if no_var then metadata_struct = create_struct(metadata_struct, 'no_var', 1)
     
     if n_elements(vis_noise) gt 0 then metadata_struct = create_struct(metadata_struct, 'vis_noise', vis_noise)
@@ -301,7 +238,6 @@ function rts_file_setup, filename, pol_inc, save_path = save_path, refresh_info 
   npol = n_elements(pol_inc)
   nfiles = n_elements(metadata_struct.datafile)
   ncubes = npol * metadata_struct.ntypes
-  if tag_exist(metadata_struct, 'nside') then healpix = 1 else healpix = 0
   if tag_exist(metadata_struct, 'no_var') then no_var = 1 else no_var = 0
   
   type_list = ['Hann', 'Hamming', 'Blackman', 'Nutall', 'Blackman-Nutall', 'Blackman-Harris']
@@ -474,11 +410,8 @@ function rts_file_setup, filename, pol_inc, save_path = save_path, refresh_info 
       file_label:file_label[i], uvf_label:uvf_label[*,i], wt_file_label:wt_file_label[pol_index], $
       fch_tag:fch_tag, power_tag:power_tag, type_pol_str:metadata_struct.type_pol_str[i]}
       
-    if healpix or keyword_set(image) then file_struct = create_struct(file_struct, 'uvf_savefile', uvf_savefile[*,i], $
+    file_struct = create_struct(file_struct, 'uvf_savefile', uvf_savefile[*,i], $
       'uvf_weight_savefile', uvf_weight_savefile[*, pol_index])
-      
-    if healpix then file_struct = create_struct(file_struct, 'pixelfile', metadata_struct.pixelfile, 'pixelvar', $
-      metadata_struct.pixel_varname, 'nside', metadata_struct.nside)
       
     if no_var then file_struct = create_struct(file_struct, 'no_var', 1)
     
