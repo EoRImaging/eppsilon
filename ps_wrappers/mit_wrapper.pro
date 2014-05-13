@@ -69,6 +69,7 @@ pro mit_wrapper, folder_name, obs_range, n_obs=n_obs, rts = rts, refresh_dft = r
         if n_elements(obs_range) gt 1 then $
           message, 'obs_range can be specified as a single string to use as the name or as a 2 element obsid range'
         obs_name = obs_range
+        obs_name_single = obs_name
         if n_elements(n_obs) eq 0 then begin
           obs_range = long(strsplit(obs_name, '-', /extract))
           n_obs = (obs_range[1]-obs_range[0])/120. + 1
