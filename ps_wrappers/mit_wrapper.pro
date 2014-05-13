@@ -271,7 +271,7 @@ pro mit_wrapper, folder_name, obs_range, n_obs=n_obs, rts = rts, refresh_dft = r
     k1d_bin = k1d_bin, kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, $
     data_range = data_range, sigma_range = sigma_range, nev_range = nev_range, snr_range = snr_range, noise_range = noise_range, nnr_range = nnr_range, $
     baseline_axis = baseline_axis, delay_axis = delay_axis, hinv = hinv, $
-    plot_wedge_line = plot_wedge_line, grey_scale = grey_scale, individual_plots = individual_plot, png = png, eps = eps
+    plot_wedge_line = plot_wedge_line, individual_plots = individual_plot, png = png, eps = eps
     
   if not keyword_set(set_data_ranges) then begin
     print, 'data_range used: ', number_formatter(data_range, format = '(e7.1)')
