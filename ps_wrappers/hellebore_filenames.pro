@@ -1,4 +1,4 @@
-function hellebore_filenames, folder_names, obs_names_in, rts = rts, sim = sim
+function hellebore_filenames, folder_names, obs_names_in, rts = rts, sim = sim, casa = casa
 
   n_filesets = max([n_elements(folder_names), n_elements(obs_names_in)])
   
@@ -13,6 +13,9 @@ function hellebore_filenames, folder_names, obs_names_in, rts = rts, sim = sim
   if keyword_set(rts) then begin
     std_savepath = base_path('data') + 'rts_data/'
     std_plotpath = base_path('plots') + 'power_spectrum/rts_data/'
+  endif else if keyword_set(casa) then begin
+    std_savepath = base_path('data') + 'mit_data/'
+    std_plotpath = base_path('plots') + 'power_spectrum/mit_data/'
   endif else if keyword_set(sim) then begin
     std_savepath = base_path('data') + 'fhd_sim_data/'
     std_plotpath = base_path('plots') + 'power_spectrum/fhd_sim/'
@@ -26,9 +29,10 @@ function hellebore_filenames, folder_names, obs_names_in, rts = rts, sim = sim
     rts_types = strarr(n_filesets)
     info_files = strarr(n_filesets)
     ;integrated = intarr(n_filesets)
+    plot_paths = strarr(n_filesets)
     
     for i=0, n_filesets-1 do begin
-      ;; check for folder existence, otherwise look for common folder names to figure out full path. If none found, try base_path('data') + 'fhd_ps_data/128T_cubes/'
+      ;; check for folder existence, otherwise look for common folder names to figure out full path. If none found, try base_path('data') + 'rts_data/'
       folder_test = file_test(folder_names[i], /directory)
       if folder_test eq 0 then begin
         pos_rts_data = strpos(folder_names[i], 'rts_data')
@@ -103,7 +107,7 @@ function hellebore_filenames, folder_names, obs_names_in, rts = rts, sim = sim
       variancefile_list = file_search(folder_names[i] + '/' + obs_names[i] + '*_weights*.fits', count = n_varfiles)
       if n_varfiles ne n_elements(datafiles) and info_files[i] eq '' then message, 'number of variance files does not match number of datafiles'
       
-      if n_elements(datafile) eq 0 and info_files[i] eq '' then message, 'No cube or info files found in folder ' + folder_name
+      if n_elements(datafiles) eq 0 and info_files[i] eq '' then message, 'No cube or info files found in folder ' + folder_name
       
       if n_elements(datafiles) eq 0 then begin
         datafiles = ''
@@ -122,12 +126,121 @@ function hellebore_filenames, folder_names, obs_names_in, rts = rts, sim = sim
         weightfiles = create_struct(weightfiles, tag, weightfile_list)
         variancefiles = create_struct(variancefiles, tag, variancefile_list)
       endelse
-      undefine, datafile, weightfile_list, variancefile_list
+      undefine, datafiles, weightfile_list, variancefile_list
       
     endfor
     
     obs_info = {folder_names:folder_names, obs_names:obs_names, info_files:info_files, cube_files:cube_files, $
-      weightfiles:weightfiles, variancefiles:variancefiles, rts_types:rts_types}
+      weightfiles:weightfiles, variancefiles:variancefiles, rts_types:rts_types, plot_paths:plot_paths}
+      
+  endif else if keyword_set(casa) then begin
+    obs_names = strarr(n_filesets)
+    casa_types = strarr(n_filesets)
+    info_files = strarr(n_filesets)
+    ;integrated = intarr(n_filesets)
+    plot_paths = strarr(n_filesets)
+    
+    for i=0, n_filesets-1 do begin
+      ;; check for folder existence, otherwise look for common folder names to figure out full path. If none found, try base_path('data') + 'mit_data/'
+      folder_test = file_test(folder_names[i], /directory)
+      if folder_test eq 0 then begin
+        pos_rts_data = strpos(folder_names[i], 'mit_data')
+        if pos_rts_data gt -1 then begin
+          test_name = base_path('data') + strmid(folder_names[i], pos_rts_data)
+          folder_test = file_test(test_name, /directory)
+          if folder_test eq 1 then folder_names[i] = test_name
+        endif
+      endif
+      if folder_test eq 0 then begin
+        test_name = base_path('data') + 'mit_data/' + folder_names[i]
+        folder_test = file_test(test_name, /directory)
+        if folder_test eq 1 then folder_names[i] = test_name
+      endif
+      
+      if folder_test eq 0 then message, 'folder not found'
+      
+      casa_types[i] = file_basename(folder_names[i])
+      
+      pos = strpos(folder_names[i], std_savepath)
+      if pos ne -1 then save_path_ext = strmid(folder_names[i], pos + strlen(std_savepath)) $
+      else save_path_ext = ''
+      plot_paths[i] = std_plotpath + save_path_ext + path_sep()
+      
+      if n_elements(obs_names_in) gt 0 then begin
+        if size(obs_names_in,/type) eq 7 then begin
+          obs_names[i] = obs_names_in[i]
+          obs_name_single = obs_names[i]
+        endif else begin
+          obs_names[i] = number_formatter(obs_names_in[i])
+          obs_name_single = obs_names[i]
+        endelse
+      endif else begin
+        obs_names[i] = ''
+        obs_name_single = ''
+      endelse
+      
+      ;; first look for info files
+      info_file = file_search(folder_names[i] + '/' + obs_names[i] + '*info*', count = n_infofile)
+      if n_infofile gt 0 then begin
+        if obs_names[i] eq '' then begin
+          if n_infofile gt 1 then print, 'More than 1 info files found, using first one'
+          info_files[i] = info_file[0]
+        ;obs_names[i] = stregex(info_files[i], '[0-9]+.[0-9]+_', /extract)
+        endif else begin
+          if n_infofile gt 1 then message, 'More than one info file found with given obs_range'
+          info_files[i] = info_file[0]
+        endelse
+        
+      endif
+      
+      ;; then look for cube files
+      cube_file_list = file_search(folder_names[i] + '/' + obs_names[i] + '*_holo_[xy]*.fits', count = n_cubefiles)
+      if n_cubefiles gt 0 then begin
+        ;        if obs_names[i] eq '' then begin
+        ;          obs_name_arr = stregex(cube_file_list, '[0-9]+.[0-9]+_', /extract)
+        ;          wh_first = where(obs_name_arr eq obs_name_arr[0], count_first)
+        ;          if count_first lt n_cubefiles then $
+        ;            print, 'More than one obs_range found, using first range (' + obs_name_arr[0] + ', ' + number_formatter(count_first) + ' files)'
+        ;          datafiles = cube_file_list[wh_first]
+        ;          obs_names[i] = obs_name_arr[0]
+        ;        endif else begin
+        datafiles = cube_file_list
+      ;        endelse
+        
+      endif
+      
+      ;; now get weights & variance files
+      weightfile_list = file_search(folder_names[i] + '/' + obs_names[i] + '*_psf*.fits', count = n_wtfiles)
+      if n_wtfiles ne n_elements(datafiles) and info_files[i] eq '' then message, 'number of weight files does not match number of datafiles'
+      
+      variancefile_list = file_search(folder_names[i] + '/' + obs_names[i] + '*_beamsquaresum*.fits', count = n_varfiles)
+      if n_varfiles ne n_elements(datafiles) and info_files[i] eq '' then message, 'number of variance files does not match number of datafiles'
+      
+      if n_elements(datafiles) eq 0 and info_files[i] eq '' then message, 'No cube or info files found in folder ' + folder_names[i]
+      
+      if n_elements(datafiles) eq 0 then begin
+        datafiles = ''
+        weightfile_list = ''
+        variancefile_list = ''
+      endif
+      
+      if i eq 0 then begin
+        tag = 'fs' + number_formatter(i)
+        cube_files = create_struct(tag, datafiles)
+        weightfiles = create_struct(tag, weightfile_list)
+        variancefiles = create_struct(tag, variancefile_list)
+      endif else begin
+        tag = 'fs' + number_formatter(i)
+        cube_files = create_struct(cube_files, tag, datafiles)
+        weightfiles = create_struct(weightfiles, tag, weightfile_list)
+        variancefiles = create_struct(variancefiles, tag, variancefile_list)
+      endelse
+      undefine, datafiles, weightfile_list, variancefile_list
+      
+    endfor
+    
+    obs_info = {folder_names:folder_names, obs_names:obs_names, info_files:info_files, cube_files:cube_files, $
+      weightfiles:weightfiles, variancefiles:variancefiles, casa_types:casa_types, plot_paths:plot_paths}
       
   endif else begin
     obs_names = strarr(n_filesets)

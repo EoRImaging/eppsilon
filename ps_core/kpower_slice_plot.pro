@@ -177,7 +177,7 @@ pro kpower_slice_plot, slice_savefile, multi_pos = multi_pos, start_multi_params
   annotate_color = 'black'
   
   log_color_calc, power_plot, power_log_norm, cb_ticks, cb_ticknames, color_range, n_colors, data_range = data_range, $
-    color_profile = color_profile, log_cut_val = log_cut_val, grey_scale = grey_scale, oob_low = oob_low
+    color_profile = color_profile, log_cut_val = log_cut_val, oob_low = oob_low
     
   if keyword_set(all_zero) then power_log_norm = power_log_norm * 0 + annotate_color
   

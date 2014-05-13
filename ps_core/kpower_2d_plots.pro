@@ -71,7 +71,7 @@
 ;;   margin: 4 element vector of margin sizes (x0, y0, x1, y1) in normal coordinates
 ;;   cb_margin: 2 element vector of margins on left & right of color bar in normal coordinates
 
-pro kpower_2d_plots, power_savefile, power = power, noise = noise, weights = weights, noise_expval = noise_expval, $
+pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, weights = weights, noise_expval = noise_expval, $
     kperp_edges = kperp_edges, kpar_edges = kpar_edges, kperp_bin = kperp_bin, kpar_bin = kpar_bin, $
     kperp_lambda_conv = kperp_lambda_conv, delay_params = delay_params, hubble_param = hubble_param, $
     multi_pos = multi_pos, start_multi_params = start_multi_params, window_num = window_num, $
