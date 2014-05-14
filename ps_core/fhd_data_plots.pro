@@ -80,7 +80,8 @@ pro fhd_data_plots, datafile, rts = rts, casa = casa, pol_inc = pol_inc, image =
     
   if tag_exist(file_struct_arr, 'n_obs') then begin
     print, 'n_obs: ', file_struct_arr[0].n_obs
-    note = note + ' (' + number_formatter(round(mean(file_struct_arr[0].n_obs))) + ')'
+    if n_elements(note) eq 0 then note = '(' + number_formatter(round(mean(file_struct_arr[0].n_obs))) + ')' $
+    else note = note + ' (' + number_formatter(round(mean(file_struct_arr[0].n_obs))) + ')'
   endif
   
   npol = n_elements(pol_inc)
