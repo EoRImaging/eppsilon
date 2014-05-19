@@ -3,7 +3,7 @@ pro mit_wrapper, folder_name, obs_range, n_obs=n_obs, rts = rts, refresh_dft = r
     spec_window_type = spec_window_type, sim = sim, freq_ch_range = freq_ch_range, individual_plots = individual_plots, $
     png = png, eps = eps, plot_slices = plot_slices, slice_type = slice_type, $
     kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, set_data_ranges = set_data_ranges
-    
+
   ;; The only required input is the datafile name (including the full path)
     
   if keyword_set(rts) then begin
@@ -126,6 +126,8 @@ pro mit_wrapper, folder_name, obs_range, n_obs=n_obs, rts = rts, refresh_dft = r
     if n_infofile eq 0 then begin
       ;; first look for integrated cube files with names like Combined_obs_...
       cube_files = file_search(folder_name + '/Healpix/Combined_obs_' + obs_name + '*_cube.sav', count = n_cubefiles)
+      cube_files = cube_files[where(strmatch(cube_files,'*'+obs_name+'_[eo][vd]*_cube.sav',/fold_case) eq 1)] ; get rid of ambiguous files
+      n_cubefiles=n_elements(cube_files)
       if n_cubefiles gt 0 then begin
         if obs_name eq '' then begin
           obs_name_arr = stregex(cube_files, '[0-9]+-[0-9]+', /extract)
@@ -178,9 +180,12 @@ pro mit_wrapper, folder_name, obs_range, n_obs=n_obs, rts = rts, refresh_dft = r
     endif
     
     if n_elements(datafile) eq 0 then message, 'No cube or info files found in folder ' + folder_name
+    print,'datafile = '+datafile
     
-    if n_obs eq 1 then integrated = 0 else if obs_range[1] - obs_range[0] gt 0 then integrated = 1
-    
+    if n_obs gt 1 then integrated = 1 $
+    else if n_obs eq 1 then integrated = 0 $
+    else if obs_range[1] - obs_range[0] gt 0 then integrated = 1
+
     if n_elements(set_data_ranges) eq 0 then set_data_ranges = 1
     if keyword_set(set_data_ranges) then begin     
       if keyword_set(integrated) then begin
