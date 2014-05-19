@@ -125,7 +125,7 @@ function casa_file_setup, filename, pol_inc, save_path = save_path, refresh_info
         match2, pol_inc, info_pol_inc, suba, subb
         if min([suba, subb]) ge 0 then begin
           ;; looks good, restore & check for directory structure changes
-          file_struct_arr = fhd_file_setup(info_file, save_path = save_path, weight_savefilebase = weight_savefilebase_in, $
+          file_struct_arr = casa_file_setup(info_file, save_path = save_path, weight_savefilebase = weight_savefilebase_in, $
             uvf_savefilebase = uvf_savefilebase_in, savefilebase = savefilebase_in)
             
           return, file_struct_arr
