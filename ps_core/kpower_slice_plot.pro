@@ -1,19 +1,20 @@
 
 
 pro kpower_slice_plot, slice_savefile, multi_pos = multi_pos, start_multi_params = start_multi_params, plot_xrange = plot_xrange, $
-    plot_yrange = plot_yrange, data_range = data_range, png = png, eps = eps, plotfile = plotfile, $
+    plot_yrange = plot_yrange, data_range = data_range, png = png, eps = eps, pdf = pdf, plotfile = plotfile, $
     color_profile = color_profile, log_cut_val = log_cut_val, window_num = window_num, title = title, title_prefix = title_prefix, $
     grey_scale = grey_scale, plot_wedge_line = plot_wedge_line, wedge_amp = wedge_amp, linear_axes = linear_axes, $
-    baseline_axis = baseline_axis, delay_axis = delay_axis, hinv = hinv
+    baseline_axis = baseline_axis, delay_axis = delay_axis, hinv = hinv, note = note
     
-  if n_elements(plotfile) gt 0 or keyword_set(png) or keyword_set(eps) then pub = 1 else pub = 0
+  if n_elements(plotfile) gt 0 or keyword_set(png) or keyword_set(eps) or keyword_set(pdf) then pub = 1 else pub = 0
   if pub eq 1 then begin
-    if not (keyword_set(png) or keyword_set(eps)) then begin
+    if not (keyword_set(png) or keyword_set(eps) or keyword_set(pdf)) then begin
       basename = cgRootName(plotfile, directory=directory, extension=extension)
       
       case extension of
         'eps': eps=1
         'png': png=1
+        'pdf': pdf=1
         '': png = 1
         else: begin
           print, 'Unrecognized extension, using png'
@@ -28,21 +29,21 @@ pro kpower_slice_plot, slice_savefile, multi_pos = multi_pos, start_multi_params
       print, 'no filename specified for kpower_slice_plot output. Using ' + current_dir + path_sep() + plotfile
     endif
     
-    if keyword_set(png) and keyword_set(eps) then begin
-      print, 'both eps and png cannot be set, using png'
+    if keyword_set(png) and keyword_set(eps) and keyword_set(pdf) then begin
+      print, 'only one of eps, pdf and png can be set, using png'
       eps = 0
     endif
     
-    case 1 of
-      png: begin
-        plot_exten = '.png'
-        delete_ps = 1
-      end
-      eps: begin
-        plot_exten = '.eps'
-        delete_ps = 0
-      end
-    endcase
+    if keyword_set(png) then begin
+      plot_exten = '.png'
+      delete_ps = 1
+    endif else if keyword_set(pdf) then begin
+      plot_exten = '.pdf'
+      delete_ps = 1    
+    endif else if keyword_set(eps) then begin
+      plot_exten = '.eps'
+      delete_ps = 0
+    endif
   endif
   
   if n_elements(window_num) eq 0 then window_num = 1
@@ -176,7 +177,7 @@ pro kpower_slice_plot, slice_savefile, multi_pos = multi_pos, start_multi_params
   annotate_color = 'black'
   
   log_color_calc, power_plot, power_log_norm, cb_ticks, cb_ticknames, color_range, n_colors, data_range = data_range, $
-    color_profile = color_profile, log_cut_val = log_cut_val, grey_scale = grey_scale, oob_low = oob_low
+    color_profile = color_profile, log_cut_val = log_cut_val, oob_low = oob_low
     
   if keyword_set(all_zero) then power_log_norm = power_log_norm * 0 + annotate_color
   
@@ -218,7 +219,7 @@ pro kpower_slice_plot, slice_savefile, multi_pos = multi_pos, start_multi_params
     plot_ylength = max(log_y_edges) - min(log_y_edges)
   endelse
   
-  data_aspect = (plot_ylength / plot_xlength)
+  data_aspect = float(plot_ylength / plot_xlength)
   aspect_ratio =  data_aspect /plot_aspect
   
   if aspect_ratio gt 1 then begin
@@ -270,22 +271,31 @@ pro kpower_slice_plot, slice_savefile, multi_pos = multi_pos, start_multi_params
         ysize = round(base_size_use * y_factor * nrow)
       endwhile
       
-      ;; make or set window
-      if windowavailable(window_num) then begin
-        wset, window_num
-        if !d.x_size ne xsize or !d.y_size ne ysize then make_win = 1 else make_win = 0
-      endif else make_win = 1
-      if make_win eq 1 then window, window_num, xsize = xsize, ysize = ysize
-      cgerase, background_color
-      
       ;; if pub is set, start ps output
-      if keyword_set(pub) then cgps_open, plotfile, /font, encapsulated=eps
-      
+      if keyword_set(pub) then begin
+        ps_aspect = (y_factor * float(nrow)) / (x_factor * float(ncol))
+        
+        if ps_aspect lt 1 then landscape = 1 else landscape = 0
+        IF Keyword_Set(eps) THEN landscape = 0
+        sizes = cgpswindow(LANDSCAPE=landscape, aspectRatio = ps_aspect)
+        
+        cgps_open, plotfile, /font, encapsulated=eps, /nomatch, inches=sizes.inches, xsize=sizes.xsize, ysize=sizes.ysize, $
+          xoffset=sizes.xoffset, yoffset=sizes.yoffset, landscape = landscape
+      endif else begin
+        ;; make or set window
+        if windowavailable(window_num) then begin
+          wset, window_num
+          if !d.x_size ne xsize or !d.y_size ne ysize then make_win = 1 else make_win = 0
+        endif else make_win = 1
+        if make_win eq 1 then window, window_num, xsize = xsize, ysize = ysize
+        cgerase, background_color
+      endelse
+            
       ;; calculate multi_size & multi x/ylen not calculated earlier
       multi_xlen = (multi_pos[2,0]-multi_pos[0,0])
       multi_ylen = (multi_pos[3,0]-multi_pos[1,0])
       multi_center = [multi_pos[0,0] + multi_xlen/2d, multi_pos[1,0] + multi_ylen/2d]
-            
+      
       multi_size = [!d.x_vsize*multi_xlen, !d.y_vsize*multi_ylen]
       
       multi_pos_use = multi_pos[*,0]
@@ -344,12 +354,18 @@ pro kpower_slice_plot, slice_savefile, multi_pos = multi_pos, start_multi_params
     
     xloc2_lambda = plot_pos[2] + 0.2* (multi_pos_use[2]-plot_pos[2])
     yloc2_lambda = plot_pos[1] - 0.2* (plot_pos[1]-multi_pos_use[1])
+    
+    xloc_note = .99*multi_pos_use[2]
+    yloc_note = multi_pos_use[1] + 0.1* (plot_pos[1]-multi_pos_use[1])
   endif else begin
     xloc_lambda = plot_pos[0] - 0.1* (plot_pos[0]-0)
     yloc_lambda = plot_pos[3] + 0.1* (1-plot_pos[3])
     
     xloc2_lambda = plot_pos[2] + 0.1* (1-plot_pos[2])
     yloc2_lambda = plot_pos[1] - 0.1* (plot_pos[1]-0)
+    
+    xloc_note = .99
+    yloc_note = 0 + 0.1* (plot_pos[1]-0)
   endelse
   
   if keyword_set(pub) then begin
@@ -359,14 +375,20 @@ pro kpower_slice_plot, slice_savefile, multi_pos = multi_pos, start_multi_params
     ythick = 3
     if n_elements(charsize_in) eq 0 then begin
       if n_elements(multi_pos) gt 0 then begin
-        charsize = 1.2d * (multi_size[0]/6500.)
+        charsize = 1.2d * (mean(multi_size)/10000.)
       endif else charsize = 2
     endif else charsize = charsize_in
     font = 1
     
     if n_elements(multi_pos) eq 0 then begin
-      window, window_num, xsize = xsize, ysize = ysize
-      cgps_open, plotfile, /font, encapsulated=eps
+    
+      ps_aspect = ysize / float(xsize)
+      if ps_aspect lt 1 then landscape = 1 else landscape = 0
+      IF Keyword_Set(eps) THEN landscape = 0
+      sizes = cgpswindow(LANDSCAPE=landscape, aspectRatio = ps_aspect)
+      
+      cgps_open, plotfile, /font, encapsulated=eps, /nomatch, inches=sizes.inches, xsize=sizes.xsize, ysize=sizes.ysize, $
+        xoffset=sizes.xoffset, yoffset=sizes.yoffset, landscape = landscape
     endif
     
   endif else begin
@@ -480,12 +502,17 @@ pro kpower_slice_plot, slice_savefile, multi_pos = multi_pos, start_multi_params
       color = annotate_color
   endelse
   
+  if n_elements(note) ne 0 then begin
+    if keyword_set(pub) then char_factor = 0.75 else char_factor = 1
+    cgtext, xloc_note, yloc_note, note, /normal, alignment=1, charsize = char_factor*charsize, color = annotate_color, font = font
+  endif
+  
   cgcolorbar, color = annotate_color, /vertical, position = cb_pos, bottom = color_range[0], ncolors = n_colors, minor = 0, $
     ticknames = cb_ticknames, ytickv = cb_ticks, yticks = n_elements(cb_ticks) -1, title = units_str, $
     charsize = charsize, font = font, oob_low = oob_low
     
   if keyword_set(pub) and n_elements(multi_pos) eq 0 then begin
-    cgps_close, png = png, delete_ps = delete_ps
+    cgps_close, png = png, pdf = pdf, delete_ps = delete_ps
     wdelete, window_num
   endif
   

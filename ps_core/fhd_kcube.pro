@@ -1,7 +1,7 @@
 pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weight = dft_refresh_weight, dft_ian = dft_ian, $
     dft_fchunk = dft_fchunk, freq_ch_range = freq_ch_range, freq_flags = freq_flags, $
     spec_window_type = spec_window_type, cut_image = cut_image, $
-    noise_sim = noise_sim, std_power = std_power, input_units = input_units, image = image, quiet = quiet
+    std_power = std_power, input_units = input_units, image = image, quiet = quiet
     
   if tag_exist(file_struct, 'nside') ne 0 then healpix = 1 else healpix = 0
   if keyword_set(image) or tag_exist(file_struct, 'uvf_savefile') ne 0 then image = 1 else image = 0
@@ -17,14 +17,9 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
   
   datavar = strupcase(file_struct.datavar)
   if datavar eq '' then begin
-    ;; working with a 'derived' cube (ie residual cube or noise simulation cube) that is constructed from uvf_savefiles
-    if keyword_set(noise_sim) then begin
-      input_uvf_files = reform(file_struct.res_uvf_inputfiles)
-      input_uvf_varname = reform(file_struct.res_uvf_varname)
-    endif else begin
-      input_uvf_files = reform(file_struct.res_uvf_inputfiles, nfiles, 2)
-      input_uvf_varname = reform(file_struct.res_uvf_varname, nfiles, 2)
-    endelse
+    ;; working with a 'derived' cube (ie residual cube) that is constructed from uvf_savefiles
+    input_uvf_files = reform(file_struct.res_uvf_inputfiles, nfiles, 2)
+    input_uvf_varname = reform(file_struct.res_uvf_varname, nfiles, 2)
     
     if healpix or keyword_set(image) then begin
       input_uvf_wtfiles = file_struct.uvf_weight_savefile
@@ -103,14 +98,14 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
     ;; if max(conv_factor-conv_factor[0]) gt 1e-8 then stop else conv_factor = conv_factor[0]
     ;; conv_factor = float(2. * max_baseline^2. / (!pi * 1.38065))
   
-    ;; converting from Jy (in u,v,f) to mK*str (10^-26 * c^2 * 10^-3/ (2*f^2*kb))
+    ;; converting from Jy (in u,v,f) to mK*str (10^-26 * c^2 * 10^3/ (2*f^2*kb))
     conv_factor = float((3e8)^2 / (2. * (frequencies*1e6)^2. * 1.38065))
     
     ;; convert from mk*str to mK*Mpc^2
     conv_factor = conv_factor * z_mpc_mean^2.
     
   endif else conv_factor = 1. + fltarr(n_freq)
- 
+  
   ;;t_sys = 440. ; K
   ;;t_sys = 280. * sqrt(2.)* ((1+redshifts)/7.5)^2.3 ;; from skew w/ stu + srt(2) for single pol -- Adam says wrong for Ian's normalization
   t_sys = 280. * ((1+redshifts)/7.5)^2.3 / sqrt(2.) ;; from skew w/ stu + srt(2) for single pol
@@ -138,8 +133,8 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
     wh_nan = where(finite(vis_sigma_adam) eq 0, count_nan)
     if count_nan gt 0 then vis_sigma_adam[wh_nan] = 0
   endif
-    
-  if n_elements(vis_sigma_ian) gt 0 then begin 
+  
+  if n_elements(vis_sigma_ian) gt 0 then begin
     if max(vis_sigma_ian) gt 5. then begin
       vis_sigma = vis_sigma_ian
       vs_name = 'ian'
@@ -233,45 +228,26 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
       
       if test_uvf eq 0 or test_wt_uvf eq 0 or keyword_set(dft_refresh_data) or keyword_set(dft_refresh_weight) then begin
         if datavar eq '' then begin
-          ;; working with a 'derived' cube (ie residual cube or noise simulation cube) that is constructed from uvf_savefiles
+          ;; working with a 'derived' cube (ie residual cube) that is constructed from uvf_savefiles
         
-          if keyword_set(noise_sim) then begin
-            variance_cube = getvar_savefile(file_struct.uvf_weight_savefile[i], 'variance_cube')
-            kx_rad_vals = getvar_savefile(file_struct.uvf_weight_savefile[i], 'kx_rad_vals')
-            ky_rad_vals = getvar_savefile(file_struct.uvf_weight_savefile[i], 'ky_rad_vals')
-            
-            if n_elements(freq_mask) ne 0 then begin
-              old_freq_mask = getvar_savefile(file_struct.uvf_weight_savefile[i], 'freq_mask')
-              if total(abs(old_freq_mask - freq_mask)) ne 0 then message, 'freq_mask of variance file does not match current freq_mask'
-            endif
-            
-            seed = systime(1)
-            noise = randomn(seed, dims) * sqrt(variance_cube) + $
-              complex(0,1)*randomn(seed, dims) * sqrt(variance_cube)
-            data_cube = temporary(noise)
-            if keyword_set(dft_ian) then save, file = file_struct.uvf_savefile[i], u_lambda_vals, v_lambda_vals, data_cube, freq_mask $
-            else save, file = file_struct.uvf_savefile[i], kx_rad_vals, ky_rad_vals, data_cube, freq_mask
-            undefine, data_cube, seed, variance_cube
-          endif else begin
-            dirty_cube = getvar_savefile(input_uvf_files[i,0], input_uvf_varname[i,0])
-            kx_dirty = getvar_savefile(input_uvf_files[i,0], 'kx_rad_vals')
-            ky_dirty = getvar_savefile(input_uvf_files[i,0], 'ky_rad_vals')
-            
-            model_cube = getvar_savefile(input_uvf_files[i,1], input_uvf_varname[i,1])
-            kx_rad_vals = getvar_savefile(input_uvf_files[i,1], 'kx_rad_vals')
-            ky_rad_vals = getvar_savefile(input_uvf_files[i,1], 'ky_rad_vals')
-            
-            if n_elements(freq_mask) ne 0 then begin
-              dirty_freq_mask = getvar_savefile(input_uvf_files[i,0], 'freq_mask')
-              model_freq_mask = getvar_savefile(input_uvf_files[i,1], 'freq_mask')
-              if total(abs(dirty_freq_mask - freq_mask)) ne 0 then message, 'freq_mask of dirty file does not match current freq_mask'
-              if total(abs(model_freq_mask - freq_mask)) ne 0 then message, 'freq_mask of model file does not match current freq_mask'
-            endif
-            
-            if total(abs(kx_rad_vals - kx_dirty)) ne 0 then message, 'kx_rad_vals for dirty and model cubes must match'
-            if total(abs(ky_rad_vals - ky_dirty)) ne 0 then message, 'kx_rad_vals for dirty and model cubes must match'
-            undefine, kx_dirty, ky_dirty
-          endelse
+          dirty_cube = getvar_savefile(input_uvf_files[i,0], input_uvf_varname[i,0])
+          kx_dirty = getvar_savefile(input_uvf_files[i,0], 'kx_rad_vals')
+          ky_dirty = getvar_savefile(input_uvf_files[i,0], 'ky_rad_vals')
+          
+          model_cube = getvar_savefile(input_uvf_files[i,1], input_uvf_varname[i,1])
+          kx_rad_vals = getvar_savefile(input_uvf_files[i,1], 'kx_rad_vals')
+          ky_rad_vals = getvar_savefile(input_uvf_files[i,1], 'ky_rad_vals')
+          
+          if n_elements(freq_mask) ne 0 then begin
+            dirty_freq_mask = getvar_savefile(input_uvf_files[i,0], 'freq_mask')
+            model_freq_mask = getvar_savefile(input_uvf_files[i,1], 'freq_mask')
+            if total(abs(dirty_freq_mask - freq_mask)) ne 0 then message, 'freq_mask of dirty file does not match current freq_mask'
+            if total(abs(model_freq_mask - freq_mask)) ne 0 then message, 'freq_mask of model file does not match current freq_mask'
+          endif
+          
+          if total(abs(kx_rad_vals - kx_dirty)) ne 0 then message, 'kx_rad_vals for dirty and model cubes must match'
+          if total(abs(ky_rad_vals - ky_dirty)) ne 0 then message, 'kx_rad_vals for dirty and model cubes must match'
+          undefine, kx_dirty, ky_dirty
           
           data_cube = temporary(dirty_cube) - temporary(model_cube)
           if keyword_set(dft_ian) then save, file = file_struct.uvf_savefile[i], u_lambda_vals, v_lambda_vals, data_cube, freq_mask $
@@ -304,16 +280,29 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
             rot_matrix = get_rot_matrix(theta0, phi0, /inverse)
             new_pix_vec = rot_matrix ## pix_center_vec
             
+            ;; then rotate to make as rectangular as possible
+            pred_angle = healpix_rot(new_pix_vec[*,0], new_pix_vec[*,1])
+            
+            x_rot = new_pix_vec[*,0] * cos(pred_angle) - new_pix_vec[*,1] * sin(pred_angle)
+            y_rot = new_pix_vec[*,0] * sin(pred_angle) + new_pix_vec[*,1] * cos(pred_angle)
+            
+            
           endif else begin
             ;; gridded image to dft to parallel Healpix computation
             pix_size_rad = abs(file_struct.degpix) * !pi / 180d
+            
+            data_size = getvar_savefile(file_struct.datafile[i], file_struct.datavar, /return_size)
+            
+            dims = data_size[1:data_size(0)]
+            
             x_vec = (findgen(dims[0]) - dims[0]/2.) * pix_size_rad
             y_vec = (findgen(dims[1]) - dims[1]/2.) * pix_size_rad
             
-            new_pix_vec = fltarr(dims[0]*dims[1], 3)
-            new_pix_vec[*,0] = reform(rebin(x_vec, dims[0], dims[1], /sample), dims[0]*dims[1])
-            new_pix_vec[*,1] = reform(rebin(reform(y_vec, 1, dims[1]), dims[0], dims[1], /sample), dims[0]*dims[1])
-            new_pix_vec[*,2] = 1.
+            x_rot = fltarr(dims[0]*dims[1])
+            y_rot = fltarr(dims[0]*dims[1])
+            x_rot = reform(rebin(x_vec, dims[0], dims[1], /sample), dims[0]*dims[1])
+            y_rot = reform(rebin(reform(y_vec, 1, dims[1]), dims[0], dims[1], /sample), dims[0]*dims[1])
+
           endelse
           
           ;; figure out k values to calculate dft
@@ -330,17 +319,49 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
             if keyword_set(cut_image) then begin
               ;; limit field of view to match calculated k-modes
               xy_len = 1/delta_u_lambda
-              wh_close = where(new_pix_vec[*,0] le xy_len/2 and new_pix_vec[*,0] ge -1*xy_len/2 and $
-                new_pix_vec[*,1] le xy_len/2 and new_pix_vec[*,1] ge -1*xy_len/2, count_close, $
-                ncomplement = count_far)
-              if count_far ne 0 then new_pix_vec = new_pix_vec[wh_close, *] else begin
-                ;; image may be smaller than expected, may need to adjust delta_kperp_rad
-                image_len = max(sqrt(new_pix_vec[*,0]^2. + new_pix_vec[*,1]^2.))*2.
-                if image_len/xy_len lt .9 then begin
-                  print, 'Image FoV is smaller than expected, increasing delta kperp to match image FoV'
-                  delta_kperp_rad = 1/image_len
-                endif
+              
+              ;; image may be smaller than expected, may need to adjust delta_kperp_rad
+              
+              if healpix then begin
+                ;; get surrounding pixels
+                dists = sqrt((pix_center_vec[*,0]-vec_mid[0])^2d + (pix_center_vec[*,1]-vec_mid[1])^2d + (pix_center_vec[*,2]-vec_mid[2])^2d)
+                radius = max(dists)*1.1
+                query_disc, file_struct.nside, vec_mid, radius, listpix, nlist, /inc
+                min_pix = min([pixel_nums1, listpix])
+                wh2 = where(histogram(listpix, min=min_pix) eq 0 and histogram(pixel_nums1, min=min_pix) gt 0, count2)
+                while count2 gt 0 do begin
+                  radius = radius*1.1
+                  query_disc, nside, vec_mid, radius, listpix, nlist, /inc
+                  min_pix = min([pixel_nums1, listpix])
+                  wh2 = where(histogram(listpix, min=min_pix) eq 0 and histogram(pixel_nums1, min=min_pix) gt 0, count2)
+                endwhile
+                
+                ;; remove pixels from listpix that are in my image -- only want nearby pixels not in my image
+                min_pix = min([pixel_nums1, listpix])
+                max_pix = max([pixel_nums1, listpix])
+                wh = where(histogram(listpix, min = min_pix, max = max_pix) gt 0 and histogram(pixel_nums1, min = min_pix, max = max_pix) eq 0, count_out)
+                if count_out gt 0 then outside_pix = wh + min_pix else stop
+                pix2vec_ring, file_struct.nside, outside_pix, out_center_vec
+                new_out_vec = rot_matrix ## out_center_vec
+                x_out_rot = new_out_vec[*,0] * cos(pred_angle) - new_out_vec[*,1] * sin(pred_angle)
+                y_out_rot = new_out_vec[*,0] * sin(pred_angle) + new_out_vec[*,1] * cos(pred_angle)
+                limits = healpix_limits(x_rot, y_rot, x_out_rot, y_out_rot)
+              endif else begin
+                limits = [min(x_vec), min(y_vec), max(x_vec), max(y_vec)]
               endelse
+              
+              image_len = min([limits[2]-limits[0],limits[3]-limits[1]])
+              if image_len lt xy_len then begin
+                print, 'Image FoV is smaller than expected, increasing delta kperp to match image FoV'
+                delta_kperp_rad = 1./image_len
+                
+                wh_close = where(x_rot le image_len/2. and x_rot ge -1.*image_len/2. and $
+                  y_rot le image_len/2. and y_rot ge -1.*image_len/2., count_close, $
+                  ncomplement = count_far)
+              endif else wh_close = where(x_rot le xy_len/2. and x_rot ge -1.*xy_len/2. and $
+                y_rot le xy_len/2. and y_rot ge -1.*xy_len/2., count_close, $
+                ncomplement = count_far)
+                
             endif else count_far = 0
             
             n_u = round(max_u_lambda / delta_u_lambda) * 2 + 1
@@ -364,18 +385,70 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
             if keyword_set(cut_image) then begin
               ;; limit field of view to match calculated k-modes
               xy_len = 2*!pi/delta_kperp_rad
-              wh_close = where(new_pix_vec[*,0] le xy_len/2 and new_pix_vec[*,0] ge -1*xy_len/2 and $
-                new_pix_vec[*,1] le xy_len/2 and new_pix_vec[*,1] ge -1*xy_len/2, count_close, $
-                ncomplement = count_far)
-              if count_far ne 0 then new_pix_vec = new_pix_vec[wh_close, *] else begin
-                ;; image may be smaller than expected, may need to adjust delta_kperp_rad
-                image_len = max(sqrt(new_pix_vec[*,0]^2. + new_pix_vec[*,1]^2.))*2.
-                if image_len/xy_len lt .9 then begin
-                  print, 'Image FoV is smaller than expected, increasing delta kperp to match image FoV'
-                  delta_kperp_rad = 2*!pi/image_len
-                endif
+              
+              ;; image may be smaller than expected, may need to adjust delta_kperp_rad
+              
+              if healpix then begin
+                ;; get surrounding pixels
+                dists = sqrt((pix_center_vec[*,0]-vec_mid[0])^2d + (pix_center_vec[*,1]-vec_mid[1])^2d + (pix_center_vec[*,2]-vec_mid[2])^2d)
+                radius = max(dists)*1.1
+                query_disc, file_struct.nside, vec_mid, radius, listpix, nlist, /inc
+                min_pix = min([pixel_nums1, listpix])
+                wh2 = where(histogram(listpix, min=min_pix) eq 0 and histogram(pixel_nums1, min=min_pix) gt 0, count2)
+                while count2 gt 0 do begin
+                  radius = radius*1.1
+                  query_disc, file_struct.nside, vec_mid, radius, listpix, nlist, /inc
+                  min_pix = min([pixel_nums1, listpix])
+                  wh2 = where(histogram(listpix, min=min_pix) eq 0 and histogram(pixel_nums1, min=min_pix) gt 0, count2)
+                endwhile
+                
+                ;; remove pixels from listpix that are in my image -- only want nearby pixels not in my image
+                min_pix = min([pixel_nums1, listpix])
+                max_pix = max([pixel_nums1, listpix])
+                wh = where(histogram(listpix, min = min_pix, max = max_pix) gt 0 and histogram(pixel_nums1, min = min_pix, max = max_pix) eq 0, count_out)
+                if count_out gt 0 then outside_pix = wh + min_pix else stop
+                pix2vec_ring, file_struct.nside, outside_pix, out_center_vec
+                new_out_vec = rot_matrix ## out_center_vec
+                x_out_rot = new_out_vec[*,0] * cos(pred_angle) - new_out_vec[*,1] * sin(pred_angle)
+                y_out_rot = new_out_vec[*,0] * sin(pred_angle) + new_out_vec[*,1] * cos(pred_angle)
+                limits = healpix_limits(x_rot, y_rot, x_out_rot, y_out_rot)
+              endif else begin
+                limits = [min(x_vec), min(y_vec), max(x_vec), max(y_vec)]
               endelse
+              
+              image_len = min([limits[2]-limits[0],limits[3]-limits[1]])
+              if image_len lt xy_len then begin
+                print, 'Image FoV is smaller than expected, increasing delta kperp to match image FoV'
+                delta_kperp_rad = 2*!pi/image_len
+                
+                wh_close = where(x_rot le image_len/2. and x_rot ge -1.*image_len/2. and $
+                  y_rot le image_len/2. and y_rot ge -1.*image_len/2., count_close, $
+                  ncomplement = count_far)
+              endif else wh_close = where(x_rot le xy_len/2. and x_rot ge -1.*xy_len/2. and $
+                y_rot le xy_len/2. and y_rot ge -1.*xy_len/2., count_close, $
+                ncomplement = count_far)
+                
             endif else count_far = 0
+            
+            ;; for deciding on pixel sets:
+            ;            consv_delta_kperp_rad = 4.5* mean(frequencies*1e6) * z_mpc_mean / (3e8 * kperp_lambda_conv) ;use 4.5m to be conservative
+            ;            consv_xy_len = 2*!pi/consv_delta_kperp_rad
+            ;            radius = consv_xy_len/2.*sqrt(2)*1.1
+            ;            query_disc, file_struct.nside, vec_mid, radius, listpix, nlist, /inc
+            ;            pix2vec_ring, file_struct.nside, listpix, list_center_vec
+            ;            new_list_vec = rot_matrix ## list_center_vec
+            ;            x_list_rot = new_list_vec[*,0] * cos(pred_angle) - new_list_vec[*,1] * sin(pred_angle)
+            ;            y_list_rot = new_list_vec[*,0] * sin(pred_angle) + new_list_vec[*,1] * cos(pred_angle)
+            ;            cgplot, x_list_rot, y_list_rot, psym=3
+            ;            consv_lims = [-1*consv_xy_len/2., -1*consv_xy_len/2., consv_xy_len/2., consv_xy_len/2.]
+            ;            cgpolygon, reform(rebin(consv_lims[[0,2]], 2,2),4), reform(rebin(reform(consv_lims[[1,3]],1,2), 2,2),4), color='aqua'
+            ;            wh_listpix_close = where(x_list_rot ge consv_lims[0] and x_list_rot le consv_lims[2] and $
+            ;              y_list_rot ge consv_lims[1] and y_list_rot le consv_lims[3], count_list_close)
+            ;            hpx_inds = listpix[wh_listpix_close]
+            ;            nside = file_struct.nside
+            ;            stop
+            ;            save, file='/Users/bryna/Documents/Physics/FHD/Observations/EoR1_low_healpix_inds.idlsave', nside, hpx_inds
+            
             
             n_kperp = round(max_kperp_rad / delta_kperp_rad) * 2 + 1
             kx_rad_vals = (findgen(n_kperp) - (n_kperp-1)/2) * delta_kperp_rad
@@ -405,10 +478,10 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
             if n_elements(freq_flags) ne 0 then arr = arr * rebin(reform(freq_mask, 1, n_elements(file_struct.frequencies)), size(arr, /dimension), /sample)
             
             if keyword_set(dft_ian) then begin
-              transform = discrete_ft_2D_fast(new_pix_vec[*,0], new_pix_vec[*,1], arr, u_lambda_vals, v_lambda_vals, /exp2pi, $
+              transform = discrete_ft_2D_fast(x_rot[wh_close], y_rot[wh_close], arr, u_lambda_vals, v_lambda_vals, /exp2pi, $
                 timing = ft_time, fchunk = dft_fchunk)
             endif else begin
-              transform = discrete_ft_2D_fast(new_pix_vec[*,0], new_pix_vec[*,1], arr, kx_rad_vals, ky_rad_vals, $
+              transform = discrete_ft_2D_fast(x_rot[wh_close], y_rot[wh_close], arr, kx_rad_vals, ky_rad_vals, $
                 timing = ft_time, fchunk = dft_fchunk)
             endelse
             data_cube = temporary(transform)
@@ -437,10 +510,10 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
             if n_elements(freq_flags) ne 0 then arr = arr * rebin(reform(freq_mask, 1, n_elements(file_struct.frequencies)), size(arr, /dimension), /sample)
             
             if keyword_set(dft_ian) then begin
-              transform = discrete_ft_2D_fast(new_pix_vec[*,0], new_pix_vec[*,1], arr, u_lambda_vals, v_lambda_vals, /exp2pi, $
+              transform = discrete_ft_2D_fast(x_rot[wh_close], y_rot[wh_close], arr, u_lambda_vals, v_lambda_vals, /exp2pi, $
                 timing = ft_time, fchunk = dft_fchunk)
             endif else begin
-              transform = discrete_ft_2D_fast(new_pix_vec[*,0], new_pix_vec[*,1], arr, kx_rad_vals, ky_rad_vals, $
+              transform = discrete_ft_2D_fast(x_rot[wh_close], y_rot[wh_close], arr, kx_rad_vals, ky_rad_vals, $
                 timing = ft_time, fchunk = dft_fchunk)
             endelse
             
@@ -464,10 +537,10 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
               if n_elements(freq_flags) ne 0 then arr = arr * rebin(reform(freq_mask, 1, n_elements(file_struct.frequencies)), size(arr, /dimension), /sample)
               
               if keyword_set(dft_ian) then begin
-                transform = discrete_ft_2D_fast(new_pix_vec[*,0], new_pix_vec[*,1], arr, u_lambda_vals, v_lambda_vals, /exp2pi, $
+                transform = discrete_ft_2D_fast(x_rot[wh_close], y_rot[wh_close], arr, u_lambda_vals, v_lambda_vals, /exp2pi, $
                   timing = ft_time, fchunk = dft_fchunk)
               endif else begin
-                transform = discrete_ft_2D_fast(new_pix_vec[*,0], new_pix_vec[*,1], arr, kx_rad_vals, ky_rad_vals, $
+                transform = discrete_ft_2D_fast(x_rot[wh_close], y_rot[wh_close], arr, kx_rad_vals, ky_rad_vals, $
                   timing = ft_time, fchunk = dft_fchunk)
               endelse
               variance_cube = abs(temporary(transform)) ;; make variances real, positive definite (amplitude)
@@ -643,55 +716,30 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
       
     endif else begin
       if datavar eq '' then begin
-        ;; working with a 'derived' cube (ie residual cube or noise simulation cube) that is constructed from other cubes
-        if keyword_set(noise_sim) then begin
-          ;; need to cut uvf cubes in half because image is real -- we'll cut negative ky
-          variance_cube1 = getvar_savefile(file_struct.variancefile[0], file_struct.variancevar)
-          variance_cube1 = variance_cube1[*, n_ky/2:n_ky-1,*]
-          variance_cube2 = getvar_savefile(file_struct.variancefile[1], file_struct.variancevar)
-          variance_cube2 = variance_cube2[*, n_ky/2:n_ky-1,*]
-          
-          if n_elements(freq_ch_range) ne 0 then begin
-            variance_cube1 = variance_cube1[*, *, min(freq_ch_range):max(freq_ch_range)]
-            variance_cube2 = variance_cube2[*, *, min(freq_ch_range):max(freq_ch_range)]
-          endif
-          if n_elements(freq_flags) ne 0 then begin
-            flag_arr = rebin(reform(freq_mask, 1, 1, n_elements(file_struct.frequencies)), size(variance_cube1,/dimension), /sample)
-            variance_cube1 = variance_cube1 * flag_arr
-            variance_cube2 = variance_cube2 * flag_arr
-          endif
-          
-          seed = systime(1)
-          noise = randomn(seed, dims) * sqrt(variance_cube) + $
-            complex(0,1)*randomn(seed, dims) * sqrt(variance_cube)
-          data_cube = temporary(noise)
-          save, file = file_struct.uvf_savefile[i], kx_rad_vals, ky_rad_vals, data_cube, freq_mask
-          undefine, data_cube, seed, variance_cube
-        endif else begin
-          ;; need to cut uvf cubes in half because image is real -- we'll cut negative ky
-          dirty_cube1 = getvar_savefile(input_uvf_files[0,0], input_uvf_varname[0,0])
-          dirty_cube1 = dirty_cube1[*, n_ky/2:n_ky-1,*]
-          model_cube1 = getvar_savefile(input_uvf_files[0,1], input_uvf_varname[0,1])
-          model_cube1 = model_cube1[*, n_ky/2:n_ky-1,*]
-          data_cube1 = temporary(dirty_cube1) - temporary(model_cube1)
-          
-          dirty_cube2 = getvar_savefile(input_uvf_files[1,0], input_uvf_varname[1,0])
-          dirty_cube2 = dirty_cube2[*, n_ky/2:n_ky-1,*]
-          model_cube2 = getvar_savefile(input_uvf_files[1,1], input_uvf_varname[1,1])
-          model_cube2 = model_cube2[*, n_ky/2:n_ky-1,*]
-          data_cube2 = temporary(dirty_cube2) - temporary(model_cube2)
-          
-          if n_elements(freq_ch_range) ne 0 then begin
-            data_cube1 = data_cube1[*, *, min(freq_ch_range):max(freq_ch_range)]
-            data_cube2 = data_cube2[*, *, min(freq_ch_range):max(freq_ch_range)]
-          endif
-          if n_elements(freq_flags) ne 0 then begin
-            flag_arr = rebin(reform(freq_mask, 1, 1, n_elements(file_struct.frequencies)), size(data_cube1,/dimension), /sample)
-            data_cube1 = data_cube1 * flag_arr
-            data_cube2 = data_cube2 * flag_arr
-          endif
-          
-        endelse
+        ;; working with a 'derived' cube (ie residual cube) that is constructed from other cubes
+        ;; need to cut uvf cubes in half because image is real -- we'll cut negative ky
+        dirty_cube1 = getvar_savefile(input_uvf_files[0,0], input_uvf_varname[0,0])
+        dirty_cube1 = dirty_cube1[*, n_ky/2:n_ky-1,*]
+        model_cube1 = getvar_savefile(input_uvf_files[0,1], input_uvf_varname[0,1])
+        model_cube1 = model_cube1[*, n_ky/2:n_ky-1,*]
+        data_cube1 = temporary(dirty_cube1) - temporary(model_cube1)
+        
+        dirty_cube2 = getvar_savefile(input_uvf_files[1,0], input_uvf_varname[1,0])
+        dirty_cube2 = dirty_cube2[*, n_ky/2:n_ky-1,*]
+        model_cube2 = getvar_savefile(input_uvf_files[1,1], input_uvf_varname[1,1])
+        model_cube2 = model_cube2[*, n_ky/2:n_ky-1,*]
+        data_cube2 = temporary(dirty_cube2) - temporary(model_cube2)
+        
+        if n_elements(freq_ch_range) ne 0 then begin
+          data_cube1 = data_cube1[*, *, min(freq_ch_range):max(freq_ch_range)]
+          data_cube2 = data_cube2[*, *, min(freq_ch_range):max(freq_ch_range)]
+        endif
+        if n_elements(freq_flags) ne 0 then begin
+          flag_arr = rebin(reform(freq_mask, 1, 1, n_elements(file_struct.frequencies)), size(data_cube1,/dimension), /sample)
+          data_cube1 = data_cube1 * flag_arr
+          data_cube2 = data_cube2 * flag_arr
+        endif
+        
       endif else begin
         ;; need to cut uvf cubes in half because image is real -- we'll cut negative ky
         data_cube1 = getvar_savefile(file_struct.datafile[0], file_struct.datavar)
@@ -828,45 +876,29 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
     
     uv_slice = uvf_slice(data_cube, kx_mpc, ky_mpc, frequencies, kperp_lambda_conv, delay_params, hubble_param, slice_axis = 2, $
       slice_inds = 0, slice_savefile = file_struct.uv_raw_savefile[i])
+      
+    if max(abs(uv_slice)) eq 0 then begin
+      nloop = 0
+      while max(abs(uv_slice)) eq 0 do begin
+        nloop = nloop+1
+        uv_slice = uvf_slice(data_cube, kx_mpc, ky_mpc, frequencies, kperp_lambda_conv, delay_params, hubble_param, slice_axis = 2, $
+          slice_inds = nloop, slice_savefile = file_struct.uv_raw_savefile[i])
+      endwhile
+    endif
+    
   endfor
   
   if healpix or keyword_set(image) then begin
-    if keyword_set (dft_ian) then begin
-      ;; multiply data, weights & variance cubes by pixel_area_rad to get proper units from DFT
-      ;; (not squared for variance because they weren't treated as units squared in FHD code)
-      data_cube1 = data_cube1 * pix_area_rad
-      weights_cube1 = weights_cube1 * pix_area_rad
-      variance_cube1 = variance_cube1 * pix_area_rad
-      if nfiles eq 2 then begin
-        data_cube2 = data_cube2 * pix_area_rad
-        weights_cube2 = weights_cube2 * pix_area_rad
-        variance_cube2 = variance_cube2 * pix_area_rad
-      endif
-      
-    endif else begin
-      ;; multiply data, weights & variance cubes by pixel_area_mpc to get proper units from DFT
-      ;; divide by (2*!pi)^2d to get right FT convention
-      ;; (not squared for variance because they weren't treated as units squared in FHD code)
-      data_cube1 = data_cube1 * pix_area_mpc
-      weights_cube1 = weights_cube1 * pix_area_mpc
-      variance_cube1 = variance_cube1 * pix_area_mpc
-      if nfiles eq 2 then begin
-        data_cube2 = data_cube2 * pix_area_mpc
-        weights_cube2 = weights_cube2 * pix_area_mpc
-        variance_cube2 = variance_cube2 * pix_area_mpc
-      endif
-      
-      ;; apply FT jacobian because fft was in Jy/str and dft was in Jy/Mpc^2
-      ;; same for variance as data
-      data_cube1 = data_cube1 / (z_mpc_mean^2.)
-      weights_cube1 = weights_cube1 / (z_mpc_mean^2.)
-      variance_cube1 = variance_cube1 / (z_mpc_mean^2.)
-      if nfiles eq 2 then begin
-        data_cube2 = data_cube2 / (z_mpc_mean^2.)
-        weights_cube2 = weights_cube2 / (z_mpc_mean^2.)
-        variance_cube2 = variance_cube2 / (z_mpc_mean^2.)
-      endif
-    endelse
+    ;; multiply data, weights & variance cubes by pixel_area_rad to get proper units from DFT
+    ;; (not squared for variance because they weren't treated as units squared in FHD code)
+    data_cube1 = data_cube1 * pix_area_rad
+    weights_cube1 = weights_cube1 * pix_area_rad
+    variance_cube1 = variance_cube1 * pix_area_rad
+    if nfiles eq 2 then begin
+      data_cube2 = data_cube2 * pix_area_rad
+      weights_cube2 = weights_cube2 * pix_area_rad
+      variance_cube2 = variance_cube2 * pix_area_rad
+    endif
   endif
   
   ;; make sigma2 cubes
@@ -904,12 +936,6 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
     undefine, weights_cube2, wh_wt2_0, count_wt2_0
   endif
   
-  if keyword_set(noise_sim) then begin
-    noise = randomn(seed, dims) * sqrt(sigma2_cube1) + $
-      complex(0,1)*randomn(seed, dims) * sqrt(sigma2_cube1)
-    data_cube1 = temporary(noise)
-  endif
-  
   ;; take care of FT convention for EoR
   data_cube1 = data_cube1 / (2.*!pi)^2.
   sigma2_cube1 = sigma2_cube1 / (2.*!pi)^4.
@@ -933,13 +959,17 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
   endfor
   
   ;; fix units on window funtion integral -- now they should be Mpc^3
-  ;; use delta f for native visibility frequency resolution
-  ;; calculate integral of window in r^3 to compare w/ Adam
+  ;; checked vs Adam's analytic calculation and it matches to within a factor of 4
+  ;; We are using total(weight) = Nvis for Ian's uv plane and multiplying by a factor to convert between Ian's and my uv plane
+  ;;   the factor is ((2*!pi)^2*(delta_uv)^2) /  (delta_kperp)^2 * Dm^2 which comes in squared in the denominator.
+  ;;   see eq 21e from Adam's memo. Also note that delta D is delta z * n_freq
+  ;;   note that we can convert both the weights and variance to uvf from kperp,rz and all jacobians will cancel
   window_int_r = window_int * (z_mpc_delta * n_freq) * (kx_mpc_delta * ky_mpc_delta)*z_mpc_mean^4./((2.*!dpi)^2.*file_struct.kpix^4.)
   print, 'window integral in r^3: ' + number_formatter(window_int_r[0], format='(e10.4)')
   
   ;; need window integral in k^3
-  window_int = window_int_r * (2*!dpi)^3.
+  ;; We actually want 1/(2pi)^3 * window_int_k which is equal to window_int_r
+  window_int = window_int_r ;* (2*!dpi)^3.
   
   ;; divide data by sqrt(window_int) and sigma2 by window_int
   data_cube1 = data_cube1 / sqrt(window_int[0])
@@ -979,6 +1009,16 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
     
     uv_slice = uvf_slice(data_cube, kx_mpc, ky_mpc, frequencies, kperp_lambda_conv, delay_params, hubble_param, slice_axis = 2, $
       slice_inds = 0, slice_savefile = file_struct.uv_savefile[i])
+      
+    if max(abs(uv_slice)) eq 0 then begin
+      nloop = 0
+      while max(abs(uv_slice)) eq 0 do begin
+        nloop = nloop+1
+        uv_slice = uvf_slice(data_cube, kx_mpc, ky_mpc, frequencies, kperp_lambda_conv, delay_params, hubble_param, slice_axis = 2, $
+          slice_inds = nloop, slice_savefile = file_struct.uv_savefile[i])
+      endwhile
+    endif
+    
   endfor
   
   if nfiles eq 2 then begin
@@ -1058,9 +1098,30 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
   uv_slice = uvf_slice(data_sum, kx_mpc, ky_mpc, frequencies, kperp_lambda_conv, delay_params, hubble_param, slice_axis = 2, $
     slice_inds = 0, slice_savefile = file_struct.uv_sum_savefile)
   if nfiles eq 2 then $
-    uv_slice = uvf_slice(data_diff, kx_mpc, ky_mpc, frequencies, kperp_lambda_conv, delay_params, hubble_param, slice_axis = 2, $
-    slice_inds = 0, slice_savefile = file_struct.uv_diff_savefile)
-    
+    uv_slice2 = uvf_slice(data_diff, kx_mpc, ky_mpc, frequencies, kperp_lambda_conv, delay_params, hubble_param, slice_axis = 2, $
+    slice_inds = 0, slice_savefile = file_struct.uv_diff_savefile) $
+  else uv_slice2 = uv_slice
+  
+  test_uv = 1
+  if max(abs(uv_slice)) eq 0 then test_uv=0
+  if nfiles eq 2 then if max(uv_slice2) eq 0 and max(abs(data_diff)) gt 0 then test_uv=0
+  
+  if test_uv eq 0 then begin
+    nloop = 0
+    while test_uv eq 0 do begin
+      nloop = nloop+1
+      uv_slice = uvf_slice(data_sum, kx_mpc, ky_mpc, frequencies, kperp_lambda_conv, delay_params, hubble_param, $
+        slice_axis = 2, slice_inds = nloop, slice_savefile = file_struct.uv_sum_savefile)
+      if nfiles eq 2 then $
+        uv_slice2 = uvf_slice(data_diff, kx_mpc, ky_mpc, frequencies, kperp_lambda_conv, delay_params, hubble_param, $
+        slice_axis = 2, slice_inds = nloop, slice_savefile = file_struct.uv_diff_savefile)
+        
+      test_uv = 1
+      if max(abs(uv_slice)) eq 0 then test_uv=0
+      if nfiles eq 2 then if max(uv_slice2) eq 0 and max(abs(data_diff)) gt 0 then test_uv=0
+    endwhile
+  endif
+  
   ;; apply spectral windowing function if desired
   if n_elements(spec_window_type) ne 0 then begin
     window = spectral_window(n_freq, type = spec_window_type, /periodic)
@@ -1102,40 +1163,78 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
   
   n_val = round(kz_mpc_orig / kz_mpc_delta)
   kz_mpc_orig[where(n_val eq 0)] = 0
-  ;; these an and bn calculations don't match the standard
-  ;; convention (they down by a factor of 2) but they make more sense
-  ;; and remove factors of 2 we'd otherwise have in the power
-  ;; and variance calculations
-  a1_0 = data_sum_ft[*,*,where(n_val eq 0)]
-  a1_n = (data_sum_ft[*,*, where(n_val gt 0)] + data_sum_ft[*,*, reverse(where(n_val lt 0))])/2.
-  b1_n = complex(0,1) * (data_sum_ft[*,*, where(n_val gt 0)] - data_sum_ft[*,*, reverse(where(n_val lt 0))])/2.
-  undefine, data_sum_ft
-  
-  if nfiles gt 1 then begin
-    a2_0 = data_diff_ft[*,*,where(n_val eq 0)]
-    a2_n = (data_diff_ft[*,*, where(n_val gt 0)] + data_diff_ft[*,*, reverse(where(n_val lt 0))])/2.
-    b2_n = complex(0,1) * (data_diff_ft[*,*, where(n_val gt 0)] - data_diff_ft[*,*, reverse(where(n_val lt 0))])/2.
-    undefine, data_diff_ft
-  endif
   
   kz_mpc = kz_mpc_orig[where(n_val ge 0)]
   n_kz = n_elements(kz_mpc)
   
+  
   if keyword_set(std_power) then begin
+    ;; comov_dist_los goes from large to small z
+    z_relative = dindgen(n_freq)*z_mpc_delta
+    freq_kz_arr = rebin(reform(kz_mpc_orig, 1, n_elements(kz_mpc_orig)), n_freq, n_elements(kz_mpc_orig)) * rebin(z_relative, n_freq, n_elements(kz_mpc_orig))
+    
+    ;kz_arr = rebin(reform(kz_mpc_orig, 1, n_elements(kz_mpc_orig)), n_elements(kz_mpc_orig), n_elements(kz_mpc_orig)) - $
+    ;  rebin(kz_mpc_orig, n_elements(kz_mpc_orig), n_elements(kz_mpc_orig))
+    ;full_freq_kz_arr = rebin(reform(kz_arr, 1, n_elements(kz_mpc_orig)^2), n_freq, n_elements(kz_mpc_orig)^2) * rebin(z_relative, n_freq, n_elements(kz_mpc_orig)^2)
+    
     ;; for standard power calc. just need ft of sigma2 (sigma has squared units relative to data, so use z_mpc_delta^2d)
-    sigma2_ft = fft(sum_sigma2, dimension=3) * n_freq * z_mpc_delta^2. / (2.*!pi)
-    sigma2_ft = shift(sigma2_ft, [0,0,n_kz/2])
+    sigma2_ft = matrix_multiply(reform(sum_sigma2, n_kx*n_ky, n_freq), exp(-1.*complex(0,1)*freq_kz_arr)*exp(1.*complex(0,1)*freq_kz_arr)) * (z_mpc_delta^2. / (2.*!pi))^2d
+    sigma2_ft = reform(sigma2_ft, n_kx, n_ky, n_elements(kz_mpc_orig))
+    
+    sigma2_ft_cov = matrix_multiply(reform(sum_sigma2, n_kx*n_ky, n_freq), exp(-1.*complex(0,1)*freq_kz_arr)*exp(-1.*complex(0,1)*freq_kz_arr)) * (z_mpc_delta^2. / (2.*!pi))^2d
+    sigma2_ft_cov = reform(sigma2_ft_cov, n_kx, n_ky, n_elements(kz_mpc_orig))
+    sigma2_ft_cov[*,*, where(n_val eq 0)] = 0
+    
+    ;sigma2_ft_full = matrix_multiply(reform(sum_sigma2, n_kx*n_ky, n_freq), exp(1.*complex(0,1)*full_freq_kz_arr)) * (z_mpc_delta^2. / (2.*!pi))^2d
+    ;sigma2_ft_full = reform(sigma2_ft_full, n_kx, n_ky, n_elements(kz_mpc_orig), n_elements(kz_mpc_orig))
     undefine, sum_sigma2
     
-    sigma_a0 = abs(sigma2_ft[*,*,where(n_val eq 0)])
-    sigma_an_bn = sqrt(abs(sigma2_ft[*,*, where(n_val gt 0)])^2. + abs(sigma2_ft[*,*, reverse(where(n_val lt 0))])^2.)/2.
-    undefine, sigma2_ft
+    ;; diagonalize to get rid of covariance
+    theta = atan(2*sigma2_ft_cov[*,*,where(n_val ge 0)], sigma2_ft[*,*,where(n_val ge 0)]-sigma2_ft[*,*,where(n_val le 0)])/2.
     
-    save, file = file_struct.kcube_savefile, a1_0, a1_n, b1_n, a2_0, a2_n, b2_n, sigma_a0, sigma_an_bn, $
+    theta[where(sigma2_ft_cov[*,*,where(n_val ge 0)] eq 0)] = 0
+    
+    cos_theta = cos(theta)
+    sin_theta = sin(theta)
+    undefine, theta
+    
+    sigma2_1 = sigma2_ft[*,*,where(n_val ge 0)]*cos_theta^2. + 2.*sigma2_ft_cov[*,*,where(n_val ge 0)]*cos_theta*sin_theta + sigma2_ft[*,*,where(n_val le 0)]*sin_theta^2.
+    sigma2_2 = sigma2_ft[*,*,where(n_val ge 0)]*sin_theta^2. - 2.*sigma2_ft_cov[*,*,where(n_val ge 0)]*cos_theta*sin_theta + sigma2_ft[*,*,where(n_val le 0)]*cos_theta^2.
+    sigma2_2[*,*,0] = 0.
+    undefine, sigma2_ft, sigma2_ft_cov
+    
+    data_sum_1 = data_sum_ft[*,*,where(n_val ge 0)]*cos_theta + data_sum_ft[*,*,where(n_val le 0)]*sin_theta
+    data_sum_2 = (-1d)*data_sum_ft[*,*,where(n_val ge 0)]*sin_theta + data_sum_ft[*,*,where(n_val le 0)]*cos_theta
+    data_sum_2[*,*,0] = 0.
+    undefine, data_sum_ft
+    if nfiles eq 2 then begin
+      data_diff_1 = data_diff_ft[*,*,where(n_val ge 0)]*cos_theta + data_diff_ft[*,*,where(n_val le 0)]*sin_theta
+      data_diff_2 = (-1d)*data_diff_ft[*,*,where(n_val ge 0)]*sin_theta + data_diff_ft[*,*,where(n_val le 0)]*cos_theta
+      data_diff_2[*,*,0] = 0.
+      undefine, data_diff_ft
+    endif
+    
+    save, file = file_struct.kcube_savefile, data_sum_1, data_sum_2, data_diff_1, data_diff_2, sigma2_1, sigma2_2, n_val, $
       kx_mpc, ky_mpc, kz_mpc, kperp_lambda_conv, delay_params, hubble_param, n_freq_contrib, freq_mask, vs_name, vs_mean
       
   endif else begin
-  
+    ;; these an and bn calculations don't match the standard
+    ;; convention (they down by a factor of 2) but they make more sense
+    ;; and remove factors of 2 we'd otherwise have in the power
+    ;; and variance calculations
+    ;; note that the 0th mode will have higher noise because there's half as many measurements going into it
+    a1_0 = data_sum_ft[*,*,where(n_val eq 0)]
+    a1_n = (data_sum_ft[*,*, where(n_val gt 0)] + data_sum_ft[*,*, reverse(where(n_val lt 0))])/2.
+    b1_n = complex(0,1) * (data_sum_ft[*,*, where(n_val gt 0)] - data_sum_ft[*,*, reverse(where(n_val lt 0))])/2.
+    undefine, data_sum_ft
+    
+    if nfiles gt 1 then begin
+      a2_0 = data_diff_ft[*,*,where(n_val eq 0)]
+      a2_n = (data_diff_ft[*,*, where(n_val gt 0)] + data_diff_ft[*,*, reverse(where(n_val lt 0))])/2.
+      b2_n = complex(0,1) * (data_diff_ft[*,*, where(n_val gt 0)] - data_diff_ft[*,*, reverse(where(n_val lt 0))])/2.
+      undefine, data_diff_ft
+    endif
+    
     ;; drop pixels with less than 1/3 of the frequencies (set weights to 0)
     wh_fewfreq = where(n_freq_contrib lt ceil(n_freq/3d), count_fewfreq)
     if count_fewfreq gt 0 then begin
@@ -1155,16 +1254,17 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
     
     data_sum_cos = complex(fltarr(n_kx, n_ky, n_kz))
     data_sum_sin = complex(fltarr(n_kx, n_ky, n_kz))
-    data_sum_cos[*, *, 0] = a1_0 /2.
+    data_sum_cos[*, *, 0] = a1_0 ;/2. changed 3/12/14.
     data_sum_cos[*, *, 1:n_kz-1] = a1_n
     data_sum_sin[*, *, 1:n_kz-1] = b1_n
     if nfiles gt 1 then begin
       data_diff_cos = complex(fltarr(n_kx, n_ky, n_kz))
       data_diff_sin = complex(fltarr(n_kx, n_ky, n_kz))
-      data_diff_cos[*, *, 0] = a2_0 /2.
+      data_diff_cos[*, *, 0] = a2_0 ;/2. changed 3/12/14.
       data_diff_cos[*, *, 1:n_kz-1] = a2_n
       data_diff_sin[*, *, 1:n_kz-1] = b2_n
     endif
+    
     
     ;; for new power calc, need cos2, sin2, cos*sin transforms
     ;; have to do this in a for loop for memory's sake
@@ -1206,8 +1306,9 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
       undefine, mask_fewfreq
     endif
     
-    ;; cos 0 term has different normalization
-    covar_cos[*,*,0] = covar_cos[*,*,0]/4d
+    ;; cos 0 term does NOT have a different normalization
+    ;; changed 3/12/14 -- the noise is higher in 0th bin because there are only half as many measurements
+    ;;covar_cos[*,*,0] = covar_cos[*,*,0]/4d
     undefine, sum_sigma2, freq_kz_arr, cos_arr, sin_arr
     
     ;; factor to go to eor theory FT convention
@@ -1227,6 +1328,9 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
     sigma2_1 = covar_cos*cos_theta^2. + 2.*covar_cross*cos_theta*sin_theta + covar_sin*sin_theta^2.
     sigma2_2 = covar_cos*sin_theta^2. - 2.*covar_cross*cos_theta*sin_theta + covar_sin*cos_theta^2.
     
+    ;    sigma2_1 = covar_cos
+    ;    sigma2_2 = covar_sin
+    
     undefine, covar_cos, covar_sin, covar_cross
     
     data_sum_1 = data_sum_cos*cos_theta + data_sum_sin*sin_theta
@@ -1237,6 +1341,15 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
       data_diff_2 = (-1d)*data_diff_cos*sin_theta + data_diff_sin*cos_theta
       undefine, data_diff_cos, data_diff_sin
     endif
+    
+    ;    data_sum_1 = data_sum_cos
+    ;    data_sum_2 = data_sum_sin
+    ;    undefine, data_sum_cos, data_sum_sin
+    ;    if nfiles eq 2 then begin
+    ;      data_diff_1 = data_diff_cos
+    ;      data_diff_2 = data_diff_sin
+    ;      undefine, data_diff_cos, data_diff_sin
+    ;    endif
     
     save, file = file_struct.kcube_savefile, data_sum_1, data_sum_2, data_diff_1, data_diff_2, sigma2_1, sigma2_2, $
       kx_mpc, ky_mpc, kz_mpc, kperp_lambda_conv, delay_params, hubble_param, n_freq_contrib, freq_mask, vs_name, vs_mean

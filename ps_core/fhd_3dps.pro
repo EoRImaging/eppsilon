@@ -2,7 +2,7 @@ pro fhd_3dps, file_struct, refresh = refresh, kcube_refresh = kcube_refresh, dft
     dft_refresh_weight = dft_refresh_weight, dft_ian = dft_ian, cut_image = cut_image, image = image, $
     dft_fchunk = dft_fchunk, freq_ch_range = freq_ch_range, freq_flags = freq_flags, $
     spec_window_type = spec_window_type, $
-    noise_sim = noise_sim, std_power = std_power, no_kzero = no_kzero, log_kpar = log_kpar, $
+    std_power = std_power, no_kzero = no_kzero, log_kpar = log_kpar, $
     log_kperp = log_kperp, kperp_bin = kperp_bin, kpar_bin = kpar_bin, log_k1d = log_k1d, k1d_bin = k1d_bin, $
     input_units = input_units, fill_holes = fill_holes, quiet = quiet
     
@@ -37,7 +37,7 @@ pro fhd_3dps, file_struct, refresh = refresh, kcube_refresh = kcube_refresh, dft
       fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weight = dft_refresh_weight, dft_ian = dft_ian, $
       dft_fchunk = dft_fchunk, freq_ch_range = freq_ch_range, freq_flags = freq_flags, $
       cut_image = cut_image, image = image, $
-      spec_window_type = spec_window_type, noise_sim = noise_sim, std_power = std_power, input_units = input_units, /quiet
+      spec_window_type = spec_window_type, std_power = std_power, input_units = input_units, /quiet
       
     if nfiles eq 1 then begin
       restore, file_struct.kcube_savefile
@@ -46,53 +46,34 @@ pro fhd_3dps, file_struct, refresh = refresh, kcube_refresh = kcube_refresh, dft
       n_ky = n_elements(ky_mpc)
       n_kz = n_elements(kz_mpc)
       
-      if keyword_set(std_power) then begin
-        power_3d = fltarr(n_kx, n_ky, n_kz)
-        power_3d[*,*,0] = (a1_0 * conj(a1_0))/4d
-        power_3d[*,*,1:n_kz-1] = ((a1_n * conj(a1_n)) + (b1_n * conj(b1_n)))/2d
-        
-        sigma2_3d = dblarr(n_kx, n_ky, n_kz)
-        sigma2_3d[*,*,0] = sigma_a0^2d
-        sigma2_3d[*,*,1:n_kz-1] = 4d*(sigma_an_bn)^2d
-        
-        weights_3d = 1d/sigma2_3d
-        wh_sig0 = where(sigma2_3d eq 0, count_sig0)
-        if count_sig0 gt 0 then weights_3d[wh_sig0] = 0
-        sigma2_3d=0
-        
-        noise_expval_3d = sqrt(weights_3d)
-        
-      endif else begin
+      ;; now construct weights for power (mag. squared) = 1/power variance
+      power_weights1 = 1d/(4*(sigma2_1)^2d)
+      wh_sig1_0 = where(sigma2_1^2d eq 0, count_sig1_0)
+      if count_sig1_0 ne 0 then power_weights1[wh_sig1_0] = 0
+      term1 = abs(data_sum_1)^2.*power_weights1
+      undefine, data_sum_1
       
-        ;; now construct weights for power (mag. squared) = 1/power variance
-        power_weights1 = 1d/(4*(sigma2_1)^2d)
-        wh_sig1_0 = where(sigma2_1^2d eq 0, count_sig1_0)
-        if count_sig1_0 ne 0 then power_weights1[wh_sig1_0] = 0
-        term1 = real_part(data_sum_1 * conj(data_sum_1))*power_weights1
-        undefine, data_sum_1
-        
-        power_weights2 = 1d/(4*(sigma2_2)^2d) ;; inverse variance
-        wh_sig2_0 = where(sigma2_2^2d eq 0, count_sig2_0)
-        if count_sig2_0 ne 0 then power_weights2[wh_sig2_0] = 0
-        term2 = real_part(data_sum_2 * conj(data_sum_2))*power_weights2
-        undefine, data_sum_2
-        
-        noise_expval_3d = sqrt(power_weights1) + sqrt(power_weights2)
-        
-        weights_3d = (power_weights1 + power_weights2) ;; variance_3d = 1/weights_3d
-        undefine, power_weights1, power_weights2
-        
-        power_3d = (term1 + term2) / weights_3d
-        noise_expval_3d = noise_expval_3d / weights_3d
-        wh_wt0 = where(weights_3d eq 0, count_wt0)
-        if count_wt0 ne 0 then begin
-          power_3d[wh_wt0] = 0
-          noise_expval_3d[wh_wt0] = 0
-        endif
-        
-        undefine, term1, term2
-        
-      endelse
+      power_weights2 = 1d/(4*(sigma2_2)^2d) ;; inverse variance
+      wh_sig2_0 = where(sigma2_2^2d eq 0, count_sig2_0)
+      if count_sig2_0 ne 0 then power_weights2[wh_sig2_0] = 0
+      term2 = abs(data_sum_2)^2.*power_weights2
+      undefine, data_sum_2
+      
+      noise_expval_3d = sqrt(power_weights1) + sqrt(power_weights2)
+      
+      weights_3d = (power_weights1 + power_weights2) ;; variance_3d = 1/weights_3d
+      undefine, power_weights1, power_weights2
+      
+      power_3d = (term1 + term2) / weights_3d
+      noise_expval_3d = noise_expval_3d / weights_3d
+      wh_wt0 = where(weights_3d eq 0, count_wt0)
+      if count_wt0 ne 0 then begin
+        power_3d[wh_wt0] = 0
+        noise_expval_3d[wh_wt0] = 0
+      endif
+      
+      undefine, term1, term2
+      
     endif else begin
       ;; nfiles=2
       restore, file_struct.kcube_savefile
@@ -100,119 +81,43 @@ pro fhd_3dps, file_struct, refresh = refresh, kcube_refresh = kcube_refresh, dft
       n_ky = n_elements(ky_mpc)
       n_kz = n_elements(kz_mpc)
       
-      if keyword_set(std_power) then begin
-        cube1_an = complex(fltarr(n_kx, n_ky, n_kz))
-        cube1_an[*,*,0] = temporary(a1_0)/2d
-        cube1_an[*,*,1:n_kz-1] = temporary(a1_n)/sqrt(2d)
-        cube1_bn = complex(fltarr(n_kx, n_ky, n_kz))
-        cube1_bn[*,*,1:n_kz-1] = temporary(b1_n)/sqrt(2d)
-        
-        sigsqr = fltarr(n_kx, n_ky, n_kz)
-        sigsqr[*,*,0] = temporary(sigma_a0)/2d
-        sigsqr[*,*,1:n_kz-1] = temporary(sigma_an_bn)
-        
-        cube2_an = complex(fltarr(n_kx, n_ky, n_kz))
-        cube2_an[*,*,0] = temporary(a2_0)/2d
-        cube2_an[*,*,1:n_kz-1] = temporary(a2_n)/sqrt(2d)
-        cube2_bn = complex(fltarr(n_kx, n_ky, n_kz))
-        cube2_bn[*,*,1:n_kz-1] = temporary(b2_n)/sqrt(2d)
-        
-        
-        term1 = 4. * real_part(cube1_an * conj(cube2_an))
-        term2 = 4. * real_part(cube1_bn * conj(cube2_bn))
-        noise_3d = abs(cube1_an - cube2_an)^2. + abs(cube1_bn - cube2_bn)^2.
-        undefine, cube1_an, cube2_an, cube1_bn, cube2_bn
-        
-        ;;power_main = abs(term1 + term2)
-        ;;power_cross = abs(term3 + term4)
-        power_3d = term1 + term2
-        undefine, term1, term2
-        
-        noise_expval_3d = 2 * sigsqr
-
-        weights_3d = 1d/(4.*sigsqr^2.)
-        wh_sig_0 = where(sigsqr eq 0, count_sig0)
-        if count_sig0 gt 0 then weights_3d[wh_sig_0] = 0
-        undefine, sigsqr
-        
-      endif else begin
+      ;; now construct weights for power (mag. squared) = 1/power variance
+      power_weights1 = 1d/(4*(sigma2_1)^2d)
+      wh_sig1_0 = where(sigma2_1^2d eq 0, count_sig1_0)
+      if count_sig1_0 ne 0 then power_weights1[wh_sig1_0] = 0
+      undefine, sigma2_1
       
-        ;; now construct weights for power (mag. squared) = 1/power variance
-        power_weights1 = 1d/(4*(sigma2_1)^2d)
-        wh_sig1_0 = where(sigma2_1^2d eq 0, count_sig1_0)
-        if count_sig1_0 ne 0 then power_weights1[wh_sig1_0] = 0
-        undefine, sigma2_1
-        
-        power_weights2 = 1d/(4*(sigma2_2)^2d) ;; inverse variance
-        wh_sig2_0 = where(sigma2_2^2d eq 0, count_sig2_0)
-        if count_sig2_0 ne 0 then power_weights2[wh_sig2_0] = 0
-        undefine, sigma2_1
-        
-        term1 = (abs(data_sum_1)^2. - abs(data_diff_1)^2.) * power_weights1
-        term2 = (abs(data_sum_2)^2. - abs(data_diff_2)^2.) * power_weights2
-        undefine, data_sum_1, data_sum_2
-        
-        noise_t1 = abs(data_diff_1)^2. * power_weights1
-        noise_t2 = abs(data_diff_2)^2. * power_weights2
-        undefine, data_diff_1, data_diff_2
-        
-        noise_expval_3d = sqrt(power_weights1) + sqrt(power_weights2)
-        
-        weights_3d = power_weights1 + power_weights2 ;; variance_3d = 1/weights_3d
-        undefine, power_weights1, power_weights2
-        
-        ;; divide by 4 on power b/c otherwise it would be 4*Re(even-odd crosspower)
-        power_3d = (term1 + term2) / (4. * weights_3d)
-        noise_3d = (noise_t1 + noise_t2) / weights_3d
-        noise_expval_3d= noise_expval_3d / weights_3d
-        undefine, term1, term2, noise_t1, noise_t2
-        
-        wh_wt0 = where(weights_3d eq 0, count_wt0)
-        if count_wt0 ne 0 then begin
-          power_3d[wh_wt0] = 0
-          noise_expval_3d[wh_wt0] = 0
-          noise_3d[wh_wt0] = 0
-        endif
-        
-      ;; quick_histplot, noise_3d[182,0,*], /logdata, binsize=0.1, plot_range=[1e5, 1e12]
-      ;; cgplot, /overplot, replicate(mean(sqrt(1/weights_3d[182,0,*])), 2), [0, n_kz], psym=-3, linestyle=2
-      ;; quick_histplot, noise_3d[185,0,*], /logdata, binsize=0.1, /overplot, color='red'
-      ;; cgplot, /overplot, replicate(mean(sqrt(1/weights_3d[185,0,*])), 2), [0, n_kz], psym=-3, linestyle=2, color='red'
-      ;; quick_histplot, noise_3d[192,0,*], /logdata, binsize=0.1, /overplot, color='blue'
-      ;; cgplot, /overplot, replicate(mean(sqrt(1/weights_3d[192,0,*])), 2), [0, n_kz], psym=-3, linestyle=2, color='blue'
-      ;; quick_histplot, noise_3d[320,0,*], /logdata, binsize=0.1, /overplot, color='tg6'
-      ;; cgplot, /overplot, replicate(mean(sqrt(1/weights_3d[320,0,*])), 2), [0, n_kz], psym=-3, linestyle=2, color='tg6'
-      ;; al_legend, ['[u,v] ' + textoidl('(\lambda)') + ':', '[5.6,0]', '[9.9,0]', '[19.8, 0]', '[200.5,0]'], $
-      ;;            textcolor = ['black', 'black', 'red', 'blue', 'tg6'], /right, /clear
-        
-      ;; quick_image, power_3d[*,0,*], kx_mpc, kz_mpc, /log, title = 'Full power', $
-      ;;              xtitle = 'kx (Mpc!U-1!N)', ytitle = 'kz (Mpc!U-1!N)', data_range = data_range
-      ;; quick_image, power_main[*,0,*], kx_mpc, kz_mpc, /log, title = 'Main power', $
-      ;;              xtitle = 'kx (Mpc!U-1!N)', ytitle = 'kz (Mpc!U-1!N)', data_range = data_range
-      ;; quick_image, power_cross[*,0,*], kx_mpc, kz_mpc, /log, title = 'Cross power', $
-      ;;              xtitle = 'kx (Mpc!U-1!N)', ytitle = 'kz (Mpc!U-1!N)', data_range = data_range
-        
-      ;; quick_image, power_main[*,0,1:*]/power_cross[*,0,1:*], kx_mpc, kz_mpc[1:*], /log, title = 'Main/Cross power ratio', $
-      ;;              xtitle = 'kx (Mpc!U-1!N)', ytitle = 'kz (Mpc!U-1!N)'
-        
-      ;; quick_image, noise[*,0,*], kx_mpc, kz_mpc, /log, title = 'Noise', $
-      ;;              xtitle = 'kx (Mpc!U-1!N)', ytitle = 'kz (Mpc!U-1!N)'
-        
-      ;; quick_image, power_3d[*,0,*]/noise[*,0,*], kx_mpc, kz_mpc, /log, title = 'Power/Noise', $
-      ;;              xtitle = 'kx (Mpc!U-1!N)', ytitle = 'kz (Mpc!U-1!N)'
-      ;; quick_image, power_3d[*,0,*]-noise[*,0,*], kx_mpc, kz_mpc, /log, title = 'Power-Noise', $
-      ;;              xtitle = 'kx (Mpc!U-1!N)', ytitle = 'kz (Mpc!U-1!N)'
-      ;; quick_image, (power_3d[*,0,*]-noise[*,0,*])/noise[*,0,*], kx_mpc, kz_mpc, /log, title = 'SNR', $
-      ;;              xtitle = 'kx (Mpc!U-1!N)', ytitle = 'kz (Mpc!U-1!N)'
-        
-      ;; quick_image, weights_3d[*,0,*], kx_mpc, kz_mpc, /log, title = 'Full weights', $
-      ;;              xtitle = 'kx (Mpc!U-1!N)', ytitle = 'kz (Mpc!U-1!N)'
-      ;; quick_image, weights_main[*,0,*], kx_mpc, kz_mpc, /log, title = 'Main weights', $
-      ;;              xtitle = 'kx (Mpc!U-1!N)', ytitle = 'kz (Mpc!U-1!N)', data_range = wt_data_range
-      ;; quick_image, weights_cross[*,0,*], kx_mpc, kz_mpc, /log, title = 'Cross weights', $
-      ;;              xtitle = 'kx (Mpc!U-1!N)', ytitle = 'kz (Mpc!U-1!N)', data_range = wt_data_range
-        
-      endelse
+      power_weights2 = 1d/(4*(sigma2_2)^2d) ;; inverse variance
+      wh_sig2_0 = where(sigma2_2^2d eq 0, count_sig2_0)
+      if count_sig2_0 ne 0 then power_weights2[wh_sig2_0] = 0
+      undefine, sigma2_1
+      
+      term1 = (abs(data_sum_1)^2. - abs(data_diff_1)^2.) * power_weights1
+      term2 = (abs(data_sum_2)^2. - abs(data_diff_2)^2.) * power_weights2
+      undefine, data_sum_1, data_sum_2
+      
+      noise_t1 = abs(data_diff_1)^2. * power_weights1
+      noise_t2 = abs(data_diff_2)^2. * power_weights2
+      undefine, data_diff_1, data_diff_2
+      
+      noise_expval_3d = sqrt(power_weights1) + sqrt(power_weights2)
+      
+      weights_3d = power_weights1 + power_weights2 ;; variance_3d = 1/weights_3d
+      undefine, power_weights1, power_weights2
+      
+      ;; divide by 4 on power b/c otherwise it would be 4*Re(even-odd crosspower)
+      power_3d = (term1 + term2) / (4. * weights_3d)
+      noise_3d = (noise_t1 + noise_t2) / weights_3d
+      noise_expval_3d= noise_expval_3d / weights_3d
+      undefine, term1, term2, noise_t1, noise_t2
+      
+      wh_wt0 = where(weights_3d eq 0, count_wt0)
+      if count_wt0 ne 0 then begin
+        power_3d[wh_wt0] = 0
+        noise_expval_3d[wh_wt0] = 0
+        noise_3d[wh_wt0] = 0
+      endif
+      
     endelse
     
     save, file = file_struct.power_savefile, power_3d, noise_3d, noise_expval_3d, weights_3d, $
@@ -239,7 +144,7 @@ pro fhd_3dps, file_struct, refresh = refresh, kcube_refresh = kcube_refresh, dft
     n_kz = n_elements(kz_mpc)
   endif
   
-   power_tag = file_struct.power_tag
+  power_tag = file_struct.power_tag
   
   fadd_2dbin = ''
   ;;if keyword_set(fill_holes) then fadd_2dbin = fadd_2dbin + '_nohole'
@@ -249,7 +154,7 @@ pro fhd_3dps, file_struct, refresh = refresh, kcube_refresh = kcube_refresh, dft
   
   fadd_1dbin = ''
   if keyword_set(log_k) then fadd_1dbin = fadd_1dbin + '_logk'
- 
+  
   savefile = file_struct.savefile_froot + file_struct.savefilebase + power_tag + fadd_2dbin + '_2dkpower.idlsave'
   
   print, 'Binning to 2D power spectrum'
@@ -344,15 +249,15 @@ pro fhd_3dps, file_struct, refresh = refresh, kcube_refresh = kcube_refresh, dft
     kpower_1d_plots, savefile, window_num = 5
   endif
   
-;; eor_file_1d = base_path() + 'power_spectrum/eor_data/eor_power_1d.idlsave'
-;; file_arr = [savefile, eor_file_1d]
-;; if keyword_set(eor_only) then begin
-;;    if keyword_set(eor_test) then names_arr = 'Input EoR' else names_arr = 'Simulated EoR'
-;; endif else names_arr = 'Simulation PS'
-;; names_arr = [names_arr, 'EoR signal']
-;; colors_arr = [0, 254]
+  ;; eor_file_1d = base_path() + 'power_spectrum/eor_data/eor_power_1d.idlsave'
+  ;; file_arr = [savefile, eor_file_1d]
+  ;; if keyword_set(eor_only) then begin
+  ;;    if keyword_set(eor_test) then names_arr = 'Input EoR' else names_arr = 'Simulated EoR'
+  ;; endif else names_arr = 'Simulation PS'
+  ;; names_arr = [names_arr, 'EoR signal']
+  ;; colors_arr = [0, 254]
   
-;;   if not keyword_set(quiet) then begin
-;;      kpower_1d_plots, file_arr, window_num = 5, names = names_arr, colors = colors_arr
-;;   endif
+  if not keyword_set(quiet) then begin
+    kpower_1d_plots, file_arr, window_num = 5, names = names_arr, colors = colors_arr
+  endif
 end

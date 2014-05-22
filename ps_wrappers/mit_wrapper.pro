@@ -1,9 +1,9 @@
-pro mit_wrapper, folder_name, obs_range, rts = rts, refresh_dft = refresh_dft, refresh_ps = refresh_ps, $
+pro mit_wrapper, folder_name, obs_range, n_obs=n_obs, rts = rts, refresh_dft = refresh_dft, refresh_ps = refresh_ps, $
     refresh_binning = refresh_binning, refresh_info = refresh_info, pol_inc = pol_inc, no_spec_window = no_spec_window, $
-    spec_window_type = spec_window_type, freq_ch_range = freq_ch_range, individual_plots = individual_plots, $
+    spec_window_type = spec_window_type, sim = sim, freq_ch_range = freq_ch_range, individual_plots = individual_plots, $
     png = png, eps = eps, plot_slices = plot_slices, slice_type = slice_type, $
     kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, set_data_ranges = set_data_ranges
-    
+
   ;; The only required input is the datafile name (including the full path)
     
   if keyword_set(rts) then begin
@@ -69,8 +69,12 @@ pro mit_wrapper, folder_name, obs_range, rts = rts, refresh_dft = refresh_dft, r
         if n_elements(obs_range) gt 1 then $
           message, 'obs_range can be specified as a single string to use as the name or as a 2 element obsid range'
         obs_name = obs_range
-        obs_range = long(strsplit(obs_name, '-', /extract))
-        if n_elements(obs_range) eq 1 then obs_name_single = obs_name
+        obs_name_single = obs_name
+        if n_elements(n_obs) eq 0 then begin
+          obs_range = long(strsplit(obs_name, '-', /extract))
+          n_obs = (obs_range[1]-obs_range[0])/120. + 1
+          if n_elements(obs_range) eq 1 then obs_name_single = obs_name
+        endif else obs_name_single = obs_name
       endif else begin
         if n_elements(obs_range) gt 2 then message, 'obs_range can be specified as a single string to use as the name or as a 2 element obsid range'
         if n_elements(obs_range) eq 2 then obs_name = number_formatter(obs_range[0]) + '-' + number_formatter(obs_range[1]) else begin
@@ -91,11 +95,10 @@ pro mit_wrapper, folder_name, obs_range, rts = rts, refresh_dft = refresh_dft, r
         datafile = info_file[0]
         obs_name = stregex(datafile, '[0-9]+-[0-9]+', /extract)
         obs_range = long(strsplit(obs_name, '-', /extract))
+        n_obs = (obs_range[1]-obs_range[0])/120. + 1
       endif else begin
         if n_infofile gt 1 then message, 'More than one info file found with given obs_range'
         datafile = info_file[0]
-        obs_name = stregex(datafile, '[0-9]+-[0-9]+', /extract)
-        obs_range = long(strsplit(obs_name, '-', /extract))
       endelse
       
       save_path = folder_name + '/ps/'
@@ -109,11 +112,11 @@ pro mit_wrapper, folder_name, obs_range, rts = rts, refresh_dft = refresh_dft, r
           datafile = info_file[0]
           obs_name = stregex(info_basename[0], '[0-9]+', /extract)
           obs_range = long(obs_name)
+          n_obs=1
         endif else begin
           if n_infofile gt 1 then message, 'More than one info file found with given obs_range'
           datafile = info_file[0]
-          obs_name = stregex(info_basename[0], '[0-9]+', /extract)
-          obs_range = long(obs_name)
+          n_obs=1
         endelse
         
         save_path = folder_name + '/ps/'
@@ -123,6 +126,8 @@ pro mit_wrapper, folder_name, obs_range, rts = rts, refresh_dft = refresh_dft, r
     if n_infofile eq 0 then begin
       ;; first look for integrated cube files with names like Combined_obs_...
       cube_files = file_search(folder_name + '/Healpix/Combined_obs_' + obs_name + '*_cube.sav', count = n_cubefiles)
+      cube_files = cube_files[where(strmatch(cube_files,'*'+obs_name+'_[eo][vd]*_cube.sav',/fold_case) eq 1)] ; get rid of ambiguous files
+      n_cubefiles=n_elements(cube_files)
       if n_cubefiles gt 0 then begin
         if obs_name eq '' then begin
           obs_name_arr = stregex(cube_files, '[0-9]+-[0-9]+', /extract)
@@ -133,14 +138,13 @@ pro mit_wrapper, folder_name, obs_range, rts = rts, refresh_dft = refresh_dft, r
           datafile = cube_files[wh_first]
           obs_name = obs_name_arr[0]
           obs_range = long(strsplit(obs_name, '-', /extract))
+          n_obs = (obs_range[1]-obs_range[0])/120. + 1
         endif else begin
           if n_elements(cube_files) gt 2 then message, 'More than two cubes found with given obs_range'
           
           datafile = cube_files
           obs_name_arr = stregex(cube_files, '[0-9]+-[0-9]+', /extract)
-          if obs_name_arr[1] ne obs_name_arr[0] then message, 'Cube files do not have the same obs ranges.'
-          obs_name = obs_name_arr[0]
-          obs_range = long(strsplit(obs_name, '-', /extract))
+          if obs_name_arr[1] ne obs_name_arr[0] then message, 'Cube files do not have the same obs names.'
         endelse
         
         ;; set the save_path to a 'ps' directory one level up from the datafile directory and create the directory if it doesn't exist
@@ -160,14 +164,12 @@ pro mit_wrapper, folder_name, obs_range, rts = rts, refresh_dft = refresh_dft, r
             datafile = cube_files[wh_first]
             obs_name = obs_name_arr[0]
             obs_range = long(obs_name)
+            n_obs=1
           endif else begin
             if n_elements(cube_files) gt 2 then message, 'More than two cubes found with given obs_range'
             
             datafile = cube_files
-            obs_name_arr = stregex(cube_basename, '[0-9]+', /extract)
-            if obs_name_arr[1] ne obs_name_arr[0] then message, 'Cube files do not have the same obs ranges.'
-            obs_name = obs_name_arr[0]
-            obs_range = long(obs_name)
+            n_obs=1
           endelse
           
           ;; set the save_path to a 'ps' directory in the datafile directory and create the directory if it doesn't exist
@@ -176,17 +178,26 @@ pro mit_wrapper, folder_name, obs_range, rts = rts, refresh_dft = refresh_dft, r
         endif
       endif
     endif
-     
+    
     if n_elements(datafile) eq 0 then message, 'No cube or info files found in folder ' + folder_name
+    print,'datafile = '+datafile
     
-    if n_elements(obs_range) eq 1 then integrated = 0 else if obs_range[1] - obs_range[0] gt 0 then integrated = 1 else integrated = 0
-    
+    if n_obs gt 1 then integrated = 1 $
+    else if n_obs eq 1 then integrated = 0 $
+    else if obs_range[1] - obs_range[0] gt 0 then integrated = 1
+
     if n_elements(set_data_ranges) eq 0 then set_data_ranges = 1
-    if keyword_set(set_data_ranges) then begin
-      if keyword_set(integrated) then sigma_range = [2e0, 2e2] else sigma_range = [1e2, 2e4]
-      if keyword_set(integrated) then nev_range = [5e0, 2e3] else nev_range = [5e2, 2e5]
-      
-      data_range = [1e-2, 1e8]
+    if keyword_set(set_data_ranges) then begin     
+      if keyword_set(integrated) then begin
+        sigma_range = [2e0, 2e4]
+        nev_range = [5e2, 2e5]
+      endif else begin
+        sigma_range = [1e4, 2e6]
+        nev_range = [5e4, 2e7]
+      endelse
+
+
+      data_range = [1e0, 1e10]
       nnr_range = [1e-1, 1e1]
       snr_range = [1e-4, 1e6]
       
@@ -261,12 +272,12 @@ pro mit_wrapper, folder_name, obs_range, rts = rts, refresh_dft = refresh_dft, r
     pol_inc = pol_inc, rts = rts, $
     refresh_dft = refresh_dft, refresh_ps = refresh_ps, refresh_binning = refresh_binning, refresh_info = refresh_info, $
     freq_ch_range = freq_ch_range, no_spec_window = no_spec_window, spec_window_type = spec_window_type, $
-    cut_image = cut_image, $
+    sim = sim, cut_image = cut_image, $
     log_kpar = log_kpar, log_kperp = log_kperp, kpar_bin = kpar_bin, kperp_bin = kperp_bin, log_k1d = log_k1d, $
     k1d_bin = k1d_bin, kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, $
     data_range = data_range, sigma_range = sigma_range, nev_range = nev_range, snr_range = snr_range, noise_range = noise_range, nnr_range = nnr_range, $
     baseline_axis = baseline_axis, delay_axis = delay_axis, hinv = hinv, $
-    plot_wedge_line = plot_wedge_line, grey_scale = grey_scale, individual_plots = individual_plot, png = png, eps = eps
+    plot_wedge_line = plot_wedge_line, individual_plots = individual_plot, png = png, eps = eps
     
   if not keyword_set(set_data_ranges) then begin
     print, 'data_range used: ', number_formatter(data_range, format = '(e7.1)')

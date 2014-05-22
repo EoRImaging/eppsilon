@@ -1,269 +1,91 @@
-pro hellebore_wrapper, folder_name, rts = rts, version = version, refresh_dft = refresh_dft, refresh_ps = refresh_ps, $
+pro hellebore_wrapper, folder_name, obs_range, rts = rts, casa = casa, version = version, refresh_dft = refresh_dft, refresh_ps = refresh_ps, $
     refresh_binning = refresh_binning, refresh_info = refresh_info, dft_ian = dft_ian, $
     pol_inc = pol_inc, sim = sim, freq_ch_range = freq_ch_range, freq_flag_name = freq_flag_name, $
-    no_spec_window = no_spec_window, spec_window_type = spec_window_type, std_power = std_power, noise_sim = noise_sim, $
-    cut_image = cut_image, individual_plots = individual_plots, plot_filebase = plot_filebase, png = png, eps = eps, $
-    plot_slices = plot_slices, slice_type = slice_type, $
+    no_spec_window = no_spec_window, spec_window_type = spec_window_type, std_power = std_power, $
+    cut_image = cut_image, individual_plots = individual_plots, plot_filebase = plot_filebase, png = png, eps = eps, pdf = pdf, $
+    plot_slices = plot_slices, slice_type = slice_type, uvf_plot_type = uvf_plot_type, $
     kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, t32 = t32, set_data_ranges = set_data_ranges
     
-  if keyword_set(rts) then begin
-    ;    froot = base_path('data') + 'rts_data/test2/'
-    ;
-    ;    data_dir = froot + 'BdaggerV/'
-    ;    datafiles = file_search(data_dir + '*.fits')
-    ;
-    ;    weights_dir = froot + 'Bdagger1/'
-    ;    weightfiles = file_search(weights_dir + '*.fits')
-    ;
-    ;    variance_dir = froot + 'BdaggerB/'
-    ;    variancefiles = file_search(variance_dir + '*.fits')
-    ;
-    ;    datafile =  rts_fits2idlcube(datafiles, weightfiles, variancefiles, pol_inc, save_path = froot)
+  if n_elements(folder_name) eq 0 then message, 'folder name is required'
+  if n_elements(folder_name) gt 1 then message, 'Only one folder_name can be supplied'
   
-    ;datafile = file_search(base_path('data') + 'rts_data/wellington_data2/*idlcube.idlsave')
   
-    if n_elements(folder_name) eq 0 then folder_name = base_path('data') + 'rts_data/aug26'
-    
-    ;; check for folder existence, otherwise look for common folder names to figure out full path. If none found, try base_path('data') + 'fhd_ps_data/128T_cubes/'
-    folder_test = file_test(folder_name, /directory)
-    if folder_test eq 0 then begin
-      pos_rts_data = strpos(folder_name, 'rts_data')
-      if pos_rts_data gt -1 then begin
-        test_name = base_path('data') + strmid(folder_name, pos_rts_data)
-        folder_test = file_test(test_name, /directory)
-        if folder_test eq 1 then folder_name = test_name
-      endif
-    endif
-    if folder_test eq 0 then begin
-      test_name = base_path('data') + 'rts_data/' + folder_name
-      folder_test = file_test(test_name, /directory)
-      if folder_test eq 1 then folder_name = test_name
-    endif
-    
-    if folder_test eq 0 then message, 'folder not found'
-    
-    rts_type = file_basename(folder_name)
-    
-    if n_elements(obs_range) gt 0 then begin
-      if size(obs_range,/type) eq 7 then begin
-        if n_elements(obs_range) gt 1 then $
-          message, 'obs_range must be a single value for RTS  (string or number)'
-        obs_name = obs_range
-      endif else begin
-        if n_elements(obs_range) gt 1 then message, 'obs_range must be a single value for RTS  (string or number)'
+  if n_elements(obs_range) gt 0 then begin
+    if size(obs_range,/type) eq 7 then begin
+      if n_elements(obs_range) gt 1 then $
+        message, 'obs_range can be specified as a single string to use as the name or as a 2 element obsid range'
+      obs_name = obs_range
+    endif else begin
+      if n_elements(obs_range) gt 2 then message, 'obs_range can be specified as a single string to use as the name or as a 2 element obsid range'
+      if n_elements(obs_range) eq 2 then obs_name = number_formatter(obs_range[0]) + '-' + number_formatter(obs_range[1]) else begin
         obs_name = number_formatter(obs_range[0])
       endelse
-    endif else begin
-      obs_name = ''
     endelse
-    
-    ;; first look for info files
-    info_file = file_search(folder_name + '/' + obs_name + '*info*', count = n_infofile)
-    if n_infofile gt 0 then begin
-      if obs_name eq '' then begin
-        if n_infofile gt 1 then print, 'More than 1 info files found, using first one'
-        datafile = info_file[0]
-        obs_name = stregex(datafile, '[0-9]+.[0-9]+_', /extract)
-      endif else begin
-        if n_infofile gt 1 then message, 'More than one info file found with given obs_range'
-        datafile = info_file[0]
-        obs_name = stregex(datafile, '[0-9]+.[0-9]+_', /extract)
-      endelse
-      
-    endif
-    
-    if n_infofile eq 0 then begin
-      ;; then look for cube files
-      cube_files = file_search(folder_name + '/' + obs_name + '*_image*.fits', count = n_cubefiles)
-      if n_cubefiles gt 0 then begin
-        if obs_name eq '' then begin
-          obs_name_arr = stregex(cube_files, '[0-9]+.[0-9]+_', /extract)
-          wh_first = where(obs_name_arr eq obs_name_arr[0], count_first)
-          if count_first lt n_elements(cube_files) then $
-            print, 'More than one obs_range found, using first range (' + obs_name_arr[0] + ', ' + number_formatter(count_first) + ' files)'
-          datafiles = cube_files[wh_first]
-          obs_name = obs_name_arr[0]
-        endif else begin
-        
-          datafiles = cube_files
-          obs_name_arr = stregex(cube_files, '[0-9]+.[0-9]+_', /extract)
-          if obs_name_arr[1] ne obs_name_arr[0] then message, 'Cube files do not have the same obs ranges.'
-          obs_name = obs_name_arr[0]
-        endelse
-        
-       endif
-      
-      ;; now get weights & variance files
-      weightfiles = file_search(folder_name + '/' + obs_name + '*_weights*.fits', count = n_wtfiles)
-      if n_wtfiles ne n_elements(datafiles) then message, 'number of weight files does not match number of datafiles'
-      
-      variancefiles = file_search(folder_name + '/' + obs_name + '*_weights*.fits', count = n_varfiles)
-      if n_varfiles ne n_elements(datafiles) then message, 'number of variance files does not match number of datafiles'
-      
-      datafile =  rts_fits2idlcube(datafiles, weightfiles, variancefiles, pol_inc, save_path = folder_name)
-      
-    endif
-    
-    if n_elements(datafile) eq 0 then message, 'No cube or info files found in folder ' + folder_name
-    
-    plot_filebase = rts_type + '_' + obs_name
-    
-    
-    
-    
-    
-  endif else if keyword_set(sim) then begin
-    datafile = base_path('data') + 'fhd_sim_data/fhd_v300/Healpix/Sim_obs_' + ['even','odd']+ '_cube.sav'
-    
-  endif else begin
+  endif
   
-    if n_elements(folder_name) eq 0 then folder_name = base_path('data') + 'fhd_ps_data/128T_cubes/aug23_3hr_first'
+  obs_info = hellebore_filenames(folder_name, obs_name, sim = sim, rts = rts, casa = casa)
+  
+  if keyword_set(rts) then begin
+    if keyword_set(casa) then message, 'rts and casa keywords cannot both be set'
     
-    ;; check for folder existence, otherwise look for common folder names to figure out full path. If none found, try base_path('data') + 'fhd_ps_data/128T_cubes/'
-    folder_test = file_test(folder_name, /directory)
-    if folder_test eq 0 then begin
-      pos_fhd_data = strpos(folder_name, 'fhd_ps_data')
-      if pos_fhd_data gt -1 then begin
-        test_name = base_path('data') + strmid(folder_name, pos_fhd_data)
-        folder_test = file_test(test_name, /directory)
-        if folder_test eq 1 then folder_name = test_name
-      endif
-    endif
-    if folder_test eq 0 then begin
-      pos_fhd_128 = strpos(folder_name, '128T_cubes')
-      if pos_fhd_128 gt -1 then begin
-        test_name = base_path('data') + 'fhd_ps_data/' + strmid(folder_name, pos_fhd_128)
-        folder_test = file_test(test_name, /directory)
-        if folder_test eq 1 then folder_name = test_name
-      endif
-    endif
-    if folder_test eq 0 then begin
-      test_name = base_path('data') + 'fhd_ps_data/128T_cubes/' + folder_name
-      folder_test = file_test(test_name, /directory)
-      if folder_test eq 1 then folder_name = test_name
-    endif
+    if obs_info.info_files[0] ne '' then datafile = obs_info.info_files[0] else $
+    datafile = rts_fits2idlcube(obs_info.cube_files.(0), obs_info.weightfiles.(0), obs_info.variancefiles.(0), $
+    pol_inc, save_path = obs_info.folder_names[0]+path_sep(), refresh = refresh_dft)
     
-    if folder_test eq 0 then message, 'folder not found'
-    
-    fhd_type = file_basename(folder_name)
-    
-    if n_elements(obs_range) gt 0 then begin
-      if size(obs_range,/type) eq 7 then begin
-        if n_elements(obs_range) gt 1 then $
-          message, 'obs_range can be specified as a single string to use as the name or as a 2 element obsid range'
-        obs_name = obs_range
-        obs_range = long(strsplit(obs_name, '-', /extract))
-        if n_elements(obs_range) eq 1 then obs_name_single = obs_name
-      endif else begin
-        if n_elements(obs_range) gt 2 then message, 'obs_range can be specified as a single string to use as the name or as a 2 element obsid range'
-        if n_elements(obs_range) eq 2 then obs_name = number_formatter(obs_range[0]) + '-' + number_formatter(obs_range[1]) else begin
-          obs_name = number_formatter(obs_range[0]) + '-' + number_formatter(obs_range[0])
-          obs_name_single = number_formatter(obs_range[0])
-        endelse
-      endelse
-    endif else begin
-      obs_name = ''
-      obs_name_single = ''
-    endelse
-    
-    ;; first look for integrated info files with names like Combined_obs_...
-    info_file = file_search(folder_name + '/Combined_obs_*info*', count = n_infofile)
-    if n_infofile gt 0 then begin
-      if obs_name eq '' then begin
-        if n_infofile gt 1 then print, 'More than 1 info files found, using first one'
-        datafile = info_file[0]
-        obs_name = stregex(datafile, '[0-9]+-[0-9]+', /extract)
-        obs_range = long(strsplit(obs_name, '-', /extract))
-      endif else begin
-        if n_infofile gt 1 then message, 'More than one info file found with given obs_range'
-        datafile = info_file[0]
-        obs_name = stregex(datafile, '[0-9]+-[0-9]+', /extract)
-        obs_range = long(strsplit(obs_name, '-', /extract))
-      endelse
-      
-    endif else if n_elements(obs_range) lt 2 then begin
-      ;; then look for single obs info files
-      info_file = file_search(folder_name + '/' + obs_name_single + '*info*', count = n_infofile)
-      if n_infofile gt 0 then begin
-        info_basename = file_basename(info_file)
-        if obs_name eq '' then begin
-          if n_infofile gt 1 then print, 'More than 1 info files found, using first one'
-          datafile = info_file[0]
-          obs_name = stregex(info_basename[0], '[0-9]+', /extract)
-          obs_range = long(obs_name)
-        endif else begin
-          if n_infofile gt 1 then message, 'More than one info file found with given obs_range'
-          datafile = info_file[0]
-          obs_name = stregex(info_basename[0], '[0-9]+', /extract)
-          obs_range = long(obs_name)
-        endelse
-        
-      endif
-    endif
-    
-    if n_infofile eq 0 then begin
-      ;; first look for integrated cube files with names like Combined_obs_...
-      cube_files = file_search(folder_name + '/Combined_obs_' + obs_name + '*_cube.sav', count = n_cubefiles)
-      if n_cubefiles gt 0 then begin
-        if obs_name eq '' then begin
-          obs_name_arr = stregex(cube_files, '[0-9]+-[0-9]+', /extract)
-          wh_first = where(obs_name_arr eq obs_name_arr[0], count_first)
-          if count_first lt n_elements(cube_files) then $
-            print, 'More than one obs_range found, using first range (' + obs_name_arr[0] + ', ' + number_formatter(count_first) + ' files)'
-          if count_first gt 2 then message, 'More than two cubes found with first obs_range'
-          datafile = cube_files[wh_first]
-          obs_name = obs_name_arr[0]
-          obs_range = long(strsplit(obs_name, '-', /extract))
-        endif else begin
-          if n_elements(cube_files) gt 2 then message, 'More than two cubes found with given obs_range'
-          
-          obs_name_arr = stregex(cube_files, '[0-9]+-[0-9]+', /extract)
-          if obs_name_arr[1] ne obs_name_arr[0] then message, 'Cube files do not have the same obs ranges.'
-          obs_name = obs_name_arr[0]
-          obs_range = long(strsplit(obs_name, '-', /extract))
-        endelse
-        
-      endif else if n_elements(obs_range) lt 2 then begin
-        ;; then look for single obs cube files
-        cube_files = file_search(folder_name + '/' + obs_name + '*_cube.sav', count = n_cubefiles)
-        if n_cubefiles gt 0 then begin
-          cube_basename = file_basename(cube_files)
-          if obs_name eq '' then begin
-            obs_name_arr = stregex(cube_basename, '[0-9]+', /extract)
-            wh_first = where(obs_name_arr eq obs_name_arr[0], count_first)
-            if count_first lt n_elements(cube_files) then $
-              print, 'More than one obs_range found, using first range (' + obs_name_arr[0] + ', ' + number_formatter(count_first) + ' files)'
-            if count_first gt 2 then message, 'More than two cubes found with first obs_range'
-            datafile = cube_files[wh_first]
-            obs_name = obs_name_arr[0]
-            obs_range = long(obs_name)
-          endif else begin
-            if n_elements(cube_files) gt 2 then message, 'More than two cubes found with given obs_range'
-            
-            datafile = cube_files
-            obs_name_arr = stregex(cube_basename, '[0-9]+', /extract)
-            if obs_name_arr[1] ne obs_name_arr[0] then message, 'Cube files do not have the same obs ranges.'
-            obs_name = obs_name_arr[0]
-            obs_range = long(obs_name)
-          endelse
-          
-        endif
-      endif
-    endif
-    
-    if n_elements(datafile) eq 0 then message, 'No cube or info files found in folder ' + folder_name
-    
-    
-    if n_elements(obs_range) eq 1 then integrated = 0 else if obs_range[1] - obs_range[0] gt 0 then integrated = 1 else integrated = 0
-    
-    plot_filebase = fhd_type + '_' + obs_name
+    plot_filebase = obs_info.rts_types[0] + '_' + obs_info.obs_names[0]
     
     if n_elements(set_data_ranges) eq 0 then set_data_ranges = 1
     if keyword_set(set_data_ranges) then begin
-      if keyword_set(integrated) then sigma_range = [2e0, 2e2] else sigma_range = [1e2, 2e4]
-      if keyword_set(integrated) then nev_range = [5e0, 2e3] else nev_range = [5e2, 2e5]
+      sigma_range = [1e15, 1e17]
+      nev_range = [1e16, 1e18]
       
-      data_range = [1e-2, 1e8]
+      data_range = [1e6, 2e13]
+      nnr_range = [1e-8, 1e-6]
+      snr_range = [1e-10, 1e-2]
+      
+      noise_range = [1e9, 1e12]
+    endif
+    
+  endif else if keyword_set(casa) then begin
+  
+    if obs_info.info_files[0] ne '' then datafile = obs_info.info_files[0] else $
+      datafile = casa_fits2idlcube(obs_info.cube_files.(0), obs_info.weightfiles.(0), obs_info.variancefiles.(0), $
+      pol_inc, save_path = obs_info.folder_names[0]+path_sep(), refresh = refresh_dft)
+      
+    plot_filebase = obs_info.casa_types[0] ;+ '_' + obs_info.obs_names[0]
+    
+    if n_elements(set_data_ranges) eq 0 then set_data_ranges = 0
+    if keyword_set(set_data_ranges) then begin
+      sigma_range = [1e15, 1e17]
+      nev_range = [1e16, 1e18]
+      
+      data_range = [1e6, 2e13]
+      nnr_range = [1e-8, 1e-6]
+      snr_range = [1e-10, 1e-2]
+      
+      noise_range = [1e9, 1e12]
+    endif
+    
+  endif else begin
+  
+    if obs_info.info_files[0] ne '' then datafile = obs_info.info_files[0] else datafile = obs_info.cube_files.(0)
+    
+    plot_filebase = obs_info.fhd_types[0] + '_' + obs_info.obs_names[0]
+    note = obs_info.fhd_types[0]
+    
+    if keyword_set(sim) then plot_eor_1d=1
+    
+    if n_elements(set_data_ranges) eq 0 then set_data_ranges = 1
+    if keyword_set(set_data_ranges) then begin
+      if keyword_set(obs_info.integrated[0]) then begin
+        sigma_range = [2e0, 2e4]
+        nev_range = [5e2, 2e5]
+      endif else begin
+        sigma_range = [1e4, 2e6]
+        nev_range = [5e4, 2e7]
+      endelse
+      
+      data_range = [1e0, 1e10]
       nnr_range = [1e-1, 1e1]
       snr_range = [1e-4, 1e6]
       
@@ -303,39 +125,38 @@ pro hellebore_wrapper, folder_name, rts = rts, version = version, refresh_dft = 
   ;; This is also where the code looks for intermediate save files to avoid re-running code.
   ;; If this is parameter is not set, the files will be saved in the same directory as the datafile.
   
+  ;; plot_path specifies a location to save plot files.
+  ;; If this parameter is not set, the plots will be saved in the same directory as the datafile.
+  
+  ;  if keyword_set(rts) then std_savepath = base_path('data') + 'rts_data/' $
+  ;  else if keyword_set(sim) then std_savepath = base_path('data') + 'fhd_sim_data/' else std_savepath = base_path('data') + 'fhd_ps_data/'
+  ;
+  ;  if n_elements(save_path) gt 0 then begin
+  ;    pos = strpos(save_path, std_savepath)
+  ;    if pos ne -1 then save_path_ext = strmid(save_path, pos + strlen(std_savepath)) else save_path_ext = ''
+  ;    if keyword_set(rts) then plot_path = base_path('plots') + 'power_spectrum/rts_data/' + save_path_ext else $
+  ;      if keyword_set(sim) then plot_path = base_path('plots') + 'power_spectrum/fhd_sim/' + save_path_ext else $
+  ;      plot_path = base_path('plots') + 'power_spectrum/fhd_data/' + save_path_ext
+  ;  endif else begin
+  save_path = obs_info.folder_names[0] + path_sep()
+  plot_path = obs_info.plot_paths[0]
+  ;  endelse
+  
+  
   ;; the following sets the save_path to a 'psv'+version directory inside the datafile[0] directory and
   ;; creates the directory if it doesn't exist
   if n_elements(version) gt 0 then begin
-    save_path = file_dirname(datafile[0], /mark_directory) + 'psv' + number_formatter(version) + path_sep()
-    if not file_test(save_path, /directory) then file_mkdir, save_path
+    save_path = save_path + 'psv' + number_formatter(version) + path_sep()
+    plot_path = plot_path + 'psv' + number_formatter(version) + path_sep()
   endif
   
-  if keyword_set(rts) then std_savepath = base_path('data') + 'rts_data/' $
-  else if keyword_set(sim) then std_savepath = base_path('data') + 'fhd_sim_data/' else std_savepath = base_path('data') + 'fhd_ps_data/'
+  if not file_test(save_path, /directory) then file_mkdir, save_path
+  if not file_test(plot_path, /directory) then file_mkdir, plot_path
   
-  if n_elements(save_path) gt 0 then begin
-    pos = strpos(save_path, std_savepath)
-    if pos ne -1 then save_path_ext = strmid(save_path, pos + strlen(std_savepath)) else save_path_ext = ''
-  endif else begin
-    pos = strpos(file_dirname(datafile[0], /mark_directory), std_savepath)
-    if pos ne -1 then save_path_ext = strmid(file_dirname(datafile[0], /mark_directory), pos + strlen(std_savepath)) $
-    else save_path_ext = ''
-  endelse
   
   ;; savefilebase specifies a base name to use for the save files
   
-  
-  ;; plot_path specifies a location to save plot files.
-  ;; If this parameter is not set, the plots will be saved in the same directory as the datafile.
-  if keyword_set(rts) then plot_path = base_path('plots') + 'power_spectrum/rts_data/' + save_path_ext $
-  else $
-    if keyword_set(sim) then plot_path = base_path('plots') + 'power_spectrum/fhd_sim/' + save_path_ext else $
-    plot_path = base_path('plots') + 'power_spectrum/fhd_data/' + save_path_ext
-    
-  if not file_test(plot_path, /directory) then file_mkdir, plot_path
-  
   ;; plot_filebase specifies a base name to use for the plot files
-  
   
   ;; freq_ch_range specifies which frequency channels to include in the power spectrum.
   ;; Fewer number of channels makes the dfts faster
@@ -378,17 +199,18 @@ pro hellebore_wrapper, folder_name, rts = rts, version = version, refresh_dft = 
   
   
   fhd_data_plots, datafile, dft_fchunk=dft_fchunk, plot_path = plot_path, plot_filebase = plot_filebase, save_path = save_path, savefilebase = savefilebase, $
-    pol_inc = pol_inc, rts = rts, $
+    pol_inc = pol_inc, rts = rts, casa = casa, $
     refresh_dft = refresh_dft, refresh_ps = refresh_ps, refresh_binning = refresh_binning, refresh_info = refresh_info, $
     freq_ch_range = freq_ch_range, freq_flags = freq_flags, freq_flag_name = freq_flag_name, $
     no_spec_window = no_spec_window, spec_window_type = spec_window_type, std_power = std_power, $
-    noise_sim = noise_sim, cut_image = cut_image, dft_ian = dft_ian, $
+    sim = sim, cut_image = cut_image, dft_ian = dft_ian, $
     log_kpar = log_kpar, log_kperp = log_kperp, kpar_bin = kpar_bin, kperp_bin = kperp_bin, $
     log_k1d = log_k1d, k1d_bin = k1d_bin, kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, $
-    plot_slices = plot_slices, slice_type = slice_type, $
+    plot_slices = plot_slices, slice_type = slice_type, uvf_plot_type = uvf_plot_type, $
     data_range = data_range, sigma_range = sigma_range, nev_range = nev_range, snr_range = snr_range, noise_range = noise_range, nnr_range = nnr_range, $
     baseline_axis = baseline_axis, delay_axis = delay_axis, hinv = hinv, $
-    plot_wedge_line = plot_wedge_line, grey_scale = grey_scale, individual_plots = individual_plots, png = png, eps = eps
+    plot_wedge_line = plot_wedge_line, plot_eor_1d = plot_eor_1d, $
+    individual_plots = individual_plots, note = note, png = png, eps = eps, pdf = pdf
     
     
   if not keyword_set(set_data_ranges) then begin

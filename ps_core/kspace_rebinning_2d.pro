@@ -1,9 +1,33 @@
-
+;; Function to rebin a 3D power to 2D kperp,kpar space, returns 2D power
+;;
+;; Inputs:
+;;   power_3d: 3D power array
+;;   kx_mpc: list of kx values, same size as 1st dimesion of power_3d
+;;   ky_mpc: list of ky values, same size as 2nd dimesion of power_3d
+;;   kz_mpc: list of kz values, same size as 3rd dimesion of power_3d
+;;
+;; Outputs:
+;;   kperp_edges_mpc: edges of kperp bins, 1 element longer than 1st dimension of power_2d
+;;   kpar_edges_mpc: edges of kpar bins, 1 element longer than 2nd dimension of power_2d
+;;
+;; Keywords:
+;;   weights: array of inverse variances, same size as power_3d
+;;   binned_weights: array of binned inverse variances, same size as power_2d
+;;   noise_expval: array of expected noise values, same size as power_3d
+;;   binned_weights: array of binned expected noise values, same size as power_2d
+;;   nbins_2d: 2 element output vector returning [n_kperp, n_kpar]
+;;   fill_holes: flag to fill in locations with no contributing data by copying data from lower kperp or kpar bin (default to set)
+;;   kx_lims: limits to apply to kx values before binning -- only data between kx_lims will be binned
+;;   ky_lims: limits to apply to ky values before binning -- only data between ky_lims will be binned
+;;   log_kpar: bin with logrithmic kpar bins (default to linear bins)
+;;   log_kperp: bin with logrithmic kperp bins (default to linear bins)
+;;   kperp_bin: kperp bin size (for log bins per decade = 1/kperp_bin). If not set, the values used will be returned in this keyword
+;;   kpar_bin: kpar bin size (for log bins per decade = 1/kpar_bin). If not set, the values used will be returned in this keyword
+;;
 
 function kspace_rebinning_2d, power_3d, kx_mpc, ky_mpc, kz_mpc, kperp_edges_mpc, kpar_edges_mpc, weights = weights, $
                               binned_weights = weights_2d, noise_expval = noise_expval, binned_noise_expval = noise_expval_2d, $
-                              nbins_2d = nvox_2d, edge_on_grid = edge_on_grid, $
-                              match_datta = match_datta, $
+                              nbins_2d = nvox_2d, edge_on_grid = edge_on_grid, match_datta = match_datta, $
                               fill_holes = fill_holes, kx_lims = kx_lims, ky_lims = ky_lims, $
                               log_kpar = log_kpar, log_kperp = log_kperp, kperp_bin = kperp_bin, kpar_bin = kpar_bin
 
