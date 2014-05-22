@@ -75,7 +75,7 @@ pro enterprise_wrapper, folder_name, obs_range, rts = rts, $
       save_path = folder_name + '/ps/'
     endif
     
-    if n_infofile eq 0 then begin
+    if n_infofile eq 0 or keyword_set(refresh_rtscube) then begin
       ;; then look for cube files
       cube_files = file_search(folder_name + '/' + obs_name + '*_image*.fits', count = n_cubefiles)
       if n_cubefiles gt 0 then begin
