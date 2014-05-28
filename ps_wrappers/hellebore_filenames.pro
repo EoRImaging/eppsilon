@@ -210,10 +210,10 @@ function hellebore_filenames, folder_names, obs_names_in, rts = rts, sim = sim, 
       endif
       
       ;; now get weights & variance files
-      weightfile_list = file_search(folder_names[i] + '/' + obs_names[i] + '*_psf*.fits', count = n_wtfiles)
+      weightfile_list = file_search(folder_names[i] + '/' + obs_names[i] + '*_psf_*.fits', count = n_wtfiles)
       if n_wtfiles ne n_elements(datafiles) and info_files[i] eq '' then message, 'number of weight files does not match number of datafiles'
       
-      variancefile_list = file_search(folder_names[i] + '/' + obs_names[i] + '*_beamsquaresum*.fits', count = n_varfiles)
+      variancefile_list = file_search(folder_names[i] + '/' + obs_names[i] + '*psfbeamsquare*.fits', count = n_varfiles)
       if n_varfiles ne n_elements(datafiles) and info_files[i] eq '' then message, 'number of variance files does not match number of datafiles'
       
       if n_elements(datafiles) eq 0 and info_files[i] eq '' then message, 'No cube or info files found in folder ' + folder_names[i]

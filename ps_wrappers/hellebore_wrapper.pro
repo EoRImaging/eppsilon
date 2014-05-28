@@ -24,12 +24,13 @@ pro hellebore_wrapper, folder_name, obs_range, rts = rts, casa = casa, version =
   endif
   
   obs_info = hellebore_filenames(folder_name, obs_name, sim = sim, rts = rts, casa = casa)
- 
+  
   if keyword_set(rts) then begin
     if keyword_set(casa) then message, 'rts and casa keywords cannot both be set'
     
-    if obs_info.info_files[0] ne '' then datafile = obs_info.info_files[0] $
-    else datafile = rts_fits2idlcube(obs_info.cube_files.(0), obs_info.weightfiles.(0), obs_info.variancefiles.(0), pol_inc, save_path = obs_info.folder_names[0]+path_sep())
+    if obs_info.info_files[0] ne '' then datafile = obs_info.info_files[0] else $
+    datafile = rts_fits2idlcube(obs_info.cube_files.(0), obs_info.weightfiles.(0), obs_info.variancefiles.(0), $
+    pol_inc, save_path = obs_info.folder_names[0]+path_sep(), refresh = refresh_dft)
     
     plot_filebase = obs_info.rts_types[0] + '_' + obs_info.obs_names[0]
     
@@ -47,9 +48,10 @@ pro hellebore_wrapper, folder_name, obs_range, rts = rts, casa = casa, version =
     
   endif else if keyword_set(casa) then begin
   
-    if obs_info.info_files[0] ne '' then datafile = obs_info.info_files[0] $
-    else datafile = casa_fits2idlcube(obs_info.cube_files.(0), obs_info.weightfiles.(0), obs_info.variancefiles.(0), pol_inc, save_path = obs_info.folder_names[0]+path_sep())
-    
+    if obs_info.info_files[0] ne '' then datafile = obs_info.info_files[0] else $
+      datafile = casa_fits2idlcube(obs_info.cube_files.(0), obs_info.weightfiles.(0), obs_info.variancefiles.(0), $
+      pol_inc, save_path = obs_info.folder_names[0]+path_sep(), refresh = refresh_dft)
+      
     plot_filebase = obs_info.casa_types[0] ;+ '_' + obs_info.obs_names[0]
     
     if n_elements(set_data_ranges) eq 0 then set_data_ranges = 0
