@@ -1,5 +1,5 @@
 pro hellebore_fhd_cube_images, folder_names, obs_names_in, cube_types = cube_types, pols = pols, evenodd = evenodd, $
-    png = png, eps = eps, slice_range = slice_range, diff_ratio = diff_ratio, $
+    rts = rts, sim = sim, casa = casa, png = png, eps = eps, slice_range = slice_range, diff_ratio = diff_ratio, $
     log = log, data_range = data_range, color_profile = color_profile, sym_color = sym_color
     
   if n_elements(folder_names) gt 2 then message, 'No more than 2 folder_names can be supplied'
@@ -7,7 +7,7 @@ pro hellebore_fhd_cube_images, folder_names, obs_names_in, cube_types = cube_typ
   if n_elements(evenodd) gt 2 then message, 'No more than 2 evenodd values can be supplied'
   if n_elements(obs_names_in) gt 2 then message, 'No more than 2 obs_names can be supplied'
   
-  obs_info = hellebore_filenames(folder_names, obs_names_in)
+  obs_info = hellebore_filenames(folder_names, obs_names_in, rts = rts, sim = sim, casa = casa)
   
   filenames = strarr(max([n_elements(obs_info.obs_names), n_elements(evenodd)]))
   
@@ -61,7 +61,7 @@ pro hellebore_fhd_cube_images, folder_names, obs_names_in, cube_types = cube_typ
     plot_path = obs_info.diff_plot_path
   endif else begin
     save_path = obs_info.folder_names[0] + path_sep()
-    note = obs_info.fhd_types[0]
+    if keyword_set(rts) then note = obs_info.rts_types[0] else note = obs_info.fhd_types[0]
     plot_path = obs_info.plot_paths[0]
   endelse
   
@@ -82,9 +82,11 @@ pro hellebore_fhd_cube_images, folder_names, obs_names_in, cube_types = cube_typ
       ' - ' + evenodd[max_eo] + '_' + cube_types[max_type] + '_' + pols[max_pol]
   endif else diff_title = evenodd[0] + '_' + cube_types[0] + '_' + pols[0]
   
-  hpx_inds1 = getvar_savefile(filenames[0], 'hpx_inds')
+  if keyword_set(rts) then pixel_varname = 'pixel_nums' else pixel_varname = 'hpx_inds'
+  
+  hpx_inds1 = getvar_savefile(filenames[0], pixel_varname)
   if n_elements(filenames) gt 1 then begin
-    hpx_inds2 = getvar_savefile(filenames[1], 'hpx_inds')
+    hpx_inds2 = getvar_savefile(filenames[1], pixel_varname)
     if total(abs(hpx_inds2-hpx_inds1)) gt 0 then message, 'healpix pixels do not match between the 2 files'
   endif
   
@@ -94,10 +96,18 @@ pro hellebore_fhd_cube_images, folder_names, obs_names_in, cube_types = cube_typ
     if total(abs(hpx_inds2-hpx_inds1)) gt 0 then message, 'nsides do not match between the 2 files'
   endif
   
-  cube1 = getvar_savefile(filenames[0], cube_types[0] + '_' + pols[0] + '_cube')
+  if keyword_set(rts) then begin
+    data_varname1 = pols[0] + '_data'
+    if n_cubes gt 1 then data_varname2 = pols[max_pol] + '_data'
+  endif else begin
+    data_varname1 = cube_types[0] + '_' + pols[0] + '_cube'
+    if n_cubes gt 1 then data_varname2 = cube_types[max_type] + '_' + pols[max_pol] + '_cube'
+  endelse
+  
+  cube1 = getvar_savefile(filenames[0], data_varname1)
   n_freq1 = (size(cube1,/dimension))[1]
   if n_cubes gt 1 then begin
-    cube2 = getvar_savefile(filenames[max_file], cube_types[max_type] + '_' + pols[max_pol] + '_cube')
+    cube2 = getvar_savefile(filenames[max_file], data_varname2)
     n_freq2 = (size(cube2,/dimension))[1]
     if n_freq1 ne n_freq2 then message, 'number of frequencies do not match between the 2 files'
   endif
