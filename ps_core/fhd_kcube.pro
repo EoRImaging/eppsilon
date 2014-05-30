@@ -154,6 +154,7 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
   endif
   
   vs_mean = mean(vis_sigma)
+  ;vis_sigma[*] = vs_mean
   
   n_vis = file_struct.n_vis
   if n_elements(freq_ch_range) ne 0 then n_vis = n_vis * (float(n_freq)/float(n_freq_orig))
@@ -936,7 +937,7 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
     undefine, weights_cube2, wh_wt2_0, count_wt2_0
   endif
   
-  ;; take care of FT convention for EoR
+  ;; take care of FT convention for EoR (uv -> kx,ky)
   data_cube1 = data_cube1 / (2.*!pi)^2.
   sigma2_cube1 = sigma2_cube1 / (2.*!pi)^4.
   if nfiles eq 2 then begin
