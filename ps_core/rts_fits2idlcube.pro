@@ -81,11 +81,11 @@ function rts_fits2idlcube, datafiles, weightfiles, variancefiles, pol_inc, save_
     test_idlcube = file_test(idl_cube_savefile[file_i]) *  (1 - file_test(idl_cube_savefile[file_i], /zero_length))
     if test_idlcube eq 0 or keyword_set(refresh) then begin
     
-      frequencies = fltarr(n_freq)
+      frequencies = dblarr(n_freq)
       ;frequencies2 = fltarr(n_freq)
-      n_vis_arr = fltarr(n_freq)
-      kpix_arr = fltarr(n_freq)
-      kspan_arr = fltarr(n_freq)
+      n_vis_arr = dblarr(n_freq)
+      kpix_arr = dblarr(n_freq)
+      kspan_arr = dblarr(n_freq)
       for i=0, n_freq-1 do begin
         ;        temp = strsplit(datafile_arr[i, file_i], '_',/extract)
         ;        freq_loc = where(strpos(strlowcase(strsplit(datafile_arr[i, file_i], '_',/extract)), 'mhz') gt -1, count)
@@ -269,27 +269,10 @@ function rts_fits2idlcube, datafiles, weightfiles, variancefiles, pol_inc, save_
         undefine, data2
         
         data3 = mrdfits(weightfile_arr[i, file_i], 3, hdr3, /silent)
-        if fxpar(hdr3, 'freq') ne frequencies[i] then begin
-          if abs(fxpar(hdr3, 'freq') - frequencies[i])/frequencies[i] lt 0.001 then begin
-            print, 'data and weights frequencies different by ' + $
-              number_formatter(abs(fxpar(hdr3, 'freq') - frequencies[i])*100/frequencies[i], format = '(e10.2)') + ' %, using data value'
-          endif else message, 'data and weights frequencies do not match'
-        endif
-        
-        if fxpar(hdr3, 'n_bsnl') ne n_vis_arr[i] then message, 'data and weights n_vis do not match'
-        if fxpar(hdr3, 'uv_pixsz') ne kpix_arr[i] then begin
-          if abs(fxpar(hdr3, 'uv_pixsz') - kpix_arr[i])/kpix_arr[i] lt 0.001 then begin
-            print, 'data and weights uv pixel sizes different by ' + $
-              number_formatter(abs(fxpar(hdr3, 'uv_pixsz') - kpix_arr[i])*100/kpix_arr[i], format = '(e10.2)') + ' %, using data value'
-          endif else message, 'data and weights uv pixel sizes do not match'
-        endif
-        
-        if fxpar(hdr3, 'uv_span') ne kspan_arr[i] then begin
-          if abs(fxpar(hdr3, 'uv_span') - kspan_arr[i])/kspan_arr[i] lt 0.001 then begin
-            print, 'data and weights uv spans different by ' + $
-              number_formatter(abs(fxpar(hdr3, 'uv_span') - kspan_arr[i])*100/kspan_arr[i], format = '(e10.2)') + ' %, using data value'
-          endif else message, 'data and weights uv spans do not match'
-        endif
+        if fxpar(hdr3, 'freq') ne frequencies[i] then message, 'data and weights frequencies do not match'       
+        if fxpar(hdr3, 'n_bsnl') ne n_vis_arr[i] then print, 'data and weights n_vis do not match for weightfile: ' + weightfile_arr[i, file_i]
+        if fxpar(hdr3, 'uv_pixsz') ne kpix_arr[i] then  message, 'data and weights uv pixel sizes do not match'        
+        if fxpar(hdr3, 'uv_span') ne kspan_arr[i] then message, 'data and weights uv spans do not match'     
         if (time_integration-fxpar(hdr3, 'time_int')) ne 0 then message, 'data and weights time integrations do not match'
         if (max_baseline-fxpar(hdr3, 'max_bsnl')) ne 0 then message, 'data and weights max baseline do not match'
         
@@ -377,32 +360,12 @@ function rts_fits2idlcube, datafiles, weightfiles, variancefiles, pol_inc, save_
         undefine, data2
         
         data3 = mrdfits(variancefile_arr[i, file_i], 3, hdr3, /silent)
-        if fxpar(hdr3, 'freq') ne frequencies[i] then begin
-          if abs(fxpar(hdr3, 'freq') - frequencies[i])/frequencies[i] lt 0.001 then begin
-            print, 'data and variance frequencies different by ' + $
-              number_formatter(abs(fxpar(hdr3, 'freq') - frequencies[i])*100/frequencies[i], format = '(e10.2)') + ' %, using data value'
-          endif else message, 'data and variance frequencies do not match'
-        endif
-        
-        if fxpar(hdr3, 'n_bsnl') ne n_vis_arr[i] then message, 'data and variance n_vis do not match'
-
-        if fxpar(hdr3, 'uv_pixsz') ne kpix_arr[i] then begin
-          if abs(fxpar(hdr3, 'uv_pixsz') - kpix_arr[i])/kpix_arr[i] lt 0.001 then begin
-            print, 'data and variance uv pixel sizes different by ' + $
-              number_formatter(abs(fxpar(hdr3, 'uv_pixsz') - kpix_arr[i])*100/kpix_arr[i], format = '(e10.2)') + ' %, using data value'
-          endif else message, 'data and variance uv pixel sizes do not match'
-        endif
-        
-        if fxpar(hdr3, 'uv_span') ne kspan_arr[i] then begin
-          if abs(fxpar(hdr3, 'uv_span') - kspan_arr[i])/kspan_arr[i] lt 0.001 then begin
-            print, 'data and variance uv spans different by ' + $
-              number_formatter(abs(fxpar(hdr3, 'uv_span') - kspan_arr[i])*100/kspan_arr[i], format = '(e10.2)') + ' %, using data value'
-          endif else message, 'data and variance uv spans do not match'
-        endif
-
+        if fxpar(hdr3, 'freq') ne frequencies[i] then message, 'data and variance frequencies do not match'
+        if fxpar(hdr3, 'n_bsnl') ne n_vis_arr[i] then print, 'data and variance n_vis do not match, variance file: ' + variancefile_arr[i, file_i]
+        if fxpar(hdr3, 'uv_pixsz') ne kpix_arr[i] then message, 'data and variance uv pixel sizes do not match'
+        if fxpar(hdr3, 'uv_span') ne kspan_arr[i] then message, 'data and variance uv spans do not match'
         if (time_integration-fxpar(hdr3, 'time_int')) ne 0 then message, 'data and variance time integrations do not match'
         if (max_baseline-fxpar(hdr3, 'max_bsnl')) ne 0 then message, 'data and variance max baseline do not match'
-        
         
       endfor
       
