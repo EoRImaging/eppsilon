@@ -447,6 +447,8 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
                 
             endif else count_far = 0
             
+            if n_elements(wh_close) eq 0 and count_far eq 0 then wh_close = lindgen(n_elements(x_rot))
+            
             ;; for deciding on pixel sets:
             ;            consv_delta_kperp_rad = 4.5* mean(frequencies*1e6) * z_mpc_mean / (3e8 * kperp_lambda_conv) ;use 4.5m to be conservative
             ;            consv_xy_len = 2*!pi/consv_delta_kperp_rad

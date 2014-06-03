@@ -1,4 +1,4 @@
-pro mit_ps_job_test
+pro mit_ps_job
   ;; wrapper for mit_wrapper to take in shell parameters
 
   compile_opt strictarr
