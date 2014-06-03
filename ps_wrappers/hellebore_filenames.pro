@@ -507,7 +507,7 @@ function hellebore_filenames, folder_names, obs_names_in, rts = rts, sim = sim, 
         diff_save_path = joint_path + path_sep() + diff_dir + path_sep()
         
         if count_name_same gt 0 then name_same_parts = strjoin(fnameparts_1[wh_name_same], '_') else name_same_parts = ''
-        name_diff_parts = [strjoin(fnameparts_1[wh_name_diff], '_'), strjoin(fnameparts_2[wh_name_diff], '_')]
+        if count_name_diff eq 0 then name_diff_parts = strarr(2) else name_diff_parts = [str1_diff, str2_diff]
       endelse
       
       pos = strpos(diff_save_path, std_savepath)
