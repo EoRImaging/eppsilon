@@ -84,54 +84,72 @@ function hellebore_filenames, folder_names, obs_names_in, rts = rts, sim = sim, 
         
       endif
       
-      ;; then look for cube files
-      cube_file_list = file_search(folder_names[i] + '/' + obs_names[i] + '*_image*.fits', count = n_cubefiles)
+      ;; then look for combined cube files
+      cube_file_list = file_search(folder_names[i] + '/' + obs_names[i] + '*_cube.idlsave', count = n_cubefiles)
       if n_cubefiles gt 0 then begin
         if obs_names[i] eq '' then begin
           obs_name_arr = stregex(cube_file_list, '[0-9]+.[0-9]+_', /extract)
           wh_first = where(obs_name_arr eq obs_name_arr[0], count_first)
           if count_first lt n_cubefiles then $
             print, 'More than one obs_range found, using first range (' + obs_name_arr[0] + ', ' + number_formatter(count_first) + ' files)'
-          datafiles = cube_file_list[wh_first]
+          cube_files = cube_file_list[wh_first]
           obs_names[i] = obs_name_arr[0]
         endif else begin
-          datafiles = cube_file_list
+          cube_files = cube_file_list
         endelse
         
       endif
       
-      ;; now get weights & variance files
-      weightfile_list = file_search(folder_names[i] + '/' + obs_names[i] + '*_weights*.fits', count = n_wtfiles)
-      if n_wtfiles ne n_elements(datafiles) and info_files[i] eq '' then message, 'number of weight files does not match number of datafiles'
+      ;; then look for original fits files
+      fits_file_list = file_search(folder_names[i] + '/' + obs_names[i] + '*_image*.fits', count = n_fitsfiles)
+      if n_fitsfiles gt 0 then begin
+        if obs_names[i] eq '' then begin
+          obs_name_arr = stregex(fits_file_list, '[0-9]+.[0-9]+_', /extract)
+          wh_first = where(obs_name_arr eq obs_name_arr[0], count_first)
+          if count_first lt n_fitsfiles then $
+            print, 'More than one obs_range found, using first range (' + obs_name_arr[0] + ', ' + number_formatter(count_first) + ' files)'
+          fits_files = fits_file_list[wh_first]
+          obs_names[i] = obs_name_arr[0]
+        endif else begin
+          fits_files = fits_file_list
+        endelse
+        
+      endif
+ 
+      if n_elements(cube_files) eq 0 and n_elements(fits_files) and info_files[i] eq '' then message, 'No cube or info files found in folder ' + folder_name
       
-      variancefile_list = file_search(folder_names[i] + '/' + obs_names[i] + '*_weights*.fits', count = n_varfiles)
-      if n_varfiles ne n_elements(datafiles) and info_files[i] eq '' then message, 'number of variance files does not match number of datafiles'
-      
-      if n_elements(datafiles) eq 0 and info_files[i] eq '' then message, 'No cube or info files found in folder ' + folder_name
-      
-      if n_elements(datafiles) eq 0 then begin
-        datafiles = ''
+      if n_elements(fits_files) eq 0 then begin
+        fits_file_list = ''
         weightfile_list = ''
         variancefile_list = ''
-      endif
+      endif else begin
+        ;; now get weights & variance files
+        weightfile_list = file_search(folder_names[i] + '/' + obs_names[i] + '*_weights*.fits', count = n_wtfiles)
+        if n_wtfiles ne n_elements(fits_files) and info_files[i] eq '' then message, 'number of weight files does not match number of datafiles'
+        
+        variancefile_list = file_search(folder_names[i] + '/' + obs_names[i] + '*_weights*.fits', count = n_varfiles)
+        if n_varfiles ne n_elements(fits_files) and info_files[i] eq '' then message, 'number of variance files does not match number of datafiles'
+      endelse
       
       if i eq 0 then begin
         tag = 'fs' + number_formatter(i)
-        cube_files = create_struct(tag, datafiles)
+        cubefiles = create_struct(tag, cube_files)
+        datafiles = create_struct(tag, fits_files)
         weightfiles = create_struct(tag, weightfile_list)
         variancefiles = create_struct(tag, variancefile_list)
       endif else begin
         tag = 'fs' + number_formatter(i)
-        cube_files = create_struct(cube_files, tag, datafile)
+        cubefiles = create_struct(cubefiles, tag, cube_files)
+        datafiles = create_struct(datafiles, tag, fits_files)
         weightfiles = create_struct(weightfiles, tag, weightfile_list)
         variancefiles = create_struct(variancefiles, tag, variancefile_list)
       endelse
-      undefine, datafiles, weightfile_list, variancefile_list
+      undefine, fits_files, weightfile_list, variancefile_list, cube_files
       
     endfor
     
-    obs_info = {folder_names:folder_names, obs_names:obs_names, info_files:info_files, cube_files:cube_files, $
-      weightfiles:weightfiles, variancefiles:variancefiles, rts_types:rts_types, plot_paths:plot_paths}
+    obs_info = {folder_names:folder_names, obs_names:obs_names, info_files:info_files, cube_files:cubefiles, $
+      datafiles:datafiles, weightfiles:weightfiles, variancefiles:variancefiles, rts_types:rts_types, plot_paths:plot_paths}
       
   endif else if keyword_set(casa) then begin
     obs_names = strarr(n_filesets)
@@ -489,7 +507,7 @@ function hellebore_filenames, folder_names, obs_names_in, rts = rts, sim = sim, 
         diff_save_path = joint_path + path_sep() + diff_dir + path_sep()
         
         if count_name_same gt 0 then name_same_parts = strjoin(fnameparts_1[wh_name_same], '_') else name_same_parts = ''
-        name_diff_parts = [strjoin(fnameparts_1[wh_name_diff], '_'), strjoin(fnameparts_2[wh_name_diff], '_')]
+        if count_name_diff eq 0 then name_diff_parts = strarr(2) else name_diff_parts = [str1_diff, str2_diff]
       endelse
       
       pos = strpos(diff_save_path, std_savepath)

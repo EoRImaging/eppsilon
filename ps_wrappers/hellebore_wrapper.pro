@@ -29,21 +29,22 @@ pro hellebore_wrapper, folder_name, obs_range, rts = rts, casa = casa, version =
     if keyword_set(casa) then message, 'rts and casa keywords cannot both be set'
     
     if obs_info.info_files[0] ne '' then datafile = obs_info.info_files[0] else $
-    datafile = rts_fits2idlcube(obs_info.cube_files.(0), obs_info.weightfiles.(0), obs_info.variancefiles.(0), $
-    pol_inc, save_path = obs_info.folder_names[0]+path_sep(), refresh = refresh_dft)
-    
+      if obs_info.cube_files[0] ne '' then datafile = obs_info.cube_files[0] else $
+      datafile = rts_fits2idlcube(obs_info.datafiles.(0), obs_info.weightfiles.(0), obs_info.variancefiles.(0), $
+      pol_inc, save_path = obs_info.folder_names[0]+path_sep(), refresh = refresh_dft)
+      
     plot_filebase = obs_info.rts_types[0] + '_' + obs_info.obs_names[0]
     
     if n_elements(set_data_ranges) eq 0 then set_data_ranges = 1
     if keyword_set(set_data_ranges) then begin
-      sigma_range = [1e15, 1e17]
-      nev_range = [1e16, 1e18]
+      sigma_range = [1e17, 1e19]
+      nev_range = [5e17, 5e20]
       
-      data_range = [1e6, 2e13]
-      nnr_range = [1e-8, 1e-6]
-      snr_range = [1e-10, 1e-2]
+      data_range = [1e8, 5e13]
+      nnr_range = [1e-9, 1e-7]
+      snr_range = [1e-10, 1e-4]
       
-      noise_range = [1e9, 1e12]
+      noise_range = [5e9, 1e12]
     endif
     
   endif else if keyword_set(casa) then begin
