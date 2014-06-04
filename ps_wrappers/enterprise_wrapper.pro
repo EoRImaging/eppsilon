@@ -103,7 +103,7 @@ pro enterprise_wrapper, folder_name, obs_range, rts = rts, $
       weightfiles = file_search(folder_name + '/' + obs_name + '*_weights*.fits', count = n_wtfiles)
       if n_wtfiles ne n_elements(datafiles) then message, 'number of weight files does not match number of datafiles'
       
-      variancefiles = file_search(folder_name + '/' + obs_name + '*_weights*.fits', count = n_varfiles)
+      variancefiles = file_search(folder_name + '/' + obs_name + '*_variances*.fits', count = n_varfiles)
       if n_varfiles ne n_elements(datafiles) then message, 'number of variance files does not match number of datafiles'
       
       datafile =  rts_fits2idlcube(datafiles, weightfiles, variancefiles, pol_inc, save_path = folder_name, refresh = refresh_rtscube)
