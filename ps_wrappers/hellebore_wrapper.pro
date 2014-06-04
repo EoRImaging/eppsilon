@@ -195,7 +195,6 @@ pro hellebore_wrapper, folder_name, obs_range, rts = rts, casa = casa, version =
   ;; delay_axis is a flag (defaulted to true) to mark delay time along right axis of 2d plots (set to 0 to turn off)
   ;; hinv is a flag (defaulted to true) to use h^-1 Mpc rather than physical Mpc in plot units (set to 0 to turn off)
   ;; plot_wedge_line is a flag (defaulted to true) to plot a line marking the wedge (both horizon & FoV) (set to 0 to turn off)
-  ;; grey_scale is a flag to use a black/white color scale rather than the default color scale
   ;; png & eps are flags to make save plots as png or eps files rather than displaying to the screen
   
   

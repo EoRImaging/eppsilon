@@ -1,6 +1,6 @@
 pro uvf_slice_plot, slice_savefile, multi_pos = multi_pos, start_multi_params = start_multi_params, plot_xrange = plot_xrange, $
     plot_yrange = plot_yrange, data_range = data_range, type = type, log=log, png = png, eps = eps, pdf = pdf, plotfile = plotfile, $
-    window_num = window_num, title = title, title_prefix = title_prefix, grey_scale = grey_scale, baseline_axis = baseline_axis, hinv = hinv, $
+    window_num = window_num, title = title, title_prefix = title_prefix, baseline_axis = baseline_axis, hinv = hinv, $
     mark_0 = mark_0, image_space = image_space, color_0amp = color_0amp, color_profile = color_profile, charsize = charsize_in, $
     cb_size = cb_size_in, margin = margin_in, cb_margin = cb_margin_in, no_title = no_title, note = note
     
@@ -202,7 +202,7 @@ pro uvf_slice_plot, slice_savefile, multi_pos = multi_pos, start_multi_params = 
     
   endif else begin
   
-    if keyword_set(grey_scale) then cgloadct, 0, /reverse else cgloadct, 25, /brewer, /reverse
+    cgloadct, 25, /brewer, /reverse
     n_colors = 256
     
     slice_plot_norm = (slice_plot-data_range[0])*n_colors/(data_range[1]-data_range[0])
