@@ -2,7 +2,7 @@ pro enterprise_wrapper, folder_name, obs_range, rts = rts, $
     refresh_dft = refresh_dft, refresh_ps = refresh_ps, refresh_info = refresh_info, refresh_rtscube = refresh_rtscube, $
     refresh_binning = refresh_binning, pol_inc = pol_inc, no_spec_window = no_spec_window, $
     spec_window_type = spec_window_type, freq_ch_range = freq_ch_range, individual_plots = individual_plots, $
-    png = png, eps = eps, plot_slices = plot_slices, slice_type = slice_type, $
+    png = png, eps = eps, plot_slices = plot_slices, slice_type = slice_type, max_uv_lambda = max_uv_lambda, $
     kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, set_data_ranges = set_data_ranges
     
   ;; The only required input is the datafile name (including the full path)
@@ -106,7 +106,7 @@ pro enterprise_wrapper, folder_name, obs_range, rts = rts, $
       variancefiles = file_search(folder_name + '/' + obs_name + '*_variances*.fits', count = n_varfiles)
       if n_varfiles ne n_elements(datafiles) then message, 'number of variance files does not match number of datafiles'
       
-      datafile =  rts_fits2idlcube(datafiles, weightfiles, variancefiles, pol_inc, save_path = folder_name, refresh = refresh_rtscube)
+      datafile =  rts_fits2idlcube(datafiles, weightfiles, variancefiles, pol_inc, save_path = folder_name + '/', refresh = refresh_rtscube)
       
     endif
     
@@ -349,7 +349,7 @@ pro enterprise_wrapper, folder_name, obs_range, rts = rts, $
     pol_inc = pol_inc, rts = rts, $
     refresh_dft = refresh_dft, refresh_ps = refresh_ps, refresh_binning = refresh_binning, refresh_info = refresh_info, $
     freq_ch_range = freq_ch_range, no_spec_window = no_spec_window, spec_window_type = spec_window_type, $
-    cut_image = cut_image, $
+    cut_image = cut_image, delta_uv_lambda = delta_uv_lambda, max_uv_lambda = max_uv_lambda, $
     log_kpar = log_kpar, log_kperp = log_kperp, kpar_bin = kpar_bin, kperp_bin = kperp_bin, log_k1d = log_k1d, $
     k1d_bin = k1d_bin, kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, $
     data_range = data_range, sigma_range = sigma_range, nev_range = nev_range, snr_range = snr_range, noise_range = noise_range, nnr_range = nnr_range, $

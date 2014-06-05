@@ -1,6 +1,6 @@
 pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weight = dft_refresh_weight, dft_ian = dft_ian, $
     dft_fchunk = dft_fchunk, freq_ch_range = freq_ch_range, freq_flags = freq_flags, $
-    spec_window_type = spec_window_type, cut_image = cut_image, delta_uv_lambda = delta_uv_lambda, $
+    spec_window_type = spec_window_type, cut_image = cut_image, delta_uv_lambda = delta_uv_lambda, max_uv_lambda = max_uv_lambda, $
     std_power = std_power, input_units = input_units, image = image, quiet = quiet
     
   if tag_exist(file_struct, 'nside') ne 0 then healpix = 1 else healpix = 0
@@ -321,6 +321,8 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
               max_kperp_rad = min([file_struct.kspan/2.,file_struct.max_baseline_lambda])* (2.*!pi)
             endif else max_kperp_rad = min([file_struct.max_baseline_lambda])* (2.*!pi)
             
+            if n_elements(max_uv_lambda) gt 0 then max_kperp_rad = min([max_kperp_rad, max_uv_lambda])
+            
             if keyword_set(cut_image) then begin
               ;; limit field of view to match calculated k-modes
               xy_len = 1/delta_u_lambda
@@ -394,6 +396,8 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
             if tag_exist(file_struct, 'kspan') then begin
               max_kperp_rad = min([file_struct.kspan/2.,file_struct.max_baseline_lambda])* (2.*!pi)
             endif else max_kperp_rad = min([file_struct.max_baseline_lambda])* (2.*!pi)
+            
+            if n_elements(max_uv_lambda) gt 0 then max_kperp_rad = min([max_kperp_rad, max_uv_lambda * (2.*!pi)])
             
             if keyword_set(cut_image) then begin
               ;; limit field of view to match calculated k-modes
