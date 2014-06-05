@@ -1,7 +1,7 @@
 function rts_file_setup, filename, pol_inc, save_path = save_path, refresh_info = refresh_info, $
     weight_savefilebase = weight_savefilebase_in, variance_savefilebase = variance_savefilebase_in, $
     uvf_savefilebase = uvf_savefilebase_in, savefilebase = savefilebase_in, $
-    spec_window_type = spec_window_type, delta_uv_lambda = delta_uv_lambda
+    spec_window_type = spec_window_type, delta_uv_lambda = delta_uv_lambda, max_uv_lambda = max_uv_lambda
     
   if n_elements(pol_inc) ne 0 then pol_inc_in = pol_inc
   
@@ -337,6 +337,7 @@ function rts_file_setup, filename, pol_inc, save_path = save_path, refresh_info 
   fch_tag = fch_tag + flag_tag
   
   if n_elements(delta_uv_lambda) ne 0 then uv_tag = '_deluv' + number_formatter(delta_uv_lambda) else uv_tag = ''
+  ;;if n_elements(max_uv_lambda) ne 0 then uv_tag = '_maxuv' + number_formatter(max_uv_lambda)
   uvf_tag = uv_tag + fch_tag
   
   if keyword_set(std_power) then power_tag = power_tag + '_stdp' else power_tag = ''
