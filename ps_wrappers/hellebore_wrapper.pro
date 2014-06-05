@@ -37,14 +37,14 @@ pro hellebore_wrapper, folder_name, obs_range, rts = rts, casa = casa, version =
     
     if n_elements(set_data_ranges) eq 0 then set_data_ranges = 1
     if keyword_set(set_data_ranges) then begin
-      sigma_range = [1e17, 1e19]
-      nev_range = [5e17, 5e20]
+      sigma_range = [1e22, 1e26]
+      nev_range = [5e22, 5e26]
       
-      data_range = [1e8, 5e13]
-      nnr_range = [1e-9, 1e-7]
-      snr_range = [1e-10, 1e-4]
+      data_range = [1e14, 1e20]
+      nnr_range = [5e-9,5e-7]
+      snr_range = [1e-10, 1e-3]
       
-      noise_range = [5e9, 1e12]
+      noise_range = [2e15, 1e18]
     endif
     
   endif else if keyword_set(casa) then begin
