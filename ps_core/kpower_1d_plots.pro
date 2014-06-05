@@ -248,7 +248,7 @@ pro kpower_1d_plots, power_savefile, plot_weights = plot_weights, multi_pos = mu
     al_legend, names, textcolor = colors, box = 0, /right, bottom = bottom, charsize = legend_charsize, charthick = charthick
     
   if keyword_set(pub) and n_elements(multi_pos) eq 0 then begin
-    cgps_close, png = png, pdf = pdf, delete_ps = delete_ps
+    cgps_close, png = png, pdf = pdf, delete_ps = delete_ps, density=600
   endif
   
   tvlct, r, g, b

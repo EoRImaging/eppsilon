@@ -253,7 +253,7 @@ pro ps_difference_plots, info_files, cube_types, pols, all_type_pol = all_type_p
   endfor
   
   if keyword_set(pub) and n_cubes gt 1 then begin
-    cgps_close, png = png, pdf = pdf, delete_ps = delete_ps
+    cgps_close, png = png, pdf = pdf, delete_ps = delete_ps, density=600
   endif
   
 end

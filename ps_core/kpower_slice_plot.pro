@@ -512,7 +512,7 @@ pro kpower_slice_plot, slice_savefile, multi_pos = multi_pos, start_multi_params
     charsize = charsize, font = font, oob_low = oob_low
     
   if keyword_set(pub) and n_elements(multi_pos) eq 0 then begin
-    cgps_close, png = png, pdf = pdf, delete_ps = delete_ps
+    cgps_close, png = png, pdf = pdf, delete_ps = delete_ps, density=600
     wdelete, window_num
   endif
   

@@ -791,7 +791,7 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, wei
   ;;             divisions = 0
     
   if keyword_set(pub) and n_elements(multi_pos) eq 0 then begin
-    cgps_close, png = png, pdf = pdf, delete_ps = delete_ps
+    cgps_close, png = png, pdf = pdf, delete_ps = delete_ps, density=600
   endif
   
   tvlct, r, g, b

@@ -100,7 +100,7 @@ pro fhd_data_plots, datafile, rts = rts, casa = casa, pol_inc = pol_inc, image =
   
   
   power_tag = file_struct_arr[0].power_tag
-  if tag_exist(file_struct_arr.[0]) then uvf_tag = file_struct_arr[0].uvf_tag else uvf_tag = ''
+  if tag_exist(file_struct_arr[0], 'uvf_tag') then uvf_tag = file_struct_arr[0].uvf_tag else uvf_tag = ''
  
   
   fadd_2dbin = ''
@@ -416,7 +416,7 @@ pro fhd_data_plots, datafile, rts = rts, casa = casa, pol_inc = pol_inc, image =
     endfor
     undefine, positions, pos_use
     if keyword_set(pub) then begin
-      cgps_close, png = png, pdf = pdf, delete_ps = delete_ps
+      cgps_close, png = png, pdf = pdf, delete_ps = delete_ps, density = 600
     endif
     
     if keyword_set(kperp_linear_axis) then begin
@@ -457,7 +457,7 @@ pro fhd_data_plots, datafile, rts = rts, casa = casa, pol_inc = pol_inc, image =
     endfor
     undefine, positions, pos_use
     if keyword_set(pub) then begin
-      cgps_close, png = png, pdf = pdf, delete_ps = delete_ps
+      cgps_close, png = png, pdf = pdf, delete_ps = delete_ps, density = 600
     endif
     
     
@@ -491,7 +491,7 @@ pro fhd_data_plots, datafile, rts = rts, casa = casa, pol_inc = pol_inc, image =
     endfor
     undefine, positions, pos_use
     if keyword_set(pub) then begin
-      cgps_close, png = png, pdf = pdf, delete_ps = delete_ps
+      cgps_close, png = png, pdf = pdf, delete_ps = delete_ps, density = 600
     endif
     
     if nfiles eq 2 then begin
@@ -517,7 +517,7 @@ pro fhd_data_plots, datafile, rts = rts, casa = casa, pol_inc = pol_inc, image =
         endif
       endfor
       if keyword_set(pub) then begin
-        cgps_close, png = png, pdf = pdf, delete_ps = delete_ps
+        cgps_close, png = png, pdf = pdf, delete_ps = delete_ps, density = 600
       endif
       
       window_num = 5
@@ -541,7 +541,7 @@ pro fhd_data_plots, datafile, rts = rts, casa = casa, pol_inc = pol_inc, image =
         endif
       endfor
       if keyword_set(pub) then begin
-        cgps_close, png = png, pdf = pdf, delete_ps = delete_ps
+        cgps_close, png = png, pdf = pdf, delete_ps = delete_ps, density = 600
       endif
       
     endif
@@ -593,7 +593,7 @@ pro fhd_data_plots, datafile, rts = rts, casa = casa, pol_inc = pol_inc, image =
         endif
       endfor
       if keyword_set(pub) then begin
-        cgps_close, png = png, pdf = pdf, delete_ps = delete_ps
+        cgps_close, png = png, pdf = pdf, delete_ps = delete_ps, density = 600
       endif
       
       window_num = 8
@@ -626,7 +626,7 @@ pro fhd_data_plots, datafile, rts = rts, casa = casa, pol_inc = pol_inc, image =
         endif
       endfor
       if keyword_set(pub) then begin
-        cgps_close, png = png, pdf = pdf, delete_ps = delete_ps
+        cgps_close, png = png, pdf = pdf, delete_ps = delete_ps, density = 600
       endif
       
       window_num = 9
@@ -659,7 +659,7 @@ pro fhd_data_plots, datafile, rts = rts, casa = casa, pol_inc = pol_inc, image =
         endif
       endfor
       if keyword_set(pub) then begin
-        cgps_close, png = png, pdf = pdf, delete_ps = delete_ps
+        cgps_close, png = png, pdf = pdf, delete_ps = delete_ps, density = 600
       endif
       
     endif
