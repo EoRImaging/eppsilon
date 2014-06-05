@@ -100,6 +100,8 @@ pro fhd_data_plots, datafile, rts = rts, casa = casa, pol_inc = pol_inc, image =
   
   
   power_tag = file_struct_arr[0].power_tag
+  if tag_exist(file_struct_arr.[0]) then uvf_tag = file_struct_arr[0].uvf_tag else uvf_tag = ''
+ 
   
   fadd_2dbin = ''
   ;;if keyword_set(fill_holes) then fadd_2dbin = fadd_2dbin + '_nohole'
@@ -238,12 +240,12 @@ pro fhd_data_plots, datafile, rts = rts, casa = casa, pol_inc = pol_inc, image =
         plotfile_base_wt = plotfile_path + general_filebase + wt_file_labels[uniq(weight_ind, sort(weight_ind))] + power_tag
         plotfiles_2d_wt = plotfile_base_wt + fadd_2dbin + '_2d' + plot_fadd + plot_exten
       endif else begin
-        plotfile_base = plotfile_path + plot_filebase + file_struct_arr[0].uvf_tag + file_struct_arr.file_label + power_tag
-        plotfile_base_wt = plotfile_path + plot_filebase + file_struct_arr[0].uvf_tag + wt_file_labels[uniq(weight_ind, sort(weight_ind))] + power_tag
+        plotfile_base = plotfile_path + plot_filebase + uvf_tag + file_struct_arr.file_label + power_tag
+        plotfile_base_wt = plotfile_path + plot_filebase + uvf_tag + wt_file_labels[uniq(weight_ind, sort(weight_ind))] + power_tag
         plotfiles_2d_wt = plotfile_base_wt + fadd_2dbin + '_2d' + plot_fadd + plot_exten
       endelse
     endif else if n_elements(plot_filebase) eq 0 then plotfile_base = plotfile_path + general_filebase + power_tag $
-    else plotfile_base = plotfile_path + plot_filebase + file_struct_arr[0].uvf_tag + power_tag
+    else plotfile_base = plotfile_path + plot_filebase + uvf_tag + power_tag
     
     plotfiles_2d = plotfile_base + fadd_2dbin + '_2dkpower' + plot_fadd + plot_exten
     plotfiles_2d_error = plotfile_base + fadd_2dbin + '_2derror' + plot_fadd + plot_exten
@@ -253,7 +255,7 @@ pro fhd_data_plots, datafile, rts = rts, casa = casa, pol_inc = pol_inc, image =
     plotfiles_2d_snr = plotfile_base + fadd_2dbin + '_2dsnr' + plot_fadd + plot_exten
     plotfiles_2d_nnr = plotfile_base + fadd_2dbin + '_2dnnr' + plot_fadd + plot_exten
     if n_elements(plot_filebase) eq 0 then plotfile_1d = plotfile_path + general_filebase + power_tag + fadd_1dbin + '_1dkpower' + plot_exten else $
-      plotfile_1d = plotfile_path + plot_filebase + file_struct_arr[0].uvf_tag + power_tag + fadd_1dbin + '_1dkpower' + plot_exten
+      plotfile_1d = plotfile_path + plot_filebase + uvf_tag + power_tag + fadd_1dbin + '_1dkpower' + plot_exten
   endif
   
   if keyword_set(plot_slices) then begin

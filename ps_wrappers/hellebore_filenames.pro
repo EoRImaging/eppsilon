@@ -133,14 +133,14 @@ function hellebore_filenames, folder_names, obs_names_in, rts = rts, sim = sim, 
       
       if i eq 0 then begin
         tag = 'fs' + number_formatter(i)
-        cubefiles = create_struct(tag, cube_files)
-        datafiles = create_struct(tag, fits_files)
+        if n_cubefiles gt 0 then cubefiles = create_struct(tag, cube_files) else cubefiles = create_struct(tag, '')
+        if n_fitsfiles gt 0 then datafiles = create_struct(tag, fits_files) else datafiles = create_struct(tag, '')
         weightfiles = create_struct(tag, weightfile_list)
         variancefiles = create_struct(tag, variancefile_list)
       endif else begin
         tag = 'fs' + number_formatter(i)
-        cubefiles = create_struct(cubefiles, tag, cube_files)
-        datafiles = create_struct(datafiles, tag, fits_files)
+        if n_cubefiles gt 0 then cubefiles = create_struct(cubefiles, tag, cube_files) else cubefiles = create_struct(cubefiles, tag, '')
+        if n_fitsfiles gt 0 then datafiles = create_struct(datafiles, tag, fits_files) else datafiles = create_struct(datafiles, tag, '')
         weightfiles = create_struct(weightfiles, tag, weightfile_list)
         variancefiles = create_struct(variancefiles, tag, variancefile_list)
       endelse
