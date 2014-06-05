@@ -79,14 +79,14 @@ pro hellebore_wrapper, folder_name, obs_range, rts = rts, casa = casa, version =
     if n_elements(set_data_ranges) eq 0 then set_data_ranges = 1
     if keyword_set(set_data_ranges) then begin
       if keyword_set(obs_info.integrated[0]) then begin
-        sigma_range = [2e0, 2e4]
-        nev_range = [5e2, 2e5]
+        sigma_range = [2e5, 2e9]
+        nev_range = [2e7, 2e10]
       endif else begin
         sigma_range = [1e4, 2e6]
         nev_range = [5e4, 2e7]
       endelse
       
-      data_range = [1e0, 1e10]
+      data_range = [1e4, 1e14]
       nnr_range = [1e-1, 1e1]
       snr_range = [1e-4, 1e6]
       
