@@ -877,12 +877,7 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
       n_ky = n_elements(ky_mpc)
       
     endelse
-  endelse
-  ;;stop
-  ;; change to new convention
-  ;;data_cube1=data_cube1/(2.*!pi)^3.
-  ;;data_cube2=data_cube2/(2.*!pi)^3.
-  
+  endelse 
   
   ;; save some slices of the raw data cube (before dividing by weights)
   for i=0, nfiles-1 do begin
@@ -1172,8 +1167,10 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
     ;; old ft convention
     ; data_sum_ft = fft(data_sum, dimension=3) * n_freq * z_mpc_delta / (2.*!pi)
     data_sum_ft = fft(data_sum, dimension=3) * n_freq * z_mpc_delta
+
     ;; put k0 in middle of cube
     data_sum_ft = shift(data_sum_ft, [0,0,n_kz/2])
+
     undefine, data_sum
     if nfiles eq 2 then begin
       ;; old ft convention
