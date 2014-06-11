@@ -126,8 +126,9 @@ pro mit_wrapper, folder_name, obs_range, n_obs=n_obs, rts = rts, refresh_dft = r
     if n_infofile eq 0 then begin
       ;; first look for integrated cube files with names like Combined_obs_...
       cube_files = file_search(folder_name + '/Healpix/Combined_obs_' + obs_name + '*_cube.sav', count = n_cubefiles)
-      cube_files = cube_files[where(strmatch(cube_files,'*'+obs_name+'_[eo][vd]*_cube.sav',/fold_case) eq 1)] ; get rid of ambiguous files
-      n_cubefiles=n_elements(cube_files)
+      
+      if n_cubefiles gt 0 then cube_files = cube_files[where(strmatch(cube_files,'*'+obs_name+'_[eo][vd]*_cube.sav',/fold_case) eq 1, n_cubefiles)] ; get rid of ambiguous files
+      
       if n_cubefiles gt 0 then begin
         if obs_name eq '' then begin
           obs_name_arr = stregex(cube_files, '[0-9]+-[0-9]+', /extract)
