@@ -3,7 +3,7 @@ pro fhd_data_plots, datafile, rts = rts, casa = casa, pol_inc = pol_inc, image =
     note = note, png = png, eps = eps, pdf = pdf, $
     refresh_dft = refresh_dft, refresh_ps = refresh_ps, refresh_binning = refresh_binning, refresh_info = refresh_info, $
     dft_fchunk = dft_fchunk, freq_ch_range = freq_ch_range, freq_flags = freq_flags, freq_flag_name = freq_flag_name, $
-    no_spec_window = no_spec_window, spec_window_type = spec_window_type, delta_uv_lambda = delta_uv_lambda, $
+    no_spec_window = no_spec_window, spec_window_type = spec_window_type, delta_uv_lambda = delta_uv_lambda, max_uv_lambda = max_uv_lambda, $
     cut_image = cut_image, dft_ian = dft_ian, sim = sim, std_power = std_power, no_kzero = no_kzero, $
     plot_slices = plot_slices, slice_type = slice_type, uvf_plot_type = uvf_plot_type, $
     data_range = data_range, sigma_range = sigma_range, nev_range = nev_range, $
@@ -61,14 +61,14 @@ pro fhd_data_plots, datafile, rts = rts, casa = casa, pol_inc = pol_inc, image =
   time0 = systime(1)
   if keyword_set(rts) then begin
     file_struct_arr = rts_file_setup(datafile, pol_inc, savefilebase = savefilebase, save_path = save_path, $
-      spec_window_type = spec_window_type, delta_uv_lambda = delta_uv_lambda, refresh_info = refresh_info)
+      spec_window_type = spec_window_type, delta_uv_lambda = delta_uv_lambda, max_uv_lambda = max_uv_lambda, refresh_info = refresh_info)
   endif else if keyword_set(casa) then begin
     file_struct_arr = casa_file_setup(datafile, pol_inc, savefilebase = savefilebase, save_path = save_path, $
-      spec_window_type = spec_window_type, delta_uv_lambda = delta_uv_lambda, refresh_info = refresh_info)
+      spec_window_type = spec_window_type, delta_uv_lambda = delta_uv_lambda, max_uv_lambda = max_uv_lambda, refresh_info = refresh_info)
   endif else begin
     file_struct_arr = fhd_file_setup(datafile, pol_inc, image = image, dft_ian = dft_ian, $
       savefilebase = savefilebase, save_path = save_path, freq_ch_range = freq_ch_range, freq_flags = freq_flags, freq_flag_name = freq_flag_name, $
-      spec_window_type = spec_window_type, delta_uv_lambda = delta_uv_lambda, sim = sim, std_power = std_power, refresh_info = refresh_info)
+      spec_window_type = spec_window_type, delta_uv_lambda = delta_uv_lambda, max_uv_lambda = max_uv_lambda, sim = sim, std_power = std_power, refresh_info = refresh_info)
   endelse
   time1 = systime(1)
   print, 'file setup time: ' + number_formatter(time1-time0)
@@ -100,6 +100,8 @@ pro fhd_data_plots, datafile, rts = rts, casa = casa, pol_inc = pol_inc, image =
   
   
   power_tag = file_struct_arr[0].power_tag
+  if tag_exist(file_struct_arr[0], 'uvf_tag') then uvf_tag = file_struct_arr[0].uvf_tag else uvf_tag = ''
+ 
   
   fadd_2dbin = ''
   ;;if keyword_set(fill_holes) then fadd_2dbin = fadd_2dbin + '_nohole'
@@ -184,7 +186,7 @@ pro fhd_data_plots, datafile, rts = rts, casa = casa, pol_inc = pol_inc, image =
         fhd_3dps, file_struct_arr[i], kcube_refresh = refresh_ps, dft_refresh_data = refresh_dft, $
           dft_refresh_weight = weight_refresh[i], dft_ian = dft_ian, cut_image = cut_image, image = image, $
           dft_fchunk = dft_fchunk, freq_ch_range = freq_ch_range, freq_flags = freq_flags, $
-          spec_window_type = spec_window_type, delta_uv_lambda = delta_uv_lambda, $
+          spec_window_type = spec_window_type, delta_uv_lambda = delta_uv_lambda, max_uv_lambda = max_uv_lambda, $
           std_power = std_power, no_kzero = no_kzero, $
           log_kpar = log_kpar, log_kperp = log_kperp, kpar_bin = kpar_bin, kperp_bin = kperp_bin, $
           /quiet
@@ -238,12 +240,12 @@ pro fhd_data_plots, datafile, rts = rts, casa = casa, pol_inc = pol_inc, image =
         plotfile_base_wt = plotfile_path + general_filebase + wt_file_labels[uniq(weight_ind, sort(weight_ind))] + power_tag
         plotfiles_2d_wt = plotfile_base_wt + fadd_2dbin + '_2d' + plot_fadd + plot_exten
       endif else begin
-        plotfile_base = plotfile_path + plot_filebase + file_struct_arr[0].uvf_tag + file_struct_arr.file_label + power_tag
-        plotfile_base_wt = plotfile_path + plot_filebase + file_struct_arr[0].uvf_tag + wt_file_labels[uniq(weight_ind, sort(weight_ind))] + power_tag
+        plotfile_base = plotfile_path + plot_filebase + uvf_tag + file_struct_arr.file_label + power_tag
+        plotfile_base_wt = plotfile_path + plot_filebase + uvf_tag + wt_file_labels[uniq(weight_ind, sort(weight_ind))] + power_tag
         plotfiles_2d_wt = plotfile_base_wt + fadd_2dbin + '_2d' + plot_fadd + plot_exten
       endelse
     endif else if n_elements(plot_filebase) eq 0 then plotfile_base = plotfile_path + general_filebase + power_tag $
-    else plotfile_base = plotfile_path + plot_filebase + file_struct_arr[0].uvf_tag + power_tag
+    else plotfile_base = plotfile_path + plot_filebase + uvf_tag + power_tag
     
     plotfiles_2d = plotfile_base + fadd_2dbin + '_2dkpower' + plot_fadd + plot_exten
     plotfiles_2d_error = plotfile_base + fadd_2dbin + '_2derror' + plot_fadd + plot_exten
@@ -253,7 +255,7 @@ pro fhd_data_plots, datafile, rts = rts, casa = casa, pol_inc = pol_inc, image =
     plotfiles_2d_snr = plotfile_base + fadd_2dbin + '_2dsnr' + plot_fadd + plot_exten
     plotfiles_2d_nnr = plotfile_base + fadd_2dbin + '_2dnnr' + plot_fadd + plot_exten
     if n_elements(plot_filebase) eq 0 then plotfile_1d = plotfile_path + general_filebase + power_tag + fadd_1dbin + '_1dkpower' + plot_exten else $
-      plotfile_1d = plotfile_path + plot_filebase + file_struct_arr[0].uvf_tag + power_tag + fadd_1dbin + '_1dkpower' + plot_exten
+      plotfile_1d = plotfile_path + plot_filebase + uvf_tag + power_tag + fadd_1dbin + '_1dkpower' + plot_exten
   endif
   
   if keyword_set(plot_slices) then begin
@@ -414,7 +416,7 @@ pro fhd_data_plots, datafile, rts = rts, casa = casa, pol_inc = pol_inc, image =
     endfor
     undefine, positions, pos_use
     if keyword_set(pub) then begin
-      cgps_close, png = png, pdf = pdf, delete_ps = delete_ps
+      cgps_close, png = png, pdf = pdf, delete_ps = delete_ps, density = 600
     endif
     
     if keyword_set(kperp_linear_axis) then begin
@@ -455,7 +457,7 @@ pro fhd_data_plots, datafile, rts = rts, casa = casa, pol_inc = pol_inc, image =
     endfor
     undefine, positions, pos_use
     if keyword_set(pub) then begin
-      cgps_close, png = png, pdf = pdf, delete_ps = delete_ps
+      cgps_close, png = png, pdf = pdf, delete_ps = delete_ps, density = 600
     endif
     
     
@@ -489,7 +491,7 @@ pro fhd_data_plots, datafile, rts = rts, casa = casa, pol_inc = pol_inc, image =
     endfor
     undefine, positions, pos_use
     if keyword_set(pub) then begin
-      cgps_close, png = png, pdf = pdf, delete_ps = delete_ps
+      cgps_close, png = png, pdf = pdf, delete_ps = delete_ps, density = 600
     endif
     
     if nfiles eq 2 then begin
@@ -515,7 +517,7 @@ pro fhd_data_plots, datafile, rts = rts, casa = casa, pol_inc = pol_inc, image =
         endif
       endfor
       if keyword_set(pub) then begin
-        cgps_close, png = png, pdf = pdf, delete_ps = delete_ps
+        cgps_close, png = png, pdf = pdf, delete_ps = delete_ps, density = 600
       endif
       
       window_num = 5
@@ -539,7 +541,7 @@ pro fhd_data_plots, datafile, rts = rts, casa = casa, pol_inc = pol_inc, image =
         endif
       endfor
       if keyword_set(pub) then begin
-        cgps_close, png = png, pdf = pdf, delete_ps = delete_ps
+        cgps_close, png = png, pdf = pdf, delete_ps = delete_ps, density = 600
       endif
       
     endif
@@ -591,7 +593,7 @@ pro fhd_data_plots, datafile, rts = rts, casa = casa, pol_inc = pol_inc, image =
         endif
       endfor
       if keyword_set(pub) then begin
-        cgps_close, png = png, pdf = pdf, delete_ps = delete_ps
+        cgps_close, png = png, pdf = pdf, delete_ps = delete_ps, density = 600
       endif
       
       window_num = 8
@@ -624,7 +626,7 @@ pro fhd_data_plots, datafile, rts = rts, casa = casa, pol_inc = pol_inc, image =
         endif
       endfor
       if keyword_set(pub) then begin
-        cgps_close, png = png, pdf = pdf, delete_ps = delete_ps
+        cgps_close, png = png, pdf = pdf, delete_ps = delete_ps, density = 600
       endif
       
       window_num = 9
@@ -657,7 +659,7 @@ pro fhd_data_plots, datafile, rts = rts, casa = casa, pol_inc = pol_inc, image =
         endif
       endfor
       if keyword_set(pub) then begin
-        cgps_close, png = png, pdf = pdf, delete_ps = delete_ps
+        cgps_close, png = png, pdf = pdf, delete_ps = delete_ps, density = 600
       endif
       
     endif

@@ -58,6 +58,14 @@ pro ps_difference_plots, info_files, cube_types, pols, all_type_pol = all_type_p
     type_pol_str = type_pol_str1
   endif
   
+  if tag_exist(file_struct_arr1, 'n_obs') then n_obs1 = file_struct_arr1[0].n_obs
+  if tag_exist(file_struct_arr2, 'n_obs') then n_obs2 = file_struct_arr2[0].n_obs
+  
+  if n_elements(n_obs1) gt 0 and n_elements(n_obs2) gt 0 then begin
+    if n_elements(note) eq 0 then note = '(' + number_formatter(round(mean(file_struct_arr1[0].n_obs))) + ',' + number_formatter(round(mean(file_struct_arr2[0].n_obs))) + ')' $
+    else note = note + ' (' + number_formatter(round(mean(file_struct_arr1[0].n_obs))) + ',' + number_formatter(round(mean(file_struct_arr2[0].n_obs))) + ')'
+  endif
+  
   for i=0, n_cubes-1 do begin
   
     if n_cubes gt 1 then begin
@@ -229,9 +237,10 @@ pro ps_difference_plots, info_files, cube_types, pols, all_type_pol = all_type_p
       
       
     endif
+    if i eq n_cubes-1 and n_elements(note) gt 0 then note_use = note else undefine, note_use
     
     kpower_2d_plots, savefile, multi_pos = pos_use, start_multi_params = start_multi_params, $
-      kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, note = note, $
+      kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, note = note_use, $
       data_range = diff_range, png = png, eps = eps, plotfile = plotfile, full_title=title, window_num = 3, color_profile = 'sym_log', $
       kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, baseline_axis = baseline_axis, delay_axis = delay_axis, $
       wedge_amp = wedge_amp, plot_wedge_line = plot_wedge_line, hinv = hinv
@@ -244,7 +253,7 @@ pro ps_difference_plots, info_files, cube_types, pols, all_type_pol = all_type_p
   endfor
   
   if keyword_set(pub) and n_cubes gt 1 then begin
-    cgps_close, png = png, pdf = pdf, delete_ps = delete_ps
+    cgps_close, png = png, pdf = pdf, delete_ps = delete_ps, density=600
   endif
   
 end

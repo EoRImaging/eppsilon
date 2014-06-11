@@ -3,7 +3,7 @@
 pro kpower_slice_plot, slice_savefile, multi_pos = multi_pos, start_multi_params = start_multi_params, plot_xrange = plot_xrange, $
     plot_yrange = plot_yrange, data_range = data_range, png = png, eps = eps, pdf = pdf, plotfile = plotfile, $
     color_profile = color_profile, log_cut_val = log_cut_val, window_num = window_num, title = title, title_prefix = title_prefix, $
-    grey_scale = grey_scale, plot_wedge_line = plot_wedge_line, wedge_amp = wedge_amp, linear_axes = linear_axes, $
+    plot_wedge_line = plot_wedge_line, wedge_amp = wedge_amp, linear_axes = linear_axes, $
     baseline_axis = baseline_axis, delay_axis = delay_axis, hinv = hinv, note = note
     
   if n_elements(plotfile) gt 0 or keyword_set(png) or keyword_set(eps) or keyword_set(pdf) then pub = 1 else pub = 0
@@ -512,7 +512,7 @@ pro kpower_slice_plot, slice_savefile, multi_pos = multi_pos, start_multi_params
     charsize = charsize, font = font, oob_low = oob_low
     
   if keyword_set(pub) and n_elements(multi_pos) eq 0 then begin
-    cgps_close, png = png, pdf = pdf, delete_ps = delete_ps
+    cgps_close, png = png, pdf = pdf, delete_ps = delete_ps, density=600
     wdelete, window_num
   endif
   

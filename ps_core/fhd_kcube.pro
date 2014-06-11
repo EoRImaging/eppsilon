@@ -1,6 +1,6 @@
 pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weight = dft_refresh_weight, dft_ian = dft_ian, $
     dft_fchunk = dft_fchunk, freq_ch_range = freq_ch_range, freq_flags = freq_flags, $
-    spec_window_type = spec_window_type, cut_image = cut_image, delta_uv_lambda = delta_uv_lambda, $
+    spec_window_type = spec_window_type, cut_image = cut_image, delta_uv_lambda = delta_uv_lambda, max_uv_lambda = max_uv_lambda, $
     std_power = std_power, input_units = input_units, image = image, quiet = quiet
     
   if tag_exist(file_struct, 'nside') ne 0 then healpix = 1 else healpix = 0
@@ -321,6 +321,8 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
               max_kperp_rad = min([file_struct.kspan/2.,file_struct.max_baseline_lambda])* (2.*!pi)
             endif else max_kperp_rad = min([file_struct.max_baseline_lambda])* (2.*!pi)
             
+            if n_elements(max_uv_lambda) gt 0 then max_kperp_rad = min([max_kperp_rad, max_uv_lambda])
+            
             if keyword_set(cut_image) then begin
               ;; limit field of view to match calculated k-modes
               xy_len = 1/delta_u_lambda
@@ -394,6 +396,8 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
             if tag_exist(file_struct, 'kspan') then begin
               max_kperp_rad = min([file_struct.kspan/2.,file_struct.max_baseline_lambda])* (2.*!pi)
             endif else max_kperp_rad = min([file_struct.max_baseline_lambda])* (2.*!pi)
+            
+            if n_elements(max_uv_lambda) gt 0 then max_kperp_rad = min([max_kperp_rad, max_uv_lambda * (2.*!pi)])
             
             if keyword_set(cut_image) then begin
               ;; limit field of view to match calculated k-modes
@@ -477,7 +481,7 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
             ky_rad_vals = kx_rad_vals[n_kperp/2:n_kperp-1]
             
           endelse
-
+          
           ;; do DFT.
           if test_uvf eq 0 or keyword_set(dft_refresh_data) then begin
             print, 'calculating DFT for ' + file_struct.datavar + ' in ' + file_struct.datafile[i]
@@ -620,14 +624,14 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
     x_rad_length = dims[0] * x_rad_delta
     if abs(file_struct.kpix-1/x_rad_length)/file_struct.kpix gt 1e-4 then stop
     
-    kx_mpc_delta = (2.*!dpi)*file_struct.kpix / z_mpc_mean
+    kx_mpc_delta = (2.*!pi)*file_struct.kpix / z_mpc_mean
     kx_mpc = (dindgen(n_kx)-n_kx/2) * kx_mpc_delta
     
     y_rad_delta = abs(file_struct.degpix) * !pi / 180.
     n_ky = dims[1]
     y_rad_length = dims[1] * y_rad_delta
     
-    ky_mpc_delta = (2.*!dpi)*file_struct.kpix / z_mpc_mean
+    ky_mpc_delta = (2.*!pi)*file_struct.kpix / z_mpc_mean
     ky_mpc = (dindgen(n_ky)-n_ky/2) * kx_mpc_delta
     
     pix_area_rad = x_rad_delta * y_rad_delta
@@ -873,7 +877,7 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
       n_ky = n_elements(ky_mpc)
       
     endelse
-  endelse
+  endelse 
   
   ;; save some slices of the raw data cube (before dividing by weights)
   for i=0, nfiles-1 do begin
@@ -955,13 +959,14 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
     undefine, weights_cube2, wh_wt2_0, count_wt2_0
   endif
   
+  ;; old convention
   ;; take care of FT convention for EoR (uv -> kx,ky)
-  data_cube1 = data_cube1 / (2.*!pi)^2.
-  sigma2_cube1 = sigma2_cube1 / (2.*!pi)^4.
-  if nfiles eq 2 then begin
-    data_cube2 = data_cube2 / (2.*!pi)^2.
-    sigma2_cube2 = sigma2_cube2 / (2.*!pi)^4.
-  endif
+  ;  data_cube1 = data_cube1 / (2.*!pi)^2.
+  ;  sigma2_cube1 = sigma2_cube1 / (2.*!pi)^4.
+  ;  if nfiles eq 2 then begin
+  ;    data_cube2 = data_cube2 / (2.*!pi)^2.
+  ;    sigma2_cube2 = sigma2_cube2 / (2.*!pi)^4.
+  ;  endif
   
   ;; get sigma^2 into Jy^2
   sigma2_cube1 = sigma2_cube1 * rebin(reform(vis_sigma, 1, 1, n_freq), n_kx, n_ky, n_freq)^2.
@@ -983,12 +988,12 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
   ;;   the factor is ((2*!pi)^2*(delta_uv)^2) /  (delta_kperp)^2 * Dm^2 which comes in squared in the denominator.
   ;;   see eq 21e from Adam's memo. Also note that delta D is delta z * n_freq
   ;;   note that we can convert both the weights and variance to uvf from kperp,rz and all jacobians will cancel
-  window_int_r = window_int * (z_mpc_delta * n_freq) * (kx_mpc_delta * ky_mpc_delta)*z_mpc_mean^4./((2.*!dpi)^2.*file_struct.kpix^4.)
+  window_int_r = window_int * (z_mpc_delta * n_freq) * (kx_mpc_delta * ky_mpc_delta)*z_mpc_mean^4./((2.*!pi)^2.*file_struct.kpix^4.)
   print, 'window integral in r^3: ' + number_formatter(window_int_r[0], format='(e10.4)')
   
   ;; need window integral in k^3
   ;; We actually want 1/(2pi)^3 * window_int_k which is equal to window_int_r
-  window_int = window_int_r ;* (2*!dpi)^3.
+  window_int = window_int_r ;* (2*!pi)^3.
   
   ;; divide data by sqrt(window_int) and sigma2 by window_int
   data_cube1 = data_cube1 / sqrt(window_int[0])
@@ -1159,12 +1164,18 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
   ;; now take frequency FT
   if even_freq then begin
     ;; evenly spaced, just use fft
-    data_sum_ft = fft(data_sum, dimension=3) * n_freq * z_mpc_delta / (2.*!dpi)
+    ;; old ft convention
+    ; data_sum_ft = fft(data_sum, dimension=3) * n_freq * z_mpc_delta / (2.*!pi)
+    data_sum_ft = fft(data_sum, dimension=3) * n_freq * z_mpc_delta
+
     ;; put k0 in middle of cube
     data_sum_ft = shift(data_sum_ft, [0,0,n_kz/2])
+
     undefine, data_sum
     if nfiles eq 2 then begin
-      data_diff_ft = fft(data_diff, dimension=3) * n_freq * z_mpc_delta / (2.*!dpi)
+      ;; old ft convention
+      ; data_diff_ft = fft(data_diff, dimension=3) * n_freq * z_mpc_delta / (2.*!pi)
+      data_diff_ft = fft(data_diff, dimension=3) * n_freq * z_mpc_delta
       ;; put k0 in middle of cube
       data_diff_ft = shift(data_diff_ft, [0,0,n_kz/2])
       undefine, data_diff
@@ -1173,10 +1184,16 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
     ;; Not evenly spaced. Do a dft
     z_exp =  exp(-1.*complex(0,1)*matrix_multiply(comov_dist_los, kz_mpc_orig, /btranspose))
     
-    data_sum_ft = z_mpc_delta/(2.*!dpi) * $
+    ;; old ft convention
+    ;    data_sum_ft = z_mpc_delta/(2.*!pi) * $
+    ;      reform(matrix_multiply(reform(temporary(data_sum), n_kx*n_ky, n_freq), z_exp), n_kx, n_ky, n_kz)
+    ;    if nfiles eq 2 then $
+    ;      data_diff_ft = z_mpc_delta/(2.*!pi) * $
+    ;      reform(matrix_multiply(reform(temporary(data_diff), n_kx*n_ky, n_freq), z_exp), n_kx, n_ky, n_kz)
+    data_sum_ft = z_mpc_delta * $
       reform(matrix_multiply(reform(temporary(data_sum), n_kx*n_ky, n_freq), z_exp), n_kx, n_ky, n_kz)
     if nfiles eq 2 then $
-      data_diff_ft = z_mpc_delta/(2.*!dpi) * $
+      data_diff_ft = z_mpc_delta * $
       reform(matrix_multiply(reform(temporary(data_diff), n_kx*n_ky, n_freq), z_exp), n_kx, n_ky, n_kz)
   endelse
   
@@ -1197,10 +1214,14 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
     ;full_freq_kz_arr = rebin(reform(kz_arr, 1, n_elements(kz_mpc_orig)^2), n_freq, n_elements(kz_mpc_orig)^2) * rebin(z_relative, n_freq, n_elements(kz_mpc_orig)^2)
     
     ;; for standard power calc. just need ft of sigma2 (sigma has squared units relative to data, so use z_mpc_delta^2d)
-    sigma2_ft = matrix_multiply(reform(sum_sigma2, n_kx*n_ky, n_freq), exp(-1.*complex(0,1)*freq_kz_arr)*exp(1.*complex(0,1)*freq_kz_arr)) * (z_mpc_delta^2. / (2.*!pi))^2d
+    ;; old ft convention
+    ;     sigma2_ft = matrix_multiply(reform(sum_sigma2, n_kx*n_ky, n_freq), exp(-1.*complex(0,1)*freq_kz_arr)*exp(1.*complex(0,1)*freq_kz_arr)) * (z_mpc_delta^2. / (2.*!pi))^2d
+    sigma2_ft = matrix_multiply(reform(sum_sigma2, n_kx*n_ky, n_freq), exp(-1.*complex(0,1)*freq_kz_arr)*exp(1.*complex(0,1)*freq_kz_arr)) * (z_mpc_delta^2.)^2d
     sigma2_ft = reform(sigma2_ft, n_kx, n_ky, n_elements(kz_mpc_orig))
     
-    sigma2_ft_cov = matrix_multiply(reform(sum_sigma2, n_kx*n_ky, n_freq), exp(-1.*complex(0,1)*freq_kz_arr)*exp(-1.*complex(0,1)*freq_kz_arr)) * (z_mpc_delta^2. / (2.*!pi))^2d
+    ;; old ft convention
+    ;    sigma2_ft_cov = matrix_multiply(reform(sum_sigma2, n_kx*n_ky, n_freq), exp(-1.*complex(0,1)*freq_kz_arr)*exp(-1.*complex(0,1)*freq_kz_arr)) * (z_mpc_delta^2. / (2.*!pi))^2d
+    sigma2_ft_cov = matrix_multiply(reform(sum_sigma2, n_kx*n_ky, n_freq), exp(-1.*complex(0,1)*freq_kz_arr)*exp(-1.*complex(0,1)*freq_kz_arr)) * (z_mpc_delta^2.)^2d
     sigma2_ft_cov = reform(sigma2_ft_cov, n_kx, n_ky, n_elements(kz_mpc_orig))
     sigma2_ft_cov[*,*, where(n_val eq 0)] = 0
     
@@ -1301,9 +1322,13 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
     sum_sigma2 = reform(sum_sigma2, n_kx*n_ky, n_freq)
     ;; doing 2 FTs so need 2 factors of z_mpc_delta/(2*!pi).
     ;; No multiplication by N b/c don't need to fix IDL FFT
-    covar_cos = matrix_multiply(sum_sigma2, cos_arr^2d) * (z_mpc_delta / (2.*!pi))^2.
-    covar_sin = matrix_multiply(sum_sigma2, sin_arr^2d) * (z_mpc_delta / (2.*!pi))^2.
-    covar_cross = matrix_multiply(sum_sigma2, cos_arr*sin_arr) * (z_mpc_delta / (2.*!pi))^2.
+    ;; old ft convention
+    ;    covar_cos = matrix_multiply(sum_sigma2, cos_arr^2d) * (z_mpc_delta / (2.*!pi))^2.
+    ;    covar_sin = matrix_multiply(sum_sigma2, sin_arr^2d) * (z_mpc_delta / (2.*!pi))^2.
+    ;    covar_cross = matrix_multiply(sum_sigma2, cos_arr*sin_arr) * (z_mpc_delta / (2.*!pi))^2.
+    covar_cos = matrix_multiply(sum_sigma2, cos_arr^2d) * (z_mpc_delta)^2.
+    covar_sin = matrix_multiply(sum_sigma2, sin_arr^2d) * (z_mpc_delta)^2.
+    covar_cross = matrix_multiply(sum_sigma2, cos_arr*sin_arr) * (z_mpc_delta)^2.
     
     wh_0f = where(n_freq_contrib eq 0, count_0f)
     if count_0f gt 0 then begin

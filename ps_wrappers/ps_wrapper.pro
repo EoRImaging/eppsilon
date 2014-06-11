@@ -61,7 +61,6 @@ pro ps_wrapper, datafile, rts = rts, refresh_dft = refresh_dft, refresh_ps = ref
   ;; delay_axis is a flag (defaulted to true) to mark delay time along right axis of 2d plots (set to 0 to turn off)
   ;; hinv is a flag (defaulted to true) to use h^-1 Mpc rather than physical Mpc in plot units (set to 0 to turn off)
   ;; plot_wedge_line is a flag (defaulted to true) to plot a line marking the wedge (both horizon & FoV) (set to 0 to turn off)
-  ;; grey_scale is a flag to use a black/white color scale rather than the default color scale
   ;; png & eps are flags to make save plots as png or eps files rather than displaying to the screen
     
   fhd_data_plots, datafile, dft_fchunk=dft_fchunk, plot_path = plot_path, plot_filebase = plot_filebase, save_path = save_path, savefilebase = savefilebase, $
@@ -73,6 +72,6 @@ pro ps_wrapper, datafile, rts = rts, refresh_dft = refresh_dft, refresh_ps = ref
     k1d_bin = k1d_bin, kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, $
     data_range = data_range, sigma_range = sigma_range, nev_range = nev_range, snr_range = snr_range, noise_range = noise_range, nnr_range = nnr_range, $
     baseline_axis = baseline_axis, delay_axis = delay_axis, hinv = hinv, $
-    plot_wedge_line = plot_wedge_line, grey_scale = grey_scale, individual_plots = individual_plot, png = png, eps = eps
+    plot_wedge_line = plot_wedge_line, individual_plots = individual_plot, png = png, eps = eps
     
 end

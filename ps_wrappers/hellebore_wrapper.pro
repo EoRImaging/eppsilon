@@ -37,14 +37,14 @@ pro hellebore_wrapper, folder_name, obs_range, rts = rts, casa = casa, version =
     
     if n_elements(set_data_ranges) eq 0 then set_data_ranges = 1
     if keyword_set(set_data_ranges) then begin
-      sigma_range = [1e17, 1e19]
-      nev_range = [5e17, 5e20]
+      sigma_range = [1e22, 1e26]
+      nev_range = [5e22, 5e26]
       
-      data_range = [1e8, 5e13]
-      nnr_range = [1e-9, 1e-7]
-      snr_range = [1e-10, 1e-4]
+      data_range = [1e14, 1e20]
+      nnr_range = [5e-9,5e-7]
+      snr_range = [1e-10, 1e-3]
       
-      noise_range = [5e9, 1e12]
+      noise_range = [2e15, 1e18]
     endif
     
   endif else if keyword_set(casa) then begin
@@ -79,14 +79,14 @@ pro hellebore_wrapper, folder_name, obs_range, rts = rts, casa = casa, version =
     if n_elements(set_data_ranges) eq 0 then set_data_ranges = 1
     if keyword_set(set_data_ranges) then begin
       if keyword_set(obs_info.integrated[0]) then begin
-        sigma_range = [2e0, 2e4]
-        nev_range = [5e2, 2e5]
+        sigma_range = [2e5, 2e9]
+        nev_range = [2e7, 2e10]
       endif else begin
         sigma_range = [1e4, 2e6]
         nev_range = [5e4, 2e7]
       endelse
       
-      data_range = [1e0, 1e10]
+      data_range = [1e4, 1e14]
       nnr_range = [1e-1, 1e1]
       snr_range = [1e-4, 1e6]
       
@@ -195,7 +195,6 @@ pro hellebore_wrapper, folder_name, obs_range, rts = rts, casa = casa, version =
   ;; delay_axis is a flag (defaulted to true) to mark delay time along right axis of 2d plots (set to 0 to turn off)
   ;; hinv is a flag (defaulted to true) to use h^-1 Mpc rather than physical Mpc in plot units (set to 0 to turn off)
   ;; plot_wedge_line is a flag (defaulted to true) to plot a line marking the wedge (both horizon & FoV) (set to 0 to turn off)
-  ;; grey_scale is a flag to use a black/white color scale rather than the default color scale
   ;; png & eps are flags to make save plots as png or eps files rather than displaying to the screen
   
   
