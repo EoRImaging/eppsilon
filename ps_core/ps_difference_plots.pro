@@ -2,7 +2,7 @@ pro ps_difference_plots, info_files, cube_types, pols, all_type_pol = all_type_p
     plot_path = plot_path, plot_filebase = plot_filebase, save_path = save_path, savefilebase = savefilebase, $
     note = note, $
     kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, plot_wedge_line = plot_wedge_line, $
-    quiet = quiet, png = png, eps = eps
+    quiet = quiet, png = png, eps = eps, pdf = pdf
     
   if n_elements(info_files) gt 2 then message, 'Only 1 or 2 info_files can be used'
   if keyword_set(all_type_pol) and n_elements(info_files) eq 1 then $
@@ -241,7 +241,7 @@ pro ps_difference_plots, info_files, cube_types, pols, all_type_pol = all_type_p
     
     kpower_2d_plots, savefile, multi_pos = pos_use, start_multi_params = start_multi_params, $
       kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, note = note_use, $
-      data_range = diff_range, png = png, eps = eps, plotfile = plotfile, full_title=title, window_num = 3, color_profile = 'sym_log', $
+      data_range = diff_range, png = png, eps = eps, pdf = pdf, plotfile = plotfile, full_title=title, window_num = 3, color_profile = 'sym_log', $
       kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, baseline_axis = baseline_axis, delay_axis = delay_axis, $
       wedge_amp = wedge_amp, plot_wedge_line = plot_wedge_line, hinv = hinv
       
