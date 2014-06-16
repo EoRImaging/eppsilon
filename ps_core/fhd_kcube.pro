@@ -877,7 +877,7 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
       n_ky = n_elements(ky_mpc)
       
     endelse
-  endelse 
+  endelse
   
   ;; save some slices of the raw data cube (before dividing by weights)
   for i=0, nfiles-1 do begin
@@ -1149,8 +1149,9 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
   ;; apply spectral windowing function if desired
   if n_elements(spec_window_type) ne 0 then begin
     window = spectral_window(n_freq, type = spec_window_type, /periodic)
-    
     norm_factor = n_freq / total(window)
+    norm_factor = norm_factor/sqrt(2.) ;; not sure why, but this makes the power spectrum the same for blackman harris
+    
     window = window * norm_factor
     
     window_expand = rebin(reform(window, 1, 1, n_freq), n_kx, n_ky, n_freq, /sample)
@@ -1167,10 +1168,10 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
     ;; old ft convention
     ; data_sum_ft = fft(data_sum, dimension=3) * n_freq * z_mpc_delta / (2.*!pi)
     data_sum_ft = fft(data_sum, dimension=3) * n_freq * z_mpc_delta
-
+    
     ;; put k0 in middle of cube
     data_sum_ft = shift(data_sum_ft, [0,0,n_kz/2])
-
+    
     undefine, data_sum
     if nfiles eq 2 then begin
       ;; old ft convention
