@@ -1,10 +1,15 @@
 pro ps_difference_plots, info_files, cube_types, pols, all_type_pol = all_type_pol, $
     plot_path = plot_path, plot_filebase = plot_filebase, save_path = save_path, savefilebase = savefilebase, $
-    note = note, $
+    note = note, spec_window_types = spec_window_types, $
     kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, plot_wedge_line = plot_wedge_line, $
     quiet = quiet, png = png, eps = eps, pdf = pdf
     
   if n_elements(info_files) gt 2 then message, 'Only 1 or 2 info_files can be used'
+  
+  if n_elements(spec_window_types) eq 2 then $
+    if spec_window_types[0] eq spec_window_types[1] then spec_window_types = spec_window_types[0]
+  if n_elements(spec_window_types) eq 2 and n_elements(info_files) eq 1 then info_files = [info_files, info_files]
+  
   if keyword_set(all_type_pol) and n_elements(info_files) eq 1 then $
     message, 'all_type_pol can only be set with 2 folder names and/or 2 obs names'
     
@@ -27,9 +32,8 @@ pro ps_difference_plots, info_files, cube_types, pols, all_type_pol = all_type_p
   if n_elements(delay_axis) eq 0 then delay_axis = 1
   
   ;; default to blackman-harris spectral window
-  if not keyword_set(no_spec_window) then begin
-    if n_elements(spec_window_type) eq 0 then spec_window_type = 'Blackman-Harris'
-  endif else undefine, spec_window_type
+  if n_elements(spec_window_types) eq 0 then spec_window_types = strarr(2) + 'Blackman-Harris'
+  if n_elements(spec_window_types) eq 1 then spec_window_types = [spec_window_types, spec_window_types]
   
   ;; default to plot wedge line
   if n_elements(plot_wedge_line) eq 0 then plot_wedge_line=1
@@ -37,8 +41,8 @@ pro ps_difference_plots, info_files, cube_types, pols, all_type_pol = all_type_p
   ;; default to hinv
   if n_elements(hinv) eq 0 then hinv = 1
   
-  file_struct_arr1 = fhd_file_setup(info_files[0], pol_inc, spec_window_type = spec_window_type)
-  if n_elements(info_files) eq 2 then file_struct_arr2 = fhd_file_setup(info_files[1], pol_inc, spec_window_type = spec_window_type) $
+  file_struct_arr1 = fhd_file_setup(info_files[0], pol_inc, spec_window_type = spec_window_types[0])
+  if n_elements(info_files) eq 2 then file_struct_arr2 = fhd_file_setup(info_files[1], pol_inc, spec_window_type = spec_window_types[1]) $
   else file_struct_arr2 = file_struct_arr1
   type_pol_str1 = file_struct_arr1.type_pol_str
   type_pol_str2 = file_struct_arr2.type_pol_str
@@ -225,8 +229,13 @@ pro ps_difference_plots, info_files, cube_types, pols, all_type_pol = all_type_p
     
     if n_cubes gt 1 then begin
       if i eq 0 then begin
-        ncol = 3
-        nrow = 2
+        if n_cubes eq 6 then begin
+          ncol = 3
+          nrow = 2
+        endif else begin
+          nrow = 2
+          ncol = ceil(n_cubes/nrow)
+        endelse
         start_multi_params = {ncol:ncol, nrow:nrow, ordering:'row'}
         
         window_num = 1

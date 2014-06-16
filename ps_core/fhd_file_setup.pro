@@ -586,13 +586,14 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
   if tag_exist(metadata_struct, 'nside') then healpix = 1 else healpix = 0
   if tag_exist(metadata_struct, 'no_var') then no_var = 1 else no_var = 0
   
-  type_list = ['Hann', 'Hamming', 'Blackman', 'Nutall', 'Blackman-Nutall', 'Blackman-Harris']
-  sw_tag_list = ['hann', 'ham', 'blm', 'ntl', 'bn', 'bh']
+  type_list = ['Hann', 'Hamming', 'Blackman', 'Nutall', 'Blackman-Nutall', 'Blackman-Harris', 'None']
+  sw_tag_list = ['hann', 'ham', 'blm', 'ntl', 'bn', 'bh', '']
   if n_elements(spec_window_type) ne 0 then begin
     wh_type = where(strlowcase(type_list) eq strlowcase(spec_window_type), count_type)
+    if count_type eq 0 then wh_type = where(strlowcase(sw_tag_list) eq strlowcase(spec_window_type), count_type)
     if count_type eq 0 then message, 'Spectral window type not recognized.' else begin
       spec_window_type = type_list[wh_type[0]]
-      sw_tag = '_' + sw_tag_list[wh_type[0]]
+      if spec_window_type eq 'None' then sw_tag = '' else sw_tag = '_' + sw_tag_list[wh_type[0]]
     endelse
   endif else sw_tag = ''
   
