@@ -879,14 +879,21 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
     endelse
   endelse
   
-  ;; save some slices of the raw data cube (before dividing by weights)
+  ;; save some slices of the raw data cube (before dividing by weights) & weights
   for i=0, nfiles-1 do begin
     if i eq 0 then data_cube = data_cube1 else data_cube = data_cube2
+    if i eq 0 then weights_cube = weights_cube1 else weights_cube = weights_cube2
     uf_slice = uvf_slice(data_cube, kx_mpc, ky_mpc, frequencies, kperp_lambda_conv, delay_params, hubble_param, slice_axis = 1, $
       slice_inds = 0, slice_savefile = file_struct.uf_raw_savefile[i])
       
+    uf_weight_slice = uvf_slice(weights_cube, kx_mpc, ky_mpc, frequencies, kperp_lambda_conv, delay_params, hubble_param, slice_axis = 1, $
+      slice_inds = 0, slice_savefile = file_struct.uf_weight_savefile[i])
+      
     vf_slice = uvf_slice(data_cube, kx_mpc, ky_mpc, frequencies, kperp_lambda_conv, delay_params, hubble_param, slice_axis = 0, $
       slice_inds = n_kx/2, slice_savefile = file_struct.vf_raw_savefile[i])
+      
+    vf_weight_slice = uvf_slice(weights_cube, kx_mpc, ky_mpc, frequencies, kperp_lambda_conv, delay_params, hubble_param, slice_axis = 0, $
+      slice_inds = n_kx/2, slice_savefile = file_struct.vf_weight_savefile[i])
       
     if max(abs(vf_slice)) eq 0 then begin
       nloop = 0
@@ -894,11 +901,18 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
         nloop = nloop+1
         vf_slice = uvf_slice(data_cube, kx_mpc, ky_mpc, frequencies, kperp_lambda_conv, delay_params, hubble_param, $
           slice_axis = 0, slice_inds = n_kx/2+nloop, slice_savefile = file_struct.vf_raw_savefile[i])
+          
+        vf_weight_slice = uvf_slice(weights_cube, kx_mpc, ky_mpc, frequencies, kperp_lambda_conv, delay_params, hubble_param, slice_axis = 0, $
+          slice_inds = n_kx/2+nloop, slice_savefile = file_struct.vf_weight_savefile[i])
+          
       endwhile
     endif
     
     uv_slice = uvf_slice(data_cube, kx_mpc, ky_mpc, frequencies, kperp_lambda_conv, delay_params, hubble_param, slice_axis = 2, $
       slice_inds = 0, slice_savefile = file_struct.uv_raw_savefile[i])
+      
+    uv_weight_slice = uvf_slice(weights_cube, kx_mpc, ky_mpc, frequencies, kperp_lambda_conv, delay_params, hubble_param, slice_axis = 2, $
+      slice_inds = 0, slice_savefile = file_struct.uv_weight_savefile[i])
       
     if max(abs(uv_slice)) eq 0 then begin
       nloop = 0
@@ -906,6 +920,10 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
         nloop = nloop+1
         uv_slice = uvf_slice(data_cube, kx_mpc, ky_mpc, frequencies, kperp_lambda_conv, delay_params, hubble_param, slice_axis = 2, $
           slice_inds = nloop, slice_savefile = file_struct.uv_raw_savefile[i])
+          
+        uv_weight_slice = uvf_slice(weights_cube, kx_mpc, ky_mpc, frequencies, kperp_lambda_conv, delay_params, hubble_param, slice_axis = 2, $
+          slice_inds = nloop, slice_savefile = file_struct.uv_weight_savefile[i])
+          
       endwhile
     endif
     
