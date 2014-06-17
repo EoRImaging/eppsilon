@@ -747,6 +747,10 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
   endelse
   
   uvf_weight_savefile = wt_froot + weight_savefilebase + '_uvf.idlsave'
+  uf_weight_savefile = wt_froot + weight_savefilebase + '_uf_plane.idlsave'
+  vf_weight_savefile = wt_froot + weight_savefilebase + '_vf_plane.idlsave'
+  uv_weight_savefile = wt_froot + weight_savefilebase + '_uv_plane.idlsave'
+
   
   for i=0, ncubes-1 do begin
     pol_index = i / metadata_struct.ntypes
@@ -781,6 +785,8 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
       uf_sum_savefile:uf_sum_savefile[i], vf_sum_savefile:vf_sum_savefile[i], $
       uv_sum_savefile:uv_sum_savefile[i], uf_diff_savefile:uf_diff_savefile[i], $
       vf_diff_savefile:vf_diff_savefile[i], uv_diff_savefile:uv_diff_savefile[i], $
+      uf_weight_savefile:uf_weight_savefile[*, pol_index], vf_weight_savefile:vf_weight_savefile[*, pol_index], $
+      uv_weight_savefile:uv_weight_savefile[*, pol_index], $
       kcube_savefile:kcube_savefile[i], power_savefile:power_savefile[i], fits_power_savefile:fits_power_savefile[i],$
       savefile_froot:froot, savefilebase:savefilebase[i], general_filebase:general_filebase, $
       weight_savefilebase:weight_savefilebase[*,pol_index], $
