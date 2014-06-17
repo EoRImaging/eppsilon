@@ -101,7 +101,7 @@ pro fhd_data_plots, datafile, rts = rts, casa = casa, pol_inc = pol_inc, image =
   
   power_tag = file_struct_arr[0].power_tag
   if tag_exist(file_struct_arr[0], 'uvf_tag') then uvf_tag = file_struct_arr[0].uvf_tag else uvf_tag = ''
- 
+  
   
   fadd_2dbin = ''
   ;;if keyword_set(fill_holes) then fadd_2dbin = fadd_2dbin + '_nohole'
@@ -276,15 +276,32 @@ pro fhd_data_plots, datafile, rts = rts, casa = casa, pol_inc = pol_inc, image =
     endif
     
     if pub then begin
-      if slice_type ne 'kspace' then begin
-        uf_slice_plotfile = plotfile_base + '_' + slice_type + '_uf_plane' + plot_fadd + plot_exten
-        vf_slice_plotfile = plotfile_base + '_' + slice_type + '_vf_plane' + plot_fadd + plot_exten
-        uv_slice_plotfile = plotfile_base + '_' + slice_type + '_uv_plane' + plot_fadd + plot_exten
+      if keyword_set(individual_plots) then begin
+      
+        if slice_type ne 'kspace' then begin
+          uf_slice_plotfile = plotfile_base + '_' + slice_type + file_struct_arr.file_label + '_uf_plane' + plot_fadd + plot_exten
+          vf_slice_plotfile = plotfile_base + '_' + slice_type + file_struct_arr.file_label + '_vf_plane' + plot_fadd + plot_exten
+          uv_slice_plotfile = plotfile_base + '_' + slice_type + file_struct_arr.file_label + '_uv_plane' + plot_fadd + plot_exten
+        endif else begin
+          uf_slice_plotfile = plotfile_base + '_' + slice_type + file_struct_arr.file_label + '_xz_plane' + plot_fadd + plot_exten
+          vf_slice_plotfile = plotfile_base + '_' + slice_type + file_struct_arr.file_label + '_yz_plane' + plot_fadd + plot_exten
+          uv_slice_plotfile = plotfile_base + '_' + slice_type + file_struct_arr.file_label + '_xy_plane' + plot_fadd + plot_exten
+        endelse
+        
       endif else begin
-        uf_slice_plotfile = plotfile_base + '_' + slice_type + '_xz_plane' + plot_fadd + plot_exten
-        vf_slice_plotfile = plotfile_base + '_' + slice_type + '_yz_plane' + plot_fadd + plot_exten
-        uv_slice_plotfile = plotfile_base + '_' + slice_type + '_xy_plane' + plot_fadd + plot_exten
+      
+        if slice_type ne 'kspace' then begin
+          uf_slice_plotfile = plotfile_base + '_' + slice_type + '_uf_plane' + plot_fadd + plot_exten
+          vf_slice_plotfile = plotfile_base + '_' + slice_type + '_vf_plane' + plot_fadd + plot_exten
+          uv_slice_plotfile = plotfile_base + '_' + slice_type + '_uv_plane' + plot_fadd + plot_exten
+        endif else begin
+          uf_slice_plotfile = plotfile_base + '_' + slice_type + '_xz_plane' + plot_fadd + plot_exten
+          vf_slice_plotfile = plotfile_base + '_' + slice_type + '_yz_plane' + plot_fadd + plot_exten
+          uv_slice_plotfile = plotfile_base + '_' + slice_type + '_xy_plane' + plot_fadd + plot_exten
+        endelse
+        
       endelse
+      
     endif else begin
       case slice_type of
         'raw': slice_titles = file_struct_arr.uvf_label
@@ -320,6 +337,7 @@ pro fhd_data_plots, datafile, rts = rts, casa = casa, pol_inc = pol_inc, image =
         slice_titles = file_struct_arr.file_label
       end
     endcase
+    
   endif
   
   if keyword_set(plot_wedge_line) then begin
@@ -545,8 +563,58 @@ pro fhd_data_plots, datafile, rts = rts, casa = casa, pol_inc = pol_inc, image =
       endif
       
     endif
-    
-    if keyword_set(plot_slices) then begin
+  endelse
+  if keyword_set(plot_slices) then begin
+  
+    if keyword_set(pub) and keyword_set(individual_plots) then begin
+      if slice_type eq 'kspace' then nplots = ntype*npol else nplots = ntype*nfiles*npol
+      
+      for i=0, nplots-1 do begin
+      
+        if slice_type eq 'kspace' then begin
+          kpower_slice_plot, uf_slice_savefile[i], multi_pos = pos_use, start_multi_params = start_multi_params, png = png, eps = eps, pdf = pdf, $
+            plotfile = uf_slice_plotfile[i], plot_xrange = kperp_plot_range, plot_yrange = kpar_plot_range, $
+            title_prefix = slice_titles[i], note = note_use, data_range = slice_range, $
+            plot_wedge_line = plot_wedge_line, wedge_amp = wedge_amp, hinv = hinv, $
+            baseline_axis = baseline_axis, delay_axis = delay_axis, linear_axes = kperp_linear_axis, $
+            window_num = window_num
+            
+          kpower_slice_plot, vf_slice_savefile[i], multi_pos = pos_use, start_multi_params = start_multi_params, png = png, eps = eps, pdf = pdf, $
+            plotfile = vf_slice_plotfile[i], plot_xrange = kperp_plot_range, plot_yrange = kpar_plot_range, $
+            title_prefix = slice_titles[i], note = note_use, data_range = slice_range, $
+            plot_wedge_line = plot_wedge_line, wedge_amp = wedge_amp, hinv = hinv, $
+            baseline_axis = baseline_axis, delay_axis = delay_axis, linear_axes = kperp_linear_axis, $
+            window_num = window_num
+            
+          kpower_slice_plot, uv_slice_savefile[i], multi_pos = pos_use, start_multi_params = start_multi_params, png = png, eps = eps, pdf = pdf, $
+            plotfile = uv_slice_plotfile[i], plot_xrange = kperp_plot_range, plot_yrange = kpar_plot_range, $
+            title_prefix = slice_titles[i], note = note_use, data_range = slice_range, $
+            plot_wedge_line = plot_wedge_line, wedge_amp = wedge_amp, hinv = hinv, $
+            baseline_axis = baseline_axis, delay_axis = delay_axis, linear_axes = kperp_linear_axis, $
+            window_num = window_num
+            
+        endif else begin
+        
+          uvf_slice_plot, uf_slice_savefile[i], multi_pos = pos_use, start_multi_params = start_multi_params, png = png, eps = eps, pdf = pdf, $
+            plotfile = uf_slice_plotfile[i], type = uvf_plot_type, title_prefix = slice_titles[i], note = note_use, $
+            hinv = hinv, data_range = slice_range, /log, $
+            baseline_axis = baseline_axis, window_num = window_num
+            
+          uvf_slice_plot, vf_slice_savefile[i], multi_pos = pos_use, start_multi_params = start_multi_params, png = png, eps = eps, pdf = pdf, $
+            plotfile = vf_slice_plotfile[i], type = uvf_plot_type, title_prefix = slice_titles[i], note = note_use, $
+            hinv = hinv, data_range = slice_range, /log, $
+            baseline_axis = baseline_axis, window_num = window_num
+            
+          uvf_slice_plot, uv_slice_savefile[i], multi_pos = pos_use, start_multi_params = start_multi_params, png = png, eps = eps, pdf = pdf, $
+            plotfile = uv_slice_plotfile[i], type = uvf_plot_type, title_prefix = slice_titles[i], note = note_use, $
+            hinv = hinv, data_range = slice_range, /log, $
+            baseline_axis = baseline_axis, window_num = window_num
+            
+        endelse
+        
+      endfor
+      
+    endif else begin
     
       if keyword_set(kperp_linear_axis) then begin
         ;; aspect ratio doesn't work out for kperp_linear with multiple rows
@@ -662,8 +730,8 @@ pro fhd_data_plots, datafile, rts = rts, casa = casa, pol_inc = pol_inc, image =
         cgps_close, png = png, pdf = pdf, delete_ps = delete_ps, density = 600
       endif
       
-    endif
-  endelse
+    endelse
+  endif
   
   file_arr = savefiles_1d
   
