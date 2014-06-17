@@ -276,31 +276,16 @@ pro fhd_data_plots, datafile, rts = rts, casa = casa, pol_inc = pol_inc, image =
     endif
     
     if pub then begin
-      if keyword_set(individual_plots) then begin
-      
-        if slice_type ne 'kspace' then begin
-          uf_slice_plotfile = plotfile_base + '_' + slice_type + file_struct_arr.file_label + '_uf_plane' + plot_fadd + plot_exten
-          vf_slice_plotfile = plotfile_base + '_' + slice_type + file_struct_arr.file_label + '_vf_plane' + plot_fadd + plot_exten
-          uv_slice_plotfile = plotfile_base + '_' + slice_type + file_struct_arr.file_label + '_uv_plane' + plot_fadd + plot_exten
-        endif else begin
-          uf_slice_plotfile = plotfile_base + '_' + slice_type + file_struct_arr.file_label + '_xz_plane' + plot_fadd + plot_exten
-          vf_slice_plotfile = plotfile_base + '_' + slice_type + file_struct_arr.file_label + '_yz_plane' + plot_fadd + plot_exten
-          uv_slice_plotfile = plotfile_base + '_' + slice_type + file_struct_arr.file_label + '_xy_plane' + plot_fadd + plot_exten
-        endelse
-        
+    
+      if slice_type ne 'kspace' then begin
+        uf_slice_plotfile = plotfile_base + '_' + slice_type + '_uf_plane' + plot_fadd + plot_exten
+        vf_slice_plotfile = plotfile_base + '_' + slice_type + '_vf_plane' + plot_fadd + plot_exten
+        uv_slice_plotfile = plotfile_base + '_' + slice_type + '_uv_plane' + plot_fadd + plot_exten
       endif else begin
-      
-        if slice_type ne 'kspace' then begin
-          uf_slice_plotfile = plotfile_base + '_' + slice_type + '_uf_plane' + plot_fadd + plot_exten
-          vf_slice_plotfile = plotfile_base + '_' + slice_type + '_vf_plane' + plot_fadd + plot_exten
-          uv_slice_plotfile = plotfile_base + '_' + slice_type + '_uv_plane' + plot_fadd + plot_exten
-        endif else begin
-          uf_slice_plotfile = plotfile_base + '_' + slice_type + '_xz_plane' + plot_fadd + plot_exten
-          vf_slice_plotfile = plotfile_base + '_' + slice_type + '_yz_plane' + plot_fadd + plot_exten
-          uv_slice_plotfile = plotfile_base + '_' + slice_type + '_xy_plane' + plot_fadd + plot_exten
-        endelse
-        
-      endelse
+        uf_slice_plotfile = plotfile_base + '_' + slice_type + '_xz_plane' + plot_fadd + plot_exten
+        vf_slice_plotfile = plotfile_base + '_' + slice_type + '_yz_plane' + plot_fadd + plot_exten
+        uv_slice_plotfile = plotfile_base + '_' + slice_type + '_xy_plane' + plot_fadd + plot_exten
+      endelse    
       
     endif else begin
       case slice_type of
