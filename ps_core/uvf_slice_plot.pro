@@ -261,9 +261,9 @@ pro uvf_slice_plot, slice_savefile, multi_pos = multi_pos, start_multi_params = 
   plot_aspect = (plot_pos[3] - plot_pos[1]) / (plot_pos[2] - plot_pos[0])
   
   plot_xlength = max(xarr_edges) - min(xarr_edges)
-  if slice_axis eq 2 then plot_ylength = (max(yarr_edges) - min(yarr_edges)) $
-  else plot_ylength = plot_xlength
-  
+  ;if slice_axis eq 2 then plot_ylength = (max(yarr_edges) - min(yarr_edges)) $
+  ;else 
+  plot_ylength = plot_xlength
   
   data_aspect = float(plot_ylength / plot_xlength)
   aspect_ratio =  data_aspect /plot_aspect
@@ -590,7 +590,6 @@ pro uvf_slice_plot, slice_savefile, multi_pos = multi_pos, start_multi_params = 
     
   if keyword_set(pub) and n_elements(multi_pos) eq 0 then begin
     cgps_close, png = png, pdf = pdf, delete_ps = delete_ps, density=600
-    wdelete, window_num
   endif
   
   tvlct, r, g, b
