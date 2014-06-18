@@ -767,22 +767,22 @@ pro fhd_data_plots, datafile, rts = rts, casa = casa, pol_inc = pol_inc, image =
     file_arr = [file_arr, eor_file_1d]
     titles = [titles, 'EoR signal']
     
-    jonnie_file_text = base_path() + 'single_use/eor_pspec1d_centers.txt'
-    TextFast, jonnie_data, file_path = jonnie_file_text, /read
-    
-    k_centers = jonnie_data[0,*]
-    power = jonnie_data[1,*]
-    wh_good = where(power gt 0, count_good, ncomplement = count_bad)
-    if count_bad gt 0 then begin
-      k_centers = k_centers[wh_good]
-      power = power[wh_good]
-    endif
-    jonnie_file_1d = cgrootname(jonnie_file_text, directory = jonnie_dir) + '.idlsave'
-    jonnie_file_1d = jonnie_dir + jonnie_file_1d
-    save, file = jonnie_file_1d, power, k_centers
-    
-    file_arr = [file_arr, jonnie_file_1d]
-    titles = [titles, 'PS of input cube']
+;    jonnie_file_text = base_path() + 'single_use/eor_pspec1d_centers.txt'
+;    TextFast, jonnie_data, file_path = jonnie_file_text, /read
+;    
+;    k_centers = jonnie_data[0,*]
+;    power = jonnie_data[1,*]
+;    wh_good = where(power gt 0, count_good, ncomplement = count_bad)
+;    if count_bad gt 0 then begin
+;      k_centers = k_centers[wh_good]
+;      power = power[wh_good]
+;    endif
+;    jonnie_file_1d = cgrootname(jonnie_file_text, directory = jonnie_dir) + '.idlsave'
+;    jonnie_file_1d = jonnie_dir + jonnie_file_1d
+;    save, file = jonnie_file_1d, power, k_centers
+;    
+;    file_arr = [file_arr, jonnie_file_1d]
+;    titles = [titles, 'PS of input cube']
     
   endif
   
