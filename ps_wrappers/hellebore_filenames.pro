@@ -76,7 +76,7 @@ function hellebore_filenames, folder_names, obs_names_in, rts = rts, sim = sim, 
         if obs_names[i] eq '' then begin
           if n_infofile gt 1 then print, 'More than 1 info files found, using first one'
           info_files[i] = info_file[0]
-          obs_names[i] = stregex(info_files[i], '[0-9]+.[0-9]+_', /extract)
+          obs_names[i] = stregex(file_basename(info_files[i]), '[0-9]+.[0-9]+_', /extract)
         endif else begin
           if n_infofile gt 1 then message, 'More than one info file found with given obs_range'
           info_files[i] = info_file[0]
@@ -88,7 +88,7 @@ function hellebore_filenames, folder_names, obs_names_in, rts = rts, sim = sim, 
       cube_file_list = file_search(folder_names[i] + '/' + obs_names[i] + '*_cube.idlsave', count = n_cubefiles)
       if n_cubefiles gt 0 then begin
         if obs_names[i] eq '' then begin
-          obs_name_arr = stregex(cube_file_list, '[0-9]+.[0-9]+_', /extract)
+          obs_name_arr = stregex(file_basename(cube_file_list), '[0-9]+.[0-9]+_', /extract)
           wh_first = where(obs_name_arr eq obs_name_arr[0], count_first)
           if count_first lt n_cubefiles then $
             print, 'More than one obs_range found, using first range (' + obs_name_arr[0] + ', ' + number_formatter(count_first) + ' files)'
@@ -104,7 +104,7 @@ function hellebore_filenames, folder_names, obs_names_in, rts = rts, sim = sim, 
       fits_file_list = file_search(folder_names[i] + '/' + obs_names[i] + '*_image*.fits', count = n_fitsfiles)
       if n_fitsfiles gt 0 then begin
         if obs_names[i] eq '' then begin
-          obs_name_arr = stregex(fits_file_list, '[0-9]+.[0-9]+_', /extract)
+          obs_name_arr = stregex(file_basename(fits_file_list), '[0-9]+.[0-9]+_', /extract)
           wh_first = where(obs_name_arr eq obs_name_arr[0], count_first)
           if count_first lt n_fitsfiles then $
             print, 'More than one obs_range found, using first range (' + obs_name_arr[0] + ', ' + number_formatter(count_first) + ' files)'

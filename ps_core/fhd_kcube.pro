@@ -1167,8 +1167,8 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
   ;; apply spectral windowing function if desired
   if n_elements(spec_window_type) ne 0 then begin
     window = spectral_window(n_freq, type = spec_window_type, /periodic)
-    norm_factor = n_freq / total(window)
-    norm_factor = norm_factor/sqrt(2.) ;; not sure why, but this makes the power spectrum the same for blackman harris
+
+    norm_factor = sqrt(n_freq/total(window^2.))
     
     window = window * norm_factor
     
