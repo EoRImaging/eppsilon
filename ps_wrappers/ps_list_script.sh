@@ -102,4 +102,4 @@ if [ ! -d ${file_path_cubes}/ps ]; then
     mkdir ${file_path_cubes}/ps
 fi
 
-qsub -hold_jid $master_id -l h_vmem=$mem,h_stack=512k,h_rt=05:00:00 -V -v file_path_cubes=$file_path_cubes,obs_list_path=$obs_list_path,version=$version,nslots=$nslots -e $errfile -o $outfile -pe chost $nslots ${PSpath}ps_wrappers/PS_list_job.sh
+qsub -hold_jid $master_id -l h_vmem=$mem,h_stack=512k,h_rt=07:00:00 -V -v file_path_cubes=$file_path_cubes,obs_list_path=$obs_list_path,version=$version,nslots=$nslots -e $errfile -o $outfile -pe chost $nslots ${PSpath}ps_wrappers/PS_list_job.sh
