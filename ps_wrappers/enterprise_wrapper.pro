@@ -84,13 +84,13 @@ pro enterprise_wrapper, folder_name, obs_range, rts = rts, $
       ;; then look for combined cube files
       cube_file_list = file_search(folder_name + '/' + obs_name + '*_cube.idlsave', count = n_cubefiles)
       if n_cubefiles gt 0 then begin
-        if obs_names[i] eq '' then begin
+        if obs_name eq '' then begin
           obs_name_arr = stregex(cube_file_list, '[0-9]+.[0-9]+_', /extract)
           wh_first = where(obs_name_arr eq obs_name_arr[0], count_first)
           if count_first lt n_cubefiles then $
             print, 'More than one obs_range found, using first range (' + obs_name_arr[0] + ', ' + number_formatter(count_first) + ' files)'
           cube_files = cube_file_list[wh_first]
-          obs_names[i] = obs_name_arr[0]
+          obs_name = obs_name_arr[0]
         endif else begin
           cube_files = cube_file_list
         endelse
