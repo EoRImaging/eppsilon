@@ -3,11 +3,12 @@
 # This version will take a file with a list of obsids to include in the integration
 
 #Parse flags for inputs
-while getopts ":f:o:e:" option
+while getopts ":f:o:e:p" option
 do
    case $option in
         f) file_path_cubes="$OPTARG";;
         o) obs_list_path="$OPTARG";;
+        p) ps_only=1;; # switch to only do PS (if already integrated)
         \?) echo "Unknown option: Accepted flags are -f (file path to cubes), -o (obs list path)"
             exit 1;;
         :) echo "Missing option argument for input flag"
@@ -50,6 +51,19 @@ nslots=10 # cores to use
 version=$(basename $obs_list_path) # get filename
 version="${version%.*}" # strip extension
 echo Version is $version
+
+# Just to PS if already integrated
+if [ "$ps_only" -eq "1" ]; then
+    outfile=${file_path_cubes}/ps/${version}_ps_out.log
+    errfile=${file_path_cubes}/ps/${version}_ps_err.log
+
+    if [ ! -d ${file_path_cubes}/ps ]; then
+	mkdir ${file_path_cubes}/ps
+    fi
+    qsub -l h_vmem=$mem,h_stack=512k,h_rt=07:00:00 -V -v file_path_cubes=$file_path_cubes,obs_list_path=$obs_list_path,version=$version,nslots=$nslots -e $errfile -o $outfile -pe chost $nslots ${PSpath}ps_wrappers/PS_list_job.sh
+    exit $?
+fi
+
 
 # read in obses and divide into chunks
 obs=0
