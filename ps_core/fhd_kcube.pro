@@ -977,6 +977,39 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
     undefine, weights_cube2, wh_wt2_0, count_wt2_0
   endif
   
+  ;; save some slices of the data cube
+  for i=0, nfiles-1 do begin
+    if i eq 0 then data_cube = data_cube1 else data_cube = data_cube2
+    uf_slice = uvf_slice(data_cube, kx_mpc, ky_mpc, frequencies, kperp_lambda_conv, delay_params, hubble_param, slice_axis = 1, $
+      slice_inds = 0, slice_savefile = file_struct.uf_savefile[i])
+      
+    vf_slice = uvf_slice(data_cube, kx_mpc, ky_mpc, frequencies, kperp_lambda_conv, delay_params, hubble_param, slice_axis = 0, $
+      slice_inds = n_kx/2, slice_savefile = file_struct.vf_savefile[i])
+      
+    if max(abs(vf_slice)) eq 0 then begin
+      nloop = 0
+      while max(abs(vf_slice)) eq 0 and (n_kx/2+nloop) lt (n_kx-1) do begin
+        nloop = nloop+1
+        vf_slice = uvf_slice(data_cube, kx_mpc, ky_mpc, frequencies, kperp_lambda_conv, delay_params, hubble_param, $
+          slice_axis = 0, slice_inds = n_kx/2+nloop, slice_savefile = file_struct.vf_savefile[i])
+      endwhile
+    endif
+    
+    uv_slice = uvf_slice(data_cube, kx_mpc, ky_mpc, frequencies, kperp_lambda_conv, delay_params, hubble_param, slice_axis = 2, $
+      slice_inds = 0, slice_savefile = file_struct.uv_savefile[i])
+      
+    if max(abs(uv_slice)) eq 0 then begin
+      nloop = 0
+      while max(abs(uv_slice)) eq 0 do begin
+        nloop = nloop+1
+        uv_slice = uvf_slice(data_cube, kx_mpc, ky_mpc, frequencies, kperp_lambda_conv, delay_params, hubble_param, slice_axis = 2, $
+          slice_inds = nloop, slice_savefile = file_struct.uv_savefile[i])
+      endwhile
+    endif
+    
+  endfor
+  
+  
   ;; old convention
   ;; take care of FT convention for EoR (uv -> kx,ky)
   ;  data_cube1 = data_cube1 / (2.*!pi)^2.
@@ -999,6 +1032,7 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
       sigma2_cube2[*,*,i] = sigma2_cube2[*,*,i]*(conv_factor[i])^2.
     endif
   endfor
+  
   
   ;; fix units on window funtion integral -- now they should be Mpc^3
   ;; checked vs Adam's analytic calculation and it matches to within a factor of 4
@@ -1031,37 +1065,6 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
   ;; temp_2 = fft_shift(fft(fft_shift(temp_img), /inverse))
   ;; quick_image, abs(temp_exp), title='107',/log
   
-  ;; save some slices of the data cube
-  for i=0, nfiles-1 do begin
-    if i eq 0 then data_cube = data_cube1 else data_cube = data_cube2
-    uf_slice = uvf_slice(data_cube, kx_mpc, ky_mpc, frequencies, kperp_lambda_conv, delay_params, hubble_param, slice_axis = 1, $
-      slice_inds = 0, slice_savefile = file_struct.uf_savefile[i])
-      
-    vf_slice = uvf_slice(data_cube, kx_mpc, ky_mpc, frequencies, kperp_lambda_conv, delay_params, hubble_param, slice_axis = 0, $
-      slice_inds = n_kx/2, slice_savefile = file_struct.vf_savefile[i])
-      
-    if max(abs(vf_slice)) eq 0 then begin
-      nloop = 0
-      while max(abs(vf_slice)) eq 0 and (n_kx/2+nloop) lt (n_kx-1) do begin
-        nloop = nloop+1
-        vf_slice = uvf_slice(data_cube, kx_mpc, ky_mpc, frequencies, kperp_lambda_conv, delay_params, hubble_param, $
-          slice_axis = 0, slice_inds = n_kx/2+nloop, slice_savefile = file_struct.vf_savefile[i])
-      endwhile
-    endif
-    
-    uv_slice = uvf_slice(data_cube, kx_mpc, ky_mpc, frequencies, kperp_lambda_conv, delay_params, hubble_param, slice_axis = 2, $
-      slice_inds = 0, slice_savefile = file_struct.uv_savefile[i])
-      
-    if max(abs(uv_slice)) eq 0 then begin
-      nloop = 0
-      while max(abs(uv_slice)) eq 0 do begin
-        nloop = nloop+1
-        uv_slice = uvf_slice(data_cube, kx_mpc, ky_mpc, frequencies, kperp_lambda_conv, delay_params, hubble_param, slice_axis = 2, $
-          slice_inds = nloop, slice_savefile = file_struct.uv_savefile[i])
-      endwhile
-    endif
-    
-  endfor
   
   if nfiles eq 2 then begin
     ;; Now construct added & subtracted cubes (weighted by inverse variance) & new variances
@@ -1167,7 +1170,7 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
   ;; apply spectral windowing function if desired
   if n_elements(spec_window_type) ne 0 then begin
     window = spectral_window(n_freq, type = spec_window_type, /periodic)
-
+    
     norm_factor = sqrt(n_freq/total(window^2.))
     
     window = window * norm_factor
