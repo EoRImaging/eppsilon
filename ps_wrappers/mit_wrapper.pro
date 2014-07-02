@@ -3,7 +3,7 @@ pro mit_wrapper, folder_name, obs_range, n_obs=n_obs, rts = rts, refresh_dft = r
     spec_window_type = spec_window_type, sim = sim, freq_ch_range = freq_ch_range, individual_plots = individual_plots, $
     png = png, eps = eps, plot_slices = plot_slices, slice_type = slice_type, delta_uv_lambda = delta_uv_lambda, cut_image = cut_image, $
     kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, set_data_ranges = set_data_ranges
-
+    
   ;; The only required input is the datafile name (including the full path)
   
   if n_elements(n_obs) gt 0 then print,'n_obs='+number_formatter(n_obs) else print,'n_obs not defined!'
@@ -58,7 +58,25 @@ pro mit_wrapper, folder_name, obs_range, n_obs=n_obs, rts = rts, refresh_dft = r
       endif
     endif
     if folder_test eq 0 then begin
+      pos_week1 = strpos(folder_name, 'week1')
+      if pos_week1 gt -1 then begin
+        test_name = start_path + 'EoR2013/' + strmid(folder_name, pos_week1)
+        folder_test = file_test(test_name, /directory)
+        if folder_test eq 1 then folder_name = test_name
+      endif
+    endif
+    if folder_test eq 0 then begin
       test_name = start_path + 'EoR2013/Aug23/' + folder_name
+      folder_test = file_test(test_name, /directory)
+      if folder_test eq 1 then folder_name = test_name
+    endif
+    if folder_test eq 0 then begin
+      test_name = start_path + 'EoR2013/Aug26/' + folder_name
+      folder_test = file_test(test_name, /directory)
+      if folder_test eq 1 then folder_name = test_name
+    endif
+    if folder_test eq 0 then begin
+      test_name = start_path + 'EoR2013/week1/' + folder_name
       folder_test = file_test(test_name, /directory)
       if folder_test eq 1 then folder_name = test_name
     endif
@@ -95,16 +113,25 @@ pro mit_wrapper, folder_name, obs_range, n_obs=n_obs, rts = rts, refresh_dft = r
       if obs_name eq '' then begin
         if n_infofile gt 1 then print, 'More than 1 info files found, using first one'
         datafile = info_file[0]
-        obs_name = stregex(datafile, '[0-9]+-[0-9]+', /extract)
-        obs_range = long(strsplit(obs_name, '-', /extract))
-        n_obs = (obs_range[1]-obs_range[0])/120. + 1
+        
+        if stregex(datafile, '[0-9]+-[0-9]+', /boolean) then obs_name = stregex(datafile, '[0-9]+-[0-9]+', /extract) else begin
+          start_pos = strpos(datafile, 'Combined_obs_') + strlen('Combined_obs_')
+          end_pos = strpos(strmid(datafile, start_pos), '_cube')
+          obs_name = strmid(datafile, start_pos, end_pos)
+        endelse
       endif else begin
         if n_infofile gt 1 then message, 'More than one info file found with given obs_range'
         datafile = info_file[0]
+        
+        if stregex(datafile, '[0-9]+-[0-9]+', /boolean) then obs_name = stregex(datafile, '[0-9]+-[0-9]+', /extract) else begin
+          start_pos = strpos(datafile, 'Combined_obs_') + strlen('Combined_obs_')
+          end_pos = strpos(strmid(datafile, start_pos), '_cube')
+          obs_name = strmid(datafile, start_pos, end_pos)
+        endelse
       endelse
-      
+      integrated=1
       save_path = folder_name + '/ps/'
-    endif else if n_elements(obs_range) lt 2 then begin
+    endif else begin
       ;; then look for single obs info files
       info_file = file_search(folder_name + '/ps/' + obs_name_single + '*info*', count = n_infofile)
       if n_infofile gt 0 then begin
@@ -112,18 +139,24 @@ pro mit_wrapper, folder_name, obs_range, n_obs=n_obs, rts = rts, refresh_dft = r
         if obs_name eq '' then begin
           if n_infofile gt 1 then print, 'More than 1 info files found, using first one'
           datafile = info_file[0]
-          obs_name = stregex(info_basename[0], '[0-9]+', /extract)
-          obs_range = long(obs_name)
-          n_obs=1
+          
+          if stregex(info_basename[0], '[0-9]+', /boolean) then obs_name = stregex(info_basename[0], '[0-9]+', /extract) else begin
+            end_pos = strpos(info_basename[0], '_cube')
+            obs_name = strmid(info_basename[0], 0, end_pos)
+          endelse
         endif else begin
           if n_infofile gt 1 then message, 'More than one info file found with given obs_range'
           datafile = info_file[0]
-          n_obs=1
+          if stregex(info_basename[0], '[0-9]+', /boolean) then obs_name = stregex(info_basename[0], '[0-9]+', /extract) else begin
+            end_pos = strpos(info_basename[0], '_cube')
+            obs_name = strmid(info_basename[0], 0, end_pos)
+          endelse
         endelse
+        integrated=0
         
         save_path = folder_name + '/ps/'
       endif
-    endif
+    endelse
     
     if n_infofile eq 0 then begin
       ;; first look for integrated cube files with names like Combined_obs_...
@@ -133,23 +166,32 @@ pro mit_wrapper, folder_name, obs_range, n_obs=n_obs, rts = rts, refresh_dft = r
       
       if n_cubefiles gt 0 then begin
         if obs_name eq '' then begin
-          obs_name_arr = stregex(cube_files, '[0-9]+-[0-9]+', /extract)
+          obs_name_arr = strarr(n_cubefiles)
+          for j=0, n_cubefiles-1 do begin
+            start_pos = strpos(cube_files[j], 'Combined_obs_') + strlen('Combined_obs_')
+            end_pos_even = strpos(strmid(cube_files[j], start_pos), '_even')
+            end_pos_odd = strpos(strmid(cube_files[j], start_pos), '_odd')
+            end_pos_cube = strpos(strmid(cube_files[j], start_pos), '_cube') ;; always > -1
+            end_pos = end_pos_even > end_pos_odd
+            wh_noend = where(end_pos eq -1, count_noend)
+            if count_noend gt 0 then end_pos[wh_noend] = end_pos_cube[wh_noend]
+            
+            ;obs_name_arr = stregex(cube_files, '[0-9]+-[0-9]+', /extract)
+            obs_name_arr[j] = strmid(cube_files[j], start_pos, end_pos)
+          endfor
+          
           wh_first = where(obs_name_arr eq obs_name_arr[0], count_first)
           if count_first lt n_elements(cube_files) then $
             print, 'More than one obs_range found, using first range (' + obs_name_arr[0] + ', ' + number_formatter(count_first) + ' files)'
           if count_first gt 2 then message, 'More than two cubes found with first obs_range'
           datafile = cube_files[wh_first]
           obs_name = obs_name_arr[0]
-          obs_range = long(strsplit(obs_name, '-', /extract))
-          n_obs = (obs_range[1]-obs_range[0])/120. + 1
         endif else begin
           if n_elements(cube_files) gt 2 then message, 'More than two cubes found with given obs_range'
           
           datafile = cube_files
-          obs_name_arr = stregex(cube_files, '[0-9]+-[0-9]+', /extract)
-          if obs_name_arr[1] ne obs_name_arr[0] then message, 'Cube files do not have the same obs names.'
         endelse
-        
+        integrated=1
         ;; set the save_path to a 'ps' directory one level up from the datafile directory and create the directory if it doesn't exist
         save_path = file_dirname(file_dirname(datafile[0]), /mark_directory) + 'ps/'
         if not file_test(save_path, /directory) then file_mkdir, save_path
@@ -159,22 +201,30 @@ pro mit_wrapper, folder_name, obs_range, n_obs=n_obs, rts = rts, refresh_dft = r
         if n_cubefiles gt 0 then begin
           cube_basename = file_basename(cube_files)
           if obs_name eq '' then begin
-            obs_name_arr = stregex(cube_basename, '[0-9]+', /extract)
+            obs_name_arr = strarr(n_cubefiles)
+            for j=0, n_cubefiles-1 do begin
+              end_pos_even = strpos(strmid(cube_basename[j], 0), '_even')
+              end_pos_odd = strpos(strmid(cube_basename[j], 0), '_odd')
+              end_pos_cube = strpos(strmid(cube_basename[j], 0), '_cube') ;; always > -1
+              end_pos = end_pos_even > end_pos_odd
+              wh_noend = where(end_pos eq -1, count_noend)
+              if count_noend gt 0 then end_pos[wh_noend] = end_pos_cube[wh_noend]
+              
+              obs_name_arr[j] = strmid(cube_basename[j], 0, end_pos)
+            endfor
+            
             wh_first = where(obs_name_arr eq obs_name_arr[0], count_first)
             if count_first lt n_elements(cube_files) then $
               print, 'More than one obs_range found, using first range (' + obs_name_arr[0] + ', ' + number_formatter(count_first) + ' files)'
             if count_first gt 2 then message, 'More than two cubes found with first obs_range'
             datafile = cube_files[wh_first]
             obs_name = obs_name_arr[0]
-            obs_range = long(obs_name)
-            n_obs=1
           endif else begin
             if n_elements(cube_files) gt 2 then message, 'More than two cubes found with given obs_range'
             
             datafile = cube_files
-            n_obs=1
           endelse
-          
+          integrated=0
           ;; set the save_path to a 'ps' directory in the datafile directory and create the directory if it doesn't exist
           save_path = file_dirname(datafile[0], /mark_directory) + 'ps/'
           if not file_test(save_path, /directory) then file_mkdir, save_path
@@ -183,24 +233,20 @@ pro mit_wrapper, folder_name, obs_range, n_obs=n_obs, rts = rts, refresh_dft = r
     endif
     
     if n_elements(datafile) eq 0 then message, 'No cube or info files found in folder ' + folder_name
-    print,'datafile = '+datafile
-   
-    if n_obs gt 1 then integrated = 1 $
-    else if n_obs eq 1 then integrated = 0 $
-    else if obs_range[1] - obs_range[0] gt 0 then integrated = 1
 
+    print,'datafile = '+datafile 
+ 
     if n_elements(set_data_ranges) eq 0 then set_data_ranges = 1
-    if keyword_set(set_data_ranges) then begin     
+    if keyword_set(set_data_ranges) then begin
       if keyword_set(integrated) then begin
-        sigma_range = [2e0, 2e4]
-        nev_range = [5e2, 2e5]
+        sigma_range = [2e5, 2e9]
+        nev_range = [2e7, 2e10]
       endif else begin
         sigma_range = [1e4, 2e6]
         nev_range = [5e4, 2e7]
       endelse
-
-
-      data_range = [1e0, 1e10]
+      
+      data_range = [1e4, 1e14]
       nnr_range = [1e-1, 1e1]
       snr_range = [1e-4, 1e6]
       
