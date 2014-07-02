@@ -64,7 +64,7 @@
 ;;   data_range: color bar range. plotted array will be clipped to these values.
 ;;   color_profile: type of color bar, passed to log_color_calc. allowed values are:['log_cut', 'sym_log', 'abs'] default is 'log_cut'
 ;;   log_cut_val: minimum value to limit color array to, defaults to data_range[0] or the minimum positive value in the array.
-;;     Only applies if color_profile is 'log_cut'. 
+;;     Only applies if color_profile is 'log_cut'.
 ;;   norm_2D: if set, normalize plot by norm_factor
 ;;   norm_factor: factor to use for normalizing plots if norm_2d is set. If not set, max of plotted array will be used and passed back in this keyword
 ;;   cb_size: color bar size (width) in normal units.
@@ -581,13 +581,31 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, wei
     xsize = round(base_size * x_factor)
     ysize = round(base_size * y_factor)
     
-    if not keyword_set(pub) then begin
+    if keyword_set(pub) then begin
+      ps_aspect = y_factor / x_factor
+      
+      if ps_aspect lt 1 then landscape = 1 else landscape = 0
+      IF Keyword_Set(eps) THEN landscape = 0
+      sizes = cgpswindow(LANDSCAPE=landscape, aspectRatio = ps_aspect, /sane_offsets)
+      
+      cgps_open, plotfile, /font, encapsulated=eps, /nomatch, inches=sizes.inches, xsize=sizes.xsize, ysize=sizes.ysize, $
+        xoffset=sizes.xoffset, yoffset=sizes.yoffset, landscape = landscape
+        
+    endif else begin
       while (ysize gt max_ysize) or (xsize gt max_xsize) do begin
         base_size = base_size - 100
         xsize = round(base_size * x_factor)
         ysize = round(base_size * y_factor)
       endwhile
-    endif
+      
+      
+      if windowavailable(window_num) then begin
+        wset, window_num
+        if !d.x_size ne xsize or !d.y_size ne ysize then make_win = 1 else make_win = 0
+      endif else make_win = 1
+      if make_win eq 1 then window, window_num, xsize = xsize, ysize = ysize
+      cgerase, background_color
+    endelse
     
     no_erase = 0
   endelse
@@ -633,18 +651,6 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, wei
     
     font = 1
     
-    if n_elements(multi_pos) eq 0 then begin
-    
-      ps_aspect = ysize / float(xsize)
-      
-      if ps_aspect lt 1 then landscape = 1 else landscape = 0
-      IF Keyword_Set(eps) THEN landscape = 0
-      sizes = cgpswindow(LANDSCAPE=landscape, aspectRatio = ps_aspect, /sane_offsets)
-      
-      cgps_open, plotfile, /font, encapsulated=eps, /nomatch, landscape = landscape, $
-        xsize = ps_xsize, ysize = ps_ysize, xoffset = ps_xoffset, yoffset = ps_yoffset
-    endif
-    
     DEVICE, /ISOLATIN1
     perp_char = '!9' + String("136B) + '!X' ;"
     
@@ -661,17 +667,10 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, wei
       endif else charsize = 2
     endif else charsize = charsize_in
     
-    if n_elements(multi_pos) eq 0 then begin
-      perp_char = '!9' + string(120B) + '!X'
-      
-      if windowavailable(window_num) then begin
-        wset, window_num
-        if !d.x_size ne xsize or !d.y_size ne ysize then make_win = 1 else make_win = 0
-      endif else make_win = 1
-      
-      if make_win eq 1 then window, window_num, xsize = xsize, ysize = ysize
-    endif
+    perp_char = '!9' + string(120B) + '!X'
+    
   endelse
+  
   if log_axes[0] eq 1 then plot_kperp = 10^kperp_log_edges else plot_kperp = kperp_edges
   if log_axes[1] eq 1 then plot_kpar = 10^kpar_log_edges else plot_kpar = kpar_edges
   

@@ -3,11 +3,12 @@
 # This version will take a file with a list of obsids to include in the integration
 
 #Parse flags for inputs
-while getopts ":f:o:e:" option
+while getopts ":f:o:e:p" option
 do
    case $option in
         f) file_path_cubes="$OPTARG";;
         o) obs_list_path="$OPTARG";;
+        p) ps_only=1;; # switch to only do PS (if already integrated)
         \?) echo "Unknown option: Accepted flags are -f (file path to cubes), -o (obs list path)"
             exit 1;;
         :) echo "Missing option argument for input flag"
@@ -51,6 +52,19 @@ version=$(basename $obs_list_path) # get filename
 version="${version%.*}" # strip extension
 echo Version is $version
 
+# Just to PS if already integrated
+if [ "$ps_only" -eq "1" ]; then
+    outfile=${file_path_cubes}/ps/${version}_ps_out.log
+    errfile=${file_path_cubes}/ps/${version}_ps_err.log
+
+    if [ ! -d ${file_path_cubes}/ps ]; then
+	mkdir ${file_path_cubes}/ps
+    fi
+    qsub -l h_vmem=$mem,h_stack=512k,h_rt=07:00:00 -V -v file_path_cubes=$file_path_cubes,obs_list_path=$obs_list_path,version=$version,nslots=$nslots -e $errfile -o $outfile -pe chost $nslots ${PSpath}ps_wrappers/PS_list_job.sh
+    exit $?
+fi
+
+
 # read in obses and divide into chunks
 obs=0
 rm ${file_path_cubes}/Healpix/${version}_int_chunk*.txt # remove any old chunk files lying around
@@ -72,7 +86,7 @@ if [ "$nchunk" -gt "1" ]; then
 	chunk_obs_list=${file_path_cubes}/Healpix/${version}_int_chunk${chunk}.txt
 	outfile=${file_path_cubes}/Healpix/${version}_int_chunk${chunk}_out.log
 	errfile=${file_path_cubes}/Healpix/${version}_int_chunk${chunk}_err.log
-	message=$(qsub -l h_vmem=$mem,h_stack=512k -V -v file_path_cubes=$file_path_cubes,obs_list_path=$chunk_obs_list,version=$version,chunk=$chunk,nslots=$nslots -e $errfile -o $outfile -pe chost $nslots ${PSpath}ps_wrappers/integrate_job.sh)
+	message=$(qsub -l h_vmem=$mem,h_stack=512k,h_rt=07:00:00 -V -v file_path_cubes=$file_path_cubes,obs_list_path=$chunk_obs_list,version=$version,chunk=$chunk,nslots=$nslots -e $errfile -o $outfile -pe chost $nslots ${PSpath}ps_wrappers/integrate_job.sh)
 	message=($message)
 	if [ "$chunk" -eq 1 ]; then idlist=${message[2]}; else idlist=${idlist},${message[2]}; fi
 	echo Healpix/Combined_obs_${version}_int_chunk${chunk} >> $sub_cubes_list # trick it into finding our sub cubes
@@ -81,7 +95,7 @@ if [ "$nchunk" -gt "1" ]; then
     chunk=0
     outfile=${file_path_cubes}/Healpix/${version}_int_chunk${chunk}_out.log
     errfile=${file_path_cubes}/Healpix/${version}_int_chunk${chunk}_err.log
-    message=$(qsub -hold_jid $idlist -l h_vmem=$mem,h_stack=512k -V -v file_path_cubes=$file_path_cubes,obs_list_path=$sub_cubes_list,version=$version,chunk=$chunk,nslots=$nslots -e $errfile -o $outfile -pe chost $nslots ${PSpath}ps_wrappers/integrate_job.sh)
+    message=$(qsub -hold_jid $idlist -l h_vmem=$mem,h_stack=512k,h_rt=07:00:00 -V -v file_path_cubes=$file_path_cubes,obs_list_path=$sub_cubes_list,version=$version,chunk=$chunk,nslots=$nslots -e $errfile -o $outfile -pe chost $nslots ${PSpath}ps_wrappers/integrate_job.sh)
     message=($message)
     master_id=${message[2]}
 else
@@ -89,7 +103,7 @@ else
     chunk=0
     outfile=${file_path_cubes}/Healpix/${version}_int_chunk${chunk}_out.log
     errfile=${file_path_cubes}/Healpix/${version}_int_chunk${chunk}_err.log
-    message=$(qsub -l h_vmem=$mem,h_stack=512k -V -v file_path_cubes=$file_path_cubes,obs_list_path=$obs_list_path,version=$version,chunk=$chunk,nslots=$nslots -e $errfile -o $outfile -pe chost $nslots ${PSpath}ps_wrappers/integrate_job.sh)
+    message=$(qsub -l h_vmem=$mem,h_stack=512k,h_rt=07:00:00 -V -v file_path_cubes=$file_path_cubes,obs_list_path=$obs_list_path,version=$version,chunk=$chunk,nslots=$nslots -e $errfile -o $outfile -pe chost $nslots ${PSpath}ps_wrappers/integrate_job.sh)
     message=($message)
     master_id=${message[2]}
 fi
@@ -102,4 +116,4 @@ if [ ! -d ${file_path_cubes}/ps ]; then
     mkdir ${file_path_cubes}/ps
 fi
 
-qsub -hold_jid $master_id -l h_vmem=$mem,h_stack=512k -V -v file_path_cubes=$file_path_cubes,obs_list_path=$obs_list_path,version=$version,nslots=$nslots -e $errfile -o $outfile -pe chost $nslots ${PSpath}ps_wrappers/PS_list_job.sh
+qsub -hold_jid $master_id -l h_vmem=$mem,h_stack=512k,h_rt=07:00:00 -V -v file_path_cubes=$file_path_cubes,obs_list_path=$obs_list_path,version=$version,nslots=$nslots -e $errfile -o $outfile -pe chost $nslots ${PSpath}ps_wrappers/PS_list_job.sh

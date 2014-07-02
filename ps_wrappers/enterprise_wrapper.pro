@@ -76,38 +76,60 @@ pro enterprise_wrapper, folder_name, obs_range, rts = rts, $
     endif
     
     if n_infofile eq 0 or keyword_set(refresh_rtscube) then begin
-      ;; then look for cube files
-      cube_files = file_search(folder_name + '/' + obs_name + '*_image*.fits', count = n_cubefiles)
+    
+      ;; set the save_path to a 'ps' directory one level up from the datafile directory and create the directory if it doesn't exist
+      save_path = folder_name + '/ps/'
+      if not file_test(save_path, /directory) then file_mkdir, save_path
+      
+      ;; then look for combined cube files
+      cube_file_list = file_search(folder_name + '/' + obs_name + '*_cube.idlsave', count = n_cubefiles)
       if n_cubefiles gt 0 then begin
         if obs_name eq '' then begin
-          obs_name_arr = stregex(cube_files, '[0-9]+.[0-9]+_', /extract)
+          obs_name_arr = stregex(cube_file_list, '[0-9]+.[0-9]+_', /extract)
           wh_first = where(obs_name_arr eq obs_name_arr[0], count_first)
-          if count_first lt n_elements(cube_files) then $
+          if count_first lt n_cubefiles then $
             print, 'More than one obs_range found, using first range (' + obs_name_arr[0] + ', ' + number_formatter(count_first) + ' files)'
-          datafiles = cube_files[wh_first]
+          cube_files = cube_file_list[wh_first]
           obs_name = obs_name_arr[0]
         endif else begin
-        
-          datafiles = cube_files
-          obs_name_arr = stregex(cube_files, '[0-9]+.[0-9]+_', /extract)
-          if obs_name_arr[1] ne obs_name_arr[0] then message, 'Cube files do not have the same obs ranges.'
-          obs_name = obs_name_arr[0]
+          cube_files = cube_file_list
         endelse
         
-        ;; set the save_path to a 'ps' directory one level up from the datafile directory and create the directory if it doesn't exist
-        save_path = folder_name + '/ps/'
-        if not file_test(save_path, /directory) then file_mkdir, save_path
       endif
       
-      ;; now get weights & variance files
-      weightfiles = file_search(folder_name + '/' + obs_name + '*_weights*.fits', count = n_wtfiles)
-      if n_wtfiles ne n_elements(datafiles) then message, 'number of weight files does not match number of datafiles'
-      
-      variancefiles = file_search(folder_name + '/' + obs_name + '*_variances*.fits', count = n_varfiles)
-      if n_varfiles ne n_elements(datafiles) then message, 'number of variance files does not match number of datafiles'
-      
-      datafile =  rts_fits2idlcube(datafiles, weightfiles, variancefiles, pol_inc, save_path = folder_name + '/', refresh = refresh_rtscube)
-      
+      if n_cubefiles eq 0 or keyword_set(refresh_rtscube) then begin
+        ;; then look for original fits files
+        fits_file_list = file_search(folder_name + '/' + obs_name + '*_image*.fits', count = n_fitsfiles)
+        if n_fitsfiles gt 0 then begin
+          if obs_name eq '' then begin
+            obs_name_arr = stregex(fits_file_list, '[0-9]+.[0-9]+_', /extract)
+            wh_first = where(obs_name_arr eq obs_name_arr[0], count_first)
+            if count_first lt n_elements(fits_file_list) then $
+              print, 'More than one obs_range found, using first range (' + obs_name_arr[0] + ', ' + number_formatter(count_first) + ' files)'
+            datafiles = fits_file_list[wh_first]
+            obs_name = obs_name_arr[0]
+          endif else begin
+          
+            datafiles = fits_file_list
+            obs_name_arr = stregex(fits_file_list, '[0-9]+.[0-9]+_', /extract)
+            if obs_name_arr[1] ne obs_name_arr[0] then message, 'Cube files do not have the same obs ranges.'
+            obs_name = obs_name_arr[0]
+          endelse
+          
+        endif
+        
+        ;; now get weights & variance files
+        weightfiles = file_search(folder_name + '/' + obs_name + '*_weights*.fits', count = n_wtfiles)
+        if n_wtfiles ne n_elements(datafiles) then message, 'number of weight files does not match number of datafiles'
+        
+        variancefiles = file_search(folder_name + '/' + obs_name + '*_variances*.fits', count = n_varfiles)
+        if n_varfiles ne n_elements(datafiles) then message, 'number of variance files does not match number of datafiles'
+        
+        datafile =  rts_fits2idlcube(datafiles, weightfiles, variancefiles, pol_inc, save_path = folder_name + '/', refresh = refresh_rtscube)
+      endif else begin
+        datafile = cube_files
+        
+      endelse
     endif
     
     if n_elements(datafile) eq 0 then message, 'No cube or info files found in folder ' + folder_name

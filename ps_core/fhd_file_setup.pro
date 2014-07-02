@@ -586,13 +586,14 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
   if tag_exist(metadata_struct, 'nside') then healpix = 1 else healpix = 0
   if tag_exist(metadata_struct, 'no_var') then no_var = 1 else no_var = 0
   
-  type_list = ['Hann', 'Hamming', 'Blackman', 'Nutall', 'Blackman-Nutall', 'Blackman-Harris']
-  sw_tag_list = ['hann', 'ham', 'blm', 'ntl', 'bn', 'bh']
+  type_list = ['Hann', 'Hamming', 'Blackman', 'Nutall', 'Blackman-Nutall', 'Blackman-Harris', 'None']
+  sw_tag_list = ['hann', 'ham', 'blm', 'ntl', 'bn', 'bh', '']
   if n_elements(spec_window_type) ne 0 then begin
     wh_type = where(strlowcase(type_list) eq strlowcase(spec_window_type), count_type)
+    if count_type eq 0 then wh_type = where(strlowcase(sw_tag_list) eq strlowcase(spec_window_type), count_type)
     if count_type eq 0 then message, 'Spectral window type not recognized.' else begin
       spec_window_type = type_list[wh_type[0]]
-      sw_tag = '_' + sw_tag_list[wh_type[0]]
+      if spec_window_type eq 'None' then sw_tag = '' else sw_tag = '_' + sw_tag_list[wh_type[0]]
     endelse
   endif else sw_tag = ''
   
@@ -746,6 +747,10 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
   endelse
   
   uvf_weight_savefile = wt_froot + weight_savefilebase + '_uvf.idlsave'
+  uf_weight_savefile = wt_froot + weight_savefilebase + '_uf_plane.idlsave'
+  vf_weight_savefile = wt_froot + weight_savefilebase + '_vf_plane.idlsave'
+  uv_weight_savefile = wt_froot + weight_savefilebase + '_uv_plane.idlsave'
+
   
   for i=0, ncubes-1 do begin
     pol_index = i / metadata_struct.ntypes
@@ -780,6 +785,8 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
       uf_sum_savefile:uf_sum_savefile[i], vf_sum_savefile:vf_sum_savefile[i], $
       uv_sum_savefile:uv_sum_savefile[i], uf_diff_savefile:uf_diff_savefile[i], $
       vf_diff_savefile:vf_diff_savefile[i], uv_diff_savefile:uv_diff_savefile[i], $
+      uf_weight_savefile:uf_weight_savefile[*, pol_index], vf_weight_savefile:vf_weight_savefile[*, pol_index], $
+      uv_weight_savefile:uv_weight_savefile[*, pol_index], $
       kcube_savefile:kcube_savefile[i], power_savefile:power_savefile[i], fits_power_savefile:fits_power_savefile[i],$
       savefile_froot:froot, savefilebase:savefilebase[i], general_filebase:general_filebase, $
       weight_savefilebase:weight_savefilebase[*,pol_index], $

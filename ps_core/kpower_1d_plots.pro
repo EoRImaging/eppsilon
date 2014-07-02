@@ -47,6 +47,9 @@ pro kpower_1d_plots, power_savefile, plot_weights = plot_weights, multi_pos = mu
   nfiles = n_elements(power_savefile)
   if n_elements(names) gt 0 and n_elements(names) ne nfiles then message, 'Number of names does not match number of files'
   
+  margin = [0.15, 0.2, 0.05, 0.1]
+  plot_pos = [margin[0], margin[1], (1-margin[2]), (1-margin[3])]
+    
   if n_elements(multi_pos) gt 0 then begin
     if n_elements(multi_pos) ne 4 then message, 'multi_pos must be a 4 element plot position vector'
     if max(multi_pos) gt 1 or min(multi_pos) lt 0 then message, 'multi_pos must be in normalized coordinates (between 0 & 1)'
@@ -58,12 +61,7 @@ pro kpower_1d_plots, power_savefile, plot_weights = plot_weights, multi_pos = mu
     xlen = (multi_pos[2]-multi_pos[0])
     ylen = (multi_pos[3]-multi_pos[1])
     
-    big_margin = [0.15, 0.2]      ;; in units of plot area (incl. margins)
-    small_margin = [0.05, 0.1]    ;; in units of plot area (incl. margins)
-    
-    plot_pos = [big_margin[0], big_margin[1], (1-small_margin[0]), (1-small_margin[1])]
-    
-    new_pos = [xlen * plot_pos[0] + multi_pos[0], ylen * plot_pos[1] + multi_pos[1], $
+    plot_pos = [xlen * plot_pos[0] + multi_pos[0], ylen * plot_pos[1] + multi_pos[1], $
       xlen * plot_pos[2] + multi_pos[0], ylen * plot_pos[3] + multi_pos[1]]
       
   endif else no_erase = 0
@@ -214,18 +212,16 @@ pro kpower_1d_plots, power_savefile, plot_weights = plot_weights, multi_pos = mu
     thick = 3
     xthick = 3
     ythick = 3
-    charsize = 2.5
+    charsize = 2
     font = 1
-    if nfiles gt 3 then legend_charsize = charsize / (nfiles/4.5d)  else legend_charsize = 2
+    if nfiles gt 3 then legend_charsize = charsize / (nfiles/3d)  else legend_charsize = 2
     
     if n_elements(multi_pos) eq 0 then begin
       cgps_open, plotfile, /font, encapsulated=eps
     endif
   endif else if n_elements(multi_pos) eq 0 then begin
     if windowavailable(window_num) then wset, window_num else window, window_num
-  endif
-  
-  
+  endif  
   
   ;;plot, k_plot, power_plot, /ylog, /xlog, xrange = xrange, xstyle=1
   plot_order = sort(tag_names(power_plot))
@@ -236,7 +232,7 @@ pro kpower_1d_plots, power_savefile, plot_weights = plot_weights, multi_pos = mu
   if keyword_set(hinv) then xtitle = textoidl('k (h Mpc^{-1})', font = font) $
   else xtitle = textoidl('k (Mpc^{-1})', font = font)
   
-  cgplot, k_plot.(plot_order[0]), power_plot.(plot_order[0]), position = new_pos, /ylog, /xlog, xrange = xrange, yrange = yrange, $
+  cgplot, k_plot.(plot_order[0]), power_plot.(plot_order[0]), position = plot_pos, /ylog, /xlog, xrange = xrange, yrange = yrange, $
     xstyle=1, ystyle=1, axiscolor = 'black', xtitle = xtitle, ytitle = ytitle, psym=10, xtickformat = 'exponent', $
     ytickformat = 'exponent', thick = thick, charthick = charthick, xthick = xthick, ythick = ythick, charsize = charsize, $
     font = font, noerase = no_erase

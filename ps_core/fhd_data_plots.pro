@@ -101,7 +101,7 @@ pro fhd_data_plots, datafile, rts = rts, casa = casa, pol_inc = pol_inc, image =
   
   power_tag = file_struct_arr[0].power_tag
   if tag_exist(file_struct_arr[0], 'uvf_tag') then uvf_tag = file_struct_arr[0].uvf_tag else uvf_tag = ''
- 
+  
   
   fadd_2dbin = ''
   ;;if keyword_set(fill_holes) then fadd_2dbin = fadd_2dbin + '_nohole'
@@ -260,7 +260,7 @@ pro fhd_data_plots, datafile, rts = rts, casa = casa, pol_inc = pol_inc, image =
   
   if keyword_set(plot_slices) then begin
     if n_elements(slice_type) eq 0 then slice_type = 'sumdiff'
-    slice_type_enum = ['raw', 'divided', 'kspace', 'sumdiff']
+    slice_type_enum = ['raw', 'divided', 'kspace', 'sumdiff', 'weights']
     
     wh_slice_type = where(slice_type_enum eq slice_type, count_slice_type)
     if count_slice_type eq 0 then begin
@@ -269,27 +269,64 @@ pro fhd_data_plots, datafile, rts = rts, casa = casa, pol_inc = pol_inc, image =
     endif
     
     if slice_type ne 'kspace' then begin
-      uvf_type_enum = ['abs', 'phase', 'real', 'imaginary']
+      ;if slice_type eq 'weights' then uvf_plot_type='weights'
+      
+      uvf_type_enum = ['abs', 'phase', 'real', 'imaginary', 'weights']
       if n_elements(uvf_plot_type) eq 0 then uvf_plot_type = 'abs'
       wh = where(uvf_type_enum eq uvf_plot_type, count_uvf_type)
       if count_uvf_type eq 0 then message, 'unknown uvf_plot_type. Use one of: ' + print, strjoin(uvf_type_enum, ', ')
     endif
     
     if pub then begin
-      if slice_type ne 'kspace' then begin
-        uf_slice_plotfile = plotfile_base + '_' + slice_type + '_uf_plane' + plot_fadd + plot_exten
-        vf_slice_plotfile = plotfile_base + '_' + slice_type + '_vf_plane' + plot_fadd + plot_exten
-        uv_slice_plotfile = plotfile_base + '_' + slice_type + '_uv_plane' + plot_fadd + plot_exten
+    
+      if keyword_set(individual_plots) then begin
+      
+        case slice_type of
+          'raw': begin
+            uf_slice_plotfile = transpose([[plotfile_base +'_even_'],[plotfile_base +'_odd_']]) + '_' + slice_type + '_uf_plane' + plot_fadd + plot_exten
+            vf_slice_plotfile = transpose([[plotfile_base +'_even_'],[plotfile_base +'_odd_']]) + '_' + slice_type + '_vf_plane' + plot_fadd + plot_exten
+            uv_slice_plotfile = transpose([[plotfile_base +'_even_'],[plotfile_base +'_odd_']]) + '_' + slice_type + '_uv_plane' + plot_fadd + plot_exten
+          end
+          'divided': begin
+            uf_slice_plotfile = transpose([[plotfile_base +'_even_'],[plotfile_base +'_odd_']]) + '_' + slice_type + '_uf_plane' + plot_fadd + plot_exten
+            vf_slice_plotfile = transpose([[plotfile_base +'_even_'],[plotfile_base +'_odd_']]) + '_' + slice_type + '_vf_plane' + plot_fadd + plot_exten
+            uv_slice_plotfile = transpose([[plotfile_base +'_even_'],[plotfile_base +'_odd_']]) + '_' + slice_type + '_uv_plane' + plot_fadd + plot_exten
+          end
+          'sumdiff': begin
+            uf_slice_plotfile = [plotfile_base +'_sum_',plotfile_base +'_diff_'] + '_' + slice_type + '_uf_plane' + plot_fadd + plot_exten
+            vf_slice_plotfile = [plotfile_base +'_sum_',plotfile_base +'_diff_'] + '_' + slice_type + '_vf_plane' + plot_fadd + plot_exten
+            uv_slice_plotfile = [plotfile_base +'_sum_',plotfile_base +'_diff_'] + '_' + slice_type + '_uv_plane' + plot_fadd + plot_exten
+          end
+          'weights': begin
+            uf_slice_plotfile = transpose([[plotfile_base +'_even_'],[plotfile_base +'_odd_']]) + '_' + slice_type + '_uf_plane' + plot_fadd + plot_exten
+            vf_slice_plotfile = transpose([[plotfile_base +'_even_'],[plotfile_base +'_odd_']]) + '_' + slice_type + '_vf_plane' + plot_fadd + plot_exten
+            uv_slice_plotfile = transpose([[plotfile_base +'_even_'],[plotfile_base +'_odd_']]) + '_' + slice_type + '_uv_plane' + plot_fadd + plot_exten
+          end
+          'kspace': begin
+            uf_slice_plotfile = plotfile_base + '_' + slice_type + '_uf_plane' + plot_fadd + plot_exten
+            vf_slice_plotfile = plotfile_base + '_' + slice_type + '_vf_plane' + plot_fadd + plot_exten
+            uv_slice_plotfile = plotfile_base + '_' + slice_type + '_uv_plane' + plot_fadd + plot_exten
+          end
+        endcase
+        
       endif else begin
-        uf_slice_plotfile = plotfile_base + '_' + slice_type + '_xz_plane' + plot_fadd + plot_exten
-        vf_slice_plotfile = plotfile_base + '_' + slice_type + '_yz_plane' + plot_fadd + plot_exten
-        uv_slice_plotfile = plotfile_base + '_' + slice_type + '_xy_plane' + plot_fadd + plot_exten
+        if slice_type ne 'kspace' then begin
+          uf_slice_plotfile = plotfile_base + '_' + slice_type + '_uf_plane' + plot_fadd + plot_exten
+          vf_slice_plotfile = plotfile_base + '_' + slice_type + '_vf_plane' + plot_fadd + plot_exten
+          uv_slice_plotfile = plotfile_base + '_' + slice_type + '_uv_plane' + plot_fadd + plot_exten
+        endif else begin
+          uf_slice_plotfile = plotfile_base + '_' + slice_type + '_xz_plane' + plot_fadd + plot_exten
+          vf_slice_plotfile = plotfile_base + '_' + slice_type + '_yz_plane' + plot_fadd + plot_exten
+          uv_slice_plotfile = plotfile_base + '_' + slice_type + '_xy_plane' + plot_fadd + plot_exten
+        endelse
       endelse
+      
     endif else begin
       case slice_type of
         'raw': slice_titles = file_struct_arr.uvf_label
         'divided': slice_titles = file_struct_arr.uvf_label
         'sumdiff': slice_titles = ['sum ' + file_struct_arr.file_label, 'diff ' + file_struct_arr.file_label]
+        'weights': slice_titles = file_struct_arr.uvf_label
         'kspace': slice_titles = file_struct_arr.file_label
       endcase
     endelse
@@ -313,6 +350,12 @@ pro fhd_data_plots, datafile, rts = rts, casa = casa, pol_inc = pol_inc, image =
         uv_slice_savefile = [file_struct_arr.uv_sum_savefile, file_struct_arr.uv_diff_savefile]
         slice_titles = ['sum ' + file_struct_arr.file_label, 'diff ' + file_struct_arr.file_label]
       end
+      'weights': begin
+        uf_slice_savefile = file_struct_arr.uf_weight_savefile
+        vf_slice_savefile = file_struct_arr.vf_weight_savefile
+        uv_slice_savefile = file_struct_arr.uv_weight_savefile
+        slice_titles = file_struct_arr.uvf_label
+      end
       'kspace': begin
         uf_slice_savefile = file_struct_arr.savefile_froot + file_struct_arr.savefilebase + power_tag + '_xz_plane.idlsave'
         vf_slice_savefile = file_struct_arr.savefile_froot + file_struct_arr.savefilebase + power_tag + '_yz_plane.idlsave'
@@ -320,6 +363,7 @@ pro fhd_data_plots, datafile, rts = rts, casa = casa, pol_inc = pol_inc, image =
         slice_titles = file_struct_arr.file_label
       end
     endcase
+    
   endif
   
   if keyword_set(plot_wedge_line) then begin
@@ -545,8 +589,58 @@ pro fhd_data_plots, datafile, rts = rts, casa = casa, pol_inc = pol_inc, image =
       endif
       
     endif
-    
-    if keyword_set(plot_slices) then begin
+  endelse
+  if keyword_set(plot_slices) then begin
+  
+    if keyword_set(pub) and keyword_set(individual_plots) then begin
+      if slice_type eq 'kspace' then nplots = ntype*npol else nplots = ntype*nfiles*npol
+      
+      for i=0, nplots-1 do begin
+      
+        if slice_type eq 'kspace' then begin
+          kpower_slice_plot, uf_slice_savefile[i], multi_pos = pos_use, start_multi_params = start_multi_params, png = png, eps = eps, pdf = pdf, $
+            plotfile = uf_slice_plotfile[i], plot_xrange = kperp_plot_range, plot_yrange = kpar_plot_range, $
+            title_prefix = slice_titles[i], note = note_use, data_range = slice_range, $
+            plot_wedge_line = plot_wedge_line, wedge_amp = wedge_amp, hinv = hinv, $
+            baseline_axis = baseline_axis, delay_axis = delay_axis, linear_axes = kperp_linear_axis, $
+            window_num = window_num
+            
+          kpower_slice_plot, vf_slice_savefile[i], multi_pos = pos_use, start_multi_params = start_multi_params, png = png, eps = eps, pdf = pdf, $
+            plotfile = vf_slice_plotfile[i], plot_xrange = kperp_plot_range, plot_yrange = kpar_plot_range, $
+            title_prefix = slice_titles[i], note = note_use, data_range = slice_range, $
+            plot_wedge_line = plot_wedge_line, wedge_amp = wedge_amp, hinv = hinv, $
+            baseline_axis = baseline_axis, delay_axis = delay_axis, linear_axes = kperp_linear_axis, $
+            window_num = window_num
+            
+          kpower_slice_plot, uv_slice_savefile[i], multi_pos = pos_use, start_multi_params = start_multi_params, png = png, eps = eps, pdf = pdf, $
+            plotfile = uv_slice_plotfile[i], plot_xrange = kperp_plot_range, plot_yrange = kpar_plot_range, $
+            title_prefix = slice_titles[i], note = note_use, data_range = slice_range, $
+            plot_wedge_line = plot_wedge_line, wedge_amp = wedge_amp, hinv = hinv, $
+            baseline_axis = baseline_axis, delay_axis = delay_axis, linear_axes = kperp_linear_axis, $
+            window_num = window_num
+            
+        endif else begin
+        
+          uvf_slice_plot, uf_slice_savefile[i], multi_pos = pos_use, start_multi_params = start_multi_params, png = png, eps = eps, pdf = pdf, $
+            plotfile = uf_slice_plotfile[i], type = uvf_plot_type, title_prefix = slice_titles[i], note = note_use, $
+            hinv = hinv, data_range = slice_range, /log, $
+            baseline_axis = baseline_axis, window_num = window_num
+            
+          uvf_slice_plot, vf_slice_savefile[i], multi_pos = pos_use, start_multi_params = start_multi_params, png = png, eps = eps, pdf = pdf, $
+            plotfile = vf_slice_plotfile[i], type = uvf_plot_type, title_prefix = slice_titles[i], note = note_use, $
+            hinv = hinv, data_range = slice_range, /log, $
+            baseline_axis = baseline_axis, window_num = window_num
+            
+          uvf_slice_plot, uv_slice_savefile[i], multi_pos = pos_use, start_multi_params = start_multi_params, png = png, eps = eps, pdf = pdf, $
+            plotfile = uv_slice_plotfile[i], type = uvf_plot_type, title_prefix = slice_titles[i], note = note_use, $
+            hinv = hinv, data_range = slice_range, /log, $
+            baseline_axis = baseline_axis, window_num = window_num
+            
+        endelse
+        
+      endfor
+      
+    endif else begin
     
       if keyword_set(kperp_linear_axis) then begin
         ;; aspect ratio doesn't work out for kperp_linear with multiple rows
@@ -662,8 +756,8 @@ pro fhd_data_plots, datafile, rts = rts, casa = casa, pol_inc = pol_inc, image =
         cgps_close, png = png, pdf = pdf, delete_ps = delete_ps, density = 600
       endif
       
-    endif
-  endelse
+    endelse
+  endif
   
   file_arr = savefiles_1d
   
@@ -672,8 +766,27 @@ pro fhd_data_plots, datafile, rts = rts, casa = casa, pol_inc = pol_inc, image =
     eor_file_1d = filepath('eor_power_1d.idlsave',root=rootdir('FHD'),subdir='catalog_data')
     file_arr = [file_arr, eor_file_1d]
     titles = [titles, 'EoR signal']
-    k_range = minmax([kperp_plot_range, kpar_bin, kpar_plot_range[1]])
+    
+;    jonnie_file_text = base_path() + 'single_use/eor_pspec1d_centers.txt'
+;    TextFast, jonnie_data, file_path = jonnie_file_text, /read
+;    
+;    k_centers = jonnie_data[0,*]
+;    power = jonnie_data[1,*]
+;    wh_good = where(power gt 0, count_good, ncomplement = count_bad)
+;    if count_bad gt 0 then begin
+;      k_centers = k_centers[wh_good]
+;      power = power[wh_good]
+;    endif
+;    jonnie_file_1d = cgrootname(jonnie_file_text, directory = jonnie_dir) + '.idlsave'
+;    jonnie_file_1d = jonnie_dir + jonnie_file_1d
+;    save, file = jonnie_file_1d, power, k_centers
+;    
+;    file_arr = [file_arr, jonnie_file_1d]
+;    titles = [titles, 'PS of input cube']
+    
   endif
+  
+  k_range = minmax([kperp_plot_range, kpar_bin, kpar_plot_range[1]])
   
   kpower_1d_plots, file_arr, window_num = 6, colors = colors, names = titles, delta = delta, hinv = hinv, png = png, eps = eps, pdf = pdf, $
     plotfile = plotfile_1d, k_range = k_range
