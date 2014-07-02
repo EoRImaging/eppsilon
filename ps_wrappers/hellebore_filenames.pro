@@ -115,7 +115,7 @@ function hellebore_filenames, folder_names, obs_names_in, rts = rts, sim = sim, 
         endelse
         
       endif
- 
+      
       if n_elements(cube_files) eq 0 and n_elements(fits_files) and info_files[i] eq '' then message, 'No cube or info files found in folder ' + folder_name
       
       if n_elements(fits_files) eq 0 then begin
@@ -343,7 +343,7 @@ function hellebore_filenames, folder_names, obs_names_in, rts = rts, sim = sim, 
             obs_names[i] = strmid(info_file, start_pos, end_pos)
           endelse
         endif else begin
-          if n_infofile gt 1 then message, 'More than one info file found with given obs_range'
+          if n_infofile gt 1 then message, 'More than one info file found with given obs_name'
           info_files[i] = info_file
           if stregex(info_files[i], '[0-9]+-[0-9]+', /boolean) then obs_names[i] = stregex(info_files[i], '[0-9]+-[0-9]+', /extract) else begin
             start_pos = strpos(info_file, 'Combined_obs_') + strlen('Combined_obs_')
@@ -353,7 +353,7 @@ function hellebore_filenames, folder_names, obs_names_in, rts = rts, sim = sim, 
         endelse
         integrated[i]=1
         
-      endif else if n_elements(obs_range) lt 2 then begin
+      endif else begin
         ;; then look for single obs info files
         info_file = file_search(folder_names[i] + '/' + obs_name_single + '*info*', count = n_infofile)
         if n_infofile gt 0 then begin
@@ -402,11 +402,11 @@ function hellebore_filenames, folder_names, obs_names_in, rts = rts, sim = sim, 
           if count_first gt 2 then message, 'More than two cubes found with first obs_range'
           datafile = cube_file_list[wh_first]
           obs_names[i] = obs_name_arr[0]
-          integrated[i]=1
         endif else begin
           if n_elements(cube_file_list) gt 2 then message, 'More than two cubes found with given obs_name'
           datafile = cube_file_list
         endelse
+        integrated[i]=1
         
       endif else begin
         ;; then look for single obs cube files
