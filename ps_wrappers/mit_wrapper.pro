@@ -5,6 +5,8 @@ pro mit_wrapper, folder_name, obs_range, n_obs=n_obs, rts = rts, refresh_dft = r
     kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, set_data_ranges = set_data_ranges
 
   ;; The only required input is the datafile name (including the full path)
+  
+  if n_elements(n_obs) gt 0 then print,'n_obs='+number_formatter(n_obs) else print,'n_obs not defined!'
     
   if keyword_set(rts) then begin
     froot = '/data3/MWA/bpindor/RTS/dec_11/'
@@ -182,7 +184,7 @@ pro mit_wrapper, folder_name, obs_range, n_obs=n_obs, rts = rts, refresh_dft = r
     
     if n_elements(datafile) eq 0 then message, 'No cube or info files found in folder ' + folder_name
     print,'datafile = '+datafile
-    
+   
     if n_obs gt 1 then integrated = 1 $
     else if n_obs eq 1 then integrated = 0 $
     else if obs_range[1] - obs_range[0] gt 0 then integrated = 1
