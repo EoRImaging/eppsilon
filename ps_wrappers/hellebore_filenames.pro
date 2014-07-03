@@ -376,7 +376,7 @@ function hellebore_filenames, folder_names, obs_names_in, rts = rts, sim = sim, 
           integrated[i]=0
           
         endif
-      endif
+      endelse
       
       ;; first look for integrated cube files with names like Combined_obs_...
       cube_file_list = file_search(folder_names[i] + '/Combined_obs_' + obs_names[i] + '*_cube.sav', count = n_cubefiles)
