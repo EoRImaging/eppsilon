@@ -62,6 +62,7 @@
 ;;   kperp_plot_range: range of kperp values to include [kperp_min, kperp_max]
 ;;   kpar_plot_range: range of kpar values to include [kpar_min, kpar_max]
 ;;   data_range: color bar range. plotted array will be clipped to these values.
+;;   data_min_abs: minimum non-zero magnitude to plot if sym_log color profile is selected.
 ;;   color_profile: type of color bar, passed to log_color_calc. allowed values are:['log_cut', 'sym_log', 'abs'] default is 'log_cut'
 ;;   log_cut_val: minimum value to limit color array to, defaults to data_range[0] or the minimum positive value in the array.
 ;;     Only applies if color_profile is 'log_cut'.
@@ -77,7 +78,7 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, wei
     multi_pos = multi_pos, start_multi_params = start_multi_params, window_num = window_num, $
     plot_weights = plot_weights, plot_noise = plot_noise, plot_sigma = plot_sigma, plot_exp_noise = plot_exp_noise, $
     snr = snr, nnr = nnr, $
-    kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, data_range = data_range, $
+    kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, data_range = data_range, data_min_abs = data_min_abs, $
     color_profile = color_profile, log_cut_val = log_cut_val, plotfile = plotfile, png = png, eps = eps, pdf = pdf, $
     no_title = no_title, full_title = full_title, title_prefix = title_prefix, note = note, $
     norm_2d = norm_2d, norm_factor = norm_factor, $
@@ -408,7 +409,7 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, wei
   annotate_color = 'black'
   
   log_color_calc, power_plot, power_log_norm, cb_ticks, cb_ticknames, color_range, n_colors, data_range = data_range, $
-    color_profile = color_profile, log_cut_val = log_cut_val, oob_low = oob_low
+    color_profile = color_profile, log_cut_val = log_cut_val, min_abs = data_min_abs, oob_low = oob_low
     
   max_ysize = 1000
   max_xsize = 1200

@@ -1,6 +1,6 @@
 pro hellebore_diff_wrapper, folder_names, obs_names_in, cube_types = cube_types, pols = pols, $
     spec_window_types = spec_window_types, all_type_pol = all_type_pol, $
-    png = png, eps = eps, pdf = pdf, $
+    png = png, eps = eps, pdf = pdf, data_range = data_range, data_min_abs = data_min_abs, $
     kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, sim = sim
     
     
@@ -89,7 +89,7 @@ pro hellebore_diff_wrapper, folder_names, obs_names_in, cube_types = cube_types,
     
     ps_difference_plots, obs_info.info_files, cube_types, pols, spec_window_types = spec_window_types, all_type_pol = all_type_pol, $
       plot_path = plot_path, plot_filebase = plot_filebase, save_path = save_path, savefilebase = savefilebase, $
-      note = note, kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, $
+      note = note, kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, data_range = data_range, data_min_abs = data_min_abs, $
       quiet = quiet, png = png, eps = eps, pdf = pdf
       
   end
