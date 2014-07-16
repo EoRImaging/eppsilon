@@ -517,10 +517,10 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
         if tag_exist(obs_arr[0], 'vis_noise') then begin
           vis_noise_arr = fltarr([n_obs[j], size(*obs_arr[0].vis_noise, /dimension)])
           for i=0, n_obs[j]-1 do vis_noise_arr[i, *, *] = *obs_arr[i].vis_noise
-          vis_noise_arr = total(vis_noise_arr, 1)/n_obs[j]
+          vis_noise_arr = sqrt(total(vis_noise_arr^2., 1))
           noise_dims = size(vis_noise_arr, /dimensions)
           if noise_dims[0] ne npol or noise_dims[1] ne n_freq then message, 'vis_noise dimensions do not match npol, n_freq'
-          if j eq 0 then vis_noise = vis_noise_arr else vis_noise = (vis_noise_arr + vis_noise*j)/(j+1.)
+          if j eq 0 then vis_noise = vis_noise_arr else vis_noise = sqrt(vis_noise_arr^2. + vis_noise^2.*j)/(j+1.)
         endif
         
       endif else message, 'no obs or obs_arr in datafile'
