@@ -514,14 +514,27 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
         if j eq 0 then n_vis = fltarr(nfiles)
         n_vis[j] = total(obs_arr.n_vis)
         
+        n_vis_freq_arr = fltarr([n_obs[j], n_freq])
+        for i=0, n_obs[j]-1 do n_vis_freq_arr[i, *] = obs_arr[i].nf_vis
+        
         if tag_exist(obs_arr[0], 'vis_noise') then begin
-          vis_noise_arr = fltarr([n_obs[j], size(*obs_arr[0].vis_noise, /dimension)])
-          for i=0, n_obs[j]-1 do vis_noise_arr[i, *, *] = *obs_arr[i].vis_noise
-          vis_noise_arr = sqrt(total(vis_noise_arr^2., 1))
-          noise_dims = size(vis_noise_arr, /dimensions)
+          noise_dims = size(*obs_arr[0].vis_noise, /dimension)
           if noise_dims[0] ne npol or noise_dims[1] ne n_freq then message, 'vis_noise dimensions do not match npol, n_freq'
-          if j eq 0 then vis_noise = vis_noise_arr else vis_noise = sqrt(vis_noise_arr^2. + vis_noise^2.*j)/(j+1.)
+          
+          vis_noise_arr = fltarr([n_obs[j], npol, n_freq])
+          for i=0, n_obs[j]-1 do vis_noise_arr[i, *, *] = *obs_arr[i].vis_noise
+          temp = rebin(reform(n_vis_freq_arr, n_obs[j], 1, n_freq), n_obs[j], npol, n_freq, /sample)
+          
+          vis_noise_arr = sqrt(total(vis_noise_arr^2.*temp, 1)/total(temp, 1))
+          wh_zero = where(total(temp, 1) eq 0, count_zero)
+          if count_zero gt 0 then vis_noise_arr[wh_zero] = 0
+          undefine, temp, wh_zero, count_zero
+          
+          ;; want an average vis_noise for even & odd. They aren't being combined, so average sigma not variances
+          if j eq 0 then vis_noise = vis_noise_arr else vis_noise = (vis_noise_arr + vis_noise*j)/(j+1.)
         endif
+        
+        n_vis_freq = total(n_vis_freq_arr, 1)
         
       endif else message, 'no obs or obs_arr in datafile'
       
@@ -553,22 +566,38 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
     
     n_freqbins = n_freq / n_avg
     frequencies = dblarr(n_freqbins)
+    
     if n_elements(vis_noise) gt 0 then vis_noise_avg = fltarr(npol, n_freqbins)
+    n_vis_freq_avg = fltarr(n_freqbins)
     if n_avg gt 1 then begin
       for i=0, n_freqbins-1 do begin
         frequencies[i] = mean(freq[i*n_avg:i*n_avg+(n_avg-1)]) / 1e6 ;; in MHz
-        if n_elements(vis_noise) gt 0 then vis_noise_avg[*, i] = sqrt(total(vis_noise[*, i*n_avg:i*n_avg+(n_avg-1)]^2., 2))
+        
+        temp = rebin(reform(n_vis_freq, 1, n_freq), npol, n_freq, /sample)
+        inds_arr = indgen(n_freq)
+        if n_elements(vis_noise) gt 0 then begin
+          inds_use = inds_arr[i*n_avg:i*n_avg+(n_avg-1)]
+          wh_zero = where(n_vis_freq[inds_use] eq 0, count_zero, complement = wh_gt0, ncomplement = count_gt0)
+          if count_zero gt 0 then inds_use = inds_use[wh_gt0]
+          
+          if count_gt0 eq 1 then vis_noise_avg[*, i] = vis_noise[*, inds_use] $
+          else vis_noise_avg[*, i] = sqrt(total(vis_noise[*, inds_use]^2.*temp[*, inds_use], 2)/total(temp[*, inds_use],2))
+          
+          n_vis_freq_avg[i] = total(n_vis_freq[inds_use])
+          
+        endif
       endfor
     endif else begin
       frequencies = freq / 1e6 ;; in MHz
       if n_elements(vis_noise) gt 0 then vis_noise_avg = vis_noise
     endelse
     if n_elements(vis_noise) gt 0 then vis_noise = vis_noise_avg
-    
+    n_vis_freq = n_vis_freq_avg
+
     metadata_struct = {datafile: datafile, weightfile: weightfile, variancefile:variancefile, $
       cube_varname:cube_varname, weight_varname:weight_varname, variance_varname:variance_varname, $
       frequencies:frequencies, freq_resolution:freq_resolution, time_resolution:time_resolution, $
-      n_vis:n_vis, max_baseline_lambda:max_baseline_lambda, max_theta:max_theta, degpix:degpix, kpix:kpix, kspan:kspan, $
+      n_vis:n_vis, n_vis_freq:n_vis_freq, max_baseline_lambda:max_baseline_lambda, max_theta:max_theta, degpix:degpix, kpix:kpix, kspan:kspan, $
       general_filebase:general_filebase, type_pol_str:type_pol_str, infile_label:infile_label, ntypes:ntypes, n_obs:n_obs}
       
     if healpix then metadata_struct = create_struct(metadata_struct, 'pixelfile', pixelfile, 'pixel_varname', pixel_varname, 'nside', nside)
@@ -750,7 +779,7 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
   uf_weight_savefile = wt_froot + weight_savefilebase + '_uf_plane.idlsave'
   vf_weight_savefile = wt_froot + weight_savefilebase + '_vf_plane.idlsave'
   uv_weight_savefile = wt_froot + weight_savefilebase + '_uv_plane.idlsave'
-
+  
   
   for i=0, ncubes-1 do begin
     pol_index = i / metadata_struct.ntypes
@@ -777,7 +806,7 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
     file_struct = {datafile:metadata_struct.datafile, weightfile:metadata_struct.weightfile, variancefile:metadata_struct.variancefile, $
       datavar:data_varname, weightvar:metadata_struct.weight_varname[pol_index], variancevar:metadata_struct.variance_varname[pol_index], $
       frequencies:metadata_struct.frequencies, freq_resolution:metadata_struct.freq_resolution, time_resolution:metadata_struct.time_resolution, $
-      n_vis:metadata_struct.n_vis, max_baseline_lambda:metadata_struct.max_baseline_lambda, max_theta:metadata_struct.max_theta, $
+      n_vis:metadata_struct.n_vis, n_vis_freq:metadata_struct.n_vis_freq, max_baseline_lambda:metadata_struct.max_baseline_lambda, max_theta:metadata_struct.max_theta, $
       degpix:metadata_struct.degpix, kpix:metadata_struct.kpix, kspan:metadata_struct.kspan, $;n_obs:metadata_struct.n_obs, $
       uf_savefile:uf_savefile[*,i], vf_savefile:vf_savefile[*,i], uv_savefile:uv_savefile[*,i], $
       uf_raw_savefile:uf_raw_savefile[*,i], vf_raw_savefile:vf_raw_savefile[*,i], $
