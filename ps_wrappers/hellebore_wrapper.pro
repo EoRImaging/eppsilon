@@ -24,6 +24,7 @@ pro hellebore_wrapper, folder_name, obs_range, rts = rts, casa = casa, version =
   endif
   
   obs_info = hellebore_filenames(folder_name, obs_name, sim = sim, rts = rts, casa = casa)
+  if tag_exist(obs_info, 'uvf_input') then uvf_input=obs_info.uvf_input
   
   if keyword_set(rts) then begin
     if keyword_set(casa) then message, 'rts and casa keywords cannot both be set'
@@ -203,7 +204,7 @@ pro hellebore_wrapper, folder_name, obs_range, rts = rts, casa = casa, version =
     refresh_dft = refresh_dft, refresh_ps = refresh_ps, refresh_binning = refresh_binning, refresh_info = refresh_info, $
     freq_ch_range = freq_ch_range, freq_flags = freq_flags, freq_flag_name = freq_flag_name, $
     no_spec_window = no_spec_window, spec_window_type = spec_window_type, std_power = std_power, $
-    sim = sim, cut_image = cut_image, dft_ian = dft_ian, $
+    sim = sim, cut_image = cut_image, dft_ian = dft_ian, uvf_input = uvf_input, $
     log_kpar = log_kpar, log_kperp = log_kperp, kpar_bin = kpar_bin, kperp_bin = kperp_bin, $
     log_k1d = log_k1d, k1d_bin = k1d_bin, kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, $
     plot_slices = plot_slices, slice_type = slice_type, uvf_plot_type = uvf_plot_type, $

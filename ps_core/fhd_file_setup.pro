@@ -1,6 +1,6 @@
 function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefile = variancefile, pixelfile = pixelfile, $
     dirtyvar = dirtyvar, modelvar = modelvar, weightvar = weightvar, variancevar = variancevar, $
-    pixelvar = pixelvar, save_path = save_path, image = image, dft_ian = dft_ian, $
+    pixelvar = pixelvar, save_path = save_path, uvf_input = uvf_input, dft_ian = dft_ian, $
     weight_savefilebase = weight_savefilebase_in, $
     uvf_savefilebase = uvf_savefilebase_in, savefilebase = savefilebase_in, $
     freq_ch_range = freq_ch_range, freq_flags = freq_flags, freq_flag_name = freq_flag_name, $
@@ -277,8 +277,10 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
     void = getvar_savefile(datafile[0], names = varnames)
     
     if keyword_set(sim) then begin
-      if max(strmatch(varnames, 'model*cube',/fold_case)) then begin
-        if n_elements(modelvar) eq 0 then model_varname = strupcase('model_' + pol_inc + '_cube') else model_varname = modelvar
+      if max(strmatch(varnames, 'model*',/fold_case)) then begin
+        if n_elements(modelvar) eq 0 then begin
+          if uvf_input then model_varname = strupcase('model_uv_arr') else model_varname = strupcase('model_' + pol_inc + '_cube')
+        endif else model_varname = modelvar
         if n_elements(model_varname) ne npol then $
           if n_elements(model_varname) eq 1 then model_varname = replicate(model_varname, npol) $
         else message, 'modelvar must be a scalar or have the same number of elements as pol_inc'
@@ -292,8 +294,10 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
       for i=0, npol-1 do type_pol_str[ntypes*i:i*ntypes+(ntypes-1)] = type_inc + '_' + pol_inc[i]
     endif else begin
       ;; check for the existence of dirty, model, residual cubes
-      if max(strmatch(varnames, 'dirty*cube',/fold_case)) then begin
-        if n_elements(dirtyvar) eq 0 then dirty_varname = strupcase('dirty_' + pol_inc + '_cube') else dirty_varname = dirtyvar
+      if max(strmatch(varnames, 'dirty*',/fold_case)) then begin
+        if n_elements(dirtyvar) eq 0 then begin
+          if uvf_input then dirty_varname = strupcase('dirty_uv_arr')  else dirty_varname = strupcase('dirty_' + pol_inc + '_cube')
+        endif else dirty_varname = dirtyvar
         if n_elements(dirty_varname) ne npol then $
           if n_elements(dirty_varname) eq 1 then dirty_varname = replicate(dirty_varname, npol) $
         else message, 'dirtyvar must be a scalar or have the same number of elements as pol_inc'
@@ -302,8 +306,10 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
         if npol gt 1 then cube_varname = transpose(dirty_varname) else cube_varname = dirty_varname
       endif
       
-      if max(strmatch(varnames, 'model*cube',/fold_case)) then begin
-        if n_elements(modelvar) eq 0 then model_varname = strupcase('model_' + pol_inc + '_cube') else model_varname = modelvar
+      if max(strmatch(varnames, 'model*',/fold_case)) then begin
+        if n_elements(modelvar) eq 0 then begin
+          if uvf_input then model_varname = strupcase('model_uv_arr') else model_varname = strupcase('model_' + pol_inc + '_cube')
+        endif else model_varname = modelvar
         if n_elements(model_varname) ne npol then $
           if n_elements(model_varname) eq 1 then model_varname = replicate(model_varname, npol) $
         else message, 'modelvar must be a scalar or have the same number of elements as pol_inc'
@@ -317,8 +323,10 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
         endelse
       endif
       
-      if max(strmatch(varnames, 'res*cube',/fold_case)) then begin
-        if n_elements(residualvar) eq 0 then residual_varname = strupcase('res_' + pol_inc + '_cube') else dirty_varname = residualvar
+      if max(strmatch(varnames, 'res*',/fold_case)) then begin
+        if n_elements(residualvar) eq 0 then begin
+          if uvf_input then residual_varname = strupcase('res_uv_arr') else residual_varname = strupcase('res_' + pol_inc + '_cube')
+        endif else dirty_varname = residualvar
         if n_elements(residual_varname) ne npol then $
           if n_elements(residual_varname) eq 1 then residual_varname = replicate(residual_varname, npol) $
         else message, 'residualvar must be a scalar or have the same number of elements as pol_inc'
@@ -341,12 +349,15 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
       for i=0, npol-1 do type_pol_str[ntypes*i:i*ntypes+(ntypes-1)] = type_inc + '_' + pol_inc[i]
     endelse
     
-    if n_elements(weightvar) eq 0 then weight_varname = strupcase('weights_' + pol_inc + '_cube') else weight_varname = weightvar
+    if n_elements(weightvar) eq 0 then begin
+      if uvf_input then weight_varname = strupcase('weights_uv_arr')  else weight_varname = strupcase('weights_' + pol_inc + '_cube')
+    endif else weight_varname = weightvar
     if n_elements(weight_varname) ne npol then $
       if n_elements(weight_varname) eq 1 then weight_varname = replicate(weight_varname, npol) $
     else message, 'weightvar must be a scalar or have the same number of elements as pol_inc'
-    if n_elements(variancevar) eq 0 then variance_varname = strupcase('variance_' + pol_inc + '_cube') else $
-      variance_varname = variancevar
+    if n_elements(variancevar) eq 0 then begin
+      if uvf_input then variance_varname = strupcase('variance_uv_arr') else variance_varname = strupcase('variance_' + pol_inc + '_cube')
+    endif else variance_varname = variancevar
     if n_elements(variance_varname) ne npol then $
       if n_elements(variance_varname) eq 1 then variance_varname = replicate(variance_varname, npol) $
     else message, 'variancevar must be a scalar or have the same number of elements as pol_inc'
@@ -381,7 +392,20 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
         if count eq 0 then message, cube_varname[i] + ' is not present in datafile (datafile=' + datafile[j] + ')'
         
         data_size = getvar_savefile(datafile[j], cube_varname[i], /return_size)
-        if data_size[0] gt 0 then this_data_dims = data_size[1:data_size[0]]
+        
+        if data_size[0] eq 0 then message, 'data cube has no size'
+        if data_size[n_elements(data_size)-2] eq 10 then begin
+          ;; data is a pointer
+          if uvf_input then begin
+            if data_size[0] ne 2 then message, 'Data are in a pointer array, format unknown'
+            if data_size[1] ne n_pol then message, 'Data are in a pointer array, format unknown'
+            data = getvar_savefile(datafile[j], cube_varname[i])
+            dims2 = size(*data[0], /dimension)
+            this_data_dims = [dims2, data_size[2], data_size[1]]
+            undefine_fhd, data
+          endif else message, 'Data is in a pointer array, format unknown'
+          
+        endif else this_data_dims = data_size[1:data_size[0]]
         
         if i eq 0 and j eq 0 then data_dims = this_data_dims else if total(abs(this_data_dims - data_dims)) ne 0 then message, 'data dimensions in files do not match'
       endfor
@@ -394,7 +418,20 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
         if count eq 0 then message, weight_varname[i] + ' is not present in weightfile (weightfile=' + weightfile[j] + ')'
         
         wt_size = getvar_savefile(weightfile[j], weight_varname[i], /return_size)
-        if wt_size[0] gt 0 then wt_dims = wt_size[1:wt_size[0]]
+        if wt_size[0] eq 0 then message, 'weight cube has no size'
+        if wt_size[n_elements(wt_size)-2] eq 10 then begin
+          ;; weights cube is a pointer
+          if uvf_input then begin
+            if wt_size[0] ne 2 then message, 'Weights are in a pointer array, format unknown'
+            if wt_size[1] ne n_pol then message, 'Weights are in a pointer array, format unknown'
+            weights = getvar_savefile(weightfile[j], weight_varname[i])
+            dims2 = size(*weights[0], /dimension)
+            wt_dims = [dims2, wt_size[2], wt_size[1]]
+            undefine_fhd, weights
+          endif else message, 'Weights are in a pointer array, format unknown'
+          
+        endif else wt_dims = wt_size[1:wt_size[0]]
+        
         if total(abs(wt_dims - data_dims)) ne 0 then message, 'weight and data dimensions in files do not match'
         
         wh = where(strlowcase(var_varnames) eq strlowcase(variance_varname[i]), count)
@@ -405,7 +442,22 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
         endif else begin
           no_var = 0
           var_size = getvar_savefile(variancefile[j], variance_varname[i], /return_size)
-          if var_size[0] gt 0 then var_dims = var_size[1:var_size[0]]
+          if var_size[0] eq 0 then message, 'Variance cube has no size'
+          if var_size[n_elements(var_size)-2] eq 10 then begin
+            ;; Variance cube is a pointer
+            if uvf_input then begin
+              if var_size[0] ne 2 then message, 'Variance are in a pointer array, format unknown'
+              if var_size[1] ne n_pol then message, 'Variance are in a pointer array, format unknown'
+              variance = getvar_savefile(variancefile[j], variance_varname[i])
+              dims2 = size(*variance[0], /dimension)
+              var_dims = [dims2, var_size[2], var_size[1]]
+              undefine_fhd, variance
+            endif else message, 'Variance is in a pointer array, format unknown'
+            
+          endif else var_dims = var_size[1:var_size[0]]
+          
+          
+          
           if total(abs(var_dims - data_dims)) ne 0 then message, 'variance and data dimensions in files do not match'
         endelse
       endfor
@@ -442,11 +494,9 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
         
       endif else healpix = 0
       
-      wh_obs = where(strlowcase(varnames) eq 'obs', count_obs)
-      if count_obs ne 0 then obs_arr = getvar_savefile(datafile[j], 'obs') else begin
-        wh_obs = where(strlowcase(varnames) eq 'obs_arr', count_obs)
-        obs_arr = getvar_savefile(datafile[j], 'obs_arr')
-      endelse
+      wh_obs = where(strmatch(varnames, 'obs*',/fold_case) gt 0, count_obs)
+      if count_obs eq 1 then obs_arr = getvar_savefile(datafile[j], varnames[wh_obs[0]])
+      if count_obs gt 1 then message, 'more than one obs structure in datafile'
       
       if count_obs ne 0 then begin
       
@@ -536,11 +586,13 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
         
         n_vis_freq = total(n_vis_freq_arr, 1)
         
+        fhd_undefine, obs_arr
       endif else message, 'no obs or obs_arr in datafile'
       
       
-      wh_navg = where(strlowcase(varnames) eq 'n_avg', count_obs)
-      if count_obs ne 0 then begin
+      if healpix then data_nfreq = data_dims[1] else data_nfreq = data_dims[2]
+      wh_navg = where(strlowcase(varnames) eq 'n_avg', count_navg)
+      if count_navg ne 0 then begin
         if j eq 0 then n_avg = getvar_savefile(datafile[j], 'n_avg') else begin
           n_avg1 = n_avg
           n_avg = getvar_savefile(datafile[j], 'n_avg')
@@ -548,18 +600,15 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
           undefine, n_avg1
         endelse
       endif else begin
-        print, 'no n_avg present, assuming n_avg=32'
-        if j eq 0 then n_avg = 32 else if n_avg ne 32 then message, 'n_avg parameter does not agree between datafiles'
+        print, 'no n_avg present, calculate from data frequency length; n_avg = ', n_freq/data_nfreq
+        if j eq 0 then n_avg = n_freq/data_nfreq else if n_avg ne n_freq/data_nfreq then message, 'calculated n_avg does not agree between datafiles'
       endelse
-      if healpix then data_nfreq = data_dims[1] else data_nfreq = data_dims[2]
       if n_freq/n_avg ne data_nfreq then message, 'number of frequencies does not match number of data slices'
-      
-      
       
     endfor
     
     ;; fix uvf savefiles for gridded uv
-    if healpix eq 0 and not keyword_set(image) then begin
+    if healpix eq 0 and keyword_set(uvf_input) then begin
       uvf_savefile = datafile
       uvf_weight_savefile = weightfile
     endif
@@ -593,7 +642,7 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
     endelse
     if n_elements(vis_noise) gt 0 then vis_noise = vis_noise_avg
     n_vis_freq = n_vis_freq_avg
-
+    
     metadata_struct = {datafile: datafile, weightfile: weightfile, variancefile:variancefile, $
       cube_varname:cube_varname, weight_varname:weight_varname, variance_varname:variance_varname, $
       frequencies:frequencies, freq_resolution:freq_resolution, time_resolution:time_resolution, $
@@ -790,7 +839,7 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
       res_uvf_inputfiles = strarr(nfiles,2)
       res_uvf_varname = strarr(nfiles,2)
     endif else begin
-      if healpix or keyword_set(image) then begin
+      if healpix or not keyword_set(uvf_input) then begin
         res_uvf_inputfiles = uvf_savefile[*, metadata_struct.ntypes*pol_index:metadata_struct.ntypes*pol_index+1]
         res_uvf_varname = strarr(nfiles, 2) + 'data_cube'
       endif else begin
@@ -821,11 +870,11 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
       weight_savefilebase:weight_savefilebase[*,pol_index], $
       res_uvf_inputfiles:res_uvf_inputfiles, res_uvf_varname:res_uvf_varname, $
       file_label:file_label[i], uvf_label:uvf_label[*,i], wt_file_label:wt_file_label[pol_index], $
-      uvf_tag:uvf_tag, power_tag:power_tag, type_pol_str:metadata_struct.type_pol_str[i]}
+      uvf_tag:uvf_tag, power_tag:power_tag, type_pol_str:metadata_struct.type_pol_str[i], pol_index:pol_index, type_index:type_index}
       
     if tag_exist(metadata_struct, 'n_obs') gt 0 then file_struct = create_struct(file_struct, 'n_obs', metadata_struct.n_obs)
     
-    if healpix or keyword_set(image) then file_struct = create_struct(file_struct, 'uvf_savefile', uvf_savefile[*,i], $
+    if healpix or not keyword_set(uvf_input) then file_struct = create_struct(file_struct, 'uvf_savefile', uvf_savefile[*,i], $
       'uvf_weight_savefile', uvf_weight_savefile[*, pol_index])
       
     if healpix then file_struct = create_struct(file_struct, 'pixelfile', metadata_struct.pixelfile, 'pixelvar', $
