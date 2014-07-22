@@ -117,7 +117,10 @@ pro ps_difference_plots, info_files, cube_types, pols, all_type_pol = all_type_p
     power1 = getvar_savefile(power_file1, 'power_3d')
     power2 = getvar_savefile(power_file2, 'power_3d')
     power_diff = power1 - power2
-    if max(abs(power_diff)) eq 0 then message, 'The cubes are identical -- power difference is zero everywhere'
+    if max(abs(power_diff)) eq 0 then begin
+      print, 'The cubes are identical -- power difference is zero everywhere'
+      continue
+    endif
     undefine, power1, power2
     
     weights1 = getvar_savefile(power_file1, 'weights_3d')
