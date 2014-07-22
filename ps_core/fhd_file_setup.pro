@@ -586,7 +586,7 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
         
         n_vis_freq = total(n_vis_freq_arr, 1)
         
-        fhd_undefine, obs_arr
+        undefine_fhd, obs_arr
       endif else message, 'no obs or obs_arr in datafile'
       
       
