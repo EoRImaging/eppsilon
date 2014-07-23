@@ -1,4 +1,4 @@
-pro fhd_data_plots, datafile, rts = rts, casa = casa, pol_inc = pol_inc, image = image, $
+pro fhd_data_plots, datafile, rts = rts, casa = casa, pol_inc = pol_inc, uvf_input = uvf_input, $
     save_path = save_path, savefilebase = savefilebase, plot_path = plot_path, plot_filebase = plot_filebase, $
     note = note, png = png, eps = eps, pdf = pdf, $
     refresh_dft = refresh_dft, refresh_ps = refresh_ps, refresh_binning = refresh_binning, refresh_info = refresh_info, $
@@ -66,7 +66,7 @@ pro fhd_data_plots, datafile, rts = rts, casa = casa, pol_inc = pol_inc, image =
     file_struct_arr = casa_file_setup(datafile, pol_inc, savefilebase = savefilebase, save_path = save_path, $
       spec_window_type = spec_window_type, delta_uv_lambda = delta_uv_lambda, max_uv_lambda = max_uv_lambda, refresh_info = refresh_info)
   endif else begin
-    file_struct_arr = fhd_file_setup(datafile, pol_inc, image = image, dft_ian = dft_ian, $
+    file_struct_arr = fhd_file_setup(datafile, pol_inc, uvf_input = uvf_input, dft_ian = dft_ian, $
       savefilebase = savefilebase, save_path = save_path, freq_ch_range = freq_ch_range, freq_flags = freq_flags, freq_flag_name = freq_flag_name, $
       spec_window_type = spec_window_type, delta_uv_lambda = delta_uv_lambda, max_uv_lambda = max_uv_lambda, sim = sim, std_power = std_power, refresh_info = refresh_info)
   endelse
@@ -131,7 +131,7 @@ pro fhd_data_plots, datafile, rts = rts, casa = casa, pol_inc = pol_inc, image =
   
   if tag_exist(file_struct_arr[0], 'nside') ne 0 then healpix = 1 else healpix = 0
   
-  if tag_exist(file_struct_arr, 'uvf_savefile') then image = 1 else image = 0
+  if tag_exist(file_struct_arr, 'uvf_savefile') then uvf_input = 0 else uvf_input = 1
   
   n_freq = n_elements(file_struct_arr[0].frequencies)
   if n_elements(freq_ch_range) ne 0 then if max(freq_ch_range) gt n_freq-1 then message, 'invalid freq_ch_range'
@@ -176,7 +176,7 @@ pro fhd_data_plots, datafile, rts = rts, casa = casa, pol_inc = pol_inc, image =
     
     if test eq 0 then begin
     
-      if healpix or keyword_set(image) then begin
+      if healpix or not keyword_set(uvf_input) then begin
         weight_refresh = intarr(n_cubes)
         if keyword_set(refresh_dft) then begin
           temp = weight_ind[uniq(weight_ind, sort(weight_ind))]
@@ -184,7 +184,7 @@ pro fhd_data_plots, datafile, rts = rts, casa = casa, pol_inc = pol_inc, image =
         endif
         
         fhd_3dps, file_struct_arr[i], kcube_refresh = refresh_ps, dft_refresh_data = refresh_dft, $
-          dft_refresh_weight = weight_refresh[i], dft_ian = dft_ian, cut_image = cut_image, image = image, $
+          dft_refresh_weight = weight_refresh[i], dft_ian = dft_ian, cut_image = cut_image, uvf_input = uvf_input, $
           dft_fchunk = dft_fchunk, freq_ch_range = freq_ch_range, freq_flags = freq_flags, $
           spec_window_type = spec_window_type, delta_uv_lambda = delta_uv_lambda, max_uv_lambda = max_uv_lambda, $
           std_power = std_power, no_kzero = no_kzero, $

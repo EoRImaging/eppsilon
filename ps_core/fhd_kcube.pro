@@ -1,10 +1,10 @@
 pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weight = dft_refresh_weight, dft_ian = dft_ian, $
     dft_fchunk = dft_fchunk, freq_ch_range = freq_ch_range, freq_flags = freq_flags, $
     spec_window_type = spec_window_type, cut_image = cut_image, delta_uv_lambda = delta_uv_lambda, max_uv_lambda = max_uv_lambda, $
-    std_power = std_power, input_units = input_units, image = image, quiet = quiet
+    std_power = std_power, input_units = input_units, uvf_input = uvf_input, quiet = quiet
     
   if tag_exist(file_struct, 'nside') ne 0 then healpix = 1 else healpix = 0
-  if keyword_set(image) or tag_exist(file_struct, 'uvf_savefile') ne 0 then image = 1 else image = 0
+  if keyword_set(uvf_input) or tag_exist(file_struct, 'uvf_savefile') eq 0 then uvf_input = 1 else uvf_input = 0
   nfiles = n_elements(file_struct.datafile)
   if tag_exist(file_struct, 'no_var') ne 0 then no_var = 1 else no_var = 0
   
@@ -21,7 +21,7 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
     input_uvf_files = reform(file_struct.res_uvf_inputfiles, nfiles, 2)
     input_uvf_varname = reform(file_struct.res_uvf_varname, nfiles, 2)
     
-    if healpix or keyword_set(image) then begin
+    if healpix or not keyword_set(uvf_input) then begin
       input_uvf_wtfiles = file_struct.uvf_weight_savefile
     endif
   endif
@@ -159,7 +159,7 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
   n_vis = file_struct.n_vis
   if n_elements(freq_ch_range) ne 0 then n_vis = n_vis * (float(n_freq)/float(n_freq_orig))
   
-  if healpix or image then begin
+  if healpix or not uvf_input then begin
   
     for i=0, nfiles-1 do begin
       test_uvf = file_test(file_struct.uvf_savefile[i]) *  (1 - file_test(file_struct.uvf_savefile[i], /zero_length))
@@ -588,7 +588,7 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
     endfor
   endif
   
-  if healpix or keyword_set(image) then begin
+  if healpix or not keyword_set(uvf_input) then begin
     if keyword_set(dft_ian) then begin
       n_kx = n_elements(u_lambda_vals)
       kx_mpc = 2.*!pi*temporary(u_lambda_vals) / z_mpc_mean
@@ -617,267 +617,235 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
     
     pix_area_mpc = pix_area_rad * z_mpc_mean^2.
     
-  endif else begin
+  endif
   
+  if healpix or not keyword_set(uvf_input) then begin
+    weights_cube1 = getvar_savefile(file_struct.uvf_weight_savefile[0], 'weights_cube')
+    if nfiles eq 2 then weights_cube2 = getvar_savefile(file_struct.uvf_weight_savefile[1], 'weights_cube')
+    
+    if min(ky_mpc) lt 0 then begin
+      ;; negative ky values haven't been cut yet
+      ;; need to cut uvf cubes in half because image is real -- we'll cut negative ky
+      weights_cube1 = weights_cube1[*, n_ky/2:n_ky-1,*]
+      if nfiles eq 2 then weights_cube2 = weights_cube2[*, n_ky/2:n_ky-1,*]
+    endif
+    
+  endif else begin
+    ;; uvf_input
+    weights_cube1 = getvar_savefile(file_struct.weightfile[0], file_struct.weightvar)
+    if nfiles eq 2 then weights_cube2 = getvar_savefile(file_struct.weightfile[1], file_struct.weightvar)
+    
+    wt_size = size(weights_cube1)
+    if wt_size[n_elements(wt_size)-2] eq 10 then begin
+      ;; weights cube is a pointer
+      dims2 = size(*weights_cube1[0], /dimension)
+      temp = complex(fltarr([dims2, n_freq]))
+      if nfiles eq 2 then temp2 = complex(fltarr([dims2, n_freq]))
+      for i = 0, n_freq-1 do begin
+        temp[*,*,i] = *weights_cube1[file_struct.pol_index, i]
+        if nfiles eq 2 then temp2[*,*,i] = *weights_cube2[file_struct.pol_index, i]
+      endfor
+      undefine_fhd, weights_cube1, weights_cube2
+      
+      weights_cube1 = temporary(temp)
+      if nfiles eq 2 then weights_cube2 = temporary(temp2)
+    endif
+    
     x_rad_delta = abs(file_struct.degpix) * !pi / 180d
-    n_kx = dims[0]
-    x_rad_length = dims[0] * x_rad_delta
+    n_kx = dims2[0]
+    x_rad_length = dims2[0] * x_rad_delta
     if abs(file_struct.kpix-1/x_rad_length)/file_struct.kpix gt 1e-4 then stop
     
     kx_mpc_delta = (2.*!pi)*file_struct.kpix / z_mpc_mean
     kx_mpc = (dindgen(n_kx)-n_kx/2) * kx_mpc_delta
     
     y_rad_delta = abs(file_struct.degpix) * !pi / 180.
-    n_ky = dims[1]
-    y_rad_length = dims[1] * y_rad_delta
+    n_ky = dims2[1]
+    y_rad_length = dims2[1] * y_rad_delta
     
     ky_mpc_delta = (2.*!pi)*file_struct.kpix / z_mpc_mean
     ky_mpc = (dindgen(n_ky)-n_ky/2) * kx_mpc_delta
     
     pix_area_rad = x_rad_delta * y_rad_delta
     
+    
+    if n_elements(freq_ch_range) ne 0 then begin
+      weights_cube1 = weights_cube1[*, *, min(freq_ch_range):max(freq_ch_range)]
+      if nfiles eq 2 then weights_cube2 = weights_cube2[*, *, min(freq_ch_range):max(freq_ch_range)]
+    endif
+    if n_elements(freq_flags) ne 0 then begin
+      flag_arr = rebin(reform(freq_mask, 1, 1, n_elements(file_struct.frequencies)), size(weights_cube1,/dimension), /sample)
+      weights_cube1 = weights_cube1 * flag_arr
+      if nfiles eq 2 then weights_cube2 = weights_cube2 * flag_arr
+    endif
+    
+    ;; need to cut uvf cubes in half because image is real -- we'll cut negative ky
+    weights_cube1 = weights_cube1[*, n_ky/2:n_ky-1,*]
+    if nfiles eq 2 then weights_cube2 = weights_cube2[*, n_ky/2:n_ky-1,*]
   endelse
   
-  if nfiles eq 2 then begin
-    if healpix or keyword_set(image) then begin
-      weights_cube1 = getvar_savefile(file_struct.uvf_weight_savefile[0], 'weights_cube')
-      weights_cube2 = getvar_savefile(file_struct.uvf_weight_savefile[1], 'weights_cube')
+  ;; Also need to drop 1/2 of ky=0 line -- drop ky=0, kx<0
+  weights_cube1[0:n_kx/2-1, 0, *] = 0
+  if nfiles eq 2 then weights_cube2[0:n_kx/2-1, 0, *] = 0
+  
+  
+  if not no_var then begin
+    if healpix or not keyword_set(uvf_input) then begin
+      variance_cube1 = getvar_savefile(file_struct.uvf_weight_savefile[0], 'variance_cube')
+      if nfiles eq 2 then variance_cube2 = getvar_savefile(file_struct.uvf_weight_savefile[1], 'variance_cube')
       
       if min(ky_mpc) lt 0 then begin
+        ;; calculate integral of window function before cut for comparison
+        if nfiles eq 2 then window_int_orig = [total(variance_cube1)*pix_area_rad/n_vis[0], $
+          total(variance_cube2)*pix_area_rad/n_vis[1]] $
+        else window_int_orig = total(variance_cube1)*pix_area_rad/n_vis[0]
+        
         ;; negative ky values haven't been cut yet
         ;; need to cut uvf cubes in half because image is real -- we'll cut negative ky
-        weights_cube1 = weights_cube1[*, n_ky/2:n_ky-1,*]
-        weights_cube2 = weights_cube2[*, n_ky/2:n_ky-1,*]
+        variance_cube1 = variance_cube1[*, n_ky/2:n_ky-1,*]
+        if nfiles eq 2 then variance_cube2 = variance_cube2[*, n_ky/2:n_ky-1,*]
       endif
       
     endif else begin
-      weights_cube1 = getvar_savefile(file_struct.weightfile[0], file_struct.weightvar)
-      weights_cube2 = getvar_savefile(file_struct.weightfile[1], file_struct.weightvar)
+      ;; uvf_input
+      variance_cube1 = getvar_savefile(file_struct.variancefile[0], file_struct.variancevar)
+      if nfiles eq 2 then variance_cube2 = getvar_savefile(file_struct.variancefile[1], file_struct.variancevar)
       
-      if n_elements(freq_ch_range) ne 0 then begin
-        weights_cube1 = weights_cube1[*, *, min(freq_ch_range):max(freq_ch_range)]
-        weights_cube2 = weights_cube2[*, *, min(freq_ch_range):max(freq_ch_range)]
+      var_size = size(variance_cube1)
+      if var_size[n_elements(var_size)-2] eq 10 then begin
+        ;; weights cube is a pointer
+        dims2 = size(*variance_cube1[0], /dimension)
+        temp = complex(fltarr([dims2, n_freq]))
+        if nfiles eq 2 then temp2 = complex(fltarr([dims2, n_freq]))
+        for i = 0, n_freq-1 do begin
+          temp[*,*,i] = *variance_cube1[file_struct.pol_index, i]
+          if nfiles eq 2 then temp2[*,*,i] = *variance_cube2[file_struct.pol_index, i]
+        endfor
+        undefine_fhd, variance_cube1, variance_cube2
+        
+        variance_cube1 = temporary(temp)
+        if nfiles eq 2 then variance_cube2 = temporary(temp2)
       endif
-      if n_elements(freq_flags) ne 0 then begin
-        flag_arr = rebin(reform(freq_mask, 1, 1, n_elements(file_struct.frequencies)), size(weights_cube1,/dimension), /sample)
-        weights_cube1 = weights_cube1 * flag_arr
-        weights_cube1 = weights_cube1 * flag_arr
-      endif
+      
+      if max(abs(imaginary(variance_cube1))) gt 0 then stop else variance_cube1 = real_part(variance_cube1)
+      if nfiles eq 2 then if max(abs(imaginary(variance_cube2))) gt 0 then stop else variance_cube2 = real_part(variance_cube2)
       
       ;; need to cut uvf cubes in half because image is real -- we'll cut negative ky
-      weights_cube1 = weights_cube1[*, n_ky/2:n_ky-1,*]
-      weights_cube2 = weights_cube2[*, n_ky/2:n_ky-1,*]
+      variance_cube1 = variance_cube1[*, n_ky/2:n_ky-1,*]
+      if nfiles eq 2 then variance_cube2 = variance_cube2[*, n_ky/2:n_ky-1,*]
+      
+      if n_elements(freq_ch_range) ne 0 then begin
+        variance_cube1 = variance_cube1[*, *, min(freq_ch_range):max(freq_ch_range)]
+        if nfiles eq 2 then variance_cube2 = variance_cube2[*, *, min(freq_ch_range):max(freq_ch_range)]
+      endif
+      if n_elements(freq_flags) ne 0 then begin
+        flag_arr = rebin(reform(freq_mask, 1, 1, n_elements(file_struct.frequencies)), size(variance_cube1,/dimension), /sample)
+        variance_cube1 = variance_cube1 * flag_arr
+        if nfiles eq 2 then variance_cube2 = variance_cube2 * flag_arr
+      endif
+      
     endelse
     
     ;; Also need to drop 1/2 of ky=0 line -- drop ky=0, kx<0
-    weights_cube1[0:n_kx/2-1, 0, *] = 0
-    weights_cube2[0:n_kx/2-1, 0, *] = 0
+    variance_cube1[0:n_kx/2-1, 0, *] = 0
+    if nfiles eq 2 then variance_cube2[0:n_kx/2-1, 0, *] = 0
     
+    ;; calculate integral of window function (use pix_area_rad for FT normalization)
+    ;; already cut out negative ky, so multiply by 2
+    if nfiles eq 2 then window_int = 2*[total(variance_cube1)*pix_area_rad/n_vis[0], $
+      total(variance_cube2)*pix_area_rad/n_vis[1]] $
+    else window_int = 2*total(variance_cube1)*pix_area_rad/n_vis[0]
     
-    if not no_var then begin
-      if healpix or keyword_set(image) then begin
-        variance_cube1 = getvar_savefile(file_struct.uvf_weight_savefile[0], 'variance_cube')
-        variance_cube2 = getvar_savefile(file_struct.uvf_weight_savefile[1], 'variance_cube')
-        
-        if min(ky_mpc) lt 0 then begin
-          ;; calculate integral of window function before cut for comparison
-          window_int_orig = [total(variance_cube1)*pix_area_rad/n_vis[0], $
-            total(variance_cube2)*pix_area_rad/n_vis[1]]
-            
-          ;; negative ky values haven't been cut yet
-          ;; need to cut uvf cubes in half because image is real -- we'll cut negative ky
-          variance_cube1 = variance_cube1[*, n_ky/2:n_ky-1,*]
-          variance_cube2 = variance_cube2[*, n_ky/2:n_ky-1,*]
-        endif
-        
-      endif else begin
-        ;; need to cut uvf cubes in half because image is real -- we'll cut negative ky
-        variance_cube1 = getvar_savefile(file_struct.variancefile[0], file_struct.variancevar)
-        if max(abs(imaginary(variance_cube1))) gt 0 then stop else variance_cube1 = real_part(variance_cube1)
-        variance_cube1 = variance_cube1[*, n_ky/2:n_ky-1,*]
-        variance_cube2 = getvar_savefile(file_struct.variancefile[1], file_struct.variancevar)
-        if max(abs(imaginary(variance_cube2))) gt 0 then stop else variance_cube2 = real_part(variance_cube2)
-        variance_cube2 = variance_cube2[*, n_ky/2:n_ky-1,*]
-        
-        if n_elements(freq_ch_range) ne 0 then begin
-          variance_cube1 = variance_cube1[*, *, min(freq_ch_range):max(freq_ch_range)]
-          variance_cube2 = variance_cube2[*, *, min(freq_ch_range):max(freq_ch_range)]
-        endif
-        if n_elements(freq_flags) ne 0 then begin
-          flag_arr = rebin(reform(freq_mask, 1, 1, n_elements(file_struct.frequencies)), size(variance_cube1,/dimension), /sample)
-          variance_cube1 = variance_cube1 * flag_arr
-          variance_cube2 = variance_cube2 * flag_arr
-        endif
-        
-      endelse
+  endif
+  
+  ;; now get data cubes
+  if healpix or not keyword_set(uvf_input) then begin
+    data_cube1 = getvar_savefile(file_struct.uvf_savefile[0], 'data_cube')
+    if nfiles eq 2 then data_cube2 = getvar_savefile(file_struct.uvf_savefile[1], 'data_cube')
+    
+    if min(ky_mpc) lt 0 then begin
+      ;; negative ky values haven't been cut yet
+      ;; need to cut uvf cubes in half because image is real -- we'll cut negative ky
+      data_cube1 = data_cube1[*, n_ky/2:n_ky-1,*]
+      if nfiles eq 2 then data_cube2 = data_cube2[*, n_ky/2:n_ky-1,*]
       
-      ;; Also need to drop 1/2 of ky=0 line -- drop ky=0, kx<0
-      variance_cube1[0:n_kx/2-1, 0, *] = 0
-      variance_cube2[0:n_kx/2-1, 0, *] = 0
-      
-      ;; calculate integral of window function (use pix_area_rad for FT normalization)
-      ;; already cut out negative ky, so multiply by 2
-      window_int = 2*[total(variance_cube1)*pix_area_rad/n_vis[0], $
-        total(variance_cube2)*pix_area_rad/n_vis[1]]
-        
+      ky_mpc = ky_mpc[n_ky/2:n_ky-1]
+      n_ky = n_elements(ky_mpc)
     endif
     
-    ;; now get data cubes
-    if healpix or keyword_set(image) then begin
-      data_cube1 = getvar_savefile(file_struct.uvf_savefile[0], 'data_cube')
-      data_cube2 = getvar_savefile(file_struct.uvf_savefile[1], 'data_cube')
+  endif else begin
+    if datavar eq '' then begin
+      ;; working with a 'derived' cube (ie residual cube) that is constructed from other cubes
+      ;; need to cut uvf cubes in half because image is real -- we'll cut negative ky
+      dirty_cube1 = getvar_savefile(input_uvf_files[0,0], input_uvf_varname[0,0])
+      dirty_cube1 = dirty_cube1[*, n_ky/2:n_ky-1,*]
+      model_cube1 = getvar_savefile(input_uvf_files[0,1], input_uvf_varname[0,1])
+      model_cube1 = model_cube1[*, n_ky/2:n_ky-1,*]
+      data_cube1 = temporary(dirty_cube1) - temporary(model_cube1)
       
-      if min(ky_mpc) lt 0 then begin
-        ;; negative ky values haven't been cut yet
-        ;; need to cut uvf cubes in half because image is real -- we'll cut negative ky
-        data_cube1 = data_cube1[*, n_ky/2:n_ky-1,*]
-        data_cube2 = data_cube2[*, n_ky/2:n_ky-1,*]
-        
-        ky_mpc = ky_mpc[n_ky/2:n_ky-1]
-        n_ky = n_elements(ky_mpc)
-      endif
-      
-    endif else begin
-      if datavar eq '' then begin
-        ;; working with a 'derived' cube (ie residual cube) that is constructed from other cubes
-        ;; need to cut uvf cubes in half because image is real -- we'll cut negative ky
-        dirty_cube1 = getvar_savefile(input_uvf_files[0,0], input_uvf_varname[0,0])
-        dirty_cube1 = dirty_cube1[*, n_ky/2:n_ky-1,*]
-        model_cube1 = getvar_savefile(input_uvf_files[0,1], input_uvf_varname[0,1])
-        model_cube1 = model_cube1[*, n_ky/2:n_ky-1,*]
-        data_cube1 = temporary(dirty_cube1) - temporary(model_cube1)
-        
+      if nfiles eq 2 then begin
         dirty_cube2 = getvar_savefile(input_uvf_files[1,0], input_uvf_varname[1,0])
         dirty_cube2 = dirty_cube2[*, n_ky/2:n_ky-1,*]
         model_cube2 = getvar_savefile(input_uvf_files[1,1], input_uvf_varname[1,1])
         model_cube2 = model_cube2[*, n_ky/2:n_ky-1,*]
         data_cube2 = temporary(dirty_cube2) - temporary(model_cube2)
-        
-        if n_elements(freq_ch_range) ne 0 then begin
-          data_cube1 = data_cube1[*, *, min(freq_ch_range):max(freq_ch_range)]
-          data_cube2 = data_cube2[*, *, min(freq_ch_range):max(freq_ch_range)]
-        endif
-        if n_elements(freq_flags) ne 0 then begin
-          flag_arr = rebin(reform(freq_mask, 1, 1, n_elements(file_struct.frequencies)), size(data_cube1,/dimension), /sample)
-          data_cube1 = data_cube1 * flag_arr
-          data_cube2 = data_cube2 * flag_arr
-        endif
-        
-      endif else begin
-        ;; need to cut uvf cubes in half because image is real -- we'll cut negative ky
-        data_cube1 = getvar_savefile(file_struct.datafile[0], file_struct.datavar)
-        data_cube1 = data_cube1[*, n_ky/2:n_ky-1,*]
-        data_cube2 = getvar_savefile(file_struct.datafile[1], file_struct.datavar)
-        data_cube2 = data_cube2[*, n_ky/2:n_ky-1,*]
-        
-        if n_elements(freq_ch_range) ne 0 then begin
-          data_cube1 = data_cube1[*, *, min(freq_ch_range):max(freq_ch_range)]
-          data_cube2 = data_cube2[*, *, min(freq_ch_range):max(freq_ch_range)]
-        endif
-        if n_elements(freq_flags) ne 0 then begin
-          flag_arr = rebin(reform(freq_mask, 1, 1, n_elements(file_struct.frequencies)), size(data_cube1,/dimension), /sample)
-          data_cube1 = data_cube1 * flag_arr
-          data_cube2 = data_cube2 * flag_arr
-        endif
-        
-      endelse
-      
-      ky_mpc = ky_mpc[n_ky/2:n_ky-1]
-      n_ky = n_elements(ky_mpc)
-    endelse
-    
-    ;; Also need to drop 1/2 of ky=0 line -- drop ky=0, kx<0
-    data_cube1[0:n_kx/2-1, 0, *] = 0
-    data_cube2[0:n_kx/2-1, 0, *] = 0
-    
-    
-  endif else begin
-    ;; single file mode
-    if healpix or keyword_set(image) then begin
-      data_cube1 = getvar_savefile(file_struct.uvf_savefile, 'data_cube')
-      weights_cube1 = getvar_savefile(file_struct.uvf_weight_savefile, 'weights_cube')
-      
-      if min(ky_mpc) lt 0 then begin
-        ;; negative ky values haven't been cut yet
-        ;; need to cut uvf cubes in half because image is real -- we'll cut negative ky
-        weights_cube1 = weights_cube1[*, n_ky/2:n_ky-1,*]
-        data_cube1 = data_cube1[*, n_ky/2:n_ky-1,*]
       endif
-      
-      ;; Also need to drop 1/2 of ky=0 line -- drop ky=0, kx<0
-      weights_cube1[0:n_kx/2-1, 0, *] = 0
-      data_cube1[0:n_kx/2-1, 0, *] = 0
-      
-      if not no_var then begin
-        variance_cube1 = getvar_savefile(file_struct.uvf_weight_savefile, 'variance_cube')
-        
-        if min(ky_mpc) lt 0 then begin
-          ;; negative ky values haven't been cut yet
-          ;; need to cut uvf cubes in half because image is real -- we'll cut negative ky
-          variance_cube1 = variance_cube1[*, n_ky/2:n_ky-1,*]
-        endif
-        
-        ;; Also need to drop 1/2 of ky=0 line -- drop ky=0, kx<0
-        variance_cube1[0:n_kx/2-1, 0, *] = 0
-        
-        ;; calculate integral of window function
-        ;; already cut out negative ky, so multiply by 2
-        window_int = 2*total(variance_cube1)*pix_area_rad/n_vis
-        
-      endif
-      
-      if min(ky_mpc) lt 0 then begin
-        ;; negative ky values haven't been cut yet
-        ;; need to cut uvf cubes in half because image is real -- we'll cut negative ky
-        ky_mpc = ky_mpc[n_ky/2:n_ky-1]
-        n_ky = n_elements(ky_mpc)
-      endif
-      
-    endif else begin
-      ;; need to cut uvf cubes in half because image is real -- we'll cut negative ky
-      data_cube1 = getvar_savefile(file_struct.datafile, file_struct.datavar)
-      data_cube1 = data_cube1[*, n_ky/2:n_ky-1,*]
-      weights_cube1 = getvar_savefile(file_struct.weightfile, file_struct.weightvar)
-      weights_cube1 = weights_cube1[*, n_ky/2:n_ky-1,*]
       
       if n_elements(freq_ch_range) ne 0 then begin
         data_cube1 = data_cube1[*, *, min(freq_ch_range):max(freq_ch_range)]
-        weights_cube1 = weights_cube1[*, *, min(freq_ch_range):max(freq_ch_range)]
+        if nfiles eq 2 then data_cube2 = data_cube2[*, *, min(freq_ch_range):max(freq_ch_range)]
       endif
       if n_elements(freq_flags) ne 0 then begin
         flag_arr = rebin(reform(freq_mask, 1, 1, n_elements(file_struct.frequencies)), size(data_cube1,/dimension), /sample)
         data_cube1 = data_cube1 * flag_arr
-        weights_cube1 = weights_cube1 * flag_arr
+        if nfiles eq 2 then data_cube2 = data_cube2 * flag_arr
       endif
       
-      ;; Also need to drop 1/2 of ky=0 line -- drop ky=0, kx<0
-      weights_cube1[0:n_kx/2-1, 0, *] = 0
-      data_cube1[0:n_kx/2-1, 0, *] = 0
+    endif else begin
+      ;; uvf_input
+      data_cube1 = getvar_savefile(file_struct.datafile[0], file_struct.datavar)
+      if nfiles eq 2 then data_cube2 = getvar_savefile(file_struct.datafile[1], file_struct.datavar)
       
-      if not no_var then begin
-        variance_cube1 = getvar_savefile(file_struct.variancefile, file_struct.variance_var)
-        ;; need to cut uvf cubes in half because image is real -- we'll cut negative ky
-        variance_cube1 = variance_cube1[*, n_ky/2:n_ky-1,*]
+      data_size = size(data_cube1)
+      if data_size[n_elements(data_size)-2] eq 10 then begin
+        ;; weights cube is a pointer
+        dims2 = size(*data_cube1[0], /dimension)
+        temp = complex(fltarr([dims2, n_freq]))
+        if nfiles eq 2 then temp2 = complex(fltarr([dims2, n_freq]))
+        for i = 0, n_freq-1 do begin
+          temp[*,*,i] = *data_cube1[file_struct.pol_index, i]
+          if nfiles eq 2 then temp2[*,*,i] = *data_cube2[file_struct.pol_index, i]
+        endfor
+        undefine_fhd, data_cube1, data_cube2
         
-        if n_elements(freq_ch_range) ne 0 then variance_cube1 = variance_cube1[*, *, min(freq_ch_range):max(freq_ch_range)]
-        if n_elements(freq_flags) ne 0 then variance_cube1 = variance_cube1 * flag_arr
-        
-        ;; Also need to drop 1/2 of ky=0 line -- drop ky=0, kx<0
-        variance_cube1[0:n_kx/2-1, 0, *] = 0
-        
-        ;; calculate integral of window function
-        ;; already cut out negative ky, so multiply by 2
-        window_int = 2*total(variance_cube1)*pix_area_rad/n_vis
-        
-        
+        data_cube1 = temporary(temp)
+        if nfiles eq 2 then data_cube2 = temporary(temp2)
       endif
       
       ;; need to cut uvf cubes in half because image is real -- we'll cut negative ky
-      ky_mpc = ky_mpc[n_ky/2:n_ky-1]
-      n_ky = n_elements(ky_mpc)
+      data_cube1 = data_cube1[*, n_ky/2:n_ky-1,*]
+      if nfiles eq 2 then data_cube2 = data_cube2[*, n_ky/2:n_ky-1,*]
+      
+      if n_elements(freq_ch_range) ne 0 then begin
+        data_cube1 = data_cube1[*, *, min(freq_ch_range):max(freq_ch_range)]
+        if nfiles eq 2 then data_cube2 = data_cube2[*, *, min(freq_ch_range):max(freq_ch_range)]
+      endif
+      if n_elements(freq_flags) ne 0 then begin
+        flag_arr = rebin(reform(freq_mask, 1, 1, n_elements(file_struct.frequencies)), size(data_cube1,/dimension), /sample)
+        data_cube1 = data_cube1 * flag_arr
+        if nfiles eq 2 then data_cube2 = data_cube2 * flag_arr
+      endif
       
     endelse
+    
+    ky_mpc = ky_mpc[n_ky/2:n_ky-1]
+    n_ky = n_elements(ky_mpc)
   endelse
+  
+  ;; Also need to drop 1/2 of ky=0 line -- drop ky=0, kx<0
+  data_cube1[0:n_kx/2-1, 0, *] = 0
+  if nfiles eq 2 then data_cube2[0:n_kx/2-1, 0, *] = 0
+  
   
   ;; save some slices of the raw data cube (before dividing by weights) & weights
   for i=0, nfiles-1 do begin
@@ -929,7 +897,7 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
     
   endfor
   
-  if healpix or keyword_set(image) then begin
+  if healpix or not keyword_set(uvf_input) then begin
     ;; multiply data, weights & variance cubes by pixel_area_rad to get proper units from DFT
     ;; (not squared for variance because they weren't treated as units squared in FHD code)
     data_cube1 = data_cube1 * pix_area_rad
@@ -1418,7 +1386,7 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
     ;    endif
     
     save, file = file_struct.kcube_savefile, data_sum_1, data_sum_2, data_diff_1, data_diff_2, sigma2_1, sigma2_2, $
-      kx_mpc, ky_mpc, kz_mpc, kperp_lambda_conv, delay_params, hubble_param, n_freq_contrib, freq_mask, vs_name, vs_mean
+      kx_mpc, ky_mpc, kz_mpc, kperp_lambda_conv, delay_params, hubble_param, n_freq_contrib, freq_mask, vs_name, vs_mean, window_int
   endelse
   
 end
