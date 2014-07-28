@@ -4,6 +4,7 @@ pro fhd_3dps, file_struct, refresh = refresh, kcube_refresh = kcube_refresh, dft
     spec_window_type = spec_window_type, delta_uv_lambda = delta_uv_lambda, max_uv_lambda = max_uv_lambda, $
     std_power = std_power, no_kzero = no_kzero, log_kpar = log_kpar, $
     log_kperp = log_kperp, kperp_bin = kperp_bin, kpar_bin = kpar_bin, log_k1d = log_k1d, k1d_bin = k1d_bin, $
+    kperp_range_1dave = kperp_range_1dave, kpar_range_1dave = kpar_range_1dave, $
     input_units = input_units, fill_holes = fill_holes, quiet = quiet
     
   if tag_exist(file_struct, 'nside') ne 0 then healpix = 1 else healpix = 0
@@ -151,10 +152,7 @@ pro fhd_3dps, file_struct, refresh = refresh, kcube_refresh = kcube_refresh, dft
   if keyword_set(no_kzero) then fadd_2dbin = fadd_2dbin + '_nok0'
   if keyword_set(log_kpar) then fadd_2dbin = fadd_2dbin + '_logkpar'
   if keyword_set(log_kperp) then fadd_2dbin = fadd_2dbin + '_logkperp'
-  
-  fadd_1dbin = ''
-  if keyword_set(log_k) then fadd_1dbin = fadd_1dbin + '_logk'
-  
+    
   savefile = file_struct.savefile_froot + file_struct.savefilebase + power_tag + fadd_2dbin + '_2dkpower.idlsave'
   
   print, 'Binning to 2D power spectrum'
@@ -221,16 +219,17 @@ pro fhd_3dps, file_struct, refresh = refresh, kcube_refresh = kcube_refresh, dft
     
   print, 'Binning to 1D power spectrum'
   
+  if keyword_set(kperp_range_1dave) then kperp_range_use = kperp_range_1dave
+  if keyword_set(kpar_range_1dave) then kpar_range_use = kpar_range_1dave
+  
   power_1d = kspace_rebinning_1d(power_3d, kx_mpc, ky_mpc, kz_mpc, k_edges_mpc, k_bin = k1d_bin, log_k = log_k1d, $
     noise_expval = noise_expval_3d, binned_noise_expval = noise_expval_1d, weights = weights_3d, $
-    binned_weights = weights_1d, mask = mask, pixelwise_mask = pixelwise_mask, k1_mask = k1_mask, $
-    k2_mask = k2_mask,  k3_mask = k3_mask)
+    binned_weights = weights_1d, kperp_range = kperp_range_use, kpar_range = kpar_range_use)
     
   if nfiles eq 2 then $
     noise_1d = kspace_rebinning_1d(noise_3d, kx_mpc, ky_mpc, kz_mpc, k_edges_mpc, k_bin = k1d_bin, log_k = log_k1d, $
     noise_expval = noise_expval_3d, binned_noise_expval = noise_expval_1d, weights = weights_3d, $
-    binned_weights = weights_1d, mask = mask, pixelwise_mask = pixelwise_mask, k1_mask = k1_mask, $
-    k2_mask = k2_mask,  k3_mask = k3_mask)
+    binned_weights = weights_1d, kperp_range = kperp_range_use, kpar_range = kpar_range_use)
     
   power = power_1d
   if nfiles eq 2 then noise = noise_1d
@@ -238,12 +237,18 @@ pro fhd_3dps, file_struct, refresh = refresh, kcube_refresh = kcube_refresh, dft
   k_edges = k_edges_mpc
   k_bin = k1d_bin
   noise_expval = noise_expval_1d
+  kperp_range = kperp_range_use
+  kpar_range = kpar_range_use
   
-  fadd_1d = ''
-  if keyword_set(log_k) then fadd_1d = fadd_1d + '_logk'
+  fadd_1dbin = ''
+  if keyword_set(log_k) then fadd_1dbin = fadd_1dbin + '_logk'
+  if keyword_set(kperp_range_1dave) then fadd_1dbin = fadd_1dbin + '_kperp' + number_formatter(kperp_range_1dave[0]) + '-' + $
+        number_formatter(kperp_range_1dave[1])
+  if keyword_set(kpar_range_1dave) then fadd_1dbin = fadd_1dbin + '_kpar' + number_formatter(kpar_range_1dave[0]) + '-' + $
+        number_formatter(kpar_range_1dave[1])
   
   savefile = file_struct.savefile_froot + file_struct.savefilebase + power_tag + fadd_1dbin + '_1dkpower.idlsave'
-  save, file = savefile, power, noise, weights, noise_expval, k_edges, k_bin, hubble_param, freq_mask
+  save, file = savefile, power, noise, weights, noise_expval, k_edges, k_bin, hubble_param, freq_mask, kperp_range, kpar_range
   
   if not keyword_set(quiet) then begin
     kpower_1d_plots, savefile, window_num = 5

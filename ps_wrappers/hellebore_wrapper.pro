@@ -4,7 +4,9 @@ pro hellebore_wrapper, folder_name, obs_range, rts = rts, casa = casa, version =
     no_spec_window = no_spec_window, spec_window_type = spec_window_type, std_power = std_power, $
     cut_image = cut_image, individual_plots = individual_plots, plot_filebase = plot_filebase, png = png, eps = eps, pdf = pdf, $
     plot_slices = plot_slices, slice_type = slice_type, uvf_plot_type = uvf_plot_type, $
-    kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, t32 = t32, set_data_ranges = set_data_ranges
+    kperp_range_1dave = kperp_range_1dave, kpar_range_1dave = kpar_range_1dave,$
+    kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
+    t32 = t32, set_data_ranges = set_data_ranges
     
   if n_elements(folder_name) eq 0 then message, 'folder name is required'
   if n_elements(folder_name) gt 1 then message, 'Only one folder_name can be supplied'
@@ -206,7 +208,8 @@ pro hellebore_wrapper, folder_name, obs_range, rts = rts, casa = casa, version =
     no_spec_window = no_spec_window, spec_window_type = spec_window_type, std_power = std_power, $
     sim = sim, cut_image = cut_image, dft_ian = dft_ian, uvf_input = uvf_input, $
     log_kpar = log_kpar, log_kperp = log_kperp, kpar_bin = kpar_bin, kperp_bin = kperp_bin, $
-    log_k1d = log_k1d, k1d_bin = k1d_bin, kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, $
+    log_k1d = log_k1d, k1d_bin = k1d_bin, kperp_range_1dave = kperp_range_1dave, kpar_range_1dave = kpar_range_1dave,$
+    kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
     plot_slices = plot_slices, slice_type = slice_type, uvf_plot_type = uvf_plot_type, $
     data_range = data_range, sigma_range = sigma_range, nev_range = nev_range, snr_range = snr_range, noise_range = noise_range, nnr_range = nnr_range, $
     baseline_axis = baseline_axis, delay_axis = delay_axis, hinv = hinv, $

@@ -1,6 +1,6 @@
 pro kpower_1d_plots, power_savefile, plot_weights = plot_weights, multi_pos = multi_pos, data_range = data_range, k_range = k_range, $
     png = png, eps = eps, pdf = pdf, plotfile = plotfile, window_num = window_num, colors = colors, names = names, save_text = save_text, $
-    delta = delta, hinv = hinv
+    delta = delta, hinv = hinv, note = note, title = title
     
   if n_elements(plotfile) gt 0 or keyword_set(png) or keyword_set(eps) or keyword_set(pdf) then pub = 1 else pub = 0
   if pub eq 1 then begin
@@ -49,7 +49,7 @@ pro kpower_1d_plots, power_savefile, plot_weights = plot_weights, multi_pos = mu
   
   margin = [0.15, 0.2, 0.05, 0.1]
   plot_pos = [margin[0], margin[1], (1-margin[2]), (1-margin[3])]
-    
+  
   if n_elements(multi_pos) gt 0 then begin
     if n_elements(multi_pos) ne 4 then message, 'multi_pos must be a 4 element plot position vector'
     if max(multi_pos) gt 1 or min(multi_pos) lt 0 then message, 'multi_pos must be in normalized coordinates (between 0 & 1)'
@@ -85,8 +85,10 @@ pro kpower_1d_plots, power_savefile, plot_weights = plot_weights, multi_pos = mu
     openw, lun, text_filename, /get_lun
   endif
   
+  
   for i=0, nfiles-1 do begin
     restore, power_savefile[i]
+        
     n_k = n_elements(power)
     
     if keyword_set(plot_weights) then begin
@@ -202,6 +204,9 @@ pro kpower_1d_plots, power_savefile, plot_weights = plot_weights, multi_pos = mu
     if n_elements(k_edges) ne 0 then undefine, k_edges
     if n_elements(k_centers) ne 0 then undefine, k_centers
   endfor
+    
+  xloc_note = .99
+  yloc_note = 0 + 0.1* (plot_pos[1]-0)
   
   if keyword_set(save_text) then free_lun, lun
   
@@ -221,7 +226,7 @@ pro kpower_1d_plots, power_savefile, plot_weights = plot_weights, multi_pos = mu
     endif
   endif else if n_elements(multi_pos) eq 0 then begin
     if windowavailable(window_num) then wset, window_num else window, window_num
-  endif  
+  endif
   
   ;;plot, k_plot, power_plot, /ylog, /xlog, xrange = xrange, xstyle=1
   plot_order = sort(tag_names(power_plot))
@@ -233,11 +238,16 @@ pro kpower_1d_plots, power_savefile, plot_weights = plot_weights, multi_pos = mu
   else xtitle = textoidl('k (Mpc^{-1})', font = font)
   
   cgplot, k_plot.(plot_order[0]), power_plot.(plot_order[0]), position = plot_pos, /ylog, /xlog, xrange = xrange, yrange = yrange, $
-    xstyle=1, ystyle=1, axiscolor = 'black', xtitle = xtitle, ytitle = ytitle, psym=10, xtickformat = 'exponent', $
+    xstyle=1, ystyle=1, axiscolor = 'black', xtitle = xtitle, ytitle = ytitle, title = title, psym=10, xtickformat = 'exponent', $
     ytickformat = 'exponent', thick = thick, charthick = charthick, xthick = xthick, ythick = ythick, charsize = charsize, $
     font = font, noerase = no_erase
   for i=0, nfiles - 1 do cgplot, /overplot, k_plot.(plot_order[i]), power_plot.(plot_order[i]), psym=10, color = colors[i], $
     thick = thick
+
+  if n_elements(note) ne 0 then begin
+    if keyword_set(pub) then char_factor = 0.75 else char_factor = 1
+    cgtext, xloc_note, yloc_note, note, /normal, alignment=1, charsize = char_factor*charsize, font = font
+  endif
     
   if log_bins gt 0 then bottom = 1 else bottom = 0
   if n_elements(names) ne 0 then $

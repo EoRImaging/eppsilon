@@ -9,7 +9,8 @@ pro fhd_data_plots, datafile, rts = rts, casa = casa, pol_inc = pol_inc, uvf_inp
     data_range = data_range, sigma_range = sigma_range, nev_range = nev_range, $
     snr_range = snr_range, noise_range = noise_range, nnr_range = nnr_range, $
     log_kpar = log_kpar, log_kperp = log_kperp, kpar_bin = kpar_bin, kperp_bin = kperp_bin, log_k1d = log_k1d, $
-    k1d_bin = k1d_bin, kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, $
+    k1d_bin = k1d_bin, kperp_range_1dave = kperp_range_1dave, kpar_range_1dave = kpar_range_1dave, $
+    kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
     baseline_axis = baseline_axis, delay_axis = delay_axis, hinv = hinv, plot_wedge_line = plot_wedge_line, $
     plot_eor_1d = plot_eor_1d, individual_plots = individual_plots
     
@@ -111,8 +112,19 @@ pro fhd_data_plots, datafile, rts = rts, casa = casa, pol_inc = pol_inc, uvf_inp
   
   fadd_1dbin = ''
   if keyword_set(log_k) then fadd_1dbin = fadd_1dbin + '_logk'
-  
-  
+  if keyword_set(kperp_range_1dave) then begin
+    fadd_1dbin = fadd_1dbin + '_kperp' + number_formatter(kperp_range_1dave[0]) + '-' + $
+      number_formatter(kperp_range_1dave[1])
+    note_1d = 'kperp: [' + number_formatter(kperp_range_1dave[0]) + ',' + $
+      number_formatter(kperp_range_1dave[1]) + ']'
+  endif
+  if keyword_set(kpar_range_1dave) then begin
+    fadd_1dbin = fadd_1dbin + '_kpar' + number_formatter(kpar_range_1dave[0]) + '-' + $
+      number_formatter(kpar_range_1dave[1])
+    if n_elements(note_1d) eq 0 then note_1d='' else note_1d = note_1d + '; '
+    note_1d = note_1d + 'kpar: [' + number_formatter(kpar_range_1dave[0]) + ',' + $
+      number_formatter(kpar_range_1dave[1]) + ']'
+  endif
   
   ;; need general_filebase for 1D plotfiles, make sure it doesn't have a full path
   general_filebase = file_struct_arr(0).general_filebase
@@ -148,17 +160,17 @@ pro fhd_data_plots, datafile, rts = rts, casa = casa, pol_inc = pol_inc, uvf_inp
     ;; if binsizes are specified, check that binsize is right
     if (n_elements(kperp_bin) ne 0 or n_elements(kpar_bin) ne 0) and test_save_2d[i] gt 0 then begin
       if n_elements(kpar_bin) ne 0 then begin
-        kpar_bin_file = getvar_savefile(savefiles_2d[i], kpar_bin)
+        kpar_bin_file = getvar_savefile(savefiles_2d[i], 'kpar_bin')
         if abs(kpar_bin - kpar_bin_file) gt 0. then test_save_2d[i]=0
       endif
       if test_save_2d[i] gt 0 and n_elements(kpar_bin) ne 0 then begin
-        kperp_bin_file = getvar_savefile(savefiles_2d[i], kperp_bin)
+        kperp_bin_file = getvar_savefile(savefiles_2d[i], 'kperp_bin')
         if abs(kperp_bin - kperp_bin_file) gt 0. then test_save_2d[i]=0
       endif
     endif
     
     if n_elements(k1d_bin) ne 0 and test_save_1d[i] gt 0 then begin
-      k_bin_file = getvar_savefile(savefiles_1d[i], k_bin)
+      k_bin_file = getvar_savefile(savefiles_1d[i], 'k_bin')
       if abs(k_bin - k_bin_file) gt 0. then test_save_1d[i]=0
     endif
     
@@ -170,6 +182,14 @@ pro fhd_data_plots, datafile, rts = rts, casa = casa, pol_inc = pol_inc, uvf_inp
     if test_save_1d[i] gt 0 and n_elements(freq_flags) ne 0 then begin
       old_freq_mask = getvar_savefile(savefiles_1d[i], 'freq_mask')
       if total(abs(old_freq_mask - file_struct_arr[i].freq_mask)) ne 0 then test_save_1d[i] = 0
+    endif
+    
+    if test_save_1d[i] gt 0 and (n_elements(kperp_range_1dave) gt 0 or n_elements(kpar_range_1dave) gt 0) then begin
+      ;; check that 1d binning was over correct ranges
+      kperp_range_used = getvar_savefile(savefiles_1d[i], 'kperp_range')
+      kpar_range_used = getvar_savefile(savefiles_1d[i], 'kpar_range')
+      if n_elements(kperp_range_1dave) gt 0 then if max(abs(kperp_range_used - kperp_range_1dave)) gt 0 then test_save_1d[i] = 0
+      if n_elements(kpar_range_1dave) gt 0 then if max(abs(kpar_range_used - kpar_range_1dave)) gt 0 then test_save_1d[i] = 0
     endif
     
     test = test_save_2d[i] * test_save_1d[i]
@@ -189,18 +209,24 @@ pro fhd_data_plots, datafile, rts = rts, casa = casa, pol_inc = pol_inc, uvf_inp
           spec_window_type = spec_window_type, delta_uv_lambda = delta_uv_lambda, max_uv_lambda = max_uv_lambda, $
           std_power = std_power, no_kzero = no_kzero, $
           log_kpar = log_kpar, log_kperp = log_kperp, kpar_bin = kpar_bin, kperp_bin = kperp_bin, $
-          /quiet
+          kperp_range_1dave = kperp_range_1dave, kpar_range_1dave = kpar_range_1dave, /quiet
       endif else $
         fhd_3dps, file_struct_arr[i], kcube_refresh = refresh_ps, freq_ch_range = freq_ch_range, $
         freq_flags = freq_flags, spec_window_type = spec_window_type, $
         std_power = std_power, no_kzero = no_kzero, $
-        log_kpar = log_kpar, log_kperp = log_kperp, kpar_bin = kpar_bin, kperp_bin = kperp_bin, /quiet
+        log_kpar = log_kpar, log_kperp = log_kperp, kpar_bin = kpar_bin, kperp_bin = kperp_bin, $
+        kperp_range_1dave = kperp_range_1dave, kpar_range_1dave = kpar_range_1dave, /quiet
     endif
   endfor
   
   
   restore, savefiles_2d[0]
   if n_elements(vs_name) ne 0 then vs_note = vs_name + ': ~' + number_formatter(vs_mean, format = '(f10.2)')
+  
+  if n_elements(kperp_range_1dave) gt 0 and keyword_set(hinv) then kperp_range_1dave = kperp_range_1dave * hubble_param
+  if n_elements(kpar_range_1dave) gt 0 and keyword_set(hinv) then kpar_range_1dave = kpar_range_1dave * hubble_param
+  
+  
   ;;   baselines = get_baselines(/quiet, freq_mhz = 185)
   ;;   quick_histplot, baselines, title = spec_window_type, xstyle=1, ystyle = 8, xrange = [0, max(kperp_edges)*kperp_lambda_conv], $
   ;;                   position = [.1, .1, .9, .9], ytitle = 'number of baselines', xtitle = 'Baseline length ' + textoidl('(\lambda)')
@@ -220,9 +246,10 @@ pro fhd_data_plots, datafile, rts = rts, casa = casa, pol_inc = pol_inc, uvf_inp
   ;;kperp_plot_range = [6e-3, min([max(kperp_edges[wh_good_kperp+1]),1.1e-1])]
   ;;kperp_plot_range = [5./kperp_lambda_conv, min([max(kperp_edges[wh_good_kperp+1]),1.1e-1])]
   
-  kperp_plot_range = [5./kperp_lambda_conv, min([file_struct_arr.kspan/2.,file_struct_arr.max_baseline_lambda])/kperp_lambda_conv]
-  
-  if keyword_set(hinv) then kperp_plot_range = kperp_plot_range / hubble_param
+  if not keyword_set(kperp_plot_range) then begin
+    kperp_plot_range = [5./kperp_lambda_conv, min([file_struct_arr.kspan/2.,file_struct_arr.max_baseline_lambda])/kperp_lambda_conv]
+    kperp_plot_range = kperp_plot_range / hubble_param
+  endif
   
   if pub then begin
     if n_elements(plot_path) ne 0 then plotfile_path = plot_path $
@@ -270,7 +297,7 @@ pro fhd_data_plots, datafile, rts = rts, casa = casa, pol_inc = pol_inc, uvf_inp
     
     if slice_type ne 'kspace' then begin
       ;if slice_type eq 'weights' then uvf_plot_type='weights'
-      
+    
       uvf_type_enum = ['abs', 'phase', 'real', 'imaginary', 'weights']
       if n_elements(uvf_plot_type) eq 0 then uvf_plot_type = 'abs'
       wh = where(uvf_type_enum eq uvf_plot_type, count_uvf_type)
@@ -767,28 +794,28 @@ pro fhd_data_plots, datafile, rts = rts, casa = casa, pol_inc = pol_inc, uvf_inp
     file_arr = [file_arr, eor_file_1d]
     titles = [titles, 'EoR signal']
     
-;    jonnie_file_text = base_path() + 'single_use/eor_pspec1d_centers.txt'
-;    TextFast, jonnie_data, file_path = jonnie_file_text, /read
-;    
-;    k_centers = jonnie_data[0,*]
-;    power = jonnie_data[1,*]
-;    wh_good = where(power gt 0, count_good, ncomplement = count_bad)
-;    if count_bad gt 0 then begin
-;      k_centers = k_centers[wh_good]
-;      power = power[wh_good]
-;    endif
-;    jonnie_file_1d = cgrootname(jonnie_file_text, directory = jonnie_dir) + '.idlsave'
-;    jonnie_file_1d = jonnie_dir + jonnie_file_1d
-;    save, file = jonnie_file_1d, power, k_centers
-;    
-;    file_arr = [file_arr, jonnie_file_1d]
-;    titles = [titles, 'PS of input cube']
+  ;    jonnie_file_text = base_path() + 'single_use/eor_pspec1d_centers.txt'
+  ;    TextFast, jonnie_data, file_path = jonnie_file_text, /read
+  ;
+  ;    k_centers = jonnie_data[0,*]
+  ;    power = jonnie_data[1,*]
+  ;    wh_good = where(power gt 0, count_good, ncomplement = count_bad)
+  ;    if count_bad gt 0 then begin
+  ;      k_centers = k_centers[wh_good]
+  ;      power = power[wh_good]
+  ;    endif
+  ;    jonnie_file_1d = cgrootname(jonnie_file_text, directory = jonnie_dir) + '.idlsave'
+  ;    jonnie_file_1d = jonnie_dir + jonnie_file_1d
+  ;    save, file = jonnie_file_1d, power, k_centers
+  ;
+  ;    file_arr = [file_arr, jonnie_file_1d]
+  ;    titles = [titles, 'PS of input cube']
     
   endif
   
   k_range = minmax([kperp_plot_range, kpar_bin, kpar_plot_range[1]])
   
   kpower_1d_plots, file_arr, window_num = 6, colors = colors, names = titles, delta = delta, hinv = hinv, png = png, eps = eps, pdf = pdf, $
-    plotfile = plotfile_1d, k_range = k_range
+    plotfile = plotfile_1d, k_range = k_range, title = note, note = note_1d
     
 end
