@@ -398,7 +398,7 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
           ;; data is a pointer
           if uvf_input then begin
             if data_size[0] ne 2 then message, 'Data are in a pointer array, format unknown'
-            if data_size[1] ne n_pol then message, 'Data are in a pointer array, format unknown'
+            if data_size[1] ne npol then message, 'Data are in a pointer array, format unknown'
             data = getvar_savefile(datafile[j], cube_varname[i])
             dims2 = size(*data[0], /dimension)
             this_data_dims = [dims2, data_size[2], data_size[1]]
@@ -423,7 +423,7 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
           ;; weights cube is a pointer
           if uvf_input then begin
             if wt_size[0] ne 2 then message, 'Weights are in a pointer array, format unknown'
-            if wt_size[1] ne n_pol then message, 'Weights are in a pointer array, format unknown'
+            if wt_size[1] ne npol then message, 'Weights are in a pointer array, format unknown'
             weights = getvar_savefile(weightfile[j], weight_varname[i])
             dims2 = size(*weights[0], /dimension)
             wt_dims = [dims2, wt_size[2], wt_size[1]]
@@ -447,7 +447,7 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
             ;; Variance cube is a pointer
             if uvf_input then begin
               if var_size[0] ne 2 then message, 'Variance are in a pointer array, format unknown'
-              if var_size[1] ne n_pol then message, 'Variance are in a pointer array, format unknown'
+              if var_size[1] ne npol then message, 'Variance are in a pointer array, format unknown'
               variance = getvar_savefile(variancefile[j], variance_varname[i])
               dims2 = size(*variance[0], /dimension)
               var_dims = [dims2, var_size[2], var_size[1]]
