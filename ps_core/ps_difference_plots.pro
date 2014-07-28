@@ -78,7 +78,7 @@ pro ps_difference_plots, info_files, cube_types, pols, all_type_pol = all_type_p
       title = type_pol_str[i]
     endif else begin
       type_pol1 = type_pol_str[0]
-      type_pol2 = type_pol_str[0]
+      type_pol2 = type_pol_str[1]
       title = type_pol_str[0] + '-' + type_pol_str[1]
     endelse
     
@@ -246,9 +246,8 @@ pro ps_difference_plots, info_files, cube_types, pols, all_type_pol = all_type_p
         pos_use = positions[*,i]
         
       endelse
-      
-      
     endif
+    
     if i eq n_cubes-1 and n_elements(note) gt 0 then note_use = note else undefine, note_use
     
     kpower_2d_plots, savefile, multi_pos = pos_use, start_multi_params = start_multi_params, $
@@ -257,7 +256,7 @@ pro ps_difference_plots, info_files, cube_types, pols, all_type_pol = all_type_p
       kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, baseline_axis = baseline_axis, delay_axis = delay_axis, $
       wedge_amp = wedge_amp, plot_wedge_line = plot_wedge_line, hinv = hinv
       
-    if i eq 0 then begin
+    if n_cubes gt 1 and i eq 0 then begin
       positions = pos_use
       undefine, start_multi_params
     endif
