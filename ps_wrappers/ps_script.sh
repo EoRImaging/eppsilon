@@ -144,7 +144,7 @@ if [ "$first_line_len" == 10 ]; then
 
     while read line
     do
-        ((chunk=obs/100))		#integer division results in chunks labeled 0 (first 100), 1 (second 100), etc
+        ((chunk=obs/100+1))		#integer division results in chunks labeled 0 (first 100), 1 (second 100), etc
         echo $line >> ${FHDdir}/Healpix/${version}_int_chunk${chunk}.txt	#put that obs id into the right txt file
         ((obs++))			#increment obs for the next run through
     done < $integrate_list
@@ -203,6 +203,7 @@ if [ "$nchunk" -gt "1" ]; then
 else
 
     # Just one integrator
+    mv Healpix/${version}_int_chunk1.txt Healpix/${version}_int_chunk0.txt
     chunk=0
     chunk_obs_list=${FHDdir}/Healpix/${version}_int_chunk${chunk}.txt
     outfile=${FHDdir}/Healpix/${version}_int_chunk${chunk}_out.log
