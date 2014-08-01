@@ -515,7 +515,7 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, wei
       ysize = round(base_size * y_factor * double(nrow))
       if not keyword_set(pub) then begin
         while (ysize gt max_ysize) or (xsize gt max_xsize) do begin
-          base_size_use = base_size_use - 100
+          if base_size_use gt 100 then base_size_use = base_size_use - 100 else base_size_use = base_size_use * .75
           xsize = round(base_size_use * x_factor * double(ncol))
           ysize = round(base_size_use * y_factor * double(nrow))
         endwhile

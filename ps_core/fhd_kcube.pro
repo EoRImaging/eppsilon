@@ -1,7 +1,7 @@
-pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weight = dft_refresh_weight, dft_ian = dft_ian, $
+pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weight = dft_refresh_weight, refresh_beam = refresh_beam, dft_ian = dft_ian, $
     dft_fchunk = dft_fchunk, freq_ch_range = freq_ch_range, freq_flags = freq_flags, $
     spec_window_type = spec_window_type, cut_image = cut_image, delta_uv_lambda = delta_uv_lambda, max_uv_lambda = max_uv_lambda, $
-    std_power = std_power, input_units = input_units, uvf_input = uvf_input, quiet = quiet
+    std_power = std_power, input_units = input_units, uvf_input = uvf_input, uv_avg = uv_avg, uv_img_clip = uv_img_clip, quiet = quiet
     
   if tag_exist(file_struct, 'nside') ne 0 then healpix = 1 else healpix = 0
   if keyword_set(uvf_input) or tag_exist(file_struct, 'uvf_savefile') eq 0 then uvf_input = 1 else uvf_input = 0
@@ -153,11 +153,14 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
     endelse
   endif
   
+  ;vis_sigma=fltarr(n_freq)+1.
+  
   vs_mean = mean(vis_sigma)
   ;vis_sigma[*] = vs_mean
   
   n_vis = file_struct.n_vis
-  if n_elements(freq_ch_range) ne 0 then n_vis = n_vis * (float(n_freq)/float(n_freq_orig))
+  n_vis_freq = file_struct.n_vis_freq
+  if n_elements(freq_ch_range) ne 0 then n_vis = total(n_vis_freq[*, min(freq_ch_range):max(freq_ch_range)], 2)
   
   if healpix or not uvf_input then begin
   
@@ -165,6 +168,8 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
       test_uvf = file_test(file_struct.uvf_savefile[i]) *  (1 - file_test(file_struct.uvf_savefile[i], /zero_length))
       
       test_wt_uvf = file_test(file_struct.uvf_weight_savefile[i]) * (1 - file_test(file_struct.uvf_weight_savefile[i], /zero_length))
+      
+      test_beam = file_test(file_struct.beam_savefile[i]) * ( 1- file_test(file_struct.beam_savefile[i], /zero_length))
       
       if test_uvf eq 1 and n_elements(freq_mask) ne 0 then begin
         old_freq_mask = getvar_savefile(file_struct.uvf_savefile[i], 'freq_mask')
@@ -175,6 +180,7 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
         old_freq_mask = getvar_savefile(file_struct.uvf_savefile[i], 'freq_mask')
         if total(abs(old_freq_mask - freq_mask)) ne 0 then test_uvf = 0
       endif
+      
       
       if test_uvf eq 0 and not keyword_set(dft_refresh_data) and (n_elements(freq_ch_range) ne 0 or n_elements(freq_flags) ne 0) then begin
         ;; if this is a limited freq. range cube, check for the full cube to avoid redoing the DFT
@@ -227,7 +233,7 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
         
       endif
       
-      if test_uvf eq 0 or test_wt_uvf eq 0 or keyword_set(dft_refresh_data) or keyword_set(dft_refresh_weight) then begin
+      if test_uvf eq 0 or test_wt_uvf eq 0 or test_beam eq 0 or keyword_set(dft_refresh_data) or keyword_set(dft_refresh_weight) or keyword_set(refresh_beam) then begin
         if datavar eq '' then begin
           ;; working with a 'derived' cube (ie residual cube) that is constructed from uvf_savefiles
         
@@ -482,6 +488,26 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
             
           endelse
           
+          ;; get beam if needed
+          if test_beam eq 0 or keyword_set(refresh_beam) then begin
+            arr = getvar_savefile(file_struct.beamfile[i], file_struct.beamvar)
+            if count_far ne 0 then arr = arr[wh_close, *]
+            if n_elements(freq_ch_range) ne 0 then arr = arr[*, min(freq_ch_range):max(freq_ch_range)]
+            if n_elements(freq_flags) ne 0 then arr = arr * rebin(reform(freq_mask, 1, n_elements(file_struct.frequencies)), size(arr, /dimension), /sample)
+            
+            pixels = pixel_nums1[wh_close]
+            
+            if max(arr) le 1. then temp = arr * rebin(reform(n_vis_freq[i, *], 1, n_freq), count_close, n_freq, /sample)
+            
+            avg_beam = total(temp, 2) / total(n_vis_freq[i, *])
+            
+            
+            nside = file_struct.nside
+            save, file=file_struct.beam_savefile[i], avg_beam, pixels, nside
+            
+          endif
+          
+          
           ;; do DFT.
           if test_uvf eq 0 or keyword_set(dft_refresh_data) then begin
             print, 'calculating DFT for ' + file_struct.datavar + ' in ' + file_struct.datafile[i]
@@ -651,23 +677,74 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
       if nfiles eq 2 then weights_cube2 = temporary(temp2)
     endif
     
-    x_rad_delta = abs(file_struct.degpix) * !pi / 180d
-    n_kx = dims2[0]
-    x_rad_length = dims2[0] * x_rad_delta
-    if abs(file_struct.kpix-1/x_rad_length)/file_struct.kpix gt 1e-4 then stop
     
+    n_kx = dims2[0]
+    if abs(file_struct.kpix-1/(n_kx[0] * (abs(file_struct.degpix) * !pi / 180d)))/file_struct.kpix gt 1e-4 then stop
     kx_mpc_delta = (2.*!pi)*file_struct.kpix / z_mpc_mean
     kx_mpc = (dindgen(n_kx)-n_kx/2) * kx_mpc_delta
     
-    y_rad_delta = abs(file_struct.degpix) * !pi / 180.
     n_ky = dims2[1]
-    y_rad_length = dims2[1] * y_rad_delta
-    
     ky_mpc_delta = (2.*!pi)*file_struct.kpix / z_mpc_mean
     ky_mpc = (dindgen(n_ky)-n_ky/2) * kx_mpc_delta
     
-    pix_area_rad = x_rad_delta * y_rad_delta
+    if keyword_set(uv_avg) then begin
+      nkx_new = floor(n_kx / uv_avg)
+      temp = complex(fltarr(nkx_new, n_ky, n_freq))
+      if nfiles eq 2 then temp2 = complex(fltarr(nkx_new, n_ky, n_freq))
+      temp_kx = fltarr(nkx_new)
+      for i=0, nkx_new-1 do begin
+        temp[i,*,*] = total(weights_cube1[i*uv_avg:(i+1)*uv_avg-1,*,*], 1) / uv_avg
+        if nfiles eq 2 then temp2[i,*,*] = total(weights_cube2[i*uv_avg:(i+1)*uv_avg-1,*,*], 1) / uv_avg
+        temp_kx[i] = total(kx_mpc[i*uv_avg:(i+1)*uv_avg-1]) / uv_avg
+      endfor
+      
+      nky_new = floor(n_ky / uv_avg)
+      temp3 = complex(fltarr(nkx_new, nky_new, n_freq))
+      if nfiles eq 2 then temp4 = complex(fltarr(nkx_new, nky_new, n_freq))
+      temp_ky = fltarr(nky_new)
+      for i=0, nky_new-1 do begin
+        temp3[*,i,*] = total(temp[*,i*uv_avg:(i+1)*uv_avg-1,*], 2) / uv_avg
+        if nfiles eq 2 then temp4[*,i,*] = total(temp2[*,i*uv_avg:(i+1)*uv_avg-1,*], 2) / uv_avg
+        temp_ky[i] = total(ky_mpc[i*uv_avg:(i+1)*uv_avg-1]) / uv_avg
+      endfor
+      undefine, temp, temp2
+      
+      ;; averging reduces the value of total(weights) ~ n_vis needed for the window int calculation
+      n_vis = n_vis/(uv_avg)^2.
+      
+      weights_cube1 = temporary(temp3)
+      if nfiles eq 2 then weights_cube2 = temporary(temp4)
+      kx_mpc = temporary(temp_kx)
+      ky_mpc = temporary(temp_ky)
+      n_kx = nkx_new
+      n_ky = nky_new
+    endif
     
+    if keyword_set(uv_img_clip) then begin
+      kx_mpc_delta_old = kx_mpc_delta
+      ky_mpc_delta_old = ky_mpc_delta
+      temp = shift(fft(fft(shift(weights_cube1,dims2[0]/2,dims2[1]/2,0), dimension=1),dimension=2),dims2[0]/2,dims2[1]/2,0)
+      temp = temp[(dims2[0]/2)-(dims2[0]/uv_img_clip)/2:(dims2[0]/2)+(dims2[0]/uv_img_clip)/2-1, *, *]
+      temp = temp[*, (dims2[1]/2)-(dims2[1]/uv_img_clip)/2:(dims2[1]/2)+(dims2[1]/uv_img_clip)/2-1, *]
+      if nfiles eq 2 then begin
+        temp2 = shift(fft(fft(shift(weights_cube2,dims2[0]/2,dims2[1]/2,0), dimension=1), dimension=2),dims2[0]/2,dims2[1]/2,0)
+        temp2 = temp2[(dims2[0]/2)-(dims2[0]/uv_img_clip)/2:(dims2[0]/2)+(dims2[0]/uv_img_clip)/2-1, *, *]
+        temp2 = temp2[*, (dims2[1]/2)-(dims2[1]/uv_img_clip)/2:(dims2[1]/2)+(dims2[1]/uv_img_clip)/2-1, *]
+      endif
+      temp_dims = size(temp, /dimension)
+      n_kx = temp_dims[0]
+      n_ky = temp_dims[1]
+      kx_mpc_delta = kx_mpc_delta * uv_img_clip
+      kx_mpc = (dindgen(n_kx)-n_kx/2) * kx_mpc_delta
+      ky_mpc_delta = ky_mpc_delta * uv_img_clip
+      ky_mpc = (dindgen(n_kx)-n_kx/2) * ky_mpc_delta
+      
+      temp = shift(fft(fft(shift(temp,n_kx/2,n_ky/2,0), dimension=1, /inverse), dimension=2, /inverse),n_kx/2,n_ky/2,0)
+      if nfiles eq 2 then temp2 = shift(fft(fft(shift(temp2,n_kx/2,n_ky/2,0), dimension=1, /inverse), dimension=2, /inverse),n_kx/2,n_ky/2,0)
+      
+      weights_cube1 = temp
+      if nfiles eq 2 then weights_cube2 = temp2
+    endif
     
     if n_elements(freq_ch_range) ne 0 then begin
       weights_cube1 = weights_cube1[*, *, min(freq_ch_range):max(freq_ch_range)]
@@ -706,6 +783,22 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
         if nfiles eq 2 then variance_cube2 = variance_cube2[*, n_ky/2:n_ky-1,*]
       endif
       
+      ;; Also need to drop 1/2 of ky=0 line -- drop ky=0, kx<0
+      variance_cube1[0:n_kx/2-1, 0, *] = 0
+      if nfiles eq 2 then variance_cube2[0:n_kx/2-1, 0, *] = 0
+      
+      ;; calculate integral of window function (use pix_area_rad for FT normalization)
+      ;; already cut out negative ky, so multiply by 2
+      if nfiles eq 2 then window_int = 2*[total(variance_cube1)*pix_area_rad/n_vis[0], $
+        total(variance_cube2)*pix_area_rad/n_vis[1]] $
+      else window_int = 2*total(variance_cube1)*pix_area_rad/n_vis[0]
+      
+      beam1 = getvar_savefile(file_struct.beam_savefile[0], 'avg_beam')
+      if nfiles eq 2 then beam2 = getvar_savefile(file_struct.beam_savefile[1], 'avg_beam')
+      
+      if nfiles eq 2 then window_int_beam = [total(beam1), total(beam2)]*pix_area_mpc*(z_mpc_delta * n_freq) $
+      else window_int_beam = total(beam1)*pix_area_mpc*(z_mpc_delta * n_freq)
+
     endif else begin
       ;; uvf_input
       variance_cube1 = getvar_savefile(file_struct.variancefile[0], file_struct.variancevar)
@@ -713,7 +806,7 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
       
       var_size = size(variance_cube1)
       if var_size[n_elements(var_size)-2] eq 10 then begin
-        ;; weights cube is a pointer
+        ;; variance cube is a pointer
         dims2 = size(*variance_cube1[0], /dimension)
         temp = complex(fltarr([dims2, n_freq]))
         if nfiles eq 2 then temp2 = complex(fltarr([dims2, n_freq]))
@@ -727,8 +820,50 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
         if nfiles eq 2 then variance_cube2 = temporary(temp2)
       endif
       
-      if max(abs(imaginary(variance_cube1))) gt 0 then stop else variance_cube1 = real_part(variance_cube1)
-      if nfiles eq 2 then if max(abs(imaginary(variance_cube2))) gt 0 then stop else variance_cube2 = real_part(variance_cube2)
+      if keyword_set(uv_avg) then begin
+        temp = complex(fltarr(nkx_new, dims2[1], n_freq))
+        if nfiles eq 2 then temp2 = complex(fltarr(nkx_new, dims2[1], n_freq))
+        for i=0, nkx_new-1 do begin
+          temp[i,*,*] = total(variance_cube1[i*uv_avg:(i+1)*uv_avg-1,*,*], 1) / uv_avg
+          if nfiles eq 2 then temp2[i,*,*] = total(variance_cube2[i*uv_avg:(i+1)*uv_avg-1,*,*], 1) / uv_avg
+        endfor
+        
+        temp3 = complex(fltarr(nkx_new, nky_new, n_freq))
+        if nfiles eq 2 then temp4 = complex(fltarr(nkx_new, nky_new, n_freq))
+        for i=0, nky_new-1 do begin
+          temp3[*,i,*] = total(temp[*,i*uv_avg:(i+1)*uv_avg-1,*], 2) / uv_avg
+          if nfiles eq 2 then temp4[*,i,*] = total(temp2[*,i*uv_avg:(i+1)*uv_avg-1,*], 2) / uv_avg
+        endfor
+        undefine, temp, temp2
+        
+        variance_cube1 = temporary(temp3)
+        if nfiles eq 2 then variance_cube2 = temporary(temp4)
+      endif
+      
+      if keyword_set(uv_img_clip) then begin
+        temp = shift(fft(fft(shift(variance_cube1,dims2[0]/2,dims2[1]/2,0), dimension=1), dimension=2),dims2[0]/2,dims2[1]/2,0)
+        temp = temp[(dims2[0]/2)-(dims2[0]/uv_img_clip)/2:(dims2[0]/2)+(dims2[0]/uv_img_clip)/2-1, *, *]
+        temp = temp[*, (dims2[1]/2)-(dims2[1]/uv_img_clip)/2:(dims2[1]/2)+(dims2[1]/uv_img_clip)/2-1, *]
+        temp = shift(fft(fft(shift(temp,n_kx/2,n_ky/2,0), dimension=1, /inverse), dimension=2, /inverse),n_kx/2,n_ky/2,0)
+        if nfiles eq 2 then begin
+          temp2 = shift(fft(fft(shift(variance_cube2,dims2[0]/2,dims2[1]/2,0), dimension=1), dimension=2),dims2[0]/2,dims2[1]/2,0)
+          temp2 = temp2[(dims2[0]/2)-(dims2[0]/uv_img_clip)/2:(dims2[0]/2)+(dims2[0]/uv_img_clip)/2-1, *, *]
+          temp2 = temp2[*, (dims2[1]/2)-(dims2[1]/uv_img_clip)/2:(dims2[1]/2)+(dims2[1]/uv_img_clip)/2-1, *]
+          temp2 = shift(fft(fft(shift(temp2,n_kx/2,n_ky/2,0), dimension=1, /inverse), dimension=2, /inverse),n_kx/2,n_ky/2,0)
+        endif
+        
+        variance_cube1 = temp
+        if nfiles eq 2 then variance_cube2 = temp2
+      endif
+      
+      if max(abs(imaginary(variance_cube1))) gt 0 then begin
+        print, 'variance_cube1 is not real, using absolute value'
+        variance_cube1 = abs(variance_cube1)
+      endif else variance_cube1 = real_part(variance_cube1)
+      if nfiles eq 2 then if max(abs(imaginary(variance_cube2))) gt 0 then begin
+        print, 'variance_cube2 is not real, using absolute value'
+        variance_cube2 = abs(variance_cube2)
+      endif else variance_cube2 = real_part(variance_cube2)
       
       ;; need to cut uvf cubes in half because image is real -- we'll cut negative ky
       variance_cube1 = variance_cube1[*, n_ky/2:n_ky-1,*]
@@ -744,17 +879,17 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
         if nfiles eq 2 then variance_cube2 = variance_cube2 * flag_arr
       endif
       
+      ;; Also need to drop 1/2 of ky=0 line -- drop ky=0, kx<0
+      variance_cube1[0:n_kx/2-1, 0, *] = 0
+      if nfiles eq 2 then variance_cube2[0:n_kx/2-1, 0, *] = 0
+      
+      ;; calculate integral of window function
+      ;; already cut out negative ky, so multiply by 2
+      if nfiles eq 2 then window_int = 2*[total(variance_cube1)/n_vis[0], $
+        total(variance_cube2)/n_vis[1]] $
+      else window_int = 2*total(variance_cube1)/n_vis[0]
+      
     endelse
-    
-    ;; Also need to drop 1/2 of ky=0 line -- drop ky=0, kx<0
-    variance_cube1[0:n_kx/2-1, 0, *] = 0
-    if nfiles eq 2 then variance_cube2[0:n_kx/2-1, 0, *] = 0
-    
-    ;; calculate integral of window function (use pix_area_rad for FT normalization)
-    ;; already cut out negative ky, so multiply by 2
-    if nfiles eq 2 then window_int = 2*[total(variance_cube1)*pix_area_rad/n_vis[0], $
-      total(variance_cube2)*pix_area_rad/n_vis[1]] $
-    else window_int = 2*total(variance_cube1)*pix_area_rad/n_vis[0]
     
   endif
   
@@ -822,6 +957,42 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
         if nfiles eq 2 then data_cube2 = temporary(temp2)
       endif
       
+      if keyword_set(uv_avg) then begin
+        temp = complex(fltarr(nkx_new, dims2[1], n_freq))
+        if nfiles eq 2 then temp2 = complex(fltarr(nkx_new, dims2[1], n_freq))
+        for i=0, nkx_new-1 do begin
+          temp[i,*,*] = total(data_cube1[i*uv_avg:(i+1)*uv_avg-1,*,*], 1) / uv_avg
+          if nfiles eq 2 then temp2[i,*,*] = total(data_cube2[i*uv_avg:(i+1)*uv_avg-1,*,*], 1) / uv_avg
+        endfor
+        
+        temp3 = complex(fltarr(nkx_new, nky_new, n_freq))
+        if nfiles eq 2 then temp4 = complex(fltarr(nkx_new, nky_new, n_freq))
+        for i=0, nky_new-1 do begin
+          temp3[*,i,*] = total(temp[*,i*uv_avg:(i+1)*uv_avg-1,*], 2) / uv_avg
+          if nfiles eq 2 then temp4[*,i,*] = total(temp2[*,i*uv_avg:(i+1)*uv_avg-1,*], 2) / uv_avg
+        endfor
+        undefine, temp, temp2
+        
+        data_cube1 = temporary(temp3)
+        if nfiles eq 2 then data_cube2 = temporary(temp4)
+      endif
+      
+      if keyword_set(uv_img_clip) then begin
+        temp = shift(fft(fft(shift(data_cube1,dims2[0]/2,dims2[1]/2,0), dimension=1), dimension=2),dims2[0]/2,dims2[1]/2,0)
+        temp = temp[(dims2[0]/2)-(dims2[0]/uv_img_clip)/2:(dims2[0]/2)+(dims2[0]/uv_img_clip)/2-1, *, *]
+        temp = temp[*, (dims2[1]/2)-(dims2[1]/uv_img_clip)/2:(dims2[1]/2)+(dims2[1]/uv_img_clip)/2-1, *]
+        temp = shift(fft(fft(shift(temp,n_kx/2,n_ky/2,0), dimension=1, /inverse), dimension=2, /inverse),n_kx/2,n_ky/2,0)
+        if nfiles eq 2 then begin
+          temp2 = shift(fft(fft(shift(data_cube2,dims2[0]/2,dims2[1]/2,0), dimension=1), dimension=2),dims2[0]/2,dims2[1]/2,0)
+          temp2 = temp2[(dims2[0]/2)-(dims2[0]/uv_img_clip)/2:(dims2[0]/2)+(dims2[0]/uv_img_clip)/2-1, *, *]
+          temp2 = temp2[*, (dims2[1]/2)-(dims2[1]/uv_img_clip)/2:(dims2[1]/2)+(dims2[1]/uv_img_clip)/2-1, *]
+          temp2 = shift(fft(fft(shift(temp2,n_kx/2,n_ky/2,0), dimension=1, /inverse), dimension=2, /inverse),n_kx/2,n_ky/2,0)
+        endif
+        
+        data_cube1 = temp
+        if nfiles eq 2 then data_cube2 = temp2
+      endif
+      
       ;; need to cut uvf cubes in half because image is real -- we'll cut negative ky
       data_cube1 = data_cube1[*, n_ky/2:n_ky-1,*]
       if nfiles eq 2 then data_cube2 = data_cube2[*, n_ky/2:n_ky-1,*]
@@ -845,7 +1016,6 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
   ;; Also need to drop 1/2 of ky=0 line -- drop ky=0, kx<0
   data_cube1[0:n_kx/2-1, 0, *] = 0
   if nfiles eq 2 then data_cube2[0:n_kx/2-1, 0, *] = 0
-  
   
   ;; save some slices of the raw data cube (before dividing by weights) & weights
   for i=0, nfiles-1 do begin
@@ -1001,19 +1171,25 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
     endif
   endfor
   
+  if healpix or not keyword_set(uvf_input) then begin
+    ;; fix units on window funtion integral -- now they should be Mpc^3
+    ;; checked vs Adam's analytic calculation and it matches to within a factor of 4
+    ;; We are using total(weight) = Nvis for Ian's uv plane and multiplying by a factor to convert between Ian's and my uv plane
+    ;;   the factor is ((2*!pi)^2*(delta_uv)^2) /  (delta_kperp)^2 * Dm^2 which comes in squared in the denominator.
+    ;;   see eq 21e from Adam's memo. Also note that delta D is delta z * n_freq
+    ;;   note that we can convert both the weights and variance to uvf from kperp,rz and all jacobians will cancel
+    window_int_k = window_int * (z_mpc_delta * n_freq) * (kx_mpc_delta * ky_mpc_delta)*z_mpc_mean^4./((2.*!pi)^2.*file_struct.kpix^4.)
+    print, 'window integral from variances: ' + number_formatter(window_int_k[0], format='(e10.4)')
+    print, 'window integral from beam: ' + number_formatter(window_int_beam[0], format='(e10.4)')
+    window_int = window_int_k
+    ;window_int = window_int_beam
+  endif else begin
+    window_int_k = window_int * (z_mpc_delta * n_freq) * (2.*!pi)^2. / (kx_mpc_delta * ky_mpc_delta)
+    print, 'var_cube multiplier: ', (z_mpc_delta * n_freq) * (2.*!pi)^2. / (kx_mpc_delta * ky_mpc_delta)
+    print, 'window integral from variances: ' + number_formatter(window_int_k[0], format='(e10.4)')
+    window_int = window_int_k
+  endelse
   
-  ;; fix units on window funtion integral -- now they should be Mpc^3
-  ;; checked vs Adam's analytic calculation and it matches to within a factor of 4
-  ;; We are using total(weight) = Nvis for Ian's uv plane and multiplying by a factor to convert between Ian's and my uv plane
-  ;;   the factor is ((2*!pi)^2*(delta_uv)^2) /  (delta_kperp)^2 * Dm^2 which comes in squared in the denominator.
-  ;;   see eq 21e from Adam's memo. Also note that delta D is delta z * n_freq
-  ;;   note that we can convert both the weights and variance to uvf from kperp,rz and all jacobians will cancel
-  window_int_r = window_int * (z_mpc_delta * n_freq) * (kx_mpc_delta * ky_mpc_delta)*z_mpc_mean^4./((2.*!pi)^2.*file_struct.kpix^4.)
-  print, 'window integral in r^3: ' + number_formatter(window_int_r[0], format='(e10.4)')
-  
-  ;; need window integral in k^3
-  ;; We actually want 1/(2pi)^3 * window_int_k which is equal to window_int_r
-  window_int = window_int_r ;* (2*!pi)^3.
   
   ;; divide data by sqrt(window_int) and sigma2 by window_int
   data_cube1 = data_cube1 / sqrt(window_int[0])

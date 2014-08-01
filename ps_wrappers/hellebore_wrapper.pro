@@ -4,7 +4,7 @@ pro hellebore_wrapper, folder_name, obs_range, rts = rts, casa = casa, version =
     no_spec_window = no_spec_window, spec_window_type = spec_window_type, std_power = std_power, $
     cut_image = cut_image, individual_plots = individual_plots, plot_filebase = plot_filebase, png = png, eps = eps, pdf = pdf, $
     plot_slices = plot_slices, slice_type = slice_type, uvf_plot_type = uvf_plot_type, $
-    kperp_range_1dave = kperp_range_1dave, kpar_range_1dave = kpar_range_1dave,$
+    kperp_range_1dave = kperp_range_1dave, kpar_range_1dave = kpar_range_1dave, uv_avg = uv_avg, uv_img_clip = uv_img_clip,$
     kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
     t32 = t32, set_data_ranges = set_data_ranges
     
@@ -206,7 +206,7 @@ pro hellebore_wrapper, folder_name, obs_range, rts = rts, casa = casa, version =
     refresh_dft = refresh_dft, refresh_ps = refresh_ps, refresh_binning = refresh_binning, refresh_info = refresh_info, $
     freq_ch_range = freq_ch_range, freq_flags = freq_flags, freq_flag_name = freq_flag_name, $
     no_spec_window = no_spec_window, spec_window_type = spec_window_type, std_power = std_power, $
-    sim = sim, cut_image = cut_image, dft_ian = dft_ian, uvf_input = uvf_input, $
+    sim = sim, cut_image = cut_image, dft_ian = dft_ian, uvf_input = uvf_input, uv_avg = uv_avg, uv_img_clip = uv_img_clip, $
     log_kpar = log_kpar, log_kperp = log_kperp, kpar_bin = kpar_bin, kperp_bin = kperp_bin, $
     log_k1d = log_k1d, k1d_bin = k1d_bin, kperp_range_1dave = kperp_range_1dave, kpar_range_1dave = kpar_range_1dave,$
     kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $

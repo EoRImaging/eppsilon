@@ -1,5 +1,6 @@
 pro fhd_3dps, file_struct, refresh = refresh, kcube_refresh = kcube_refresh, dft_refresh_data = dft_refresh_data, $
-    dft_refresh_weight = dft_refresh_weight, dft_ian = dft_ian, cut_image = cut_image, uvf_input = uvf_input, $
+    dft_refresh_weight = dft_refresh_weight, dft_ian = dft_ian, cut_image = cut_image, $
+    uvf_input = uvf_input, uv_avg = uv_avg, uv_img_clip = uv_img_clip, $
     dft_fchunk = dft_fchunk, freq_ch_range = freq_ch_range, freq_flags = freq_flags, $
     spec_window_type = spec_window_type, delta_uv_lambda = delta_uv_lambda, max_uv_lambda = max_uv_lambda, $
     std_power = std_power, no_kzero = no_kzero, log_kpar = log_kpar, $
@@ -37,7 +38,8 @@ pro fhd_3dps, file_struct, refresh = refresh, kcube_refresh = kcube_refresh, dft
     if test_kcube eq 0 or keyword_set(kcube_refresh) then $
       fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weight = dft_refresh_weight, dft_ian = dft_ian, $
       dft_fchunk = dft_fchunk, freq_ch_range = freq_ch_range, freq_flags = freq_flags, $
-      cut_image = cut_image, uvf_input = uvf_input, delta_uv_lambda = delta_uv_lambda, max_uv_lambda = max_uv_lambda, $
+      cut_image = cut_image, delta_uv_lambda = delta_uv_lambda, max_uv_lambda = max_uv_lambda, $
+      uvf_input = uvf_input, uv_avg = uv_avg, uv_img_clip = uv_img_clip, $
       spec_window_type = spec_window_type, std_power = std_power, input_units = input_units, /quiet
       
     if nfiles eq 1 then begin
@@ -122,7 +124,7 @@ pro fhd_3dps, file_struct, refresh = refresh, kcube_refresh = kcube_refresh, dft
     endelse
     
     save, file = file_struct.power_savefile, power_3d, noise_3d, noise_expval_3d, weights_3d, $
-      kx_mpc, ky_mpc, kz_mpc, kperp_lambda_conv, delay_params, hubble_param, n_freq_contrib, freq_mask, vs_name, vs_mean
+      kx_mpc, ky_mpc, kz_mpc, kperp_lambda_conv, delay_params, hubble_param, n_freq_contrib, freq_mask, vs_name, vs_mean, window_int
       
     write_ps_fits, file_struct.fits_power_savefile, power_3d, weights_3d, noise_expval_3d, noise_3d = noise_3d, $
       kx_mpc, ky_mpc, kz_mpc, kperp_lambda_conv, delay_params, hubble_param
@@ -152,7 +154,7 @@ pro fhd_3dps, file_struct, refresh = refresh, kcube_refresh = kcube_refresh, dft
   if keyword_set(no_kzero) then fadd_2dbin = fadd_2dbin + '_nok0'
   if keyword_set(log_kpar) then fadd_2dbin = fadd_2dbin + '_logkpar'
   if keyword_set(log_kperp) then fadd_2dbin = fadd_2dbin + '_logkperp'
-    
+  
   savefile = file_struct.savefile_froot + file_struct.savefilebase + power_tag + fadd_2dbin + '_2dkpower.idlsave'
   
   print, 'Binning to 2D power spectrum'
@@ -182,7 +184,7 @@ pro fhd_3dps, file_struct, refresh = refresh, kcube_refresh = kcube_refresh, dft
   kperp_plot_range = [min(kperp_edges[wh_good_kperp]), max(kperp_edges[wh_good_kperp+1])]
   
   save, file = savefile, power, noise, weights, noise_expval, kperp_edges, kpar_edges, kperp_bin, kpar_bin, $
-    kperp_lambda_conv, delay_params, hubble_param, freq_mask, vs_name, vs_mean
+    kperp_lambda_conv, delay_params, hubble_param, freq_mask, vs_name, vs_mean, window_int
     
   if not keyword_set(quiet) then begin
     kpower_2d_plots, savefile, kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
@@ -243,12 +245,12 @@ pro fhd_3dps, file_struct, refresh = refresh, kcube_refresh = kcube_refresh, dft
   fadd_1dbin = ''
   if keyword_set(log_k) then fadd_1dbin = fadd_1dbin + '_logk'
   if keyword_set(kperp_range_1dave) then fadd_1dbin = fadd_1dbin + '_kperp' + number_formatter(kperp_range_1dave[0]) + '-' + $
-        number_formatter(kperp_range_1dave[1])
+    number_formatter(kperp_range_1dave[1])
   if keyword_set(kpar_range_1dave) then fadd_1dbin = fadd_1dbin + '_kpar' + number_formatter(kpar_range_1dave[0]) + '-' + $
-        number_formatter(kpar_range_1dave[1])
-  
+    number_formatter(kpar_range_1dave[1])
+    
   savefile = file_struct.savefile_froot + file_struct.savefilebase + power_tag + fadd_1dbin + '_1dkpower.idlsave'
-  save, file = savefile, power, noise, weights, noise_expval, k_edges, k_bin, hubble_param, freq_mask, kperp_range, kpar_range
+  save, file = savefile, power, noise, weights, noise_expval, k_edges, k_bin, hubble_param, freq_mask, kperp_range, kpar_range, window_int
   
   if not keyword_set(quiet) then begin
     kpower_1d_plots, savefile, window_num = 5

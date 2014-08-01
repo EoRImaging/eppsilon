@@ -442,56 +442,25 @@ function hellebore_filenames, folder_names, obs_names_in, rts = rts, sim = sim, 
         
       endelse
       
-      ;; finally look for uniformly gridded uvf files
-      ;; Combined
-      cube_file_list = file_search(folder_names[i] + '/Combined_obs_' + obs_names[i] + '*_uvf.sav', count = n_cubefiles)
-      if n_cubefiles gt 0 then begin
-        if obs_names[i] eq '' then begin
-          obs_name_arr = strarr(n_cubefiles)
-          for j=0, n_cubefiles-1 do begin
-            start_pos = strpos(cube_file_list[j], 'Combined_obs_') + strlen('Combined_obs_')
-            end_pos_even = strpos(strmid(cube_file_list[j], start_pos), '_even')
-            end_pos_odd = strpos(strmid(cube_file_list[j], start_pos), '_odd')
-            end_pos_cube = strpos(strmid(cube_file_list[j], start_pos), '_cube') ;; always > -1
-            end_pos = end_pos_even > end_pos_odd
-            wh_noend = where(end_pos eq -1, count_noend)
-            if count_noend gt 0 then end_pos[wh_noend] = end_pos_cube[wh_noend]
-            
-            ;obs_name_arr = stregex(cube_file_list, '[0-9]+-[0-9]+', /extract)
-            obs_name_arr[j] = strmid(cube_file_list[j], start_pos, end_pos)
-          endfor
-          
-          wh_first = where(obs_name_arr eq obs_name_arr[0], count_first)
-          if count_first lt n_elements(cube_file_list) then $
-            print, 'More than one obs_range found, using first range (' + obs_name_arr[0] + ', ' + number_formatter(count_first) + ' files)'
-          if count_first gt 2 then message, 'More than two cubes found with first obs_range'
-          datafile = cube_file_list[wh_first]
-          obs_names[i] = obs_name_arr[0]
-        endif else begin
-          if n_elements(cube_file_list) gt 2 then message, 'More than two cubes found with given obs_name'
-          datafile = cube_file_list
-        endelse
-        integrated[i]=1
-        uvf_input=1
-        
-      endif else begin
-        ;; single
-        cube_file_list = file_search(folder_names[i] + '/' + obs_names[i] + '*_uvf.sav', count = n_cubefiles)
+      if n_elements(datafile) eq 0 then begin
+        ;; finally look for uniformly gridded uvf files
+        ;; Combined
+        cube_file_list = file_search(folder_names[i] + '/Combined_obs_' + obs_names[i] + '*_uvf.sav', count = n_cubefiles)
         if n_cubefiles gt 0 then begin
-          cube_basename = file_basename(cube_file_list)
           if obs_names[i] eq '' then begin
             obs_name_arr = strarr(n_cubefiles)
             for j=0, n_cubefiles-1 do begin
-              end_pos_even = strpos(strmid(cube_basename[j], 0), '_even')
-              end_pos_odd = strpos(strmid(cube_basename[j], 0), '_odd')
-              end_pos_cube = strpos(strmid(cube_basename[j], 0), '_cube') ;; always > -1
+              start_pos = strpos(cube_file_list[j], 'Combined_obs_') + strlen('Combined_obs_')
+              end_pos_even = strpos(strmid(cube_file_list[j], start_pos), '_even')
+              end_pos_odd = strpos(strmid(cube_file_list[j], start_pos), '_odd')
+              end_pos_cube = strpos(strmid(cube_file_list[j], start_pos), '_cube') ;; always > -1
               end_pos = end_pos_even > end_pos_odd
               wh_noend = where(end_pos eq -1, count_noend)
               if count_noend gt 0 then end_pos[wh_noend] = end_pos_cube[wh_noend]
               
-              obs_name_arr[j] = strmid(cube_basename[j], 0, end_pos)
+              ;obs_name_arr = stregex(cube_file_list, '[0-9]+-[0-9]+', /extract)
+              obs_name_arr[j] = strmid(cube_file_list[j], start_pos, end_pos)
             endfor
-            ;obs_name_arr = stregex(cube_basename, '[0-9]+', /extract)
             
             wh_first = where(obs_name_arr eq obs_name_arr[0], count_first)
             if count_first lt n_elements(cube_file_list) then $
@@ -499,14 +468,47 @@ function hellebore_filenames, folder_names, obs_names_in, rts = rts, sim = sim, 
             if count_first gt 2 then message, 'More than two cubes found with first obs_range'
             datafile = cube_file_list[wh_first]
             obs_names[i] = obs_name_arr[0]
-            integrated[i]=0
           endif else begin
-            if n_elements(cube_file_list) gt 2 then message, 'More than two cubes found with given obs_range'
+            if n_elements(cube_file_list) gt 2 then message, 'More than two cubes found with given obs_name'
             datafile = cube_file_list
           endelse
-        endif
-        uvf_input=1
-      endelse
+          integrated[i]=1
+          uvf_input=1
+          
+        endif else begin
+          ;; single
+          cube_file_list = file_search(folder_names[i] + '/' + obs_names[i] + '*_uvf.sav', count = n_cubefiles)
+          if n_cubefiles gt 0 then begin
+            cube_basename = file_basename(cube_file_list)
+            if obs_names[i] eq '' then begin
+              obs_name_arr = strarr(n_cubefiles)
+              for j=0, n_cubefiles-1 do begin
+                end_pos_even = strpos(strmid(cube_basename[j], 0), '_even')
+                end_pos_odd = strpos(strmid(cube_basename[j], 0), '_odd')
+                end_pos_cube = strpos(strmid(cube_basename[j], 0), '_cube') ;; always > -1
+                end_pos = end_pos_even > end_pos_odd
+                wh_noend = where(end_pos eq -1, count_noend)
+                if count_noend gt 0 then end_pos[wh_noend] = end_pos_cube[wh_noend]
+                
+                obs_name_arr[j] = strmid(cube_basename[j], 0, end_pos)
+              endfor
+              ;obs_name_arr = stregex(cube_basename, '[0-9]+', /extract)
+              
+              wh_first = where(obs_name_arr eq obs_name_arr[0], count_first)
+              if count_first lt n_elements(cube_file_list) then $
+                print, 'More than one obs_range found, using first range (' + obs_name_arr[0] + ', ' + number_formatter(count_first) + ' files)'
+              if count_first gt 2 then message, 'More than two cubes found with first obs_range'
+              datafile = cube_file_list[wh_first]
+              obs_names[i] = obs_name_arr[0]
+              integrated[i]=0
+            endif else begin
+              if n_elements(cube_file_list) gt 2 then message, 'More than two cubes found with given obs_range'
+              datafile = cube_file_list
+            endelse
+          endif
+          uvf_input=1
+        endelse
+      endif
       
       if n_elements(datafile) eq 0 and info_files[i] eq '' then message, 'No cube or info files found in folder ' + folder_names
       

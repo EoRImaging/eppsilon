@@ -1,6 +1,6 @@
-function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefile = variancefile, pixelfile = pixelfile, $
-    dirtyvar = dirtyvar, modelvar = modelvar, weightvar = weightvar, variancevar = variancevar, $
-    pixelvar = pixelvar, save_path = save_path, uvf_input = uvf_input, dft_ian = dft_ian, $
+function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefile = variancefile, beamfile = beamfile, , pixelfile = pixelfile, $
+    dirtyvar = dirtyvar, modelvar = modelvar, weightvar = weightvar, variancevar = variancevar, beamvar = beamvar, $
+    pixelvar = pixelvar, save_path = save_path, uvf_input = uvf_input, uv_avg = uv_avg, uv_img_clip = uv_img_clip, dft_ian = dft_ian, $
     weight_savefilebase = weight_savefilebase_in, $
     uvf_savefilebase = uvf_savefilebase_in, savefilebase = savefilebase_in, $
     freq_ch_range = freq_ch_range, freq_flags = freq_flags, freq_flag_name = freq_flag_name, $
@@ -139,8 +139,9 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
         undefine, sw_tag_list
         
         metadata_struct = {datafile:file_struct_arr[0].datafile, weightfile:file_struct_arr[0].weightfile, $
-          variancefile:file_struct_arr[0].variancefile, cube_varname:reform(file_struct_arr.datavar, ntypes, npol), $
-          weight_varname:file_struct_arr.weightvar, variance_varname:file_struct_arr.variancevar, $
+          variancefile:file_struct_arr[0].variancefile, beamfile:file_struct_arr[0].beamfile, $
+          cube_varname:reform(file_struct_arr.datavar, ntypes, npol), $
+          weight_varname:file_struct_arr.weightvar, variance_varname:file_struct_arr.variancevar, beam_varname:file_struct_arr.beamvar, $
           frequencies:file_struct_arr[0].frequencies, freq_resolution:file_struct_arr[0].freq_resolution, $
           time_resolution:file_struct_arr[0].time_resolution, n_vis:file_struct_arr[0].n_vis, $
           max_baseline_lambda:file_struct_arr[0].max_baseline_lambda, max_theta:file_struct_arr[0].max_theta, $
@@ -279,7 +280,7 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
     if keyword_set(sim) then begin
       if max(strmatch(varnames, 'model*',/fold_case)) then begin
         if n_elements(modelvar) eq 0 then begin
-          if uvf_input then model_varname = strupcase('model_uv_arr') else model_varname = strupcase('model_' + pol_inc + '_cube')
+          if keyword_set(uvf_input) then model_varname = strupcase('model_uv_arr') else model_varname = strupcase('model_' + pol_inc + '_cube')
         endif else model_varname = modelvar
         if n_elements(model_varname) ne npol then $
           if n_elements(model_varname) eq 1 then model_varname = replicate(model_varname, npol) $
@@ -296,7 +297,7 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
       ;; check for the existence of dirty, model, residual cubes
       if max(strmatch(varnames, 'dirty*',/fold_case)) then begin
         if n_elements(dirtyvar) eq 0 then begin
-          if uvf_input then dirty_varname = strupcase('dirty_uv_arr')  else dirty_varname = strupcase('dirty_' + pol_inc + '_cube')
+          if keyword_set(uvf_input) then dirty_varname = strupcase('dirty_uv_arr')  else dirty_varname = strupcase('dirty_' + pol_inc + '_cube')
         endif else dirty_varname = dirtyvar
         if n_elements(dirty_varname) ne npol then $
           if n_elements(dirty_varname) eq 1 then dirty_varname = replicate(dirty_varname, npol) $
@@ -308,7 +309,7 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
       
       if max(strmatch(varnames, 'model*',/fold_case)) then begin
         if n_elements(modelvar) eq 0 then begin
-          if uvf_input then model_varname = strupcase('model_uv_arr') else model_varname = strupcase('model_' + pol_inc + '_cube')
+          if keyword_set(uvf_input) then model_varname = strupcase('model_uv_arr') else model_varname = strupcase('model_' + pol_inc + '_cube')
         endif else model_varname = modelvar
         if n_elements(model_varname) ne npol then $
           if n_elements(model_varname) eq 1 then model_varname = replicate(model_varname, npol) $
@@ -325,7 +326,7 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
       
       if max(strmatch(varnames, 'res*',/fold_case)) then begin
         if n_elements(residualvar) eq 0 then begin
-          if uvf_input then residual_varname = strupcase('res_uv_arr') else residual_varname = strupcase('res_' + pol_inc + '_cube')
+          if keyword_set(uvf_input) then residual_varname = strupcase('res_uv_arr') else residual_varname = strupcase('res_' + pol_inc + '_cube')
         endif else dirty_varname = residualvar
         if n_elements(residual_varname) ne npol then $
           if n_elements(residual_varname) eq 1 then residual_varname = replicate(residual_varname, npol) $
@@ -350,22 +351,33 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
     endelse
     
     if n_elements(weightvar) eq 0 then begin
-      if uvf_input then weight_varname = strupcase('weights_uv_arr')  else weight_varname = strupcase('weights_' + pol_inc + '_cube')
+      if keyword_set(uvf_input) then weight_varname = strupcase('weights_uv_arr')  else weight_varname = strupcase('weights_' + pol_inc + '_cube')
     endif else weight_varname = weightvar
     if n_elements(weight_varname) ne npol then $
       if n_elements(weight_varname) eq 1 then weight_varname = replicate(weight_varname, npol) $
     else message, 'weightvar must be a scalar or have the same number of elements as pol_inc'
     if n_elements(variancevar) eq 0 then begin
-      if uvf_input then variance_varname = strupcase('variance_uv_arr') else variance_varname = strupcase('variance_' + pol_inc + '_cube')
+      if keyword_set(uvf_input) then variance_varname = strupcase('variance_uv_arr') else variance_varname = strupcase('variance_' + pol_inc + '_cube')
     endif else variance_varname = variancevar
     if n_elements(variance_varname) ne npol then $
       if n_elements(variance_varname) eq 1 then variance_varname = replicate(variance_varname, npol) $
     else message, 'variancevar must be a scalar or have the same number of elements as pol_inc'
     
+    if not keyword_set(uvf_input) then begin
+      if n_elements(beamvar) eq 0 then begin
+        beam_varname = strupcase('beam_' + pol_inc + '_cube')
+      endif else beam_varname = beamvar
+      if n_elements(beam_varname) ne npol then $
+        if n_elements(beam_varname) eq 1 then beam_varname = replicate(beam_varname, npol) $
+      else message, 'beamvar must be a scalar or have the same number of elements as pol_inc'
+    endif
+    
     if n_elements(weightfile) eq 0 then weightfile = datafile $
     else if n_elements(weightfile) ne nfiles then message, 'weightfile must have the same number of elements as datafile'
     if n_elements(variancefile) eq 0 then variancefile = datafile $
     else if n_elements(variancefile) ne nfiles then message, 'variancefile must have the same number of elements as datafile'
+    if n_elements(beamfile) eq 0 then beamfile = datafile $
+    else if n_elements(beamfile) ne nfiles then message, 'beamfile must have the same number of elements as datafile'
     
     if n_elements(pixelfile) gt 0 and n_elements(pixelfile) ne nfiles then $
       message, 'pixelfile must have the same number of elements as datafile'
@@ -396,7 +408,7 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
         if data_size[0] eq 0 then message, 'data cube has no size'
         if data_size[n_elements(data_size)-2] eq 10 then begin
           ;; data is a pointer
-          if uvf_input then begin
+          if keyword_set(uvf_input) then begin
             if data_size[0] ne 2 then message, 'Data are in a pointer array, format unknown'
             if data_size[1] ne npol then message, 'Data are in a pointer array, format unknown'
             data = getvar_savefile(datafile[j], cube_varname[i])
@@ -412,6 +424,7 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
       
       void = getvar_savefile(weightfile[j], names = wt_varnames)
       void = getvar_savefile(variancefile[j], names = var_varnames)
+      void = getvar_savefile(beamfile[j], names = bm_varnames)
       for i=0, npol-1 do begin
         wh = where(strlowcase(wt_varnames) eq strlowcase(weight_varname[i]), count)
         
@@ -421,7 +434,7 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
         if wt_size[0] eq 0 then message, 'weight cube has no size'
         if wt_size[n_elements(wt_size)-2] eq 10 then begin
           ;; weights cube is a pointer
-          if uvf_input then begin
+          if keyword_set(uvf_input) then begin
             if wt_size[0] ne 2 then message, 'Weights are in a pointer array, format unknown'
             if wt_size[1] ne npol then message, 'Weights are in a pointer array, format unknown'
             weights = getvar_savefile(weightfile[j], weight_varname[i])
@@ -445,7 +458,7 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
           if var_size[0] eq 0 then message, 'Variance cube has no size'
           if var_size[n_elements(var_size)-2] eq 10 then begin
             ;; Variance cube is a pointer
-            if uvf_input then begin
+            if keyword_set(uvf_input) then begin
               if var_size[0] ne 2 then message, 'Variance are in a pointer array, format unknown'
               if var_size[1] ne npol then message, 'Variance are in a pointer array, format unknown'
               variance = getvar_savefile(variancefile[j], variance_varname[i])
@@ -460,6 +473,20 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
           
           if total(abs(var_dims - data_dims)) ne 0 then message, 'variance and data dimensions in files do not match'
         endelse
+        
+        if not keyword_set(uvf_input) then begin
+          wh = where(strlowcase(bm_varnames) eq strlowcase(beam_varname[i]), count)
+          if count eq 0 then message, beam_varname[i] + ' is not present in beamfile (beamfile=' + beamfile[j] + ')'
+          
+          bm_size = getvar_savefile(beamfile[j], beam_varname[i], /return_size)
+          if bm_size[0] eq 0 then message, 'beam cube has no size'
+          if bm_size[n_elements(bm_size)-2] eq 10 then begin
+            ;; beam cube is a pointer
+            message, 'Beam is in a pointer array, format unknown'
+          endif else bm_dims = bm_size[1:bm_size[0]]
+          
+          if total(abs(bm_dims - data_dims)) ne 0 then message, 'Beam and data dimensions in files do not match'
+        endif
       endfor
       
       if j gt 0 then if (this_healpix eq 1 and healpix eq 0) or (this_healpix eq 0 and healpix eq 1) then $
@@ -564,6 +591,7 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
         if j eq 0 then n_vis = fltarr(nfiles)
         n_vis[j] = total(obs_arr.n_vis)
         
+        if j eq 0 then n_vis_freq = fltarr(nfiles, n_freq)
         n_vis_freq_arr = fltarr([n_obs[j], n_freq])
         for i=0, n_obs[j]-1 do n_vis_freq_arr[i, *] = obs_arr[i].nf_vis
         
@@ -584,7 +612,7 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
           if j eq 0 then vis_noise = vis_noise_arr else vis_noise = (vis_noise_arr + vis_noise*j)/(j+1.)
         endif
         
-        n_vis_freq = total(n_vis_freq_arr, 1)
+        n_vis_freq[j, *] = total(n_vis_freq_arr, 1)
         
         undefine_fhd, obs_arr
       endif else message, 'no obs or obs_arr in datafile'
@@ -617,22 +645,25 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
     frequencies = dblarr(n_freqbins)
     
     if n_elements(vis_noise) gt 0 then vis_noise_avg = fltarr(npol, n_freqbins)
-    n_vis_freq_avg = fltarr(n_freqbins)
+    n_vis_freq_avg = fltarr(nfiles, n_freqbins)
     if n_avg gt 1 then begin
       for i=0, n_freqbins-1 do begin
         frequencies[i] = mean(freq[i*n_avg:i*n_avg+(n_avg-1)]) / 1e6 ;; in MHz
         
-        temp = rebin(reform(n_vis_freq, 1, n_freq), npol, n_freq, /sample)
+        if nfiles eq 2 then temp_nfvis = total(n_vis_freq, 1) / 2. ;; average number of visibilites over even & odd cubes
+        temp = rebin(reform(temp_nfvis, 1, n_freq), npol, n_freq, /sample)
         inds_arr = indgen(n_freq)
         if n_elements(vis_noise) gt 0 then begin
           inds_use = inds_arr[i*n_avg:i*n_avg+(n_avg-1)]
-          wh_zero = where(n_vis_freq[inds_use] eq 0, count_zero, complement = wh_gt0, ncomplement = count_gt0)
+          wh_zero = where(temp_nfvis[inds_use] eq 0, count_zero, complement = wh_gt0, ncomplement = count_gt0)
+          if count_gt0 eq 0 then continue
+          
           if count_zero gt 0 then inds_use = inds_use[wh_gt0]
           
           if count_gt0 eq 1 then vis_noise_avg[*, i] = vis_noise[*, inds_use] $
           else vis_noise_avg[*, i] = sqrt(total(vis_noise[*, inds_use]^2.*temp[*, inds_use], 2)/total(temp[*, inds_use],2))
           
-          n_vis_freq_avg[i] = total(n_vis_freq[inds_use])
+          n_vis_freq_avg[*, i] = total(reform(n_vis_freq[*, inds_use], nfiles, n_elements(inds_use)) , 2)
           
         endif
       endfor
@@ -640,11 +671,11 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
       frequencies = freq / 1e6 ;; in MHz
       if n_elements(vis_noise) gt 0 then vis_noise_avg = vis_noise
     endelse
-    if n_elements(vis_noise) gt 0 then vis_noise = vis_noise_avg
+    if n_elements(vis_noise) gt 0 then vis_noise = vis_noise_avg    
     n_vis_freq = n_vis_freq_avg
     
-    metadata_struct = {datafile: datafile, weightfile: weightfile, variancefile:variancefile, $
-      cube_varname:cube_varname, weight_varname:weight_varname, variance_varname:variance_varname, $
+    metadata_struct = {datafile: datafile, weightfile: weightfile, variancefile:variancefile, beamfile:beamfile, $
+      cube_varname:cube_varname, weight_varname:weight_varname, variance_varname:variance_varname, beam_varname:beam_varname, $
       frequencies:frequencies, freq_resolution:freq_resolution, time_resolution:time_resolution, $
       n_vis:n_vis, n_vis_freq:n_vis_freq, max_baseline_lambda:max_baseline_lambda, max_theta:max_theta, degpix:degpix, kpix:kpix, kspan:kspan, $
       general_filebase:general_filebase, type_pol_str:type_pol_str, infile_label:infile_label, ntypes:ntypes, n_obs:n_obs}
@@ -699,6 +730,8 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
   
   if n_elements(delta_uv_lambda) ne 0 then uv_tag = '_deluv' + number_formatter(delta_uv_lambda) else uv_tag = ''
   ;;if n_elements(max_uv_lambda) ne 0 then uv_tag = '_maxuv' + number_formatter(max_uv_lambda)
+  if n_elements(uv_avg) ne 0 then uv_tag = uv_tag + '_uvavg' + number_formatter(uv_avg)
+  if n_elements(uv_img_clip) ne 0 then uv_tag = uv_tag + '_uvimgclip' + number_formatter(uv_img_clip)
   uvf_tag = uv_tag + fch_tag
   
   if keyword_set(std_power) then power_tag = power_tag + '_stdp' else power_tag = ''
@@ -777,6 +810,7 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
   vf_diff_savefile = froot + savefilebase + '_diff_vf_plane.idlsave'
   uv_diff_savefile = froot + savefilebase + '_diff_uv_plane.idlsave'
   
+  beam_savefile = uvf_froot + uvf_savefilebase + '_beam2.idlsave'
   
   kcube_savefile = froot + savefilebase + power_tag + '_kcube.idlsave'
   power_savefile = froot + savefilebase + power_tag + '_power.idlsave'
@@ -852,8 +886,10 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
       endelse
     endelse
     
-    file_struct = {datafile:metadata_struct.datafile, weightfile:metadata_struct.weightfile, variancefile:metadata_struct.variancefile, $
-      datavar:data_varname, weightvar:metadata_struct.weight_varname[pol_index], variancevar:metadata_struct.variance_varname[pol_index], $
+    file_struct = {datafile:metadata_struct.datafile, weightfile:metadata_struct.weightfile, $
+      variancefile:metadata_struct.variancefile, beamfile:metadata_struct.beamfile, $
+      datavar:data_varname, weightvar:metadata_struct.weight_varname[pol_index], $
+      variancevar:metadata_struct.variance_varname[pol_index], beamvar:metadata_struct.beam_varname[pol_index], $
       frequencies:metadata_struct.frequencies, freq_resolution:metadata_struct.freq_resolution, time_resolution:metadata_struct.time_resolution, $
       n_vis:metadata_struct.n_vis, n_vis_freq:metadata_struct.n_vis_freq, max_baseline_lambda:metadata_struct.max_baseline_lambda, max_theta:metadata_struct.max_theta, $
       degpix:metadata_struct.degpix, kpix:metadata_struct.kpix, kspan:metadata_struct.kspan, $;n_obs:metadata_struct.n_obs, $
@@ -865,6 +901,7 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
       vf_diff_savefile:vf_diff_savefile[i], uv_diff_savefile:uv_diff_savefile[i], $
       uf_weight_savefile:uf_weight_savefile[*, pol_index], vf_weight_savefile:vf_weight_savefile[*, pol_index], $
       uv_weight_savefile:uv_weight_savefile[*, pol_index], $
+      beam_savefile:beam_savefile[*, pol_index], $
       kcube_savefile:kcube_savefile[i], power_savefile:power_savefile[i], fits_power_savefile:fits_power_savefile[i],$
       savefile_froot:froot, savefilebase:savefilebase[i], general_filebase:general_filebase, $
       weight_savefilebase:weight_savefilebase[*,pol_index], $

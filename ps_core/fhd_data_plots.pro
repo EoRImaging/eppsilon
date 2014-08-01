@@ -1,4 +1,4 @@
-pro fhd_data_plots, datafile, rts = rts, casa = casa, pol_inc = pol_inc, uvf_input = uvf_input, $
+pro fhd_data_plots, datafile, rts = rts, casa = casa, pol_inc = pol_inc, uvf_input = uvf_input, uv_avg = uv_avg, uv_img_clip = uv_img_clip, $
     save_path = save_path, savefilebase = savefilebase, plot_path = plot_path, plot_filebase = plot_filebase, $
     note = note, png = png, eps = eps, pdf = pdf, $
     refresh_dft = refresh_dft, refresh_ps = refresh_ps, refresh_binning = refresh_binning, refresh_info = refresh_info, $
@@ -67,7 +67,7 @@ pro fhd_data_plots, datafile, rts = rts, casa = casa, pol_inc = pol_inc, uvf_inp
     file_struct_arr = casa_file_setup(datafile, pol_inc, savefilebase = savefilebase, save_path = save_path, $
       spec_window_type = spec_window_type, delta_uv_lambda = delta_uv_lambda, max_uv_lambda = max_uv_lambda, refresh_info = refresh_info)
   endif else begin
-    file_struct_arr = fhd_file_setup(datafile, pol_inc, uvf_input = uvf_input, dft_ian = dft_ian, $
+    file_struct_arr = fhd_file_setup(datafile, pol_inc, uvf_input = uvf_input, uv_avg = uv_avg, uv_img_clip = uv_img_clip, dft_ian = dft_ian, $
       savefilebase = savefilebase, save_path = save_path, freq_ch_range = freq_ch_range, freq_flags = freq_flags, freq_flag_name = freq_flag_name, $
       spec_window_type = spec_window_type, delta_uv_lambda = delta_uv_lambda, max_uv_lambda = max_uv_lambda, sim = sim, std_power = std_power, refresh_info = refresh_info)
   endelse
@@ -204,7 +204,7 @@ pro fhd_data_plots, datafile, rts = rts, casa = casa, pol_inc = pol_inc, uvf_inp
         endif
         
         fhd_3dps, file_struct_arr[i], kcube_refresh = refresh_ps, dft_refresh_data = refresh_dft, $
-          dft_refresh_weight = weight_refresh[i], dft_ian = dft_ian, cut_image = cut_image, uvf_input = uvf_input, $
+          dft_refresh_weight = weight_refresh[i], dft_ian = dft_ian, cut_image = cut_image, $
           dft_fchunk = dft_fchunk, freq_ch_range = freq_ch_range, freq_flags = freq_flags, $
           spec_window_type = spec_window_type, delta_uv_lambda = delta_uv_lambda, max_uv_lambda = max_uv_lambda, $
           std_power = std_power, no_kzero = no_kzero, $
@@ -213,7 +213,7 @@ pro fhd_data_plots, datafile, rts = rts, casa = casa, pol_inc = pol_inc, uvf_inp
       endif else $
         fhd_3dps, file_struct_arr[i], kcube_refresh = refresh_ps, freq_ch_range = freq_ch_range, $
         freq_flags = freq_flags, spec_window_type = spec_window_type, $
-        std_power = std_power, no_kzero = no_kzero, $
+        std_power = std_power, no_kzero = no_kzero, uvf_input = uvf_input, uv_avg = uv_avg, uv_img_clip = uv_img_clip, $
         log_kpar = log_kpar, log_kperp = log_kperp, kpar_bin = kpar_bin, kperp_bin = kperp_bin, $
         kperp_range_1dave = kperp_range_1dave, kpar_range_1dave = kpar_range_1dave, /quiet
     endif
@@ -221,6 +221,7 @@ pro fhd_data_plots, datafile, rts = rts, casa = casa, pol_inc = pol_inc, uvf_inp
   
   
   restore, savefiles_2d[0]
+  if n_elements(window_int) gt 0 then print, 'window integral: ', window_int
   if n_elements(vs_name) ne 0 then vs_note = vs_name + ': ~' + number_formatter(vs_mean, format = '(f10.2)')
   
   if n_elements(kperp_range_1dave) gt 0 and keyword_set(hinv) then kperp_range_1dave = kperp_range_1dave * hubble_param
