@@ -23,7 +23,7 @@
 ######################################################################################
 
 #Parse flags for inputs
-while getopts ":d:f:p:w:n:m:ps:" option
+while getopts ":d:f:p:w:n:m:o:" option
 do
    case $option in
         d) FHDdir="$OPTARG";;			#file path to fhd directory with cubes
@@ -32,7 +32,7 @@ do
         w) wallclock_time=$OPTARG;;     	#Time for execution in grid engine
         n) nslots=$OPTARG;;             	#Number of slots for grid engine
         m) mem=$OPTARG;;                	#Memory per core for grid engine
-	ps) ps_only=$OPTARG;;			#Flag for skipping integration to make PS only
+	o) ps_only=$OPTARG;;			#Flag for skipping integration to make PS only
         \?) echo "Unknown option: Accepted flags are -d (file path to fhd directory with cubes), -f (obs list or subcube path), "
 	    echo "-p (priority for grid engine), -w (wallclock time), -n (number of slots), and -m (memory allocation)"
             exit 1;;
