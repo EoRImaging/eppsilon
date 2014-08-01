@@ -296,7 +296,7 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
       ;; check for the existence of dirty, model, residual cubes
       if max(strmatch(varnames, 'dirty*',/fold_case)) then begin
         if n_elements(dirtyvar) eq 0 then begin
-          if uvf_input then dirty_varname = strupcase('dirty_uv_arr')  else dirty_varname = strupcase('dirty_' + pol_inc + '_cube')
+          if keyword_set(uvf_input) then dirty_varname = strupcase('dirty_uv_arr')  else dirty_varname = strupcase('dirty_' + pol_inc + '_cube')
         endif else dirty_varname = dirtyvar
         if n_elements(dirty_varname) ne npol then $
           if n_elements(dirty_varname) eq 1 then dirty_varname = replicate(dirty_varname, npol) $
