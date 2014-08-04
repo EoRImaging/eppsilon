@@ -1,4 +1,4 @@
-function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefile = variancefile, beamfile = beamfile, , pixelfile = pixelfile, $
+function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefile = variancefile, beamfile = beamfile, pixelfile = pixelfile, $
     dirtyvar = dirtyvar, modelvar = modelvar, weightvar = weightvar, variancevar = variancevar, beamvar = beamvar, $
     pixelvar = pixelvar, save_path = save_path, uvf_input = uvf_input, uv_avg = uv_avg, uv_img_clip = uv_img_clip, dft_ian = dft_ian, $
     weight_savefilebase = weight_savefilebase_in, $
