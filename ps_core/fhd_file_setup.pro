@@ -650,7 +650,11 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
       for i=0, n_freqbins-1 do begin
         frequencies[i] = mean(freq[i*n_avg:i*n_avg+(n_avg-1)]) / 1e6 ;; in MHz
         
-        if nfiles eq 2 then temp_nfvis = total(n_vis_freq, 1) / 2. ;; average number of visibilites over even & odd cubes
+        if nfiles eq 2 then begin
+          ;; average number of visibilites over even & odd cubes
+          temp_nfvis = total(n_vis_freq, 1) / 2.
+        endif else temp_nfvis = reform(n_vis_freq)
+        
         temp = rebin(reform(temp_nfvis, 1, n_freq), npol, n_freq, /sample)
         inds_arr = indgen(n_freq)
         if n_elements(vis_noise) gt 0 then begin
@@ -671,7 +675,7 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
       frequencies = freq / 1e6 ;; in MHz
       if n_elements(vis_noise) gt 0 then vis_noise_avg = vis_noise
     endelse
-    if n_elements(vis_noise) gt 0 then vis_noise = vis_noise_avg    
+    if n_elements(vis_noise) gt 0 then vis_noise = vis_noise_avg
     n_vis_freq = n_vis_freq_avg
     
     metadata_struct = {datafile: datafile, weightfile: weightfile, variancefile:variancefile, beamfile:beamfile, $
