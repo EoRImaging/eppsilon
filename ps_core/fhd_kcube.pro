@@ -497,10 +497,18 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
             
             pixels = pixel_nums1[wh_close]
             
-            if max(arr) le 1. then temp = arr * rebin(reform(n_vis_freq[i, *], 1, n_freq), count_close, n_freq, /sample)
+            if max(arr) le 1. then begin
+              ;; beam is peak normalized to 1
+              temp = arr * rebin(reform(n_vis_freq[i, *], 1, n_freq), count_close, n_freq, /sample)
+            endif else if max(arr) le file_struct.n_obs[i] then begin
+              ;; beam is peak normalized to 1 for each obs, then summed over obs so peak is ~ n_obs
+              temp = (arr/file_struct.n_obs[i]) * rebin(reform(n_vis_freq[i, *], 1, n_freq), count_close, n_freq, /sample)
+            endif else begin
+              ;; beam is peak normalized to 1 then multiplied by n_vis_freq for each obs & summed
+              temp = arr
+            endelse
             
             avg_beam = total(temp, 2) / total(n_vis_freq[i, *])
-            
             
             nside = file_struct.nside
             save, file=file_struct.beam_savefile[i], avg_beam, pixels, nside
@@ -798,7 +806,7 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
       
       if nfiles eq 2 then window_int_beam = [total(beam1), total(beam2)]*pix_area_mpc*(z_mpc_delta * n_freq) $
       else window_int_beam = total(beam1)*pix_area_mpc*(z_mpc_delta * n_freq)
-
+      
     endif else begin
       ;; uvf_input
       variance_cube1 = getvar_savefile(file_struct.variancefile[0], file_struct.variancevar)
@@ -1181,8 +1189,8 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
     window_int_k = window_int * (z_mpc_delta * n_freq) * (kx_mpc_delta * ky_mpc_delta)*z_mpc_mean^4./((2.*!pi)^2.*file_struct.kpix^4.)
     print, 'window integral from variances: ' + number_formatter(window_int_k[0], format='(e10.4)')
     print, 'window integral from beam: ' + number_formatter(window_int_beam[0], format='(e10.4)')
-    window_int = window_int_k
     ;window_int = window_int_beam
+    window_int = window_int_k
   endif else begin
     window_int_k = window_int * (z_mpc_delta * n_freq) * (2.*!pi)^2. / (kx_mpc_delta * ky_mpc_delta)
     print, 'var_cube multiplier: ', (z_mpc_delta * n_freq) * (2.*!pi)^2. / (kx_mpc_delta * ky_mpc_delta)
