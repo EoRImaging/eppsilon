@@ -25,6 +25,80 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
       if count_pol ne n_elements(pol_inc_in) then refresh_info = 1
     endif
     
+    if not tag_exist(metadata_struct, 'nfiles') then begin
+      ;; this is an old info file from before polarizations could be in different files.
+      ;;Need to adjust the metadata_struct to the new format
+    
+      nfiles = n_elements(metadata_struct.datafile)
+      npol = n_elements(pol_inc)
+      n_freq = n_elements(metadata_struct.frequencies)
+      
+      datafile = strarr(npol, nfiles)
+      weightfile = strarr(npol, nfiles)
+      variancefile = strarr(npol, nfiles)
+      beamfile = strarr(npol, nfiles)
+      n_vis = fltarr(npol, nfiles)
+      n_vis_freq = fltarr(npol, nfiles, n_freq)
+      if tag_exist(metadata_struct, 'nside') then pixelfile = strarr(npol, nfiles)
+      if tag_exist(metadata_struct, 'vis_noise') then vis_noise = fltarr(npol, nfiles, n_freq)
+      for i=0, npol-1 do begin
+        datafile[i,*] = metadata_struct.datafile
+        weightfile[i,*] = metadata_struct.weightfile
+        variancefile[i,*] = metadata_struct.variancefile
+        if tag_exist(metadata_struct, 'beamfile') then beamfile[i,*] = metadata_struct.beamfile else beamfile[i,*] = metadata_struct.datafile
+        n_vis[i,*] = metadata_struct.n_vis
+        if tag_exist(metadata_struct, 'n_vis_freq') then begin
+          nfvis_dims = size(metadata_struct.n_vis_freq, /dimension)
+          if nfvis_dims[0] eq nfiles then n_vis_freq[i,*,*] = metadata_struct.n_vis_freq $
+          else n_vis_freq[i,*,*] = rebin(reform(metadata_struct.n_vis_freq, 1, n_freq), nfiles, n_freq, /sample)
+        endif else n_vis_freq[i,*,*] = rebin(metadata_struct.n_vis, nfiles, n_freq)/n_freq
+        if tag_exist(metadata_struct, 'nside') then pixelfile[i,*] = metadata_struct.pixelfile
+        if tag_exist(metadata_struct, 'vis_noise') then vis_noise = rebin(reform(metadata_struct.vis_noise[i,*], 1, n_freq), nfiles, n_freq, /sample)
+      endfor
+      
+      
+      type_inc = strarr(metadata_struct.ntypes)
+      for i=0, metadata_struct.ntypes-1 do type_inc[i] = (strsplit(metadata_struct.type_pol_str[i], '_',/extract))[0]
+      
+      cube_varname = metadata_struct.cube_varname
+      weight_varname = metadata_struct.weight_varname
+      variance_varname = metadata_struct.variance_varname
+      if tag_exist(metadata_struct, 'beam_varname') then beam_varname = metadata_struct.beam_varname else beam_varname = strupcase('beam_' + pol_inc + '_cube')
+      frequencies = metadata_struct.frequencies
+      freq_resolution = metadata_struct.freq_resolution
+      time_resolution = metadata_struct.time_resolution
+      max_baseline_lambda = metadata_struct.max_baseline_lambda
+      max_theta = metadata_struct.max_theta
+      degpix = metadata_struct.degpix
+      kpix = metadata_struct.kpix
+      kspan = metadata_struct.kspan
+      general_filebase = metadata_struct.general_filebase
+      infile_label = metadata_struct.infile_label
+      type_pol_str = transpose(reform(metadata_struct.type_pol_str, metadata_struct.ntypes, npol))
+      n_obs = metadata_struct.n_obs
+      if tag_exist(metadata_struct, 'nside') then begin
+        pixel_varname = metadata_struct.pixel_varname
+        nside = metadata_struct.nside
+      endif
+      if tag_exist(metadata_struct, 'no_var') then no_var = metadata_struct.no_var
+      undefine, metadata_struct
+      
+      metadata_struct = {datafile: datafile, weightfile: weightfile, variancefile:variancefile, beamfile:beamfile, $
+        cube_varname:cube_varname, weight_varname:weight_varname, variance_varname:variance_varname, beam_varname:beam_varname, $
+        frequencies:frequencies, freq_resolution:freq_resolution, time_resolution:time_resolution, $
+        n_vis:n_vis, n_vis_freq:n_vis_freq, max_baseline_lambda:max_baseline_lambda, max_theta:max_theta, degpix:degpix, kpix:kpix, kspan:kspan, $
+        general_filebase:general_filebase, infile_label:infile_label, type_pol_str:type_pol_str, type_inc:type_inc, n_obs:n_obs, pol_inc:pol_inc, nfiles:nfiles}
+        
+      if n_elements(nside) gt 0 then metadata_struct = create_struct(metadata_struct, 'pixelfile', pixelfile, 'pixel_varname', pixel_varname, 'nside', nside)
+      
+      if n_elements(no_var) gt 0 then metadata_struct = create_struct(metadata_struct, 'no_var', 1)
+      
+      if n_elements(vis_noise) gt 0 then metadata_struct = create_struct(metadata_struct, 'vis_noise', vis_noise)
+      
+      save, filename = info_file, metadata_struct
+      
+    endif
+    
     if keyword_set(refresh_info) then begin
       if n_elements(metadata_struct) gt 0 then datafile = metadata_struct.datafile $
       else datafile = file_struct_arr[0].datafile
@@ -45,173 +119,114 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
         if min(datafile_test) eq 0 then message, 'refresh_info is set but datafile cannot be found'
       endif
       
-    endif else begin
-    
-      if n_elements(metadata_struct) eq 0 then begin
-      
-        npol = n_elements(pol_inc)
-        
-        if keyword_set(sim) then begin
-          type_inc = ['model']
-          ntypes = n_elements(type_inc)
-          ncubes = npol * ntypes
-          type_pol_str = strarr(ncubes)
-          for i=0, npol-1 do type_pol_str[ntypes*i:i*ntypes+(ntypes-1)] = type_inc + '_' + pol_inc[i]
-        endif else begin
-          ;; check for the existence of dirty, model, residual cubes
-          if max(strmatch(file_struct_arr.datavar, 'dirty*cube',/fold_case)) then begin
-            if n_elements(dirtyvar) eq 0 then dirty_varname = strupcase('dirty_' + pol_inc + '_cube') else dirty_varname = dirtyvar
-            if n_elements(dirty_varname) ne npol then $
-              if n_elements(dirty_varname) eq 1 then dirty_varname = replicate(dirty_varname, npol) $
-            else message, 'dirtyvar must be a scalar or have the same number of elements as pol_inc'
-            
-            type_inc = ['dirty']
-            if npol gt 1 then cube_varname = transpose(dirty_varname) else cube_varname = dirty_varname
-          endif
-          
-          if max(strmatch(file_struct_arr.datavar, 'model*cube',/fold_case)) then begin
-            if n_elements(modelvar) eq 0 then model_varname = strupcase('model_' + pol_inc + '_cube') else model_varname = modelvar
-            if n_elements(model_varname) ne npol then $
-              if n_elements(model_varname) eq 1 then model_varname = replicate(model_varname, npol) $
-            else message, 'modelvar must be a scalar or have the same number of elements as pol_inc'
-            
-            if n_elements(type_inc) eq 0 then begin
-              type_inc = ['model']
-              if npol gt 1 then cube_varname = transpose(model_varname) else cube_varname = model_varname
-            endif else begin
-              type_inc = [type_inc, 'model']
-              if npol gt 1 then cube_varname = [cube_varname,transpose(model_varname)] else cube_varname = [cube_varname, model_varname]
-            endelse
-          endif
-          
-          if max(strmatch(file_struct_arr.datavar, 'res*cube',/fold_case)) then begin
-            if n_elements(residualvar) eq 0 then residual_varname = strupcase('res_' + pol_inc + '_cube') else residual_varname = residualvar
-            if n_elements(residual_varname) ne npol then $
-              if n_elements(residual_varname) eq 1 then residual_varname = replicate(residual_varname, npol) $
-            else message, 'residualvar must be a scalar or have the same number of elements as pol_inc'
-            
-            if n_elements(type_inc) eq 0 then begin
-              type_inc = ['res']
-              if npol gt 1 then cube_varname = transpose(residual_varname) else cube_varname = residual_varname
-            endif else begin
-              type_inc = [type_inc, 'res']
-              if npol gt 1 then cube_varname = [cube_varname,transpose(residual_varname)] else cube_varname = [cube_varname, residual_varname]
-            endelse
-          endif else if type_inc eq ['dirty', 'model'] then begin
-            ;; residual can be constructed from dirty-model
-            type_inc = [type_inc, 'res']
-            if npol gt 1 then cube_varname = [cube_varname,transpose(strarr(npol))] else cube_varname = [cube_varname, '']
-          endif
-          ntypes = n_elements(type_inc)
-          ncubes = npol * ntypes
-          type_pol_str = strarr(ncubes)
-          for i=0, npol-1 do type_pol_str[ntypes*i:i*ntypes+(ntypes-1)] = type_inc + '_' + pol_inc[i]
-        endelse
-        undefine, type_inc, ncubes, dirty_varname, residual_varname, model_varname, cube_varname
-        
-        nfiles = n_elements(file_struct_arr[0].datafile)
-        if nfiles eq 1 then infile_label = '' else begin
-          data_filebase = [cgRootName(file_struct_arr[0].datafile[0]), cgRootName(file_struct_arr[0].datafile[1])]
-          
-          fileparts_1 = strsplit(data_filebase[0], '_', /extract)
-          fileparts_2 = strsplit(data_filebase[1], '_', /extract)
-          match_test = strcmp(fileparts_1, fileparts_2)
-          wh_diff = where(match_test eq 0, count_diff, complement = wh_same, ncomplement = count_same)
-          
-          if count_diff gt 0 then infile_label = [strjoin(fileparts_1[wh_diff]), strjoin(fileparts_2[wh_diff])] $
-          else infile_label = strarr(2)
-          
-          undefine, data_filebase, fileparts_1, fileparts_2, match_test, wh_diff, count_diff, wh_same, count_same
-        endelse
-        undefine, nfiles
-        
-        
-        ;; test for sw_tag in general_filebase and remove it if present.
-        sw_tag_list = ['hann', 'ham', 'blm', 'ntl', 'bn', 'bh']
-        for i=0, n_elements(sw_tag_list)-1 do begin
-          sw_pos = strpos(file_struct_arr[0].general_filebase, '_' + sw_tag_list[i], /reverse_search)
-          if sw_pos ne -1 then begin
-            general_filebase = strmid(file_struct_arr[0].general_filebase, 0, sw_pos)
-            break
-          endif
-        endfor
-        if n_elements(general_filebase) eq 0 then general_filebase = file_struct_arr[0].general_filebase
-        undefine, sw_tag_list
-        
-        metadata_struct = {datafile:file_struct_arr[0].datafile, weightfile:file_struct_arr[0].weightfile, $
-          variancefile:file_struct_arr[0].variancefile, beamfile:file_struct_arr[0].beamfile, $
-          cube_varname:reform(file_struct_arr.datavar, ntypes, npol), $
-          weight_varname:file_struct_arr.weightvar, variance_varname:file_struct_arr.variancevar, beam_varname:file_struct_arr.beamvar, $
-          frequencies:file_struct_arr[0].frequencies, freq_resolution:file_struct_arr[0].freq_resolution, $
-          time_resolution:file_struct_arr[0].time_resolution, n_vis:file_struct_arr[0].n_vis, $
-          max_baseline_lambda:file_struct_arr[0].max_baseline_lambda, max_theta:file_struct_arr[0].max_theta, $
-          degpix:file_struct_arr[0].degpix, kpix:file_struct_arr[0].kpix, kspan:file_struct_arr[0].kspan, $
-          general_filebase:general_filebase, type_pol_str:type_pol_str, infile_label:infile_label, ntypes:ntypes}
-          
-        if tag_exist(file_struct_arr[0], 'nside') then begin
-          healpix = 1
-          metadata_struct = create_struct(metadata_struct, 'pixelfile', file_struct_arr[0].pixelfile, 'pixel_varname', $
-            file_struct_arr[0].pixelvar, 'nside', file_struct_arr[0].nside)
-        endif else healpix = 0
-        
-        if tag_exist(file_struct_arr[0], 'no_var') then begin
-          metadata_struct = create_struct(metadata_struct, 'no_var', 1)
-          no_var = 1
-        endif else no_var = 0
-        
-        
-        save, filename = info_file, metadata_struct, pol_inc
-      endif
-    endelse
+    endif
   endif
   
   if keyword_set(refresh_info) or max(wh_info) eq -1 then begin
     if n_elements(datafile) eq 0 then datafile = filename
     
-    if n_elements(pol_inc) eq 0 then pol_inc = ['xx', 'yy']
-    pol_enum = ['xx', 'yy']
-    npol = n_elements(pol_inc)
-    pol_num = intarr(npol)
-    for i=0, npol-1 do begin
-      wh = where(pol_enum eq pol_inc[i], count)
-      if count eq 0 then message, 'pol ' + pol_inc[i] + ' not recognized.'
-      pol_num[i] = wh[0]
-    endfor
-    pol_inc = pol_enum[pol_num[uniq(pol_num, sort(pol_num))]]
-    
-    
-    nfiles = n_elements(datafile)
-    ;; look for polarization labels in the filename
-    ;    pol_pos = stregex(datafile, '[x-y][x-y]')
-    ;    if min(pol_pos) eq -1 then begin
-    if nfiles gt 2 then message, 'Only 1 or 2 datafiles supported'
-    if nfiles eq 2 then if datafile[0] eq datafile[1] then begin
-      print, 'datafiles are identical'
-      datafile = datafile[0]
-      nfiles = 1
-    endif
-    ;      temp = strarr(nfiles, npol)
-    ;      for i = 0, nfiles-1 do temp[i,*] = datafile[i]
-    ;    endif else begin
-    ;      if nfiles ne 2*npol and nfiles ne npol then message, 'Only 1 or 2 datafiles per polarization supported'
-    ;      if nfiles eq npol then nfiles = 1 else nfiles = 2
-    ;      temp = strarr(nfiles, npol)
-    ;      for i=0, npol do begin
-    ;        this_pol = where(strpos(datafile, pol_inc[i]) ne -1, count)
-    ;        if count ne nfiles then message, 'Expected ' + numberformatter(nfiles) + ' for ' + pol_inc[i] + ' polarization, only found ' + count
-    ;        temp[*, i] = datafile[this_pol]
-    ;      endfor
-    ;      for i=0, nfiles*npol do begin
-    ;        wh_duplicate = where(temp eq temp[i], count_duplicate)
-    ;        if count_duplicate gt 0 then message, 'multiple identical datafiles indentified.'
-    ;      endfor
-    ;      datafile = temp
-    ;    endelse
+    ;; check whether datafiles have polarization identifiers in filename
+    pol_exist = stregex(datafile, '[xy][xy]', /boolean, /fold_case)
+    if max(pol_exist) gt 0 then begin
+      wh_pol_exist = where(pol_exist gt 0, count_pol_exist, ncomplement = count_no_pol)
+      if count_no_pol gt 0 then message, 'some datafiles have pol identifiers and some do not'
+      
+      pols = strlowcase(stregex(datafile, '[xy][xy]', /extract, /fold_case))
+      if n_elements(weightfile) gt 0 then begin
+        wt_pols = strlowcase(stregex(weightfile, '[xy][xy]', /extract, /fold_case))
+        match, pols, wt_pols, suba, subb, count = count_pol_match
+        if count_pol_match ne n_elements(pols) then message, 'weightfile polarizations must match datafile polarizations'
+      endif
+      if n_elements(variancefile) gt 0 then begin
+        var_pols = strlowcase(stregex(variancefile, '[xy][xy]', /extract, /fold_case))
+        match, pols, var_pols, suba, subb, count = count_pol_match
+        if count_pol_match ne n_elements(pols) then message, 'variancefile polarizations must match datafile polarizations'
+      endif
+      if n_elements(beamfile) gt 0 then begin
+        bm_pols = strlowcase(stregex(beamfile, '[xy][xy]', /extract, /fold_case))
+        match, pols, bm_pols, suba, subb, count = count_pol_match
+        if count_pol_match ne n_elements(pols) then message, 'beamfile polarizations must match datafile polarizations'
+      endif
+      stop
+      pol_inc = pols[0]
+      pol_num = intarr(n_elements(pols))
+      for i=0, n_elements(pols)-1 do begin
+        wh_pol = where(pol_inc eq pols[i], count_pol)
+        if count_pol eq 1 then pol_num[i] = wh_pol[0] else begin
+          pol_inc = [pol_inc, pols[i]]
+          pol_num[i] = n_elements(pol_inc)-1
+        endelse
+      endfor
+      
+      npol = n_elements(pol_inc)
+      nfiles = ceil(n_elements(datafile)/float(npol))
+      if nfiles gt 2 then message, 'Only 1 or 2 datafiles supported per pol'
+      if n_elements(datafile) ne npol*nfiles then message, 'The same number of files must be included per pol'
+      temp = strarr(npol, nfiles)
+      for i=0, npol-1 do begin
+        wh_pol =  where(pol_num eq i, count_pol)
+        if count_pol ne nfiles then message, 'The same number of files must be included per pol'
+        temp[i,*] = datafile[wh_pol]
+        if n_elements(weightfile) gt 0 then temp_wt[i,*] = weightfile[wh_pol] else temp_wt = temp
+        if n_elements(variancefile) gt 0 then temp_var[i,*] = variancefile[wh_pol] else temp_var = temp
+        if n_elements(beamfile) gt 0 then temp_bm[i,*] = beamfile[wh_pol] else temp_bm = temp
+        if n_elements(pixelfile) gt 0 then temp_pix[i,*] = pixelfile[wh_pol] else temp_pix = temp
+      endfor
+      datafile = temporary(temp)
+      weightfile = temporary(temp_wt)
+      variancefile = temporary(temp_var)
+      beamfile = temporary(temp_bm)
+      pixelfile = temporary(temp_pix)
+    endif else begin
+      ;; no pol identifiers
+      if n_elements(pol_inc) eq 0 then pol_inc = ['xx', 'yy']
+      pol_enum = ['xx', 'yy']
+      npol = n_elements(pol_inc)
+      pol_num = intarr(npol)
+      for i=0, npol-1 do begin
+        wh = where(pol_enum eq pol_inc[i], count)
+        if count eq 0 then message, 'pol ' + pol_inc[i] + ' not recognized.'
+        pol_num[i] = wh[0]
+      endfor
+      pol_inc = pol_enum[pol_num[uniq(pol_num, sort(pol_num))]]
+      
+      nfile_dims = size(datafile, /dimension)
+      if n_elements(nfile_dims) gt 1 then datafile = datafile[0,*]
+      nfiles = n_elements(datafile)
+      if nfiles gt 2 then message, 'Only 1 or 2 datafiles supported'
+      if nfiles eq 2 then if datafile[0] eq datafile[1] then begin
+        print, 'datafiles are identical'
+        datafile = datafile[0]
+        nfiles = 1
+      endif
+      
+      
+      if n_elements(weightfile) gt 0 then if n_elements(weightfile) ne nfiles then message, 'weightfile must have the same number of elements as datafile'
+      if n_elements(variancefile) gt 0 then  if n_elements(variancefile) ne nfiles then message, 'variancefile must have the same number of elements as datafile'
+      if n_elements(beamfile) gt 0 then if n_elements(beamfile) ne nfiles then message, 'beamfile must have the same number of elements as datafile'
+      
+      temp = strarr(npol, nfiles)
+      for i=0, nfiles-1 do begin
+        temp[*,i] = datafile[i]
+        if n_elements(weightfile) gt 0 then temp_wt[*,i] = weightfile[i] else temp_wt = temp
+        if n_elements(variancefile) gt 0 then temp_var[*,i] = variancefile[i] else temp_var = temp
+        if n_elements(beamfile) gt 0 then temp_bm[*,i] = beamfile[i] else temp_bm = temp
+        if n_elements(pixelfile) gt 0 then temp_pix[*,i] = pixelfile[i] else temp_pix = temp
+      endfor
+      datafile = temp
+      weightfile = temporary(temp_wt)
+      variancefile = temporary(temp_var)
+      beamfile = temporary(temp_bm)
+      pixelfile = temporary(temp_pix)
+    endelse
     
     if n_elements(savefilebase_in) gt 1 then message, 'only one savefilebase allowed'
     
     if nfiles eq 1 then infile_label = '' else begin
-      data_filebase = [cgRootName(datafile[0]), cgRootName(datafile[1])]
+      data_filebase = [cgRootName(datafile[0,0]), cgRootName(datafile[0,1])]
+      
+      ;; make this general to all pols
+      if max(pol_exist) gt 0 then for i=0, 1 do data_filebase[i] = strjoin(strsplit(data_filebase[i], '_?[xy][xy]_?', /regex, /extract), '_')
       
       fileparts_1 = strsplit(data_filebase[0], '_', /extract)
       fileparts_2 = strsplit(data_filebase[1], '_', /extract)
@@ -224,7 +239,11 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
     
     if n_elements(savefilebase_in) eq 0 then begin
       if nfiles eq 1 then begin
-        data_filebase = cgRootName(datafile, directory=datafile_dir)
+        data_filebase = cgRootName(datafile[0], directory=datafile_dir)
+        
+        ;; make this general to all pols
+        if max(pol_exist) gt 0 then data_filebase= strjoin(strsplit(data_filebase, '_?[xy][xy]_?', /regex, /extract), '_')
+        
         if n_elements(save_path) ne 0 then froot = save_path $
         else froot = datafile_dir
         uvf_froot = froot
@@ -233,8 +252,7 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
         
       endif else begin
         if n_elements(save_path) ne 0 then froot = save_path $
-        else data_filebase = cgRootName(datafile[0], directory=froot)
-        data_filebase = [data_filebase, cgRootName(datafile[1])]
+        else temp = cgRootName(datafile[0], directory=froot)
         
         if count_diff eq 0 then general_filebase = data_filebase[0] + '_joint' else begin
           if count_same gt 0 then general_filebase = strjoin(fileparts_1[wh_same], '_') + '__' + strjoin(fileparts_1[wh_diff]) $
@@ -248,7 +266,7 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
     endif else begin
       if n_elements(save_path) gt 0 then froot = save_path else begin
         savefilebase_in_base = cgRootName(savefilebase_in[0], directory=froot)
-        if froot eq '.' then data_filebase = cgRootName(datafile[0], directory=froot)
+        if froot eq '.' then temp = cgRootName(datafile[0], directory=froot)
       endelse
       
       general_filebase = savefilebase_in_base
@@ -280,7 +298,8 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
     if keyword_set(sim) then begin
       if max(strmatch(varnames, 'model*',/fold_case)) then begin
         if n_elements(modelvar) eq 0 then begin
-          if keyword_set(uvf_input) then model_varname = strupcase('model_uv_arr') else model_varname = strupcase('model_' + pol_inc + '_cube')
+          if keyword_set(uvf_input) then model_varname = strupcase('model_uv_arr') else $
+            if max(pol_exist) gt 0 then model_varname = strupcase('model_cube') else model_varname = strupcase('model_' + pol_inc + '_cube')
         endif else model_varname = modelvar
         if n_elements(model_varname) ne npol then $
           if n_elements(model_varname) eq 1 then model_varname = replicate(model_varname, npol) $
@@ -290,14 +309,14 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
         if npol gt 1 then cube_varname = transpose(model_varname) else cube_varname = model_varname
       endif else message, 'sim files must contain model cubes'
       ntypes = n_elements(type_inc)
-      ncubes = npol * ntypes
-      type_pol_str = strarr(ncubes)
-      for i=0, npol-1 do type_pol_str[ntypes*i:i*ntypes+(ntypes-1)] = type_inc + '_' + pol_inc[i]
+      type_pol_str = strarr(npol, ntypes)
+      for i=0, npol-1 do type_pol_str[i, *] = type_inc + '_' + pol_inc[i]
     endif else begin
       ;; check for the existence of dirty, model, residual cubes
       if max(strmatch(varnames, 'dirty*',/fold_case)) then begin
         if n_elements(dirtyvar) eq 0 then begin
-          if keyword_set(uvf_input) then dirty_varname = strupcase('dirty_uv_arr')  else dirty_varname = strupcase('dirty_' + pol_inc + '_cube')
+          if keyword_set(uvf_input) then dirty_varname = strupcase('dirty_uv_arr')  else $
+            if max(pol_exist) gt 0 then dirty_varname = strupcase('dirty_cube') else dirty_varname = strupcase('dirty_' + pol_inc + '_cube')
         endif else dirty_varname = dirtyvar
         if n_elements(dirty_varname) ne npol then $
           if n_elements(dirty_varname) eq 1 then dirty_varname = replicate(dirty_varname, npol) $
@@ -309,7 +328,8 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
       
       if max(strmatch(varnames, 'model*',/fold_case)) then begin
         if n_elements(modelvar) eq 0 then begin
-          if keyword_set(uvf_input) then model_varname = strupcase('model_uv_arr') else model_varname = strupcase('model_' + pol_inc + '_cube')
+          if keyword_set(uvf_input) then model_varname = strupcase('model_uv_arr') else $
+            if max(pol_exist) gt 0 then model_varname = strupcase('model_cube') else model_varname = strupcase('model_' + pol_inc + '_cube')
         endif else model_varname = modelvar
         if n_elements(model_varname) ne npol then $
           if n_elements(model_varname) eq 1 then model_varname = replicate(model_varname, npol) $
@@ -326,7 +346,8 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
       
       if max(strmatch(varnames, 'res*',/fold_case)) then begin
         if n_elements(residualvar) eq 0 then begin
-          if keyword_set(uvf_input) then residual_varname = strupcase('res_uv_arr') else residual_varname = strupcase('res_' + pol_inc + '_cube')
+          if keyword_set(uvf_input) then residual_varname = strupcase('res_uv_arr') else $
+            if max(pol_exist) gt 0 then residual_varname = strupcase('res_cube') else residual_varname = strupcase('res_' + pol_inc + '_cube')
         endif else dirty_varname = residualvar
         if n_elements(residual_varname) ne npol then $
           if n_elements(residual_varname) eq 1 then residual_varname = replicate(residual_varname, npol) $
@@ -345,65 +366,102 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
         if npol gt 1 then cube_varname = [cube_varname,transpose(strarr(npol))] else cube_varname = [cube_varname, '']
       endif
       ntypes = n_elements(type_inc)
-      ncubes = npol * ntypes
-      type_pol_str = strarr(ncubes)
-      for i=0, npol-1 do type_pol_str[ntypes*i:i*ntypes+(ntypes-1)] = type_inc + '_' + pol_inc[i]
+      type_pol_str = strarr(npol, ntypes)
+      for i=0, npol-1 do type_pol_str[i, *] = type_inc + '_' + pol_inc[i]
     endelse
     
     if n_elements(weightvar) eq 0 then begin
-      if keyword_set(uvf_input) then weight_varname = strupcase('weights_uv_arr')  else weight_varname = strupcase('weights_' + pol_inc + '_cube')
+      if keyword_set(uvf_input) then weight_varname = strupcase('weights_uv_arr')  else $
+        if max(pol_exist) gt 0 then weight_varname = strupcase('weights_cube') else weight_varname = strupcase('weights_' + pol_inc + '_cube')
     endif else weight_varname = weightvar
     if n_elements(weight_varname) ne npol then $
       if n_elements(weight_varname) eq 1 then weight_varname = replicate(weight_varname, npol) $
     else message, 'weightvar must be a scalar or have the same number of elements as pol_inc'
     if n_elements(variancevar) eq 0 then begin
-      if keyword_set(uvf_input) then variance_varname = strupcase('variance_uv_arr') else variance_varname = strupcase('variance_' + pol_inc + '_cube')
+      if keyword_set(uvf_input) then variance_varname = strupcase('variance_uv_arr') else $
+        if max(pol_exist) gt 0 then variance_varname = strupcase('variance_cube') else variance_varname = strupcase('variance_' + pol_inc + '_cube')
     endif else variance_varname = variancevar
     if n_elements(variance_varname) ne npol then $
       if n_elements(variance_varname) eq 1 then variance_varname = replicate(variance_varname, npol) $
     else message, 'variancevar must be a scalar or have the same number of elements as pol_inc'
     
-    if not keyword_set(uvf_input) then begin
-      if n_elements(beamvar) eq 0 then begin
-        beam_varname = strupcase('beam_' + pol_inc + '_cube')
-      endif else beam_varname = beamvar
-      if n_elements(beam_varname) ne npol then $
-        if n_elements(beam_varname) eq 1 then beam_varname = replicate(beam_varname, npol) $
-      else message, 'beamvar must be a scalar or have the same number of elements as pol_inc'
-    endif
+    if n_elements(beamvar) eq 0 then begin
+      if keyword_set(uvf_input) then beam_varname = strupcase('beam2_' + pol_inc + '_image') else $
+        if max(pol_exist) gt 0 then beam_varname = strupcase('beam_squared_cube') else beam_varname = strupcase('beam_' + pol_inc + '_cube')
+    endif else beam_varname = beamvar
+    if n_elements(beam_varname) ne npol then $
+      if n_elements(beam_varname) eq 1 then beam_varname = replicate(beam_varname, npol) $
+    else message, 'beamvar must be a scalar or have the same number of elements as pol_inc'
     
-    if n_elements(weightfile) eq 0 then weightfile = datafile $
-    else if n_elements(weightfile) ne nfiles then message, 'weightfile must have the same number of elements as datafile'
-    if n_elements(variancefile) eq 0 then variancefile = datafile $
-    else if n_elements(variancefile) ne nfiles then message, 'variancefile must have the same number of elements as datafile'
-    if n_elements(beamfile) eq 0 then beamfile = datafile $
-    else if n_elements(beamfile) ne nfiles then message, 'beamfile must have the same number of elements as datafile'
-    
-    if n_elements(pixelfile) gt 0 and n_elements(pixelfile) ne nfiles then $
-      message, 'pixelfile must have the same number of elements as datafile'
-    if n_elements(pixelvar) gt 0 and n_elements(pixelvar) ne nfiles then $
-      if n_elements(pixelvar) eq 1 then pixelvar = replicate(pixelvar, nfiles) $
-    else message, 'pixelvar must be a scalar or have the same number of elements as datafile'
+    if n_elements(pixelvar) eq 0 then begin
+      pixel_varname = strupcase('hpx_inds')
+    endif else pixel_varname = pixelvar
+    if n_elements(pixel_varname) ne npol then $
+      if n_elements(pixel_varname) eq 1 then pixel_varname = replicate(pixel_varname, npol) $
+    else message, 'pixelvar must be a scalar or have the same number of elements as pol_inc'
     
     
-    if n_elements(weight_savefilebase_in) gt 0 and n_elements(weight_savefilebase_in) ne nfiles then $
-      message, 'if weight_savefilebase is specified it must have the same number of elements as datafiles'
-    if n_elements(uvf_savefilebase_in) gt 0 and n_elements(uvf_savefilebase_in) ne nfiles then $
-      message, 'if uvf_savefilebase is specified it must have the same number of elements as datafiles'
+    if max(pol_exist) gt 1 then begin
+      if n_elements(weight_savefilebase_in) gt 0 then begin
+        if n_elements(weight_savefilebase_in) ne nfiles then $
+          message, 'if weight_savefilebase is specified it must have the same number of elements as datafiles'
+          
+        pols = stregex(weight_savefilebase_in, '[xy][xy]', /extract, /fold_case)
+        temp = strarr(npol, nfiles)
+        for i=0, npol-1 do begin
+          wh_pol =  where(pols eq pol_inc[i], count_pol)
+          if count_pol ne nfiles then message, 'The same number of weight_savefilebase must be included per pol'
+          temp[i,*] = weight_savefilebase_in[wh_pol]
+        endfor
+        weight_savefilebase_in = temp
+      endif
+      if n_elements(uvf_savefilebase_in) gt 0 then begin
+        if n_elements(uvf_savefilebase_in) ne nfiles then $
+          message, 'if uvf_savefilebase is specified it must have the same number of elements as datafiles'
+          
+        pols = stregex(uvf_savefilebase_in, '[xy][xy]', /extract, /fold_case)
+        temp = strarr(npol, nfiles)
+        for i=0, npol-1 do begin
+          wh_pol =  where(pols eq pol_inc[i], count_pol)
+          if count_pol ne nfiles then message, 'The same number of uvf_savefilebase must be included per pol'
+          temp[i,*] = uvf_savefilebase_in[wh_pol]
+        endfor
+        weight_savefilebase_in = temp
+      endif
+    endif else begin
+      if n_elements(weight_savefilebase_in) gt 0 then begin
+        if n_elements(weight_savefilebase_in) ne nfiles then $
+          message, 'if weight_savefilebase is specified it must have the same number of elements as datafiles'
+        temp = strarr(npol, nfiles)
+        for i=0, nfiles-1 do temp[*,i] = weight_savefilebase_in[i]
+        weight_savefilebase_in = temp
+      endif
+      if n_elements(uvf_savefilebase_in) gt 0 then begin
+        if n_elements(uvf_savefilebase_in) ne nfiles then $
+          message, 'if uvf_savefilebase is specified it must have the same number of elements as datafiles'
+        temp = strarr(npol, nfiles)
+        for i=0, nfiles-1 do temp[*,i] = uvf_savefilebase_in[i]
+        uvf_savefilebase_in = temp
+      endif
+    endelse
+    
+    
+    
+    n_obs = lonarr(npol, nfiles)
+    for j=0, nfiles*npol-1 do begin
+      pol_i = j mod npol
+      file_i = j / npol
       
-      
-    n_obs = lonarr(nfiles)
-    for j=0, nfiles-1 do begin
-      void = getvar_savefile(datafile[j], names = varnames)
+      void = getvar_savefile(datafile[pol_i, file_i], names = varnames)
       
       wh_nside = where(strlowcase(varnames) eq 'nside', count_nside)
       if count_nside gt 0 then this_healpix = 1 else this_healpix = 0
       
-      for i=0, ncubes-1 do begin
-        wh = where(strlowcase(varnames) eq strlowcase(cube_varname[i]), count)
-        if count eq 0 then message, cube_varname[i] + ' is not present in datafile (datafile=' + datafile[j] + ')'
+      for type_i=0, ntypes-1 do begin
+        wh = where(strlowcase(varnames) eq strlowcase(cube_varname[type_i, pol_i]), count)
+        if count eq 0 then message, cube_varname[i, pol_i] + ' is not present in datafile (datafile=' + datafile[pol_i, file_i] + ')'
         
-        data_size = getvar_savefile(datafile[j], cube_varname[i], /return_size)
+        data_size = getvar_savefile(datafile[pol_i, file_i], cube_varname[type_i, pol_i], /return_size)
         
         if data_size[0] eq 0 then message, 'data cube has no size'
         if data_size[n_elements(data_size)-2] eq 10 then begin
@@ -411,7 +469,7 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
           if keyword_set(uvf_input) then begin
             if data_size[0] ne 2 then message, 'Data are in a pointer array, format unknown'
             if data_size[1] ne npol then message, 'Data are in a pointer array, format unknown'
-            data = getvar_savefile(datafile[j], cube_varname[i])
+            data = getvar_savefile(datafile[pol_i, file_i], cube_varname[type_i, pol_i])
             dims2 = size(*data[0], /dimension)
             this_data_dims = [dims2, data_size[2], data_size[1]]
             undefine_fhd, data
@@ -419,115 +477,99 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
           
         endif else this_data_dims = data_size[1:data_size[0]]
         
-        if i eq 0 and j eq 0 then data_dims = this_data_dims else if total(abs(this_data_dims - data_dims)) ne 0 then message, 'data dimensions in files do not match'
+        if type_i eq 0 and j eq 0 then data_dims = this_data_dims else if total(abs(this_data_dims - data_dims)) ne 0 then message, 'data dimensions in files do not match'
       endfor
       
-      void = getvar_savefile(weightfile[j], names = wt_varnames)
-      void = getvar_savefile(variancefile[j], names = var_varnames)
-      void = getvar_savefile(beamfile[j], names = bm_varnames)
-      for i=0, npol-1 do begin
-        wh = where(strlowcase(wt_varnames) eq strlowcase(weight_varname[i]), count)
+      void = getvar_savefile(weightfile[pol_i, file_i], names = wt_varnames)
+      void = getvar_savefile(variancefile[pol_i, file_i], names = var_varnames)
+      void = getvar_savefile(beamfile[pol_i, file_i], names = bm_varnames)
+      wh = where(strlowcase(wt_varnames) eq strlowcase(weight_varname[pol_i]), count)
+      
+      if count eq 0 then message, weight_varname[pol_i] + ' is not present in weightfile (weightfile=' + weightfile[pol_i, file_i] + ')'
+      
+      wt_size = getvar_savefile(weightfile[pol_i, file_i], weight_varname[pol_i], /return_size)
+      if wt_size[0] eq 0 then message, 'weight cube has no size'
+      if wt_size[n_elements(wt_size)-2] eq 10 then begin
+        ;; weights cube is a pointer
+        if keyword_set(uvf_input) then begin
+          if wt_size[0] ne 2 then message, 'Weights are in a pointer array, format unknown'
+          if wt_size[1] ne npol then message, 'Weights are in a pointer array, format unknown'
+          weights = getvar_savefile(weightfile[pol_i, file_i], weight_varname[pol_i])
+          dims2 = size(*weights[0], /dimension)
+          wt_dims = [dims2, wt_size[2], wt_size[1]]
+          undefine_fhd, weights
+        endif else message, 'Weights are in a pointer array, format unknown'
         
-        if count eq 0 then message, weight_varname[i] + ' is not present in weightfile (weightfile=' + weightfile[j] + ')'
-        
-        wt_size = getvar_savefile(weightfile[j], weight_varname[i], /return_size)
-        if wt_size[0] eq 0 then message, 'weight cube has no size'
-        if wt_size[n_elements(wt_size)-2] eq 10 then begin
-          ;; weights cube is a pointer
+      endif else wt_dims = wt_size[1:wt_size[0]]
+      
+      if total(abs(wt_dims - data_dims)) ne 0 then message, 'weight and data dimensions in files do not match'
+      
+      wh = where(strlowcase(var_varnames) eq strlowcase(variance_varname[pol_i]), count)
+      
+      if count eq 0 then begin
+        print, variance_varname[pol_i] + ' is not present in variancefile (variancefile=' + variancefile[pol_i, file_i] + '). Using weights^2 instead of variances'
+        no_var = 1
+      endif else begin
+        no_var = 0
+        var_size = getvar_savefile(variancefile[pol_i, file_i], variance_varname[pol_i], /return_size)
+        if var_size[0] eq 0 then message, 'Variance cube has no size'
+        if var_size[n_elements(var_size)-2] eq 10 then begin
+          ;; Variance cube is a pointer
           if keyword_set(uvf_input) then begin
-            if wt_size[0] ne 2 then message, 'Weights are in a pointer array, format unknown'
-            if wt_size[1] ne npol then message, 'Weights are in a pointer array, format unknown'
-            weights = getvar_savefile(weightfile[j], weight_varname[i])
-            dims2 = size(*weights[0], /dimension)
-            wt_dims = [dims2, wt_size[2], wt_size[1]]
-            undefine_fhd, weights
-          endif else message, 'Weights are in a pointer array, format unknown'
+            if var_size[0] ne 2 then message, 'Variance are in a pointer array, format unknown'
+            if var_size[1] ne npol then message, 'Variance are in a pointer array, format unknown'
+            variance = getvar_savefile(variancefile[pol_i, file_i], variance_varname[pol_i])
+            dims2 = size(*variance[0], /dimension)
+            var_dims = [dims2, var_size[2], var_size[1]]
+            undefine_fhd, variance
+          endif else message, 'Variance is in a pointer array, format unknown'
           
-        endif else wt_dims = wt_size[1:wt_size[0]]
+        endif else var_dims = var_size[1:var_size[0]]
         
-        if total(abs(wt_dims - data_dims)) ne 0 then message, 'weight and data dimensions in files do not match'
-        
-        wh = where(strlowcase(var_varnames) eq strlowcase(variance_varname[i]), count)
-        
-        if count eq 0 then begin
-          print, variance_varname[i] + ' is not present in variancefile (variancefile=' + variancefile[j] + '). Using weights^2 instead of variances'
-          no_var = 1
-        endif else begin
-          no_var = 0
-          var_size = getvar_savefile(variancefile[j], variance_varname[i], /return_size)
-          if var_size[0] eq 0 then message, 'Variance cube has no size'
-          if var_size[n_elements(var_size)-2] eq 10 then begin
-            ;; Variance cube is a pointer
-            if keyword_set(uvf_input) then begin
-              if var_size[0] ne 2 then message, 'Variance are in a pointer array, format unknown'
-              if var_size[1] ne npol then message, 'Variance are in a pointer array, format unknown'
-              variance = getvar_savefile(variancefile[j], variance_varname[i])
-              dims2 = size(*variance[0], /dimension)
-              var_dims = [dims2, var_size[2], var_size[1]]
-              undefine_fhd, variance
-            endif else message, 'Variance is in a pointer array, format unknown'
-            
-          endif else var_dims = var_size[1:var_size[0]]
-          
-          
-          
-          if total(abs(var_dims - data_dims)) ne 0 then message, 'variance and data dimensions in files do not match'
-        endelse
-        
-        if not keyword_set(uvf_input) then begin
-          wh = where(strlowcase(bm_varnames) eq strlowcase(beam_varname[i]), count)
-          if count eq 0 then message, beam_varname[i] + ' is not present in beamfile (beamfile=' + beamfile[j] + ')'
-          
-          bm_size = getvar_savefile(beamfile[j], beam_varname[i], /return_size)
-          if bm_size[0] eq 0 then message, 'beam cube has no size'
-          if bm_size[n_elements(bm_size)-2] eq 10 then begin
-            ;; beam cube is a pointer
-            message, 'Beam is in a pointer array, format unknown'
-          endif else bm_dims = bm_size[1:bm_size[0]]
-          
-          if total(abs(bm_dims - data_dims)) ne 0 then message, 'Beam and data dimensions in files do not match'
-        endif
-      endfor
+        if total(abs(var_dims - data_dims)) ne 0 then message, 'variance and data dimensions in files do not match'
+      endelse
+      
+      wh = where(strlowcase(bm_varnames) eq strlowcase(beam_varname[pol_i]), count)
+      if count eq 0 then message, beam_varname[pol_i] + ' is not present in beamfile (beamfile=' + beamfile[pol_i, file_i] + ')'
+      
+      bm_size = getvar_savefile(beamfile[pol_i, file_i], beam_varname[pol_i], /return_size)
+      if bm_size[0] eq 0 then message, 'beam cube has no size'
+      if bm_size[n_elements(bm_size)-2] eq 10 then begin
+        ;; beam cube is a pointer
+        message, 'Beam is in a pointer array, format unknown'
+      endif else bm_dims = bm_size[1:bm_size[0]]
+      stop
+      if total(abs(bm_dims - data_dims)) ne 0 then message, 'Beam and data dimensions in files do not match'
       
       if j gt 0 then if (this_healpix eq 1 and healpix eq 0) or (this_healpix eq 0 and healpix eq 1) then $
         message, 'One datafile is in healpix and the other is not.'
       if this_healpix eq 1 then begin
-        if j eq 0 then nside = getvar_savefile(datafile[j], 'nside') else begin
+        if j eq 0 then nside = getvar_savefile(datafile[pol_i, file_i], 'nside') else begin
           nside1 = nside
-          nside = getvar_savefile(datafile[j], 'nside')
+          nside = getvar_savefile(datafile[pol_i, file_i], 'nside')
           if nside1 ne nside then message, 'nside parameter does not agree between datafiles'
           undefine, nside1
         endelse
         healpix = 1
         
-        if n_elements(pixelfile) ne nfiles then begin
-          if j eq 0 then pixelfile = [datafile[j]] else pixelfile = [pixelfile, datafile[j]]
-        endif
-        if j eq 0 then begin
-          if n_elements(pixelvar) eq 0 then pixel_varname = replicate('hpx_inds', nfiles) else pixel_varname =  pixelvar
-        endif
+        void = getvar_savefile(pixelfile[pol_i, file_i], names = pix_varnames)
+        wh = where(strlowcase(pix_varnames) eq strlowcase(pixel_varname[pol_i]), count)
         
-        void = getvar_savefile(pixelfile[j], names = pix_varnames)
-        wh = where(strlowcase(pix_varnames) eq strlowcase(pixel_varname[j]), count)
+        if count eq 0 then message, pixel_varname[pol_i] + ' is not present in pixelfile (pixelfile=' + pixelfile[pol_i, file_i] + ')'
         
-        if count eq 0 then message, pixel_varname[j] + ' is not present in pixelfile (pixelfile=' + pixelfile[j] + ')'
-        
-        pix_size = getvar_savefile(pixelfile[j], pixel_varname[j], /return_size)
+        pix_size = getvar_savefile(pixelfile[pol_i, file_i], pixel_varname[pol_i], /return_size)
         if pix_size[0] gt 0 then pix_dims = pix_size[1:pix_size[0]]
         if total(abs(pix_dims - data_dims[0])) ne 0 then message, 'Number of Healpix pixels does not match data dimension'
-        
-        
-        
         
       endif else healpix = 0
       
       wh_obs = where(strmatch(varnames, 'obs*',/fold_case) gt 0, count_obs)
-      if count_obs eq 1 then obs_arr = getvar_savefile(datafile[j], varnames[wh_obs[0]])
+      if count_obs eq 1 then obs_arr = getvar_savefile(datafile[pol_i, file_i], varnames[wh_obs[0]])
       if count_obs gt 1 then message, 'more than one obs structure in datafile'
       
       if count_obs ne 0 then begin
       
-        n_obs[j] = n_elements(obs_arr)
+        n_obs[pol_i, file_i] = n_elements(obs_arr)
         
         if j eq 0 then max_baseline_lambda = max(obs_arr.max_baseline) $
         else max_baseline_lambda = max([max_baseline_lambda, obs_arr.max_baseline])
@@ -564,18 +606,18 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
           wh_bin = where(strlowcase(obs_tags) eq 'bin', count_bin)
           wh_base_info = where(strlowcase(obs_tags) eq 'baseline_info', count_base_info)
           if count_bin ne 0 or count_base_info then begin
-            freq_vals = dblarr(n_freq, n_obs[j])
-            if count_bin ne 0 then for i=0, n_obs[j]-1 do freq_vals[*,i] = (*obs_arr[i].bin).freq $
-            else for i=0, n_obs[j]-1 do freq_vals[*,i] = (*obs_arr[i].baseline_info).freq
+            freq_vals = dblarr(n_freq, n_obs[pol_i, file_i])
+            if count_bin ne 0 then for i=0, n_obs[pol_i, file_i]-1 do freq_vals[*,i] = (*obs_arr[i].bin).freq $
+            else for i=0, n_obs[pol_i, file_i]-1 do freq_vals[*,i] = (*obs_arr[i].baseline_info).freq
           endif else stop
         endelse
-        if total(abs(freq_vals - rebin(freq_vals[*,0], n_freq, n_obs[j]))) ne 0 then message, 'inconsistent freq values in obs_arr'
+        if total(abs(freq_vals - rebin(freq_vals[*,0], n_freq, n_obs[pol_i, file_i]))) ne 0 then message, 'inconsistent freq values in obs_arr'
         if j eq 0 then freq = freq_vals[*,0] else if total(abs(freq - freq_vals[*,0])) ne 0 then $
           message, 'frequencies do not agree between datafiles'
         freq_resolution = freq[1]-freq[0]
         
-        dt_vals = dblarr(n_obs[j])
-        for i=0, n_obs[j]-1 do begin
+        dt_vals = dblarr(n_obs[pol_i, file_i])
+        for i=0, n_obs[pol_i, file_i]-1 do begin
           times = (*obs_arr[i].baseline_info).jdate
           ;; only allow time resolutions of n*.5 sec
           dt_vals[i] = round(((times[1]-times[0])*24*3600)*2.)/2.
@@ -588,31 +630,30 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
           /degree, /nearest)
         if j eq 0 then max_theta = max(theta_vals) else max_theta = max([max_theta, theta_vals])
         
-        if j eq 0 then n_vis = fltarr(nfiles)
-        n_vis[j] = total(obs_arr.n_vis)
+        if j eq 0 then n_vis = fltarr(npol, nfiles)
+        n_vis[pol_i, file_i] = total(obs_arr.n_vis)
         
-        if j eq 0 then n_vis_freq = fltarr(nfiles, n_freq)
-        n_vis_freq_arr = fltarr([n_obs[j], n_freq])
-        for i=0, n_obs[j]-1 do n_vis_freq_arr[i, *] = obs_arr[i].nf_vis
+        if j eq 0 then n_vis_freq = fltarr(npol, nfiles, n_freq)
+        n_vis_freq_arr = fltarr([n_obs[pol_i, file_i], n_freq])
+        for i=0, n_obs[pol_i, file_i]-1 do n_vis_freq_arr[i, *] = obs_arr[i].nf_vis
         
         if tag_exist(obs_arr[0], 'vis_noise') then begin
+          vis_noise_arr = fltarr([n_obs[pol_i, file_i], n_freq])
+          
           noise_dims = size(*obs_arr[0].vis_noise, /dimension)
           if noise_dims[0] ne npol or noise_dims[1] ne n_freq then message, 'vis_noise dimensions do not match npol, n_freq'
+          for i=0, n_obs[pol_i, file_i]-1 do vis_noise_arr[i, *] = (*obs_arr[i].vis_noise)[pol_i,*]
           
-          vis_noise_arr = fltarr([n_obs[j], npol, n_freq])
-          for i=0, n_obs[j]-1 do vis_noise_arr[i, *, *] = *obs_arr[i].vis_noise
-          temp = rebin(reform(n_vis_freq_arr, n_obs[j], 1, n_freq), n_obs[j], npol, n_freq, /sample)
           
-          vis_noise_arr = sqrt(total(vis_noise_arr^2.*temp, 1)/total(temp, 1))
-          wh_zero = where(total(temp, 1) eq 0, count_zero)
+          if j eq 0 then vis_noise = fltarr(npol, nfiles, n_freq)
+          vis_noise[pol_i, file_i, *] = sqrt(total(vis_noise_arr^2.*n_vis_freq_arr, 1)/total(n_vis_freq_arr, 1))
+          wh_zero = where(total(n_vis_freq_arr, 1) eq 0, count_zero)
           if count_zero gt 0 then vis_noise_arr[wh_zero] = 0
-          undefine, temp, wh_zero, count_zero
+          undefine, wh_zero, count_zero
           
-          ;; want an average vis_noise for even & odd. They aren't being combined, so average sigma not variances
-          if j eq 0 then vis_noise = vis_noise_arr else vis_noise = (vis_noise_arr + vis_noise*j)/(j+1.)
         endif
         
-        n_vis_freq[j, *] = total(n_vis_freq_arr, 1)
+        n_vis_freq[pol_i, file_i, *] = total(n_vis_freq_arr, 1)
         
         undefine_fhd, obs_arr
       endif else message, 'no obs or obs_arr in datafile'
@@ -621,9 +662,9 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
       if healpix then data_nfreq = data_dims[1] else data_nfreq = data_dims[2]
       wh_navg = where(strlowcase(varnames) eq 'n_avg', count_navg)
       if count_navg ne 0 then begin
-        if j eq 0 then n_avg = getvar_savefile(datafile[j], 'n_avg') else begin
+        if j eq 0 then n_avg = getvar_savefile(datafile[pol_i, file_i], 'n_avg') else begin
           n_avg1 = n_avg
-          n_avg = getvar_savefile(datafile[j], 'n_avg')
+          n_avg = getvar_savefile(datafile[pol_i, file_i], 'n_avg')
           if n_avg1 ne n_avg then message, 'n_avg parameter does not agree between datafiles'
           undefine, n_avg1
         endelse
@@ -644,30 +685,27 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
     n_freqbins = n_freq / n_avg
     frequencies = dblarr(n_freqbins)
     
-    if n_elements(vis_noise) gt 0 then vis_noise_avg = fltarr(npol, n_freqbins)
-    n_vis_freq_avg = fltarr(nfiles, n_freqbins)
+    if n_elements(vis_noise) gt 0 then vis_noise_avg = fltarr(npol, nfiles, n_freqbins)
+    n_vis_freq_avg = fltarr(npol, nfiles, n_freqbins)
     if n_avg gt 1 then begin
       for i=0, n_freqbins-1 do begin
         frequencies[i] = mean(freq[i*n_avg:i*n_avg+(n_avg-1)]) / 1e6 ;; in MHz
         
-        if nfiles eq 2 then begin
-          ;; average number of visibilites over even & odd cubes
-          temp_nfvis = total(n_vis_freq, 1) / 2.
-        endif else temp_nfvis = reform(n_vis_freq)
-        
-        temp = rebin(reform(temp_nfvis, 1, n_freq), npol, n_freq, /sample)
         inds_arr = indgen(n_freq)
         if n_elements(vis_noise) gt 0 then begin
           inds_use = inds_arr[i*n_avg:i*n_avg+(n_avg-1)]
-          wh_zero = where(temp_nfvis[inds_use] eq 0, count_zero, complement = wh_gt0, ncomplement = count_gt0)
+          wh_zero = where(total(total(n_vis_freq[*,*,inds_use],2),1) eq 0, count_zero, complement = wh_gt0, ncomplement = count_gt0)
           if count_gt0 eq 0 then continue
           
           if count_zero gt 0 then inds_use = inds_use[wh_gt0]
           
-          if count_gt0 eq 1 then vis_noise_avg[*, i] = vis_noise[*, inds_use] $
-          else vis_noise_avg[*, i] = sqrt(total(vis_noise[*, inds_use]^2.*temp[*, inds_use], 2)/total(temp[*, inds_use],2))
-          
-          n_vis_freq_avg[*, i] = total(reform(n_vis_freq[*, inds_use], nfiles, n_elements(inds_use)) , 2)
+          if count_gt0 eq 1 then begin
+            vis_noise_avg[*,*,i] = vis_noise[*,*,inds_use]
+            n_vis_freq_avg[*,*,i] = n_vis_freq[*,*,inds_use]
+          endif else begin
+            vis_noise_avg[*,*,i] = sqrt(total(vis_noise[*,*,inds_use]^2.*n_vis_freq[*,*,inds_use], 3)/total(n_vis_freq[*,*,inds_use],3))
+            n_vis_freq_avg[*,*,i] = total(n_vis_freq[*,*,inds_use], 3)
+          endelse
           
         endif
       endfor
@@ -682,7 +720,7 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
       cube_varname:cube_varname, weight_varname:weight_varname, variance_varname:variance_varname, beam_varname:beam_varname, $
       frequencies:frequencies, freq_resolution:freq_resolution, time_resolution:time_resolution, $
       n_vis:n_vis, n_vis_freq:n_vis_freq, max_baseline_lambda:max_baseline_lambda, max_theta:max_theta, degpix:degpix, kpix:kpix, kspan:kspan, $
-      general_filebase:general_filebase, type_pol_str:type_pol_str, infile_label:infile_label, ntypes:ntypes, n_obs:n_obs}
+      general_filebase:general_filebase, infile_label:infile_label, type_pol_str:type_pol_str, type_inc:type_inc, n_obs:n_obs, pol_inc:pol_inc, nfiles:nfiles}
       
     if healpix then metadata_struct = create_struct(metadata_struct, 'pixelfile', pixelfile, 'pixel_varname', pixel_varname, 'nside', nside)
     
@@ -690,14 +728,16 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
     
     if n_elements(vis_noise) gt 0 then metadata_struct = create_struct(metadata_struct, 'vis_noise', vis_noise)
     
-    save, filename = info_file, metadata_struct, pol_inc
+    save, filename = info_file, metadata_struct
   endif
   
-  npol = n_elements(pol_inc)
-  nfiles = n_elements(metadata_struct.datafile)
-  ncubes = npol * metadata_struct.ntypes
+  npol = n_elements(metadata_struct.pol_inc)
+  nfiles = metadata_struct.nfiles
+  ntypes = n_elements(metadata_struct.type_inc)
   if tag_exist(metadata_struct, 'nside') then healpix = 1 else healpix = 0
   if tag_exist(metadata_struct, 'no_var') then no_var = 1 else no_var = 0
+  
+  pol_exist = stregex(metadata_struct.datafile, '[xy][xy]', /boolean, /fold_case)
   
   type_list = ['Hann', 'Hamming', 'Blackman', 'Nutall', 'Blackman-Nutall', 'Blackman-Harris', 'None']
   sw_tag_list = ['hann', 'ham', 'blm', 'ntl', 'bn', 'bh', '']
@@ -743,51 +783,42 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
   
   if keyword_set(dft_ian) then dft_label = '_ian' else dft_label = ''
   
-  wt_file_label = '_weights_' + strlowcase(pol_inc)
-  file_label = '_' + strlowcase(metadata_struct.type_pol_str)
+  wt_file_label = '_weights_' + strlowcase(metadata_struct.pol_inc)
+  file_label = strarr(npol, ntypes)
+  for i=0, npol-1 do file_label[i,*] = '_' + strlowcase(metadata_struct.type_inc) + '_' + strlowcase(metadata_struct.pol_inc[i])
   savefilebase = metadata_struct.general_filebase + uvf_tag + file_label
   
   if n_elements(uvf_savefilebase_in) lt nfiles then begin
-    if nfiles eq 1 then begin
-      ;; if we're only dealing with one file and uvf_savefilebase isn't specified then use same base for uvf files
-      uvf_savefilebase = strarr(nfiles, ncubes)
-      uvf_savefilebase[0,*] = metadata_struct.general_filebase + uvf_tag + file_label + dft_label
-      uvf_label = strarr(nfiles, ncubes)
-      
-      if n_elements(save_path) ne 0 then uvf_froot = replicate(save_path, nfiles, ncubes) else begin
-        uvf_froot = strarr(nfiles, ncubes)
-        ;; test datafile path to see if it exists. if not, use froot
-        for i=0, nfiles-1 do begin
-          datafile_path = file_dirname(metadata_struct.datafile[i], /mark_directory)
-          if file_test(datafile_path, /directory) then uvf_froot[i, *] = datafile_path else uvf_froot[i, *] = froot
+    if n_elements(save_path) ne 0 then uvf_froot = replicate(save_path, npol, nfiles, ntypes) else begin
+      uvf_froot = strarr(npol, nfiles, ntypes)
+      ;; test datafile path to see if it exists. if not, use froot
+      for pol_i=0, npol-1 do begin
+        for file_i=0, nfiles-1 do begin
+          datafile_path = file_dirname(metadata_struct.datafile[pol_i, file_i], /mark_directory)
+          if file_test(datafile_path, /directory) then uvf_froot[pol_i, file_i, *] = datafile_path else uvf_froot[pol_i, file_i, *] = froot
         endfor
-      endelse
-    endif else begin
-      ;; need 2 uvf files for each type/pol
-      if n_elements(save_path) ne 0 then uvf_froot = replicate(save_path, nfiles, ncubes) else begin
-        uvf_froot = strarr(nfiles, ncubes)
-        ;; test datafile path to see if it exists. if not, use froot
-        for i=0, nfiles-1 do begin
-          datafile_path = file_dirname(metadata_struct.datafile[i], /mark_directory)
-          if file_test(datafile_path, /directory) then uvf_froot[i, *] = datafile_path else uvf_froot[i, *] = froot
-        endfor
-      endelse
-      uvf_savefilebase = strarr(nfiles, ncubes)
-      uvf_label = strarr(nfiles, ncubes)
-      for i=0, nfiles-1 do begin
-        uvf_savefilebase[i, *] = cgRootName(metadata_struct.datafile[i]) + uvf_tag + file_label + dft_label
-        uvf_label[i, *] = metadata_struct.infile_label[i] + file_label
       endfor
     endelse
+    uvf_savefilebase = strarr(npol, nfiles, ntypes)
+    uvf_label = strarr(npol, nfiles, ntypes)
+    for pol_i=0, npol-1 do begin
+      for file_i=0, nfiles-1 do begin
+        if max(pol_exist) eq 1 then uvf_savefilebase[pol_i, file_i,*] = cgRootName(metadata_struct.datafile[pol_i, file_i]) + uvf_tag + '_' + metadata_struct.type_inc + dft_label $
+        else uvf_savefilebase[pol_i, file_i,*] = cgRootName(metadata_struct.datafile[pol_i, file_i]) + uvf_tag + file_label[pol_i, *] + dft_label
+        uvf_label[pol_i, file_i,*] = metadata_struct.infile_label[file_i] + '_' + file_label[pol_i, *]
+      endfor
+    endfor
   endif else begin
-    if n_elements(save_path) gt 0 then uvf_froot = replicate(save_path, nfiles, ncubes) else begin
+    if n_elements(save_path) gt 0 then uvf_froot = replicate(save_path, npol, nfiles, ntypes) else begin
       temp = file_dirname(uvf_savefilebase_in, /mark_directory)
-      uvf_froot = strarr(nfiles, ncubes)
-      for i=0, nfiles-1 do begin
-        if temp[i] ne '.' then uvf_froot[i,*] = temp[i] else begin
-          datafile_path = file_dirname(metadata_struct.datafile[i], /mark_directory)
-          if file_test(datafile_path, /directory) then uvf_froot[i, *] = datafile_path else uvf_froot[i, *] = froot
-        endelse
+      uvf_froot = strarr(npol, nfiles, ntypes)
+      for pol_i=0, npol-1 do begin
+        for file_i=0, nfiles-1 do begin
+          if temp[i] ne '.' then uvf_froot[i,*] = temp[i] else begin
+            datafile_path = file_dirname(metadata_struct.datafile[pol_i, file_i], /mark_directory)
+            if file_test(datafile_path, /directory) then uvf_froot[pol_i, file_i, *] = datafile_path else uvf_froot[pol_i, file_i, *] = froot
+          endelse
+        endfor
       endfor
     endelse
     uvf_savefilebase = file_basename(uvf_savefilebase_in) + uvf_tag + file_label + dft_label
@@ -795,7 +826,6 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
   
   ;; add sw tag to general_filebase so that plotfiles have uvf_tag in them
   general_filebase = metadata_struct.general_filebase + uvf_tag
-  
   
   uvf_savefile = uvf_froot + uvf_savefilebase + '_uvf.idlsave'
   uf_savefile = uvf_froot + uvf_savefilebase + '_uf_plane.idlsave'
@@ -821,45 +851,42 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
   fits_power_savefile = froot + savefilebase + power_tag + '_power.fits'
   
   if n_elements(weight_savefilebase_in) eq 0 then begin
-    wt_base = cgrootname(metadata_struct.weightfile[0], directory = wt_froot)
+    temp = cgrootname(metadata_struct.weightfile[0, 0], directory = wt_froot)
     if file_test(wt_froot, /directory) eq 0 then wt_froot = froot
     
-    if nfiles eq 1 then begin
-      if n_elements(save_path) gt 0 then wt_froot = save_path
-      
-      weight_savefilebase = strarr(nfiles, npol)
-      weight_savefilebase[0,*] = wt_base + uvf_tag + wt_file_label
-    endif else begin
-      if n_elements(save_path) gt 0 then wt_froot = save_path else begin
-        wt_froot = strarr(nfiles, npol)
-        for i=0, nfiles-1 do begin
-          wtfile_path = file_dirname(metadata_struct.weightfile[i], /mark_directory)
-          if file_test(wtfile_path, /directory) then wt_froot[i, *] = wtfile_path else wt_froot[i, *] = froot
+    if n_elements(save_path) gt 0 then wt_froot = save_path else begin
+      wt_froot = strarr(npol, nfiles)
+      for pol_i=0, npol-1 do begin
+        for file_i=0, nfiles-1 do begin
+          wtfile_path = file_dirname(metadata_struct.weightfile[pol_i, file_i], /mark_directory)
+          if file_test(wtfile_path, /directory) then wt_froot[pol_i, file_i] = wtfile_path else wt_froot[pol_i, file_i] = froot
         endfor
-      endelse
-      
-      weight_savefilebase = strarr(nfiles, npol)
-      for i=0, nfiles-1 do weight_savefilebase[i, *] = cgrootname(metadata_struct.weightfile[i]) + uvf_tag + wt_file_label
+      endfor
     endelse
+    
+    weight_savefilebase = strarr(npol, nfiles)
+    for pol_i=0, npol-1 do begin
+      for file_i=0, nfiles-1 do begin
+        if max(pol_exist) eq 1 then weight_savefilebase[pol_i, file_i] = cgRootName(metadata_struct.weightfile[pol_i, file_i]) + uvf_tag + '_weights' + dft_label $
+        else weight_savefilebase[pol_i, file_i] = cgRootName(metadata_struct.weightfile[pol_i, file_i]) + uvf_tag + wt_file_label[pol_i] + dft_label
+      endfor
+    endfor
+    
   endif else begin
     if n_elements(save_path) gt 0 then wt_froot = save_path else begin
       temp = file_dirname(weight_savefilebase_in, /mark_directory)
-      if nfiles eq 1 then begin
-        if temp ne '.' then wt_froot = temp else begin
-          wt_froot = file_dirname(metadata_struct.weightfile, /mark_directory)
-          if file_test(wt_froot) eq 0 then wt_froot = froot
-        endelse
-      endif else begin
-        wt_froot = strarr(nfiles, npol)
-        for i=0, nfiles-1 do begin
-          if temp[i] ne '.' then uvf_froot[i,*] = temp[i] else begin
-            wtfile_path = file_dirname(metadata_struct.weightfile[i], /mark_directory)
-            if file_test(wtfile_path, /directory) then wt_froot[i, *] = wtfile_path else wt_froot[i, *] = froot
+      
+      wt_froot = strarr(npol, nfiles)
+      for pol_i=0, npol-1 do begin
+        for file_i=0, nfiles-1 do begin
+          if temp[pol_i, file_i] ne '.' then wt_froot[pol_i, file_i] = temp[pol_i, file_i] else begin
+            wtfile_path = file_dirname(metadata_struct.weightfile[pol_i, file_i], /mark_directory)
+            if file_test(wtfile_path, /directory) then wt_froot[pol_i, file_i] = wtfile_path else wt_froot[pol_i, file_i] = froot
           endelse
         endfor
-      endelse
+      endfor
     endelse
-    weight_savefilebase = file_basename(weight_savefilebase_in) + uvf_tag + wt_file_label
+    weight_savefilebase = file_basename(weight_savefilebase_in) + uvf_tag
   endelse
   
   uvf_weight_savefile = wt_froot + weight_savefilebase + '_uvf.idlsave'
@@ -867,69 +894,68 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
   vf_weight_savefile = wt_froot + weight_savefilebase + '_vf_plane.idlsave'
   uv_weight_savefile = wt_froot + weight_savefilebase + '_uv_plane.idlsave'
   
-  
-  for i=0, ncubes-1 do begin
-    pol_index = i / metadata_struct.ntypes
-    type_index = i mod metadata_struct.ntypes
+  for pol_i=0, npol-1 do begin
+    for type_i=0, ntypes-1 do begin
     
-    if metadata_struct.ntypes gt 1 then data_varname = metadata_struct.cube_varname[type_index, pol_index] else data_varname = metadata_struct.cube_varname[pol_index]
-    if data_varname ne '' then begin
-      res_uvf_inputfiles = strarr(nfiles,2)
-      res_uvf_varname = strarr(nfiles,2)
-    endif else begin
-      if healpix or not keyword_set(uvf_input) then begin
-        res_uvf_inputfiles = uvf_savefile[*, metadata_struct.ntypes*pol_index:metadata_struct.ntypes*pol_index+1]
-        res_uvf_varname = strarr(nfiles, 2) + 'data_cube'
-      endif else begin
+      if ntypes gt 1 then data_varname = metadata_struct.cube_varname[type_i, pol_i] else data_varname = metadata_struct.cube_varname[pol_i]
+      if data_varname ne '' then begin
         res_uvf_inputfiles = strarr(nfiles,2)
         res_uvf_varname = strarr(nfiles,2)
-        for j=0, nfiles-1 do begin
-          res_uvf_inputfiles[j,*] = datafile[j]
-          res_uvf_varname[j,*] = [metadata_struct.cube_varname[0, pol_index], metadata_struct.cube_varname[1, pol_index]]
-        endfor
+      endif else begin
+        if healpix or not keyword_set(uvf_input) then begin
+          res_uvf_inputfiles = uvf_savefile[pol_i, *, 0:1]
+          res_uvf_varname = strarr(nfiles, 2) + 'data_cube'
+        endif else begin
+          res_uvf_inputfiles = strarr(nfiles,2)
+          res_uvf_varname = strarr(nfiles,2)
+          for j=0, nfiles-1 do begin
+            res_uvf_inputfiles[j,*] = datafile[pol_i, j]
+            res_uvf_varname[j,*] = [metadata_struct.cube_varname[0, pol_i], metadata_struct.cube_varname[1, pol_i]]
+          endfor
+        endelse
       endelse
-    endelse
-    
-    file_struct = {datafile:metadata_struct.datafile, weightfile:metadata_struct.weightfile, $
-      variancefile:metadata_struct.variancefile, beamfile:metadata_struct.beamfile, $
-      datavar:data_varname, weightvar:metadata_struct.weight_varname[pol_index], $
-      variancevar:metadata_struct.variance_varname[pol_index], beamvar:metadata_struct.beam_varname[pol_index], $
-      frequencies:metadata_struct.frequencies, freq_resolution:metadata_struct.freq_resolution, time_resolution:metadata_struct.time_resolution, $
-      n_vis:metadata_struct.n_vis, n_vis_freq:metadata_struct.n_vis_freq, max_baseline_lambda:metadata_struct.max_baseline_lambda, max_theta:metadata_struct.max_theta, $
-      degpix:metadata_struct.degpix, kpix:metadata_struct.kpix, kspan:metadata_struct.kspan, $;n_obs:metadata_struct.n_obs, $
-      uf_savefile:uf_savefile[*,i], vf_savefile:vf_savefile[*,i], uv_savefile:uv_savefile[*,i], $
-      uf_raw_savefile:uf_raw_savefile[*,i], vf_raw_savefile:vf_raw_savefile[*,i], $
-      uv_raw_savefile:uv_raw_savefile[*,i], $
-      uf_sum_savefile:uf_sum_savefile[i], vf_sum_savefile:vf_sum_savefile[i], $
-      uv_sum_savefile:uv_sum_savefile[i], uf_diff_savefile:uf_diff_savefile[i], $
-      vf_diff_savefile:vf_diff_savefile[i], uv_diff_savefile:uv_diff_savefile[i], $
-      uf_weight_savefile:uf_weight_savefile[*, pol_index], vf_weight_savefile:vf_weight_savefile[*, pol_index], $
-      uv_weight_savefile:uv_weight_savefile[*, pol_index], $
-      beam_savefile:beam_savefile[*, pol_index], $
-      kcube_savefile:kcube_savefile[i], power_savefile:power_savefile[i], fits_power_savefile:fits_power_savefile[i],$
-      savefile_froot:froot, savefilebase:savefilebase[i], general_filebase:general_filebase, $
-      weight_savefilebase:weight_savefilebase[*,pol_index], $
-      res_uvf_inputfiles:res_uvf_inputfiles, res_uvf_varname:res_uvf_varname, $
-      file_label:file_label[i], uvf_label:uvf_label[*,i], wt_file_label:wt_file_label[pol_index], $
-      uvf_tag:uvf_tag, power_tag:power_tag, type_pol_str:metadata_struct.type_pol_str[i], pol_index:pol_index, type_index:type_index}
       
-    if tag_exist(metadata_struct, 'n_obs') gt 0 then file_struct = create_struct(file_struct, 'n_obs', metadata_struct.n_obs)
-    
-    if healpix or not keyword_set(uvf_input) then file_struct = create_struct(file_struct, 'uvf_savefile', uvf_savefile[*,i], $
-      'uvf_weight_savefile', uvf_weight_savefile[*, pol_index])
+      file_struct = {datafile:reform(metadata_struct.datafile[pol_i,*]), weightfile:reform(metadata_struct.weightfile[pol_i,*]), $
+        variancefile:reform(metadata_struct.variancefile[pol_i,*]), beamfile:reform(metadata_struct.beamfile[pol_i,*]), $
+        datavar:data_varname, weightvar:metadata_struct.weight_varname[pol_i], $
+        variancevar:metadata_struct.variance_varname[pol_i], beamvar:metadata_struct.beam_varname[pol_i], $
+        frequencies:metadata_struct.frequencies, freq_resolution:metadata_struct.freq_resolution, time_resolution:metadata_struct.time_resolution, $
+        n_obs:reform(metadata_struct.n_obs[pol_i,*]), n_vis:reform(metadata_struct.n_vis[pol_i,*]), n_vis_freq:reform(metadata_struct.n_vis_freq[pol_i,*,*]), $
+        max_baseline_lambda:metadata_struct.max_baseline_lambda, max_theta:metadata_struct.max_theta, $
+        degpix:metadata_struct.degpix, kpix:metadata_struct.kpix, kspan:metadata_struct.kspan, $
+        uf_savefile:reform(uf_savefile[pol_i,*,type_i]), vf_savefile:reform(vf_savefile[pol_i,*,type_i]), uv_savefile:reform(uv_savefile[pol_i,*,type_i]), $
+        uf_raw_savefile:reform(uf_raw_savefile[pol_i,*,type_i]), vf_raw_savefile:reform(vf_raw_savefile[pol_i,*,type_i]), $
+        uv_raw_savefile:reform(uv_raw_savefile[pol_i,*,type_i]), $
+        uf_sum_savefile:uf_sum_savefile[pol_i, type_i], vf_sum_savefile:vf_sum_savefile[pol_i,type_i], $
+        uv_sum_savefile:uv_sum_savefile[pol_i,type_i], uf_diff_savefile:uf_diff_savefile[pol_i,type_i], $
+        vf_diff_savefile:vf_diff_savefile[pol_i,type_i], uv_diff_savefile:uv_diff_savefile[pol_i,type_i], $
+        uf_weight_savefile:reform(uf_weight_savefile[pol_i, *]), vf_weight_savefile:reform(vf_weight_savefile[pol_i, *]), $
+        uv_weight_savefile:reform(uv_weight_savefile[pol_i, *]), $
+        beam_savefile:reform(beam_savefile[pol_i, *]), $
+        kcube_savefile:kcube_savefile[pol_i,type_i], power_savefile:power_savefile[pol_i,type_i], fits_power_savefile:fits_power_savefile[pol_i,type_i],$
+        savefile_froot:froot, savefilebase:savefilebase[pol_i,type_i], general_filebase:general_filebase, $
+        weight_savefilebase:reform(weight_savefilebase[pol_i, *]), $
+        res_uvf_inputfiles:res_uvf_inputfiles, res_uvf_varname:res_uvf_varname, $
+        file_label:file_label[pol_i,type_i], uvf_label:reform(uvf_label[pol_i,*,type_i]), wt_file_label:wt_file_label[pol_i], $
+        uvf_tag:uvf_tag, power_tag:power_tag, type_pol_str:metadata_struct.type_pol_str[pol_i,type_i], $
+        pol_index:pol_i, type_index:type_i, pol:metadata_struct.pol_inc[pol_i], type:metadata_struct.type_inc[type_i], nfiles:nfiles}
+        
+      if healpix or not keyword_set(uvf_input) then file_struct = create_struct(file_struct, 'uvf_savefile', reform(uvf_savefile[pol_i,*,type_i]), $
+        'uvf_weight_savefile', uvf_weight_savefile[pol_i,*])
+        
+      if healpix then file_struct = create_struct(file_struct, 'pixelfile', metadata_struct.pixelfile[pol_i,*], 'pixelvar', $
+        metadata_struct.pixel_varname[pol_i,*], 'nside', metadata_struct.nside)
+        
+      if no_var then file_struct = create_struct(file_struct, 'no_var', 1)
       
-    if healpix then file_struct = create_struct(file_struct, 'pixelfile', metadata_struct.pixelfile, 'pixelvar', $
-      metadata_struct.pixel_varname, 'nside', metadata_struct.nside)
+      if n_elements(freq_mask) gt 0 then file_struct = create_struct(file_struct, 'freq_mask', freq_mask)
       
-    if no_var then file_struct = create_struct(file_struct, 'no_var', 1)
-    
-    if n_elements(freq_mask) gt 0 then file_struct = create_struct(file_struct, 'freq_mask', freq_mask)
-    
-    if tag_exist(metadata_struct, 'vis_noise') gt 0 then file_struct = create_struct(file_struct, 'vis_noise', reform(metadata_struct.vis_noise[pol_index, *]))
-    
-    if i eq 0 then file_struct_arr = replicate(file_struct, ncubes) else file_struct_arr[i] = file_struct
+      if tag_exist(metadata_struct, 'vis_noise') gt 0 then file_struct = create_struct(file_struct, 'vis_noise', reform(metadata_struct.vis_noise[pol_i,*,*]))
+      
+      if pol_i eq 0 and type_i eq 0 then file_struct_arr = replicate(file_struct, ntypes, npol) else file_struct_arr[type_i, pol_i] = file_struct
+    endfor
   endfor
   
-  return, file_struct_arr
+  return, reform(file_struct_arr, ntypes*npol)
   
 end

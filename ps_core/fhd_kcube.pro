@@ -118,7 +118,11 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
   
   old_vis_sigma = temporary(vis_sigma)
   
-  if tag_exist(file_struct, 'vis_noise') then vis_sigma_ian = file_struct.vis_noise
+  if tag_exist(file_struct, 'vis_noise') then begin
+    vis_sigma_ian = file_struct.vis_noise
+    ;; do a straight average over even/odd of sigma because we just want the average noise (should actually be identical)
+    if nfiles eq 2 then vis_sigma_ian = total(vis_sigma_ian, 1)/2.
+  endif
   
   if n_elements(freq_ch_range) ne 0 then vis_sig_tag = number_formatter(384./n_freq_orig) else vis_sig_tag = number_formatter(384./n_freq)
   vis_sigma_file = file_dirname(file_struct.savefile_froot, /mark_directory) + 'vis_sigma/vis_sigma_measured' + vis_sig_tag + '.sav'
@@ -158,8 +162,8 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
   vs_mean = mean(vis_sigma)
   ;vis_sigma[*] = vs_mean
   
-  n_vis = file_struct.n_vis
-  n_vis_freq = file_struct.n_vis_freq
+  n_vis = reform(file_struct.n_vis)
+  n_vis_freq = reform(file_struct.n_vis_freq)
   if n_elements(freq_ch_range) ne 0 then n_vis = total(n_vis_freq[*, min(freq_ch_range):max(freq_ch_range)], 2)
   
   if healpix or not uvf_input then begin
@@ -267,7 +271,7 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
             
             if nfiles eq 2 then begin
               ;; check that they have the same set of healpix pixels
-              pixel_nums2 = getvar_savefile(file_struct.pixelfile[1], file_struct.pixelvar[1])
+              pixel_nums2 = getvar_savefile(file_struct.pixelfile[1], file_struct.pixelvar[0])
               if n_elements(pixel_nums1) ne n_elements(pixel_nums2) then message, 'Different number of Healpix pixels in cubes'
               
               if total(abs(pixel_nums1-pixel_nums2)) ne 0 then message, 'Pixel numbers are not consistent between cubes'
@@ -1189,8 +1193,8 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
     window_int_k = window_int * (z_mpc_delta * n_freq) * (kx_mpc_delta * ky_mpc_delta)*z_mpc_mean^4./((2.*!pi)^2.*file_struct.kpix^4.)
     print, 'window integral from variances: ' + number_formatter(window_int_k[0], format='(e10.4)')
     print, 'window integral from beam: ' + number_formatter(window_int_beam[0], format='(e10.4)')
-    ;window_int = window_int_beam
-    window_int = window_int_k
+    ;window_int = window_int_k
+    window_int = window_int_beam
   endif else begin
     window_int_k = window_int * (z_mpc_delta * n_freq) * (2.*!pi)^2. / (kx_mpc_delta * ky_mpc_delta)
     print, 'var_cube multiplier: ', (z_mpc_delta * n_freq) * (2.*!pi)^2. / (kx_mpc_delta * ky_mpc_delta)

@@ -74,6 +74,8 @@ pro hellebore_wrapper, folder_name, obs_range, rts = rts, casa = casa, version =
   
     if obs_info.info_files[0] ne '' then datafile = obs_info.info_files[0] else datafile = obs_info.cube_files.(0)
     
+    if tag_exist(obs_info, 'beam_files') then beamfiles = obs_info.beam_files
+    
     plot_filebase = obs_info.fhd_types[0] + '_' + obs_info.obs_names[0]
     note = obs_info.fhd_types[0]
     
@@ -201,8 +203,8 @@ pro hellebore_wrapper, folder_name, obs_range, rts = rts, casa = casa, version =
   ;; png & eps are flags to make save plots as png or eps files rather than displaying to the screen
   
   
-  fhd_data_plots, datafile, dft_fchunk=dft_fchunk, plot_path = plot_path, plot_filebase = plot_filebase, save_path = save_path, savefilebase = savefilebase, $
-    pol_inc = pol_inc, rts = rts, casa = casa, $
+  fhd_data_plots, datafile, beamfiles = beamfiles, plot_path = plot_path, plot_filebase = plot_filebase, save_path = save_path, savefilebase = savefilebase, $
+    pol_inc = pol_inc, rts = rts, casa = casa, dft_fchunk=dft_fchunk, $
     refresh_dft = refresh_dft, refresh_ps = refresh_ps, refresh_binning = refresh_binning, refresh_info = refresh_info, $
     freq_ch_range = freq_ch_range, freq_flags = freq_flags, freq_flag_name = freq_flag_name, $
     no_spec_window = no_spec_window, spec_window_type = spec_window_type, std_power = std_power, $
@@ -210,14 +212,14 @@ pro hellebore_wrapper, folder_name, obs_range, rts = rts, casa = casa, version =
     log_kpar = log_kpar, log_kperp = log_kperp, kpar_bin = kpar_bin, kperp_bin = kperp_bin, $
     log_k1d = log_k1d, k1d_bin = k1d_bin, kperp_range_1dave = kperp_range_1dave, kpar_range_1dave = kpar_range_1dave,$
     kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
-    plot_slices = plot_slices, slice_type = slice_type, uvf_plot_type = uvf_plot_type, $
+    plot_slices = plot_slices, slice_type = slice_type, uvf_plot_type = uvf_plot_type, plot_stdset = plot_stdset, $
     data_range = data_range, sigma_range = sigma_range, nev_range = nev_range, snr_range = snr_range, noise_range = noise_range, nnr_range = nnr_range, $
     baseline_axis = baseline_axis, delay_axis = delay_axis, hinv = hinv, $
     plot_wedge_line = plot_wedge_line, plot_eor_1d = plot_eor_1d, $
     individual_plots = individual_plots, note = note, png = png, eps = eps, pdf = pdf
     
     
-  if not keyword_set(set_data_ranges) then begin
+  if not keyword_set(set_data_ranges) and keyword_set(plot_stdset) then begin
     print, 'data_range used: ', number_formatter(data_range, format = '(e7.1)')
     print, 'sigma_range used: ', number_formatter(sigma_range, format = '(e7.1)')
     print, 'nev_range used: ', number_formatter(nev_range, format = '(e7.1)')
