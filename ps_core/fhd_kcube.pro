@@ -1173,13 +1173,13 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
   sigma2_cube1 = sigma2_cube1 * rebin(reform(vis_sigma, 1, 1, n_freq), n_kx, n_ky, n_freq)^2.
   if nfiles eq 2 then sigma2_cube2 = sigma2_cube2 * rebin(reform(vis_sigma, 1, 1, n_freq), n_kx, n_ky, n_freq)^2.
   
-  ;; get data & sigma into mK Mpc^2
+  ;; get data & sigma into mK Mpc^2 and multiply by 2 (4 for variances) to get to estimate of Stokes I rather than instrumental pol
   for i=0, n_freq-1 do begin
-    data_cube1[*,*,i] = data_cube1[*,*,i]*conv_factor[i]
-    sigma2_cube1[*,*,i] = sigma2_cube1[*,*,i]*(conv_factor[i])^2.
+    data_cube1[*,*,i] = data_cube1[*,*,i]*conv_factor[i]*2.
+    sigma2_cube1[*,*,i] = sigma2_cube1[*,*,i]*(conv_factor[i])^2.*4.
     if nfiles eq 2 then begin
-      data_cube2[*,*,i] = data_cube2[*,*,i]*conv_factor[i]
-      sigma2_cube2[*,*,i] = sigma2_cube2[*,*,i]*(conv_factor[i])^2.
+      data_cube2[*,*,i] = data_cube2[*,*,i]*conv_factor[i]*2.
+      sigma2_cube2[*,*,i] = sigma2_cube2[*,*,i]*(conv_factor[i])^2.*4.
     endif
   endfor
   
