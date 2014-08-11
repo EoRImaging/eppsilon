@@ -37,13 +37,13 @@ pro uvf_slice_plot, slice_savefile, multi_pos = multi_pos, start_multi_params = 
       delete_ps = 1
     endif else if keyword_set(pdf) then begin
       plot_exten = '.pdf'
-      delete_ps = 1    
+      delete_ps = 1
     endif else if keyword_set(eps) then begin
       plot_exten = '.eps'
       delete_ps = 0
     endif
   endif
- 
+  
   if n_elements(window_num) eq 0 then window_num = 1
   
   if n_elements(start_multi_params) gt 0 and n_elements(multi_pos) gt 0 then message, 'If start_multi_params are passed, ' + $
@@ -261,9 +261,7 @@ pro uvf_slice_plot, slice_savefile, multi_pos = multi_pos, start_multi_params = 
   plot_aspect = (plot_pos[3] - plot_pos[1]) / (plot_pos[2] - plot_pos[0])
   
   plot_xlength = max(xarr_edges) - min(xarr_edges)
-  ;if slice_axis eq 2 then plot_ylength = (max(yarr_edges) - min(yarr_edges)) $
-  ;else 
-  plot_ylength = plot_xlength
+  if slice_axis eq 2 then plot_ylength = (max(yarr_edges) - min(yarr_edges)) else plot_ylength = plot_xlength
   
   data_aspect = float(plot_ylength / plot_xlength)
   aspect_ratio =  data_aspect /plot_aspect
@@ -337,7 +335,7 @@ pro uvf_slice_plot, slice_savefile, multi_pos = multi_pos, start_multi_params = 
         if make_win eq 1 then window, window_num, xsize = xsize, ysize = ysize
         cgerase, background_color
       endelse
-            
+      
       ;; calculate multi_size & multi x/ylen not calculated earlier
       multi_xlen = (multi_pos[2,0]-multi_pos[0,0])
       multi_ylen = (multi_pos[3,0]-multi_pos[1,0])
