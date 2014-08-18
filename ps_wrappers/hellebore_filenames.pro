@@ -429,8 +429,8 @@ function hellebore_filenames, folder_names, obs_names_in, rts = rts, sim = sim, 
             pols = stregex(cube_basename, '[xy][xy]', /extract, /fold_case)
             
             pols_inc = pols[0]
-            pol_num = intarr(n_elements(cube_file_list))
-            for pol_i=0, n_elements(cube_file_list)-1 do begin
+            pol_num = intarr(n_cubefiles)
+            for pol_i=0, n_cubefiles-1 do begin
               wh_pol = where(pols_inc eq pols[pol_i], count_pol)
               if count_pol eq 1 then pol_num[pol_i] = wh_pol[0] else begin
                 pols_inc = [pols_inc, pols[pol_i]]
@@ -442,7 +442,7 @@ function hellebore_filenames, folder_names, obs_names_in, rts = rts, sim = sim, 
               wh_pol = where(pol_num eq pol_i, count_pol)
               if count_pol gt 2 then message, 'More than two cubes found with given obs_name and the same polarization'
             endfor
-          endif else if n_elements(cube_file_list) gt 2 then message, 'More than two cubes found with given obs_name'
+          endif else if n_cubefiles gt 2 then message, 'More than two cubes found with given obs_name'
           
           datafile = cube_file_list
         endelse
@@ -499,8 +499,8 @@ function hellebore_filenames, folder_names, obs_names_in, rts = rts, sim = sim, 
               pols = stregex(cube_basename, '[xy][xy]', /extract, /fold_case)
               
               pols_inc = pols[0]
-              pol_num = intarr(n_elements(cube_file_list))
-              for pol_i=0, n_elements(cube_file_list)-1 do begin
+              pol_num = intarr(n_cubefiles)
+              for pol_i=0, n_cubefiles-1 do begin
                 wh_pol = where(pols_inc eq pols[pol_i], count_pol)
                 if count_pol eq 1 then pol_num[pol_i] = wh_pol[0] else begin
                   pols_inc = [pols_inc, pols[pol_i]]
@@ -512,7 +512,7 @@ function hellebore_filenames, folder_names, obs_names_in, rts = rts, sim = sim, 
                 wh_pol = where(pol_num eq pol_i, count_pol)
                 if count_pol gt 2 then message, 'More than two cubes found with given obs_name and the same polarization'
               endfor
-            endif else if n_elements(cube_file_list) gt 2 then message, 'More than two cubes found with given obs_name'
+            endif else if n_cubefiles gt 2 then message, 'More than two cubes found with given obs_name'
             datafile = cube_file_list
           endelse
         endif
