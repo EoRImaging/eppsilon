@@ -108,7 +108,7 @@ exit_flag=0
 while read line
 do
    if [ "$first_line_len" == 10 ]; then
-      if ! ls $FHDdir/$line*cube.sav &> /dev/null; then
+      if ! ls $FHDdir/Healpix/$line*cube*.sav &> /dev/null; then
          echo Missing cube for obs $line
 	 exit_flag=1
       fi
