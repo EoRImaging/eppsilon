@@ -598,9 +598,9 @@ function hellebore_filenames, folder_names, obs_names_in, rts = rts, sim = sim, 
           beam_file_list = file_search(folder_names[i] + '/' + obs_names[i] + '*gridded*beam2*image*.sav', count = n_beamfiles)
           if n_beamfiles gt 0 then begin
             if n_elements(datafile) gt 1 then begin
-              if n_beamfiles eq 1 then beamfiles = strarr(n_elements(datafile)) + beam_file_list $
-              else if n_beamfiles ne n_elements(datafile) then stop
-            endif else if n_beamfiles ne n_elements(datafile) then stop
+              if n_beamfiles eq 1 then beamfiles = strarr(n_elements(datafile)) + beam_file_list[0] $
+              else if n_beamfiles ne n_elements(datafile) then stop else beamfiles = beam_file_list
+            endif else if n_beamfiles ne n_elements(datafile) then stop else beamfiles = beam_file_list
           endif
           
         endelse
@@ -691,6 +691,7 @@ function hellebore_filenames, folder_names, obs_names_in, rts = rts, sim = sim, 
     if n_elements(uvf_input) gt 0 then obs_info = create_struct(obs_info, 'uvf_input', uvf_input)
     
     if n_elements(beamfiles) gt 0 then obs_info = create_struct(obs_info, 'beam_files', beamfiles)
+    
   endelse
   
   return, obs_info

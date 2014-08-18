@@ -147,7 +147,7 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
         match, pols, bm_pols, suba, subb, count = count_pol_match
         if count_pol_match ne n_elements(pols) then message, 'beamfile polarizations must match datafile polarizations'
       endif
-      stop
+      
       pol_inc = pols[0]
       pol_num = intarr(n_elements(pols))
       for i=0, n_elements(pols)-1 do begin
@@ -206,6 +206,9 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
       if n_elements(beamfile) gt 0 then if n_elements(beamfile) ne nfiles then message, 'beamfile must have the same number of elements as datafile'
       
       temp = strarr(npol, nfiles)
+      temp_wt = strarr(npol, nfiles)
+      temp_var = strarr(npol, nfiles)
+      temp_bm = strarr(npol, nfiles)
       for i=0, nfiles-1 do begin
         temp[*,i] = datafile[i]
         if n_elements(weightfile) gt 0 then temp_wt[*,i] = weightfile[i] else temp_wt = temp
@@ -538,8 +541,8 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
         ;; beam cube is a pointer
         message, 'Beam is in a pointer array, format unknown'
       endif else bm_dims = bm_size[1:bm_size[0]]
-      stop
-      if total(abs(bm_dims - data_dims)) ne 0 then message, 'Beam and data dimensions in files do not match'
+      
+      if total(abs(bm_dims - data_dims)) ne 0 then print, 'Warning: Beam and data dimensions in files do not match'
       
       if j gt 0 then if (this_healpix eq 1 and healpix eq 0) or (this_healpix eq 0 and healpix eq 1) then $
         message, 'One datafile is in healpix and the other is not.'

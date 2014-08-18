@@ -519,7 +519,6 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
             
           endif
           
-          
           ;; do DFT.
           if test_uvf eq 0 or keyword_set(dft_refresh_data) then begin
             print, 'calculating DFT for ' + file_struct.datavar + ' in ' + file_struct.datafile[i]
@@ -670,6 +669,7 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
     
   endif else begin
     ;; uvf_input
+  
     weights_cube1 = getvar_savefile(file_struct.weightfile[0], file_struct.weightvar)
     if nfiles eq 2 then weights_cube2 = getvar_savefile(file_struct.weightfile[1], file_struct.weightvar)
     
@@ -698,6 +698,40 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
     n_ky = dims2[1]
     ky_mpc_delta = (2.*!pi)*file_struct.kpix / z_mpc_mean
     ky_mpc = (dindgen(n_ky)-n_ky/2) * kx_mpc_delta
+    
+    pix_area_rad = (!dtor*file_struct.degpix)^2.
+    pix_area_mpc = pix_area_rad * z_mpc_mean^2.
+    
+    ;; get beam sorted out
+    test_beam = file_test(file_struct.beam_savefile) * ( 1- file_test(file_struct.beam_savefile, /zero_length))
+    if min(test_beam) eq 0 or keyword_set(refresh_beam) then begin
+    
+    
+      for i=0, nfiles-1 do begin
+        arr = getvar_savefile(file_struct.beamfile[i], file_struct.beamvar)
+        obs_beam = getvar_savefile(file_struct.beamfile[i], 'obs_out')
+        nfvis_beam = obs_beam.nf_vis
+        undefine_fhd, obs_beam
+        
+        if max(arr) le 1. then begin
+          ;; beam is peak normalized to 1
+          temp = arr * rebin(reform(nfvis_beam, 1, 1, n_elements(nfvis_beam)), n_kx, n_ky, n_elements(nfvis_beam), /sample)
+        endif else if max(arr) le file_struct.n_obs[i] then begin
+          ;; beam is peak normalized to 1 for each obs, then summed over obs so peak is ~ n_obs
+          temp = (arr/file_struct.n_obs[i]) * rebin(reform(nfvis_beam, 1, 1, n_freq), n_kx, n_ky, n_freq, /sample)
+        endif else begin
+          ;; beam is peak normalized to 1 then multiplied by n_vis_freq for each obs & summed
+          temp = arr
+        endelse
+        
+        avg_beam = total(temp, 3) / total(nfvis_beam)
+        
+        save, file=file_struct.beam_savefile[i], avg_beam
+      endfor
+      
+    endif
+    
+    
     
     if keyword_set(uv_avg) then begin
       nkx_new = floor(n_kx / uv_avg)
@@ -900,6 +934,12 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
       if nfiles eq 2 then window_int = 2*[total(variance_cube1)/n_vis[0], $
         total(variance_cube2)/n_vis[1]] $
       else window_int = 2*total(variance_cube1)/n_vis[0]
+      
+      beam1 = getvar_savefile(file_struct.beam_savefile[0], 'avg_beam')
+      if nfiles eq 2 then beam2 = getvar_savefile(file_struct.beam_savefile[1], 'avg_beam')
+      
+      if nfiles eq 2 then window_int_beam = [total(beam1), total(beam2)]*pix_area_mpc*(z_mpc_delta * n_freq) $
+      else window_int_beam = total(beam1)*pix_area_mpc*(z_mpc_delta * n_freq)
       
     endelse
     
@@ -1199,7 +1239,9 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
     window_int_k = window_int * (z_mpc_delta * n_freq) * (2.*!pi)^2. / (kx_mpc_delta * ky_mpc_delta)
     print, 'var_cube multiplier: ', (z_mpc_delta * n_freq) * (2.*!pi)^2. / (kx_mpc_delta * ky_mpc_delta)
     print, 'window integral from variances: ' + number_formatter(window_int_k[0], format='(e10.4)')
-    window_int = window_int_k
+    print, 'window integral from beam: ' + number_formatter(window_int_beam[0], format='(e10.4)')
+    ;window_int = window_int_k
+    window_int = window_int_beam
   endelse
   
   
