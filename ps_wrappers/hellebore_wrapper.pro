@@ -79,7 +79,10 @@ pro hellebore_wrapper, folder_name, obs_range, rts = rts, casa = casa, version =
     plot_filebase = obs_info.fhd_types[0] + '_' + obs_info.obs_names[0]
     note = obs_info.fhd_types[0]
     
-    if keyword_set(sim) then plot_eor_1d=1
+    if keyword_set(sim) then begin
+      plot_eor_1d=1
+      range_1d = [1e0, 1e7]
+    endif
     
     if n_elements(set_data_ranges) eq 0 then set_data_ranges = 1
     if keyword_set(set_data_ranges) then begin
@@ -214,6 +217,7 @@ pro hellebore_wrapper, folder_name, obs_range, rts = rts, casa = casa, version =
     kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
     plot_slices = plot_slices, slice_type = slice_type, uvf_plot_type = uvf_plot_type, plot_stdset = plot_stdset, $
     data_range = data_range, sigma_range = sigma_range, nev_range = nev_range, snr_range = snr_range, noise_range = noise_range, nnr_range = nnr_range, $
+    range_1d = range_1d, $
     baseline_axis = baseline_axis, delay_axis = delay_axis, hinv = hinv, $
     plot_wedge_line = plot_wedge_line, plot_eor_1d = plot_eor_1d, $
     individual_plots = individual_plots, note = note, png = png, eps = eps, pdf = pdf

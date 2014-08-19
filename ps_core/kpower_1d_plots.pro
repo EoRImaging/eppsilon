@@ -222,7 +222,7 @@ pro kpower_1d_plots, power_savefile, plot_weights = plot_weights, multi_pos = mu
     if nfiles gt 3 then legend_charsize = charsize / (nfiles/3d)  else legend_charsize = 2
     
     if n_elements(multi_pos) eq 0 then begin
-      cgps_open, plotfile, /font, encapsulated=eps, landscape=1
+      cgps_open, plotfile, /font, encapsulated=eps, landscape=1, pagetype='letter'
     endif
   endif else if n_elements(multi_pos) eq 0 then begin
     if windowavailable(window_num) then wset, window_num else window, window_num
