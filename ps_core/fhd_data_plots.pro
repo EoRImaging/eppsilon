@@ -1,7 +1,7 @@
 pro fhd_data_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_inc = pol_inc, uvf_input = uvf_input, uv_avg = uv_avg, uv_img_clip = uv_img_clip, $
     save_path = save_path, savefilebase = savefilebase, plot_path = plot_path, plot_filebase = plot_filebase, $
     note = note, png = png, eps = eps, pdf = pdf, $
-    refresh_dft = refresh_dft, refresh_ps = refresh_ps, refresh_binning = refresh_binning, refresh_info = refresh_info, $
+    refresh_dft = refresh_dft, refresh_ps = refresh_ps, refresh_binning = refresh_binning, refresh_info = refresh_info, refresh_beam = refresh_beam, $
     dft_fchunk = dft_fchunk, freq_ch_range = freq_ch_range, freq_flags = freq_flags, freq_flag_name = freq_flag_name, $
     no_spec_window = no_spec_window, spec_window_type = spec_window_type, delta_uv_lambda = delta_uv_lambda, max_uv_lambda = max_uv_lambda, $
     cut_image = cut_image, dft_ian = dft_ian, sim = sim, std_power = std_power, no_kzero = no_kzero, $
@@ -206,7 +206,7 @@ pro fhd_data_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol
         endif
         
         fhd_3dps, file_struct_arr[i], kcube_refresh = refresh_ps, dft_refresh_data = refresh_dft, $
-          dft_refresh_weight = weight_refresh[i], dft_ian = dft_ian, cut_image = cut_image, $
+          dft_refresh_weight = weight_refresh[i], refresh_beam = refresh_beam, dft_ian = dft_ian, cut_image = cut_image, $
           dft_fchunk = dft_fchunk, freq_ch_range = freq_ch_range, freq_flags = freq_flags, $
           spec_window_type = spec_window_type, delta_uv_lambda = delta_uv_lambda, max_uv_lambda = max_uv_lambda, $
           std_power = std_power, no_kzero = no_kzero, $

@@ -698,6 +698,7 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
         if n_elements(vis_noise) gt 0 then begin
           inds_use = inds_arr[i*n_avg:i*n_avg+(n_avg-1)]
           wh_zero = where(total(total(n_vis_freq[*,*,inds_use],2),1) eq 0, count_zero, complement = wh_gt0, ncomplement = count_gt0)
+          
           if count_gt0 eq 0 then continue
           
           if count_zero gt 0 then inds_use = inds_use[wh_gt0]
@@ -712,12 +713,12 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
           
         endif
       endfor
+      if n_elements(vis_noise) gt 0 then vis_noise = vis_noise_avg
+      
+      n_vis_freq = n_vis_freq_avg
     endif else begin
       frequencies = freq / 1e6 ;; in MHz
-      if n_elements(vis_noise) gt 0 then vis_noise_avg = vis_noise
     endelse
-    if n_elements(vis_noise) gt 0 then vis_noise = vis_noise_avg
-    n_vis_freq = n_vis_freq_avg
     
     metadata_struct = {datafile: datafile, weightfile: weightfile, variancefile:variancefile, beamfile:beamfile, $
       cube_varname:cube_varname, weight_varname:weight_varname, variance_varname:variance_varname, beam_varname:beam_varname, $
