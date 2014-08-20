@@ -147,7 +147,7 @@ pro hellebore_wrapper, folder_name, obs_range, rts = rts, casa = casa, version =
   ;      if keyword_set(sim) then plot_path = base_path('plots') + 'power_spectrum/fhd_sim/' + save_path_ext else $
   ;      plot_path = base_path('plots') + 'power_spectrum/fhd_data/' + save_path_ext
   ;  endif else begin
-  save_path = obs_info.folder_names[0] + path_sep()
+  save_path = obs_info.save_paths[0]
   plot_path = obs_info.plot_paths[0]
   ;  endelse
   

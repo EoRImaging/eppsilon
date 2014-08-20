@@ -53,7 +53,7 @@ pro hellebore_diff_wrapper, folder_names, obs_names_in, cube_types = cube_types,
     note = obs_info.diff_note
     plot_path = obs_info.diff_plot_path
   endif else begin
-    save_path = obs_info.folder_names[0] + path_sep()
+    save_path = obs_info.save_paths[0]
     note = obs_info.fhd_types[0]
     plot_path = obs_info.plot_paths[0]
   endelse
