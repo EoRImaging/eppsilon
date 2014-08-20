@@ -84,7 +84,7 @@ pro mit_wrapper, folder_name, obs_name, n_obs=n_obs, rts = rts, refresh_dft = re
     if folder_test eq 0 then message, 'folder not found'
         
     save_path = folder_name + '/ps/'
-    obs_info = ps_filenames(folder_names, obs_name, rts = rts, sim = sim, casa = casa, data_subdirs = 'Healpix/', save_paths = save_path, plot_path = save_path)
+    obs_info = ps_filenames(folder_name, obs_name, rts = rts, sim = sim, casa = casa, data_subdirs = 'Healpix/', save_paths = save_path, plot_path = save_path)
     
     if obs_info.info_files[0] ne '' then datafile = obs_info.info_files[0] else datafile = obs_info.cube_files.(0)
     plot_filebase = obs_info.fhd_types[0] + '_' + obs_info.obs_names[0]
