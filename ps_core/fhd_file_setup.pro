@@ -163,6 +163,9 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
       if nfiles gt 2 then message, 'Only 1 or 2 datafiles supported per pol'
       if n_elements(datafile) ne npol*nfiles then message, 'The same number of files must be included per pol'
       temp = strarr(npol, nfiles)
+      temp_wt = strarr(npol, nfiles)
+      temp_var = strarr(npol, nfiles)
+      temp_bm = strarr(npol, nfiles)
       for i=0, npol-1 do begin
         wh_pol =  where(pol_num eq i, count_pol)
         if count_pol ne nfiles then message, 'The same number of files must be included per pol'
@@ -262,8 +265,6 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
             + '_' + strjoin(fileparts_2[wh_diff]) + '_joint' $
           else general_filebase = data_filebase[0] + data_filebase[1] + '_joint'
         endelse
-        
-        general_filebase = general_filebase
         
       endelse
     endif else begin
@@ -462,7 +463,7 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
       
       for type_i=0, ntypes-1 do begin
         wh = where(strlowcase(varnames) eq strlowcase(cube_varname[type_i, pol_i]), count)
-        if count eq 0 then message, cube_varname[i, pol_i] + ' is not present in datafile (datafile=' + datafile[pol_i, file_i] + ')'
+        if count eq 0 then message, cube_varname[type_i, pol_i] + ' is not present in datafile (datafile=' + datafile[pol_i, file_i] + ')'
         
         data_size = getvar_savefile(datafile[pol_i, file_i], cube_varname[type_i, pol_i], /return_size)
         
