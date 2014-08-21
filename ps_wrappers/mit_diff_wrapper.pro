@@ -99,13 +99,13 @@ pro mit_diff_wrapper, folder_names, obs_names_in, cube_types = cube_types, pols 
     if folder_test eq 0 then message, 'folder not found'
   endfor
   
-  save_path = folder_name + '/ps/'
-  obs_info = ps_filenames(folder_name, obs_name, rts = rts, sim = sim, casa = casa, data_subdirs = 'Healpix/', save_paths = save_path, plot_path = save_path)
+  save_paths = folder_names + '/ps/'
+  obs_info = ps_filenames(folder_names, obs_name, rts = rts, sim = sim, casa = casa, data_subdirs = 'Healpix/', save_paths = save_paths, plot_paths = save_path)
   
   wh_noinfo = where(obs_info.info_files eq '', count_noinfo)
   if count_noinfo gt 0 then message, 'Info files are not all present'
   
-  if tag_exist(obs_info, 'diff_note') then obs_info = create_struct(obs_info, 'diff_plot_path', diff_save_path)
+  if tag_exist(obs_info, 'diff_note') then obs_info = create_struct(obs_info, 'diff_plot_path', obs_info.diff_save_path)
   
   if n_elements(obs_info.folder_names) eq 2 then begin
     save_path = obs_info.diff_save_path
