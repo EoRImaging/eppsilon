@@ -239,6 +239,8 @@ function ps_filenames, folder_names, obs_names_in, rts = rts, sim = sim, casa = 
     
     for i=0, n_filesets-1 do begin
     
+    fhd_types[i] = file_basename(folder_names[i])
+    
       if n_elements(obs_names_in) gt 0 then begin
         if size(obs_names_in,/type) eq 7 then begin
           obs_names[i] = obs_names_in[i]
