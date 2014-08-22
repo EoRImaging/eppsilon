@@ -96,12 +96,14 @@ pro hellebore_fhd_cube_images, folder_names, obs_names_in, cube_types = cube_typ
     if total(abs(hpx_inds2-hpx_inds1)) gt 0 then message, 'nsides do not match between the 2 files'
   endif
   
+  pol_exist = stregex(filenames, '[xy][xy]', /boolean, /fold_case)
+  
   if keyword_set(rts) then begin
     data_varname1 = pols[0] + '_data'
     if n_cubes gt 1 then data_varname2 = pols[max_pol] + '_data'
   endif else begin
-    data_varname1 = cube_types[0] + '_' + pols[0] + '_cube'
-    if n_cubes gt 1 then data_varname2 = cube_types[max_type] + '_' + pols[max_pol] + '_cube'
+    if pol_exist[0] then data_varname1 = cube_types[0] + '_cube' else data_varname1 = cube_types[0] + '_' + pols[0] + '_cube'
+    if n_cubes gt 1 then if pol_exist[max_file] then data_varname2 = cube_types[max_type] + '_cube' else data_varname2 = cube_types[max_type] + '_' + pols[max_pol] + '_cube'
   endelse
   
   cube1 = getvar_savefile(filenames[0], data_varname1)
