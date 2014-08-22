@@ -199,8 +199,8 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
           if n_elements(freq_flags) ne 0 then data_cube = data_cube * rebin(reform(freq_mask, 1, 1, n_elements(file_struct.frequencies)), size(data_cube, /dimension), /sample)
           if n_elements(freq_ch_range) ne 0 then data_cube = data_cube[*, *, min(freq_ch_range):max(freq_ch_range)]
           
-          if keyword_set(dft_ian) then save, file = file_struct.uvf_savefile[i], u_lambda_vals, v_lambda_vals, data_cube, freq_mask $
-          else save, file = file_struct.uvf_savefile[i], kx_rad_vals, ky_rad_vals, data_cube, freq_mask
+          if keyword_set(dft_ian) then save, file = file_struct.uvf_savefile[i], u_lambda_vals, v_lambda_vals, data_cube, freq_mask, uvf_git_hash $
+          else save, file = file_struct.uvf_savefile[i], kx_rad_vals, ky_rad_vals, data_cube, freq_mask, uvf_git_hash
           undefine, data_cube
           
           test_uvf = 1
@@ -228,8 +228,9 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
             variance_cube = variance_cube[*, *, min(freq_ch_range):max(freq_ch_range)]
           endif
           
-          if keyword_set(dft_ian) then save, file = file_struct.uvf_weight_savefile[i], u_lambda_vals, v_lambda_vals, weights_cube, variance_cube, freq_mask else $
-            save, file = file_struct.uvf_weight_savefile[i], kx_rad_vals, ky_rad_vals, weights_cube, variance_cube, freq_mask
+          if keyword_set(dft_ian) then $
+            save, file = file_struct.uvf_weight_savefile[i], u_lambda_vals, v_lambda_vals, weights_cube, variance_cube, freq_mask, uvf_wt_git_hash else $
+            save, file = file_struct.uvf_weight_savefile[i], kx_rad_vals, ky_rad_vals, weights_cube, variance_cube, freq_mask, uvf_wt_git_hash
           undefine, weights_cube, variance_cube
           
           test_wt_uvf = 1
@@ -260,9 +261,13 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
           if total(abs(ky_rad_vals - ky_dirty)) ne 0 then message, 'kx_rad_vals for dirty and model cubes must match'
           undefine, kx_dirty, ky_dirty
           
+          uvf_git_hash_dirty = getvar_savefile(input_uvf_files[i,0], 'uvf_git_hash')
+          uvf_git_hash = getvar_savefile(input_uvf_files[i,1], 'uvf_git_hash')
+          if uvf_git_hash_dirty ne uvf_git_hash then print, 'git hashes for dirty and model cubes does not match'
+          
           data_cube = temporary(dirty_cube) - temporary(model_cube)
-          if keyword_set(dft_ian) then save, file = file_struct.uvf_savefile[i], u_lambda_vals, v_lambda_vals, data_cube, freq_mask $
-          else save, file = file_struct.uvf_savefile[i], kx_rad_vals, ky_rad_vals, data_cube, freq_mask
+          if keyword_set(dft_ian) then save, file = file_struct.uvf_savefile[i], u_lambda_vals, v_lambda_vals, data_cube, freq_mask, uvf_git_hash $
+          else save, file = file_struct.uvf_savefile[i], kx_rad_vals, ky_rad_vals, data_cube, freq_mask, uvf_git_hash
           undefine, data_cube
         endif else begin
         
@@ -515,7 +520,10 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
             avg_beam = total(temp, 2) / total(n_vis_freq[i, *])
             
             nside = file_struct.nside
-            save, file=file_struct.beam_savefile[i], avg_beam, pixels, nside
+            
+            git, repo_path = ps_repository_dir(), result=beam_git_hash
+            
+            save, file=file_struct.beam_savefile[i], avg_beam, pixels, nside, beam_git_hash
             
           endif
           
@@ -547,8 +555,10 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
             data_cube = temporary(transform)
             undefine, arr
             
-            if keyword_set(dft_ian) then save, file = file_struct.uvf_savefile[i], u_lambda_vals, v_lambda_vals, data_cube, freq_mask $
-            else save, file = file_struct.uvf_savefile[i], kx_rad_vals, ky_rad_vals, data_cube, freq_mask
+            git, repo_path = ps_repository_dir(), result=uvf_git_hash
+            
+            if keyword_set(dft_ian) then save, file = file_struct.uvf_savefile[i], u_lambda_vals, v_lambda_vals, data_cube, freq_mask, uvf_git_hash $
+            else save, file = file_struct.uvf_savefile[i], kx_rad_vals, ky_rad_vals, data_cube, freq_mask, uvf_git_hash
             undefine, data_cube
           endif
           
@@ -607,9 +617,12 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
               undefine, arr
             endif
             
+            
+            git, repo_path = ps_repository_dir(), result=uvf_wt_git_hash
+            
             if keyword_set(dft_ian) then $
-              save, file = file_struct.uvf_weight_savefile[i], u_lambda_vals, v_lambda_vals, weights_cube, variance_cube, freq_mask else $
-              save, file = file_struct.uvf_weight_savefile[i], kx_rad_vals, ky_rad_vals, weights_cube, variance_cube, freq_mask
+              save, file = file_struct.uvf_weight_savefile[i], u_lambda_vals, v_lambda_vals, weights_cube, variance_cube, freq_mask, uvf_wt_git_hash else $
+              save, file = file_struct.uvf_weight_savefile[i], kx_rad_vals, ky_rad_vals, weights_cube, variance_cube, freq_mask, uvf_wt_git_hash
             undefine, new_pix_vec, weights_cube, variance_cube
           endif
         endelse
@@ -660,6 +673,13 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
     weights_cube1 = getvar_savefile(file_struct.uvf_weight_savefile[0], 'weights_cube')
     if nfiles eq 2 then weights_cube2 = getvar_savefile(file_struct.uvf_weight_savefile[1], 'weights_cube')
     
+    void = getvar_savefile(file_struct.uvf_weight_savefile[0], names = uvf_varnames)
+    wh_hash = where(uvf_varnames eq 'uvf_wt_git_hash', count_hash)
+    if count_hash gt 0 then begin
+      uvf_wt_git_hashes = getvar_savefile(file_struct.uvf_weight_savefile[0], 'uvf_wt_git_hash')
+      if nfiles eq 2 then uvf_wt_git_hashes = [uvf_wt_git_hashes, getvar_savefile(file_struct.uvf_weight_savefile[1], 'uvf_wt_git_hash')]
+    endif else uvf_wt_git_hashes = strarr(nfiles)
+    
     if min(ky_mpc) lt 0 then begin
       ;; negative ky values haven't been cut yet
       ;; need to cut uvf cubes in half because image is real -- we'll cut negative ky
@@ -672,6 +692,8 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
   
     weights_cube1 = getvar_savefile(file_struct.weightfile[0], file_struct.weightvar)
     if nfiles eq 2 then weights_cube2 = getvar_savefile(file_struct.weightfile[1], file_struct.weightvar)
+    
+    uvf_wt_git_hashes = strarr(nfiles)
     
     wt_size = size(weights_cube1)
     if wt_size[n_elements(wt_size)-2] eq 10 then begin
@@ -726,12 +748,12 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
         
         avg_beam = total(temp, 3) / total(nfvis_beam)
         
-        save, file=file_struct.beam_savefile[i], avg_beam
+        git, repo_path = ps_repository_dir(), result=beam_git_hash
+        
+        save, file=file_struct.beam_savefile[i], avg_beam, beam_git_hash
       endfor
       
     endif
-    
-    
     
     if keyword_set(uv_avg) then begin
       nkx_new = floor(n_kx / uv_avg)
@@ -842,6 +864,13 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
       beam1 = getvar_savefile(file_struct.beam_savefile[0], 'avg_beam')
       if nfiles eq 2 then beam2 = getvar_savefile(file_struct.beam_savefile[1], 'avg_beam')
       
+      void = getvar_savefile(file_struct.beam_savefile[0], names = uvf_varnames)
+      wh_hash = where(uvf_varnames eq 'beam_git_hash', count_hash)
+      if count_hash gt 0 then begin
+        beam_git_hashes = getvar_savefile(file_struct.beam_savefile[0], 'beam_git_hash')
+        if nfiles eq 2 then beam_git_hashes = [beam_git_hashes, getvar_savefile(file_struct.beam_savefile[1], 'beam_git_hash')]
+      endif else beam_git_hashes = strarr(nfiles)
+      
       if nfiles eq 2 then window_int_beam = [total(beam1), total(beam2)]*pix_area_mpc*(z_mpc_delta * n_freq) $
       else window_int_beam = total(beam1)*pix_area_mpc*(z_mpc_delta * n_freq)
       
@@ -938,6 +967,13 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
       beam1 = getvar_savefile(file_struct.beam_savefile[0], 'avg_beam')
       if nfiles eq 2 then beam2 = getvar_savefile(file_struct.beam_savefile[1], 'avg_beam')
       
+      void = getvar_savefile(file_struct.beam_savefile[0], names = uvf_varnames)
+      wh_hash = where(uvf_varnames eq 'beam_git_hash', count_hash)
+      if count_hash gt 0 then begin
+        beam_git_hashes = getvar_savefile(file_struct.beam_savefile[0], 'beam_git_hash')
+        if nfiles eq 2 then beam_git_hashes = [beam_git_hashes, getvar_savefile(file_struct.beam_savefile[1], 'beam_git_hash')]
+      endif else beam_git_hashes = strarr(nfiles)
+      
       if nfiles eq 2 then window_int_beam = [total(beam1), total(beam2)]*pix_area_mpc*(z_mpc_delta * n_freq) $
       else window_int_beam = total(beam1)*pix_area_mpc*(z_mpc_delta * n_freq)
       
@@ -949,6 +985,13 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
   if healpix or not keyword_set(uvf_input) then begin
     data_cube1 = getvar_savefile(file_struct.uvf_savefile[0], 'data_cube')
     if nfiles eq 2 then data_cube2 = getvar_savefile(file_struct.uvf_savefile[1], 'data_cube')
+    
+    void = getvar_savefile(file_struct.uvf_savefile[0], names = uvf_varnames)
+    wh_hash = where(uvf_varnames eq 'uvf_git_hash', count_hash)
+    if count_hash gt 0 then begin
+      uvf_git_hashes = getvar_savefile(file_struct.uvf_savefile[0], 'uvf_git_hash')
+      if nfiles eq 2 then uvf_git_hashes = [uvf_git_hashes, getvar_savefile(file_struct.uvf_savefile[1], 'uvf_git_hash')]
+    endif else uvf_git_hashes = strarr(nfiles)
     
     if min(ky_mpc) lt 0 then begin
       ;; negative ky values haven't been cut yet
@@ -978,6 +1021,14 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
         data_cube2 = temporary(dirty_cube2) - temporary(model_cube2)
       endif
       
+      void = getvar_savefile(file_struct.input_uvf_files[0,0], names = uvf_varnames)
+      wh_hash = where(uvf_varnames eq 'uvf_git_hash', count_hash)
+      if count_hash gt 0 then begin
+        uvf_git_hashes = getvar_savefile(file_struct.input_uvf_files[0,0], 'uvf_git_hash')
+        if nfiles eq 2 then uvf_git_hashes = [uvf_git_hashes, getvar_savefile(file_struct.input_uvf_files[0,1], 'uvf_git_hash')]
+      endif else uvf_git_hashes = strarr(nfiles)
+      
+      
       if n_elements(freq_ch_range) ne 0 then begin
         data_cube1 = data_cube1[*, *, min(freq_ch_range):max(freq_ch_range)]
         if nfiles eq 2 then data_cube2 = data_cube2[*, *, min(freq_ch_range):max(freq_ch_range)]
@@ -992,6 +1043,8 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
       ;; uvf_input
       data_cube1 = getvar_savefile(file_struct.datafile[0], file_struct.datavar)
       if nfiles eq 2 then data_cube2 = getvar_savefile(file_struct.datafile[1], file_struct.datavar)
+      
+      uvf_git_hashes = strarr(nfiles)
       
       data_size = size(data_cube1)
       if data_size[n_elements(data_size)-2] eq 10 then begin
@@ -1474,8 +1527,11 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
       undefine, data_diff_ft
     endif
     
+    git, repo_path = ps_repository_dir(), result=kcube_git_hash
+    git_hashes = {uvf:uvf_git_hashes, uvf_wt:uvf_wt_git_hashes, beam:beam_git_hashes, kcube:kcube_git_hash}
+    
     save, file = file_struct.kcube_savefile, data_sum_1, data_sum_2, data_diff_1, data_diff_2, sigma2_1, sigma2_2, n_val, $
-      kx_mpc, ky_mpc, kz_mpc, kperp_lambda_conv, delay_params, hubble_param, n_freq_contrib, freq_mask, vs_name, vs_mean
+      kx_mpc, ky_mpc, kz_mpc, kperp_lambda_conv, delay_params, hubble_param, n_freq_contrib, freq_mask, vs_name, vs_mean, git_hashes
       
   endif else begin
     ;; these an and bn calculations don't match the standard
@@ -1615,8 +1671,11 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
     ;      undefine, data_diff_cos, data_diff_sin
     ;    endif
     
+    git, repo_path = ps_repository_dir(), result=kcube_git_hash
+    git_hashes = {uvf:uvf_git_hashes, uvf_wt:uvf_wt_git_hashes, beam:beam_git_hashes, kcube:kcube_git_hash}
+    
     save, file = file_struct.kcube_savefile, data_sum_1, data_sum_2, data_diff_1, data_diff_2, sigma2_1, sigma2_2, $
-      kx_mpc, ky_mpc, kz_mpc, kperp_lambda_conv, delay_params, hubble_param, n_freq_contrib, freq_mask, vs_name, vs_mean, window_int
+      kx_mpc, ky_mpc, kz_mpc, kperp_lambda_conv, delay_params, hubble_param, n_freq_contrib, freq_mask, vs_name, vs_mean, window_int, git_hashes
   endelse
   
 end
