@@ -16,6 +16,7 @@ pro fhd_data_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol
     
     
   if keyword_set(refresh_dft) then refresh_ps = 1
+  if keyword_set(refresh_beam) then refresh_ps = 1
   if keyword_set(refresh_ps) then refresh_binning = 1
   
   ;; default to making standard plot set if plot_slices isn't set
