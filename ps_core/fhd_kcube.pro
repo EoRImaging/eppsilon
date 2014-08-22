@@ -506,10 +506,10 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
             
             pixels = pixel_nums1[wh_close]
             
-            if max(arr) le 1. then begin
+            if max(arr) le 1.1 then begin
               ;; beam is peak normalized to 1
               temp = arr * rebin(reform(n_vis_freq[i, *], 1, n_freq), count_close, n_freq, /sample)
-            endif else if max(arr) le file_struct.n_obs[i] then begin
+            endif else if max(arr) le file_struct.n_obs[i]*1.1 then begin
               ;; beam is peak normalized to 1 for each obs, then summed over obs so peak is ~ n_obs
               temp = (arr/file_struct.n_obs[i]) * rebin(reform(n_vis_freq[i, *], 1, n_freq), count_close, n_freq, /sample)
             endif else begin

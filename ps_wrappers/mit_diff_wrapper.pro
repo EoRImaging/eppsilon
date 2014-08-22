@@ -24,7 +24,7 @@ pro mit_diff_wrapper, folder_names, obs_names_in, cube_types = cube_types, pols 
     undefine, cube_types, pols
   endelse
   
-  if n_elements(obs_names_in) eq 2 then diff_str = '_' + obs_name_in
+  if n_elements(obs_names_in) eq 2 then diff_str = '_' + obs_names_in
   if n_elements(spec_window_types) eq 2 then begin
     type_list = ['Hann', 'Hamming', 'Blackman', 'Nutall', 'Blackman-Nutall', 'Blackman-Harris', 'None']
     sw_tag_list = ['hann', 'ham', 'blm', 'ntl', 'bn', 'bh', '']
@@ -100,7 +100,7 @@ pro mit_diff_wrapper, folder_names, obs_names_in, cube_types = cube_types, pols 
   endfor
   
   save_paths = folder_names + '/ps/'
-  obs_info = ps_filenames(folder_names, obs_name, rts = rts, sim = sim, casa = casa, data_subdirs = 'Healpix/', save_paths = save_paths, plot_paths = save_path)
+  obs_info = ps_filenames(folder_names, obs_names_in, rts = rts, sim = sim, casa = casa, data_subdirs = 'Healpix/', save_paths = save_paths, plot_paths = save_path)
   
   wh_noinfo = where(obs_info.info_files eq '', count_noinfo)
   if count_noinfo gt 0 then message, 'Info files are not all present'
