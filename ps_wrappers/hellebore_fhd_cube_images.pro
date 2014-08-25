@@ -129,20 +129,20 @@ pro hellebore_fhd_cube_images, folder_names, obs_names_in, cube_types = cube_typ
     file_struct_arr2 = fhd_file_setup(obs_info.info_files[1], pols[max_pol])
     
   if n_elements(file_struct_arr1) ne 0 then begin
-    wh_match = where(file_struct_arr1.pol eq pols[0] and file_struct_arr1.type eq cube_types[0] and $
-      stregex(file_struct_arr1.uvf_label, evenodd[0], /boolean) eq 1, count_match)
-    if count_match gt 0 then nvis1 = file_struct_arr1[wh_match[0]].n_vis
+    wh_match = where(file_struct_arr1.pol eq pols[0] and file_struct_arr1.type eq cube_types[0], count_match)
+    wh_eo = where(stregex(file_struct_arr1[wh_match[0]].uvf_label, evenodd[max_eo], /boolean) eq 1, count_eo)
+    if count_match gt 0 then nvis1 = file_struct_arr1[wh_match[0]].n_vis[wh_eo[0]]
   endif
   
   if n_elements(filenames) eq 2 and n_elements(file_struct_arr2) ne 0 then begin
-    wh_match = where(file_struct_arr2.pol eq pols[max_pol] and file_struct_arr2.type eq cube_types[max_type] and $
-      stregex(file_struct_arr2.uvf_label, evenodd[max_eo], /boolean) eq 1, count_match)
-    if count_match gt 0 then nvis2 = file_struct_arr2[wh_match[0]].n_vis
+    wh_match = where(file_struct_arr2.pol eq pols[max_pol] and file_struct_arr2.type eq cube_types[max_type], count_match)
+    wh_eo = where(stregex(file_struct_arr2[wh_match[0]].uvf_label, evenodd[max_eo], /boolean) eq 1, count_eo)
+    if count_match gt 0 and count_eo gt 0 then nvis2 = file_struct_arr2[wh_match[0]].n_vis[wh_eo[0]]
   endif
-  
+
   if n_elements(filenames) eq 2 then begin
     if n_elements(nvis1) gt 0 and n_elements(nvis2) gt 0 then begin
-      print, 'n_vis % difference between files: ' + number_formatter((nvis2[0]-nvis1[0])*100/nvis1)
+      print, 'n_vis % difference between files: ' + number_formatter((nvis2-nvis1)*100/nvis1)
     endif
   endif else if n_elements(nvis1) gt 0 then print, 'nvis: ' + number_formatter(nvis1)
   
