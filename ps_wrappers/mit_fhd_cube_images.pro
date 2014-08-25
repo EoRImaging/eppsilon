@@ -65,6 +65,8 @@ pro mit_fhd_cube_images, folder_names, obs_names_in, cube_types = cube_types, po
   save_paths = folder_names + '/ps/'
   obs_info = ps_filenames(folder_names, obs_names_in, rts = rts, sim = sim, casa = casa, data_subdirs = 'Healpix/', save_paths = save_paths, plot_paths = save_path)
   
+  if tag_exist(obs_info, 'diff_note') then obs_info = create_struct(obs_info, 'diff_plot_path', obs_info.diff_save_path)
+  
   filenames = strarr(max([n_elements(obs_info.obs_names), n_elements(evenodd)]))
   
   if n_elements(cube_types) eq 0 then cube_types = 'res'
@@ -180,25 +182,25 @@ pro mit_fhd_cube_images, folder_names, obs_names_in, cube_types = cube_types, po
     if n_freq1 ne n_freq2 then message, 'number of frequencies do not match between the 2 files'
   endif
   
-  if obs_info.info_files[0] ne '' then file_struct_arr1 = mit_file_setup(obs_info.info_files[0], pols[0])
+  if obs_info.info_files[0] ne '' then file_struct_arr1 = fhd_file_setup(obs_info.info_files[0], pols[0])
   if n_elements(filenames) eq 2 then if obs_info.info_files[1] ne '' then $
-    file_struct_arr2 = mit_file_setup(obs_info.info_files[1], pols[max_pol])
+    file_struct_arr2 = fhd_file_setup(obs_info.info_files[1], pols[max_pol])
     
   if n_elements(file_struct_arr1) ne 0 then begin
-    wh_match = where(file_struct_arr1.pol eq pols[0] and file_struct_arr1.type eq cube_types[0] and $
-      stregex(file_struct_arr1.uvf_label, evenodd[0], /boolean) eq 1, count_match)
-    if count_match gt 0 then nvis1 = file_struct_arr1[wh_match[0]].n_vis
+    wh_match = where(file_struct_arr1.pol eq pols[0] and file_struct_arr1.type eq cube_types[0], count_match)
+    wh_eo = where(stregex(file_struct_arr1[wh_match[0]].uvf_label, evenodd[max_eo], /boolean) eq 1, count_eo)
+    if count_match gt 0 then nvis1 = file_struct_arr1[wh_match[0]].n_vis[wh_eo[0]]
   endif
   
   if n_elements(filenames) eq 2 and n_elements(file_struct_arr2) ne 0 then begin
-    wh_match = where(file_struct_arr2.pol eq pols[max_pol] and file_struct_arr2.type eq cube_types[max_type] and $
-      stregex(file_struct_arr2.uvf_label, evenodd[max_eo], /boolean) eq 1, count_match)
-    if count_match gt 0 then nvis2 = file_struct_arr2[wh_match[0]].n_vis
+    wh_match = where(file_struct_arr2.pol eq pols[max_pol] and file_struct_arr2.type eq cube_types[max_type], count_match)
+    wh_eo = where(stregex(file_struct_arr2[wh_match[0]].uvf_label, evenodd[max_eo], /boolean) eq 1, count_eo)
+    if count_match gt 0 and count_eo gt 0 then nvis2 = file_struct_arr2[wh_match[0]].n_vis[wh_eo[0]]
   endif
-  
+
   if n_elements(filenames) eq 2 then begin
     if n_elements(nvis1) gt 0 and n_elements(nvis2) gt 0 then begin
-      print, 'n_vis % difference between files: ' + number_formatter((nvis2[0]-nvis1[0])*100/nvis1)
+      print, 'n_vis % difference between files: ' + number_formatter((nvis2-nvis1)*100/nvis1)
     endif
   endif else if n_elements(nvis1) gt 0 then print, 'nvis: ' + number_formatter(nvis1)
   
