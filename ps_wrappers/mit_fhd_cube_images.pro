@@ -1,4 +1,4 @@
-pro hellebore_fhd_cube_images, folder_names, obs_names_in, cube_types = cube_types, pols = pols, evenodd = evenodd, $
+pro mit_fhd_cube_images, folder_names, obs_names_in, cube_types = cube_types, pols = pols, evenodd = evenodd, $
     rts = rts, sim = sim, casa = casa, png = png, eps = eps, slice_range = slice_range, ratio = ratio, diff_ratio = diff_ratio, $
     log = log, data_range = data_range, color_profile = color_profile, sym_color = sym_color, window_num = window_num
     
@@ -7,7 +7,63 @@ pro hellebore_fhd_cube_images, folder_names, obs_names_in, cube_types = cube_typ
   if n_elements(evenodd) gt 2 then message, 'No more than 2 evenodd values can be supplied'
   if n_elements(obs_names_in) gt 2 then message, 'No more than 2 obs_names can be supplied'
   
-  obs_info = hellebore_filenames(folder_names, obs_names_in, rts = rts, sim = sim, casa = casa)
+  for i=0, n_elements(folder_names)-1 do begin
+    ;; check for folder existence, otherwise look for common folder names to figure out full path. If none found, try '/nfs/mwa-09/r1/djc/EoR2013/Aug23/'
+    start_path = '/nfs/mwa-09/r1/djc/'
+    folder_test = file_test(folder_names[i], /directory)
+    if folder_test eq 0 then begin
+      pos_eor2013 = strpos(folder_names[i], 'EoR2013')
+      if pos_eor2013 gt -1 then begin
+        test_name = start_path + strmid(folder_names[i], pos_eor2013)
+        folder_test = file_test(test_name, /directory)
+        if folder_test eq 1 then folder_names[i] = test_name
+      endif
+    endif
+    if folder_test eq 0 then begin
+      pos_aug23 = strpos(folder_names[i], 'Aug23')
+      if pos_aug23 gt -1 then begin
+        test_name = start_path + 'EoR2013/' + strmid(folder_names[i], pos_aug23)
+        folder_test = file_test(test_name, /directory)
+        if folder_test eq 1 then folder_names[i] = test_name
+      endif
+    endif
+    if folder_test eq 0 then begin
+      pos_aug26 = strpos(folder_names[i], 'Aug26')
+      if pos_aug26 gt -1 then begin
+        test_name = start_path + 'EoR2013/' + strmid(folder_names[i], pos_aug26)
+        folder_test = file_test(test_name, /directory)
+        if folder_test eq 1 then folder_names[i] = test_name
+      endif
+    endif
+    if folder_test eq 0 then begin
+      pos_week1 = strpos(folder_names[i], 'week1')
+      if pos_week1 gt -1 then begin
+        test_name = start_path + 'EoR2013/' + strmid(folder_names[i], pos_week1)
+        folder_test = file_test(test_name, /directory)
+        if folder_test eq 1 then folder_names[i] = test_name
+      endif
+    endif
+    if folder_test eq 0 then begin
+      test_name = start_path + 'EoR2013/Aug23/' + folder_names[i]
+      folder_test = file_test(test_name, /directory)
+      if folder_test eq 1 then folder_names[i] = test_name
+    endif
+    if folder_test eq 0 then begin
+      test_name = start_path + 'EoR2013/Aug26/' + folder_names[i]
+      folder_test = file_test(test_name, /directory)
+      if folder_test eq 1 then folder_names[i] = test_name
+    endif
+    if folder_test eq 0 then begin
+      test_name = start_path + 'EoR2013/week1/' + folder_names[i]
+      folder_test = file_test(test_name, /directory)
+      if folder_test eq 1 then folder_names[i] = test_name
+    endif
+    
+    if folder_test eq 0 then message, 'folder not found'
+  endfor
+  
+  save_paths = folder_names + '/ps/'
+  obs_info = ps_filenames(folder_names, obs_names_in, rts = rts, sim = sim, casa = casa, data_subdirs = 'Healpix/', save_paths = save_paths, plot_paths = save_path)
   
   filenames = strarr(max([n_elements(obs_info.obs_names), n_elements(evenodd)]))
   
@@ -124,9 +180,9 @@ pro hellebore_fhd_cube_images, folder_names, obs_names_in, cube_types = cube_typ
     if n_freq1 ne n_freq2 then message, 'number of frequencies do not match between the 2 files'
   endif
   
-  if obs_info.info_files[0] ne '' then file_struct_arr1 = fhd_file_setup(obs_info.info_files[0], pols[0])
+  if obs_info.info_files[0] ne '' then file_struct_arr1 = mit_file_setup(obs_info.info_files[0], pols[0])
   if n_elements(filenames) eq 2 then if obs_info.info_files[1] ne '' then $
-    file_struct_arr2 = fhd_file_setup(obs_info.info_files[1], pols[max_pol])
+    file_struct_arr2 = mit_file_setup(obs_info.info_files[1], pols[max_pol])
     
   if n_elements(file_struct_arr1) ne 0 then begin
     wh_match = where(file_struct_arr1.pol eq pols[0] and file_struct_arr1.type eq cube_types[0] and $
