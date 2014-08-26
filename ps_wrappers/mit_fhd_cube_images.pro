@@ -187,15 +187,21 @@ pro mit_fhd_cube_images, folder_names, obs_names_in, cube_types = cube_types, po
     file_struct_arr2 = fhd_file_setup(obs_info.info_files[1], pols[max_pol])
     
   if n_elements(file_struct_arr1) ne 0 then begin
-    wh_match = where(file_struct_arr1.pol eq pols[0] and file_struct_arr1.type eq cube_types[0], count_match)
-    wh_eo = where(stregex(file_struct_arr1[wh_match[0]].uvf_label, evenodd[max_eo], /boolean) eq 1, count_eo)
-    if count_match gt 0 then nvis1 = file_struct_arr1[wh_match[0]].n_vis[wh_eo[0]]
+    if cube_types[0] eq 'weights' or cube_types[0] eq 'variance' then wh_match = where(file_struct_arr1.pol eq pols[0], count_match) $
+    else wh_match = where(file_struct_arr1.pol eq pols[0] and file_struct_arr1.type eq cube_types[0], count_match)
+    if count_match gt 0 then begin
+      wh_eo = where(stregex(file_struct_arr1[wh_match[0]].uvf_label, evenodd[max_eo], /boolean) eq 1, count_eo)
+      if count_eo gt 0 then nvis1 = file_struct_arr1[wh_match[0]].n_vis[wh_eo[0]]
+    endif
   endif
   
   if n_elements(filenames) eq 2 and n_elements(file_struct_arr2) ne 0 then begin
-    wh_match = where(file_struct_arr2.pol eq pols[max_pol] and file_struct_arr2.type eq cube_types[max_type], count_match)
-    wh_eo = where(stregex(file_struct_arr2[wh_match[0]].uvf_label, evenodd[max_eo], /boolean) eq 1, count_eo)
-    if count_match gt 0 and count_eo gt 0 then nvis2 = file_struct_arr2[wh_match[0]].n_vis[wh_eo[0]]
+    if cube_types[0] eq 'weights' or cube_types[0] eq 'variance' then wh_match = where(file_struct_arr2.pol eq pols[max_pol], count_match) $
+    else wh_match = where(file_struct_arr2.pol eq pols[max_pol] and file_struct_arr2.type eq cube_types[max_type], count_match)
+    if count_match gt 0 then begin
+      wh_eo = where(stregex(file_struct_arr2[wh_match[0]].uvf_label, evenodd[max_eo], /boolean) eq 1, count_eo)
+      if count_eo gt 0 then nvis2 = file_struct_arr2[wh_match[0]].n_vis[wh_eo[0]]
+    endif
   endif
 
   if n_elements(filenames) eq 2 then begin
