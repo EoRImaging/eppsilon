@@ -185,10 +185,10 @@ pro hellebore_fhd_cube_images, folder_names, obs_names_in, cube_types = cube_typ
     if n_cubes gt 1 then begin
       if n_elements(folder_names) eq 1 then begin
         if n_elements(obs_info.obs_names) gt 1 then begin
-          plot_filebase = obs_info.fhd_types[0] + '_' + obs_info.obs_names[0] + '_' + evenodd[0] + '_' + cube_types[0] + '_' + pols[0] + $
+          plot_filebase = obs_info.folder_basenames[0] + '_' + obs_info.obs_names[0] + '_' + evenodd[0] + '_' + cube_types[0] + '_' + pols[0] + $
             '_minus_' + obs_info.obs_names[0] + '_' + evenodd[max_eo] + '_' + cube_types[max_type] + '_' + pols[max_pol]
         endif else begin
-          if obs_info.integrated[0] eq 0 then plot_start = obs_info.fhd_types[0] + '_' + obs_info.obs_names[0] else plot_start = obs_info.fhd_types[0]
+          if obs_info.integrated[0] eq 0 then plot_start = obs_info.folder_basenames[0] + '_' + obs_info.obs_names[0] else plot_start = obs_info.fhd_types[0]
           
           plot_filebase = plot_start + '_' + evenodd[0] + '_' + cube_types[0] + '_' + pols[0] + $
             '_minus_' + evenodd[max_eo] + '_' + cube_types[max_type] + '_' + pols[max_pol]
@@ -196,7 +196,7 @@ pro hellebore_fhd_cube_images, folder_names, obs_names_in, cube_types = cube_typ
       endif else plot_filebase = obs_info.name_same_parts + '__' + strjoin([obs_info.name_diff_parts[0], evenodd[0], cube_types[0], pols[0]], '_')  + $
         '_minus_' + strjoin([obs_info.name_diff_parts[1], evenodd[max_eo], cube_types[max_type], pols[max_pol]], '_')
     endif else begin
-      if obs_info.integrated[0] eq 0 then plot_start = obs_info.fhd_types[0] + '_' + obs_info.obs_names[0] else plot_start = obs_info.fhd_types[0]
+      if obs_info.integrated[0] eq 0 then plot_start = obs_info.folder_basenames[0] + '_' + obs_info.obs_names[0] else plot_start = obs_info.fhd_types[0]
       
       plot_filebase = plot_start + '_' + evenodd[0] + '_' + cube_types[0] + '_' + pols[0]
     endelse
