@@ -1,4 +1,4 @@
-pro mit_fhd_cube_images, folder_names, obs_names_in, cube_types = cube_types, pols = pols, evenodd = evenodd, $
+pro mit_fhd_cube_images, folder_names, obs_names_in, data_subdirs=data_subdirs, cube_types = cube_types, pols = pols, evenodd = evenodd, $
     rts = rts, sim = sim, casa = casa, png = png, eps = eps, slice_range = slice_range, ratio = ratio, diff_ratio = diff_ratio, $
     log = log, data_range = data_range, color_profile = color_profile, sym_color = sym_color, window_num = window_num
     
@@ -63,7 +63,8 @@ pro mit_fhd_cube_images, folder_names, obs_names_in, cube_types = cube_types, po
   endfor
   
   save_paths = folder_names + '/ps/'
-  obs_info = ps_filenames(folder_names, obs_names_in, rts = rts, sim = sim, casa = casa, data_subdirs = 'Healpix/', save_paths = save_paths, plot_paths = save_path)
+  if n_elements(data_subdirs) eq 0 then data_subdirs = 'Healpix/' else if n_elements(data_subdirs) gt 2 then message, 'No more than 2 data_subdirs can be supplied.'
+  obs_info = ps_filenames(folder_names, obs_names_in, rts = rts, sim = sim, casa = casa, data_subdirs = data_subdirs, save_paths = save_paths, plot_paths = save_paths)
   
   if tag_exist(obs_info, 'diff_note') then obs_info = create_struct(obs_info, 'diff_plot_path', obs_info.diff_save_path)
   
@@ -243,18 +244,18 @@ pro mit_fhd_cube_images, folder_names, obs_names_in, cube_types = cube_types, po
     if n_cubes gt 1 then begin
       if n_elements(folder_names) eq 1 then begin
         if n_elements(obs_info.obs_names) gt 1 then begin
-          plot_filebase = obs_info.fhd_types[0] + '_' + obs_info.obs_names[0] + '_' + evenodd[0] + '_' + cube_types[0] + '_' + pols[0] + $
+          plot_filebase = obs_info.folder_basenames[0] + '_' + obs_info.obs_names[0] + '_' + evenodd[0] + '_' + cube_types[0] + '_' + pols[0] + $
             '_minus_' + obs_info.obs_names[0] + '_' + evenodd[max_eo] + '_' + cube_types[max_type] + '_' + pols[max_pol]
         endif else begin
-          if obs_info.integrated[0] eq 0 then plot_start = obs_info.fhd_types[0] + '_' + obs_info.obs_names[0] else plot_start = obs_info.fhd_types[0]
+          if obs_info.integrated[0] eq 0 then plot_start = obs_info.folder_basenames[0] + '_' + obs_info.obs_names[0] else plot_start = obs_info.fhd_types[0]
           
           plot_filebase = plot_start + '_' + evenodd[0] + '_' + cube_types[0] + '_' + pols[0] + $
             '_minus_' + evenodd[max_eo] + '_' + cube_types[max_type] + '_' + pols[max_pol]
         endelse
-      endif else plot_filebase = obs_info.name_same_parts + '__' + strjoin([obs_info.name_diff_parts[0], evenodd[0], cube_types[0], pols[0]], '_')  + $
-        '_minus_' + strjoin([obs_info.name_diff_parts[1], evenodd[max_eo], cube_types[max_type], pols[max_pol]], '_')
+      endif else plot_filebase = obs_info.fhdtype_same_parts + '__' + strjoin([obs_info.fhdtype_diff_parts[0], evenodd[0], cube_types[0], pols[0]], '_')  + $
+        '_minus_' + strjoin([obs_info.fhdtype_diff_parts[1], evenodd[max_eo], cube_types[max_type], pols[max_pol]], '_')
     endif else begin
-      if obs_info.integrated[0] eq 0 then plot_start = obs_info.fhd_types[0] + '_' + obs_info.obs_names[0] else plot_start = obs_info.fhd_types[0]
+      if obs_info.integrated[0] eq 0 then plot_start = obs_info.folder_basenames[0] + '_' + obs_info.obs_names[0] else plot_start = obs_info.fhd_types[0]
       
       plot_filebase = plot_start + '_' + evenodd[0] + '_' + cube_types[0] + '_' + pols[0]
     endelse
