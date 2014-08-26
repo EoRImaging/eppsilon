@@ -66,6 +66,7 @@ pro hellebore_fhd_cube_images, folder_names, obs_names_in, cube_types = cube_typ
   if n_elements(obs_info.folder_names) eq 2 then begin
     save_path = obs_info.diff_save_path
     note = obs_info.diff_note
+    if keyword_set(ratio) then note = strjoin(strsplit(note, '-', /extract), '/')
     plot_path = obs_info.diff_plot_path
   endif else begin
     save_path = obs_info.folder_names[0] + path_sep()

@@ -124,6 +124,7 @@ pro mit_fhd_cube_images, folder_names, obs_names_in, cube_types = cube_types, po
   if n_elements(obs_info.folder_names) eq 2 then begin
     save_path = obs_info.diff_save_path
     note = obs_info.diff_note
+    if keyword_set(ratio) then note = strjoin(strsplit(note, '-', /extract), '/')
     plot_path = obs_info.diff_plot_path
   endif else begin
     save_path = obs_info.folder_names[0] + path_sep()
@@ -203,7 +204,7 @@ pro mit_fhd_cube_images, folder_names, obs_names_in, cube_types = cube_types, po
       if count_eo gt 0 then nvis2 = file_struct_arr2[wh_match[0]].n_vis[wh_eo[0]]
     endif
   endif
-
+  
   if n_elements(filenames) eq 2 then begin
     if n_elements(nvis1) gt 0 and n_elements(nvis2) gt 0 then begin
       print, 'n_vis % difference between files: ' + number_formatter((nvis2-nvis1)*100/nvis1)
