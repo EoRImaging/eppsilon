@@ -801,9 +801,20 @@ pro fhd_data_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol
     
     if keyword_set(plot_eor_1d) then begin
       ;eor_file_1d = base_path() + 'power_spectrum/eor_data/eor_power_1d.idlsave'
-      eor_file_1d = filepath('eor_power_1d.idlsave',root=rootdir('FHD'),subdir='catalog_data')
-      file_arr = [file_arr, eor_file_1d]
-      titles = [titles, 'EoR signal']
+    
+      path_dirs = strsplit(!path, '[;:]', /regex, /extract)
+      fhd_catalog_loc = strpos(path_dirs, 'catalog_data')
+      wh_catalog = where(fhd_catalog_loc gt 0, count_catalog)
+      if count_catalog gt 0 then begin
+        file_path = path_dirs[wh_catalog[0]]
+        ;; make sure file_path has a path separator at the end
+        pos = strpos(file_path, path_sep(), /reverse_search)
+        if pos+1-strlen(file_path) lt 0 then file_path = file_path + path_sep()
+        
+        eor_file_1d = file_path + 'eor_power_1d.idlsave'
+        file_arr = [file_arr, eor_file_1d]
+        titles = [titles, 'EoR signal']
+      endif else print, 'Could not locate catalog_data directory in !path variable'
       
     ;    jonnie_file_text = base_path() + 'single_use/eor_pspec1d_centers.txt'
     ;    TextFast, jonnie_data, file_path = jonnie_file_text, /read
