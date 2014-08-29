@@ -99,15 +99,15 @@ pro mit_wrapper, folder_name, obs_name, data_subdirs=data_subdirs, n_obs=n_obs, 
     if keyword_set(set_data_ranges) then begin
       if keyword_set(obs_info.integrated[0]) then begin
         sigma_range = [2e5, 2e9]
-        nev_range = [2e7, 2e10]
+        nev_range = [2e6, 2e10]
       endif else begin
         sigma_range = [1e4, 2e6]
         nev_range = [5e4, 2e7]
       endelse
       
-      data_range = [1e4, 1e14]
+      data_range = [1e2, 1e14]
       nnr_range = [1e-1, 1e1]
-      snr_range = [1e-4, 1e6]
+      snr_range = [1e-6, 1e6]
       
       noise_range = nev_range
     endif
