@@ -1,4 +1,4 @@
-pro mit_wrapper, folder_name, obs_name, n_obs=n_obs, rts = rts, refresh_dft = refresh_dft, refresh_ps = refresh_ps, $
+pro mit_wrapper, folder_name, obs_name, data_subdirs=data_subdirs, n_obs=n_obs, rts = rts, refresh_dft = refresh_dft, refresh_ps = refresh_ps, $
     refresh_binning = refresh_binning, refresh_info = refresh_info, refresh_beam = refresh_beam, pol_inc = pol_inc, no_spec_window = no_spec_window, $
     spec_window_type = spec_window_type, sim = sim, freq_ch_range = freq_ch_range, individual_plots = individual_plots, $
     png = png, eps = eps, plot_slices = plot_slices, slice_type = slice_type, delta_uv_lambda = delta_uv_lambda, cut_image = cut_image, $
@@ -82,15 +82,16 @@ pro mit_wrapper, folder_name, obs_name, n_obs=n_obs, rts = rts, refresh_dft = re
     endif
     
     if folder_test eq 0 then message, 'folder not found'
-        
-    save_path = folder_name + '/ps/'
-    obs_info = ps_filenames(folder_name, obs_name, rts = rts, sim = sim, casa = casa, data_subdirs = 'Healpix/', save_paths = save_path, plot_paths = save_path)
     
+    save_path = folder_name + '/ps/'
+    if n_elements(data_subdirs) eq 0 then data_subdirs = 'Healpix/'
+    obs_info = ps_filenames(folder_name, obs_name, rts = rts, sim = sim, casa = casa, data_subdirs = data_subdirs, save_paths = save_path, plot_paths = save_path)
+        
     if obs_info.info_files[0] ne '' then datafile = obs_info.info_files[0] else datafile = obs_info.cube_files.(0)
     plot_filebase = obs_info.fhd_types[0] + '_' + obs_info.obs_names[0]
     note = obs_info.fhd_types[0]
-
-    if not file_test(save_path, /directory) then file_mkdir, save_path   
+    
+    if not file_test(save_path, /directory) then file_mkdir, save_path
     
     print,'datafile = '+datafile
     
