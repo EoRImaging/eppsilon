@@ -277,9 +277,9 @@ function ps_filenames, folder_names, obs_names_in, rts = rts, sim = sim, casa = 
         if obs_names[i] eq '' then begin
           info_files[i] = info_file[0]
           if stregex(info_files[i], '[0-9]+-[0-9]+', /boolean) then obs_names[i] = stregex(info_files[i], '[0-9]+-[0-9]+', /extract) else begin
-            start_pos = strpos(info_file, 'Combined_obs_') + strlen('Combined_obs_')
-            end_pos = strpos(strmid(info_file, start_pos), '_cube')
-            obs_names[i] = strmid(info_file, start_pos, end_pos)
+            start_pos = strpos(info_files[i], 'Combined_obs_') + strlen('Combined_obs_')
+            end_pos = strpos(strmid(info_files[i], start_pos), '_cube')
+            obs_names[i] = strmid(info_files[i], start_pos, end_pos)
           endelse
           if n_infofile gt 1 then begin
             print, 'More than 1 info files found, using first one'
@@ -289,9 +289,9 @@ function ps_filenames, folder_names, obs_names_in, rts = rts, sim = sim, casa = 
           if n_infofile gt 1 then message, 'More than one info file found with given obs_name'
           info_files[i] = info_file
           if stregex(info_files[i], '[0-9]+-[0-9]+', /boolean) then obs_names[i] = stregex(info_files[i], '[0-9]+-[0-9]+', /extract) else begin
-            start_pos = strpos(info_file, 'Combined_obs_') + strlen('Combined_obs_')
-            end_pos = strpos(strmid(info_file, start_pos), '_cube')
-            obs_names[i] = strmid(info_file, start_pos, end_pos)
+            start_pos = strpos(info_files[i], 'Combined_obs_') + strlen('Combined_obs_')
+            end_pos = strpos(strmid(info_files[i], start_pos), '_cube')
+            obs_names[i] = strmid(info_files[i], start_pos, end_pos)
           endelse
           test_other_obsnames = file_search(save_paths[i] +  'Combined_obs_' + '*info*', count = n_all_infofile)
           if n_all_infofile gt n_infofile then fhd_types[i] = fhd_types[i] + '_' + obs_names[i]
@@ -648,7 +648,7 @@ function ps_filenames, folder_names, obs_names_in, rts = rts, sim = sim, casa = 
         if count_name_same gt 0 then name_same_parts = strjoin(fnameparts_1[wh_name_same], '_') else name_same_parts = ''
         if count_name_diff eq 0 then name_diff_parts = strarr(2) else name_diff_parts = [str1_diff, str2_diff]
         
-        if min(wh_fhdtype_diff) ge nfileparts_1 or min(wh_fhdtype_diff) ge nfileparts_2 then begin
+        if min(wh_fhdtype_diff) ge nfhdtypeparts_1 or min(wh_fhdtype_diff) ge nfhdtypeparts_2 then begin
           wh_fhdtype_diff = [max(wh_fhdtype_same), wh_fhdtype_diff]
           count_fhdtype_diff = count_fhdtype_diff + 1
           if count_fhdtype_same gt 1 then begin
@@ -657,9 +657,12 @@ function ps_filenames, folder_names, obs_names_in, rts = rts, sim = sim, casa = 
           endif else count_fhdtype_same = 0
         endif
         
-        
+        str1_diff_fhdtype = strjoin(fhdtypeparts_1[wh_fhdtype_diff[where((wh_fhdtype_diff lt nfhdtypeparts_1) gt 0)]], '_')
+        str2_diff_fhdtype = strjoin(fhdtypeparts_2[wh_fhdtype_diff[where((wh_fhdtype_diff lt nfhdtypeparts_2) gt 0)]], '_')
+                
         if count_fhdtype_same gt 0 then fhdtype_same_parts = strjoin(fhdtypeparts_1[wh_fhdtype_same], '_') else fhdtype_same_parts = ''
-        if count_fhdtype_diff eq 0 then fhdtype_diff_parts = strarr(2) else fhdtype_diff_parts = [str1_diff, str2_diff]
+        if count_fhdtype_diff eq 0 then fhdtype_diff_parts = strarr(2) else fhdtype_diff_parts = [str1_diff_fhdtype, str2_diff_fhdtype]
+
       endelse
       
     endif
