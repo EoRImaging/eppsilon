@@ -816,6 +816,14 @@ pro fhd_data_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol
         titles = [titles, 'EoR signal']
       endif else print, 'Could not locate catalog_data directory in !path variable'
       
+    ;      restore, eor_file_1d
+    ;      power = strarr(n_elements(k_centers))+max(power)
+    ;      flat_power_filename = base_path() + 'single_use/flat_power_1d.idlsave'
+    ;      save, filename = flat_power_filename, power, k_centers
+    ;
+    ;      file_arr = [file_arr, flat_power_filename]
+    ;      titles = [titles, 'input flat power']
+      
     ;    jonnie_file_text = base_path() + 'single_use/eor_pspec1d_centers.txt'
     ;    TextFast, jonnie_data, file_path = jonnie_file_text, /read
     ;
