@@ -9,7 +9,7 @@ pro fhd_3dps, file_struct, refresh = refresh, kcube_refresh = kcube_refresh, dft
     input_units = input_units, fill_holes = fill_holes, quiet = quiet
     
   if tag_exist(file_struct, 'nside') ne 0 then healpix = 1 else healpix = 0
-  
+  refresh=1
   nfiles = n_elements(file_struct.datafile)
   
   if healpix and (keyword_set(dft_refresh_data) or keyword_set(dft_refresh_weight)) then kcube_refresh=1
@@ -67,14 +67,14 @@ pro fhd_3dps, file_struct, refresh = refresh, kcube_refresh = kcube_refresh, dft
       weights_3d = (power_weights1 + power_weights2) ;; variance_3d = 1/weights_3d
       undefine, power_weights1, power_weights2
       
-      power_3d = (term1 + term2) / weights_3d
+      power_3d = (term1 + term2)*2. / weights_3d ;; multiply by 2 because power is generally the SUM of the cosine & sine powers
       noise_expval_3d = noise_expval_3d / weights_3d
       wh_wt0 = where(weights_3d eq 0, count_wt0)
       if count_wt0 ne 0 then begin
         power_3d[wh_wt0] = 0
         noise_expval_3d[wh_wt0] = 0
       endif
-      
+            
       undefine, term1, term2
       
     endif else begin
@@ -109,7 +109,8 @@ pro fhd_3dps, file_struct, refresh = refresh, kcube_refresh = kcube_refresh, dft
       undefine, power_weights1, power_weights2
       
       ;; divide by 4 on power b/c otherwise it would be 4*Re(even-odd crosspower)
-      power_3d = (term1 + term2) / (4. * weights_3d)
+      ;power_3d = (term1 + term2) / (4. * weights_3d)
+      power_3d = (term1 + term2)*2. / weights_3d
       noise_3d = (noise_t1 + noise_t2) / weights_3d
       noise_expval_3d= noise_expval_3d / weights_3d
       undefine, term1, term2, noise_t1, noise_t2

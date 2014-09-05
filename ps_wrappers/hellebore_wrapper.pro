@@ -94,9 +94,9 @@ pro hellebore_wrapper, folder_name, obs_range, rts = rts, casa = casa, version =
         nev_range = [5e4, 2e7]
       endelse
       
-      data_range = [1e2, 1e14]
+      data_range = [1e3, 1e15]
       nnr_range = [1e-1, 1e1]
-      snr_range = [1e-6, 1e6]
+      snr_range = [1e-5, 1e7]
       
       noise_range = nev_range
     endif
