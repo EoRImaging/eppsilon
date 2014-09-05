@@ -609,7 +609,7 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
         if count_freq ne 0 then freq_vals = obs_arr.freq else begin
           wh_bin = where(strlowcase(obs_tags) eq 'bin', count_bin)
           wh_base_info = where(strlowcase(obs_tags) eq 'baseline_info', count_base_info)
-          if count_bin ne 0 or count_base_info then begin
+          if count_bin gt 0 or count_base_info gt 0 then begin
             freq_vals = dblarr(n_freq, n_obs[pol_i, file_i])
             if count_bin ne 0 then for i=0, n_obs[pol_i, file_i]-1 do freq_vals[*,i] = (*obs_arr[i].bin).freq $
             else for i=0, n_obs[pol_i, file_i]-1 do freq_vals[*,i] = (*obs_arr[i].baseline_info).freq
@@ -621,12 +621,15 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
         freq_resolution = freq[1]-freq[0]
         
         dt_vals = dblarr(n_obs[pol_i, file_i])
-        for i=0, n_obs[pol_i, file_i]-1 do begin
-          times = (*obs_arr[i].baseline_info).jdate
-          ;; only allow time resolutions of n*.5 sec
-          dt_vals[i] = round(((times[1]-times[0])*24*3600)*2.)/2.
-        endfor
-        if total(abs(dt_vals - dt_vals[0])) ne 0 then message, 'inconsistent time averaging in obs_arr'
+        wh_timeres = where(strlowcase(obs_tags) eq 'time_res', count_timeres)
+        if count_timeres ne 0 then dt_vals = obs_arr.time_res else begin
+          for i=0, n_obs[pol_i, file_i]-1 do begin
+            times = (*obs_arr[i].baseline_info).jdate
+            ;; only allow time resolutions of n*.5 sec
+            dt_vals[i] = round(((times[1]-times[0])*24*3600)*2.)/2.
+          endfor
+          if total(abs(dt_vals - dt_vals[0])) ne 0 then message, 'inconsistent time averaging in obs_arr'
+        endelse
         if j eq 0 then time_resolution = dt_vals[0] else $
           if total(abs(time_resolution - dt_vals[0])) ne 0 then message, 'time averaging does not agree between datafiles'
           

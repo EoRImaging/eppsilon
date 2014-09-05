@@ -709,7 +709,7 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
       
       weights_cube1 = temporary(temp)
       if nfiles eq 2 then weights_cube2 = temporary(temp2)
-    endif
+    endif else dims2 = size(weights_cube1, /dimension)
     
     
     n_kx = dims2[0]
@@ -731,7 +731,10 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
     
       for i=0, nfiles-1 do begin
         arr = getvar_savefile(file_struct.beamfile[i], file_struct.beamvar)
-        obs_beam = getvar_savefile(file_struct.beamfile[i], 'obs_out')
+        void = getvar_savefile(file_struct.beamfile[i], names = beam_varnames)
+        wh_obs = where(stregex(strlowcase(beam_varnames), 'obs', /boolean), count_obs)
+        if count_obs gt 0 then obs_struct_name = beam_varnames[wh_obs[0]]
+        obs_beam = getvar_savefile(file_struct.beamfile[i], obs_struct_name)
         nfvis_beam = obs_beam.nf_vis
         undefine_fhd, obs_beam
         

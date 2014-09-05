@@ -278,7 +278,10 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, wei
     n_kpar = n_kpar_plot
   endif
   
-  if max(abs(power)) eq 0 then message, 'power is entirely zero.'
+  if max(abs(power)) eq 0 then begin
+    print, 'power is entirely zero.'
+    no_plot = 1
+  endif
   
   ;; Check whether binning is log or not
   log_bins = [1, 1]
@@ -721,6 +724,7 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, wei
   endelse
   if log_axes[1] eq 1 then ytickformat = 'exponent'
   
+  if keyword_set(no_plot) then return
   
   axkeywords = {xlog: log_axes[0], ylog: log_axes[1], xstyle: 5, ystyle: 5, thick: thick, charthick: charthick, xthick: xthick, $
     ythick: ythick, charsize: charsize, font: font}

@@ -227,8 +227,8 @@ pro hellebore_wrapper, folder_name, obs_range, rts = rts, casa = casa, version =
     print, 'data_range used: ', number_formatter(data_range, format = '(e7.1)')
     print, 'sigma_range used: ', number_formatter(sigma_range, format = '(e7.1)')
     print, 'nev_range used: ', number_formatter(nev_range, format = '(e7.1)')
-    print, 'nnr_range used: ', number_formatter(nnr_range, format = '(e7.1)')
+    if n_elements(nnr_range) gt 0 then print, 'nnr_range used: ', number_formatter(nnr_range, format = '(e7.1)')
     print, 'snr_range used: ', number_formatter(snr_range, format = '(e7.1)')
-    print, 'noise_range used: ', number_formatter(noise_range, format = '(e7.1)')
+    if n_elements(noise_range) gt 0 then print, 'noise_range used: ', number_formatter(noise_range, format = '(e7.1)')
   endif
 end
