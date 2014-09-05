@@ -76,7 +76,7 @@ pro hellebore_wrapper, folder_name, obs_range, rts = rts, casa = casa, version =
     
     if tag_exist(obs_info, 'beam_files') then beamfiles = obs_info.beam_files
     
-    plot_filebase = obs_info.fhd_types[0] + '_' + obs_info.obs_names[0]
+    plot_filebase = obs_info.folder_basenames[0] + '_' + obs_info.obs_names[0]
     note = obs_info.fhd_types[0]
     
     if keyword_set(sim) then begin

@@ -96,10 +96,10 @@ pro kpower_1d_plots, power_savefile, plot_weights = plot_weights, multi_pos = mu
       else message, 'No weights array included in this file'
     endif
     
-    if keyword_set(h_inv) then begin
-      k_edges = k_edges / hubble_param
+    if keyword_set(hinv) then begin
+      if n_elements(k_edges) ne 0 then k_edges = k_edges / hubble_param
       if n_elements(k_centers) ne 0 then k_centers = k_centers / hubble_param
-      if not keyword_set(weights) then power = power * (hubble_param)^3d
+      if not keyword_set(plot_weights) then power = power * (hubble_param)^3d
     endif
     
     log_bins = 1
