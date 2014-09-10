@@ -411,7 +411,8 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, wei
   background_color = 'white'
   annotate_color = 'black'
   
-  log_color_calc, power_plot, power_log_norm, cb_ticks, cb_ticknames, color_range, n_colors, data_range = data_range, $
+  if not keyword_set(no_plot) then $
+    log_color_calc, power_plot, power_log_norm, cb_ticks, cb_ticknames, color_range, n_colors, data_range = data_range, $
     color_profile = color_profile, log_cut_val = log_cut_val, min_abs = data_min_abs, oob_low = oob_low
     
   max_ysize = 1000

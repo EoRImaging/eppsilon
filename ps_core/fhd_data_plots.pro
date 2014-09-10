@@ -812,17 +812,19 @@ pro fhd_data_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol
         if pos+1-strlen(file_path) lt 0 then file_path = file_path + path_sep()
         
         eor_file_1d = file_path + 'eor_power_1d.idlsave'
+        psyms = [intarr(n_elements(file_arr))+10, -3]
         file_arr = [file_arr, eor_file_1d]
         titles = [titles, 'EoR signal']
       endif else print, 'Could not locate catalog_data directory in !path variable'
       
-    ;      restore, eor_file_1d
-    ;      power = strarr(n_elements(k_centers))+max(power)
-    ;      flat_power_filename = base_path() + 'single_use/flat_power_1d.idlsave'
-    ;      save, filename = flat_power_filename, power, k_centers
-    ;
-    ;      file_arr = [file_arr, flat_power_filename]
-    ;      titles = [titles, 'input flat power']
+      restore, eor_file_1d
+      power = strarr(n_elements(k_centers))+max(power)
+      flat_power_filename = base_path() + 'single_use/flat_power_1d.idlsave'
+      save, filename = flat_power_filename, power, k_centers
+      
+      if n_elements(psyms) gt 0 then psyms = [psyms, -3] else psyms = [intarr(n_elements(file_arr))+10, -3]
+      file_arr = [file_arr, flat_power_filename]
+      titles = [titles, 'input flat power']
       
     ;    jonnie_file_text = base_path() + 'single_use/eor_pspec1d_centers.txt'
     ;    TextFast, jonnie_data, file_path = jonnie_file_text, /read
@@ -845,8 +847,8 @@ pro fhd_data_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol
     
     k_range = minmax([kperp_plot_range, kpar_bin, kpar_plot_range[1]])
     
-    kpower_1d_plots, file_arr, window_num = 6, colors = colors, names = titles, delta = delta, hinv = hinv, png = png, eps = eps, pdf = pdf, $
-      plotfile = plotfile_1d, k_range = k_range, title = note, note = note_1d, data_range = range_1d
+    kpower_1d_plots, file_arr, window_num = 6, colors = colors, names = titles, psyms = psyms, delta = delta, hinv = hinv, $
+      png = png, eps = eps, pdf = pdf, plotfile = plotfile_1d, k_range = k_range, title = note, note = note_1d, data_range = range_1d
   endif
   
 end
