@@ -486,29 +486,71 @@ function ps_filenames, folder_names, obs_names_in, rts = rts, sim = sim, casa = 
         ;; Combined
         cube_file_list = file_search(folder_names[i] + '/' + data_subdirs[i] + 'Combined_obs_' + obs_names[i] + '*_uvf.sav', count = n_cubefiles)
         if n_cubefiles gt 0 then begin
+          cube_basename = file_basename(cube_file_list)
+          pol_exist = stregex(cube_basename, '[xy][xy]', /boolean, /fold_case)
+          
           if obs_names[i] eq '' then begin
             obs_name_arr = strarr(n_cubefiles)
             for j=0, n_cubefiles-1 do begin
-              start_pos = strpos(cube_file_list[j], 'Combined_obs_') + strlen('Combined_obs_')
-              end_pos_even = strpos(strmid(cube_file_list[j], start_pos), '_even')
-              end_pos_odd = strpos(strmid(cube_file_list[j], start_pos), '_odd')
-              end_pos_cube = strpos(strmid(cube_file_list[j], start_pos), '_cube') ;; always > -1
+              start_pos = strpos(cube_basename[j], 'Combined_obs_') + strlen('Combined_obs_')
+              end_pos_even = strpos(strmid(cube_basename[j], start_pos), '_even')
+              end_pos_odd = strpos(strmid(cube_basename[j], start_pos), '_odd')
+              end_pos_cube = strpos(strmid(cube_basename[j], start_pos), '_cube') ;; always > -1
               end_pos = end_pos_even > end_pos_odd
               wh_noend = where(end_pos eq -1, count_noend)
               if count_noend gt 0 then end_pos[wh_noend] = end_pos_cube[wh_noend]
               
-              ;obs_name_arr = stregex(cube_file_list, '[0-9]+-[0-9]+', /extract)
-              obs_name_arr[j] = strmid(cube_file_list[j], start_pos, end_pos)
+              ;obs_name_arr = stregex(cube_basename, '[0-9]+-[0-9]+', /extract)
+              obs_name_arr[j] = strmid(cube_basename[j], start_pos, end_pos)
             endfor
             
             wh_first = where(obs_name_arr eq obs_name_arr[0], count_first)
-            if count_first lt n_elements(cube_file_list) then $
+            if max(pol_exist[wh_first]) gt 0 then begin
+              if min(pol_exist[wh_first]) eq 0 then message, 'some files with first obs_name have pol identifiers and some do not'
+              pols = stregex(cube_basename[wh_first], '[xy][xy]', /extract, /fold_case)
+              
+              pols_inc = pols[0]
+              pol_num = intarr(count_first)
+              for pol_i=0, count_first-1 do begin
+                wh_pol = where(pols_inc eq pols[pol_i], count_pol)
+                if count_pol eq 1 then pol_num[pol_i] = wh_pol[0] else begin
+                  pols_inc = [pols_inc, pols[pol_i]]
+                  pol_num[pol_i] = n_elements(pols_inc)-1
+                endelse
+              endfor
+              
+              for pol_i=0, n_elements(pols_inc) do begin
+                wh_pol = where(pol_num eq pol_i, count_pol)
+                if count_pol gt 2 then message, 'More than two cubes found with first obs_name and the same polarization'
+              endfor
+            endif else if count_first gt 2 then message, 'More than two cubes found with first obs_name'
+            
+            if count_first lt n_elements(cube_basename) then $
               print, 'More than one obs_name found, using first obs_name (' + obs_name_arr[0] + ', ' + number_formatter(count_first) + ' files)'
-            if count_first gt 2 then message, 'More than two cubes found with first obs_name'
+              
             datafile = cube_file_list[wh_first]
             obs_names[i] = obs_name_arr[0]
           endif else begin
-            if n_elements(cube_file_list) gt 2 then message, 'More than two cubes found with given obs_name'
+            if max(pol_exist) gt 0 then begin
+              if min(pol_exist) eq 0 then message, 'some files with given obs_name have pol identifiers and some do not'
+              pols = stregex(cube_basename, '[xy][xy]', /extract, /fold_case)
+              
+              pols_inc = pols[0]
+              pol_num = intarr(n_cubefiles)
+              for pol_i=0, n_cubefiles-1 do begin
+                wh_pol = where(pols_inc eq pols[pol_i], count_pol)
+                if count_pol eq 1 then pol_num[pol_i] = wh_pol[0] else begin
+                  pols_inc = [pols_inc, pols[pol_i]]
+                  pol_num[pol_i] = n_elements(pols_inc)-1
+                endelse
+              endfor
+              
+              for pol_i=0, n_elements(pols_inc) do begin
+                wh_pol = where(pol_num eq pol_i, count_pol)
+                if count_pol gt 2 then message, 'More than two cubes found with given obs_name and the same polarization'
+              endfor
+            endif else if n_cubefiles gt 2 then message, 'More than two cubes found with given obs_name'
+            
             datafile = cube_file_list
           endelse
           integrated[i]=1
@@ -528,6 +570,7 @@ function ps_filenames, folder_names, obs_names_in, rts = rts, sim = sim, casa = 
           cube_file_list = file_search(folder_names[i] + '/' + data_subdirs[i] + obs_names[i] + '*_uvf.sav', count = n_cubefiles)
           if n_cubefiles gt 0 then begin
             cube_basename = file_basename(cube_file_list)
+            pol_exist = stregex(cube_basename, '[xy][xy]', /boolean, /fold_case)
             if obs_names[i] eq '' then begin
               obs_name_arr = strarr(n_cubefiles)
               for j=0, n_cubefiles-1 do begin
@@ -543,14 +586,53 @@ function ps_filenames, folder_names, obs_names_in, rts = rts, sim = sim, casa = 
               ;obs_name_arr = stregex(cube_basename, '[0-9]+', /extract)
               
               wh_first = where(obs_name_arr eq obs_name_arr[0], count_first)
+              if max(pol_exist[wh_first]) gt 0 then begin
+                if min(pol_exist[wh_first]) eq 0 then message, 'some files with first obs_name have pol identifiers and some do not'
+                pols = stregex(cube_basename[wh_first], '[xy][xy]', /extract, /fold_case)
+                
+                pols_inc = pols[0]
+                pol_num = intarr(count_first)
+                for pol_i=0, count_first-1 do begin
+                  wh_pol = where(pols_inc eq pols[pol_i], count_pol)
+                  if count_pol eq 1 then pol_num[pol_i] = wh_pol[0] else begin
+                    pols_inc = [pols_inc, pols[pol_i]]
+                    pol_num[pol_i] = n_elements(pols_inc)-1
+                  endelse
+                endfor
+                
+                for pol_i=0, n_elements(pols_inc) do begin
+                  wh_pol = where(pol_num eq pol_i, count_pol)
+                  if count_pol gt 2 then message, 'More than two cubes found with first obs_name and the same polarization'
+                endfor
+              endif else if count_first gt 2 then message, 'More than two cubes found with first obs_name'
+              
               if count_first lt n_elements(cube_file_list) then $
                 print, 'More than one obs_name found, using first obs_name (' + obs_name_arr[0] + ', ' + number_formatter(count_first) + ' files)'
-              if count_first gt 2 then message, 'More than two cubes found with first obs_name'
+                
               datafile = cube_file_list[wh_first]
               obs_names[i] = obs_name_arr[0]
               integrated[i]=0
             endif else begin
-              if n_elements(cube_file_list) gt 2 then message, 'More than two cubes found with given obs_name'
+              if max(pol_exist) gt 0 then begin
+                if min(pol_exist) eq 0 then message, 'some files with given obs_name have pol identifiers and some do not'
+                pols = stregex(cube_basename, '[xy][xy]', /extract, /fold_case)
+                
+                pols_inc = pols[0]
+                pol_num = intarr(n_cubefiles)
+                for pol_i=0, n_cubefiles-1 do begin
+                  wh_pol = where(pols_inc eq pols[pol_i], count_pol)
+                  if count_pol eq 1 then pol_num[pol_i] = wh_pol[0] else begin
+                    pols_inc = [pols_inc, pols[pol_i]]
+                    pol_num[pol_i] = n_elements(pols_inc)-1
+                  endelse
+                endfor
+                
+                for pol_i=0, n_elements(pols_inc) do begin
+                  wh_pol = where(pol_num eq pol_i, count_pol)
+                  if count_pol gt 2 then message, 'More than two cubes found with given obs_name and the same polarization'
+                endfor
+              endif else if n_cubefiles gt 2 then message, 'More than two cubes found with given obs_name'
+
               datafile = cube_file_list
             endelse
           endif
@@ -659,10 +741,10 @@ function ps_filenames, folder_names, obs_names_in, rts = rts, sim = sim, casa = 
         
         str1_diff_fhdtype = strjoin(fhdtypeparts_1[wh_fhdtype_diff[where((wh_fhdtype_diff lt nfhdtypeparts_1) gt 0)]], '_')
         str2_diff_fhdtype = strjoin(fhdtypeparts_2[wh_fhdtype_diff[where((wh_fhdtype_diff lt nfhdtypeparts_2) gt 0)]], '_')
-                
+        
         if count_fhdtype_same gt 0 then fhdtype_same_parts = strjoin(fhdtypeparts_1[wh_fhdtype_same], '_') else fhdtype_same_parts = ''
         if count_fhdtype_diff eq 0 then fhdtype_diff_parts = strarr(2) else fhdtype_diff_parts = [str1_diff_fhdtype, str2_diff_fhdtype]
-
+        
       endelse
       
     endif

@@ -390,8 +390,11 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
     else message, 'variancevar must be a scalar or have the same number of elements as pol_inc'
     
     if n_elements(beamvar) eq 0 then begin
-      if keyword_set(uvf_input) then beam_varname = strupcase('beam2_' + pol_inc + '_image') else $
+      if keyword_set(uvf_input) then begin
+        if max(pol_exist) gt 0 then beam_varname = strupcase('beam2_image') else beam_varname = strupcase('beam2_' + pol_inc + '_image')
+      endif else begin
         if max(pol_exist) gt 0 then beam_varname = strupcase('beam_squared_cube') else beam_varname = strupcase('beam_' + pol_inc + '_cube')
+      endelse
     endif else beam_varname = beamvar
     if n_elements(beam_varname) ne npol then $
       if n_elements(beam_varname) eq 1 then beam_varname = replicate(beam_varname, npol) $
@@ -648,8 +651,11 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
           vis_noise_arr = fltarr([n_obs[pol_i, file_i], n_freq])
           
           noise_dims = size(*obs_arr[0].vis_noise, /dimension)
-          if noise_dims[0] ne npol or noise_dims[1] ne n_freq then message, 'vis_noise dimensions do not match npol, n_freq'
-          for i=0, n_obs[pol_i, file_i]-1 do vis_noise_arr[i, *] = (*obs_arr[i].vis_noise)[pol_i,*]
+          if noise_dims[0] ne npol or noise_dims[1] ne n_freq then begin
+            if min(pol_exist) eq 1 and n_elements(*obs_arr[0].vis_noise) eq n_freq then begin
+              for i=0, n_obs[pol_i, file_i]-1 do vis_noise_arr[i, *] = (*obs_arr[i].vis_noise)
+            endif else message, 'vis_noise dimensions do not match npol, n_freq'
+          endif else for i=0, n_obs[pol_i, file_i]-1 do vis_noise_arr[i, *] = (*obs_arr[i].vis_noise)[pol_i,*]
           
           
           if j eq 0 then vis_noise = fltarr(npol, nfiles, n_freq)
