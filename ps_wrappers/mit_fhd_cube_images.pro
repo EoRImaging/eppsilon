@@ -266,13 +266,19 @@ pro mit_fhd_cube_images, folder_names, obs_names_in, data_subdirs=data_subdirs, 
   
   if n_cubes gt 1 then begin
     if max(abs(cube1-cube2)) eq 0 then message, 'cubes are identical.'
-    if keyword_set(diff_ratio) then begin
-      print, max(cube1), max(cube2), max(cube1)/max(cube2)
-      temp = (cube1/max(cube1) - cube2/max(cube2)) * mean([max(cube1), max(cube2)])
-      note = note + ', peak ratio = ' + number_formatter(max(cube1)/max(cube2), format = '(f5.2)')
-    endif else if keyword_set(ratio) then temp = cube1/cube2 else temp = cube1-cube2
+    if keyword_set(ratio) then begin
+      if n_elements(slice_range) eq 1 then temp = cube1[*,slice_range]/cube2[*,slice_range] else $
+        temp = total(cube1[*, slice_range[0]:slice_range[1]],2)/total(cube2[*, slice_range[0]:slice_range[1]],2)
+    endif else begin
+      if keyword_set(diff_ratio) then begin
+        print, max(cube1), max(cube2), max(cube1)/max(cube2)
+        temp = (cube1/max(cube1) - cube2/max(cube2)) * mean([max(cube1), max(cube2)])
+        note = note + ', peak ratio = ' + number_formatter(max(cube1)/max(cube2), format = '(f5.2)')
+      endif else temp = cube1-cube2
+      
+      if n_elements(slice_range) eq 1 then temp = temp[*,slice_range] else temp = total(temp[*, slice_range[0]:slice_range[1]],2)
+    endelse
     
-    if n_elements(slice_range) eq 1 then temp = temp[*,slice_range] else temp = total(temp[*, slice_range[0]:slice_range[1]],2)
   endif else if n_elements(slice_range) eq 1 then temp = cube1[*,slice_range] else temp = total(cube1[*, slice_range[0]:slice_range[1]],2)
   
   if keyword_set(sym_color) and not keyword_set(log) then begin
