@@ -4,7 +4,7 @@ pro fhd_data_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol
     refresh_dft = refresh_dft, refresh_ps = refresh_ps, refresh_binning = refresh_binning, refresh_info = refresh_info, refresh_beam = refresh_beam, $
     dft_fchunk = dft_fchunk, freq_ch_range = freq_ch_range, freq_flags = freq_flags, freq_flag_name = freq_flag_name, $
     no_spec_window = no_spec_window, spec_window_type = spec_window_type, delta_uv_lambda = delta_uv_lambda, max_uv_lambda = max_uv_lambda, $
-    cut_image = cut_image, dft_ian = dft_ian, sim = sim, std_power = std_power, no_kzero = no_kzero, $
+    cut_image = cut_image, dft_ian = dft_ian, sim = sim, std_power = std_power, no_wtd_avg = no_wtd_avg, no_kzero = no_kzero, $
     plot_slices = plot_slices, slice_type = slice_type, uvf_plot_type = uvf_plot_type, plot_stdset = plot_stdset, $
     data_range = data_range, sigma_range = sigma_range, nev_range = nev_range, $
     snr_range = snr_range, noise_range = noise_range, nnr_range = nnr_range, range_1d = range_1d, $
@@ -73,7 +73,8 @@ pro fhd_data_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol
   endif else begin
     file_struct_arr = fhd_file_setup(datafile, beamfile = beamfiles, pol_inc, uvf_input = uvf_input, uv_avg = uv_avg, uv_img_clip = uv_img_clip, dft_ian = dft_ian, $
       savefilebase = savefilebase, save_path = save_path, freq_ch_range = freq_ch_range, freq_flags = freq_flags, freq_flag_name = freq_flag_name, $
-      spec_window_type = spec_window_type, delta_uv_lambda = delta_uv_lambda, max_uv_lambda = max_uv_lambda, sim = sim, std_power = std_power, refresh_info = refresh_info)
+      spec_window_type = spec_window_type, delta_uv_lambda = delta_uv_lambda, max_uv_lambda = max_uv_lambda, sim = sim, $
+      std_power = std_power, no_wtd_avg = no_wtd_avg, refresh_info = refresh_info)
   endelse
   time1 = systime(1)
   print, 'file setup time: ' + number_formatter(time1-time0)
@@ -210,13 +211,13 @@ pro fhd_data_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol
           dft_refresh_weight = weight_refresh[i], refresh_beam = refresh_beam, dft_ian = dft_ian, cut_image = cut_image, $
           dft_fchunk = dft_fchunk, freq_ch_range = freq_ch_range, freq_flags = freq_flags, $
           spec_window_type = spec_window_type, delta_uv_lambda = delta_uv_lambda, max_uv_lambda = max_uv_lambda, $
-          std_power = std_power, no_kzero = no_kzero, $
+          std_power = std_power, no_wtd_avg = no_wtd_avg, no_kzero = no_kzero, $
           log_kpar = log_kpar, log_kperp = log_kperp, kpar_bin = kpar_bin, kperp_bin = kperp_bin, $
           kperp_range_1dave = kperp_range_1dave, kpar_range_1dave = kpar_range_1dave, /quiet
       endif else $
         fhd_3dps, file_struct_arr[i], kcube_refresh = refresh_ps, freq_ch_range = freq_ch_range, $
         freq_flags = freq_flags, spec_window_type = spec_window_type, $
-        std_power = std_power, no_kzero = no_kzero, uvf_input = uvf_input, uv_avg = uv_avg, uv_img_clip = uv_img_clip, $
+        std_power = std_power, no_wtd_avg = no_wtd_avg, no_kzero = no_kzero, uvf_input = uvf_input, uv_avg = uv_avg, uv_img_clip = uv_img_clip, $
         log_kpar = log_kpar, log_kperp = log_kperp, kpar_bin = kpar_bin, kperp_bin = kperp_bin, $
         kperp_range_1dave = kperp_range_1dave, kpar_range_1dave = kpar_range_1dave, /quiet
     endif

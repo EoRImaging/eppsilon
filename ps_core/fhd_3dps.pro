@@ -3,7 +3,7 @@ pro fhd_3dps, file_struct, refresh = refresh, kcube_refresh = kcube_refresh, dft
     uvf_input = uvf_input, uv_avg = uv_avg, uv_img_clip = uv_img_clip, $
     dft_fchunk = dft_fchunk, freq_ch_range = freq_ch_range, freq_flags = freq_flags, $
     spec_window_type = spec_window_type, delta_uv_lambda = delta_uv_lambda, max_uv_lambda = max_uv_lambda, $
-    std_power = std_power, no_kzero = no_kzero, log_kpar = log_kpar, $
+    std_power = std_power, no_wtd_avg = no_wtd_avg, no_kzero = no_kzero, log_kpar = log_kpar, $
     log_kperp = log_kperp, kperp_bin = kperp_bin, kpar_bin = kpar_bin, log_k1d = log_k1d, k1d_bin = k1d_bin, $
     kperp_range_1dave = kperp_range_1dave, kpar_range_1dave = kpar_range_1dave, $
     input_units = input_units, fill_holes = fill_holes, quiet = quiet
@@ -53,35 +53,69 @@ pro fhd_3dps, file_struct, refresh = refresh, kcube_refresh = kcube_refresh, dft
       power_weights1 = 1d/(4*(sigma2_1)^2d)
       wh_sig1_0 = where(sigma2_1^2d eq 0, count_sig1_0)
       if count_sig1_0 ne 0 then power_weights1[wh_sig1_0] = 0
-      term1 = abs(data_sum_1)^2.*power_weights1
-      undefine, data_sum_1
+      undefine, sigma2_1
       
       power_weights2 = 1d/(4*(sigma2_2)^2d) ;; inverse variance
       wh_sig2_0 = where(sigma2_2^2d eq 0, count_sig2_0)
       if count_sig2_0 ne 0 then power_weights2[wh_sig2_0] = 0
-      term2 = abs(data_sum_2)^2.*power_weights2
-      undefine, data_sum_2
+      undefine, sigma2_2
       
-      ;; Factor of 2 because we're adding the cosine & sine terms
-      noise_expval_3d = (sqrt(power_weights1) + sqrt(power_weights2))*2.
+      if keyword_set(no_wtd_avg) then begin
+        term1 = abs(data_sum_1)^2.
+        term2 = abs(data_sum_2)^2.
+        undefine, data_sum_1, data_sum_2
+        
+        weights_3d = (power_weights1 + power_weights2)
+        undefine, power_weights1, power_weights2
+        
+        ;; expected noise is just sqrt(variance)
+        noise_expval_3d = 1./sqrt(weights_3d)
+        
+        ;; Add the 2 terms
+        power_3d = (term1 + term2)
+        undefine, term1, term2
+        
+        wh_wt0 = where(weights_3d eq 0, count_wt0)
+        if count_wt0 ne 0 then begin
+          power_3d[wh_wt0] = 0
+          noise_expval_3d[wh_wt0] = 0
+        endif
+        
+      endif else begin
+        term1 = abs(data_sum_1)^2.*power_weights1
+        term2 = abs(data_sum_2)^2.*power_weights2
+        undefine, data_sum_1, data_sum_2
+        
+        ;; Factor of 2 because we're adding the cosine & sine terms
+        noise_expval_3d = (sqrt(power_weights1 + power_weights2))*2.
+        ;; except for kparallel=0 b/c there's only one term
+        noise_expval_3d[*,*,0] = noise_expval_3d[*,*,0]/2.
+        
+        weights_3d = (power_weights1 + power_weights2)
+        undefine, power_weights1, power_weights2
+        
+        ;; multiply by 2 because power is generally the SUM of the cosine & sine powers
+        power_3d = (term1 + term2)*2.
+        ;; except for kparallel=0 b/c there's only one term
+        power_3d[*,*,0] = power_3d[*,*,0]/2.
+        
+        power_3d = power_3d / weights_3d
+        noise_expval_3d = noise_expval_3d / weights_3d
+        undefine, term1, term2
+        
+        wh_wt0 = where(weights_3d eq 0, count_wt0)
+        if count_wt0 ne 0 then begin
+          power_3d[wh_wt0] = 0
+          noise_expval_3d[wh_wt0] = 0
+        endif
+        
+        ;; variance_3d = 4/weights_3d b/c of factors of 2 in power
+        ;; in later code variance is taken to be 1/weights so divide by 4 now
+        weights_3d = weights_3d/4.
+        ;; except for kparallel=0 b/c there's only one term
+        weights_3d[*,*,0] = weights_3d[*,*,0]/4.
+      endelse
       
-      weights_3d = (power_weights1 + power_weights2)
-      undefine, power_weights1, power_weights2
-      
-      ;; multiply by 2 because power is generally the SUM of the cosine & sine powers
-      power_3d = (term1 + term2)*2. / weights_3d
-      noise_expval_3d = noise_expval_3d / weights_3d
-      wh_wt0 = where(weights_3d eq 0, count_wt0)
-      if count_wt0 ne 0 then begin
-        power_3d[wh_wt0] = 0
-        noise_expval_3d[wh_wt0] = 0
-      endif
-      
-      ;; variance_3d = 4/weights_3d b/c of factors of 2 in power
-      ;; in later code variance is taken to be 1/weights so divide by 4 now
-      weights_3d = weights_3d/4.
-      
-      undefine, term1, term2
       
     endif else begin
       ;; nfiles=2
@@ -101,39 +135,79 @@ pro fhd_3dps, file_struct, refresh = refresh, kcube_refresh = kcube_refresh, dft
       if count_sig2_0 ne 0 then power_weights2[wh_sig2_0] = 0
       undefine, sigma2_1
       
-      term1 = (abs(data_sum_1)^2. - abs(data_diff_1)^2.) * power_weights1
-      term2 = (abs(data_sum_2)^2. - abs(data_diff_2)^2.) * power_weights2
-      undefine, data_sum_1, data_sum_2
-      
-      noise_t1 = abs(data_diff_1)^2. * power_weights1
-      noise_t2 = abs(data_diff_2)^2. * power_weights2
-      undefine, data_diff_1, data_diff_2
-      
-      ;; Factor of 2 because we're adding the cosine & sine terms
-      noise_expval_3d = (sqrt(power_weights1) + sqrt(power_weights2))*2
-      
-      weights_3d = power_weights1 + power_weights2
-      undefine, power_weights1, power_weights2
-      
-      ;; divide by 4 on power b/c otherwise it would be 4*Re(even-odd crosspower)
-      ;power_3d = (term1 + term2) / (4. * weights_3d)
-      ;; Actually the 4*crosspower is what we want, see Adam's memo
-      ;; multiply by 2 because power is generally the SUM of the cosine & sine powers
-      power_3d = (term1 + term2)*2. / weights_3d
-      noise_3d = (noise_t1 + noise_t2)*2 / weights_3d
-      noise_expval_3d = noise_expval_3d / weights_3d
-      undefine, term1, term2, noise_t1, noise_t2
-      
-      wh_wt0 = where(weights_3d eq 0, count_wt0)
-      if count_wt0 ne 0 then begin
-        power_3d[wh_wt0] = 0
-        noise_expval_3d[wh_wt0] = 0
-        noise_3d[wh_wt0] = 0
-      endif
-      
-      ;; variance_3d = 4/weights_3d b/c of factors of 2 in power
-      ;; in later code variance is taken to be 1/weights so divide by 4 now
-      weights_3d = weights_3d/4.
+      if keyword_set(no_wtd_avg) then begin
+        term1 = (abs(data_sum_1)^2. - abs(data_diff_1)^2.)
+        term2 = (abs(data_sum_2)^2. - abs(data_diff_2)^2.)
+        undefine, data_sum_1, data_sum_2
+        
+        noise_t1 = abs(data_diff_1)^2.
+        noise_t2 = abs(data_diff_2)^2.
+        undefine, data_diff_1, data_diff_2
+        
+        weights_3d = power_weights1 + power_weights2
+        undefine, power_weights1, power_weights2
+        
+        ;; expected noise is just sqrt(variance)
+        noise_expval_3d = 1./sqrt(weights_3d)
+        
+        ;; Add the 2 terms
+        power_3d = (term1 + term2)
+        noise_3d = (noise_t1 + noise_t2)
+        undefine, term1, term2, noise_t1, noise_t2
+        
+        wh_wt0 = where(weights_3d eq 0, count_wt0)
+        if count_wt0 ne 0 then begin
+          power_3d[wh_wt0] = 0
+          noise_expval_3d[wh_wt0] = 0
+          noise_3d[wh_wt0] = 0
+        endif
+        
+      endif else begin
+        term1 = (abs(data_sum_1)^2. - abs(data_diff_1)^2.) * power_weights1
+        term2 = (abs(data_sum_2)^2. - abs(data_diff_2)^2.) * power_weights2
+        undefine, data_sum_1, data_sum_2
+        
+        noise_t1 = abs(data_diff_1)^2. * power_weights1
+        noise_t2 = abs(data_diff_2)^2. * power_weights2
+        undefine, data_diff_1, data_diff_2
+        
+        ;; Factor of 2 because we're adding the cosine & sine terms
+        noise_expval_3d = sqrt(power_weights1 + power_weights2)*2
+        ;; except for kparallel=0 b/c there's only one term
+        noise_expval_3d[*,*,0] = noise_expval_3d[*,*,0]/2.
+        
+        
+        weights_3d = power_weights1 + power_weights2
+        undefine, power_weights1, power_weights2
+        
+        ;; divide by 4 on power b/c otherwise it would be 4*Re(even-odd crosspower)
+        ;power_3d = (term1 + term2) / (4. * weights_3d)
+        ;; Actually the 4*crosspower is what we want, see Adam's memo
+        ;; multiply by 2 because power is generally the SUM of the cosine & sine powers
+        power_3d = (term1 + term2)*2.
+        noise_3d = (noise_t1 + noise_t2)*2
+        ;; except for kparallel=0 b/c there's only one term
+        power_3d[*,*,0] = power_3d[*,*,0]/2.
+        noise_3d[*,*,0] = noise_3d[*,*,0]/2.
+        
+        power_3d = power_3d / weights_3d
+        noise_3d = noise_3d / weights_3d
+        noise_expval_3d = noise_expval_3d / weights_3d
+        undefine, term1, term2, noise_t1, noise_t2
+        
+        wh_wt0 = where(weights_3d eq 0, count_wt0)
+        if count_wt0 ne 0 then begin
+          power_3d[wh_wt0] = 0
+          noise_expval_3d[wh_wt0] = 0
+          noise_3d[wh_wt0] = 0
+        endif
+        
+        ;; variance_3d = 4/weights_3d b/c of factors of 2 in power
+        ;; in later code variance is taken to be 1/weights so divide by 4 now
+        weights_3d = weights_3d/4.
+        ;; except for kparallel=0 b/c there's only one term
+        weights_3d[*,*,0] = weights_3d[*,*,0]/4.
+      endelse
       
     endelse
     

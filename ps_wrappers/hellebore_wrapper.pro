@@ -1,7 +1,7 @@
 pro hellebore_wrapper, folder_name, obs_range, rts = rts, casa = casa, version = version, refresh_dft = refresh_dft, refresh_ps = refresh_ps, $
     refresh_binning = refresh_binning, refresh_info = refresh_info, dft_ian = dft_ian, $
     pol_inc = pol_inc, sim = sim, freq_ch_range = freq_ch_range, freq_flag_name = freq_flag_name, $
-    no_spec_window = no_spec_window, spec_window_type = spec_window_type, std_power = std_power, $
+    no_spec_window = no_spec_window, spec_window_type = spec_window_type, std_power = std_power, no_wtd_avg = no_wtd_avg, $
     cut_image = cut_image, individual_plots = individual_plots, plot_filebase = plot_filebase, png = png, eps = eps, pdf = pdf, $
     plot_slices = plot_slices, slice_type = slice_type, uvf_plot_type = uvf_plot_type, $
     kperp_range_1dave = kperp_range_1dave, kpar_range_1dave = kpar_range_1dave, uv_avg = uv_avg, uv_img_clip = uv_img_clip,$
@@ -210,7 +210,7 @@ pro hellebore_wrapper, folder_name, obs_range, rts = rts, casa = casa, version =
     pol_inc = pol_inc, rts = rts, casa = casa, dft_fchunk=dft_fchunk, $
     refresh_dft = refresh_dft, refresh_ps = refresh_ps, refresh_binning = refresh_binning, refresh_info = refresh_info, $
     freq_ch_range = freq_ch_range, freq_flags = freq_flags, freq_flag_name = freq_flag_name, $
-    no_spec_window = no_spec_window, spec_window_type = spec_window_type, std_power = std_power, $
+    no_spec_window = no_spec_window, spec_window_type = spec_window_type, std_power = std_power, no_wtd_avg = no_wtd_avg, $
     sim = sim, cut_image = cut_image, dft_ian = dft_ian, uvf_input = uvf_input, uv_avg = uv_avg, uv_img_clip = uv_img_clip, $
     log_kpar = log_kpar, log_kperp = log_kperp, kpar_bin = kpar_bin, kperp_bin = kperp_bin, $
     log_k1d = log_k1d, k1d_bin = k1d_bin, kperp_range_1dave = kperp_range_1dave, kpar_range_1dave = kpar_range_1dave,$
