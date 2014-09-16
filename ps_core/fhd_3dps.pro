@@ -113,7 +113,7 @@ pro fhd_3dps, file_struct, refresh = refresh, kcube_refresh = kcube_refresh, dft
         ;; in later code variance is taken to be 1/weights so divide by 4 now
         weights_3d = weights_3d/4.
         ;; except for kparallel=0 b/c there's only one term
-        weights_3d[*,*,0] = weights_3d[*,*,0]/4.
+        weights_3d[*,*,0] = weights_3d[*,*,0]*4.
       endelse
       
       
