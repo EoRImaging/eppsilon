@@ -831,7 +831,7 @@ pro fhd_data_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol
         
         flat_file_1d = file_path + 'flat_power_1d.idlsave'
         if n_elements(psyms) gt 0 then psyms = [psyms, -3] else psyms = [intarr(n_elements(file_arr))+10, -3]
-        file_arr = [file_arr, flat_power_filename]
+        file_arr = [file_arr, flat_file_1d]
         titles = [titles, 'input flat power']
       endif
       
