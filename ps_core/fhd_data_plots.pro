@@ -15,7 +15,7 @@ pro fhd_data_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol
     plot_eor_1d = plot_eor_1d, individual_plots = individual_plots
     
     
-  if keyword_set(refresh_dft) then refresh_ps = 1
+  if keyword_set(refresh_dft) then refresh_beam = 1
   if keyword_set(refresh_beam) then refresh_ps = 1
   if keyword_set(refresh_ps) then refresh_binning = 1
   
@@ -818,14 +818,28 @@ pro fhd_data_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol
         titles = [titles, 'EoR signal']
       endif else print, 'Could not locate catalog_data directory in !path variable'
       
-      restore, eor_file_1d
-      power = strarr(n_elements(k_centers))+max(power)
-      flat_power_filename = base_path() + 'single_use/flat_power_1d.idlsave'
-      save, filename = flat_power_filename, power, k_centers
       
-      if n_elements(psyms) gt 0 then psyms = [psyms, -3] else psyms = [intarr(n_elements(file_arr))+10, -3]
-      file_arr = [file_arr, flat_power_filename]
-      titles = [titles, 'input flat power']
+      ;; look for flat 1d file
+      path_dirs = strsplit(!path, '[;:]', /regex, /extract)
+      singleuse_loc = strpos(path_dirs, 'single_use')
+      wh_singleuse = where(singleuse_loc gt 0, count_singleuse)
+      if count_singleuse gt 0 then begin
+        file_path = path_dirs[wh_singleuse[0]]
+        ;; make sure file_path has a path separator at the end
+        pos = strpos(file_path, path_sep(), /reverse_search)
+        if pos+1-strlen(file_path) lt 0 then file_path = file_path + path_sep()
+        
+        flat_file_1d = file_path + 'flat_power_1d.idlsave'
+        if n_elements(psyms) gt 0 then psyms = [psyms, -3] else psyms = [intarr(n_elements(file_arr))+10, -3]
+        file_arr = [file_arr, flat_power_filename]
+        titles = [titles, 'input flat power']
+      endif
+      
+    ; restore, eor_file_1d
+    ;      power = strarr(n_elements(k_centers))+max(power)
+    ;      flat_power_filename = base_path() + 'single_use/flat_power_1d.idlsave'
+    ;      save, filename = flat_power_filename, power, k_centers
+      
       
     ;    jonnie_file_text = base_path() + 'single_use/eor_pspec1d_centers.txt'
     ;    TextFast, jonnie_data, file_path = jonnie_file_text, /read
