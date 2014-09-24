@@ -813,28 +813,13 @@ pro fhd_data_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol
         if pos+1-strlen(file_path) lt 0 then file_path = file_path + path_sep()
         
         eor_file_1d = file_path + 'eor_power_1d.idlsave'
-        psyms = [intarr(n_elements(file_arr))+10, -3]
-        file_arr = [file_arr, eor_file_1d]
-        titles = [titles, 'EoR signal']
+        flat_file_1d = file_path + 'flat_power_1d.idlsave'
+        psyms = [intarr(n_elements(file_arr))+10, -3, -3]
+        file_arr = [file_arr, eor_file_1d, flat_file_1d]
+        titles = [titles, 'EoR signal', 'input flat power']
       endif else print, 'Could not locate catalog_data directory in !path variable'
       
-      
-      ;; look for flat 1d file
-      path_dirs = strsplit(!path, '[;:]', /regex, /extract)
-      singleuse_loc = strpos(path_dirs, 'single_use')
-      wh_singleuse = where(singleuse_loc gt 0, count_singleuse)
-      if count_singleuse gt 0 then begin
-        file_path = path_dirs[wh_singleuse[0]]
-        ;; make sure file_path has a path separator at the end
-        pos = strpos(file_path, path_sep(), /reverse_search)
-        if pos+1-strlen(file_path) lt 0 then file_path = file_path + path_sep()
-        
-        flat_file_1d = file_path + 'flat_power_1d.idlsave'
-        if n_elements(psyms) gt 0 then psyms = [psyms, -3] else psyms = [intarr(n_elements(file_arr))+10, -3]
-        file_arr = [file_arr, flat_file_1d]
-        titles = [titles, 'input flat power']
-      endif
-      
+     
     ; restore, eor_file_1d
     ;      power = strarr(n_elements(k_centers))+max(power)
     ;      flat_power_filename = base_path() + 'single_use/flat_power_1d.idlsave'
