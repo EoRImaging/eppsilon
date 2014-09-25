@@ -39,7 +39,7 @@ pro enterprise_wrapper, folder_name, obs_name, rts = rts, $
       endif
     endif
     if folder_test eq 0 then begin
-      test_name = start_path + 'RTS/' + folder_name
+      test_name = start_path + folder_name
       folder_test = file_test(test_name, /directory)
       if folder_test eq 1 then folder_name = test_name
     endif
@@ -50,7 +50,7 @@ pro enterprise_wrapper, folder_name, obs_name, rts = rts, $
     obs_info = ps_filenames(folder_name, obs_name, rts = rts, sim = sim, casa = casa, save_paths = save_path, plot_path = save_path)
     
     if obs_info.info_files[0] ne '' then datafile = obs_info.info_files[0] else $
-      if obs_info.cube_files[0] ne '' then datafile = obs_info.cube_files[0] else $
+      if obs_info.cube_files.(0) ne '' then datafile = obs_info.cube_files.(0) else $
       datafile = rts_fits2idlcube(obs_info.datafiles.(0), obs_info.weightfiles.(0), obs_info.variancefiles.(0), $
       pol_inc, save_path = obs_info.folder_names[0]+path_sep(), refresh = refresh_dft)
       

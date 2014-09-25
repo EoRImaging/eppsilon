@@ -120,7 +120,7 @@ function ps_filenames, folder_names, obs_names_in, rts = rts, sim = sim, casa = 
         weightfile_list = file_search(folder_names[i] + '/' + data_subdirs[i] + obs_names[i] + '*_weights*.fits', count = n_wtfiles)
         if n_wtfiles ne n_elements(fits_files) and info_files[i] eq '' then message, 'number of weight files does not match number of datafiles'
         
-        variancefile_list = file_search(folder_names[i] + '/' + data_subdirs[i] + obs_names[i] + '*_weights*.fits', count = n_varfiles)
+        variancefile_list = file_search(folder_names[i] + '/' + data_subdirs[i] + obs_names[i] + '*_variance*.fits', count = n_varfiles)
         if n_varfiles ne n_elements(fits_files) and info_files[i] eq '' then message, 'number of variance files does not match number of datafiles'
       endelse
       
