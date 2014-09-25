@@ -105,6 +105,7 @@ rm -f ${FHDdir}/Healpix/${version}_int_chunk*.txt # remove any old chunk files l
 exit_flag=0
 
 #Check that cubes or integrated cubes are present, print and error if they are not
+if [ "$ps_only" -ne "1" ]; then # only if we're integrating
 while read line
 do
    if [ "$first_line_len" == 10 ]; then
@@ -124,6 +125,7 @@ do
       fi
    fi
 done < $integrate_list
+fi
 
 if [ "$exit_flag" -eq 1 ]; then exit 1; fi
 

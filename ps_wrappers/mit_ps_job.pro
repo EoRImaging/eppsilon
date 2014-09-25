@@ -11,9 +11,9 @@ pro mit_ps_job
 
   if (nargs eq 3) then begin
      n_obs=args[2]
-     mit_wrapper,folder_name,obs_range,n_obs=n_obs
+     mit_wrapper,folder_name,obs_range,n_obs=n_obs,/png
   endif else begin
-     mit_wrapper,folder_name,obs_range
+     mit_wrapper,folder_name,obs_range,/png
   endelse
   
 end

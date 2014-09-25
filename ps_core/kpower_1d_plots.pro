@@ -1,6 +1,6 @@
 pro kpower_1d_plots, power_savefile, plot_weights = plot_weights, multi_pos = multi_pos, data_range = data_range, k_range = k_range, $
-    png = png, eps = eps, pdf = pdf, plotfile = plotfile, window_num = window_num, colors = colors, names = names, save_text = save_text, $
-    delta = delta, hinv = hinv, note = note, title = title
+    png = png, eps = eps, pdf = pdf, plotfile = plotfile, window_num = window_num, colors = colors, names = names, psyms = psyms, $
+    save_text = save_text, delta = delta, hinv = hinv, note = note, title = title
     
   if n_elements(plotfile) gt 0 or keyword_set(png) or keyword_set(eps) or keyword_set(pdf) then pub = 1 else pub = 0
   if pub eq 1 then begin
@@ -46,6 +46,11 @@ pro kpower_1d_plots, power_savefile, plot_weights = plot_weights, multi_pos = mu
   
   nfiles = n_elements(power_savefile)
   if n_elements(names) gt 0 and n_elements(names) ne nfiles then message, 'Number of names does not match number of files'
+  if n_elements(colors) gt 0 and n_elements(colors) ne nfiles then message, 'Number of colors does not match number of files'
+  if n_elements(psyms) gt 0 then begin
+    if n_elements(psym) eq 1 then psyms = intarr(nfiles) + psyms
+    if n_elements(psyms) ne nfiles then message, 'Number of psyms does not match number of files'
+  endif else psyms = intarr(nfiles) + 10
   
   margin = [0.15, 0.2, 0.05, 0.1]
   plot_pos = [margin[0], margin[1], (1-margin[2]), (1-margin[3])]
@@ -88,7 +93,7 @@ pro kpower_1d_plots, power_savefile, plot_weights = plot_weights, multi_pos = mu
   
   for i=0, nfiles-1 do begin
     restore, power_savefile[i]
-        
+    
     n_k = n_elements(power)
     
     if keyword_set(plot_weights) then begin
@@ -96,10 +101,10 @@ pro kpower_1d_plots, power_savefile, plot_weights = plot_weights, multi_pos = mu
       else message, 'No weights array included in this file'
     endif
     
-    if keyword_set(h_inv) then begin
-      k_edges = k_edges / hubble_param
+    if keyword_set(hinv) then begin
+      if n_elements(k_edges) ne 0 then k_edges = k_edges / hubble_param
       if n_elements(k_centers) ne 0 then k_centers = k_centers / hubble_param
-      if not keyword_set(weights) then power = power * (hubble_param)^3d
+      if not keyword_set(plot_weights) then power = power * (hubble_param)^3d
     endif
     
     log_bins = 1
@@ -175,10 +180,12 @@ pro kpower_1d_plots, power_savefile, plot_weights = plot_weights, multi_pos = mu
       k_edges = k_edges[[wh_keep, max(wh_keep)+1]]
     endif
     
-    ;; extend arrays for plotting full histogram bins
-    if min(k_edges gt 0) then k_mid = [min(k_edges), k_mid, max(k_edges)] $
-    else k_mid = [10^(alog10(k_mid[0])-k_log_diffs[0]), k_mid, max(k_edges)]
-    power = [power[0], power, power[n_elements(power)-1]]
+    ;; extend arrays for plotting full histogram bins if plotting w/ psym=10
+    if psyms[i] eq 10 then begin
+      if min(k_edges gt 0) then k_mid = [min(k_edges), k_mid, max(k_edges)] $
+      else k_mid = [10^(alog10(k_mid[0])-k_log_diffs[0]), k_mid, max(k_edges)]
+      power = [power[0], power, power[n_elements(power)-1]]
+    endif
     
     tag = 'f' + strsplit(string(i),/extract)
     if i eq 0 then begin
@@ -204,7 +211,7 @@ pro kpower_1d_plots, power_savefile, plot_weights = plot_weights, multi_pos = mu
     if n_elements(k_edges) ne 0 then undefine, k_edges
     if n_elements(k_centers) ne 0 then undefine, k_centers
   endfor
-    
+  
   xloc_note = .99
   yloc_note = 0 + 0.1* (plot_pos[1]-0)
   
@@ -238,17 +245,17 @@ pro kpower_1d_plots, power_savefile, plot_weights = plot_weights, multi_pos = mu
   else xtitle = textoidl('k (Mpc^{-1})', font = font)
   
   cgplot, k_plot.(plot_order[0]), power_plot.(plot_order[0]), position = plot_pos, /ylog, /xlog, xrange = xrange, yrange = yrange, $
-    xstyle=1, ystyle=1, axiscolor = 'black', xtitle = xtitle, ytitle = ytitle, title = title, psym=10, xtickformat = 'exponent', $
+    xstyle=1, ystyle=1, axiscolor = 'black', xtitle = xtitle, ytitle = ytitle, title = title, psym=psyms[0], xtickformat = 'exponent', $
     ytickformat = 'exponent', thick = thick, charthick = charthick, xthick = xthick, ythick = ythick, charsize = charsize, $
     font = font, noerase = no_erase
-  for i=0, nfiles - 1 do cgplot, /overplot, k_plot.(plot_order[i]), power_plot.(plot_order[i]), psym=10, color = colors[i], $
+  for i=0, nfiles - 1 do cgplot, /overplot, k_plot.(plot_order[i]), power_plot.(plot_order[i]), psym=psyms[i], color = colors[i], $
     thick = thick
-
+    
   if n_elements(note) ne 0 then begin
     if keyword_set(pub) then char_factor = 0.75 else char_factor = 1
     cgtext, xloc_note, yloc_note, note, /normal, alignment=1, charsize = char_factor*charsize, font = font
   endif
-    
+  
   if log_bins gt 0 then bottom = 1 else bottom = 0
   if n_elements(names) ne 0 then $
     al_legend, names, textcolor = colors, box = 0, /right, bottom = bottom, charsize = legend_charsize, charthick = charthick

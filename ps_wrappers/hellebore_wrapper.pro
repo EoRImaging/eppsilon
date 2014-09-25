@@ -1,12 +1,12 @@
 pro hellebore_wrapper, folder_name, obs_range, rts = rts, casa = casa, version = version, refresh_dft = refresh_dft, refresh_ps = refresh_ps, $
     refresh_binning = refresh_binning, refresh_info = refresh_info, dft_ian = dft_ian, $
     pol_inc = pol_inc, sim = sim, freq_ch_range = freq_ch_range, freq_flag_name = freq_flag_name, $
-    no_spec_window = no_spec_window, spec_window_type = spec_window_type, std_power = std_power, $
+    no_spec_window = no_spec_window, spec_window_type = spec_window_type, std_power = std_power, no_wtd_avg = no_wtd_avg, $
     cut_image = cut_image, individual_plots = individual_plots, plot_filebase = plot_filebase, png = png, eps = eps, pdf = pdf, $
     plot_slices = plot_slices, slice_type = slice_type, uvf_plot_type = uvf_plot_type, $
     kperp_range_1dave = kperp_range_1dave, kpar_range_1dave = kpar_range_1dave, uv_avg = uv_avg, uv_img_clip = uv_img_clip,$
-    kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
-    t32 = t32, set_data_ranges = set_data_ranges
+    kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, $
+    t32 = t32, set_data_ranges = set_data_ranges, plot_ranges = plot_ranges
     
   if n_elements(folder_name) eq 0 then message, 'folder name is required'
   if n_elements(folder_name) gt 1 then message, 'Only one folder_name can be supplied'
@@ -28,6 +28,20 @@ pro hellebore_wrapper, folder_name, obs_range, rts = rts, casa = casa, version =
   obs_info = hellebore_filenames(folder_name, obs_name, sim = sim, rts = rts, casa = casa)
   if tag_exist(obs_info, 'uvf_input') then uvf_input=obs_info.uvf_input
   
+  if n_elements(plot_ranges) gt 0 then begin
+    if tag_exist(plot_ranges, 'sigma') then sigma_range = plot_ranges.sigma
+    if tag_exist(plot_ranges, 'noise_exp') then nev_range = plot_ranges.noise_exp
+    if tag_exist(plot_ranges, 'power') then data_range = plot_ranges.power
+    if tag_exist(plot_ranges, 'noise_ratio') then nnr_range = plot_ranges.noise_ratio
+    if tag_exist(plot_ranges, 'snr') then snr_range = plot_ranges.snr
+    if tag_exist(plot_ranges, 'noise') then noise_range = plot_ranges.noise
+    
+    if tag_exist(plot_ranges, 'power_1d') then range_1d = plot_ranges.power_1d
+    
+    if tag_exist(plot_ranges, 'kperp') then kperp_plot_range = plot_ranges.kperp
+    if tag_exist(plot_ranges, 'kpar') then kpar_plot_range = plot_ranges.kpar
+  endif
+  
   if keyword_set(rts) then begin
     if keyword_set(casa) then message, 'rts and casa keywords cannot both be set'
     
@@ -40,14 +54,14 @@ pro hellebore_wrapper, folder_name, obs_range, rts = rts, casa = casa, version =
     
     if n_elements(set_data_ranges) eq 0 then set_data_ranges = 1
     if keyword_set(set_data_ranges) then begin
-      sigma_range = [1e22, 1e26]
-      nev_range = [5e22, 5e26]
+      if n_elements(sigma_range) eq 0 then sigma_range = [1e22, 1e26]
+      if n_elements(nev_range) eq 0 then nev_range = [5e22, 5e26]
       
-      data_range = [1e14, 1e20]
-      nnr_range = [5e-9,5e-7]
-      snr_range = [1e-10, 1e-3]
+      if n_elements(data_range) eq 0 then data_range = [1e14, 1e20]
+      if n_elements(nnr_range) eq 0 then nnr_range = [5e-9,5e-7]
+      if n_elements(snr_range) eq 0 then snr_range = [1e-10, 1e-3]
       
-      noise_range = [2e15, 1e18]
+      if n_elements(noise_range) eq 0 then noise_range = [2e15, 1e18]
     endif
     
   endif else if keyword_set(casa) then begin
@@ -60,14 +74,14 @@ pro hellebore_wrapper, folder_name, obs_range, rts = rts, casa = casa, version =
     
     if n_elements(set_data_ranges) eq 0 then set_data_ranges = 0
     if keyword_set(set_data_ranges) then begin
-      sigma_range = [1e15, 1e17]
-      nev_range = [1e16, 1e18]
+      if n_elements(sigma_range) eq 0 then sigma_range = [1e15, 1e17]
+      if n_elements(nev_range) eq 0 then nev_range = [1e16, 1e18]
       
-      data_range = [1e6, 2e13]
-      nnr_range = [1e-8, 1e-6]
-      snr_range = [1e-10, 1e-2]
+      if n_elements(data_range) eq 0 then data_range = [1e6, 2e13]
+      if n_elements(nnr_range) eq 0 then nnr_range = [1e-8, 1e-6]
+      if n_elements(snr_range) eq 0 then snr_range = [1e-10, 1e-2]
       
-      noise_range = [1e9, 1e12]
+      if n_elements(noise_range) eq 0 then noise_range = [1e9, 1e12]
     endif
     
   endif else begin
@@ -76,29 +90,41 @@ pro hellebore_wrapper, folder_name, obs_range, rts = rts, casa = casa, version =
     
     if tag_exist(obs_info, 'beam_files') then beamfiles = obs_info.beam_files
     
-    plot_filebase = obs_info.fhd_types[0] + '_' + obs_info.obs_names[0]
+    plot_filebase = obs_info.folder_basenames[0] + '_' + obs_info.obs_names[0]
     note = obs_info.fhd_types[0]
     
     if keyword_set(sim) then begin
       plot_eor_1d=1
-      range_1d = [1e0, 1e7]
+      if n_elements(range_1d) eq 0 then range_1d = [1e0, 1e7]
     endif
     
-    if n_elements(set_data_ranges) eq 0 then set_data_ranges = 1
+    if n_elements(set_data_ranges) eq 0 and not keyword_set(sim) then set_data_ranges = 1
+    
     if keyword_set(set_data_ranges) then begin
-      if keyword_set(obs_info.integrated[0]) then begin
-        sigma_range = [2e5, 2e9]
-        nev_range = [2e6, 2e10]
+      if keyword_set(sim) then begin
+        if n_elements(sigma_range) eq 0 then sigma_range = [7e9, 6e14]
+        if n_elements(nev_range) eq 0 then nev_range = [2e10, 4e14]
+        
+        if n_elements(data_range) eq 0 then data_range = [2e2, 2e6]
+        if n_elements(nnr_range) eq 0 then nnr_range = [1e-14, 8e-10]
+        if n_elements(snr_range) eq 0 then snr_range = [5e-10, 1e-5]
+        
+        if n_elements(noise_range) eq 0 then noise_range = nev_range
       endif else begin
-        sigma_range = [1e4, 2e6]
-        nev_range = [5e4, 2e7]
+        if keyword_set(obs_info.integrated[0]) then begin
+          if n_elements(sigma_range) eq 0 then sigma_range = [2e5, 2e9]
+          if n_elements(nev_range) eq 0 then nev_range = [2e6, 2e10]
+        endif else begin
+          if n_elements(sigma_range) eq 0 then sigma_range = [1e4, 2e6]
+          if n_elements(nev_range) eq 0 then nev_range = [5e4, 2e7]
+        endelse
+        
+        if n_elements(data_range) eq 0 then data_range = [1e3, 1e15]
+        if n_elements(nnr_range) eq 0 then nnr_range = [1e-1, 1e1]
+        if n_elements(snr_range) eq 0 then snr_range = [1e-5, 1e7]
+        
+        if n_elements(noise_range) eq 0 then noise_range = nev_range
       endelse
-      
-      data_range = [1e2, 1e14]
-      nnr_range = [1e-1, 1e1]
-      snr_range = [1e-6, 1e6]
-      
-      noise_range = nev_range
     endif
     
     if n_elements(freq_flag_name) ne 0 then begin
@@ -117,8 +143,6 @@ pro hellebore_wrapper, folder_name, obs_range, rts = rts, casa = casa, version =
     
     
   endelse
-  
-  
   
   ;; dft_fchunk applies only to Healpix datasets (it's ignored otherwise) and it specifies how many frequencies to process
   ;;   through the dft at once. This keyword allows for trade-offs between memory use and speed.
@@ -210,7 +234,7 @@ pro hellebore_wrapper, folder_name, obs_range, rts = rts, casa = casa, version =
     pol_inc = pol_inc, rts = rts, casa = casa, dft_fchunk=dft_fchunk, $
     refresh_dft = refresh_dft, refresh_ps = refresh_ps, refresh_binning = refresh_binning, refresh_info = refresh_info, $
     freq_ch_range = freq_ch_range, freq_flags = freq_flags, freq_flag_name = freq_flag_name, $
-    no_spec_window = no_spec_window, spec_window_type = spec_window_type, std_power = std_power, $
+    no_spec_window = no_spec_window, spec_window_type = spec_window_type, std_power = std_power, no_wtd_avg = no_wtd_avg, $
     sim = sim, cut_image = cut_image, dft_ian = dft_ian, uvf_input = uvf_input, uv_avg = uv_avg, uv_img_clip = uv_img_clip, $
     log_kpar = log_kpar, log_kperp = log_kperp, kpar_bin = kpar_bin, kperp_bin = kperp_bin, $
     log_k1d = log_k1d, k1d_bin = k1d_bin, kperp_range_1dave = kperp_range_1dave, kpar_range_1dave = kpar_range_1dave,$
@@ -227,8 +251,29 @@ pro hellebore_wrapper, folder_name, obs_range, rts = rts, casa = casa, version =
     print, 'data_range used: ', number_formatter(data_range, format = '(e7.1)')
     print, 'sigma_range used: ', number_formatter(sigma_range, format = '(e7.1)')
     print, 'nev_range used: ', number_formatter(nev_range, format = '(e7.1)')
-    print, 'nnr_range used: ', number_formatter(nnr_range, format = '(e7.1)')
+    if n_elements(nnr_range) gt 0 then print, 'nnr_range used: ', number_formatter(nnr_range, format = '(e7.1)')
     print, 'snr_range used: ', number_formatter(snr_range, format = '(e7.1)')
-    print, 'noise_range used: ', number_formatter(noise_range, format = '(e7.1)')
+    if n_elements(noise_range) gt 0 then print, 'noise_range used: ', number_formatter(noise_range, format = '(e7.1)')
   endif
+  
+  if n_elements(plot_ranges) eq 0 then begin
+    plot_ranges = create_struct('sigma', sigma_range, 'noise_exp', nev_range, 'power', data_range, 'snr', snr_range, $
+      'power_1d', range_1d, 'kperp', kperp_plot_range, 'kpar', kpar_plot_range)
+    if n_elements(nnr_range) gt 0 then plot_ranges = create_struct(plot_ranges, 'noise_ratio', nnr_range)
+    if n_elements(noise_range) gt 0 then plot_ranges = create_struct(plot_ranges, 'noise', noise_range)
+  endif else begin
+    if not tag_exist(plot_ranges, 'sigma') then plot_ranges = create_struct(plot_ranges, 'sigma', sigma_range) else plot_ranges.sigma = sigma_range
+    if not tag_exist(plot_ranges, 'noise_exp') then plot_ranges = create_struct(plot_ranges, 'noise_exp', nev_range) else plot_ranges.noise_exp = nev_range
+    if not tag_exist(plot_ranges, 'power') then plot_ranges = create_struct(plot_ranges, 'power', data_range) else plot_ranges.power = data_range
+    if not tag_exist(plot_ranges, 'snr') then plot_ranges = create_struct(plot_ranges, 'snr', snr_range) else plot_ranges.snr = snr_range
+    if not tag_exist(plot_ranges, 'power_1d') then plot_ranges = create_struct(plot_ranges, 'power_1d', range_1d) else plot_ranges.power_1d = range_1d
+    if n_elements(nnr_range) gt 0 then if not tag_exist(plot_ranges, 'noise_ratio') then $
+      plot_ranges = create_struct(plot_ranges, 'noise_ratio', nnr_range) else plot_ranges.noise_ratio = nnr_range
+    if n_elements(noise_range) gt 0 then if not tag_exist(plot_ranges, 'noise') then $
+      plot_ranges = create_struct(plot_ranges, 'noise', noise_range) else plot_ranges.noise = noise_range
+      
+    if not tag_exist(plot_ranges, 'kperp') then plot_ranges = create_struct(plot_ranges, 'kperp', kperp_plot_range) else plot_ranges.kperp = kperp_plot_range
+    if not tag_exist(plot_ranges, 'kpar') then plot_ranges = create_struct(plot_ranges, 'kpar', kpar_plot_range) else plot_ranges.kpar = kpar_plot_range
+  endelse
+  
 end

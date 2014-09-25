@@ -5,7 +5,7 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
     uvf_savefilebase = uvf_savefilebase_in, savefilebase = savefilebase_in, $
     freq_ch_range = freq_ch_range, freq_flags = freq_flags, freq_flag_name = freq_flag_name, $
     spec_window_type = spec_window_type, delta_uv_lambda = delta_uv_lambda, max_uv_lambda = max_uv_lambda, $
-    sim = sim, std_power = std_power, refresh_info = refresh_info
+    sim = sim, std_power = std_power, no_wtd_avg = no_wtd_avg, refresh_info = refresh_info
     
   if n_elements(pol_inc) ne 0 then pol_inc_in = pol_inc
   
@@ -390,8 +390,11 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
     else message, 'variancevar must be a scalar or have the same number of elements as pol_inc'
     
     if n_elements(beamvar) eq 0 then begin
-      if keyword_set(uvf_input) then beam_varname = strupcase('beam2_' + pol_inc + '_image') else $
+      if keyword_set(uvf_input) then begin
+        if max(pol_exist) gt 0 then beam_varname = strupcase('beam2_image') else beam_varname = strupcase('beam2_' + pol_inc + '_image')
+      endif else begin
         if max(pol_exist) gt 0 then beam_varname = strupcase('beam_squared_cube') else beam_varname = strupcase('beam_' + pol_inc + '_cube')
+      endelse
     endif else beam_varname = beamvar
     if n_elements(beam_varname) ne npol then $
       if n_elements(beam_varname) eq 1 then beam_varname = replicate(beam_varname, npol) $
@@ -609,7 +612,7 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
         if count_freq ne 0 then freq_vals = obs_arr.freq else begin
           wh_bin = where(strlowcase(obs_tags) eq 'bin', count_bin)
           wh_base_info = where(strlowcase(obs_tags) eq 'baseline_info', count_base_info)
-          if count_bin ne 0 or count_base_info then begin
+          if count_bin gt 0 or count_base_info gt 0 then begin
             freq_vals = dblarr(n_freq, n_obs[pol_i, file_i])
             if count_bin ne 0 then for i=0, n_obs[pol_i, file_i]-1 do freq_vals[*,i] = (*obs_arr[i].bin).freq $
             else for i=0, n_obs[pol_i, file_i]-1 do freq_vals[*,i] = (*obs_arr[i].baseline_info).freq
@@ -621,12 +624,15 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
         freq_resolution = freq[1]-freq[0]
         
         dt_vals = dblarr(n_obs[pol_i, file_i])
-        for i=0, n_obs[pol_i, file_i]-1 do begin
-          times = (*obs_arr[i].baseline_info).jdate
-          ;; only allow time resolutions of n*.5 sec
-          dt_vals[i] = round(((times[1]-times[0])*24*3600)*2.)/2.
-        endfor
-        if total(abs(dt_vals - dt_vals[0])) ne 0 then message, 'inconsistent time averaging in obs_arr'
+        wh_timeres = where(strlowcase(obs_tags) eq 'time_res', count_timeres)
+        if count_timeres ne 0 then dt_vals = obs_arr.time_res else begin
+          for i=0, n_obs[pol_i, file_i]-1 do begin
+            times = (*obs_arr[i].baseline_info).jdate
+            ;; only allow time resolutions of n*.5 sec
+            dt_vals[i] = round(((times[1]-times[0])*24*3600)*2.)/2.
+          endfor
+          if total(abs(dt_vals - dt_vals[0])) ne 0 then message, 'inconsistent time averaging in obs_arr'
+        endelse
         if j eq 0 then time_resolution = dt_vals[0] else $
           if total(abs(time_resolution - dt_vals[0])) ne 0 then message, 'time averaging does not agree between datafiles'
           
@@ -645,8 +651,11 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
           vis_noise_arr = fltarr([n_obs[pol_i, file_i], n_freq])
           
           noise_dims = size(*obs_arr[0].vis_noise, /dimension)
-          if noise_dims[0] ne npol or noise_dims[1] ne n_freq then message, 'vis_noise dimensions do not match npol, n_freq'
-          for i=0, n_obs[pol_i, file_i]-1 do vis_noise_arr[i, *] = (*obs_arr[i].vis_noise)[pol_i,*]
+          if noise_dims[0] ne npol or noise_dims[1] ne n_freq then begin
+            if min(pol_exist) eq 1 and n_elements(*obs_arr[0].vis_noise) eq n_freq then begin
+              for i=0, n_obs[pol_i, file_i]-1 do vis_noise_arr[i, *] = (*obs_arr[i].vis_noise)
+            endif else message, 'vis_noise dimensions do not match npol, n_freq'
+          endif else for i=0, n_obs[pol_i, file_i]-1 do vis_noise_arr[i, *] = (*obs_arr[i].vis_noise)[pol_i,*]
           
           
           if j eq 0 then vis_noise = fltarr(npol, nfiles, n_freq)
@@ -784,6 +793,7 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
   uvf_tag = uv_tag + fch_tag
   
   if keyword_set(std_power) then power_tag = power_tag + '_stdp' else power_tag = ''
+  if keyword_set(no_wtd_avg) then power_tag = power_tag + '_nowtavg' else power_tag = power_tag + ''
   power_tag = power_tag + sw_tag
   
   if keyword_set(dft_ian) then dft_label = '_ian' else dft_label = ''

@@ -4,7 +4,7 @@ pro fhd_data_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol
     refresh_dft = refresh_dft, refresh_ps = refresh_ps, refresh_binning = refresh_binning, refresh_info = refresh_info, refresh_beam = refresh_beam, $
     dft_fchunk = dft_fchunk, freq_ch_range = freq_ch_range, freq_flags = freq_flags, freq_flag_name = freq_flag_name, $
     no_spec_window = no_spec_window, spec_window_type = spec_window_type, delta_uv_lambda = delta_uv_lambda, max_uv_lambda = max_uv_lambda, $
-    cut_image = cut_image, dft_ian = dft_ian, sim = sim, std_power = std_power, no_kzero = no_kzero, $
+    cut_image = cut_image, dft_ian = dft_ian, sim = sim, std_power = std_power, no_wtd_avg = no_wtd_avg, no_kzero = no_kzero, $
     plot_slices = plot_slices, slice_type = slice_type, uvf_plot_type = uvf_plot_type, plot_stdset = plot_stdset, $
     data_range = data_range, sigma_range = sigma_range, nev_range = nev_range, $
     snr_range = snr_range, noise_range = noise_range, nnr_range = nnr_range, range_1d = range_1d, $
@@ -15,7 +15,8 @@ pro fhd_data_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol
     plot_eor_1d = plot_eor_1d, individual_plots = individual_plots
     
     
-  if keyword_set(refresh_dft) then refresh_ps = 1
+  if keyword_set(refresh_dft) then refresh_beam = 1
+  if keyword_set(refresh_beam) then refresh_ps = 1
   if keyword_set(refresh_ps) then refresh_binning = 1
   
   ;; default to making standard plot set if plot_slices isn't set
@@ -72,7 +73,8 @@ pro fhd_data_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol
   endif else begin
     file_struct_arr = fhd_file_setup(datafile, beamfile = beamfiles, pol_inc, uvf_input = uvf_input, uv_avg = uv_avg, uv_img_clip = uv_img_clip, dft_ian = dft_ian, $
       savefilebase = savefilebase, save_path = save_path, freq_ch_range = freq_ch_range, freq_flags = freq_flags, freq_flag_name = freq_flag_name, $
-      spec_window_type = spec_window_type, delta_uv_lambda = delta_uv_lambda, max_uv_lambda = max_uv_lambda, sim = sim, std_power = std_power, refresh_info = refresh_info)
+      spec_window_type = spec_window_type, delta_uv_lambda = delta_uv_lambda, max_uv_lambda = max_uv_lambda, sim = sim, $
+      std_power = std_power, no_wtd_avg = no_wtd_avg, refresh_info = refresh_info)
   endelse
   time1 = systime(1)
   print, 'file setup time: ' + number_formatter(time1-time0)
@@ -209,13 +211,13 @@ pro fhd_data_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol
           dft_refresh_weight = weight_refresh[i], refresh_beam = refresh_beam, dft_ian = dft_ian, cut_image = cut_image, $
           dft_fchunk = dft_fchunk, freq_ch_range = freq_ch_range, freq_flags = freq_flags, $
           spec_window_type = spec_window_type, delta_uv_lambda = delta_uv_lambda, max_uv_lambda = max_uv_lambda, $
-          std_power = std_power, no_kzero = no_kzero, $
+          std_power = std_power, no_wtd_avg = no_wtd_avg, no_kzero = no_kzero, $
           log_kpar = log_kpar, log_kperp = log_kperp, kpar_bin = kpar_bin, kperp_bin = kperp_bin, $
           kperp_range_1dave = kperp_range_1dave, kpar_range_1dave = kpar_range_1dave, /quiet
       endif else $
         fhd_3dps, file_struct_arr[i], kcube_refresh = refresh_ps, freq_ch_range = freq_ch_range, $
         freq_flags = freq_flags, spec_window_type = spec_window_type, $
-        std_power = std_power, no_kzero = no_kzero, uvf_input = uvf_input, uv_avg = uv_avg, uv_img_clip = uv_img_clip, $
+        std_power = std_power, no_wtd_avg = no_wtd_avg, no_kzero = no_kzero, uvf_input = uvf_input, uv_avg = uv_avg, uv_img_clip = uv_img_clip, $
         log_kpar = log_kpar, log_kperp = log_kperp, kpar_bin = kpar_bin, kperp_bin = kperp_bin, $
         kperp_range_1dave = kperp_range_1dave, kpar_range_1dave = kpar_range_1dave, /quiet
     endif
@@ -229,6 +231,7 @@ pro fhd_data_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol
   if n_elements(kperp_range_1dave) gt 0 and keyword_set(hinv) then kperp_range_1dave = kperp_range_1dave * hubble_param
   if n_elements(kpar_range_1dave) gt 0 and keyword_set(hinv) then kpar_range_1dave = kpar_range_1dave * hubble_param
   
+  if n_elements(git_hashes) ne 0 then print, 'kcube hash: ' + git_hashes.kcube
   
   ;;   baselines = get_baselines(/quiet, freq_mhz = 185)
   ;;   quick_histplot, baselines, title = spec_window_type, xstyle=1, ystyle = 8, xrange = [0, max(kperp_edges)*kperp_lambda_conv], $
@@ -799,9 +802,29 @@ pro fhd_data_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol
     
     if keyword_set(plot_eor_1d) then begin
       ;eor_file_1d = base_path() + 'power_spectrum/eor_data/eor_power_1d.idlsave'
-      eor_file_1d = filepath('eor_power_1d.idlsave',root=rootdir('FHD'),subdir='catalog_data')
-      file_arr = [file_arr, eor_file_1d]
-      titles = [titles, 'EoR signal']
+    
+      path_dirs = strsplit(!path, '[;:]', /regex, /extract)
+      fhd_catalog_loc = strpos(path_dirs, 'catalog_data')
+      wh_catalog = where(fhd_catalog_loc gt 0, count_catalog)
+      if count_catalog gt 0 then begin
+        file_path = path_dirs[wh_catalog[0]]
+        ;; make sure file_path has a path separator at the end
+        pos = strpos(file_path, path_sep(), /reverse_search)
+        if pos+1-strlen(file_path) lt 0 then file_path = file_path + path_sep()
+        
+        eor_file_1d = file_path + 'eor_power_1d.idlsave'
+        flat_file_1d = file_path + 'flat_power_1d.idlsave'
+        psyms = [intarr(n_elements(file_arr))+10, -3, -3]
+        file_arr = [file_arr, eor_file_1d, flat_file_1d]
+        titles = [titles, 'EoR signal', 'input flat power']
+      endif else print, 'Could not locate catalog_data directory in !path variable'
+      
+     
+    ; restore, eor_file_1d
+    ;      power = strarr(n_elements(k_centers))+max(power)
+    ;      flat_power_filename = base_path() + 'single_use/flat_power_1d.idlsave'
+    ;      save, filename = flat_power_filename, power, k_centers
+      
       
     ;    jonnie_file_text = base_path() + 'single_use/eor_pspec1d_centers.txt'
     ;    TextFast, jonnie_data, file_path = jonnie_file_text, /read
@@ -824,8 +847,8 @@ pro fhd_data_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol
     
     k_range = minmax([kperp_plot_range, kpar_bin, kpar_plot_range[1]])
     
-    kpower_1d_plots, file_arr, window_num = 6, colors = colors, names = titles, delta = delta, hinv = hinv, png = png, eps = eps, pdf = pdf, $
-      plotfile = plotfile_1d, k_range = k_range, title = note, note = note_1d, data_range = range_1d
+    kpower_1d_plots, file_arr, window_num = 6, colors = colors, names = titles, psyms = psyms, delta = delta, hinv = hinv, $
+      png = png, eps = eps, pdf = pdf, plotfile = plotfile_1d, k_range = k_range, title = note, note = note_1d, data_range = range_1d
   endif
   
 end

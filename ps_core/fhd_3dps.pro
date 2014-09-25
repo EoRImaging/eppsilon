@@ -3,13 +3,13 @@ pro fhd_3dps, file_struct, refresh = refresh, kcube_refresh = kcube_refresh, dft
     uvf_input = uvf_input, uv_avg = uv_avg, uv_img_clip = uv_img_clip, $
     dft_fchunk = dft_fchunk, freq_ch_range = freq_ch_range, freq_flags = freq_flags, $
     spec_window_type = spec_window_type, delta_uv_lambda = delta_uv_lambda, max_uv_lambda = max_uv_lambda, $
-    std_power = std_power, no_kzero = no_kzero, log_kpar = log_kpar, $
+    std_power = std_power, no_wtd_avg = no_wtd_avg, no_kzero = no_kzero, log_kpar = log_kpar, $
     log_kperp = log_kperp, kperp_bin = kperp_bin, kpar_bin = kpar_bin, log_k1d = log_k1d, k1d_bin = k1d_bin, $
     kperp_range_1dave = kperp_range_1dave, kpar_range_1dave = kpar_range_1dave, $
     input_units = input_units, fill_holes = fill_holes, quiet = quiet
     
   if tag_exist(file_struct, 'nside') ne 0 then healpix = 1 else healpix = 0
-  
+  refresh=1
   nfiles = n_elements(file_struct.datafile)
   
   if healpix and (keyword_set(dft_refresh_data) or keyword_set(dft_refresh_weight)) then kcube_refresh=1
@@ -53,29 +53,69 @@ pro fhd_3dps, file_struct, refresh = refresh, kcube_refresh = kcube_refresh, dft
       power_weights1 = 1d/(4*(sigma2_1)^2d)
       wh_sig1_0 = where(sigma2_1^2d eq 0, count_sig1_0)
       if count_sig1_0 ne 0 then power_weights1[wh_sig1_0] = 0
-      term1 = abs(data_sum_1)^2.*power_weights1
-      undefine, data_sum_1
+      undefine, sigma2_1
       
       power_weights2 = 1d/(4*(sigma2_2)^2d) ;; inverse variance
       wh_sig2_0 = where(sigma2_2^2d eq 0, count_sig2_0)
       if count_sig2_0 ne 0 then power_weights2[wh_sig2_0] = 0
-      term2 = abs(data_sum_2)^2.*power_weights2
-      undefine, data_sum_2
+      undefine, sigma2_2
       
-      noise_expval_3d = sqrt(power_weights1) + sqrt(power_weights2)
+      if keyword_set(no_wtd_avg) then begin
+        term1 = abs(data_sum_1)^2.
+        term2 = abs(data_sum_2)^2.
+        undefine, data_sum_1, data_sum_2
+        
+        weights_3d = (power_weights1 + power_weights2)
+        undefine, power_weights1, power_weights2
+        
+        ;; expected noise is just sqrt(variance)
+        noise_expval_3d = 1./sqrt(weights_3d)
+        
+        ;; Add the 2 terms
+        power_3d = (term1 + term2)
+        undefine, term1, term2
+        
+        wh_wt0 = where(weights_3d eq 0, count_wt0)
+        if count_wt0 ne 0 then begin
+          power_3d[wh_wt0] = 0
+          noise_expval_3d[wh_wt0] = 0
+        endif
+        
+      endif else begin
+        term1 = abs(data_sum_1)^2.*power_weights1
+        term2 = abs(data_sum_2)^2.*power_weights2
+        undefine, data_sum_1, data_sum_2
+        
+        ;; Factor of 2 because we're adding the cosine & sine terms
+        noise_expval_3d = (sqrt(power_weights1 + power_weights2))*2.
+        ;; except for kparallel=0 b/c there's only one term
+        noise_expval_3d[*,*,0] = noise_expval_3d[*,*,0]/2.
+        
+        weights_3d = (power_weights1 + power_weights2)
+        undefine, power_weights1, power_weights2
+        
+        ;; multiply by 2 because power is generally the SUM of the cosine & sine powers
+        power_3d = (term1 + term2)*2.
+        ;; except for kparallel=0 b/c there's only one term
+        power_3d[*,*,0] = power_3d[*,*,0]/2.
+        
+        power_3d = power_3d / weights_3d
+        noise_expval_3d = noise_expval_3d / weights_3d
+        undefine, term1, term2
+        
+        wh_wt0 = where(weights_3d eq 0, count_wt0)
+        if count_wt0 ne 0 then begin
+          power_3d[wh_wt0] = 0
+          noise_expval_3d[wh_wt0] = 0
+        endif
+        
+        ;; variance_3d = 4/weights_3d b/c of factors of 2 in power
+        ;; in later code variance is taken to be 1/weights so divide by 4 now
+        weights_3d = weights_3d/4.
+        ;; except for kparallel=0 b/c there's only one term
+        weights_3d[*,*,0] = weights_3d[*,*,0]*4.
+      endelse
       
-      weights_3d = (power_weights1 + power_weights2) ;; variance_3d = 1/weights_3d
-      undefine, power_weights1, power_weights2
-      
-      power_3d = (term1 + term2) / weights_3d
-      noise_expval_3d = noise_expval_3d / weights_3d
-      wh_wt0 = where(weights_3d eq 0, count_wt0)
-      if count_wt0 ne 0 then begin
-        power_3d[wh_wt0] = 0
-        noise_expval_3d[wh_wt0] = 0
-      endif
-      
-      undefine, term1, term2
       
     endif else begin
       ;; nfiles=2
@@ -95,36 +135,88 @@ pro fhd_3dps, file_struct, refresh = refresh, kcube_refresh = kcube_refresh, dft
       if count_sig2_0 ne 0 then power_weights2[wh_sig2_0] = 0
       undefine, sigma2_1
       
-      term1 = (abs(data_sum_1)^2. - abs(data_diff_1)^2.) * power_weights1
-      term2 = (abs(data_sum_2)^2. - abs(data_diff_2)^2.) * power_weights2
-      undefine, data_sum_1, data_sum_2
-      
-      noise_t1 = abs(data_diff_1)^2. * power_weights1
-      noise_t2 = abs(data_diff_2)^2. * power_weights2
-      undefine, data_diff_1, data_diff_2
-      
-      noise_expval_3d = sqrt(power_weights1) + sqrt(power_weights2)
-      
-      weights_3d = power_weights1 + power_weights2 ;; variance_3d = 1/weights_3d
-      undefine, power_weights1, power_weights2
-      
-      ;; divide by 4 on power b/c otherwise it would be 4*Re(even-odd crosspower)
-      power_3d = (term1 + term2) / (4. * weights_3d)
-      noise_3d = (noise_t1 + noise_t2) / weights_3d
-      noise_expval_3d= noise_expval_3d / weights_3d
-      undefine, term1, term2, noise_t1, noise_t2
-      
-      wh_wt0 = where(weights_3d eq 0, count_wt0)
-      if count_wt0 ne 0 then begin
-        power_3d[wh_wt0] = 0
-        noise_expval_3d[wh_wt0] = 0
-        noise_3d[wh_wt0] = 0
-      endif
+      if keyword_set(no_wtd_avg) then begin
+        term1 = (abs(data_sum_1)^2. - abs(data_diff_1)^2.)
+        term2 = (abs(data_sum_2)^2. - abs(data_diff_2)^2.)
+        undefine, data_sum_1, data_sum_2
+        
+        noise_t1 = abs(data_diff_1)^2.
+        noise_t2 = abs(data_diff_2)^2.
+        undefine, data_diff_1, data_diff_2
+        
+        weights_3d = power_weights1 + power_weights2
+        undefine, power_weights1, power_weights2
+        
+        ;; expected noise is just sqrt(variance)
+        noise_expval_3d = 1./sqrt(weights_3d)
+        
+        ;; Add the 2 terms
+        power_3d = (term1 + term2)
+        noise_3d = (noise_t1 + noise_t2)
+        undefine, term1, term2, noise_t1, noise_t2
+        
+        wh_wt0 = where(weights_3d eq 0, count_wt0)
+        if count_wt0 ne 0 then begin
+          power_3d[wh_wt0] = 0
+          noise_expval_3d[wh_wt0] = 0
+          noise_3d[wh_wt0] = 0
+        endif
+        
+      endif else begin
+        term1 = (abs(data_sum_1)^2. - abs(data_diff_1)^2.) * power_weights1
+        term2 = (abs(data_sum_2)^2. - abs(data_diff_2)^2.) * power_weights2
+        undefine, data_sum_1, data_sum_2
+        
+        noise_t1 = abs(data_diff_1)^2. * power_weights1
+        noise_t2 = abs(data_diff_2)^2. * power_weights2
+        undefine, data_diff_1, data_diff_2
+        
+        ;; Factor of 2 because we're adding the cosine & sine terms
+        noise_expval_3d = sqrt(power_weights1 + power_weights2)*2
+        ;; except for kparallel=0 b/c there's only one term
+        noise_expval_3d[*,*,0] = noise_expval_3d[*,*,0]/2.
+        
+        
+        weights_3d = power_weights1 + power_weights2
+        undefine, power_weights1, power_weights2
+        
+        ;; divide by 4 on power b/c otherwise it would be 4*Re(even-odd crosspower)
+        ;power_3d = (term1 + term2) / (4. * weights_3d)
+        ;; Actually the 4*crosspower is what we want, see Adam's memo
+        ;; multiply by 2 because power is generally the SUM of the cosine & sine powers
+        power_3d = (term1 + term2)*2.
+        noise_3d = (noise_t1 + noise_t2)*2
+        ;; except for kparallel=0 b/c there's only one term
+        power_3d[*,*,0] = power_3d[*,*,0]/2.
+        noise_3d[*,*,0] = noise_3d[*,*,0]/2.
+        
+        power_3d = power_3d / weights_3d
+        noise_3d = noise_3d / weights_3d
+        noise_expval_3d = noise_expval_3d / weights_3d
+        undefine, term1, term2, noise_t1, noise_t2
+        
+        wh_wt0 = where(weights_3d eq 0, count_wt0)
+        if count_wt0 ne 0 then begin
+          power_3d[wh_wt0] = 0
+          noise_expval_3d[wh_wt0] = 0
+          noise_3d[wh_wt0] = 0
+        endif
+        
+        ;; variance_3d = 4/weights_3d b/c of factors of 2 in power
+        ;; in later code variance is taken to be 1/weights so divide by 4 now
+        weights_3d = weights_3d/4.
+        ;; except for kparallel=0 b/c there's only one term
+        weights_3d[*,*,0] = weights_3d[*,*,0]*4.
+      endelse
       
     endelse
     
+    git, repo_path = ps_repository_dir(), result=ps_git_hash
+    if n_elements(git_hashes) gt 0 then git_hashes = create_struct(git_hashes, 'ps', ps_git_hash) $
+    else git_hashes = {uvf:strarr(nfiles), uvf_wt:strarr(nfiles), beam:strarr(nfiles), kcube:'', ps:ps_git_hash}
+    
     save, file = file_struct.power_savefile, power_3d, noise_3d, noise_expval_3d, weights_3d, $
-      kx_mpc, ky_mpc, kz_mpc, kperp_lambda_conv, delay_params, hubble_param, n_freq_contrib, freq_mask, vs_name, vs_mean, window_int
+      kx_mpc, ky_mpc, kz_mpc, kperp_lambda_conv, delay_params, hubble_param, n_freq_contrib, freq_mask, vs_name, vs_mean, window_int, git_hashes
       
     write_ps_fits, file_struct.fits_power_savefile, power_3d, weights_3d, noise_expval_3d, noise_3d = noise_3d, $
       kx_mpc, ky_mpc, kz_mpc, kperp_lambda_conv, delay_params, hubble_param
@@ -157,6 +249,11 @@ pro fhd_3dps, file_struct, refresh = refresh, kcube_refresh = kcube_refresh, dft
   
   savefile = file_struct.savefile_froot + file_struct.savefilebase + power_tag + fadd_2dbin + '_2dkpower.idlsave'
   
+  git, repo_path = ps_repository_dir(), result=binning_git_hash
+  if n_elements(git_hashes) gt 0 then git_hashes = create_struct(git_hashes, 'binning', binning_git_hash) $
+  else git_hashes = {uvf:strarr(nfiles), uvf_wt:strarr(nfiles), beam:strarr(nfiles), kcube:'', ps:'', binning:binning_git_hash}
+  
+  
   print, 'Binning to 2D power spectrum'
   
   power_rebin = kspace_rebinning_2d(power_3D, kx_mpc, ky_mpc, kz_mpc, kperp_edges_mpc, kpar_edges_mpc, log_kpar = log_kpar, $
@@ -184,7 +281,7 @@ pro fhd_3dps, file_struct, refresh = refresh, kcube_refresh = kcube_refresh, dft
   kperp_plot_range = [min(kperp_edges[wh_good_kperp]), max(kperp_edges[wh_good_kperp+1])]
   
   save, file = savefile, power, noise, weights, noise_expval, kperp_edges, kpar_edges, kperp_bin, kpar_bin, $
-    kperp_lambda_conv, delay_params, hubble_param, freq_mask, vs_name, vs_mean, window_int
+    kperp_lambda_conv, delay_params, hubble_param, freq_mask, vs_name, vs_mean, window_int, git_hashes
     
   if not keyword_set(quiet) then begin
     kpower_2d_plots, savefile, kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
@@ -250,21 +347,10 @@ pro fhd_3dps, file_struct, refresh = refresh, kcube_refresh = kcube_refresh, dft
     number_formatter(kpar_range_1dave[1])
     
   savefile = file_struct.savefile_froot + file_struct.savefilebase + power_tag + fadd_1dbin + '_1dkpower.idlsave'
-  save, file = savefile, power, noise, weights, noise_expval, k_edges, k_bin, hubble_param, freq_mask, kperp_range, kpar_range, window_int
+  save, file = savefile, power, noise, weights, noise_expval, k_edges, k_bin, hubble_param, freq_mask, kperp_range, kpar_range, window_int, git_hashes
   
   if not keyword_set(quiet) then begin
     kpower_1d_plots, savefile, window_num = 5
   endif
   
-  ;; eor_file_1d = base_path() + 'power_spectrum/eor_data/eor_power_1d.idlsave'
-  ;; file_arr = [savefile, eor_file_1d]
-  ;; if keyword_set(eor_only) then begin
-  ;;    if keyword_set(eor_test) then names_arr = 'Input EoR' else names_arr = 'Simulated EoR'
-  ;; endif else names_arr = 'Simulation PS'
-  ;; names_arr = [names_arr, 'EoR signal']
-  ;; colors_arr = [0, 254]
-  
-  if not keyword_set(quiet) then begin
-    kpower_1d_plots, file_arr, window_num = 5, names = names_arr, colors = colors_arr
-  endif
 end

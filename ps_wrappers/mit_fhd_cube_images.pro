@@ -1,4 +1,4 @@
-pro hellebore_fhd_cube_images, folder_names, obs_names_in, cube_types = cube_types, pols = pols, evenodd = evenodd, $
+pro mit_fhd_cube_images, folder_names, obs_names_in, data_subdirs=data_subdirs, cube_types = cube_types, pols = pols, evenodd = evenodd, $
     rts = rts, sim = sim, casa = casa, png = png, eps = eps, slice_range = slice_range, ratio = ratio, diff_ratio = diff_ratio, $
     log = log, data_range = data_range, color_profile = color_profile, sym_color = sym_color, window_num = window_num
     
@@ -7,7 +7,66 @@ pro hellebore_fhd_cube_images, folder_names, obs_names_in, cube_types = cube_typ
   if n_elements(evenodd) gt 2 then message, 'No more than 2 evenodd values can be supplied'
   if n_elements(obs_names_in) gt 2 then message, 'No more than 2 obs_names can be supplied'
   
-  obs_info = hellebore_filenames(folder_names, obs_names_in, rts = rts, sim = sim, casa = casa)
+  for i=0, n_elements(folder_names)-1 do begin
+    ;; check for folder existence, otherwise look for common folder names to figure out full path. If none found, try '/nfs/mwa-09/r1/djc/EoR2013/Aug23/'
+    start_path = '/nfs/mwa-09/r1/djc/'
+    folder_test = file_test(folder_names[i], /directory)
+    if folder_test eq 0 then begin
+      pos_eor2013 = strpos(folder_names[i], 'EoR2013')
+      if pos_eor2013 gt -1 then begin
+        test_name = start_path + strmid(folder_names[i], pos_eor2013)
+        folder_test = file_test(test_name, /directory)
+        if folder_test eq 1 then folder_names[i] = test_name
+      endif
+    endif
+    if folder_test eq 0 then begin
+      pos_aug23 = strpos(folder_names[i], 'Aug23')
+      if pos_aug23 gt -1 then begin
+        test_name = start_path + 'EoR2013/' + strmid(folder_names[i], pos_aug23)
+        folder_test = file_test(test_name, /directory)
+        if folder_test eq 1 then folder_names[i] = test_name
+      endif
+    endif
+    if folder_test eq 0 then begin
+      pos_aug26 = strpos(folder_names[i], 'Aug26')
+      if pos_aug26 gt -1 then begin
+        test_name = start_path + 'EoR2013/' + strmid(folder_names[i], pos_aug26)
+        folder_test = file_test(test_name, /directory)
+        if folder_test eq 1 then folder_names[i] = test_name
+      endif
+    endif
+    if folder_test eq 0 then begin
+      pos_week1 = strpos(folder_names[i], 'week1')
+      if pos_week1 gt -1 then begin
+        test_name = start_path + 'EoR2013/' + strmid(folder_names[i], pos_week1)
+        folder_test = file_test(test_name, /directory)
+        if folder_test eq 1 then folder_names[i] = test_name
+      endif
+    endif
+    if folder_test eq 0 then begin
+      test_name = start_path + 'EoR2013/Aug23/' + folder_names[i]
+      folder_test = file_test(test_name, /directory)
+      if folder_test eq 1 then folder_names[i] = test_name
+    endif
+    if folder_test eq 0 then begin
+      test_name = start_path + 'EoR2013/Aug26/' + folder_names[i]
+      folder_test = file_test(test_name, /directory)
+      if folder_test eq 1 then folder_names[i] = test_name
+    endif
+    if folder_test eq 0 then begin
+      test_name = start_path + 'EoR2013/week1/' + folder_names[i]
+      folder_test = file_test(test_name, /directory)
+      if folder_test eq 1 then folder_names[i] = test_name
+    endif
+    
+    if folder_test eq 0 then message, 'folder not found'
+  endfor
+  
+  save_paths = folder_names + '/ps/'
+  if n_elements(data_subdirs) eq 0 then data_subdirs = 'Healpix/' else if n_elements(data_subdirs) gt 2 then message, 'No more than 2 data_subdirs can be supplied.'
+  obs_info = ps_filenames(folder_names, obs_names_in, rts = rts, sim = sim, casa = casa, data_subdirs = data_subdirs, save_paths = save_paths, plot_paths = save_paths)
+  
+  if tag_exist(obs_info, 'diff_note') then obs_info = create_struct(obs_info, 'diff_plot_path', obs_info.diff_save_path)
   
   filenames = strarr(max([n_elements(obs_info.obs_names), n_elements(evenodd)]))
   
@@ -193,8 +252,8 @@ pro hellebore_fhd_cube_images, folder_names, obs_names_in, cube_types = cube_typ
           plot_filebase = plot_start + '_' + evenodd[0] + '_' + cube_types[0] + '_' + pols[0] + $
             '_minus_' + evenodd[max_eo] + '_' + cube_types[max_type] + '_' + pols[max_pol]
         endelse
-      endif else plot_filebase = obs_info.name_same_parts + '__' + strjoin([obs_info.name_diff_parts[0], evenodd[0], cube_types[0], pols[0]], '_')  + $
-        '_minus_' + strjoin([obs_info.name_diff_parts[1], evenodd[max_eo], cube_types[max_type], pols[max_pol]], '_')
+      endif else plot_filebase = obs_info.fhdtype_same_parts + '__' + strjoin([obs_info.fhdtype_diff_parts[0], evenodd[0], cube_types[0], pols[0]], '_')  + $
+        '_minus_' + strjoin([obs_info.fhdtype_diff_parts[1], evenodd[max_eo], cube_types[max_type], pols[max_pol]], '_')
     endif else begin
       if obs_info.integrated[0] eq 0 then plot_start = obs_info.folder_basenames[0] + '_' + obs_info.obs_names[0] else plot_start = obs_info.fhd_types[0]
       
@@ -207,13 +266,19 @@ pro hellebore_fhd_cube_images, folder_names, obs_names_in, cube_types = cube_typ
   
   if n_cubes gt 1 then begin
     if max(abs(cube1-cube2)) eq 0 then message, 'cubes are identical.'
-    if keyword_set(diff_ratio) then begin
-      print, max(cube1), max(cube2), max(cube1)/max(cube2)
-      temp = (cube1/max(cube1) - cube2/max(cube2)) * mean([max(cube1), max(cube2)])
-      note = note + ', peak ratio = ' + number_formatter(max(cube1)/max(cube2), format = '(f5.2)')
-    endif else if keyword_set(ratio) then temp = cube1/cube2 else temp = cube1-cube2
+    if keyword_set(ratio) then begin
+      if n_elements(slice_range) eq 1 then temp = cube1[*,slice_range]/cube2[*,slice_range] else $
+        temp = total(cube1[*, slice_range[0]:slice_range[1]],2)/total(cube2[*, slice_range[0]:slice_range[1]],2)
+    endif else begin
+      if keyword_set(diff_ratio) then begin
+        print, max(cube1), max(cube2), max(cube1)/max(cube2)
+        temp = (cube1/max(cube1) - cube2/max(cube2)) * mean([max(cube1), max(cube2)])
+        note = note + ', peak ratio = ' + number_formatter(max(cube1)/max(cube2), format = '(f5.2)')
+      endif else temp = cube1-cube2
+      
+      if n_elements(slice_range) eq 1 then temp = temp[*,slice_range] else temp = total(temp[*, slice_range[0]:slice_range[1]],2)
+    endelse
     
-    if n_elements(slice_range) eq 1 then temp = temp[*,slice_range] else temp = total(temp[*, slice_range[0]:slice_range[1]],2)
   endif else if n_elements(slice_range) eq 1 then temp = cube1[*,slice_range] else temp = total(cube1[*, slice_range[0]:slice_range[1]],2)
   
   if keyword_set(sym_color) and not keyword_set(log) then begin
