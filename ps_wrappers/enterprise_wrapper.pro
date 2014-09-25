@@ -56,6 +56,10 @@ pro enterprise_wrapper, folder_name, obs_name, rts = rts, $
       pol_inc, save_path = obs_info.folder_names[0]+path_sep(), refresh = refresh_dft)
       
     note = obs_info.rts_types
+    if not file_test(save_path, /directory) then file_mkdir, save_path
+    
+    plot_path = save_path + 'plots/'
+    if not file_test(plot_path, /directory) then file_mkdir, plot_path
     
   endif else begin
   
@@ -99,6 +103,11 @@ pro enterprise_wrapper, folder_name, obs_name, rts = rts, $
     save_path = folder_name + '/ps/'
     obs_info = ps_filenames(folder_name, obs_name, rts = rts, sim = sim, casa = casa, data_subdirs = 'Healpix/', save_paths = save_path, plot_path = save_path)
     
+    note = obs_info.fhd_types
+    if not file_test(save_path, /directory) then file_mkdir, save_path
+    
+    plot_path = save_path + 'plots/'
+    if not file_test(plot_path, /directory) then file_mkdir, plot_path
     
     if n_elements(set_data_ranges) eq 0 then set_data_ranges = 1
     if keyword_set(set_data_ranges) then begin
