@@ -86,12 +86,14 @@ pro mit_wrapper, folder_name, obs_name, data_subdirs=data_subdirs, n_obs=n_obs, 
     save_path = folder_name + '/ps/'
     if n_elements(data_subdirs) eq 0 then data_subdirs = 'Healpix/'
     obs_info = ps_filenames(folder_name, obs_name, rts = rts, sim = sim, casa = casa, data_subdirs = data_subdirs, save_paths = save_path, plot_paths = save_path)
-        
+    
     if obs_info.info_files[0] ne '' then datafile = obs_info.info_files[0] else datafile = obs_info.cube_files.(0)
     plot_filebase = obs_info.fhd_types[0] + '_' + obs_info.obs_names[0]
     note = obs_info.fhd_types[0]
     
     if not file_test(save_path, /directory) then file_mkdir, save_path
+    plot_path = save_path + 'plots/'
+    if not file_test(plot_path, /directory) then file_mkdir, plot_path
     
     print,'datafile = '+datafile
     
@@ -99,9 +101,9 @@ pro mit_wrapper, folder_name, obs_name, data_subdirs=data_subdirs, n_obs=n_obs, 
       plot_eor_1d=1
       if n_elements(range_1d) eq 0 then range_1d = [1e0, 1e7]
     endif
-
+    
     if n_elements(set_data_ranges) eq 0 and not keyword_set(sim) then set_data_ranges = 1
-
+    
     if keyword_set(set_data_ranges) then begin
       if keyword_set(obs_info.integrated[0]) then begin
         sigma_range = [2e5, 2e9]
