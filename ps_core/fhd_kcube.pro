@@ -732,7 +732,6 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
       test_beam = file_test(file_struct.beam_savefile) * ( 1- file_test(file_struct.beam_savefile, /zero_length))
       if min(test_beam) eq 0 or keyword_set(refresh_beam) then begin
       
-      
         for i=0, nfiles-1 do begin
           arr = getvar_savefile(file_struct.beamfile[i], file_struct.beamvar)
           void = getvar_savefile(file_struct.beamfile[i], names = beam_varnames)
@@ -761,6 +760,7 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
         endfor
         
       endif
+      
     endif
     
     if keyword_set(uv_avg) then begin
@@ -977,6 +977,20 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
       if tag_exist(file_struct, 'beam_savefile') then begin
         beam1 = getvar_savefile(file_struct.beam_savefile[0], 'avg_beam')
         if nfiles eq 2 then beam2 = getvar_savefile(file_struct.beam_savefile[1], 'avg_beam')
+        
+        if keyword_set(uv_img_clip) then begin
+          temp = beam1
+          temp = temp[(dims2[0]/2)-(dims2[0]/uv_img_clip)/2:(dims2[0]/2)+(dims2[0]/uv_img_clip)/2-1, *, *]
+          temp = temp[*, (dims2[1]/2)-(dims2[1]/uv_img_clip)/2:(dims2[1]/2)+(dims2[1]/uv_img_clip)/2-1, *]
+          if nfiles eq 2 then begin
+            temp2 = beam2
+            temp2 = temp2[(dims2[0]/2)-(dims2[0]/uv_img_clip)/2:(dims2[0]/2)+(dims2[0]/uv_img_clip)/2-1, *, *]
+            temp2 = temp2[*, (dims2[1]/2)-(dims2[1]/uv_img_clip)/2:(dims2[1]/2)+(dims2[1]/uv_img_clip)/2-1, *]
+          endif
+          
+          beam1 = temp
+          if nfiles eq 2 then beam2 = temp2         
+        endif
         
         void = getvar_savefile(file_struct.beam_savefile[0], names = uvf_varnames)
         wh_hash = where(uvf_varnames eq 'beam_git_hash', count_hash)

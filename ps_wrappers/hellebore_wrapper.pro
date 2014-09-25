@@ -1,5 +1,5 @@
 pro hellebore_wrapper, folder_name, obs_range, rts = rts, casa = casa, version = version, refresh_dft = refresh_dft, refresh_ps = refresh_ps, $
-    refresh_binning = refresh_binning, refresh_info = refresh_info, dft_ian = dft_ian, $
+    refresh_binning = refresh_binning, refresh_info = refresh_info, refresh_beam = refresh_beam, dft_ian = dft_ian, $
     pol_inc = pol_inc, sim = sim, freq_ch_range = freq_ch_range, freq_flag_name = freq_flag_name, $
     no_spec_window = no_spec_window, spec_window_type = spec_window_type, std_power = std_power, no_wtd_avg = no_wtd_avg, $
     cut_image = cut_image, individual_plots = individual_plots, plot_filebase = plot_filebase, png = png, eps = eps, pdf = pdf, $
@@ -232,7 +232,7 @@ pro hellebore_wrapper, folder_name, obs_range, rts = rts, casa = casa, version =
   
   fhd_data_plots, datafile, beamfiles = beamfiles, plot_path = plot_path, plot_filebase = plot_filebase, save_path = save_path, savefilebase = savefilebase, $
     pol_inc = pol_inc, rts = rts, casa = casa, dft_fchunk=dft_fchunk, $
-    refresh_dft = refresh_dft, refresh_ps = refresh_ps, refresh_binning = refresh_binning, refresh_info = refresh_info, $
+    refresh_dft = refresh_dft, refresh_ps = refresh_ps, refresh_binning = refresh_binning, refresh_info = refresh_info, refresh_beam = refresh_beam, $
     freq_ch_range = freq_ch_range, freq_flags = freq_flags, freq_flag_name = freq_flag_name, $
     no_spec_window = no_spec_window, spec_window_type = spec_window_type, std_power = std_power, no_wtd_avg = no_wtd_avg, $
     sim = sim, cut_image = cut_image, dft_ian = dft_ian, uvf_input = uvf_input, uv_avg = uv_avg, uv_img_clip = uv_img_clip, $
@@ -258,9 +258,10 @@ pro hellebore_wrapper, folder_name, obs_range, rts = rts, casa = casa, version =
   
   if n_elements(plot_ranges) eq 0 then begin
     plot_ranges = create_struct('sigma', sigma_range, 'noise_exp', nev_range, 'power', data_range, 'snr', snr_range, $
-      'power_1d', range_1d, 'kperp', kperp_plot_range, 'kpar', kpar_plot_range)
+      'kperp', kperp_plot_range, 'kpar', kpar_plot_range)
     if n_elements(nnr_range) gt 0 then plot_ranges = create_struct(plot_ranges, 'noise_ratio', nnr_range)
     if n_elements(noise_range) gt 0 then plot_ranges = create_struct(plot_ranges, 'noise', noise_range)
+    if n_elements(range_1d) gt 0 then plot_ranges = create_struct(plot_ranges, 'power_1d', range_1d)
   endif else begin
     if not tag_exist(plot_ranges, 'sigma') then plot_ranges = create_struct(plot_ranges, 'sigma', sigma_range) else plot_ranges.sigma = sigma_range
     if not tag_exist(plot_ranges, 'noise_exp') then plot_ranges = create_struct(plot_ranges, 'noise_exp', nev_range) else plot_ranges.noise_exp = nev_range
