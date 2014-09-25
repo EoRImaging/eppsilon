@@ -8,6 +8,7 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
   nfiles = n_elements(file_struct.datafile)
   if tag_exist(file_struct, 'no_var') ne 0 then no_var = 1 else no_var = 0
   
+  if tag_exist(file_struct, 'beam_savefile') eq 0 then refresh_beam = 0
   
   if n_elements(input_units) eq 0 then input_units = 'jansky'
   units_enum = ['jansky', 'mk']
@@ -173,7 +174,9 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
       
       test_wt_uvf = file_test(file_struct.uvf_weight_savefile[i]) * (1 - file_test(file_struct.uvf_weight_savefile[i], /zero_length))
       
-      test_beam = file_test(file_struct.beam_savefile[i]) * ( 1- file_test(file_struct.beam_savefile[i], /zero_length))
+      if tag_exist(file_struct, 'beam_savefile') then $
+        test_beam = file_test(file_struct.beam_savefile[i]) * ( 1- file_test(file_struct.beam_savefile[i], /zero_length)) $
+      else test_beam = 1
       
       if test_uvf eq 1 and n_elements(freq_mask) ne 0 then begin
         old_freq_mask = getvar_savefile(file_struct.uvf_savefile[i], 'freq_mask')
@@ -498,7 +501,7 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
           endelse
           
           ;; get beam if needed
-          if test_beam eq 0 or keyword_set(refresh_beam) then begin
+          if (test_beam eq 0 or keyword_set(refresh_beam)) and tag_exist(file_struct, 'beam_savefile') then begin
             arr = getvar_savefile(file_struct.beamfile[i], file_struct.beamvar)
             if count_far ne 0 then arr = arr[wh_close, *]
             if n_elements(freq_ch_range) ne 0 then arr = arr[*, min(freq_ch_range):max(freq_ch_range)]
@@ -725,37 +728,39 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
     pix_area_mpc = pix_area_rad * z_mpc_mean^2.
     
     ;; get beam sorted out
-    test_beam = file_test(file_struct.beam_savefile) * ( 1- file_test(file_struct.beam_savefile, /zero_length))
-    if min(test_beam) eq 0 or keyword_set(refresh_beam) then begin
-    
-    
-      for i=0, nfiles-1 do begin
-        arr = getvar_savefile(file_struct.beamfile[i], file_struct.beamvar)
-        void = getvar_savefile(file_struct.beamfile[i], names = beam_varnames)
-        wh_obs = where(stregex(strlowcase(beam_varnames), 'obs', /boolean), count_obs)
-        if count_obs gt 0 then obs_struct_name = beam_varnames[wh_obs[0]]
-        obs_beam = getvar_savefile(file_struct.beamfile[i], obs_struct_name)
-        nfvis_beam = obs_beam.nf_vis
-        undefine_fhd, obs_beam
-        
-        if max(arr) le 1. then begin
-          ;; beam is peak normalized to 1
-          temp = arr * rebin(reform(nfvis_beam, 1, 1, n_elements(nfvis_beam)), n_kx, n_ky, n_elements(nfvis_beam), /sample)
-        endif else if max(arr) le file_struct.n_obs[i] then begin
-          ;; beam is peak normalized to 1 for each obs, then summed over obs so peak is ~ n_obs
-          temp = (arr/file_struct.n_obs[i]) * rebin(reform(nfvis_beam, 1, 1, n_freq), n_kx, n_ky, n_freq, /sample)
-        endif else begin
-          ;; beam is peak normalized to 1 then multiplied by n_vis_freq for each obs & summed
-          temp = arr
-        endelse
-        
-        avg_beam = total(temp, 3) / total(nfvis_beam)
-        
-        git, repo_path = ps_repository_dir(), result=beam_git_hash
-        
-        save, file=file_struct.beam_savefile[i], avg_beam, beam_git_hash
-      endfor
+    if tag_exist(file_struct, 'beam_savefile') then begin
+      test_beam = file_test(file_struct.beam_savefile) * ( 1- file_test(file_struct.beam_savefile, /zero_length))
+      if min(test_beam) eq 0 or keyword_set(refresh_beam) then begin
       
+      
+        for i=0, nfiles-1 do begin
+          arr = getvar_savefile(file_struct.beamfile[i], file_struct.beamvar)
+          void = getvar_savefile(file_struct.beamfile[i], names = beam_varnames)
+          wh_obs = where(stregex(strlowcase(beam_varnames), 'obs', /boolean), count_obs)
+          if count_obs gt 0 then obs_struct_name = beam_varnames[wh_obs[0]]
+          obs_beam = getvar_savefile(file_struct.beamfile[i], obs_struct_name)
+          nfvis_beam = obs_beam.nf_vis
+          undefine_fhd, obs_beam
+          
+          if max(arr) le 1. then begin
+            ;; beam is peak normalized to 1
+            temp = arr * rebin(reform(nfvis_beam, 1, 1, n_elements(nfvis_beam)), n_kx, n_ky, n_elements(nfvis_beam), /sample)
+          endif else if max(arr) le file_struct.n_obs[i] then begin
+            ;; beam is peak normalized to 1 for each obs, then summed over obs so peak is ~ n_obs
+            temp = (arr/file_struct.n_obs[i]) * rebin(reform(nfvis_beam, 1, 1, n_freq), n_kx, n_ky, n_freq, /sample)
+          endif else begin
+            ;; beam is peak normalized to 1 then multiplied by n_vis_freq for each obs & summed
+            temp = arr
+          endelse
+          
+          avg_beam = total(temp, 3) / total(nfvis_beam)
+          
+          git, repo_path = ps_repository_dir(), result=beam_git_hash
+          
+          save, file=file_struct.beam_savefile[i], avg_beam, beam_git_hash
+        endfor
+        
+      endif
     endif
     
     if keyword_set(uv_avg) then begin
@@ -864,18 +869,20 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
         total(variance_cube2)*pix_area_rad/n_vis[1]] $
       else window_int = 2*total(variance_cube1)*pix_area_rad/n_vis[0]
       
-      beam1 = getvar_savefile(file_struct.beam_savefile[0], 'avg_beam')
-      if nfiles eq 2 then beam2 = getvar_savefile(file_struct.beam_savefile[1], 'avg_beam')
-      
-      void = getvar_savefile(file_struct.beam_savefile[0], names = uvf_varnames)
-      wh_hash = where(uvf_varnames eq 'beam_git_hash', count_hash)
-      if count_hash gt 0 then begin
-        beam_git_hashes = getvar_savefile(file_struct.beam_savefile[0], 'beam_git_hash')
-        if nfiles eq 2 then beam_git_hashes = [beam_git_hashes, getvar_savefile(file_struct.beam_savefile[1], 'beam_git_hash')]
-      endif else beam_git_hashes = strarr(nfiles)
-      
-      if nfiles eq 2 then window_int_beam = [total(beam1), total(beam2)]*pix_area_mpc*(z_mpc_delta * n_freq) $
-      else window_int_beam = total(beam1)*pix_area_mpc*(z_mpc_delta * n_freq)
+      if tag_exist(file_struct, 'beam_savefile') then begin
+        beam1 = getvar_savefile(file_struct.beam_savefile[0], 'avg_beam')
+        if nfiles eq 2 then beam2 = getvar_savefile(file_struct.beam_savefile[1], 'avg_beam')
+        
+        void = getvar_savefile(file_struct.beam_savefile[0], names = uvf_varnames)
+        wh_hash = where(uvf_varnames eq 'beam_git_hash', count_hash)
+        if count_hash gt 0 then begin
+          beam_git_hashes = getvar_savefile(file_struct.beam_savefile[0], 'beam_git_hash')
+          if nfiles eq 2 then beam_git_hashes = [beam_git_hashes, getvar_savefile(file_struct.beam_savefile[1], 'beam_git_hash')]
+        endif else beam_git_hashes = strarr(nfiles)
+        
+        if nfiles eq 2 then window_int_beam = [total(beam1), total(beam2)]*pix_area_mpc*(z_mpc_delta * n_freq) $
+        else window_int_beam = total(beam1)*pix_area_mpc*(z_mpc_delta * n_freq)
+      endif else beam_git_hashes = ''
       
     endif else begin
       ;; uvf_input
@@ -967,18 +974,20 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
         total(variance_cube2)/n_vis[1]] $
       else window_int = 2*total(variance_cube1)/n_vis[0]
       
-      beam1 = getvar_savefile(file_struct.beam_savefile[0], 'avg_beam')
-      if nfiles eq 2 then beam2 = getvar_savefile(file_struct.beam_savefile[1], 'avg_beam')
-      
-      void = getvar_savefile(file_struct.beam_savefile[0], names = uvf_varnames)
-      wh_hash = where(uvf_varnames eq 'beam_git_hash', count_hash)
-      if count_hash gt 0 then begin
-        beam_git_hashes = getvar_savefile(file_struct.beam_savefile[0], 'beam_git_hash')
-        if nfiles eq 2 then beam_git_hashes = [beam_git_hashes, getvar_savefile(file_struct.beam_savefile[1], 'beam_git_hash')]
-      endif else beam_git_hashes = strarr(nfiles)
-      
-      if nfiles eq 2 then window_int_beam = [total(beam1), total(beam2)]*pix_area_mpc*(z_mpc_delta * n_freq) $
-      else window_int_beam = total(beam1)*pix_area_mpc*(z_mpc_delta * n_freq)
+      if tag_exist(file_struct, 'beam_savefile') then begin
+        beam1 = getvar_savefile(file_struct.beam_savefile[0], 'avg_beam')
+        if nfiles eq 2 then beam2 = getvar_savefile(file_struct.beam_savefile[1], 'avg_beam')
+        
+        void = getvar_savefile(file_struct.beam_savefile[0], names = uvf_varnames)
+        wh_hash = where(uvf_varnames eq 'beam_git_hash', count_hash)
+        if count_hash gt 0 then begin
+          beam_git_hashes = getvar_savefile(file_struct.beam_savefile[0], 'beam_git_hash')
+          if nfiles eq 2 then beam_git_hashes = [beam_git_hashes, getvar_savefile(file_struct.beam_savefile[1], 'beam_git_hash')]
+        endif else beam_git_hashes = strarr(nfiles)
+        
+        if nfiles eq 2 then window_int_beam = [total(beam1), total(beam2)]*pix_area_mpc*(z_mpc_delta * n_freq) $
+        else window_int_beam = total(beam1)*pix_area_mpc*(z_mpc_delta * n_freq)
+      endif else beam_git_hashes = ''
       
     endelse
     
@@ -1288,16 +1297,16 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
     ;;   note that we can convert both the weights and variance to uvf from kperp,rz and all jacobians will cancel
     window_int_k = window_int * (z_mpc_delta * n_freq) * (kx_mpc_delta * ky_mpc_delta)*z_mpc_mean^4./((2.*!pi)^2.*file_struct.kpix^4.)
     print, 'window integral from variances: ' + number_formatter(window_int_k[0], format='(e10.4)')
-    print, 'window integral from beam: ' + number_formatter(window_int_beam[0], format='(e10.4)')
+    if tag_exist(file_struct, 'beam_savefile') then print, 'window integral from beam: ' + number_formatter(window_int_beam[0], format='(e10.4)')
     ;window_int = window_int_k
-    window_int = window_int_beam
+    if tag_exist(file_struct, 'beam_savefile') then window_int = window_int_beam else window_int = window_int_k
   endif else begin
     window_int_k = window_int * (z_mpc_delta * n_freq) * (2.*!pi)^2. / (kx_mpc_delta * ky_mpc_delta)
     print, 'var_cube multiplier: ', (z_mpc_delta * n_freq) * (2.*!pi)^2. / (kx_mpc_delta * ky_mpc_delta)
     print, 'window integral from variances: ' + number_formatter(window_int_k[0], format='(e10.4)')
-    print, 'window integral from beam: ' + number_formatter(window_int_beam[0], format='(e10.4)')
+    if tag_exist(file_struct, 'beam_savefile') then print, 'window integral from beam: ' + number_formatter(window_int_beam[0], format='(e10.4)')
     ;window_int = window_int_k
-    window_int = window_int_beam
+    if tag_exist(file_struct, 'beam_savefile') then window_int = window_int_beam else window_int = window_int_k
   endelse
   
   
