@@ -2,7 +2,8 @@ pro enterprise_wrapper, folder_name, obs_name, rts = rts, $
     refresh_dft = refresh_dft, refresh_ps = refresh_ps, refresh_info = refresh_info, refresh_rtscube = refresh_rtscube, $
     refresh_binning = refresh_binning, pol_inc = pol_inc, no_spec_window = no_spec_window, $
     spec_window_type = spec_window_type, freq_ch_range = freq_ch_range, individual_plots = individual_plots, $
-    png = png, eps = eps, plot_slices = plot_slices, slice_type = slice_type, max_uv_lambda = max_uv_lambda, $
+    png = png, eps = eps, pdf = pdf, $
+    plot_slices = plot_slices, slice_type = slice_type, max_uv_lambda = max_uv_lambda, $
     kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, set_data_ranges = set_data_ranges
     
   ;; The only required input is the datafile name (including the full path)
@@ -39,7 +40,7 @@ pro enterprise_wrapper, folder_name, obs_name, rts = rts, $
       endif
     endif
     if folder_test eq 0 then begin
-      test_name = start_path + 'RTS/' + folder_name
+      test_name = start_path + folder_name
       folder_test = file_test(test_name, /directory)
       if folder_test eq 1 then folder_name = test_name
     endif
@@ -50,11 +51,16 @@ pro enterprise_wrapper, folder_name, obs_name, rts = rts, $
     obs_info = ps_filenames(folder_name, obs_name, rts = rts, sim = sim, casa = casa, save_paths = save_path, plot_path = save_path)
     
     if obs_info.info_files[0] ne '' then datafile = obs_info.info_files[0] else $
-      if obs_info.cube_files[0] ne '' then datafile = obs_info.cube_files[0] else $
+      if obs_info.cube_files.(0) ne '' then datafile = obs_info.cube_files.(0) else $
       datafile = rts_fits2idlcube(obs_info.datafiles.(0), obs_info.weightfiles.(0), obs_info.variancefiles.(0), $
       pol_inc, save_path = obs_info.folder_names[0]+path_sep(), refresh = refresh_dft)
       
-      
+    note = obs_info.rts_types
+    if not file_test(save_path, /directory) then file_mkdir, save_path
+    
+    plot_path = save_path + 'plots/'
+    if not file_test(plot_path, /directory) then file_mkdir, plot_path
+    
   endif else begin
   
     if n_elements(folder_name) eq 0 then folder_name = '/nfs/mwa-09/r1/djc/EoR2013/Aug23/fhd_apb_pipeline_paper_deep_1/Healpix/'
@@ -97,6 +103,11 @@ pro enterprise_wrapper, folder_name, obs_name, rts = rts, $
     save_path = folder_name + '/ps/'
     obs_info = ps_filenames(folder_name, obs_name, rts = rts, sim = sim, casa = casa, data_subdirs = 'Healpix/', save_paths = save_path, plot_path = save_path)
     
+    note = obs_info.fhd_types
+    if not file_test(save_path, /directory) then file_mkdir, save_path
+    
+    plot_path = save_path + 'plots/'
+    if not file_test(plot_path, /directory) then file_mkdir, plot_path
     
     if n_elements(set_data_ranges) eq 0 then set_data_ranges = 1
     if keyword_set(set_data_ranges) then begin
@@ -176,13 +187,14 @@ pro enterprise_wrapper, folder_name, obs_name, rts = rts, $
   fhd_data_plots, datafile, dft_fchunk=dft_fchunk, plot_path = plot_path, plot_filebase = plot_filebase, save_path = save_path, savefilebase = savefilebase, $
     pol_inc = pol_inc, rts = rts, $
     refresh_dft = refresh_dft, refresh_ps = refresh_ps, refresh_binning = refresh_binning, refresh_info = refresh_info, $
+    note = note, $
     freq_ch_range = freq_ch_range, no_spec_window = no_spec_window, spec_window_type = spec_window_type, $
     cut_image = cut_image, delta_uv_lambda = delta_uv_lambda, max_uv_lambda = max_uv_lambda, $
     log_kpar = log_kpar, log_kperp = log_kperp, kpar_bin = kpar_bin, kperp_bin = kperp_bin, log_k1d = log_k1d, $
     k1d_bin = k1d_bin, kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, $
     data_range = data_range, sigma_range = sigma_range, nev_range = nev_range, snr_range = snr_range, noise_range = noise_range, nnr_range = nnr_range, $
     baseline_axis = baseline_axis, delay_axis = delay_axis, hinv = hinv, $
-    plot_wedge_line = plot_wedge_line, individual_plots = individual_plot, png = png, eps = eps
+    plot_wedge_line = plot_wedge_line, individual_plots = individual_plot, png = png, eps = eps, pdf = pdf
     
   if not keyword_set(set_data_ranges) then begin
     print, 'data_range used: ', number_formatter(data_range, format = '(e7.1)')
