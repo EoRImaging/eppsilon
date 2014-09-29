@@ -216,7 +216,7 @@ if [ "$nchunk" -gt "1" ]; then
 else
 
     # Just one integrator
-    mv Healpix/${version}_int_chunk1.txt Healpix/${version}_int_chunk0.txt
+    mv ${FHDdir}/Healpix/${version}_int_chunk1.txt ${FHDdir}/Healpix/${version}_int_chunk0.txt
     chunk=0
     chunk_obs_list=${FHDdir}/Healpix/${version}_int_chunk${chunk}.txt
     outfile=${FHDdir}/Healpix/${version}_int_chunk${chunk}_out.log
