@@ -55,7 +55,7 @@ fi
 #Throw error if file path does not exist
 if [ ! -d "$FHDdir" ]
 then
-   echo "Argument after flag -f is not a real directory. Argument should be the file path to the location of cubes to integrate."
+   echo "Argument after flag -d is not a real directory. Argument should be the file path to the location of cubes to integrate."
    exit 1
 fi
 
