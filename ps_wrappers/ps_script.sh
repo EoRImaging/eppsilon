@@ -23,7 +23,7 @@
 ######################################################################################
 
 #Parse flags for inputs
-while getopts ":d:f:p:w:n:m:o:" option
+while getopts ":d:f:p:w:n:m:o:l:" option
 do
    case $option in
         d) FHDdir="$OPTARG";;			#file path to fhd directory with cubes
@@ -33,6 +33,7 @@ do
         n) nslots=$OPTARG;;             	#Number of slots for grid engine
         m) mem=$OPTARG;;                	#Memory per core for grid engine
 	o) ps_only=$OPTARG;;			#Flag for skipping integration to make PS only
+        l) legacy=$OPTARG;;                     #Use legacy directory structure. hacky solution to a silly problem.
         \?) echo "Unknown option: Accepted flags are -d (file path to fhd directory with cubes), -f (obs list or subcube path), "
 	    echo "-p (priority for grid engine), -w (wallclock time), -n (number of slots), and -m (memory allocation)"
             exit 1;;
@@ -54,7 +55,7 @@ fi
 #Throw error if file path does not exist
 if [ ! -d "$FHDdir" ]
 then
-   echo "Argument after flag -f is not a real directory. Argument should be the file path to the location of cubes to integrate."
+   echo "Argument after flag -d is not a real directory. Argument should be the file path to the location of cubes to integrate."
    exit 1
 fi
 
@@ -87,8 +88,11 @@ if [ -z ${nslots} ]; then nslots=10; fi
 #Set typical memory needed for standard PS with obs ids if not set.
 if [ -z ${mem} ]; then mem=4G; fi
 
-#Set typical memory needed for standard PS with obs ids if not set.
+#Set default to do integration
 if [ -z ${ps_only} ]; then ps_only=0; fi
+
+#Set default to use current file structure
+if [ -z ${legacy} ]; then legacy=0; fi
 
 ### NOTE this only works if idlstartup doesn't have any print statements (e.g. healpix check)
 PSpath=$(idl -e 'print,rootdir("ps")')
@@ -109,9 +113,16 @@ if [ "$ps_only" -ne "1" ]; then # only if we're integrating
 while read line
 do
    if [ "$first_line_len" == 10 ]; then
-      if ! ls $FHDdir/Healpix/$line*cube*.sav &> /dev/null; then
-         echo Missing cube for obs $line
-	 exit_flag=1
+      if [ "$legacy" -ne "1" ]; then
+	  if ! ls $FHDdir/Healpix/$line*cube*.sav &> /dev/null; then
+              echo Missing cube for obs $line
+	      exit_flag=1
+	  fi
+      else
+	  if ! ls $FHDdir/$line*cube*.sav &> /dev/null; then
+	      echo Missing cube for obs $line
+	      exit_flag=1
+	  fi
       fi
    else
       if [[ "$first_line" != */* ]]; then
@@ -188,7 +199,7 @@ if [ "$nchunk" -gt "1" ]; then
 	chunk_obs_list=${FHDdir}/Healpix/${version}_int_chunk${chunk}.txt
 	outfile=${FHDdir}/Healpix/${version}_int_chunk${chunk}_out.log
 	errfile=${FHDdir}/Healpix/${version}_int_chunk${chunk}_err.log
-	message=$(qsub -l h_vmem=$mem,h_stack=512k,h_rt=$wallclock_time -V -v file_path_cubes=$FHDdir,obs_list_path=$chunk_obs_list,version=$version,chunk=$chunk,nslots=$nslots -e $errfile -o $outfile -pe chost $nslots ${PSpath}ps_wrappers/integrate_job.sh)
+	message=$(qsub -l h_vmem=$mem,h_stack=512k,h_rt=$wallclock_time -V -v file_path_cubes=$FHDdir,obs_list_path=$chunk_obs_list,version=$version,chunk=$chunk,nslots=$nslots,legacy=$legacy -e $errfile -o $outfile -pe chost $nslots ${PSpath}ps_wrappers/integrate_job.sh)
 	message=($message)
 	if [ "$chunk" -eq 1 ]; then idlist=${message[2]}; else idlist=${idlist},${message[2]}; fi
 	echo Healpix/Combined_obs_${version}_int_chunk${chunk} >> $sub_cubes_list # trick it into finding our sub cubes
@@ -198,19 +209,19 @@ if [ "$nchunk" -gt "1" ]; then
     chunk=0
     outfile=${FHDdir}/Healpix/${version}_int_chunk${chunk}_out.log
     errfile=${FHDdir}/Healpix/${version}_int_chunk${chunk}_err.log
-    message=$(qsub -hold_jid $idlist -l h_vmem=$mem,h_stack=512k,h_rt=$wallclock_time -V -v file_path_cubes=$FHDdir,obs_list_path=$sub_cubes_list,version=$version,chunk=$chunk,nslots=$nslots -e $errfile -o $outfile -pe chost $nslots ${PSpath}ps_wrappers/integrate_job.sh)
+    message=$(qsub -hold_jid $idlist -l h_vmem=$mem,h_stack=512k,h_rt=$wallclock_time -V -v file_path_cubes=$FHDdir,obs_list_path=$sub_cubes_list,version=$version,chunk=$chunk,nslots=$nslots,legacy=$legacy -e $errfile -o $outfile -pe chost $nslots ${PSpath}ps_wrappers/integrate_job.sh)
     message=($message)
     master_id=${message[2]}
 
 else
 
     # Just one integrator
-    mv Healpix/${version}_int_chunk1.txt Healpix/${version}_int_chunk0.txt
+    mv ${FHDdir}/Healpix/${version}_int_chunk1.txt ${FHDdir}/Healpix/${version}_int_chunk0.txt
     chunk=0
     chunk_obs_list=${FHDdir}/Healpix/${version}_int_chunk${chunk}.txt
     outfile=${FHDdir}/Healpix/${version}_int_chunk${chunk}_out.log
     errfile=${FHDdir}/Healpix/${version}_int_chunk${chunk}_err.log
-    message=$(qsub -l h_vmem=$mem,h_stack=512k,h_rt=$wallclock_time -V -v file_path_cubes=$FHDdir,obs_list_path=$chunk_obs_list,version=$version,chunk=$chunk,nslots=$nslots -e $errfile -o $outfile -pe chost $nslots ${PSpath}ps_wrappers/integrate_job.sh)
+    message=$(qsub -l h_vmem=$mem,h_stack=512k,h_rt=$wallclock_time -V -v file_path_cubes=$FHDdir,obs_list_path=$chunk_obs_list,version=$version,chunk=$chunk,nslots=$nslots,legacy=$legacy -e $errfile -o $outfile -pe chost $nslots ${PSpath}ps_wrappers/integrate_job.sh)
     message=($message)
     master_id=${message[2]}
 

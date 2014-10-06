@@ -113,9 +113,9 @@ pro mit_wrapper, folder_name, obs_name, data_subdirs=data_subdirs, n_obs=n_obs, 
         nev_range = [5e4, 2e7]
       endelse
       
-      data_range = [1e2, 1e14]
-      nnr_range = [1e-1, 1e1]
-      snr_range = [1e-6, 1e6]
+      if n_elements(data_range) eq 0 then data_range = [1e3, 1e15]
+      if n_elements(nnr_range) eq 0 then nnr_range = [1e-1, 1e1]
+      if n_elements(snr_range) eq 0 then snr_range = [1e-5, 1e7]
       
       noise_range = nev_range
     endif
