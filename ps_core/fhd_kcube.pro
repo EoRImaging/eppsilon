@@ -1,6 +1,6 @@
 pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weight = dft_refresh_weight, refresh_beam = refresh_beam, dft_ian = dft_ian, $
     dft_fchunk = dft_fchunk, freq_ch_range = freq_ch_range, freq_flags = freq_flags, $
-    spec_window_type = spec_window_type, cut_image = cut_image, delta_uv_lambda = delta_uv_lambda, max_uv_lambda = max_uv_lambda, $
+    spec_window_type = spec_window_type, cut_image = cut_image, delta_uv_lambda = delta_uv_lambda, max_uv_lambda = max_uv_lambda, sim=sim, $
     std_power = std_power, input_units = input_units, uvf_input = uvf_input, uv_avg = uv_avg, uv_img_clip = uv_img_clip, quiet = quiet
     
   if tag_exist(file_struct, 'nside') ne 0 then healpix = 1 else healpix = 0
@@ -882,6 +882,9 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
         
         if nfiles eq 2 then window_int_beam = [total(beam1), total(beam2)]*pix_area_mpc*(z_mpc_delta * n_freq) $
         else window_int_beam = total(beam1)*pix_area_mpc*(z_mpc_delta * n_freq)
+        
+      ;;miguel_factor = (total(sqrt(beam1))*pix_area_mpc*(z_mpc_delta * n_freq))/(total(beam1)*pix_area_mpc*(z_mpc_delta * n_freq))
+      ;;window_int_beam = window_int_beam / miguel_factor
       endif else beam_git_hashes = ''
       
     endif else begin
@@ -978,20 +981,6 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
         beam1 = getvar_savefile(file_struct.beam_savefile[0], 'avg_beam')
         if nfiles eq 2 then beam2 = getvar_savefile(file_struct.beam_savefile[1], 'avg_beam')
         
-        if keyword_set(uv_img_clip) then begin
-          temp = beam1
-          temp = temp[(dims2[0]/2)-(dims2[0]/uv_img_clip)/2:(dims2[0]/2)+(dims2[0]/uv_img_clip)/2-1, *, *]
-          temp = temp[*, (dims2[1]/2)-(dims2[1]/uv_img_clip)/2:(dims2[1]/2)+(dims2[1]/uv_img_clip)/2-1, *]
-          if nfiles eq 2 then begin
-            temp2 = beam2
-            temp2 = temp2[(dims2[0]/2)-(dims2[0]/uv_img_clip)/2:(dims2[0]/2)+(dims2[0]/uv_img_clip)/2-1, *, *]
-            temp2 = temp2[*, (dims2[1]/2)-(dims2[1]/uv_img_clip)/2:(dims2[1]/2)+(dims2[1]/uv_img_clip)/2-1, *]
-          endif
-          
-          beam1 = temp
-          if nfiles eq 2 then beam2 = temp2         
-        endif
-        
         void = getvar_savefile(file_struct.beam_savefile[0], names = uvf_varnames)
         wh_hash = where(uvf_varnames eq 'beam_git_hash', count_hash)
         if count_hash gt 0 then begin
@@ -1001,6 +990,9 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
         
         if nfiles eq 2 then window_int_beam = [total(beam1), total(beam2)]*pix_area_mpc*(z_mpc_delta * n_freq) $
         else window_int_beam = total(beam1)*pix_area_mpc*(z_mpc_delta * n_freq)
+        
+      ;;miguel_factor = (total(sqrt(beam1))*pix_area_mpc*(z_mpc_delta * n_freq))/(total(beam1)*pix_area_mpc*(z_mpc_delta * n_freq))
+      ;;window_int_beam = window_int_beam / miguel_factor
       endif else beam_git_hashes = ''
       
     endelse
@@ -1314,6 +1306,7 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
     if tag_exist(file_struct, 'beam_savefile') then print, 'window integral from beam: ' + number_formatter(window_int_beam[0], format='(e10.4)')
     ;window_int = window_int_k
     if tag_exist(file_struct, 'beam_savefile') then window_int = window_int_beam else window_int = window_int_k
+    if keyword_set(sim) then window_int = 2.39e9 + fltarr(nfiles)
   endif else begin
     window_int_k = window_int * (z_mpc_delta * n_freq) * (2.*!pi)^2. / (kx_mpc_delta * ky_mpc_delta)
     print, 'var_cube multiplier: ', (z_mpc_delta * n_freq) * (2.*!pi)^2. / (kx_mpc_delta * ky_mpc_delta)
@@ -1321,6 +1314,7 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
     if tag_exist(file_struct, 'beam_savefile') then print, 'window integral from beam: ' + number_formatter(window_int_beam[0], format='(e10.4)')
     ;window_int = window_int_k
     if tag_exist(file_struct, 'beam_savefile') then window_int = window_int_beam else window_int = window_int_k
+    if keyword_set(sim) then window_int = 2.39e9 + fltarr(nfiles)
   endelse
   
   

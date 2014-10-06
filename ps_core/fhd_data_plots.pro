@@ -211,13 +211,14 @@ pro fhd_data_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol
           dft_refresh_weight = weight_refresh[i], refresh_beam = refresh_beam, dft_ian = dft_ian, cut_image = cut_image, $
           dft_fchunk = dft_fchunk, freq_ch_range = freq_ch_range, freq_flags = freq_flags, $
           spec_window_type = spec_window_type, delta_uv_lambda = delta_uv_lambda, max_uv_lambda = max_uv_lambda, $
-          std_power = std_power, no_wtd_avg = no_wtd_avg, no_kzero = no_kzero, $
+          std_power = std_power, no_wtd_avg = no_wtd_avg, no_kzero = no_kzero, sim=sim, $
           log_kpar = log_kpar, log_kperp = log_kperp, kpar_bin = kpar_bin, kperp_bin = kperp_bin, $
           kperp_range_1dave = kperp_range_1dave, kpar_range_1dave = kpar_range_1dave, /quiet
       endif else $
         fhd_3dps, file_struct_arr[i], kcube_refresh = refresh_ps, freq_ch_range = freq_ch_range, $
         freq_flags = freq_flags, spec_window_type = spec_window_type, $
-        std_power = std_power, no_wtd_avg = no_wtd_avg, no_kzero = no_kzero, uvf_input = uvf_input, uv_avg = uv_avg, uv_img_clip = uv_img_clip, $
+        std_power = std_power, no_wtd_avg = no_wtd_avg, no_kzero = no_kzero, $
+        uvf_input = uvf_input, uv_avg = uv_avg, uv_img_clip = uv_img_clip, sim=sim, $
         log_kpar = log_kpar, log_kperp = log_kperp, kpar_bin = kpar_bin, kperp_bin = kperp_bin, $
         kperp_range_1dave = kperp_range_1dave, kpar_range_1dave = kpar_range_1dave, /quiet
     endif
