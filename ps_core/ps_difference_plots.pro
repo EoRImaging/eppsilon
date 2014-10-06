@@ -119,7 +119,7 @@ pro ps_difference_plots, info_files, cube_types, pols, all_type_pol = all_type_p
     power_diff = power1 - power2
     if max(abs(power_diff)) eq 0 then begin
       print, 'The cubes are identical -- power difference is zero everywhere'
-      continue
+      ;continue
     endif
     undefine, power1, power2
     
