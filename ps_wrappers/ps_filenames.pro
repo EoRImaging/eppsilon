@@ -395,11 +395,46 @@ function ps_filenames, folder_names, obs_names_in, rts = rts, sim = sim, casa = 
               wh_pol = where(pol_num eq pol_i, count_pol)
               if count_pol gt 2 then message, 'More than two cubes found with given obs_name and the same polarization'
             endfor
-          endif else if n_cubefiles gt 2 then message, 'More than two cubes found with given obs_name'
+          endif else if n_cubefiles gt 2 then begin
+          
+            ;; too many cubes with matching obs_name. Check to see what their whole obs_name is
+            obs_name_arr = strarr(n_cubefiles)
+            for j=0, n_cubefiles-1 do begin
+              start_pos = strpos(cube_basename[j], 'Combined_obs_') + strlen('Combined_obs_')
+              end_pos_even = strpos(strmid(cube_basename[j], start_pos), '_even')
+              end_pos_odd = strpos(strmid(cube_basename[j], start_pos), '_odd')
+              end_pos_cube = strpos(strmid(cube_basename[j], start_pos), '_cube') ;; always > -1
+              end_pos = end_pos_even > end_pos_odd
+              wh_noend = where(end_pos eq -1, count_noend)
+              if count_noend gt 0 then end_pos[wh_noend] = end_pos_cube[wh_noend]
+              
+              obs_name_arr[j] = strmid(cube_basename[j], start_pos, end_pos)
+            endfor
+            
+            wh_match = where(obs_name_arr eq obs_names[i], count_match)
+            if count_match gt 0 then begin
+            
+              if count_match gt 2 then message, 'More than two cubes found with given obs_name'
+              cube_file_list = cube_file_list[wh_match]
+            endif else begin
+            
+              wh_first = where(obs_name_arr eq obs_name_arr[0], count_first)
+              
+              if count_first le 2 then begin
+                print, 'More than one obs_name found containing given obs_name (none match exactly), using first similar obs_name (' + obs_name_arr[0] + ', ' + number_formatter(count_first) + ' files)'
+                cube_file_list = cube_file_list[wh_first]
+                obs_names[i] = obs_name_arr[0]
+              endif else message, 'More than two cubes found with given obs_name'
+              
+            endelse
+            
+          endif
           
           datafile = cube_file_list
-          test_other_obsnames = file_search(folder_names[i] + '/' + data_subdirs[i] + 'Combined_obs_' + '*_cube*.sav', count = n_all_infofile)
-          if n_all_infofile gt n_infofile then fhd_types[i] = fhd_types[i] + '_' + obs_names[i]
+          if n_infofile eq 0 then begin
+            test_other_obsnames = file_search(folder_names[i] + '/' + data_subdirs[i] + 'Combined_obs_' + '*_cube*.sav', count = n_all_infofile)
+            if n_all_infofile gt n_infofile then fhd_types[i] = fhd_types[i] + '_' + obs_names[i]
+          endif
         endelse
         integrated[i]=1
         
@@ -632,7 +667,7 @@ function ps_filenames, folder_names, obs_names_in, rts = rts, sim = sim, casa = 
                   if count_pol gt 2 then message, 'More than two cubes found with given obs_name and the same polarization'
                 endfor
               endif else if n_cubefiles gt 2 then message, 'More than two cubes found with given obs_name'
-
+              
               datafile = cube_file_list
             endelse
           endif
