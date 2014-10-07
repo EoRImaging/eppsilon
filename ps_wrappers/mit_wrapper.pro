@@ -191,7 +191,7 @@ pro mit_wrapper, folder_name, obs_name, data_subdirs=data_subdirs, n_obs=n_obs, 
     log_kpar = log_kpar, log_kperp = log_kperp, kpar_bin = kpar_bin, kperp_bin = kperp_bin, log_k1d = log_k1d, $
     k1d_bin = k1d_bin, kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, $
     data_range = data_range, sigma_range = sigma_range, nev_range = nev_range, snr_range = snr_range, noise_range = noise_range, nnr_range = nnr_range, $
-    range_1d = range_1d, baseline_axis = baseline_axis, delay_axis = delay_axis, hinv = hinv, $
+    range_1d = range_1d, baseline_axis = baseline_axis, delay_axis = delay_axis, hinv = hinv, note = note, $
     plot_wedge_line = plot_wedge_line, plot_eor_1d = plot_eor_1d, individual_plots = individual_plot, png = png, eps = eps
     
   if not keyword_set(set_data_ranges) then begin
