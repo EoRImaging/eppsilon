@@ -1,6 +1,6 @@
 pro hellebore_fhd_cube_images, folder_names, obs_names_in, cube_types = cube_types, pols = pols, evenodd = evenodd, $
     rts = rts, sim = sim, casa = casa, png = png, eps = eps, slice_range = slice_range, ratio = ratio, diff_ratio = diff_ratio, $
-    log = log, data_range = data_range, color_profile = color_profile, sym_color = sym_color, window_num = window_num
+    log = log, data_range = data_range, color_profile = color_profile, sym_color = sym_color, window_num = window_num, plot_as_map = plot_as_map
     
   if n_elements(folder_names) gt 2 then message, 'No more than 2 folder_names can be supplied'
   if n_elements(evenodd) eq 0 then evenodd = 'even'
@@ -223,6 +223,6 @@ pro hellebore_fhd_cube_images, folder_names, obs_names_in, cube_types = cube_typ
   if keyword_set(diff_ratio) then title = diff_title + ', peak norm., ' + title_range else title = diff_title + ', ' + title_range
   
   healpix_quickimage, temp, hpx_inds1, nside1, title = title, savefile = plotfile, note=note, slice_ind = slice_ind, $
-    log = log, color_profile = color_profile, data_range = data_range, window_num = window_num
+    log = log, color_profile = color_profile, data_range = data_range, window_num = window_num, plot_as_map = plot_as_map
     
 end
