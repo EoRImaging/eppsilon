@@ -1,11 +1,13 @@
 pro fhd_3dps, file_struct, refresh = refresh, kcube_refresh = kcube_refresh, dft_refresh_data = dft_refresh_data, $
-    dft_refresh_weight = dft_refresh_weight, refresh_beam = refresh_beam, dft_ian = dft_ian, cut_image = cut_image, $
+    dft_refresh_weight = dft_refresh_weight, refresh_beam = refresh_beam, $
+    savefile_2d = savefile_2d, savefile_1d = savefile_1d, savefile_kpar_power = savefile_kpar_power, $
+    dft_ian = dft_ian, cut_image = cut_image, $
     uvf_input = uvf_input, uv_avg = uv_avg, uv_img_clip = uv_img_clip, sim=sim, $
     dft_fchunk = dft_fchunk, freq_ch_range = freq_ch_range, freq_flags = freq_flags, $
     spec_window_type = spec_window_type, delta_uv_lambda = delta_uv_lambda, max_uv_lambda = max_uv_lambda, $
     std_power = std_power, no_wtd_avg = no_wtd_avg, no_kzero = no_kzero, log_kpar = log_kpar, $
     log_kperp = log_kperp, kperp_bin = kperp_bin, kpar_bin = kpar_bin, log_k1d = log_k1d, k1d_bin = k1d_bin, $
-    kperp_range_1dave = kperp_range_1dave, kpar_range_1dave = kpar_range_1dave, $
+    kperp_range_1dave = kperp_range_1dave, kpar_range_1dave = kpar_range_1dave, wedge_amp = wedge_amp, $
     input_units = input_units, fill_holes = fill_holes, quiet = quiet
     
   if tag_exist(file_struct, 'nside') ne 0 then healpix = 1 else healpix = 0
@@ -247,8 +249,6 @@ pro fhd_3dps, file_struct, refresh = refresh, kcube_refresh = kcube_refresh, dft
   if keyword_set(log_kpar) then fadd_2dbin = fadd_2dbin + '_logkpar'
   if keyword_set(log_kperp) then fadd_2dbin = fadd_2dbin + '_logkperp'
   
-  savefile = file_struct.savefile_froot + file_struct.savefilebase + power_tag + fadd_2dbin + '_2dkpower.idlsave'
-  
   git, repo_path = ps_repository_dir(), result=binning_git_hash
   if n_elements(git_hashes) gt 0 then git_hashes = create_struct(git_hashes, 'binning', binning_git_hash) $
   else git_hashes = {uvf:strarr(nfiles), uvf_wt:strarr(nfiles), beam:strarr(nfiles), kcube:'', ps:'', binning:binning_git_hash}
@@ -280,13 +280,13 @@ pro fhd_3dps, file_struct, refresh = refresh, kcube_refresh = kcube_refresh, dft
   if count eq 0 then stop
   kperp_plot_range = [min(kperp_edges[wh_good_kperp]), max(kperp_edges[wh_good_kperp+1])]
   
-  save, file = savefile, power, noise, weights, noise_expval, kperp_edges, kpar_edges, kperp_bin, kpar_bin, $
+  save, file = savefile_2d, power, noise, weights, noise_expval, kperp_edges, kpar_edges, kperp_bin, kpar_bin, $
     kperp_lambda_conv, delay_params, hubble_param, freq_mask, vs_name, vs_mean, window_int, git_hashes
     
   if not keyword_set(quiet) then begin
-    kpower_2d_plots, savefile, kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
+    kpower_2d_plots, savefile_2d, kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
       data_range = data_range
-    kpower_2d_plots, savefile, /plot_weights, kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
+    kpower_2d_plots, savefile_2d, /plot_weights, kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
       window_num = 2, title = 'Weights'
   endif
   
@@ -321,36 +321,56 @@ pro fhd_3dps, file_struct, refresh = refresh, kcube_refresh = kcube_refresh, dft
   if keyword_set(kperp_range_1dave) then kperp_range_use = kperp_range_1dave
   if keyword_set(kpar_range_1dave) then kpar_range_use = kpar_range_1dave
   
-  power_1d = kspace_rebinning_1d(power_3d, kx_mpc, ky_mpc, kz_mpc, k_edges_mpc, k_bin = k1d_bin, log_k = log_k1d, $
-    noise_expval = noise_expval_3d, binned_noise_expval = noise_expval_1d, weights = weights_3d, $
-    binned_weights = weights_1d, kperp_range = kperp_range_use, kpar_range = kpar_range_use)
-    
-  if nfiles eq 2 then $
-    noise_1d = kspace_rebinning_1d(noise_3d, kx_mpc, ky_mpc, kz_mpc, k_edges_mpc, k_bin = k1d_bin, log_k = log_k1d, $
-    noise_expval = noise_expval_3d, binned_noise_expval = noise_expval_1d, weights = weights_3d, $
-    binned_weights = weights_1d, kperp_range = kperp_range_use, kpar_range = kpar_range_use)
-    
-  power = power_1d
-  if nfiles eq 2 then noise = noise_1d
-  weights = weights_1d
-  k_edges = k_edges_mpc
-  k_bin = k1d_bin
-  noise_expval = noise_expval_1d
-  kperp_range = kperp_range_use
-  kpar_range = kpar_range_use
+  if n_elements(savefile_1d) ne n_elements(wedge_amp)+1 then message, 'number of elements in savefile_1d must be 1 larger than number of elements in wedge_amp'
   
-  fadd_1dbin = ''
-  if keyword_set(log_k) then fadd_1dbin = fadd_1dbin + '_logk'
-  if keyword_set(kperp_range_1dave) then fadd_1dbin = fadd_1dbin + '_kperp' + number_formatter(kperp_range_1dave[0]) + '-' + $
-    number_formatter(kperp_range_1dave[1])
-  if keyword_set(kpar_range_1dave) then fadd_1dbin = fadd_1dbin + '_kpar' + number_formatter(kpar_range_1dave[0]) + '-' + $
-    number_formatter(kpar_range_1dave[1])
+  for i=0, n_elements(savefile_1d)-1 do begin
+    if i gt 0 then wedge_amp_use = wedge_amp[i-1]
     
-  savefile = file_struct.savefile_froot + file_struct.savefilebase + power_tag + fadd_1dbin + '_1dkpower.idlsave'
-  save, file = savefile, power, noise, weights, noise_expval, k_edges, k_bin, hubble_param, freq_mask, kperp_range, kpar_range, window_int, git_hashes
+    power_1d = kspace_rebinning_1d(power_3d, kx_mpc, ky_mpc, kz_mpc, k_edges_mpc, k_bin = k1d_bin, log_k = log_k1d, $
+      noise_expval = noise_expval_3d, binned_noise_expval = noise_expval_1d, weights = weights_3d, $
+      binned_weights = weights_1d, kperp_range = kperp_range_use, kpar_range = kpar_range_use, wedge_amp = wedge_amp_use)
+      
+    if nfiles eq 2 then $
+      noise_1d = kspace_rebinning_1d(noise_3d, kx_mpc, ky_mpc, kz_mpc, k_edges_mpc, k_bin = k1d_bin, log_k = log_k1d, $
+      noise_expval = noise_expval_3d, binned_noise_expval = noise_expval_1d, weights = weights_3d, $
+      binned_weights = weights_1d, kperp_range = kperp_range_use, kpar_range = kpar_range_use, wedge_amp = wedge_amp_use)
+      
+    power = power_1d
+    if nfiles eq 2 then noise = noise_1d
+    weights = weights_1d
+    k_edges = k_edges_mpc
+    k_bin = k1d_bin
+    noise_expval = noise_expval_1d
+    kperp_range = kperp_range_use
+    kpar_range = kpar_range_use
+    
+    save, file = savefile_1d[i], power, noise, weights, noise_expval, k_edges, k_bin, hubble_param, freq_mask, kperp_range, kpar_range, window_int, git_hashes
+  endfor
   
   if not keyword_set(quiet) then begin
-    kpower_1d_plots, savefile, window_num = 5
+    kpower_1d_plots, savefile_1d, window_num = 5
   endif
+  
+  ;; bin just in kpar for diagnostic plot
+  
+  power_kpar = kspace_rebinning_1d(power_3d, kx_mpc, ky_mpc, kz_mpc, kpar_edges_mpc, k_bin = kpar_bin, log_k = log_k1d, $
+    noise_expval = noise_expval_3d, binned_noise_expval = noise_expval_kpar, weights = weights_3d, $
+    binned_weights = weights_1d, kperp_range = kperp_range_use, kpar_range = kpar_range_use, /kpar_power)
+    
+  if nfiles eq 2 then $
+    noise_kpar = kspace_rebinning_1d(noise_3d, kx_mpc, ky_mpc, kz_mpc, kpar_edges_mpc, k_bin = kpar_bin, log_k = log_k1d, $
+    noise_expval = noise_expval_3d, binned_noise_expval = noise_expval_kpar, weights = weights_3d, $
+    binned_weights = weights_1d, kperp_range = kperp_range_use, kpar_range = kpar_range_use, /kpar_power)
+      
+    power = power_kpar
+    if nfiles eq 2 then noise = noise_kpar
+    weights = weights_1d
+    k_edges = kpar_edges_mpc
+    k_bin = kpar_bin
+    noise_expval = noise_expval_kpar
+    kperp_range = kperp_range_use
+    kpar_range = kpar_range_use
+    
+    save, file = savefile_kpar_power, power, noise, weights, noise_expval, k_edges, k_bin, hubble_param, freq_mask, kperp_range, kpar_range, window_int, git_hashes
   
 end

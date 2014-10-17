@@ -3,10 +3,10 @@ pro hellebore_wrapper, folder_name, obs_range, rts = rts, casa = casa, version =
     pol_inc = pol_inc, sim = sim, freq_ch_range = freq_ch_range, freq_flag_name = freq_flag_name, $
     no_spec_window = no_spec_window, spec_window_type = spec_window_type, std_power = std_power, no_wtd_avg = no_wtd_avg, $
     cut_image = cut_image, individual_plots = individual_plots, plot_filebase = plot_filebase, png = png, eps = eps, pdf = pdf, $
-    plot_slices = plot_slices, slice_type = slice_type, uvf_plot_type = uvf_plot_type, $
+    plot_slices = plot_slices, slice_type = slice_type, uvf_plot_type = uvf_plot_type, plot_kpar_power = plot_kpar_power, $
     kperp_range_1dave = kperp_range_1dave, kpar_range_1dave = kpar_range_1dave, uv_avg = uv_avg, uv_img_clip = uv_img_clip,$
     kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, $
-    t32 = t32, set_data_ranges = set_data_ranges, plot_ranges = plot_ranges
+    t32 = t32, set_data_ranges = set_data_ranges, plot_ranges = plot_ranges, slice_range = slice_range
     
   if n_elements(folder_name) eq 0 then message, 'folder name is required'
   if n_elements(folder_name) gt 1 then message, 'Only one folder_name can be supplied'
@@ -239,9 +239,9 @@ pro hellebore_wrapper, folder_name, obs_range, rts = rts, casa = casa, version =
     log_kpar = log_kpar, log_kperp = log_kperp, kpar_bin = kpar_bin, kperp_bin = kperp_bin, $
     log_k1d = log_k1d, k1d_bin = k1d_bin, kperp_range_1dave = kperp_range_1dave, kpar_range_1dave = kpar_range_1dave,$
     kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
-    plot_slices = plot_slices, slice_type = slice_type, uvf_plot_type = uvf_plot_type, plot_stdset = plot_stdset, $
+    plot_slices = plot_slices, slice_type = slice_type, uvf_plot_type = uvf_plot_type, plot_stdset = plot_stdset, plot_kpar_power = plot_kpar_power, $
     data_range = data_range, sigma_range = sigma_range, nev_range = nev_range, snr_range = snr_range, noise_range = noise_range, nnr_range = nnr_range, $
-    range_1d = range_1d, $
+    range_1d = range_1d, slice_range = slice_range, $
     baseline_axis = baseline_axis, delay_axis = delay_axis, hinv = hinv, $
     plot_wedge_line = plot_wedge_line, plot_eor_1d = plot_eor_1d, $
     individual_plots = individual_plots, note = note, png = png, eps = eps, pdf = pdf
@@ -256,25 +256,27 @@ pro hellebore_wrapper, folder_name, obs_range, rts = rts, casa = casa, version =
     if n_elements(noise_range) gt 0 then print, 'noise_range used: ', number_formatter(noise_range, format = '(e7.1)')
   endif
   
-  if n_elements(plot_ranges) eq 0 then begin
-    plot_ranges = create_struct('sigma', sigma_range, 'noise_exp', nev_range, 'power', data_range, 'snr', snr_range, $
-      'kperp', kperp_plot_range, 'kpar', kpar_plot_range)
-    if n_elements(nnr_range) gt 0 then plot_ranges = create_struct(plot_ranges, 'noise_ratio', nnr_range)
-    if n_elements(noise_range) gt 0 then plot_ranges = create_struct(plot_ranges, 'noise', noise_range)
-    if n_elements(range_1d) gt 0 then plot_ranges = create_struct(plot_ranges, 'power_1d', range_1d)
-  endif else begin
-    if not tag_exist(plot_ranges, 'sigma') then plot_ranges = create_struct(plot_ranges, 'sigma', sigma_range) else plot_ranges.sigma = sigma_range
-    if not tag_exist(plot_ranges, 'noise_exp') then plot_ranges = create_struct(plot_ranges, 'noise_exp', nev_range) else plot_ranges.noise_exp = nev_range
-    if not tag_exist(plot_ranges, 'power') then plot_ranges = create_struct(plot_ranges, 'power', data_range) else plot_ranges.power = data_range
-    if not tag_exist(plot_ranges, 'snr') then plot_ranges = create_struct(plot_ranges, 'snr', snr_range) else plot_ranges.snr = snr_range
-    if not tag_exist(plot_ranges, 'power_1d') then plot_ranges = create_struct(plot_ranges, 'power_1d', range_1d) else plot_ranges.power_1d = range_1d
-    if n_elements(nnr_range) gt 0 then if not tag_exist(plot_ranges, 'noise_ratio') then $
-      plot_ranges = create_struct(plot_ranges, 'noise_ratio', nnr_range) else plot_ranges.noise_ratio = nnr_range
-    if n_elements(noise_range) gt 0 then if not tag_exist(plot_ranges, 'noise') then $
-      plot_ranges = create_struct(plot_ranges, 'noise', noise_range) else plot_ranges.noise = noise_range
-      
-    if not tag_exist(plot_ranges, 'kperp') then plot_ranges = create_struct(plot_ranges, 'kperp', kperp_plot_range) else plot_ranges.kperp = kperp_plot_range
-    if not tag_exist(plot_ranges, 'kpar') then plot_ranges = create_struct(plot_ranges, 'kpar', kpar_plot_range) else plot_ranges.kpar = kpar_plot_range
-  endelse
+  if keyword_set(plot_stdset) then begin
+    if n_elements(plot_ranges) eq 0 then begin
+      plot_ranges = create_struct('sigma', sigma_range, 'noise_exp', nev_range, 'power', data_range, 'snr', snr_range, $
+        'kperp', kperp_plot_range, 'kpar', kpar_plot_range)
+      if n_elements(nnr_range) gt 0 then plot_ranges = create_struct(plot_ranges, 'noise_ratio', nnr_range)
+      if n_elements(noise_range) gt 0 then plot_ranges = create_struct(plot_ranges, 'noise', noise_range)
+      if n_elements(range_1d) gt 0 then plot_ranges = create_struct(plot_ranges, 'power_1d', range_1d)
+    endif else begin
+      if not tag_exist(plot_ranges, 'sigma') then plot_ranges = create_struct(plot_ranges, 'sigma', sigma_range) else plot_ranges.sigma = sigma_range
+      if not tag_exist(plot_ranges, 'noise_exp') then plot_ranges = create_struct(plot_ranges, 'noise_exp', nev_range) else plot_ranges.noise_exp = nev_range
+      if not tag_exist(plot_ranges, 'power') then plot_ranges = create_struct(plot_ranges, 'power', data_range) else plot_ranges.power = data_range
+      if not tag_exist(plot_ranges, 'snr') then plot_ranges = create_struct(plot_ranges, 'snr', snr_range) else plot_ranges.snr = snr_range
+      if not tag_exist(plot_ranges, 'power_1d') then plot_ranges = create_struct(plot_ranges, 'power_1d', range_1d) else plot_ranges.power_1d = range_1d
+      if n_elements(nnr_range) gt 0 then if not tag_exist(plot_ranges, 'noise_ratio') then $
+        plot_ranges = create_struct(plot_ranges, 'noise_ratio', nnr_range) else plot_ranges.noise_ratio = nnr_range
+      if n_elements(noise_range) gt 0 then if not tag_exist(plot_ranges, 'noise') then $
+        plot_ranges = create_struct(plot_ranges, 'noise', noise_range) else plot_ranges.noise = noise_range
+        
+      if not tag_exist(plot_ranges, 'kperp') then plot_ranges = create_struct(plot_ranges, 'kperp', kperp_plot_range) else plot_ranges.kperp = kperp_plot_range
+      if not tag_exist(plot_ranges, 'kpar') then plot_ranges = create_struct(plot_ranges, 'kpar', kpar_plot_range) else plot_ranges.kpar = kpar_plot_range
+    endelse
+  endif
   
 end

@@ -105,14 +105,19 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, wei
       
     endif
     if n_elements(plotfile) eq 0 and n_elements(multi_pos) eq 0 then begin
-      if keyword_set(eps) then plotfile = 'idl_kpower_2d_plots.eps' else plotfile = 'idl_kpower_2d_plots'
+      plotfile = 'idl_kpower_2d_plots'
       cd, current = current_dir
       print, 'no filename specified for kpower_2d_plots output. Using ' + current_dir + path_sep() + plotfile
     endif
     
-    if keyword_set(png) and keyword_set(eps) and keyword_set(pdf) then begin
-      print, 'only one of eps, pdf and png can be set, using png'
+    n_ext_set = 0
+    if keyword_set(png) then n_ext_set +=1
+    if keyword_set(pdf) then n_ext_set +=1
+    if keyword_set(eps) then n_ext_set +=1
+    if n_ext_set gt 1 then begin
+      print, 'only one of eps, png, pdf keywords can be set, using png'
       eps = 0
+      pdf = 0
     endif
     
     if keyword_set(png) then begin

@@ -1,6 +1,6 @@
 pro kpower_1d_plots, power_savefile, plot_weights = plot_weights, multi_pos = multi_pos, data_range = data_range, k_range = k_range, $
     png = png, eps = eps, pdf = pdf, plotfile = plotfile, window_num = window_num, colors = colors, names = names, psyms = psyms, $
-    save_text = save_text, delta = delta, hinv = hinv, note = note, title = title
+    save_text = save_text, delta = delta, hinv = hinv, note = note, title = title, kpar_power = kpar_power
     
   if n_elements(plotfile) gt 0 or keyword_set(png) or keyword_set(eps) or keyword_set(pdf) then pub = 1 else pub = 0
   if pub eq 1 then begin
@@ -20,7 +20,7 @@ pro kpower_1d_plots, power_savefile, plot_weights = plot_weights, multi_pos = mu
       
     endif
     if n_elements(plotfile) eq 0 and n_elements(multi_pos) eq 0 then begin
-      if keyword_set(eps) then plotfile = 'idl_kpower_1d_plots.eps' else plotfile = 'idl_kpower_1d_plots'
+      if keyword_set(kpar_power) then plotfile = 'idl_kpar_power_plots' else plotfile = 'idl_kpower_1d_plots'
       cd, current = current_dir
       print, 'no filename specified for kpower_1d_plots output. Using ' + current_dir + path_sep() + plotfile
     endif
@@ -241,8 +241,13 @@ pro kpower_1d_plots, power_savefile, plot_weights = plot_weights, multi_pos = mu
     if keyword_set(hinv) then ytitle = textoidl('P_k (mK^2 h^{-3} Mpc^3)', font = font) $
     else ytitle = textoidl('P_k (mK^2 Mpc^3)', font = font)
   endelse
-  if keyword_set(hinv) then xtitle = textoidl('k (h Mpc^{-1})', font = font) $
-  else xtitle = textoidl('k (Mpc^{-1})', font = font)
+  if keyword_set(kpar_power) then begin
+    if keyword_set(hinv) then xtitle = textoidl('k_{||} (h Mpc^{-1})', font = font) $
+    else xtitle = textoidl('k_{||} (Mpc^{-1})', font = font)
+  endif else begin
+    if keyword_set(hinv) then xtitle = textoidl('k (h Mpc^{-1})', font = font) $
+    else xtitle = textoidl('k (Mpc^{-1})', font = font)
+  endelse
   
   cgplot, k_plot.(plot_order[0]), power_plot.(plot_order[0]), position = plot_pos, /ylog, /xlog, xrange = xrange, yrange = yrange, $
     xstyle=1, ystyle=1, axiscolor = 'black', xtitle = xtitle, ytitle = ytitle, title = title, psym=psyms[0], xtickformat = 'exponent', $

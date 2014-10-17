@@ -213,7 +213,7 @@ pro kpower_slice_plot, slice_savefile, multi_pos = multi_pos, start_multi_params
   
   if keyword_set(linear_axes) then begin
     plot_xlength = max(xarr_edges) - min(xarr_edges)
-    plot_ylength = (max(yarr_edges) - min(yarr_edges))*5d
+    plot_ylength = (max(yarr_edges) - min(yarr_edges))
   endif else begin
     plot_xlength = max(log_x_edges) - min(log_x_edges)
     plot_ylength = max(log_y_edges) - min(log_y_edges)
@@ -277,8 +277,8 @@ pro kpower_slice_plot, slice_savefile, multi_pos = multi_pos, start_multi_params
         
         if ps_aspect lt 1 then landscape = 1 else landscape = 0
         IF Keyword_Set(eps) THEN landscape = 0
-        sizes = cgpswindow(LANDSCAPE=landscape, aspectRatio = ps_aspect)
-        
+        sizes = cgpswindow(LANDSCAPE=landscape, aspectRatio = ps_aspect, /sane_offsets)
+  
         cgps_open, plotfile, /font, encapsulated=eps, /nomatch, inches=sizes.inches, xsize=sizes.xsize, ysize=sizes.ysize, $
           xoffset=sizes.xoffset, yoffset=sizes.yoffset, landscape = landscape
       endif else begin
@@ -385,8 +385,8 @@ pro kpower_slice_plot, slice_savefile, multi_pos = multi_pos, start_multi_params
       ps_aspect = ysize / float(xsize)
       if ps_aspect lt 1 then landscape = 1 else landscape = 0
       IF Keyword_Set(eps) THEN landscape = 0
-      sizes = cgpswindow(LANDSCAPE=landscape, aspectRatio = ps_aspect)
-      
+      sizes = cgpswindow(LANDSCAPE=landscape, aspectRatio = ps_aspect, /sane_offsets)
+
       cgps_open, plotfile, /font, encapsulated=eps, /nomatch, inches=sizes.inches, xsize=sizes.xsize, ysize=sizes.ysize, $
         xoffset=sizes.xoffset, yoffset=sizes.yoffset, landscape = landscape
     endif
