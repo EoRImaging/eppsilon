@@ -35,7 +35,8 @@ do
 	o) ps_only=$OPTARG;;			#Flag for skipping integration to make PS only
         l) legacy=$OPTARG;;                     #Use legacy directory structure. hacky solution to a silly problem.
         \?) echo "Unknown option: Accepted flags are -d (file path to fhd directory with cubes), -f (obs list or subcube path), "
-	    echo "-p (priority for grid engine), -w (wallclock time), -n (number of slots), and -m (memory allocation)"
+	    echo "-p (priority for grid engine), -w (wallclock time), -n (number of slots), -m (memory allocation), "
+	    echo "-o (make ps only without integration), and -l (legacy flag for old file structure)"
             exit 1;;
         :) echo "Missing option argument for input flag"
            exit 1;;
@@ -109,7 +110,7 @@ rm -f ${FHDdir}/Healpix/${version}_int_chunk*.txt # remove any old chunk files l
 exit_flag=0
 
 #Check that cubes or integrated cubes are present, print and error if they are not
-if [ "$ps_only" -ne "1" ]; then # only if we're integrating
+if [ "$ps_only" -ne "1" ]; then 	#only if we're integrating
 while read line
 do
    if [ "$first_line_len" == 10 ]; then
