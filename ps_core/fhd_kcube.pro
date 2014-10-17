@@ -741,7 +741,7 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
           nfvis_beam = obs_beam.nf_vis
           undefine_fhd, obs_beam
           
-          if max(arr) le 1. then begin
+          if max(arr) le 1.1 then begin
             ;; beam is peak normalized to 1
             temp = arr * rebin(reform(nfvis_beam, 1, 1, n_elements(nfvis_beam)), n_kx, n_ky, n_elements(nfvis_beam), /sample)
           endif else if max(arr) le file_struct.n_obs[i] then begin
@@ -882,9 +882,7 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
         
         if nfiles eq 2 then window_int_beam = [total(beam1), total(beam2)]*pix_area_mpc*(z_mpc_delta * n_freq) $
         else window_int_beam = total(beam1)*pix_area_mpc*(z_mpc_delta * n_freq)
-        
-      ;;miguel_factor = (total(sqrt(beam1))*pix_area_mpc*(z_mpc_delta * n_freq))/(total(beam1)*pix_area_mpc*(z_mpc_delta * n_freq))
-      ;;window_int_beam = window_int_beam / miguel_factor
+                
       endif else beam_git_hashes = ''
       
     endif else begin
@@ -991,8 +989,6 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
         if nfiles eq 2 then window_int_beam = [total(beam1), total(beam2)]*pix_area_mpc*(z_mpc_delta * n_freq) $
         else window_int_beam = total(beam1)*pix_area_mpc*(z_mpc_delta * n_freq)
         
-      ;;miguel_factor = (total(sqrt(beam1))*pix_area_mpc*(z_mpc_delta * n_freq))/(total(beam1)*pix_area_mpc*(z_mpc_delta * n_freq))
-      ;;window_int_beam = window_int_beam / miguel_factor
       endif else beam_git_hashes = ''
       
     endelse
@@ -1306,7 +1302,7 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
     if tag_exist(file_struct, 'beam_savefile') then print, 'window integral from beam: ' + number_formatter(window_int_beam[0], format='(e10.4)')
     ;window_int = window_int_k
     if tag_exist(file_struct, 'beam_savefile') then window_int = window_int_beam else window_int = window_int_k
-    if keyword_set(sim) then window_int = 2.39e9 + fltarr(nfiles)
+  ;if keyword_set(sim) then window_int = 2.39e9 + fltarr(nfiles)
   endif else begin
     window_int_k = window_int * (z_mpc_delta * n_freq) * (2.*!pi)^2. / (kx_mpc_delta * ky_mpc_delta)
     print, 'var_cube multiplier: ', (z_mpc_delta * n_freq) * (2.*!pi)^2. / (kx_mpc_delta * ky_mpc_delta)
@@ -1314,7 +1310,7 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
     if tag_exist(file_struct, 'beam_savefile') then print, 'window integral from beam: ' + number_formatter(window_int_beam[0], format='(e10.4)')
     ;window_int = window_int_k
     if tag_exist(file_struct, 'beam_savefile') then window_int = window_int_beam else window_int = window_int_k
-    if keyword_set(sim) then window_int = 2.39e9 + fltarr(nfiles)
+  ;if keyword_set(sim) then window_int = 2.39e9 + fltarr(nfiles)
   endelse
   
   
