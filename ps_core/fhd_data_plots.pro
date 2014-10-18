@@ -5,7 +5,8 @@ pro fhd_data_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol
     dft_fchunk = dft_fchunk, freq_ch_range = freq_ch_range, freq_flags = freq_flags, freq_flag_name = freq_flag_name, $
     no_spec_window = no_spec_window, spec_window_type = spec_window_type, delta_uv_lambda = delta_uv_lambda, max_uv_lambda = max_uv_lambda, $
     cut_image = cut_image, dft_ian = dft_ian, sim = sim, std_power = std_power, no_wtd_avg = no_wtd_avg, no_kzero = no_kzero, $
-    plot_slices = plot_slices, slice_type = slice_type, uvf_plot_type = uvf_plot_type, plot_stdset = plot_stdset, plot_kpar_power = plot_kpar_power, $
+    plot_slices = plot_slices, slice_type = slice_type, uvf_plot_type = uvf_plot_type, plot_stdset = plot_stdset, $
+    plot_kpar_power = plot_kpar_power, plot_kperp_power = plot_kperp_power, $
     data_range = data_range, sigma_range = sigma_range, nev_range = nev_range, slice_range = slice_range, $
     snr_range = snr_range, noise_range = noise_range, nnr_range = nnr_range, range_1d = range_1d, $
     log_kpar = log_kpar, log_kperp = log_kperp, kpar_bin = kpar_bin, kperp_bin = kperp_bin, log_k1d = log_k1d, $
@@ -165,10 +166,14 @@ pro fhd_data_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol
   savefiles_kpar_1d = file_struct_arr.savefile_froot + file_struct_arr.savefilebase + power_tag + fadd_1dbin + '_kpar_power.idlsave'
   if keyword_set(plot_kpar_power) then test_save_kpar = file_test(savefiles_kpar_1d) *  (1 - file_test(savefiles_kpar_1d, /zero_length))
   
+  savefiles_kperp_1d = file_struct_arr.savefile_froot + file_struct_arr.savefilebase + power_tag + fadd_1dbin + '_kperp_power.idlsave'
+  if keyword_set(plot_kperp_power) then test_save_kperp = file_test(savefiles_kperp_1d) *  (1 - file_test(savefiles_kperp_1d, /zero_length))
+  
   if keyword_set(refresh_binning) then begin
     test_save_2d = test_save_2d*0
     test_save_1d = test_save_1d*0
     if keyword_set(plot_kpar_power) then test_save_kpar = test_save_kpar*0
+    if keyword_set(plot_kperp_power) then test_save_kperp = test_save_kperp*0
   endif
   
   if tag_exist(file_struct_arr[0], 'nside') ne 0 then healpix = 1 else healpix = 0
@@ -192,6 +197,11 @@ pro fhd_data_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol
     if keyword_set(plot_kpar_power) then begin
       savefile_kpar_use = savefiles_kpar_1d[i]
       test_kpar = test_save_kpar[i]
+    endif
+    
+    if keyword_set(plot_kperp_power) then begin
+      savefile_kperp_use = savefiles_kperp_1d[i]
+      test_kperp = test_save_kperp[i]
     endif
     
     if n_elements(wedge_1dbin_names) gt 1 then begin
@@ -253,8 +263,19 @@ pro fhd_data_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol
       endif
     endif
     
+    if keyword_set(plot_kperp_power) then begin
+      if test_kperp gt 0 and (n_elements(kperp_range_1dave) gt 0 or n_elements(kpar_range_1dave) gt 0) then begin
+        ;; check that 1d binning was over correct ranges
+        kperp_range_used = getvar_savefile(savefile_kperp_use, 'kperp_range')
+        kpar_range_used = getvar_savefile(savefile_kperp_use, 'kpar_range')
+        if n_elements(kperp_range_1dave) gt 0 then if max(abs(kperp_range_used - kperp_range_1dave)) gt 0 then test_kperp = 0
+        if n_elements(kpar_range_1dave) gt 0 then if max(abs(kpar_range_used - kpar_range_1dave)) gt 0 then test_kperp = 0
+      endif
+    endif
+    
     test = test_2d * test_1d
     if keyword_set(plot_kpar_power) then test = test * test_kpar
+    if keyword_set(plot_kperp_power) then test = test * test_kperp
     
     if test eq 0 then begin
     
@@ -269,14 +290,14 @@ pro fhd_data_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol
           dft_refresh_weight = weight_refresh[i], refresh_beam = refresh_beam, $
           dft_ian = dft_ian, cut_image = cut_image, dft_fchunk = dft_fchunk, freq_ch_range = freq_ch_range, freq_flags = freq_flags, $
           spec_window_type = spec_window_type, delta_uv_lambda = delta_uv_lambda, max_uv_lambda = max_uv_lambda, $
-          savefile_2d = savefile_2d_use, savefile_1d = savefile_1d_use, savefile_kpar_power = savefile_kpar_use, $
+          savefile_2d = savefile_2d_use, savefile_1d = savefile_1d_use, savefile_kpar_power = savefile_kpar_use, savefile_kperp_power = savefile_kperp_use, $
           std_power = std_power, no_wtd_avg = no_wtd_avg, no_kzero = no_kzero, sim=sim, $
           log_kpar = log_kpar, log_kperp = log_kperp, kpar_bin = kpar_bin, kperp_bin = kperp_bin, $
           kperp_range_1dave = kperp_range_1dave, kpar_range_1dave = kpar_range_1dave, wedge_amp = wedge_amp, /quiet
       endif else $
         fhd_3dps, file_struct_arr[i], kcube_refresh = refresh_ps, refresh_beam = refresh_beam, freq_ch_range = freq_ch_range, $
         freq_flags = freq_flags, spec_window_type = spec_window_type, $
-        savefile_2d = savefile_2d_use, savefile_1d = savefile_1d_use, savefile_kpar_power = savefile_kpar_use, $
+        savefile_2d = savefile_2d_use, savefile_1d = savefile_1d_use, savefile_kpar_power = savefile_kpar_use, savefile_kperp_power = savefile_kperp_use, $
         std_power = std_power, no_wtd_avg = no_wtd_avg, no_kzero = no_kzero, $
         uvf_input = uvf_input, uv_avg = uv_avg, uv_img_clip = uv_img_clip, sim=sim, $
         log_kpar = log_kpar, log_kperp = log_kperp, kpar_bin = kpar_bin, kperp_bin = kperp_bin, $
@@ -348,8 +369,14 @@ pro fhd_data_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol
     plotfiles_2d_noise = plotfile_base + fadd_2dbin + '_2dnoise' + plot_fadd + plot_exten
     plotfiles_2d_snr = plotfile_base + fadd_2dbin + '_2dsnr' + plot_fadd + plot_exten
     plotfiles_2d_nnr = plotfile_base + fadd_2dbin + '_2dnnr' + plot_fadd + plot_exten
-    if n_elements(plot_filebase) eq 0 then plotfile_1d = plotfile_path + general_filebase + power_tag + wedge_1dbin_names + fadd_1dbin + '_1dkpower' + plot_exten else $
-      plotfile_1d = plotfile_path + plot_filebase + uvf_tag + power_tag + wedge_1dbin_names+ fadd_1dbin + '_1dkpower' + plot_exten
+    
+    
+    if n_elements(plot_filebase) eq 0 then plotfile_1d_base = plotfile_path + general_filebase else $
+      plotfile_1d_base = plotfile_path + plot_filebase + uvf_tag
+    plotfile_1d = plotfile_1d_base + power_tag + wedge_1dbin_names + fadd_1dbin + '_1dkpower' + plot_exten
+    plotfile_kpar_power = plotfile_1d_base + power_tag + fadd_1dbin + '_kpar_power' + plot_exten
+    plotfile_kperp_power = plotfile_1d_base + power_tag + fadd_1dbin + '_kperp_power' + plot_exten
+    plotfile_kperp_weights = plotfile_1d_base + power_tag + fadd_1dbin + '_kperp_weights' + plot_exten
   endif
   
   if keyword_set(plot_slices) then begin
@@ -906,10 +933,74 @@ pro fhd_data_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol
   
     file_arr = savefiles_kpar_1d
     
+    titles_use = titles
+    if keyword_set(plot_eor_1d) then begin
+      ;eor_file_1d = base_path() + 'power_spectrum/eor_data/eor_power_1d.idlsave'
+    
+      path_dirs = strsplit(!path, '[;:]', /regex, /extract)
+      fhd_catalog_loc = strpos(path_dirs, 'catalog_data')
+      wh_catalog = where(fhd_catalog_loc gt 0, count_catalog)
+      if count_catalog gt 0 then begin
+        file_path = path_dirs[wh_catalog[0]]
+        ;; make sure file_path has a path separator at the end
+        pos = strpos(file_path, path_sep(), /reverse_search)
+        if pos+1-strlen(file_path) lt 0 then file_path = file_path + path_sep()
+        
+        eor_file_1d = file_path + 'eor_power_1d.idlsave'
+        flat_file_1d = file_path + 'flat_power_1d.idlsave'
+        psyms = [intarr(n_elements(file_arr))+10, -3, -3]
+        file_arr = [file_arr, eor_file_1d, flat_file_1d]
+        titles_use = [titles_use, 'EoR signal', 'input flat power']
+      endif else print, 'Could not locate catalog_data directory in !path variable'
+    endif
+    
     k_range = minmax([kperp_plot_range, kpar_bin, kpar_plot_range[1]])
     
-    kpower_1d_plots, file_arr, window_num = 12, colors = colors, names = titles, psyms = psyms, delta = delta, hinv = hinv, $
-      png = png, eps = eps, pdf = pdf, plotfile = plotfile_use, k_range = k_range, title = note, note = note_1d, data_range = range_1d, /kpar_power
+    kpower_1d_plots, file_arr, window_num = 12, colors = colors, names = titles_use, psyms = psyms, delta = delta, hinv = hinv, $
+      png = png, eps = eps, pdf = pdf, plotfile = plotfile_kpar_power, k_range = k_range, title = note, note = note_1d, data_range = range_1d, /kpar_power
+      
+  endif
+  
+  if keyword_set(plot_kperp_power) then begin
+  
+    file_arr = savefiles_kperp_1d
+    
+    titles_use = titles
+    if keyword_set(plot_eor_1d) then begin
+      ;eor_file_1d = base_path() + 'power_spectrum/eor_data/eor_power_1d.idlsave'
+    
+      path_dirs = strsplit(!path, '[;:]', /regex, /extract)
+      fhd_catalog_loc = strpos(path_dirs, 'catalog_data')
+      wh_catalog = where(fhd_catalog_loc gt 0, count_catalog)
+      if count_catalog gt 0 then begin
+        file_path = path_dirs[wh_catalog[0]]
+        ;; make sure file_path has a path separator at the end
+        pos = strpos(file_path, path_sep(), /reverse_search)
+        if pos+1-strlen(file_path) lt 0 then file_path = file_path + path_sep()
+        
+        eor_file_1d = file_path + 'eor_power_1d.idlsave'
+        flat_file_1d = file_path + 'flat_power_1d.idlsave'
+        psyms = [intarr(n_elements(file_arr))+10, -3, -3]
+        file_arr = [file_arr, eor_file_1d, flat_file_1d]
+        titles_use = [titles_use, 'EoR signal', 'input flat power']
+      endif else print, 'Could not locate catalog_data directory in !path variable'
+    endif
+    
+    k_range = minmax([kperp_plot_range, kpar_bin, kpar_plot_range[1]])
+    
+    kpower_1d_plots, file_arr, window_num = 13, colors = colors, names = titles_use, psyms = psyms, delta = delta, hinv = hinv, $
+      png = png, eps = eps, pdf = pdf, plotfile = plotfile_kperp_power, k_range = k_range, title = note, note = note_1d, data_range = range_1d, /kperp_power
+      
+  endif
+  
+  if keyword_set(plot_kperp_power) then begin
+  
+    file_arr = savefiles_kperp_1d
+    
+    k_range = minmax([kperp_plot_range, kpar_bin, kpar_plot_range[1]])
+    
+    kpower_1d_plots, file_arr, window_num = 14, colors = colors[0:n_cubes-1], names = titles, psyms = psyms[0:n_cubes-1], delta = delta, hinv = hinv, $
+      png = png, eps = eps, pdf = pdf, plotfile = plotfile_kperp_weights, k_range = k_range, title = note, note = note_1d, /kperp_power, /plot_weights
       
   endif
   

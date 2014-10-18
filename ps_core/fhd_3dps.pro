@@ -1,6 +1,6 @@
 pro fhd_3dps, file_struct, refresh = refresh, kcube_refresh = kcube_refresh, dft_refresh_data = dft_refresh_data, $
     dft_refresh_weight = dft_refresh_weight, refresh_beam = refresh_beam, $
-    savefile_2d = savefile_2d, savefile_1d = savefile_1d, savefile_kpar_power = savefile_kpar_power, $
+    savefile_2d = savefile_2d, savefile_1d = savefile_1d, savefile_kpar_power = savefile_kpar_power, savefile_kperp_power = savefile_kperp_power, $
     dft_ian = dft_ian, cut_image = cut_image, $
     uvf_input = uvf_input, uv_avg = uv_avg, uv_img_clip = uv_img_clip, sim=sim, $
     dft_fchunk = dft_fchunk, freq_ch_range = freq_ch_range, freq_flags = freq_flags, $
@@ -373,4 +373,27 @@ pro fhd_3dps, file_struct, refresh = refresh, kcube_refresh = kcube_refresh, dft
     
     save, file = savefile_kpar_power, power, noise, weights, noise_expval, k_edges, k_bin, hubble_param, freq_mask, kperp_range, kpar_range, window_int, git_hashes
   
+  ;; bin just in kperp for diagnostic plot
+  
+  power_kperp = kspace_rebinning_1d(power_3d, kx_mpc, ky_mpc, kz_mpc, kperp_edges_mpc, k_bin = kperp_bin, log_k = log_k1d, $
+    noise_expval = noise_expval_3d, binned_noise_expval = noise_expval_kperp, weights = weights_3d, $
+    binned_weights = weights_1d, kperp_range = kperp_range_use, kpar_range = kpar_range_use, /kperp_power)
+    
+  if nfiles eq 2 then $
+    noise_kperp = kspace_rebinning_1d(noise_3d, kx_mpc, ky_mpc, kz_mpc, kperp_edges_mpc, k_bin = kperp_bin, log_k = log_k1d, $
+    noise_expval = noise_expval_3d, binned_noise_expval = noise_expval_kperp, weights = weights_3d, $
+    binned_weights = weights_1d, kperp_range = kperp_range_use, kpar_range = kpar_range_use, /kperp_power)
+      
+    power = power_kperp
+    if nfiles eq 2 then noise = noise_kperp
+    weights = weights_1d
+    k_edges = kperp_edges_mpc
+    k_bin = kperp_bin
+    noise_expval = noise_expval_kperp
+    kperp_range = kperp_range_use
+    kpar_range = kpar_range_use
+    
+    save, file = savefile_kperp_power, power, noise, weights, noise_expval, k_edges, k_bin, hubble_param, freq_mask, kperp_range, kpar_range, window_int, git_hashes
+
+
 end

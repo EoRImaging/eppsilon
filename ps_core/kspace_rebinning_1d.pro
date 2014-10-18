@@ -3,10 +3,12 @@
 function kspace_rebinning_1d, power, k1_mpc, k2_mpc, k3_mpc, k_edges_mpc, k_bin = k_bin, log_k = log_k, $
     noise_expval = noise_expval, binned_noise_expval = noise_expval_1d, weights = weights, $
     binned_weights = weights_1d, kperp_range = kperp_range, kpar_range = kpar_range, wedge_amp = wedge_amp, $
-    edge_on_grid = edge_on_grid, match_datta = match_datta, kpar_power = kpar_power
+    edge_on_grid = edge_on_grid, match_datta = match_datta, kpar_power = kpar_power, kperp_power = kperp_power
     
   power_size = size(power, /dimensions)
   power_dim = n_elements(power_size)
+  
+  if keyword_set(kpar_power) and keyword_set(kperp_power) then message, 'Only one of kpar_power and kperp_power can be set'
   
   if power_dim lt 2 or power_dim gt 3 then $
     message, 'power array must be 2 or 3 dimensional and ordered (kperpendicular, kparallel) or (kx,ky,kz)'
@@ -105,7 +107,10 @@ function kspace_rebinning_1d, power, k1_mpc, k2_mpc, k3_mpc, k_edges_mpc, k_bin 
     
     if keyword_set(kpar_power) then begin
       ;; generate kpar values for histogram
-      temp = rebin(reform(kz_mpc^2d, 1, 1, n_kz), n_kx, n_ky, n_kz)
+      temp = rebin(reform(kz_mpc, 1, 1, n_kz), n_kx, n_ky, n_kz)
+    endif else if keyword_set(kperp_power) then begin
+      ;; generate kperp values for histogram
+      temp = sqrt(rebin(kx_mpc^2d, n_kx, n_ky, n_kz) + rebin(reform(ky_mpc^2d, 1, n_ky), n_kx, n_ky, n_kz))
     endif else begin
       ;; generate k values for histogram
       temp = sqrt(rebin(kx_mpc^2d, n_kx, n_ky, n_kz) + rebin(reform(ky_mpc^2d, 1, n_ky), n_kx, n_ky, n_kz) + $
@@ -249,6 +254,9 @@ function kspace_rebinning_1d, power, k1_mpc, k2_mpc, k3_mpc, k_edges_mpc, k_bin 
     if keyword_set(kpar_power) then begin
       ;; generate kpar values for histogram
       temp = rebin(reform(kpar_mpc, 1, n_kpar), n_kperp, n_kpar)
+    endif else if keyword_set(kperp_power) then begin
+      ;; generate kperp values for histogram
+      temp =  rebin(kperp_mpc, n_kperp, n_kpar)
     endif else begin
       temp = sqrt(rebin(kperp_mpc, n_kperp, n_kpar)^2 + rebin(reform(kpar_mpc, 1, n_kpar), n_kperp, n_kpar)^2)
     endelse

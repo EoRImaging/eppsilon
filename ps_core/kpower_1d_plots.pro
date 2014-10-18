@@ -1,7 +1,9 @@
 pro kpower_1d_plots, power_savefile, plot_weights = plot_weights, multi_pos = multi_pos, data_range = data_range, k_range = k_range, $
     png = png, eps = eps, pdf = pdf, plotfile = plotfile, window_num = window_num, colors = colors, names = names, psyms = psyms, $
-    save_text = save_text, delta = delta, hinv = hinv, note = note, title = title, kpar_power = kpar_power
+    save_text = save_text, delta = delta, hinv = hinv, note = note, title = title, kpar_power = kpar_power, kperp_power = kperp_power
     
+  if keyword_set(kpar_power) and keyword_set(kperp_power) then message, 'Only one of kpar_power and kperp_power can be set'
+  
   if n_elements(plotfile) gt 0 or keyword_set(png) or keyword_set(eps) or keyword_set(pdf) then pub = 1 else pub = 0
   if pub eq 1 then begin
     if not (keyword_set(png) or keyword_set(eps) or keyword_set(pdf)) then begin
@@ -20,7 +22,8 @@ pro kpower_1d_plots, power_savefile, plot_weights = plot_weights, multi_pos = mu
       
     endif
     if n_elements(plotfile) eq 0 and n_elements(multi_pos) eq 0 then begin
-      if keyword_set(kpar_power) then plotfile = 'idl_kpar_power_plots' else plotfile = 'idl_kpower_1d_plots'
+      if keyword_set(kpar_power) then plotfile = 'idl_kpar_power_plots' else $
+        if keyword_set(kperp_power) then plotfile = 'idl_kperp_power_plots' else plotfile = 'idl_kpower_1d_plots'
       cd, current = current_dir
       print, 'no filename specified for kpower_1d_plots output. Using ' + current_dir + path_sep() + plotfile
     endif
@@ -231,19 +234,33 @@ pro kpower_1d_plots, power_savefile, plot_weights = plot_weights, multi_pos = mu
     if n_elements(multi_pos) eq 0 then begin
       cgps_open, plotfile, /font, encapsulated=eps, landscape=1, pagetype='letter'
     endif
+    
+    DEVICE, /ISOLATIN1
+    perp_char = '!9' + String("136B) + '!X' ;"
+    
   endif else if n_elements(multi_pos) eq 0 then begin
     if windowavailable(window_num) then wset, window_num else window, window_num
+    
+    perp_char = '!9' + string(120B) + '!X'
   endif
   
   ;;plot, k_plot, power_plot, /ylog, /xlog, xrange = xrange, xstyle=1
   plot_order = sort(tag_names(power_plot))
-  if keyword_set(delta) then ytitle = textoidl('(k^3 P_k /(2\pi^2))^{1/2} (mK)', font = font) else begin
-    if keyword_set(hinv) then ytitle = textoidl('P_k (mK^2 h^{-3} Mpc^3)', font = font) $
-    else ytitle = textoidl('P_k (mK^2 Mpc^3)', font = font)
+  if keyword_set(plot_weights) then begin
+    ytitle = 'Weights'
+  endif else begin
+    if keyword_set(delta) then ytitle = textoidl('(k^3 P_k /(2\pi^2))^{1/2} (mK)', font = font) else begin
+      if keyword_set(hinv) then ytitle = textoidl('P_k (mK^2 h^{-3} Mpc^3)', font = font) $
+      else ytitle = textoidl('P_k (mK^2 Mpc^3)', font = font)
+    endelse
   endelse
   if keyword_set(kpar_power) then begin
     if keyword_set(hinv) then xtitle = textoidl('k_{||} (h Mpc^{-1})', font = font) $
     else xtitle = textoidl('k_{||} (Mpc^{-1})', font = font)
+  endif else if keyword_set(kperp_power) then begin
+    if keyword_set (hinv) then xtitle = textoidl('k_{perp} (h Mpc^{-1})', font = font) $
+    else xtitle = textoidl('k_{perp} (Mpc^{-1})', font = font)
+    xtitle = repstr(xtitle, 'perp', perp_char)
   endif else begin
     if keyword_set(hinv) then xtitle = textoidl('k (h Mpc^{-1})', font = font) $
     else xtitle = textoidl('k (Mpc^{-1})', font = font)
