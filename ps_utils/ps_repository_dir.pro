@@ -1,6 +1,11 @@
 function ps_repository_dir
 
-  path_dirs = strsplit(!path, '[;:]', /regex, /extract)
+  case strlowcase(!version.os_family) OF
+    'windows': split_delim = ';'
+    'unix':    split_delim = ':'
+  ENDCASE
+  
+  path_dirs = strsplit(!path, split_delim, /extract)
   
   ps_cor_loc = strpos(path_dirs, 'ps_core')
   wh_pscore = where(ps_cor_loc gt 0, count_pscore)
