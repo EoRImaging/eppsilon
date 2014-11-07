@@ -3,7 +3,7 @@ function ps_repository_dir
   case strlowcase(!version.os_family) OF
     'windows': split_delim = ';'
     'unix':    split_delim = ':'
-  ENDCASE
+  endcase
   
   path_dirs = strsplit(!path, split_delim, /extract)
   
