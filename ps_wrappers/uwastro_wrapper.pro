@@ -1,13 +1,12 @@
 ;; This has been modified from mit_wrapper to run on the UW astronomy
 ;; network
+;; Hacked so it will always set /png
+;; run via uwastro_ps_job like:
+;; /usr/local/bin/idl -IDL_CPU_TPOOL_NTHREADS 10 -e uwastro_;s_job -args combined_cat 1061316296
 
 
-pro uwastro_wrapper, folder_name, obs_name, data_subdirs=data_subdirs, n_obs=n_obs, rts = rts, refresh_dft = refresh_dft, refresh_ps = refresh_ps, $
-    refresh_binning = refresh_binning, refresh_info = refresh_info, refresh_beam = refresh_beam, pol_inc = pol_inc, no_spec_window = no_spec_window, $
-    spec_window_type = spec_window_type, sim = sim, freq_ch_range = freq_ch_range, individual_plots = individual_plots, $
-    png = png, eps = eps, plot_slices = plot_slices, slice_type = slice_type, delta_uv_lambda = delta_uv_lambda, cut_image = cut_image, $
-    kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, set_data_ranges = set_data_ranges
-    
+pro uwastro_wrapper,folder_name,obs_name,png=png
+
   ;; The only required input is the datafile name (including the full path)
     
   if n_elements(n_obs) gt 0 then print,'n_obs='+number_formatter(n_obs) else print,'n_obs not defined!'
@@ -18,7 +17,7 @@ pro uwastro_wrapper, folder_name, obs_name, data_subdirs=data_subdirs, n_obs=n_o
     test_name = start_path + folder_name
     folder_test = file_test(test_name, /directory)
     if folder_test eq 1 then folder_name = test_name
-    if folder_test eq 0 then message, 'folder not found'
+    if folder_test eq 0 then message, test_name+' folder not found'
     
     save_path = folder_name + '/ps/'
     if n_elements(data_subdirs) eq 0 then data_subdirs = 'Healpix/'
@@ -119,7 +118,7 @@ pro uwastro_wrapper, folder_name, obs_name, data_subdirs=data_subdirs, n_obs=n_o
   ;; hinv is a flag (defaulted to true) to use h^-1 Mpc rather than physical Mpc in plot units (set to 0 to turn off)
   ;; plot_wedge_line is a flag (defaulted to true) to plot a line marking the wedge (both horizon & FoV) (set to 0 to turn off)
   ;; pub is a flag to make save plots as eps files rather than displaying to the screen
-  
+
   fhd_data_plots, datafile, dft_fchunk=dft_fchunk, plot_path = plot_path, plot_filebase = plot_filebase, save_path = save_path, savefilebase = savefilebase, $
     pol_inc = pol_inc, rts = rts, $
     refresh_dft = refresh_dft, refresh_ps = refresh_ps, refresh_binning = refresh_binning, refresh_info = refresh_info, refresh_beam = refresh_beam, $
