@@ -1,5 +1,5 @@
 pro uwastro_ps_job
-  ;; wrapper for mit_wrapper to take in shell parameters
+  ;; wrapper for uwastro_wrapper to take in shell parameters
 
   compile_opt strictarr
   args = Command_Line_Args(count=nargs)
