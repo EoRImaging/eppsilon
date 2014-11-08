@@ -880,7 +880,12 @@ pro fhd_data_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol
       if keyword_set(plot_eor_1d) then begin
         ;eor_file_1d = base_path() + 'power_spectrum/eor_data/eor_power_1d.idlsave'
       
-        path_dirs = strsplit(!path, '[;:]', /regex, /extract)
+        case strlowcase(!version.os_family) OF
+          'windows': split_delim = ';'
+          'unix':    split_delim = ':'
+        endcase
+        path_dirs = strsplit(!path, split_delim, /extract)
+        
         fhd_catalog_loc = strpos(path_dirs, 'catalog_data')
         wh_catalog = where(fhd_catalog_loc gt 0, count_catalog)
         if count_catalog gt 0 then begin
@@ -937,7 +942,12 @@ pro fhd_data_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol
     if keyword_set(plot_eor_1d) then begin
       ;eor_file_1d = base_path() + 'power_spectrum/eor_data/eor_power_1d.idlsave'
     
-      path_dirs = strsplit(!path, '[;:]', /regex, /extract)
+        case strlowcase(!version.os_family) OF
+          'windows': split_delim = ';'
+          'unix':    split_delim = ':'
+        endcase
+        path_dirs = strsplit(!path, split_delim, /extract)
+        
       fhd_catalog_loc = strpos(path_dirs, 'catalog_data')
       wh_catalog = where(fhd_catalog_loc gt 0, count_catalog)
       if count_catalog gt 0 then begin
@@ -969,7 +979,12 @@ pro fhd_data_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol
     if keyword_set(plot_eor_1d) then begin
       ;eor_file_1d = base_path() + 'power_spectrum/eor_data/eor_power_1d.idlsave'
     
-      path_dirs = strsplit(!path, '[;:]', /regex, /extract)
+        case strlowcase(!version.os_family) OF
+          'windows': split_delim = ';'
+          'unix':    split_delim = ':'
+        endcase
+        path_dirs = strsplit(!path, split_delim, /extract)
+        
       fhd_catalog_loc = strpos(path_dirs, 'catalog_data')
       wh_catalog = where(fhd_catalog_loc gt 0, count_catalog)
       if count_catalog gt 0 then begin
