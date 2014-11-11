@@ -1,7 +1,7 @@
-pro enterprise_wrapper, folder_name, obs_name, rts = rts, $
+pro enterprise_wrapper, folder_name, obs_name, data_subdirs=data_subdirs, rts = rts, $
     refresh_dft = refresh_dft, refresh_ps = refresh_ps, refresh_info = refresh_info, refresh_rtscube = refresh_rtscube, $
-    refresh_binning = refresh_binning, pol_inc = pol_inc, no_spec_window = no_spec_window, $
-    spec_window_type = spec_window_type, freq_ch_range = freq_ch_range, individual_plots = individual_plots, $
+    refresh_binning = refresh_binning, refresh_beam = refresh_beam, pol_inc = pol_inc, no_spec_window = no_spec_window, $
+    spec_window_type = spec_window_type, sim = sim, freq_ch_range = freq_ch_range, individual_plots = individual_plots, $
     png = png, eps = eps, pdf = pdf, $
     plot_slices = plot_slices, slice_type = slice_type, max_uv_lambda = max_uv_lambda, $
     kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, set_data_ranges = set_data_ranges
