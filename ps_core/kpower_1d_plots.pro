@@ -79,7 +79,7 @@ pro kpower_1d_plots, power_savefile, plot_weights = plot_weights, multi_pos = mu
     else if strcmp(strmid(plotfile, strlen(plotfile)-4), plot_exten, /fold_case) eq 0 then plotfile = plotfile + plot_exten
   endif
   
-  color_list = ['black', 'PBG5', 'red6', 'GRN3', 'PURPLE', 'ORANGE', 'TG2','TG8']
+  color_list = ['black', 'PBG5', 'red6', 'GRN3', 'PURPLE', 'ORANGE', 'TG2','TG8', 'blue', 'olive drab', 'coral', 'magenta']
   
   if n_elements(colors) eq 0 then begin
     if nfiles gt n_elements(color_list) then colors = indgen(nfiles)*254/(nfiles-1) $
@@ -245,7 +245,7 @@ pro kpower_1d_plots, power_savefile, plot_weights = plot_weights, multi_pos = mu
   endif
   
   ;;plot, k_plot, power_plot, /ylog, /xlog, xrange = xrange, xstyle=1
-  plot_order = sort(tag_names(power_plot))
+  plot_order = reverse(indgen(nfiles))
   if keyword_set(plot_weights) then begin
     ytitle = 'Weights'
   endif else begin
