@@ -13,7 +13,7 @@ pro fhd_data_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol
     k1d_bin = k1d_bin, kperp_range_1dave = kperp_range_1dave, kpar_range_1dave = kpar_range_1dave, $
     kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
     baseline_axis = baseline_axis, delay_axis = delay_axis, hinv = hinv, plot_wedge_line = plot_wedge_line, $
-    plot_eor_1d = plot_eor_1d, individual_plots = individual_plots
+    plot_eor_1d = plot_eor_1d, individual_plots = individual_plots, cube_power_info = cube_power_info
     
     
   if keyword_set(refresh_dft) then refresh_beam = 1
@@ -899,6 +899,18 @@ pro fhd_data_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol
           psyms = [intarr(n_elements(file_arr))+10, -3, -3]
           file_arr = [file_arr, eor_file_1d, flat_file_1d]
           titles_use = [titles_use, 'EoR signal', 'input flat power']
+          
+          flat_power = mean(getvar_savefile(flat_file_1d, 'power'))
+          ave_power_vals = fltarr(n_cubes)
+          wt_ave_power_vals = fltarr(n_cubes)
+          ave_weights_vals = fltarr(n_cubes)
+          for k=0, n_cubes-1 do begin
+            ave_power_vals[k] = getvar_savefile(savefiles_1d[i], 'ave_power')
+            wt_ave_power_vals[k] = getvar_savefile(savefiles_1d[i], 'wt_ave_power')
+            ave_weights_vals[k] = mean(getvar_savefile(savefiles_1d[i], 'ave_weights'))
+          endfor
+          cube_power_info = {flat_power:flat_power, ave_power:ave_power_vals, wt_ave_power:wt_ave_power_vals, ave_weights:ave_weights_vals}
+          
         endif else print, 'Could not locate catalog_data directory in !path variable'
         
         
@@ -942,12 +954,12 @@ pro fhd_data_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol
     if keyword_set(plot_eor_1d) then begin
       ;eor_file_1d = base_path() + 'power_spectrum/eor_data/eor_power_1d.idlsave'
     
-        case strlowcase(!version.os_family) OF
-          'windows': split_delim = ';'
-          'unix':    split_delim = ':'
-        endcase
-        path_dirs = strsplit(!path, split_delim, /extract)
-        
+      case strlowcase(!version.os_family) OF
+        'windows': split_delim = ';'
+        'unix':    split_delim = ':'
+      endcase
+      path_dirs = strsplit(!path, split_delim, /extract)
+      
       fhd_catalog_loc = strpos(path_dirs, 'catalog_data')
       wh_catalog = where(fhd_catalog_loc gt 0, count_catalog)
       if count_catalog gt 0 then begin
@@ -979,12 +991,12 @@ pro fhd_data_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol
     if keyword_set(plot_eor_1d) then begin
       ;eor_file_1d = base_path() + 'power_spectrum/eor_data/eor_power_1d.idlsave'
     
-        case strlowcase(!version.os_family) OF
-          'windows': split_delim = ';'
-          'unix':    split_delim = ':'
-        endcase
-        path_dirs = strsplit(!path, split_delim, /extract)
-        
+      case strlowcase(!version.os_family) OF
+        'windows': split_delim = ';'
+        'unix':    split_delim = ':'
+      endcase
+      path_dirs = strsplit(!path, split_delim, /extract)
+      
       fhd_catalog_loc = strpos(path_dirs, 'catalog_data')
       wh_catalog = where(fhd_catalog_loc gt 0, count_catalog)
       if count_catalog gt 0 then begin
@@ -1008,15 +1020,15 @@ pro fhd_data_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol
       
   endif
   
-  if keyword_set(plot_kperp_power) then begin
-  
-    file_arr = savefiles_kperp_1d
-    
-    k_range = minmax([kperp_plot_range, kpar_bin, kpar_plot_range[1]])
-    
-    kpower_1d_plots, file_arr, window_num = 14, colors = colors[0:n_cubes-1], names = titles, psyms = psyms[0:n_cubes-1], delta = delta, hinv = hinv, $
-      png = png, eps = eps, pdf = pdf, plotfile = plotfile_kperp_weights, k_range = k_range, title = note, note = note_1d, /kperp_power, /plot_weights
-      
-  endif
+;  if keyword_set(plot_kperp_power) then begin
+;
+;    file_arr = savefiles_kperp_1d
+;
+;    k_range = minmax([kperp_plot_range, kpar_bin, kpar_plot_range[1]])
+;
+;    kpower_1d_plots, file_arr, window_num = 14, colors = colors[0:n_cubes-1], names = titles, psyms = psyms[0:n_cubes-1], delta = delta, hinv = hinv, $
+;      png = png, eps = eps, pdf = pdf, plotfile = plotfile_kperp_weights, k_range = k_range, title = note, note = note_1d, /kperp_power, /plot_weights
+;
+;  endif
   
 end

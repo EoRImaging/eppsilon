@@ -6,7 +6,7 @@ pro hellebore_wrapper, folder_name, obs_range, rts = rts, casa = casa, version =
     plot_slices = plot_slices, slice_type = slice_type, uvf_plot_type = uvf_plot_type, plot_kpar_power = plot_kpar_power, plot_kperp_power = plot_kperp_power, $
     kperp_range_1dave = kperp_range_1dave, kpar_range_1dave = kpar_range_1dave, uv_avg = uv_avg, uv_img_clip = uv_img_clip,$
     kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, $
-    t32 = t32, set_data_ranges = set_data_ranges, plot_ranges = plot_ranges, slice_range = slice_range
+    t32 = t32, set_data_ranges = set_data_ranges, plot_ranges = plot_ranges, slice_range = slice_range, cube_power_info = cube_power_info
     
   if n_elements(folder_name) eq 0 then message, 'folder name is required'
   if n_elements(folder_name) gt 1 then message, 'Only one folder_name can be supplied'
@@ -245,7 +245,7 @@ pro hellebore_wrapper, folder_name, obs_range, rts = rts, casa = casa, version =
     range_1d = range_1d, slice_range = slice_range, $
     baseline_axis = baseline_axis, delay_axis = delay_axis, hinv = hinv, $
     plot_wedge_line = plot_wedge_line, plot_eor_1d = plot_eor_1d, $
-    individual_plots = individual_plots, note = note, png = png, eps = eps, pdf = pdf
+    individual_plots = individual_plots, note = note, png = png, eps = eps, pdf = pdf, cube_power_info = cube_power_info
     
     
   if not keyword_set(set_data_ranges) and keyword_set(plot_stdset) then begin

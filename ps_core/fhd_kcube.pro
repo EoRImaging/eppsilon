@@ -105,6 +105,10 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
     ;; convert from mk*str to mK*Mpc^2
     conv_factor = conv_factor * z_mpc_mean^2.
     
+    ;; for adrian's weighting we have something in Jy/(wavelength^-1) = Jy * wavelength to start
+    ;; converting from wavelength to Mpc uses 1/kperp_lambda_conv, so multiply that by Jy -> mK*Mpc^2 conversion
+    conv_factor_adrian = conv_factor / kperp_lambda_conv
+    
   endif else conv_factor = 1. + fltarr(n_freq)
   
   ;;t_sys = 440. ; K
@@ -676,6 +680,9 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
     weights_cube1 = getvar_savefile(file_struct.uvf_weight_savefile[0], 'weights_cube')
     if nfiles eq 2 then weights_cube2 = getvar_savefile(file_struct.uvf_weight_savefile[1], 'weights_cube')
     
+    ave_weights = mean(abs(weights_cube1))
+    if nfiles eq 2 then ave_weights = [ave_weights, mean(abs(weights_cube2))]
+    
     void = getvar_savefile(file_struct.uvf_weight_savefile[0], names = uvf_varnames)
     wh_hash = where(uvf_varnames eq 'uvf_wt_git_hash', count_hash)
     if count_hash gt 0 then begin
@@ -714,6 +721,8 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
       if nfiles eq 2 then weights_cube2 = temporary(temp2)
     endif else dims2 = size(weights_cube1, /dimension)
     
+    ave_weights = mean(abs(weights_cube1))
+    if nfiles eq 2 then ave_weights = [ave_weights, mean(abs(weights_cube2))]
     
     n_kx = dims2[0]
     if abs(file_struct.kpix-1/(n_kx[0] * (abs(file_struct.degpix) * !pi / 180d)))/file_struct.kpix gt 1e-4 then stop
@@ -882,7 +891,13 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
         
         if nfiles eq 2 then window_int_beam = [total(beam1), total(beam2)]*pix_area_mpc*(z_mpc_delta * n_freq) $
         else window_int_beam = total(beam1)*pix_area_mpc*(z_mpc_delta * n_freq)
-                
+        
+        volume_factor = total(beam1*0+1.)*pix_area_mpc*(z_mpc_delta * n_freq)
+        if nfiles eq 2 then volume_factor = fltarr(2) + volume_factor
+        
+        bandwidth_factor = z_mpc_delta * n_freq
+        if nfiles eq 2 then bandwidth_factor = fltarr(2) + bandwidth_factor
+        
       endif else beam_git_hashes = ''
       
     endif else begin
@@ -988,6 +1003,12 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
         
         if nfiles eq 2 then window_int_beam = [total(beam1), total(beam2)]*pix_area_mpc*(z_mpc_delta * n_freq) $
         else window_int_beam = total(beam1)*pix_area_mpc*(z_mpc_delta * n_freq)
+        
+        volume_factor = total(beam1*0+1.)*pix_area_mpc*(z_mpc_delta * n_freq)
+        if nfiles eq 2 then volume_factor = fltarr(2) + volume_factor
+        
+        bandwidth_factor = z_mpc_delta * n_freq
+        if nfiles eq 2 then bandwidth_factor = fltarr(2) + bandwidth_factor
         
       endif else beam_git_hashes = ''
       
@@ -1140,49 +1161,47 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
   for i=0, nfiles-1 do begin
     if i eq 0 then data_cube = data_cube1 else data_cube = data_cube2
     if i eq 0 then weights_cube = weights_cube1 else weights_cube = weights_cube2
+
+    uf_tot = total(total(abs(weights_cube),3),1)
+    wh_uf_n0 = where(uf_tot gt 0, count_uf_n0)
+    if count_uf_n0 eq 0 then stop
+    min_dist_uf_n0 = min(wh_uf_n0, min_loc)
+    uf_slice_ind = wh_uf_n0[min_loc]
+
     uf_slice = uvf_slice(data_cube, kx_mpc, ky_mpc, frequencies, kperp_lambda_conv, delay_params, hubble_param, slice_axis = 1, $
-      slice_inds = 0, slice_savefile = file_struct.uf_raw_savefile[i])
+      slice_inds = uf_slice_ind, slice_savefile = file_struct.uf_raw_savefile[i])
       
     uf_weight_slice = uvf_slice(weights_cube, kx_mpc, ky_mpc, frequencies, kperp_lambda_conv, delay_params, hubble_param, slice_axis = 1, $
-      slice_inds = 0, slice_savefile = file_struct.uf_weight_savefile[i])
+      slice_inds = uf_slice_ind, slice_savefile = file_struct.uf_weight_savefile[i])
       
+      
+    vf_tot = total(total(abs(weights_cube),3),2)
+    wh_vf_n0 = where(vf_tot gt 0, count_vf_n0)
+    if count_vf_n0 eq 0 then stop
+    min_dist_vf_n0 = min(abs(n_kx/2-wh_vf_n0), min_loc)
+    vf_slice_ind = wh_vf_n0[min_loc]
+    
     vf_slice = uvf_slice(data_cube, kx_mpc, ky_mpc, frequencies, kperp_lambda_conv, delay_params, hubble_param, slice_axis = 0, $
-      slice_inds = n_kx/2, slice_savefile = file_struct.vf_raw_savefile[i])
+      slice_inds = vf_slice_ind, slice_savefile = file_struct.vf_raw_savefile[i])
       
     vf_weight_slice = uvf_slice(weights_cube, kx_mpc, ky_mpc, frequencies, kperp_lambda_conv, delay_params, hubble_param, slice_axis = 0, $
-      slice_inds = n_kx/2, slice_savefile = file_struct.vf_weight_savefile[i])
+      slice_inds = vf_slice_ind, slice_savefile = file_struct.vf_weight_savefile[i])
       
-    if max(abs(vf_slice)) eq 0 then begin
-      nloop = 0
-      while max(abs(vf_slice)) eq 0 do begin
-        nloop = nloop+1
-        vf_slice = uvf_slice(data_cube, kx_mpc, ky_mpc, frequencies, kperp_lambda_conv, delay_params, hubble_param, $
-          slice_axis = 0, slice_inds = n_kx/2+nloop, slice_savefile = file_struct.vf_raw_savefile[i])
-          
-        vf_weight_slice = uvf_slice(weights_cube, kx_mpc, ky_mpc, frequencies, kperp_lambda_conv, delay_params, hubble_param, slice_axis = 0, $
-          slice_inds = n_kx/2+nloop, slice_savefile = file_struct.vf_weight_savefile[i])
-          
-      endwhile
-    endif
+    if max(abs(vf_slice)) eq 0 then stop
+
+    uv_tot = total(total(abs(weights_cube),2),1)
+    wh_uv_n0 = where(uv_tot gt 0, count_uv_n0)
+    if count_uv_n0 eq 0 then stop
+    min_dist_uv_n0 = min(wh_uv_n0, min_loc)
+    uv_slice_ind = wh_uv_n0[min_loc]
     
     uv_slice = uvf_slice(data_cube, kx_mpc, ky_mpc, frequencies, kperp_lambda_conv, delay_params, hubble_param, slice_axis = 2, $
-      slice_inds = 0, slice_savefile = file_struct.uv_raw_savefile[i])
+      slice_inds = uv_slice_ind, slice_savefile = file_struct.uv_raw_savefile[i])
       
     uv_weight_slice = uvf_slice(weights_cube, kx_mpc, ky_mpc, frequencies, kperp_lambda_conv, delay_params, hubble_param, slice_axis = 2, $
-      slice_inds = 0, slice_savefile = file_struct.uv_weight_savefile[i])
+      slice_inds = uv_slice_ind, slice_savefile = file_struct.uv_weight_savefile[i])
       
-    if max(abs(uv_slice)) eq 0 then begin
-      nloop = 0
-      while max(abs(uv_slice)) eq 0 do begin
-        nloop = nloop+1
-        uv_slice = uvf_slice(data_cube, kx_mpc, ky_mpc, frequencies, kperp_lambda_conv, delay_params, hubble_param, slice_axis = 2, $
-          slice_inds = nloop, slice_savefile = file_struct.uv_raw_savefile[i])
-          
-        uv_weight_slice = uvf_slice(weights_cube, kx_mpc, ky_mpc, frequencies, kperp_lambda_conv, delay_params, hubble_param, slice_axis = 2, $
-          slice_inds = nloop, slice_savefile = file_struct.uv_weight_savefile[i])
-          
-      endwhile
-    endif
+    if max(abs(uv_slice)) eq 0 then stop
     
   endfor
   
@@ -1223,6 +1242,10 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
     if total(abs(sigma2_cube1)) le 0 then message, 'sigma2 cube is all zero'
   endelse
   
+  
+  wt_meas_ave = total(abs(weights_cube1), 3)/n_freq
+  wt_meas_min = min(abs(weights_cube1), dimension=3)
+  
   ;; divide data by weights
   data_cube1 = data_cube1 / weights_cube1
   if count_wt1_0 ne 0 then data_cube1[wh_wt1_0] = 0
@@ -1238,33 +1261,50 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
   for i=0, nfiles-1 do begin
     if i eq 0 then data_cube = data_cube1 else data_cube = data_cube2
     uf_slice = uvf_slice(data_cube, kx_mpc, ky_mpc, frequencies, kperp_lambda_conv, delay_params, hubble_param, slice_axis = 1, $
-      slice_inds = 0, slice_savefile = file_struct.uf_savefile[i])
+      slice_inds = uf_slice_ind, slice_savefile = file_struct.uf_savefile[i])
       
     vf_slice = uvf_slice(data_cube, kx_mpc, ky_mpc, frequencies, kperp_lambda_conv, delay_params, hubble_param, slice_axis = 0, $
-      slice_inds = n_kx/2, slice_savefile = file_struct.vf_savefile[i])
-      
-    if max(abs(vf_slice)) eq 0 then begin
-      nloop = 0
-      while max(abs(vf_slice)) eq 0 and (n_kx/2+nloop) lt (n_kx-1) do begin
-        nloop = nloop+1
-        vf_slice = uvf_slice(data_cube, kx_mpc, ky_mpc, frequencies, kperp_lambda_conv, delay_params, hubble_param, $
-          slice_axis = 0, slice_inds = n_kx/2+nloop, slice_savefile = file_struct.vf_savefile[i])
-      endwhile
-    endif
-    
+      slice_inds = vf_slice_ind, slice_savefile = file_struct.vf_savefile[i])
+          
     uv_slice = uvf_slice(data_cube, kx_mpc, ky_mpc, frequencies, kperp_lambda_conv, delay_params, hubble_param, slice_axis = 2, $
-      slice_inds = 0, slice_savefile = file_struct.uv_savefile[i])
+      slice_inds = uv_slice_ind, slice_savefile = file_struct.uv_savefile[i])
+          
+  endfor
+  
+  if healpix or not keyword_set(uvf_input) then begin
+    ;; fix units on window funtion integral -- now they should be Mpc^3
+    ;; checked vs Adam's analytic calculation and it matches to within a factor of 4
+    ;; We are using total(weight) = Nvis for Ian's uv plane and multiplying by a factor to convert between Ian's and my uv plane
+    ;;   the factor is ((2*!pi)^2*(delta_uv)^2) /  (delta_kperp)^2 * Dm^2 which comes in squared in the denominator.
+    ;;   see eq 21e from Adam's memo. Also note that delta D is delta z * n_freq
+    ;;   note that we can convert both the weights and variance to uvf from kperp,rz and all jacobians will cancel
+    window_int_k = window_int * (z_mpc_delta * n_freq) * (kx_mpc_delta * ky_mpc_delta)*z_mpc_mean^4./((2.*!pi)^2.*file_struct.kpix^4.)
+    print, 'window integral from variances: ' + number_formatter(window_int_k[0], format='(e10.4)')
+    if tag_exist(file_struct, 'beam_savefile') then print, 'window integral from beam: ' + number_formatter(window_int_beam[0], format='(e10.4)')
+    ;window_int = window_int_k
+    if tag_exist(file_struct, 'beam_savefile') then window_int = window_int_beam else window_int = window_int_k
+  ;if keyword_set(sim) then window_int = 2.39e9 + fltarr(nfiles)
+  endif else begin
+    window_int_k = window_int * (z_mpc_delta * n_freq) * (2.*!pi)^2. / (kx_mpc_delta * ky_mpc_delta)
+    print, 'var_cube multiplier: ', (z_mpc_delta * n_freq) * (2.*!pi)^2. / (kx_mpc_delta * ky_mpc_delta)
+    print, 'window integral from variances: ' + number_formatter(window_int_k[0], format='(e10.4)')
+    if tag_exist(file_struct, 'beam_savefile') then print, 'window integral from beam: ' + number_formatter(window_int_beam[0], format='(e10.4)')
+    ;window_int = window_int_k
+    if tag_exist(file_struct, 'beam_savefile') then window_int = window_int_beam else window_int = window_int_k
+    ;if keyword_set(sim) then window_int = 2.39e9 + fltarr(nfiles)
+    
+    if keyword_set(sim) then if stregex(file_struct.savefilebase, 'yy', /boolean) then begin
+    
+      ;volume_factor_2 = ((1./file_struct.kpix)^2. * z_mpc_mean^2.)*(z_mpc_delta * n_freq)
+      ;window_int = volume_factor*16
+    
+      ;conv_factor = conv_factor_adrian/(2.*!pi)
+      conv_factor = conv_factor / z_mpc_mean
+      window_int = bandwidth_factor ;bandwidth_factor = z_mpc_delta * n_freq
       
-    if max(abs(uv_slice)) eq 0 then begin
-      nloop = 0
-      while max(abs(uv_slice)) eq 0 do begin
-        nloop = nloop+1
-        uv_slice = uvf_slice(data_cube, kx_mpc, ky_mpc, frequencies, kperp_lambda_conv, delay_params, hubble_param, slice_axis = 2, $
-          slice_inds = nloop, slice_savefile = file_struct.uv_savefile[i])
-      endwhile
     endif
     
-  endfor
+  endelse
   
   
   ;; old convention
@@ -1289,29 +1329,6 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
       sigma2_cube2[*,*,i] = sigma2_cube2[*,*,i]*(conv_factor[i])^2.*4.
     endif
   endfor
-  
-  if healpix or not keyword_set(uvf_input) then begin
-    ;; fix units on window funtion integral -- now they should be Mpc^3
-    ;; checked vs Adam's analytic calculation and it matches to within a factor of 4
-    ;; We are using total(weight) = Nvis for Ian's uv plane and multiplying by a factor to convert between Ian's and my uv plane
-    ;;   the factor is ((2*!pi)^2*(delta_uv)^2) /  (delta_kperp)^2 * Dm^2 which comes in squared in the denominator.
-    ;;   see eq 21e from Adam's memo. Also note that delta D is delta z * n_freq
-    ;;   note that we can convert both the weights and variance to uvf from kperp,rz and all jacobians will cancel
-    window_int_k = window_int * (z_mpc_delta * n_freq) * (kx_mpc_delta * ky_mpc_delta)*z_mpc_mean^4./((2.*!pi)^2.*file_struct.kpix^4.)
-    print, 'window integral from variances: ' + number_formatter(window_int_k[0], format='(e10.4)')
-    if tag_exist(file_struct, 'beam_savefile') then print, 'window integral from beam: ' + number_formatter(window_int_beam[0], format='(e10.4)')
-    ;window_int = window_int_k
-    if tag_exist(file_struct, 'beam_savefile') then window_int = window_int_beam else window_int = window_int_k
-  ;if keyword_set(sim) then window_int = 2.39e9 + fltarr(nfiles)
-  endif else begin
-    window_int_k = window_int * (z_mpc_delta * n_freq) * (2.*!pi)^2. / (kx_mpc_delta * ky_mpc_delta)
-    print, 'var_cube multiplier: ', (z_mpc_delta * n_freq) * (2.*!pi)^2. / (kx_mpc_delta * ky_mpc_delta)
-    print, 'window integral from variances: ' + number_formatter(window_int_k[0], format='(e10.4)')
-    if tag_exist(file_struct, 'beam_savefile') then print, 'window integral from beam: ' + number_formatter(window_int_beam[0], format='(e10.4)')
-    ;window_int = window_int_k
-    if tag_exist(file_struct, 'beam_savefile') then window_int = window_int_beam else window_int = window_int_k
-  ;if keyword_set(sim) then window_int = 2.39e9 + fltarr(nfiles)
-  endelse
   
   
   ;; divide data by sqrt(window_int) and sigma2 by window_int
@@ -1374,65 +1391,25 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
   
   ;; save some slices of the sum & diff cubes
   uf_slice = uvf_slice(data_sum, kx_mpc, ky_mpc, frequencies, kperp_lambda_conv, delay_params, hubble_param, slice_axis = 1, $
-    slice_inds = 0, slice_savefile = file_struct.uf_sum_savefile)
+    slice_inds = uf_slice_ind, slice_savefile = file_struct.uf_sum_savefile)
   if nfiles eq 2 then $
     uf_slice = uvf_slice(data_diff, kx_mpc, ky_mpc, frequencies, kperp_lambda_conv, delay_params, hubble_param, slice_axis = 1, $
-    slice_inds = 0, slice_savefile = file_struct.uf_diff_savefile)
+    slice_inds = uf_slice_ind, slice_savefile = file_struct.uf_diff_savefile)
     
   vf_slice = uvf_slice(data_sum, kx_mpc, ky_mpc, frequencies, kperp_lambda_conv, delay_params, hubble_param, slice_axis = 0, $
-    slice_inds = n_kx/2, slice_savefile = file_struct.vf_sum_savefile)
+    slice_inds = vf_slice_ind, slice_savefile = file_struct.vf_sum_savefile)
   if nfiles eq 2 then $
     vf_slice2 = uvf_slice(data_diff, kx_mpc, ky_mpc, frequencies, kperp_lambda_conv, delay_params, hubble_param, slice_axis = 0, $
-    slice_inds = n_kx/2, slice_savefile = file_struct.vf_diff_savefile) $
+    slice_inds = vf_slice_ind, slice_savefile = file_struct.vf_diff_savefile) $
   else vf_slice2 = vf_slice
-  
-  test_vf = 1
-  if max(abs(vf_slice)) eq 0 then test_vf=0
-  if nfiles eq 2 then if max(vf_slice2) eq 0 and max(abs(data_diff)) gt 0 then test_vf=0
-  
-  if test_vf eq 0 then begin
-    nloop = 0
-    slice_inds = shift(indgen(n_kx), n_kx/2)
-    while test_vf eq 0 do begin
-      nloop = nloop+1
-      vf_slice = uvf_slice(data_sum, kx_mpc, ky_mpc, frequencies, kperp_lambda_conv, delay_params, hubble_param, $
-        slice_axis = 0, slice_inds = slice_inds[nloop], slice_savefile = file_struct.vf_sum_savefile)
-      if nfiles eq 2 then $
-        vf_slice2 = uvf_slice(data_diff, kx_mpc, ky_mpc, frequencies, kperp_lambda_conv, delay_params, hubble_param, $
-        slice_axis = 0, slice_inds = slice_inds[nloop], slice_savefile = file_struct.vf_diff_savefile)
-        
-      test_vf = 1
-      if max(abs(vf_slice)) eq 0 then test_vf=0
-      if nfiles eq 2 then if max(vf_slice2) eq 0 and max(abs(data_diff)) gt 0 then test_vf=0
-    endwhile
-  endif
-  
+    
   uv_slice = uvf_slice(data_sum, kx_mpc, ky_mpc, frequencies, kperp_lambda_conv, delay_params, hubble_param, slice_axis = 2, $
-    slice_inds = 0, slice_savefile = file_struct.uv_sum_savefile)
+    slice_inds = uv_slice_ind, slice_savefile = file_struct.uv_sum_savefile)
   if nfiles eq 2 then $
     uv_slice2 = uvf_slice(data_diff, kx_mpc, ky_mpc, frequencies, kperp_lambda_conv, delay_params, hubble_param, slice_axis = 2, $
-    slice_inds = 0, slice_savefile = file_struct.uv_diff_savefile) $
+    slice_inds = uv_slice_ind, slice_savefile = file_struct.uv_diff_savefile) $
   else uv_slice2 = uv_slice
   
-  test_uv = 1
-  if max(abs(uv_slice)) eq 0 then test_uv=0
-  if nfiles eq 2 then if max(uv_slice2) eq 0 and max(abs(data_diff)) gt 0 then test_uv=0
-  
-  if test_uv eq 0 then begin
-    nloop = 0
-    while test_uv eq 0 do begin
-      nloop = nloop+1
-      uv_slice = uvf_slice(data_sum, kx_mpc, ky_mpc, frequencies, kperp_lambda_conv, delay_params, hubble_param, $
-        slice_axis = 2, slice_inds = nloop, slice_savefile = file_struct.uv_sum_savefile)
-      if nfiles eq 2 then $
-        uv_slice2 = uvf_slice(data_diff, kx_mpc, ky_mpc, frequencies, kperp_lambda_conv, delay_params, hubble_param, $
-        slice_axis = 2, slice_inds = nloop, slice_savefile = file_struct.uv_diff_savefile)
-        
-      test_uv = 1
-      if max(abs(uv_slice)) eq 0 then test_uv=0
-      if nfiles eq 2 then if max(uv_slice2) eq 0 and max(abs(data_diff)) gt 0 then test_uv=0
-    endwhile
-  endif
   
   ;; apply spectral windowing function if desired
   if n_elements(spec_window_type) ne 0 then begin
@@ -1547,7 +1524,8 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
     git_hashes = {uvf:uvf_git_hashes, uvf_wt:uvf_wt_git_hashes, beam:beam_git_hashes, kcube:kcube_git_hash}
     
     save, file = file_struct.kcube_savefile, data_sum_1, data_sum_2, data_diff_1, data_diff_2, sigma2_1, sigma2_2, n_val, $
-      kx_mpc, ky_mpc, kz_mpc, kperp_lambda_conv, delay_params, hubble_param, n_freq_contrib, freq_mask, vs_name, vs_mean, git_hashes
+      kx_mpc, ky_mpc, kz_mpc, kperp_lambda_conv, delay_params, hubble_param, n_freq_contrib, freq_mask, $
+      vs_name, vs_mean, window_int, wt_meas_ave, wt_meas_min, ave_weights, git_hashes
       
   endif else begin
     ;; these an and bn calculations don't match the standard
@@ -1691,7 +1669,8 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
     git_hashes = {uvf:uvf_git_hashes, uvf_wt:uvf_wt_git_hashes, beam:beam_git_hashes, kcube:kcube_git_hash}
     
     save, file = file_struct.kcube_savefile, data_sum_1, data_sum_2, data_diff_1, data_diff_2, sigma2_1, sigma2_2, $
-      kx_mpc, ky_mpc, kz_mpc, kperp_lambda_conv, delay_params, hubble_param, n_freq_contrib, freq_mask, vs_name, vs_mean, window_int, git_hashes
+      kx_mpc, ky_mpc, kz_mpc, kperp_lambda_conv, delay_params, hubble_param, n_freq_contrib, freq_mask, $
+      vs_name, vs_mean, window_int, wt_meas_ave, wt_meas_min, ave_weights, git_hashes
   endelse
   
 end
