@@ -1,7 +1,7 @@
-pro hellebore_diff_wrapper, folder_names, obs_names_in, cube_types = cube_types, pols = pols, $
+pro hellebore_diff_wrapper, folder_names, obs_names_in, cube_types = cube_types, pols = pols, refresh_diff = refresh_diff, $
     spec_window_types = spec_window_types, all_type_pol = all_type_pol, $
     png = png, eps = eps, pdf = pdf, data_range = data_range, data_min_abs = data_min_abs, $
-    kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, sim = sim
+    kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, sim = sim, axis_type_1d=axis_type_1d
     
     
   if n_elements(folder_names) eq 0 then folder_names = base_path('data') + 'fhd_ps_data/128T_cubes/aug23_3hr_first/'
@@ -66,30 +66,31 @@ pro hellebore_diff_wrapper, folder_names, obs_names_in, cube_types = cube_types,
       '_minus_' + obs_info.name_diff_parts[1] + diff_str[1] $
     else plot_filebase = obs_info.fhd_types[0] + '__' + diff_str[0] + '_minus' + diff_str[1]
     
-    endif else begin
-    
-      if n_elements(folder_names) eq 1 then begin
-        if n_elements(obs_info.obs_names) gt 1 then begin
-          plot_filebase = obs_info.fhd_types[0] + '_' + obs_info.obs_names[0] + '_' + cube_types[0] + '_' + pols[0] + diff_str[0] + $
-            '_minus_' + obs_info.obs_names[0] + '_' + cube_types[max_type] + '_' + pols[max_pol] + diff_str[1]
-        endif else begin
-          if obs_info.integrated[0] eq 0 then plot_start = obs_info.fhd_types[0] + '_' + obs_info.obs_names[0] else plot_start = obs_info.fhd_types[0]
-          
-          plot_filebase = plot_start + '_' + cube_types[0] + '_' + pols[0] + diff_str[0] + $
-            '_minus_' + cube_types[max_type] + '_' + pols[max_pol] + diff_str[1]
-        endelse
+  endif else begin
+  
+    if n_elements(folder_names) eq 1 then begin
+      if n_elements(obs_info.obs_names) gt 1 then begin
+        plot_filebase = obs_info.fhd_types[0] + '_' + obs_info.obs_names[0] + '_' + cube_types[0] + '_' + pols[0] + diff_str[0] + $
+          '_minus_' + obs_info.obs_names[0] + '_' + cube_types[max_type] + '_' + pols[max_pol] + diff_str[1]
       endif else begin
-        plot_filebase = obs_info.name_same_parts + '__' + strjoin([obs_info.name_diff_parts[0], cube_types[0], pols[0]], '_') + diff_str[0]  + $
-          '_minus_' + strjoin([obs_info.name_diff_parts[1], cube_types[n_elements(cube_types)-1], pols[n_elements(pols)-1]], '_') + diff_str[1]
+        if obs_info.integrated[0] eq 0 then plot_start = obs_info.fhd_types[0] + '_' + obs_info.obs_names[0] else plot_start = obs_info.fhd_types[0]
+        
+        plot_filebase = plot_start + '_' + cube_types[0] + '_' + pols[0] + diff_str[0] + $
+          '_minus_' + cube_types[max_type] + '_' + pols[max_pol] + diff_str[1]
       endelse
+    endif else begin
+      plot_filebase = obs_info.name_same_parts + '__' + strjoin([obs_info.name_diff_parts[0], cube_types[0], pols[0]], '_') + diff_str[0]  + $
+        '_minus_' + strjoin([obs_info.name_diff_parts[1], cube_types[n_elements(cube_types)-1], pols[n_elements(pols)-1]], '_') + diff_str[1]
     endelse
+  endelse
+  
+  if not file_test(plot_path, /directory) then file_mkdir, plot_path
+  if not file_test(save_path, /directory) then file_mkdir, save_path
+  
+  ps_difference_plots, obs_info.info_files, cube_types, pols, spec_window_types = spec_window_types, all_type_pol = all_type_pol, refresh_diff = refresh_diff, $
+    plot_path = plot_path, plot_filebase = plot_filebase, save_path = save_path, savefilebase = savefilebase, $
+    note = note, kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, axis_type_1d=axis_type_1d, $
+    data_range = data_range, data_min_abs = data_min_abs, $
+    quiet = quiet, png = png, eps = eps, pdf = pdf
     
-    if not file_test(plot_path, /directory) then file_mkdir, plot_path
-    if not file_test(save_path, /directory) then file_mkdir, save_path
-    
-    ps_difference_plots, obs_info.info_files, cube_types, pols, spec_window_types = spec_window_types, all_type_pol = all_type_pol, $
-      plot_path = plot_path, plot_filebase = plot_filebase, save_path = save_path, savefilebase = savefilebase, $
-      note = note, kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, data_range = data_range, data_min_abs = data_min_abs, $
-      quiet = quiet, png = png, eps = eps, pdf = pdf
-      
-  end
+end

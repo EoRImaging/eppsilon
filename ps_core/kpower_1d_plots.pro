@@ -1,7 +1,13 @@
 pro kpower_1d_plots, power_savefile, plot_weights = plot_weights, multi_pos = multi_pos, data_range = data_range, k_range = k_range, $
     png = png, eps = eps, pdf = pdf, plotfile = plotfile, window_num = window_num, colors = colors, names = names, psyms = psyms, $
-    save_text = save_text, delta = delta, hinv = hinv, note = note, title = title, kpar_power = kpar_power, kperp_power = kperp_power
+    save_text = save_text, delta = delta, hinv = hinv, note = note, title = title, kpar_power = kpar_power, kperp_power = kperp_power, $
+    yaxis_type = yaxis_type
     
+  if n_elements(yaxis_type) eq 0 then yaxis_type = 'clipped_log'
+  yaxis_type_list = ['clipped_log', 'sym_log', 'folded_log']
+  wh_axis_type = where(yaxis_type_list eq yaxis_type, count_axis_type)
+  if count_axis_type eq 0 then message, 'yaxis_type not recognized'
+  
   if keyword_set(kpar_power) and keyword_set(kperp_power) then message, 'Only one of kpar_power and kperp_power can be set'
   
   if n_elements(plotfile) gt 0 or keyword_set(png) or keyword_set(eps) or keyword_set(pdf) then pub = 1 else pub = 0
@@ -72,7 +78,19 @@ pro kpower_1d_plots, power_savefile, plot_weights = plot_weights, multi_pos = mu
     plot_pos = [xlen * plot_pos[0] + multi_pos[0], ylen * plot_pos[1] + multi_pos[1], $
       xlen * plot_pos[2] + multi_pos[0], ylen * plot_pos[3] + multi_pos[1]]
       
+    margin = [xlen, ylen, xlen, ylen] * margin
+    
   endif else no_erase = 0
+  
+  if yaxis_type eq 'sym_log' then begin
+    ymid = plot_pos[1] + (plot_pos[3]-plot_pos[1])/2.
+    positive_plot_pos = [plot_pos[0], ymid, plot_pos[2], plot_pos[3]]
+    negative_plot_pos = [plot_pos[0], plot_pos[1], plot_pos[2], ymid]
+    
+    xloc_ytitle = plot_pos[0] - margin[0]/2.
+    yloc_ytitle = ymid
+  endif
+  
   
   if pub then begin
     if n_elements(plotfile) eq 0 then plotfile = strsplit(power_savefile[0], '.idlsave', /regex, /extract) + '_1dkplot' + plot_exten $
@@ -168,19 +186,17 @@ pro kpower_1d_plots, power_savefile, plot_weights = plot_weights, multi_pos = mu
     
     if keyword_set(delta) then power = theory_delta
     
-    wh = where(power gt 0d, count)
-    if count gt 0 then min_pos = min(power[wh]) else if data_range[0] gt 0 then min_pos = data_range[0] else $
-      if data_range[1] gt 0 then min_pos = data_range[1]/10d else min_pos = 0.01d
-      
-    wh = where(power eq 0, count, complement = wh_good, ncomplement = count_good)
-    if count_good eq 0 then message, 'No non-zero power'
-    if count gt 0 then begin
+    wh_zero = where(power eq 0d, count_zero, complement = wh_non0, ncomplement = count_non0)
+    if count_non0 eq 0 then message, 'No non-zero power'
+    if count_zero gt 0 then begin
       ;; only want to drop 0 bins at the edges.
-      wh_keep = indgen(max(wh_good) - min(wh_good) + 1) + min(wh_good)
+      wh_keep = indgen(max(wh_non0) - min(wh_non0) + 1) + min(wh_non0)
       
       power = power[wh_keep]
       k_mid = k_mid[wh_keep]
       k_edges = k_edges[[wh_keep, max(wh_keep)+1]]
+      
+      wh_zero = where(power eq 0d, count_zero, complement = wh_non0, ncomplement = count_non0)
     endif
     
     ;; extend arrays for plotting full histogram bins if plotting w/ psym=10
@@ -190,17 +206,43 @@ pro kpower_1d_plots, power_savefile, plot_weights = plot_weights, multi_pos = mu
       power = [power[0], power, power[n_elements(power)-1]]
     endif
     
+    
+    wh_neg = where(power lt 0d, count_neg)
+    wh_pos = where(power gt 0d, count_pos)
+    if count_pos gt 0 then pos_range = minmax(power[wh_pos])
+    if count_neg gt 0 then neg_range = minmax(power[wh_neg])
+    
+    if count_pos eq 0 and yaxis_type eq 'clipped_log' then message, 'No positive power and yaxis_type is clipped_log'
+    
     tag = 'f' + strsplit(string(i),/extract)
     if i eq 0 then begin
-      if n_elements(data_range) eq 0 then yrange = 10.^([floor(alog10(min_pos)), ceil(alog10(max(power)))]) $
-      else yrange = data_range
+      if n_elements(data_range) eq 0 then begin
+        if yaxis_type ne 'clipped_log' then yrange = 10.^([floor(alog10(min(abs(power[wh_non0])))), ceil(alog10(max(abs(power[wh_non0]))))]) $
+        else yrange = 10.^([floor(alog10(min_pos)), ceil(alog10(max(power)))])
+      endif else begin
+        yrange = data_range
+      endelse
       if n_elements(k_range) eq 0 then xrange = minmax(k_mid) else xrange = k_range
       
       power_plot = create_struct(tag, power)
       k_plot = create_struct(tag, k_mid)
       
+      if yaxis_type ne 'clipped_log' then begin
+        n_pos = [count_pos]
+        pos_locs = create_struct(tag, wh_pos)
+        
+        n_neg = [count_neg]
+        neg_locs = create_struct(tag, wh_neg)
+        
+        n_zero = [count_zero]
+        zero_locs = create_struct(tag, wh_zero)
+      endif
+      
     endif else begin
-      if n_elements(data_range) eq 0 then yrange = minmax([yrange, 10.^([floor(alog10(min_pos)), ceil(alog10(max(power)))])])
+      if n_elements(data_range) eq 0 then begin
+        if yaxis_type ne 'clipped_log' then yrange = minmax([yrange, 10.^([floor(alog10(min(abs(power[wh_non0])))), ceil(alog10(max(abs(power[wh_non0]))))])]) $
+        else yrange = minmax([yrange, 10.^([floor(alog10(min_pos)), ceil(alog10(max(power)))])])
+      endif
       if n_elements(k_range) eq 0 then begin
         xrange_new = minmax(k_mid)
         xrange = minmax([xrange, xrange_new])
@@ -208,6 +250,18 @@ pro kpower_1d_plots, power_savefile, plot_weights = plot_weights, multi_pos = mu
       
       power_plot = create_struct(tag, power, power_plot)
       k_plot = create_struct(tag, k_mid, k_plot)
+      
+      if yaxis_type ne 'clipped_log' then begin
+        n_pos = [n_pos, count_pos]
+        pos_locs = create_struct(tag, wh_pos, pos_locs)
+        
+        n_neg = [n_neg, count_neg]
+        neg_locs = create_struct(tag, wh_neg, neg_locs)
+        
+        n_zero = [n_zero, count_zero]
+        zero_locs = create_struct(tag, wh_zero, zero_locs)
+      endif
+      
     endelse
     
     undefine, power
@@ -266,22 +320,86 @@ pro kpower_1d_plots, power_savefile, plot_weights = plot_weights, multi_pos = mu
     else xtitle = textoidl('k (Mpc^{-1})', font = font)
   endelse
   
-  cgplot, k_plot.(plot_order[0]), power_plot.(plot_order[0]), position = plot_pos, /ylog, /xlog, xrange = xrange, yrange = yrange, $
-    xstyle=1, ystyle=1, axiscolor = 'black', xtitle = xtitle, ytitle = ytitle, title = title, psym=psyms[0], xtickformat = 'exponent', $
-    ytickformat = 'exponent', thick = thick, charthick = charthick, xthick = xthick, ythick = ythick, charsize = charsize, $
-    font = font, noerase = no_erase
-  for i=0, nfiles - 1 do cgplot, /overplot, k_plot.(plot_order[i]), power_plot.(plot_order[i]), psym=psyms[i], color = colors[i], $
-    thick = thick
-    
+  case yaxis_type of
+    'sym_log': begin
+      cgplot, k_plot.(plot_order[0]), power_plot.(plot_order[0]), position = positive_plot_pos, /ylog, /xlog, xrange = xrange, yrange = yrange, $
+        xstyle=1, ystyle=1, axiscolor = 'black', title = title, psym=psyms[0], xtickformat = '(A1)', /nodata,$
+        ytickformat = 'exponent', thick = thick, charthick = charthick, xthick = xthick, ythick = ythick, charsize = charsize, $
+        font = font, noerase = no_erase
+      for i=0, nfiles - 1 do if n_pos[i] gt 0 then begin
+        temp_plot = power_plot.(plot_order[i])
+        if n_neg[i] gt 0 then temp_plot[wh_neg] = yrange[0]
+        if n_zero[i] gt 0 then temp_plot[wh_zero] = yrange[0]
+        cgplot, /overplot, k_plot.(plot_order[i]), temp_plot, psym=psyms[i], color = colors[i], $
+          thick = thick
+      endif
+      cgtext, xloc_ytitle, yloc_ytitle, ytitle, /normal, alignment=0.5, orientation = 90, charsize = charsize, font = font
+      
+      if log_bins gt 0 then bottom = 1 else bottom = 0
+      if n_elements(names) ne 0 then $
+        al_legend, names, textcolor = colors, box = 0, /right, bottom = bottom, charsize = legend_charsize, charthick = charthick
+        
+        
+      cgplot, k_plot.(plot_order[0]), -1*(power_plot.(plot_order[0])), position = negative_plot_pos, /ylog, /xlog, xrange = xrange, yrange = reverse(yrange), $
+        xstyle=1, ystyle=1, axiscolor = 'black', psym=psyms[0], xtickformat = 'exponent', /nodata, $
+        ytickformat = 'exponent', thick = thick, charthick = charthick, xthick = xthick, ythick = ythick, charsize = charsize, $
+        font = font, /noerase
+      for i=0, nfiles - 1 do if n_neg[i] gt 0 then begin
+        temp_plot = -1*(power_plot.(plot_order[i]))
+        if n_pos[i] gt 0 then temp_plot[wh_pos] = yrange[0]
+        if n_zero[i] gt 0 then temp_plot[wh_zero] = yrange[0]
+        cgplot, /overplot, k_plot.(plot_order[i]), temp_plot, psym=psyms[i], color = colors[i], $
+          thick = thick
+      endif
+    end
+    'folded_log': begin
+      cgplot, k_plot.(plot_order[0]), power_plot.(plot_order[0]), position = plot_pos, /nodata, /ylog, /xlog, xrange = xrange, yrange = yrange, $
+        xstyle=1, ystyle=1, axiscolor = 'black', xtitle = xtitle, ytitle = ytitle, title = title, psym=psyms[0], xtickformat = 'exponent', $
+        ytickformat = 'exponent', thick = thick, charthick = charthick, xthick = xthick, ythick = ythick, charsize = charsize, $
+        font = font, noerase = no_erase
+      for i=0, nfiles - 1 do begin
+        if n_pos[i] gt 0 then begin
+          temp_plot = power_plot.(plot_order[i])
+          if n_neg[i] gt 0 then temp_plot[wh_neg] = yrange[0]
+          if n_zero[i] gt 0 then temp_plot[wh_zero] = yrange[0]
+          cgplot, /overplot, k_plot.(plot_order[i]), temp_plot, psym=psyms[i], color = colors[i], $
+            thick = thick
+        endif
+
+        if n_neg[i] gt 0 then begin
+          temp_plot = -1*(power_plot.(plot_order[i]))
+          if n_pos[i] gt 0 then temp_plot[wh_pos] = yrange[0]
+          if n_zero[i] gt 0 then temp_plot[wh_zero] = yrange[0]
+          cgplot, /overplot, k_plot.(plot_order[i]), temp_plot, psym=psyms[i], color = colors[i], $
+            thick = thick, linestyle=2            
+        endif
+      endfor
+
+      if log_bins gt 0 then bottom = 1 else bottom = 0
+      if n_elements(names) ne 0 then $
+        al_legend, names, textcolor = colors, box = 0, /right, bottom = bottom, charsize = legend_charsize, charthick = charthick
+        
+        
+    end
+    'clipped_log': begin
+      cgplot, k_plot.(plot_order[0]), power_plot.(plot_order[0]), position = plot_pos, /ylog, /xlog, xrange = xrange, yrange = yrange, $
+        xstyle=1, ystyle=1, axiscolor = 'black', xtitle = xtitle, ytitle = ytitle, title = title, psym=psyms[0], xtickformat = 'exponent', $
+        ytickformat = 'exponent', thick = thick, charthick = charthick, xthick = xthick, ythick = ythick, charsize = charsize, $
+        font = font, noerase = no_erase
+      for i=0, nfiles - 1 do cgplot, /overplot, k_plot.(plot_order[i]), power_plot.(plot_order[i]), psym=psyms[i], color = colors[i], $
+        thick = thick
+        
+      if log_bins gt 0 then bottom = 1 else bottom = 0
+      if n_elements(names) ne 0 then $
+        al_legend, names, textcolor = colors, box = 0, /right, bottom = bottom, charsize = legend_charsize, charthick = charthick
+        
+    end
+  endcase
   if n_elements(note) ne 0 then begin
     if keyword_set(pub) then char_factor = 0.75 else char_factor = 1
     cgtext, xloc_note, yloc_note, note, /normal, alignment=1, charsize = char_factor*charsize, font = font
   endif
   
-  if log_bins gt 0 then bottom = 1 else bottom = 0
-  if n_elements(names) ne 0 then $
-    al_legend, names, textcolor = colors, box = 0, /right, bottom = bottom, charsize = legend_charsize, charthick = charthick
-    
   if keyword_set(pub) and n_elements(multi_pos) eq 0 then begin
     cgps_close, png = png, pdf = pdf, delete_ps = delete_ps, density=600
   endif
