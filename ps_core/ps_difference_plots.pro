@@ -300,7 +300,8 @@ pro ps_difference_plots, info_files, cube_types, pols, all_type_pol = all_type_p
     
     kpower_2d_plots, savefile_2d, multi_pos = pos_use, start_multi_params = start_multi_params, $
       kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, note = note_use, $
-      data_range = data_range, data_min_abs = data_min_abs, png = png, eps = eps, pdf = pdf, plotfile = plotfile_2d, full_title=titles[i], window_num = 3, color_profile = 'sym_log', $
+      data_range = data_range, data_min_abs = data_min_abs, png = png, eps = eps, pdf = pdf, plotfile = plotfile_2d, full_title=titles[i], $
+      window_num = window_num, color_profile = 'sym_log', $
       kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, baseline_axis = baseline_axis, delay_axis = delay_axis, $
       wedge_amp = wedge_amp, plot_wedge_line = plot_wedge_line, hinv = hinv
       
@@ -310,15 +311,49 @@ pro ps_difference_plots, info_files, cube_types, pols, all_type_pol = all_type_p
     endif
     
   endfor
+  undefine, positions, pos_use
   
   if keyword_set(pub) and n_cubes gt 1 then begin
     cgps_close, png = png, pdf = pdf, delete_ps = delete_ps, density=600
   endif
   
   for i=0, n_elements(wedge_amp) do begin
+    
     if keyword_set(pub) then plotfiles_use = plotfiles_1d[i]
-    kpower_1d_plots, savefiles_1d[*,i], window_num=2+i, names=titles, hinv = hinv, png = png, eps = eps, pdf = pdf, $
-      plotfile = plotfiles_use, title = note, yaxis_type = axis_type_1d
+    
+    for j=0, n_cubes-1 do begin
+    
+     if n_cubes gt 1 then begin
+      if j eq 0 then begin
+        if n_cubes eq 6 then begin
+          ncol = 3
+          nrow = 2
+        endif else begin
+          nrow = 2
+          ncol = ceil(n_cubes/nrow)
+        endelse
+        start_multi_params = {ncol:ncol, nrow:nrow, ordering:'row'}
+        undefine, positions, pos_use
+        
+        window_num = 2+i
+      endif else begin
+        pos_use = positions[*,j]
+        
+      endelse
+    endif
+    
+    if i eq n_cubes-1 and n_elements(note) gt 0 then note_use = note else undefine, note_use
+           
+      kpower_1d_plots, savefiles_1d[j,i], window_num=window_num, start_multi_params = start_multi_params, multi_pos = pos_use, $
+        names=titles[j], hinv = hinv, png = png, eps = eps, pdf = pdf, plotfile = plotfiles_use, note = note_use, yaxis_type = axis_type_1d
+        
+      if j eq 0 then begin
+        positions = pos_use
+        undefine, start_multi_params
+      endif
+      
+    endfor
+    
   endfor
   
   

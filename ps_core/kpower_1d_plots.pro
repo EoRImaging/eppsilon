@@ -1,4 +1,5 @@
-pro kpower_1d_plots, power_savefile, plot_weights = plot_weights, multi_pos = multi_pos, data_range = data_range, k_range = k_range, $
+pro kpower_1d_plots, power_savefile, plot_weights = plot_weights, multi_pos = multi_pos, start_multi_params = start_multi_params, $
+    data_range = data_range, k_range = k_range, $
     png = png, eps = eps, pdf = pdf, plotfile = plotfile, window_num = window_num, colors = colors, names = names, psyms = psyms, $
     save_text = save_text, delta = delta, hinv = hinv, note = note, title = title, kpar_power = kpar_power, kperp_power = kperp_power, $
     yaxis_type = yaxis_type
@@ -53,6 +54,16 @@ pro kpower_1d_plots, power_savefile, plot_weights = plot_weights, multi_pos = mu
   
   if n_elements(window_num) eq 0 then window_num = 2
   
+  if n_elements(start_multi_params) gt 0 and n_elements(multi_pos) gt 0 then message, 'If start_multi_params are passed, ' + $
+    'multi_pos cannot be passed because then it is used as an output to pass back the positions for future plots.'
+    
+  if n_elements(multi_pos) gt 0 then begin
+    if n_elements(multi_pos) ne 4 then message, 'multi_pos must be a 4 element plot position vector'
+    if max(multi_pos) gt 1 or min(multi_pos) lt 0 then message, 'multi_pos must be in normalized coordinates (between 0 & 1)'
+    if multi_pos[2] le multi_pos[0] or multi_pos[3] le multi_pos[1] then $
+      message, 'In multi_pos, x1 must be greater than x0 and y1 must be greater than y0 '
+  endif
+  
   nfiles = n_elements(power_savefile)
   if n_elements(names) gt 0 and n_elements(names) ne nfiles then message, 'Number of names does not match number of files'
   if n_elements(colors) gt 0 and n_elements(colors) ne nfiles then message, 'Number of colors does not match number of files'
@@ -64,24 +75,151 @@ pro kpower_1d_plots, power_savefile, plot_weights = plot_weights, multi_pos = mu
   margin = [0.15, 0.2, 0.05, 0.1]
   plot_pos = [margin[0], margin[1], (1-margin[2]), (1-margin[3])]
   
-  if n_elements(multi_pos) gt 0 then begin
-    if n_elements(multi_pos) ne 4 then message, 'multi_pos must be a 4 element plot position vector'
-    if max(multi_pos) gt 1 or min(multi_pos) lt 0 then message, 'multi_pos must be in normalized coordinates (between 0 & 1)'
-    if multi_pos[2] le multi_pos[0] or multi_pos[3] le multi_pos[1] then $
-      message, 'In multi_pos, x1 must be greater than x0 and y1 must be greater than y0 '
-      
-    no_erase = 1
-    
-    xlen = (multi_pos[2]-multi_pos[0])
-    ylen = (multi_pos[3]-multi_pos[1])
-    
-    plot_pos = [xlen * plot_pos[0] + multi_pos[0], ylen * plot_pos[1] + multi_pos[1], $
-      xlen * plot_pos[2] + multi_pos[0], ylen * plot_pos[3] + multi_pos[1]]
-      
-    margin = [xlen, ylen, xlen, ylen] * margin
-    
-  endif else no_erase = 0
+  ;; set aspect ratio to 1
+  aspect_ratio=1
+  x_factor=1
+  y_factor=1
   
+  max_ysize = 1000
+  max_xsize = 1200
+  base_size = 600
+  if n_elements(multi_pos) eq 4 then begin
+    ;; work out positions scaled to the area allowed in multi_pos with proper aspect ratio
+    multi_xlen = (multi_pos[2]-multi_pos[0])
+    multi_ylen = (multi_pos[3]-multi_pos[1])
+    multi_center = [multi_pos[0] + multi_xlen/2d, multi_pos[1] + multi_ylen/2d]
+    
+    multi_size = [!d.x_vsize*multi_xlen, !d.y_vsize*multi_ylen]
+  endif
+  
+  if n_elements(multi_pos) eq 4 or n_elements(start_multi_params) gt 0 then begin
+    if n_elements(start_multi_params) gt 0 then begin
+      ;; calculate desired window size and positions for all plots
+      ncol = start_multi_params.ncol
+      nrow = start_multi_params.nrow
+      
+      multi_pos = fltarr(4, ncol*nrow)
+      
+      if tag_exist(start_multi_params, 'ordering') eq 0 then ordering = 'row' $
+      else ordering = start_multi_params.ordering
+      
+      case ordering of
+        'col': begin
+          ;; col-major values
+          col_val = reform(rebin(reform(indgen(ncol), 1, ncol), nrow, ncol), ncol*nrow)
+          row_val = reverse(reform(rebin(indgen(nrow), nrow, ncol), ncol*nrow))
+        end
+        'row': begin
+          ;; row-major values
+          col_val = reform(rebin(indgen(ncol), ncol, nrow), ncol*nrow)
+          row_val = reverse(reform(rebin(reform(indgen(nrow), 1, nrow), ncol, nrow), ncol*nrow))
+        end
+        else: message, 'unrecognized ordering value in start_multi_params, use "col" or "row" '
+      endcase
+      
+      multi_pos[0,*] = col_val/double(ncol)
+      multi_pos[1,*] = row_val/double(nrow)
+      multi_pos[2,*] = (col_val+1)/double(ncol)
+      multi_pos[3,*] = (row_val+1)/double(nrow)
+      
+      ;; define window size based on aspect ratio
+      base_size_use = base_size
+      xsize = round(base_size * x_factor * double(ncol))
+      ysize = round(base_size * y_factor * double(nrow))
+      if not keyword_set(pub) then begin
+        while (ysize gt max_ysize) or (xsize gt max_xsize) do begin
+          if base_size_use gt 100 then base_size_use = base_size_use - 100 else base_size_use = base_size_use * .75
+          xsize = round(base_size_use * x_factor * double(ncol))
+          ysize = round(base_size_use * y_factor * double(nrow))
+        endwhile
+      endif
+      
+      ;; if pub is set, start ps output
+      if keyword_set(pub) then begin
+        ps_aspect = (y_factor * float(nrow)) / (x_factor * float(ncol))
+        
+        if ps_aspect lt 1 then landscape = 1 else landscape = 0
+        IF Keyword_Set(eps) THEN landscape = 0
+        sizes = cgpswindow(LANDSCAPE=landscape, aspectRatio = ps_aspect, /sane_offsets)
+        
+        cgps_open, plotfile, /font, encapsulated=eps, /nomatch, inches=sizes.inches, xsize=sizes.xsize, ysize=sizes.ysize, $
+          xoffset=sizes.xoffset, yoffset=sizes.yoffset, landscape = landscape
+          
+      endif else begin
+        ;; make or set window
+        if windowavailable(window_num) then begin
+          wset, window_num
+          if !d.x_size ne xsize or !d.y_size ne ysize then make_win = 1 else make_win = 0
+        endif else make_win = 1
+        if make_win eq 1 then window, window_num, xsize = xsize, ysize = ysize
+        cgerase, background_color
+      endelse
+      
+      ;; calculate multi_size & multi x/ylen not calculated earlier
+      multi_xlen = (multi_pos[2,0]-multi_pos[0,0])
+      multi_ylen = (multi_pos[3,0]-multi_pos[1,0])
+      multi_center = [multi_pos[0,0] + multi_xlen/2d, multi_pos[1,0] + multi_ylen/2d]
+      
+      multi_size = [!d.x_vsize*multi_xlen, !d.y_vsize*multi_ylen]
+      
+      multi_pos_use = multi_pos[*,0]
+    endif else multi_pos_use = multi_pos
+    
+    multi_aspect = multi_size[1]/float(multi_size[0])
+    
+    new_aspect = aspect_ratio/multi_aspect
+    if new_aspect gt 1 then begin
+      y_factor = 1.
+      x_factor = 1/new_aspect
+    endif else begin
+      y_factor = new_aspect
+      x_factor = 1.
+    endelse
+    
+    new_xlen = multi_xlen*x_factor
+    new_ylen = multi_ylen*y_factor
+    new_multi = [multi_center[0] - new_xlen/2d, multi_center[1] - new_ylen*y_factor/2d, $
+      multi_center[0] + new_xlen/2d, multi_center[1] + new_ylen*y_factor/2d]
+      
+    new_pos = [new_xlen * plot_pos[0] + new_multi[0], new_ylen * plot_pos[1] + new_multi[1], $
+      new_xlen * plot_pos[2] + new_multi[0], new_ylen * plot_pos[3] + new_multi[1]]
+            
+    plot_pos = new_pos
+    
+    no_erase = 1
+  endif else begin
+    xsize = round(base_size * x_factor)
+    ysize = round(base_size * y_factor)
+    
+    if keyword_set(pub) then begin
+      ps_aspect = y_factor / x_factor
+      
+      if ps_aspect lt 1 then landscape = 1 else landscape = 0
+      IF Keyword_Set(eps) THEN landscape = 0
+      sizes = cgpswindow(LANDSCAPE=landscape, aspectRatio = ps_aspect, /sane_offsets)
+      
+      cgps_open, plotfile, /font, encapsulated=eps, /nomatch, inches=sizes.inches, xsize=sizes.xsize, ysize=sizes.ysize, $
+        xoffset=sizes.xoffset, yoffset=sizes.yoffset, landscape = landscape
+        
+    endif else begin
+      while (ysize gt max_ysize) or (xsize gt max_xsize) do begin
+        base_size = base_size - 100
+        xsize = round(base_size * x_factor)
+        ysize = round(base_size * y_factor)
+      endwhile
+      
+      
+      if windowavailable(window_num) then begin
+        wset, window_num
+        if !d.x_size ne xsize or !d.y_size ne ysize then make_win = 1 else make_win = 0
+      endif else make_win = 1
+      if make_win eq 1 then window, window_num, xsize = xsize, ysize = ysize
+      cgerase, background_color
+    endelse
+    
+    no_erase = 0
+  endelse
+    
   if yaxis_type eq 'sym_log' then begin
     ymid = plot_pos[1] + (plot_pos[3]-plot_pos[1])/2.
     positive_plot_pos = [plot_pos[0], ymid, plot_pos[2], plot_pos[3]]
@@ -218,7 +356,7 @@ pro kpower_1d_plots, power_savefile, plot_weights = plot_weights, multi_pos = mu
     if i eq 0 then begin
       if n_elements(data_range) eq 0 then begin
         if yaxis_type ne 'clipped_log' then yrange = 10.^([floor(alog10(min(abs(power[wh_non0])))), ceil(alog10(max(abs(power[wh_non0]))))]) $
-        else yrange = 10.^([floor(alog10(min_pos)), ceil(alog10(max(power)))])
+        else yrange = 10.^([floor(alog10(min(power[wh_pos]))), ceil(alog10(max(power)))])
       endif else begin
         yrange = data_range
       endelse
@@ -241,7 +379,7 @@ pro kpower_1d_plots, power_savefile, plot_weights = plot_weights, multi_pos = mu
     endif else begin
       if n_elements(data_range) eq 0 then begin
         if yaxis_type ne 'clipped_log' then yrange = minmax([yrange, 10.^([floor(alog10(min(abs(power[wh_non0])))), ceil(alog10(max(abs(power[wh_non0]))))])]) $
-        else yrange = minmax([yrange, 10.^([floor(alog10(min_pos)), ceil(alog10(max(power)))])])
+        else yrange = minmax([yrange, 10.^([floor(alog10(min(power[wh_pos]))), ceil(alog10(max(power)))])])
       endif
       if n_elements(k_range) eq 0 then begin
         xrange_new = minmax(k_mid)
@@ -365,16 +503,16 @@ pro kpower_1d_plots, power_savefile, plot_weights = plot_weights, multi_pos = mu
           cgplot, /overplot, k_plot.(plot_order[i]), temp_plot, psym=psyms[i], color = colors[i], $
             thick = thick
         endif
-
+        
         if n_neg[i] gt 0 then begin
           temp_plot = -1*(power_plot.(plot_order[i]))
           if n_pos[i] gt 0 then temp_plot[wh_pos] = yrange[0]
           if n_zero[i] gt 0 then temp_plot[wh_zero] = yrange[0]
           cgplot, /overplot, k_plot.(plot_order[i]), temp_plot, psym=psyms[i], color = colors[i], $
-            thick = thick, linestyle=2            
+            thick = thick, linestyle=2
         endif
       endfor
-
+      
       if log_bins gt 0 then bottom = 1 else bottom = 0
       if n_elements(names) ne 0 then $
         al_legend, names, textcolor = colors, box = 0, /right, bottom = bottom, charsize = legend_charsize, charthick = charthick
