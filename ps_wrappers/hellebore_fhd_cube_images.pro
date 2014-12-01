@@ -126,7 +126,7 @@ pro hellebore_fhd_cube_images, folder_names, obs_names_in, cube_types = cube_typ
   endif
   
   if obs_info.info_files[0] ne '' then file_struct_arr1 = fhd_file_setup(obs_info.info_files[0], pols[0])
-  if n_elements(filenames) eq 2 then if obs_info.info_files[1] ne '' then $
+  if n_elements(filenames) eq 2 and n_elements(obs_info.info_files) eq 2 then $
     file_struct_arr2 = fhd_file_setup(obs_info.info_files[1], pols[max_pol])
     
   if n_elements(file_struct_arr1) ne 0 then begin
