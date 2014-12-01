@@ -355,7 +355,7 @@ pro fhd_3dps, file_struct, refresh = refresh, kcube_refresh = kcube_refresh, dft
     kperp_range = kperp_range_use
     kpar_range = kpar_range_use
     
-      save, file = savefile_1d[j,i], power, noise, weights, noise_expval, k_edges, k_bin, hubble_param, freq_mask, $
+      save, file = savefile_1d[i], power, noise, weights, noise_expval, k_edges, k_bin, hubble_param, freq_mask, $
         kperp_range, kpar_range, window_int, wt_ave_power, ave_power, ave_weights, git_hashes
   endfor
   
@@ -383,7 +383,7 @@ pro fhd_3dps, file_struct, refresh = refresh, kcube_refresh = kcube_refresh, dft
     kperp_range = kperp_range_use
     kpar_range = kpar_range_use
     
-    save, file = savefile_kpar_power[j], power, noise, weights, noise_expval, k_edges, k_bin, hubble_param, freq_mask, $
+    save, file = savefile_kpar_power, power, noise, weights, noise_expval, k_edges, k_bin, hubble_param, freq_mask, $
       kperp_range, kpar_range, window_int, wt_ave_power, ave_power, ave_weights, git_hashes
   ;; bin just in kperp for diagnostic plot
   
@@ -405,6 +405,6 @@ pro fhd_3dps, file_struct, refresh = refresh, kcube_refresh = kcube_refresh, dft
     kperp_range = kperp_range_use
     kpar_range = kpar_range_use
     
-    save, file = savefile_kperp_power[j], power, noise, weights, noise_expval, k_edges, k_bin, hubble_param, freq_mask, $
+    save, file = savefile_kperp_power, power, noise, weights, noise_expval, k_edges, k_bin, hubble_param, freq_mask, $
       kperp_range, kpar_range, window_int, wt_ave_power, ave_power, ave_weights, git_hashes
 end
