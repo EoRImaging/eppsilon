@@ -127,7 +127,7 @@ function rts_fits2idlcube, datafiles, weightfiles, variancefiles, pol_inc, save_
         
         undefine, data
         
-        data2 = mrdfits(datafile_arr[i, file_i], 'UWPS Header', hdr2, /silent)
+        data2 = mrdfits(datafile_arr[i, file_i], 'MWA_SUBINT_TABLE', hdr2, /silent)
         col_types2 = fxpar(hdr2, 'ttype*')
         
         ;        freq_col = where(strpos(strlowcase(col_types2), 'freq') gt -1, count)
@@ -175,7 +175,7 @@ function rts_fits2idlcube, datafiles, weightfiles, variancefiles, pol_inc, save_
           
         undefine, data2
         
-        data3 = mrdfits(datafile_arr[i, file_i], 3, hdr3, /silent)
+        data3 = mrdfits(datafile_arr[i, file_i], 'UWPS Header', hdr3, /silent)
         frequencies[i] = fxpar(hdr3, 'freq')
         n_vis_arr[i] = fxpar(hdr3, 'n_bsnl')
         kpix_arr[i] = fxpar(hdr3, 'uv_pixsz')
@@ -225,7 +225,7 @@ function rts_fits2idlcube, datafiles, weightfiles, variancefiles, pol_inc, save_
         
         undefine, data
         
-        data2 = mrdfits(weightfile_arr[i, file_i], 'UWPS Header', hdr2, /silent)
+        data2 = mrdfits(weightfile_arr[i, file_i], 'MWA_SUBINT_TABLE', hdr2, /silent)
         col_types2 = fxpar(hdr2, 'ttype*')
         
         ;        freq_col = where(strpos(strlowcase(col_types2), 'freq') gt -1, count)
@@ -268,7 +268,7 @@ function rts_fits2idlcube, datafiles, weightfiles, variancefiles, pol_inc, save_
         
         undefine, data2
         
-        data3 = mrdfits(weightfile_arr[i, file_i], 3, hdr3, /silent)
+        data3 = mrdfits(weightfile_arr[i, file_i], 'UWPS Header', hdr3, /silent)
         if fxpar(hdr3, 'freq') ne frequencies[i] then message, 'data and weights frequencies do not match'       
         if fxpar(hdr3, 'n_bsnl') ne n_vis_arr[i] then print, 'data and weights n_vis do not match for weightfile: ' + weightfile_arr[i, file_i]
         if fxpar(hdr3, 'uv_pixsz') ne kpix_arr[i] then  message, 'data and weights uv pixel sizes do not match'        
@@ -316,7 +316,7 @@ function rts_fits2idlcube, datafiles, weightfiles, variancefiles, pol_inc, save_
         
         undefine, data
         
-        data2 = mrdfits(variancefile_arr[i, file_i], 'UWPS Header', hdr2, /silent)
+        data2 = mrdfits(variancefile_arr[i, file_i], 'MWA_SUBINT_TABLE', hdr2, /silent)
         col_types2 = fxpar(hdr2, 'ttype*')
         
         ;        freq_col = where(strpos(strlowcase(col_types2), 'freq') gt -1, count)
@@ -359,7 +359,7 @@ function rts_fits2idlcube, datafiles, weightfiles, variancefiles, pol_inc, save_
         
         undefine, data2
         
-        data3 = mrdfits(variancefile_arr[i, file_i], 3, hdr3, /silent)
+        data3 = mrdfits(variancefile_arr[i, file_i], 'UWPS Header', hdr3, /silent)
         if fxpar(hdr3, 'freq') ne frequencies[i] then message, 'data and variance frequencies do not match'
         if fxpar(hdr3, 'n_bsnl') ne n_vis_arr[i] then print, 'data and variance n_vis do not match, variance file: ' + variancefile_arr[i, file_i]
         if fxpar(hdr3, 'uv_pixsz') ne kpix_arr[i] then message, 'data and variance uv pixel sizes do not match'
