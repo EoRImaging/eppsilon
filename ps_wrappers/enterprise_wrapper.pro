@@ -63,37 +63,19 @@ pro enterprise_wrapper, folder_name, obs_name, data_subdirs=data_subdirs, rts = 
     
   endif else begin
   
-    if n_elements(folder_name) eq 0 then folder_name = '/nfs/mwa-09/r1/djc/EoR2013/Aug23/fhd_apb_pipeline_paper_deep_1/Healpix/'
-    
-    ;; check for folder existence, otherwise look for common folder names to figure out full path. If none found, try '/nfs/mwa-09/r1/djc/EoR2013/Aug23/'
-    start_path = '/nfs/mwa-09/r1/djc/'
+    ;; check for folder existence, otherwise look for common folder names to figure out full path.
+    start_path = '/data4/MWA/'
     folder_test = file_test(folder_name, /directory)
     if folder_test eq 0 then begin
-      pos_eor2013 = strpos(folder_name, 'EoR2013')
-      if pos_eor2013 gt -1 then begin
-        test_name = start_path + strmid(folder_name, pos_eor2013)
-        folder_test = file_test(test_name, /directory)
-        if folder_test eq 1 then folder_name = test_name
-      endif
-    endif
-    if folder_test eq 0 then begin
-      pos_aug23 = strpos(folder_name, 'Aug23')
+      pos_aug23 = strpos(folder_name, 'FHD_Aug23')
       if pos_aug23 gt -1 then begin
-        test_name = start_path + 'EoR2013/' + strmid(folder_name, pos_aug23)
+        test_name = start_path + strmid(folder_name, pos_aug23)
         folder_test = file_test(test_name, /directory)
         if folder_test eq 1 then folder_name = test_name
       endif
     endif
     if folder_test eq 0 then begin
-      pos_aug26 = strpos(folder_name, 'Aug26')
-      if pos_aug26 gt -1 then begin
-        test_name = start_path + 'EoR2013/' + strmid(folder_name, pos_aug26)
-        folder_test = file_test(test_name, /directory)
-        if folder_test eq 1 then folder_name = test_name
-      endif
-    endif
-    if folder_test eq 0 then begin
-      test_name = start_path + 'EoR2013/Aug23/' + folder_name
+      test_name = start_path + 'FHD_Aug23/' + folder_name
       folder_test = file_test(test_name, /directory)
       if folder_test eq 1 then folder_name = test_name
     endif
@@ -101,8 +83,12 @@ pro enterprise_wrapper, folder_name, obs_name, data_subdirs=data_subdirs, rts = 
     if folder_test eq 0 then message, 'folder not found'
     
     save_path = folder_name + '/ps/'
-    obs_info = ps_filenames(folder_name, obs_name, rts = rts, sim = sim, casa = casa, data_subdirs = 'Healpix/', save_paths = save_path, plot_path = save_path)
-    
+    obs_info = ps_filenames(folder_name, obs_name, rts = rts, sim = sim, casa = casa, data_subdirs = 'Healpix/', save_paths = save_path, plot_path = save_path)   
+
+    if obs_info.info_files[0] ne '' then datafile = obs_info.info_files[0] else datafile = obs_info.cube_files.(0)
+    plot_filebase = obs_info.fhd_types[0] + '_' + obs_info.obs_names[0]
+    note = obs_info.fhd_types[0]
+
     note = obs_info.fhd_types
     if not file_test(save_path, /directory) then file_mkdir, save_path
     
