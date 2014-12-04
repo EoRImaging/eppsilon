@@ -18,7 +18,7 @@ function ps_filenames, folder_names, obs_names_in, rts = rts, sim = sim, casa = 
     if n_elements(data_subdirs) ne n_filesets then message, 'If data_subdirs is an array, the number of elements must match the max of folder_names & obs_names_in'
     
     if n_elements(save_paths) gt 0 then begin
-      if n_elements(save_paths) eq 1 then save_paths = replicate(plosave_pathst_paths, n_filesets)
+      if n_elements(save_paths) eq 1 then save_paths = replicate(save_paths, n_filesets)
       if n_elements(save_paths) ne n_filesets then message, 'If save_paths is an array, the number of elements must match the max of folder_names & obs_names_in'
     endif else save_paths = folder_names + data_subdirs
     
@@ -696,6 +696,9 @@ function ps_filenames, folder_names, obs_names_in, rts = rts, sim = sim, casa = 
       
     endfor
     
+    obs_info = {folder_names:folder_names, folder_basenames:folder_basenames, obs_names:obs_names, info_files:info_files, cube_files:cube_files, $
+      fhd_types:fhd_types, integrated:integrated, plot_paths:plot_paths, save_paths:save_paths}
+      
     if n_elements(folder_names) eq 2 then begin
       folderparts_1 = strsplit(folder_names[0], path_sep(), /extract)
       folderparts_2 = strsplit(folder_names[1], path_sep(), /extract)
@@ -784,9 +787,6 @@ function ps_filenames, folder_names, obs_names_in, rts = rts, sim = sim, casa = 
       
     endif
     
-    obs_info = {folder_names:folder_names, folder_basenames:folder_basenames, obs_names:obs_names, info_files:info_files, cube_files:cube_files, $
-      fhd_types:fhd_types, integrated:integrated, plot_paths:plot_paths, save_paths:save_paths}
-      
     if n_elements(diff_note) gt 0 then obs_info = create_struct(obs_info, 'diff_note', diff_note, 'diff_save_path', $
       diff_save_path)
       

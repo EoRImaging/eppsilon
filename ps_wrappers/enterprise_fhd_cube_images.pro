@@ -1,5 +1,7 @@
-pro enterprise_fhd_cube_images, folder_names, obs_names_in, data_subdirs=data_subdirs, cube_types = cube_types, pols = pols, evenodd = evenodd, $
-    rts = rts, sim = sim, casa = casa, png = png, eps = eps, pdf = pdf, slice_range = slice_range, ratio = ratio, diff_ratio = diff_ratio, $
+pro enterprise_fhd_cube_images, folder_names, obs_names_in, data_subdirs=data_subdirs, cube_types = cube_types, $
+    pols = pols, evenodd = evenodd, $
+    rts = rts, sim = sim, casa = casa, png = png, eps = eps, pdf = pdf, slice_range = slice_range, $
+    nvis_norm = nvis_norm, ratio = ratio, diff_ratio = diff_ratio, diff_frac = diff_frac, $
     log = log, data_range = data_range, color_profile = color_profile, sym_color = sym_color, window_num = window_num, plot_as_map = plot_as_map
     
   if n_elements(folder_names) gt 2 then message, 'No more than 2 folder_names can be supplied'
@@ -144,10 +146,50 @@ pro enterprise_fhd_cube_images, folder_names, obs_names_in, data_subdirs=data_su
   
   cube1 = getvar_savefile(filenames[0], data_varname1)
   n_freq1 = (size(cube1,/dimension))[1]
+  if keyword_set(nvis_norm) then begin
+    if obs_info.integrated[0] eq 1 then obs_varname = 'obs_arr' else obs_varname = 'obs'
+    obs_arr1 = getvar_savefile(filenames[0], obs_varname)
+    nvis_freq = obs_arr1.nf_vis
+    nvis_dims = size(nvis_freq, /dimension)
+    if n_elements(nvis_dims) eq 2 then nvis_freq = total(nvis_freq, 2)
+    
+    n_avg = getvar_savefile(filenames[0], 'n_avg')
+    n_freqbins = nvis_dims[0] / n_avg
+    inds_arr = indgen(nvis_dims[0])
+    if n_avg gt 1 then begin
+      n_vis_freq_avg = fltarr(n_freq1)
+      for i=0, n_freqbins-1 do begin
+        inds_use = inds_arr[i*n_avg:i*n_avg+(n_avg-1)]
+        if n_elements(inds_use) eq 1 then n_vis_freq_avg[i] = nvis_freq[inds_use] $
+        else n_vis_freq_avg[i] = total(nvis_freq[inds_use])
+      endfor
+    endif else n_vis_freq_avg = nvis_freq
+    cube1 = cube1 / rebin(reform(n_vis_freq_avg, 1, n_freq1), n_elements(hpx_inds1), n_freq1)
+  endif
   if n_cubes gt 1 then begin
     cube2 = getvar_savefile(filenames[max_file], data_varname2)
     n_freq2 = (size(cube2,/dimension))[1]
     if n_freq1 ne n_freq2 then message, 'number of frequencies do not match between the 2 files'
+    if keyword_set(nvis_norm) then begin
+      if obs_info.integrated[1] eq 1 then obs_varname = 'obs_arr' else obs_varname = 'obs'
+      obs_arr1 = getvar_savefile(filenames[1], obs_varname)
+      nvis_freq = obs_arr1.nf_vis
+      nvis_dims = size(nvis_freq, /dimension)
+      if n_elements(nvis_dims) eq 2 then nvis_freq = total(nvis_freq, 2)
+      
+      n_avg = getvar_savefile(filenames[1], 'n_avg')
+      n_freqbins = nvis_dims[0] / n_avg
+      inds_arr = indgen(nvis_dims[0])
+      if n_avg gt 1 then begin
+        n_vis_freq_avg = fltarr(n_freq2)
+        for i=0, n_freqbins-1 do begin
+          inds_use = inds_arr[i*n_avg:i*n_avg+(n_avg-1)]
+          if n_elements(inds_use) eq 1 then n_vis_freq_avg[i] = nvis_freq[inds_use] $
+          else n_vis_freq_avg[i] = total(nvis_freq[inds_use])
+        endfor
+      endif else n_vis_freq_avg = nvis_freq
+      cube2 = cube2 / rebin(reform(n_vis_freq_avg, 1, 1, n_freq2), n_elements(hpx_inds2), n_freq2)
+    endif
   endif
   
   if obs_info.info_files[0] ne '' then file_struct_arr1 = fhd_file_setup(obs_info.info_files[0], pols[0])
@@ -240,6 +282,9 @@ pro enterprise_fhd_cube_images, folder_names, obs_names_in, data_subdirs=data_su
         print, max(cube1), max(cube2), max(cube1)/max(cube2)
         temp = (cube1/max(cube1) - cube2/max(cube2)) * mean([max(cube1), max(cube2)])
         note = note + ', peak ratio = ' + number_formatter(max(cube1)/max(cube2), format = '(f5.2)')
+      endif else if keyword_set(diff_frac) then begin
+        temp = (cube1 - cube2)*2. / (cube1 + cube2)
+        note = note + ', fractional diff'
       endif else temp = cube1-cube2
       
       if n_elements(slice_range) eq 1 then temp = temp[*,slice_range] else temp = total(temp[*, slice_range[0]:slice_range[1]],2)
@@ -251,9 +296,11 @@ pro enterprise_fhd_cube_images, folder_names, obs_names_in, data_subdirs=data_su
     if n_elements(data_range) eq 0 then data_range = [-1,1]*max(abs(temp)) $
     else data_range = [-1,1]*max(abs(data_range))
   endif
-  if keyword_set(diff_ratio) then title = diff_title + ', peak norm., ' + title_range else title = diff_title + ', ' + title_range
+  if keyword_set(diff_ratio) then title = diff_title + ', peak norm., ' + title_range $
+  else if keyword_set(diff_frac) then title = diff_title + ', frac. diff, ' + title_range else $
+  title = diff_title + ', ' + title_range
   
-  healpix_quickimage, temp, hpx_inds1, nside1, title = title, savefile = plotfile, note=note, slice_ind = slice_ind, $
-    log = log, color_profile = color_profile, data_range = data_range, window_num = window_num, plot_as_map = plot_as_map, png = png, eps = eps, pdf = pdf
-    
+healpix_quickimage, temp, hpx_inds1, nside1, title = title, savefile = plotfile, note=note, slice_ind = slice_ind, $
+  log = log, color_profile = color_profile, data_range = data_range, window_num = window_num, plot_as_map = plot_as_map, png = png, eps = eps, pdf = pdf
+  
 end

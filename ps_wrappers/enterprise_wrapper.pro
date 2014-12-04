@@ -54,7 +54,10 @@ pro enterprise_wrapper, folder_name, obs_name, data_subdirs=data_subdirs, rts = 
       if obs_info.cube_files.(0) ne '' then datafile = obs_info.cube_files.(0) else $
       datafile = rts_fits2idlcube(obs_info.datafiles.(0), obs_info.weightfiles.(0), obs_info.variancefiles.(0), $
       pol_inc, save_path = obs_info.folder_names[0]+path_sep(), refresh = refresh_dft)
-      
+    
+    if keyword_set(refresh_rtscube) then datafile = rts_fits2idlcube(obs_info.datafiles.(0), obs_info.weightfiles.(0), obs_info.variancefiles.(0), $
+      pol_inc, save_path = obs_info.folder_names[0]+path_sep(), refresh = refresh_dft)
+  
     note = obs_info.rts_types
     if not file_test(save_path, /directory) then file_mkdir, save_path
     
