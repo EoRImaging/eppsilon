@@ -127,7 +127,7 @@ function rts_fits2idlcube, datafiles, weightfiles, variancefiles, pol_inc, save_
         
         undefine, data
         
-        data2 = mrdfits(datafile_arr[i, file_i], 2, hdr2, /silent)
+        data2 = mrdfits(datafile_arr[i, file_i], 'UWPS Header', hdr2, /silent)
         col_types2 = fxpar(hdr2, 'ttype*')
         
         ;        freq_col = where(strpos(strlowcase(col_types2), 'freq') gt -1, count)
@@ -225,7 +225,7 @@ function rts_fits2idlcube, datafiles, weightfiles, variancefiles, pol_inc, save_
         
         undefine, data
         
-        data2 = mrdfits(weightfile_arr[i, file_i], 2, hdr2, /silent)
+        data2 = mrdfits(weightfile_arr[i, file_i], 'UWPS Header', hdr2, /silent)
         col_types2 = fxpar(hdr2, 'ttype*')
         
         ;        freq_col = where(strpos(strlowcase(col_types2), 'freq') gt -1, count)
@@ -316,7 +316,7 @@ function rts_fits2idlcube, datafiles, weightfiles, variancefiles, pol_inc, save_
         
         undefine, data
         
-        data2 = mrdfits(variancefile_arr[i, file_i], 2, hdr2, /silent)
+        data2 = mrdfits(variancefile_arr[i, file_i], 'UWPS Header', hdr2, /silent)
         col_types2 = fxpar(hdr2, 'ttype*')
         
         ;        freq_col = where(strpos(strlowcase(col_types2), 'freq') gt -1, count)
