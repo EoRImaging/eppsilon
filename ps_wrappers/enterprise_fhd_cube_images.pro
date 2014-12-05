@@ -292,6 +292,8 @@ pro enterprise_fhd_cube_images, folder_names, obs_names_in, data_subdirs=data_su
     
   endif else if n_elements(slice_range) eq 1 then temp = cube1[*,slice_range] else temp = total(cube1[*, slice_range[0]:slice_range[1]],2)
   
+  if keyword_set(nvis_norm) and n_elements(slice_range) gt 1 then temp = temp / (slice_range[1]-slice_range[0]+1)
+  
   if keyword_set(sym_color) and not keyword_set(log) then begin
     if n_elements(data_range) eq 0 then data_range = [-1,1]*max(abs(temp)) $
     else data_range = [-1,1]*max(abs(data_range))
