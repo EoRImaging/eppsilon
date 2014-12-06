@@ -35,7 +35,7 @@ pro enterprise_cube_images, folder_names, obs_names_in, data_subdirs=data_subdir
   obs_info = ps_filenames(folder_names, obs_names_in, rts = rts, sim = sim, casa = casa, data_subdirs = data_subdirs, save_paths = save_paths, plot_paths = save_paths)
   
   
-  cube_images, folder_names, obs_info, nvis_norm = nvis_norm, $
+  cube_images, folder_names, obs_info, nvis_norm = nvis_norm, pols = pols, evenodd = evenodd, $
     png = png, eps = eps, pdf = pdf, slice_range = slice_range, ratio = ratio, diff_ratio = diff_ratio, diff_frac = diff_frac, $
     log = log, data_range = data_range, color_profile = color_profile, sym_color = sym_color, $
     window_num = window_num, plot_as_map = plot_as_map

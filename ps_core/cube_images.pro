@@ -1,4 +1,4 @@
-pro cube_images, folder_names, obs_info, nvis_norm = nvis_norm, $
+pro cube_images, folder_names, obs_info, nvis_norm = nvis_norm, pols = pols, evenodd = evenodd, $
     png = png, eps = eps, pdf = pdf, slice_range = slice_range, ratio = ratio, diff_ratio = diff_ratio, diff_frac = diff_frac, $
     log = log, data_range = data_range, color_profile = color_profile, sym_color = sym_color, $
     window_num = window_num, plot_as_map = plot_as_map
