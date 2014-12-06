@@ -1,4 +1,4 @@
-pro hellebore_fhd_cube_images, folder_names, obs_names_in, cube_types = cube_types, $
+pro hellebore_cube_images, folder_names, obs_names_in, cube_types = cube_types, $
     pols = pols, evenodd = evenodd, $
     rts = rts, sim = sim, casa = casa, png = png, eps = eps, pdf = pdf, slice_range = slice_range, $
     nvis_norm = nvis_norm, ratio = ratio, diff_ratio = diff_ratio, diff_frac = diff_frac, $
