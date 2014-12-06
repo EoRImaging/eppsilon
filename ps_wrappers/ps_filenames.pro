@@ -1,5 +1,6 @@
-function ps_filenames, folder_names, obs_names_in, rts = rts, sim = sim, casa = casa, data_subdirs = data_subdirs, plot_paths = plot_paths, save_paths = save_paths
-
+function ps_filenames, folder_names, obs_names_in, rts = rts, sim = sim, casa = casa, $
+    data_subdirs = data_subdirs, plot_paths = plot_paths, save_paths = save_paths
+    
   n_filesets = max([n_elements(folder_names), n_elements(obs_names_in)])
   
   if n_elements(data_subdirs) eq 0 then data_subdirs = '' else begin

@@ -1,71 +1,8 @@
-pro mit_fhd_cube_images, folder_names, obs_names_in, data_subdirs=data_subdirs, cube_types = cube_types, pols = pols, evenodd = evenodd, $
-    rts = rts, sim = sim, casa = casa, png = png, eps = eps, pdf = pdf, slice_range = slice_range, ratio = ratio, diff_ratio = diff_ratio, $
-    log = log, data_range = data_range, color_profile = color_profile, sym_color = sym_color, window_num = window_num, plot_as_map = plot_as_map
+pro cube_images, folder_names, obs_info, nvis_norm = nvis_norm, $
+    png = png, eps = eps, pdf = pdf, slice_range = slice_range, ratio = ratio, diff_ratio = diff_ratio, diff_frac = diff_frac, $
+    log = log, data_range = data_range, color_profile = color_profile, sym_color = sym_color, $
+    window_num = window_num, plot_as_map = plot_as_map
     
-  if n_elements(folder_names) gt 2 then message, 'No more than 2 folder_names can be supplied'
-  if n_elements(evenodd) eq 0 then evenodd = 'even'
-  if n_elements(evenodd) gt 2 then message, 'No more than 2 evenodd values can be supplied'
-  if n_elements(obs_names_in) gt 2 then message, 'No more than 2 obs_names can be supplied'
-  
-  for i=0, n_elements(folder_names)-1 do begin
-    ;; check for folder existence, otherwise look for common folder names to figure out full path. If none found, try '/nfs/mwa-09/r1/djc/EoR2013/Aug23/'
-    start_path = '/nfs/mwa-09/r1/djc/'
-    folder_test = file_test(folder_names[i], /directory)
-    if folder_test eq 0 then begin
-      pos_eor2013 = strpos(folder_names[i], 'EoR2013')
-      if pos_eor2013 gt -1 then begin
-        test_name = start_path + strmid(folder_names[i], pos_eor2013)
-        folder_test = file_test(test_name, /directory)
-        if folder_test eq 1 then folder_names[i] = test_name
-      endif
-    endif
-    if folder_test eq 0 then begin
-      pos_aug23 = strpos(folder_names[i], 'Aug23')
-      if pos_aug23 gt -1 then begin
-        test_name = start_path + 'EoR2013/' + strmid(folder_names[i], pos_aug23)
-        folder_test = file_test(test_name, /directory)
-        if folder_test eq 1 then folder_names[i] = test_name
-      endif
-    endif
-    if folder_test eq 0 then begin
-      pos_aug26 = strpos(folder_names[i], 'Aug26')
-      if pos_aug26 gt -1 then begin
-        test_name = start_path + 'EoR2013/' + strmid(folder_names[i], pos_aug26)
-        folder_test = file_test(test_name, /directory)
-        if folder_test eq 1 then folder_names[i] = test_name
-      endif
-    endif
-    if folder_test eq 0 then begin
-      pos_week1 = strpos(folder_names[i], 'week1')
-      if pos_week1 gt -1 then begin
-        test_name = start_path + 'EoR2013/' + strmid(folder_names[i], pos_week1)
-        folder_test = file_test(test_name, /directory)
-        if folder_test eq 1 then folder_names[i] = test_name
-      endif
-    endif
-    if folder_test eq 0 then begin
-      test_name = start_path + 'EoR2013/Aug23/' + folder_names[i]
-      folder_test = file_test(test_name, /directory)
-      if folder_test eq 1 then folder_names[i] = test_name
-    endif
-    if folder_test eq 0 then begin
-      test_name = start_path + 'EoR2013/Aug26/' + folder_names[i]
-      folder_test = file_test(test_name, /directory)
-      if folder_test eq 1 then folder_names[i] = test_name
-    endif
-    if folder_test eq 0 then begin
-      test_name = start_path + 'EoR2013/week1/' + folder_names[i]
-      folder_test = file_test(test_name, /directory)
-      if folder_test eq 1 then folder_names[i] = test_name
-    endif
-    
-    if folder_test eq 0 then message, 'folder not found'
-  endfor
-  
-  save_paths = folder_names + '/ps/'
-  if n_elements(data_subdirs) eq 0 then data_subdirs = 'Healpix/' else if n_elements(data_subdirs) gt 2 then message, 'No more than 2 data_subdirs can be supplied.'
-  obs_info = ps_filenames(folder_names, obs_names_in, rts = rts, sim = sim, casa = casa, data_subdirs = data_subdirs, save_paths = save_paths, plot_paths = save_paths)
-  
   if tag_exist(obs_info, 'diff_note') then obs_info = create_struct(obs_info, 'diff_plot_path', obs_info.diff_save_path)
   
   filenames = strarr(max([n_elements(obs_info.obs_names), n_elements(evenodd)]))
@@ -91,6 +28,7 @@ pro mit_fhd_cube_images, folder_names, obs_names_in, data_subdirs=data_subdirs, 
   
   if n_cubes eq 2 and n_elements(data_range) eq 0 and n_elements(sym_color) eq 0 and not keyword_set(ratio) then sym_color=1
   if keyword_set(sym_color) and keyword_set(log) then color_profile = 'sym_log'
+  
   
   for i=0, n_elements(folder_names)-1 do begin
   
@@ -152,37 +90,19 @@ pro mit_fhd_cube_images, folder_names, obs_names_in, data_subdirs=data_subdirs, 
       cube_op + evenodd[max_eo] + '_' + cube_types[max_type] + '_' + pols[max_pol]
   endif else diff_title = evenodd[0] + '_' + cube_types[0] + '_' + pols[0]
   
-  if keyword_set(rts) then pixel_varname = 'pixel_nums' else pixel_varname = 'hpx_inds'
-  
-  hpx_inds1 = getvar_savefile(filenames[0], pixel_varname)
-  if n_elements(filenames) gt 1 then begin
-    hpx_inds2 = getvar_savefile(filenames[1], pixel_varname)
-    if total(abs(hpx_inds2-hpx_inds1)) gt 0 then message, 'healpix pixels do not match between the 2 files'
-  endif
-  
-  nside1 = getvar_savefile(filenames[0], 'nside')
-  if n_elements(filenames) gt 1 then begin
-    nside2 = getvar_savefile(filenames[1], 'nside')
-    if total(abs(hpx_inds2-hpx_inds1)) gt 0 then message, 'nsides do not match between the 2 files'
-  endif
+  if keyword_set(rts) then pixel_varnames = strarr(n_elements(filenames)) + 'pixel_nums' $
+  else pixel_varnames = strarr(n_elements(filenames)) + 'hpx_inds'
   
   pol_exist = stregex(filenames, '[xy][xy]', /boolean, /fold_case)
   
   if keyword_set(rts) then begin
-    data_varname1 = pols[0] + '_data'
-    if n_cubes gt 1 then data_varname2 = pols[max_pol] + '_data'
+    cube_varnames = pols[0] + '_data'
+    if n_cubes gt 1 then cube_varnames = [cube_varnames, pols[max_pol] + '_data']
   endif else begin
-    if pol_exist[0] then data_varname1 = cube_types[0] + '_cube' else data_varname1 = cube_types[0] + '_' + pols[0] + '_cube'
-    if n_cubes gt 1 then if pol_exist[max_file] then data_varname2 = cube_types[max_type] + '_cube' else data_varname2 = cube_types[max_type] + '_' + pols[max_pol] + '_cube'
+    if pol_exist[0] then cube_varnames = cube_types[0] + '_cube' else cube_varnames = cube_types[0] + '_' + pols[0] + '_cube'
+    if n_cubes gt 1 then if pol_exist[max_file] then cube_varnames = [cube_varnames, cube_types[max_type] + '_cube'] $
+    else cube_varnames = [cube_varnames, cube_types[max_type] + '_' + pols[max_pol] + '_cube']
   endelse
-  
-  cube1 = getvar_savefile(filenames[0], data_varname1)
-  n_freq1 = (size(cube1,/dimension))[1]
-  if n_cubes gt 1 then begin
-    cube2 = getvar_savefile(filenames[max_file], data_varname2)
-    n_freq2 = (size(cube2,/dimension))[1]
-    if n_freq1 ne n_freq2 then message, 'number of frequencies do not match between the 2 files'
-  endif
   
   if obs_info.info_files[0] ne '' then file_struct_arr1 = fhd_file_setup(obs_info.info_files[0], pols[0])
   if n_elements(filenames) eq 2 then if obs_info.info_files[1] ne '' then $
@@ -214,26 +134,6 @@ pro mit_fhd_cube_images, folder_names, obs_names_in, data_subdirs=data_subdirs, 
   
   print, 'nside, n pixels, n_freq: ' + number_formatter(nside1) + ', ' + number_formatter(n_elements(hpx_inds1)) + ', ' + number_formatter(n_freq1)
   
-  case n_elements(slice_range) of
-    0: begin
-      slice_range = [0, n_freq1-1]
-      title_range = 'freq. added'
-    end
-    1: begin
-      title_range = 'slice ' + number_formatter(slice_range)
-    end
-    2: begin
-      if min(slice_range) lt 0 then message, 'slice_range cannot be less than zero'
-      if max(slice_range) ge n_freq1 then message, 'slice_range cannot be more than ' + number_formatter(n_freq1-1)
-      if slice_range[1] lt slice_range[0] then message, 'slice_range[1] cannot be less than slice_range[0]'
-      
-      title_range = 'slices [' + number_formatter(slice_range[0]) + ':' + number_formatter(slice_range[1]) + ']'
-    end
-    else: begin
-      message, 'slice_range must be a 1 or 2 element vector'
-    end
-  endcase
-  
   
   if keyword_set(png) or keyword_set(eps) or keyword_set(pdf) then pub = 1 else pub = 0
   if pub then begin
@@ -264,21 +164,98 @@ pro mit_fhd_cube_images, folder_names, obs_names_in, data_subdirs=data_subdirs, 
     else if keyword_set(ratio) then plotfile = plot_path + plot_filebase + '_imageratio' else plotfile = plot_path + plot_filebase + '_image'
   endif
   
+  hpx_inds1 = getvar_savefile(filenames[0], pixel_varnames[0])
+  if n_elements(filenames) gt 1 then begin
+    hpx_inds2 = getvar_savefile(filenames[1], pixel_varname[1])
+    if total(abs(hpx_inds2-hpx_inds1)) gt 0 then message, 'healpix pixels do not match between the 2 files'
+  endif
+  
+  nside1 = getvar_savefile(filenames[0], 'nside')
+  if n_elements(filenames) gt 1 then begin
+    nside2 = getvar_savefile(filenames[1], 'nside')
+    if nside1 ne nside2 gt 0 then message, 'nsides do not match between the 2 files'
+  endif
+  
+  cube1 = getvar_savefile(filenames[0], cube_varnames[0])
+  n_freq1 = (size(cube1,/dimension))[1]
+  if keyword_set(nvis_norm) then begin
+    if obs_info.integrated[0] eq 1 then obs_varname = 'obs_arr' else obs_varname = 'obs'
+    obs_arr1 = getvar_savefile(filenames[0], obs_varname)
+    nvis_freq = obs_arr1.nf_vis
+    nvis_dims = size(nvis_freq, /dimension)
+    if n_elements(nvis_dims) eq 2 then nvis_freq = total(nvis_freq, 2)
+    
+    n_avg = getvar_savefile(filenames[0], 'n_avg')
+    n_freqbins = nvis_dims[0] / n_avg
+    inds_arr = indgen(nvis_dims[0])
+    if n_avg gt 1 then begin
+      n_vis_freq_avg = fltarr(n_freq1)
+      for i=0, n_freqbins-1 do begin
+        inds_use = inds_arr[i*n_avg:i*n_avg+(n_avg-1)]
+        if n_elements(inds_use) eq 1 then n_vis_freq_avg[i] = nvis_freq[inds_use] $
+        else n_vis_freq_avg[i] = total(nvis_freq[inds_use])
+      endfor
+    endif else n_vis_freq_avg = nvis_freq
+    cube1 = cube1 / rebin(reform(n_vis_freq_avg, 1, n_freq1), n_elements(hpx_inds1), n_freq1)
+  endif
+  if n_cubes gt 1 then begin
+    cube2 = getvar_savefile(filenames[max_file], cube_varnames[1])
+    n_freq2 = (size(cube2,/dimension))[1]
+    if n_freq1 ne n_freq2 then message, 'number of frequencies do not match between the 2 files'
+    if keyword_set(nvis_norm) then begin
+      if obs_info.integrated[1] eq 1 then obs_varname = 'obs_arr' else obs_varname = 'obs'
+      obs_arr1 = getvar_savefile(filenames[1], obs_varname)
+      nvis_freq = obs_arr1.nf_vis
+      nvis_dims = size(nvis_freq, /dimension)
+      if n_elements(nvis_dims) eq 2 then nvis_freq = total(nvis_freq, 2)
+      
+      n_avg = getvar_savefile(filenames[1], 'n_avg')
+      n_freqbins = nvis_dims[0] / n_avg
+      inds_arr = indgen(nvis_dims[0])
+      if n_avg gt 1 then begin
+        n_vis_freq_avg = fltarr(n_freq2)
+        for i=0, n_freqbins-1 do begin
+          inds_use = inds_arr[i*n_avg:i*n_avg+(n_avg-1)]
+          if n_elements(inds_use) eq 1 then n_vis_freq_avg[i] = nvis_freq[inds_use] $
+          else n_vis_freq_avg[i] = total(nvis_freq[inds_use])
+        endfor
+      endif else n_vis_freq_avg = nvis_freq
+      cube2 = cube2 / rebin(reform(n_vis_freq_avg, 1, 1, n_freq2), n_elements(hpx_inds2), n_freq2)
+    endif
+  endif
+  
+  case n_elements(slice_range) of
+    0: begin
+      slice_range = [0, n_freq1-1]
+      if keyword_set(nvis_norm) then title_range = 'freq. averaged' else title_range = 'freq. added'
+    end
+    1: begin
+      title_range = 'slice ' + number_formatter(slice_range)
+    end
+    2: begin
+      if min(slice_range) lt 0 then message, 'slice_range cannot be less than zero'
+      if max(slice_range) ge n_freq1 then message, 'slice_range cannot be more than ' + number_formatter(n_freq1-1)
+      if slice_range[1] lt slice_range[0] then message, 'slice_range[1] cannot be less than slice_range[0]'
+      
+      title_range = 'slices [' + number_formatter(slice_range[0]) + ':' + number_formatter(slice_range[1]) + ']'
+    end
+    else: begin
+      message, 'slice_range must be a 1 or 2 element vector'
+    end
+  endcase
+  
+  
+  if keyword_set(png) or keyword_set(eps) or keyword_set(pdf) then pub = 1 else pub = 0
+  
   if n_cubes gt 1 then begin
     if max(abs(cube1-cube2)) eq 0 then message, 'cubes are identical.'
-    if keyword_set(ratio) then begin
-      if n_elements(slice_range) eq 1 then temp = cube1[*,slice_range]/cube2[*,slice_range] else $
-        temp = total(cube1[*, slice_range[0]:slice_range[1]],2)/total(cube2[*, slice_range[0]:slice_range[1]],2)
-    endif else begin
-      if keyword_set(diff_ratio) then begin
-        print, max(cube1), max(cube2), max(cube1)/max(cube2)
-        temp = (cube1/max(cube1) - cube2/max(cube2)) * mean([max(cube1), max(cube2)])
-        note = note + ', peak ratio = ' + number_formatter(max(cube1)/max(cube2), format = '(f5.2)')
-      endif else temp = cube1-cube2
-      
-      if n_elements(slice_range) eq 1 then temp = temp[*,slice_range] else temp = total(temp[*, slice_range[0]:slice_range[1]],2)
-    endelse
+    if keyword_set(diff_ratio) then begin
+      print, max(cube1), max(cube2), max(cube1)/max(cube2)
+      temp = (cube1/max(cube1) - cube2/max(cube2)) * mean([max(cube1), max(cube2)])
+      note = note + ', peak ratio = ' + number_formatter(max(cube1)/max(cube2), format = '(f5.2)')
+    endif else if keyword_set(ratio) then temp = cube1/cube2 else temp = cube1-cube2
     
+    if n_elements(slice_range) eq 1 then temp = temp[*,slice_range] else temp = total(temp[*, slice_range[0]:slice_range[1]],2)
   endif else if n_elements(slice_range) eq 1 then temp = cube1[*,slice_range] else temp = total(cube1[*, slice_range[0]:slice_range[1]],2)
   
   if keyword_set(sym_color) and not keyword_set(log) then begin
