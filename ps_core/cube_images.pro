@@ -126,15 +126,6 @@ pro cube_images, folder_names, obs_info, nvis_norm = nvis_norm, pols = pols, eve
     endif
   endif
   
-  if n_elements(filenames) eq 2 then begin
-    if n_elements(nvis1) gt 0 and n_elements(nvis2) gt 0 then begin
-      print, 'n_vis % difference between files: ' + number_formatter((nvis2-nvis1)*100/nvis1)
-    endif
-  endif else if n_elements(nvis1) gt 0 then print, 'nvis: ' + number_formatter(nvis1)
-  
-  print, 'nside, n pixels, n_freq: ' + number_formatter(nside1) + ', ' + number_formatter(n_elements(hpx_inds1)) + ', ' + number_formatter(n_freq1)
-  
-  
   if keyword_set(png) or keyword_set(eps) or keyword_set(pdf) then pub = 1 else pub = 0
   if pub then begin
   
@@ -175,6 +166,12 @@ pro cube_images, folder_names, obs_info, nvis_norm = nvis_norm, pols = pols, eve
     nside2 = getvar_savefile(filenames[1], 'nside')
     if nside1 ne nside2 gt 0 then message, 'nsides do not match between the 2 files'
   endif
+  
+  if n_elements(filenames) eq 2 then begin
+    if n_elements(nvis1) gt 0 and n_elements(nvis2) gt 0 then begin
+      print, 'n_vis % difference between files: ' + number_formatter((nvis2-nvis1)*100/nvis1)
+    endif
+  endif else if n_elements(nvis1) gt 0 then print, 'nvis: ' + number_formatter(nvis1)
   
   cube1 = getvar_savefile(filenames[0], cube_varnames[0])
   n_freq1 = (size(cube1,/dimension))[1]
@@ -223,6 +220,8 @@ pro cube_images, folder_names, obs_info, nvis_norm = nvis_norm, pols = pols, eve
       cube2 = cube2 / rebin(reform(n_vis_freq_avg, 1, 1, n_freq2), n_elements(hpx_inds2), n_freq2)
     endif
   endif
+  
+  print, 'nside, n pixels, n_freq: ' + number_formatter(nside1) + ', ' + number_formatter(n_elements(hpx_inds1)) + ', ' + number_formatter(n_freq1)
   
   case n_elements(slice_range) of
     0: begin
