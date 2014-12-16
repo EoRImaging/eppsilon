@@ -2,9 +2,7 @@ pro cube_images, folder_names, obs_info, nvis_norm = nvis_norm, pols = pols, cub
     png = png, eps = eps, pdf = pdf, slice_range = slice_range, ratio = ratio, diff_ratio = diff_ratio, diff_frac = diff_frac, $
     log = log, data_range = data_range, color_profile = color_profile, sym_color = sym_color, $
     window_num = window_num, plot_as_map = plot_as_map
-    
-  if tag_exist(obs_info, 'diff_note') then obs_info = create_struct(obs_info, 'diff_plot_path', obs_info.diff_save_path)
-  
+        
   filenames = strarr(max([n_elements(obs_info.obs_names), n_elements(evenodd)]))
   
   if n_elements(cube_types) eq 0 then cube_types = 'res'
@@ -59,12 +57,11 @@ pro cube_images, folder_names, obs_info, nvis_norm = nvis_norm, pols = pols, cub
     
   endfor
   
-  
   if n_elements(obs_info.folder_names) eq 2 then begin
     save_path = obs_info.diff_save_path
     note = obs_info.diff_note
     if keyword_set(ratio) then note = strjoin(strsplit(note, '-', /extract), '/')
-    plot_path = obs_info.diff_plot_path
+    if tag_exist(obs_info, 'diff_plot_path') then plot_path = obs_info.diff_plot_path else plot_path = save_path
   endif else begin
     save_path = obs_info.folder_names[0] + path_sep()
     if keyword_set(rts) then note = obs_info.rts_types[0] else note = obs_info.fhd_types[0]

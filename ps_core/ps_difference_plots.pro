@@ -68,10 +68,10 @@ pro ps_difference_plots, folder_names, obs_info, cube_types, pols, all_type_pol 
   
   if n_elements(axis_type_1d) eq 0 then axis_type_1d = 'sym_log'
   
-  if n_elements(obs_info.folder_names) eq 2 then begin
+  if n_elements(folder_names) eq 2 then begin
     save_path = obs_info.diff_save_path
     note = obs_info.diff_note
-    plot_path = obs_info.diff_plot_path
+    if tag_exist(obs_info, 'diff_plot_path') then plot_path = obs_info.diff_plot_path else plot_path = save_path
   endif else begin
     save_path = obs_info.save_paths[0]
     note = obs_info.fhd_types[0]
@@ -82,10 +82,12 @@ pro ps_difference_plots, folder_names, obs_info, cube_types, pols, all_type_pol 
   
   if keyword_set(all_type_pol) then begin
   
-    if n_elements(folder_names) eq 2 then plot_filebase = obs_info.name_same_parts + '__' + obs_info.name_diff_parts[0] + '_' + obs_info.obs_names[0] + sw_tags[0] + $
-      '_minus_' + obs_info.name_diff_parts[1]  + '_' + obs_info.obs_names[1] + sw_tags[max_sw] $
-    else plot_filebase = obs_info.folder_basenames[0] + '__' + obs_info.obs_names[0] + sw_tags[0] + '_minus_' + obs_info.obs_names[1] + sw_tags[max_sw]
-    
+    if n_elements(folder_names) eq 2 and folder_names[0] ne folder_names[1] then begin
+      plot_filebase = obs_info.name_same_parts + '__' + obs_info.name_diff_parts[0] + '_' + obs_info.obs_names[0] + sw_tags[0] + $
+        '_minus_' + obs_info.name_diff_parts[1]  + '_' + obs_info.obs_names[1] + sw_tags[max_sw]
+    endif else plot_filebase = obs_info.folder_basenames[0] + '__' + obs_info.obs_names[0] + sw_tags[0] + '_minus_' + $
+      obs_info.obs_names[1] + sw_tags[max_sw]
+      
   endif else begin
   
     if n_elements(folder_names) eq 1 then begin

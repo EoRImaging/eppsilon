@@ -72,7 +72,7 @@ pro mit_diff_wrapper, folder_names, obs_names_in, cube_types = cube_types, pols 
   wh_noinfo = where(obs_info.info_files eq '', count_noinfo)
   if count_noinfo gt 0 then message, 'Info files are not all present'
     
-  ps_difference_plots, obs_info.info_files, cube_types, pols, spec_window_types = spec_window_types, all_type_pol = all_type_pol, refresh_diff = refresh_diff, $
+  ps_difference_plots, folder_names, obs_info, cube_types, pols, spec_window_types = spec_window_types, all_type_pol = all_type_pol, refresh_diff = refresh_diff, $
     plot_path = plot_path, plot_filebase = plot_filebase, save_path = save_path, savefilebase = savefilebase, $
     note = note, kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, plot_1d = plot_1d, axis_type_1d=axis_type_1d, $
     data_range = data_range, data_min_abs = data_min_abs, $
