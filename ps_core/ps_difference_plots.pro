@@ -1,39 +1,64 @@
-pro ps_difference_plots, info_files, cube_types, pols, all_type_pol = all_type_pol, refresh_diff = refresh_diff, $
+pro ps_difference_plots, folder_names, obs_info, cube_types, pols, all_type_pol = all_type_pol, refresh_diff = refresh_diff, $
     plot_path = plot_path, plot_filebase = plot_filebase, save_path = save_path, savefilebase = savefilebase, $
     note = note, spec_window_types = spec_window_types, data_range = data_range, data_min_abs = data_min_abs, $
     kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, plot_1d = plot_1d, axis_type_1d=axis_type_1d, $
     plot_wedge_line = plot_wedge_line, quiet = quiet, png = png, eps = eps, pdf = pdf
     
-  if n_elements(info_files) gt 2 then message, 'Only 1 or 2 info_files can be used'
+  if n_elements(obs_info.info_files) gt 2 then message, 'Only 1 or 2 info_files can be used'
   
-  if n_elements(spec_window_types) eq 2 then $
-    if spec_window_types[0] eq spec_window_types[1] then spec_window_types = spec_window_types[0]
-  if n_elements(spec_window_types) eq 2 and n_elements(info_files) eq 1 then info_files = [info_files, info_files]
+  ;; default to blackman-harris spectral window
+  if n_elements(spec_window_types) eq 0 then spec_window_types = 'Blackman-Harris'
   
-  if keyword_set(all_type_pol) and n_elements(info_files) eq 1 then $
-    message, 'all_type_pol can only be set with 2 folder names and/or 2 obs names'
+  if n_elements(spec_window_types) eq 2 then begin
+    if spec_window_types[0] eq spec_window_types[1] then spec_window_types = spec_window_types[0] else begin
+    
+      type_list = ['Hann', 'Hamming', 'Blackman', 'Nutall', 'Blackman-Nutall', 'Blackman-Harris', 'None']
+      sw_tag_list = ['hann', 'ham', 'blm', 'ntl', 'bn', 'bh', '']
+      sw_tags = strarr(2)
+      for i=0, 1 do begin
+        wh_type = where(strlowcase(type_list) eq strlowcase(spec_window_types[i]), count_type)
+        if count_type eq 0 then wh_type = where(strlowcase(sw_tag_list) eq strlowcase(spec_window_types[i]), count_type)
+        if count_type eq 0 then message, 'Spectral window type not recognized.' else begin
+          spec_window_types[i] = type_list[wh_type[0]]
+          if spec_window_types[i] eq 'None' then sw_tags[i] = '_nosw' else sw_tags[i] = '_' + sw_tag_list[wh_type[0]]
+        endelse
+      endfor
+      
+    endelse
+  endif else sw_tags = ''
+  
+  n_diffs = max([n_elements(obs_info.info_files), n_elements(cube_types), n_elements(pols), n_elements(spec_window_types)])
+  if n_diffs gt 2 then message, 'only 1 or 2 of [folder_names, obs_names, cube_types, pols, spec_window_types] allowed'
+  
+  if n_elements(obs_info.info_files) eq 2 or n_elements(spec_window_types) eq 2 $
+    and n_elements(cube_types) eq 0 and n_elements(pols) eq 0 and n_elements(all_type_pol) eq 0 then all_type_pol = 1
+    
+  if keyword_set(all_type_pol) and n_elements(info_files) eq 1 and n_elements(spec_window_types) lt 2 then $
+    message, 'all_type_pol can only be set with 2 folder names and/or 2 obs names and/or 2 spec windows'
     
   if not keyword_set(all_type_pol) then begin
-    if n_elements(cube_types) gt 2 then message, 'Only 1 or 2 info_files can be used'
-    if n_elements(pols) gt 2 then message, 'Only 1 or 2 info_files can be used'
+    if n_elements(cube_types) eq 0 then if n_diffs eq 1 then cube_types = ['dirty', 'res'] else cube_types = 'res'
+    if n_elements(pols) eq 0 then if n_diffs eq 1 then pols=['xx', 'yy'] else pols = 'xx'
+    
+    n_diffs = max([n_elements(obs_info.info_files), n_elements(cube_types), n_elements(pols), n_elements(spec_window_types)])
+    if n_diffs eq 1 then message, 'at least one of info_files, cube_types, pols, spec_window_types must be a 2 element vector'
+    
     n_cubes = 1
-    
-    if max([n_elements(info_files), n_elements(cube_types), n_elements(pols)]) eq 1 then $
-      message, 'at least one of info_files, cube_types, pols must be a 2 element vector'
-      
-    if n_elements(cube_types) eq 1 then cube_types = [cube_types, cube_types]
-    if n_elements(pols) eq 1 then pols = [pols, pols]
-    type_pol_str = cube_types + '_' + pols
-    
-  endif
+  endif else begin
+    undefine, cube_types, pols
+  endelse
+  
+  
+  max_file = n_elements(obs_info.info_files)-1
+  max_type = n_elements(cube_types)-1
+  max_pol = n_elements(pols)-1
+  max_sw = n_elements(spec_window_types)-1
+  if max_sw lt 0 then max_sw=0
+  
   
   ;; default to including baseline axis & delay axis
   if n_elements(baseline_axis) eq 0 then baseline_axis = 1
   if n_elements(delay_axis) eq 0 then delay_axis = 1
-  
-  ;; default to blackman-harris spectral window
-  if n_elements(spec_window_types) eq 0 then spec_window_types = strarr(2) + 'Blackman-Harris'
-  if n_elements(spec_window_types) eq 1 then spec_window_types = [spec_window_types, spec_window_types]
   
   ;; default to plot wedge line
   if n_elements(plot_wedge_line) eq 0 then plot_wedge_line=1
@@ -43,8 +68,47 @@ pro ps_difference_plots, info_files, cube_types, pols, all_type_pol = all_type_p
   
   if n_elements(axis_type_1d) eq 0 then axis_type_1d = 'sym_log'
   
-  file_struct_arr1 = fhd_file_setup(info_files[0], pol_inc, spec_window_type = spec_window_types[0])
-  if n_elements(info_files) eq 2 then file_struct_arr2 = fhd_file_setup(info_files[1], pol_inc, spec_window_type = spec_window_types[1]) $
+  if n_elements(obs_info.folder_names) eq 2 then begin
+    save_path = obs_info.diff_save_path
+    note = obs_info.diff_note
+    plot_path = obs_info.diff_plot_path
+  endif else begin
+    save_path = obs_info.save_paths[0]
+    note = obs_info.fhd_types[0]
+    plot_path = obs_info.plot_paths[0]
+  endelse
+  
+  if n_elements(spec_window_types) eq 2 then note = note + ' ' + spec_window_types[0] + ' minus ' + spec_window_types[1]
+  
+  if keyword_set(all_type_pol) then begin
+  
+    if n_elements(folder_names) eq 2 then plot_filebase = obs_info.name_same_parts + '__' + obs_info.name_diff_parts[0] + '_' + obs_info.obs_names[0] + sw_tags[0] + $
+      '_minus_' + obs_info.name_diff_parts[1]  + '_' + obs_info.obs_names[1] + sw_tags[max_sw] $
+    else plot_filebase = obs_info.folder_basenames[0] + '__' + obs_info.obs_names[0] + sw_tags[0] + '_minus_' + obs_info.obs_names[1] + sw_tags[max_sw]
+    
+  endif else begin
+  
+    if n_elements(folder_names) eq 1 then begin
+      if n_elements(obs_info.obs_names) gt 1 then begin
+        plot_filebase = obs_info.folder_basenames[0] + '_' + obs_info.obs_names[0] + '_' + cube_types[0] + '_' + pols[0] + sw_tags[0] + $
+          '_minus_' + obs_info.obs_names[0] + '_' + cube_types[max_type] + '_' + pols[max_pol] + sw_tags[max_sw]
+      endif else begin
+        if obs_info.integrated[0] eq 0 then plot_start = obs_info.folder_basenames[0] + '_' + obs_info.obs_names[0] else plot_start = obs_info.fhd_types[0]
+        
+        plot_filebase = plot_start + '_' + cube_types[0] + '_' + pols[0] + sw_tags[0] + $
+          '_minus_' + cube_types[max_type] + '_' + pols[max_pol] + sw_tags[max_sw]
+      endelse
+    endif else plot_filebase = obs_info.name_same_parts + '__' + strjoin([obs_info.name_diff_parts[0], cube_types[0], pols[0]], '_') + sw_tags[0] + $
+      '_minus_' + strjoin([obs_info.name_diff_parts[1], cube_types[max_type], pols[max_pol]], '_') + sw_tags[max_sw]
+  endelse
+  
+  
+  if not file_test(plot_path, /directory) then file_mkdir, plot_path
+  if not file_test(save_path, /directory) then file_mkdir, save_path
+  
+  
+  file_struct_arr1 = fhd_file_setup(obs_info.info_files[0], pol_inc, spec_window_type = spec_window_types[0])
+  if n_elements(obs_info.info_files) eq 2 then file_struct_arr2 = fhd_file_setup(obs_info.info_files[1], pol_inc, spec_window_type = spec_window_types[max_sw]) $
   else file_struct_arr2 = file_struct_arr1
   type_pol_str1 = file_struct_arr1.type_pol_str
   type_pol_str2 = file_struct_arr2.type_pol_str
@@ -62,7 +126,9 @@ pro ps_difference_plots, info_files, cube_types, pols, all_type_pol = all_type_p
     endfor
     
     type_pol_str = type_pol_str1
-  endif
+  endif else begin
+    type_pol_str = [cube_types[0] + '_' + pols[0], cube_types[max_type] + '_' + pols[max_pol]]
+  endelse
   
   if tag_exist(file_struct_arr1, 'n_obs') then n_obs1 = file_struct_arr1[0].n_obs
   if tag_exist(file_struct_arr2, 'n_obs') then n_obs2 = file_struct_arr2[0].n_obs
@@ -129,10 +195,10 @@ pro ps_difference_plots, info_files, cube_types, pols, all_type_pol = all_type_p
     endelse
     
     ;; if not save_path specified, save in folder of first info file
-    if n_elements(save_path) eq 0 then save_path = file_dirname(info_files[0], /mark_directory)
+    if n_elements(save_path) eq 0 then save_path = file_dirname(obs_info.info_files[0], /mark_directory)
     if n_elements(plot_path) eq 0 then plot_path = save_path
     
-    if n_elements(info_files) eq 2 then begin
+    if n_elements(obs_info.info_files) eq 2 then begin
       fileparts_1 = strsplit(file_struct_arr1[0].general_filebase, '_', /extract)
       fileparts_2 = strsplit(file_struct_arr2[0].general_filebase, '_', /extract)
       match_test = strcmp(fileparts_1, fileparts_2)
@@ -140,7 +206,7 @@ pro ps_difference_plots, info_files, cube_types, pols, all_type_pol = all_type_p
     endif
     
     if n_elements(savefilebase) eq 0 then begin
-      if n_elements(info_files) eq 1 then begin
+      if n_elements(obs_info.info_files) eq 1 then begin
         savefilebase_use = file_struct_arr1[0].general_filebase + '_' + type_pol1 + '_minus_' + type_pol2
       endif else begin
         if count_diff eq 0 then begin
@@ -177,16 +243,16 @@ pro ps_difference_plots, info_files, cube_types, pols, all_type_pol = all_type_p
     
     if test_save eq 0 or keyword_set(refresh_diff) then begin
       cube_ind1 = where(type_pol_str1 eq type_pol1, count_typepol)
-      if count_typepol eq 0 then message, 'type/pol ' + type_pol1 + ' not included in info_file: ' + info_files[0]
+      if count_typepol eq 0 then message, 'type/pol ' + type_pol1 + ' not included in info_file: ' + obs_info.info_files[0]
       
       power_file1 = file_struct_arr1[cube_ind1].power_savefile
-      if file_test(power_file1) eq 0 then message, 'No power file for ' + type_pol1 + ' and info_file: ' + info_files[0]
+      if file_test(power_file1) eq 0 then message, 'No power file for ' + type_pol1 + ' and info_file: ' + obs_info.info_files[0]
       
       cube_ind2 = where(file_struct_arr2.type_pol_str eq type_pol2, count_typepol)
-      if count_typepol eq 0 then message, 'type/pol ' + type_pol2 + ' not included in info_file: ' + info_files[n_elements(info_files)-1]
+      if count_typepol eq 0 then message, 'type/pol ' + type_pol2 + ' not included in info_file: ' + obs_info.info_files[n_elements(obs_info.info_files)-1]
       
       power_file2 = file_struct_arr2[cube_ind2].power_savefile
-      if file_test(power_file2) eq 0 then message, 'No power file for ' + type_pol2 + ' and info_file: ' + info_files[n_elements(info_files)-1]
+      if file_test(power_file2) eq 0 then message, 'No power file for ' + type_pol2 + ' and info_file: ' + obs_info.info_files[n_elements(obs_info.info_files)-1]
       
       kx_mpc = getvar_savefile(power_file1, 'kx_mpc')
       kx_mpc2 = getvar_savefile(power_file2, 'kx_mpc')
