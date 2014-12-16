@@ -699,12 +699,38 @@ function ps_filenames, folder_names, obs_names_in, rts = rts, sim = sim, casa = 
     
     obs_info = {folder_names:folder_names, folder_basenames:folder_basenames, obs_names:obs_names, info_files:info_files, cube_files:cube_files, $
       fhd_types:fhd_types, integrated:integrated, plot_paths:plot_paths, save_paths:save_paths}
-      
+    
     if n_elements(folder_names) eq 2 then begin
       folderparts_1 = strsplit(folder_names[0], path_sep(), /extract)
       folderparts_2 = strsplit(folder_names[1], path_sep(), /extract)
       match_test = strcmp(folderparts_1, folderparts_2)
       wh_diff = where(match_test eq 0, count_diff, complement = wh_same, ncomplement = count_same)
+      
+      fhdtypeparts_1 = strsplit(file_basename(fhd_types[0]), '_', /extract, count = nfhdtypeparts_1)
+      fhdtypeparts_2 = strsplit(file_basename(fhd_types[1]), '_', /extract, count = nfhdtypeparts_2)
+      if nfhdtypeparts_1 ne nfhdtypeparts_2 then begin
+        if nfhdtypeparts_1 gt nfhdtypeparts_2 then fhdtypeparts_2 = [fhdtypeparts_2, strarr(nfhdtypeparts_1-nfhdtypeparts_2)] $
+        else fhdtypeparts_1 = [fhdtypeparts_1, strarr(nfhdtypeparts_2-nfhdtypeparts_1)]
+      endif
+      match_fhdtype_test = strcmp(fhdtypeparts_1, fhdtypeparts_2)
+      wh_fhdtype_diff = where(match_fhdtype_test eq 0, count_fhdtype_diff, complement = wh_fhdtype_same, ncomplement = count_fhdtype_same)
+      
+      if count_fhdtype_diff gt 0 then begin
+        if min(wh_fhdtype_diff) ge nfhdtypeparts_1 or min(wh_fhdtype_diff) ge nfhdtypeparts_2 then begin
+          wh_fhdtype_diff = [max(wh_fhdtype_same), wh_fhdtype_diff]
+          count_fhdtype_diff = count_fhdtype_diff + 1
+          if count_fhdtype_same gt 1 then begin
+            wh_fhdtype_same = wh_fhdtype_same[0:count_fhdtype_same-2]
+            count_fhdtype_same = count_fhdtype_same-1
+          endif else count_fhdtype_same = 0
+        endif
+        
+        str1_diff_fhdtype = strjoin(fhdtypeparts_1[wh_fhdtype_diff[where((wh_fhdtype_diff lt nfhdtypeparts_1) gt 0)]], '_')
+        str2_diff_fhdtype = strjoin(fhdtypeparts_2[wh_fhdtype_diff[where((wh_fhdtype_diff lt nfhdtypeparts_2) gt 0)]], '_')
+        
+        if count_fhdtype_same gt 0 then fhdtype_same_parts = strjoin(fhdtypeparts_1[wh_fhdtype_same], '_') else fhdtype_same_parts = ''
+        if count_fhdtype_diff eq 0 then fhdtype_diff_parts = strarr(2) else fhdtype_diff_parts = [str1_diff_fhdtype, str2_diff_fhdtype]
+      endif
       
       if count_diff eq 0 then begin
         ;; folders are the same
@@ -724,15 +750,6 @@ function ps_filenames, folder_names, obs_names_in, rts = rts, sim = sim, casa = 
         endif
         match_name_test = strcmp(fnameparts_1, fnameparts_2)
         wh_name_diff = where(match_name_test eq 0, count_name_diff, complement = wh_name_same, ncomplement = count_name_same)
-        
-        fhdtypeparts_1 = strsplit(file_basename(fhd_types[0]), '_', /extract, count = nfhdtypeparts_1)
-        fhdtypeparts_2 = strsplit(file_basename(fhd_types[1]), '_', /extract, count = nfhdtypeparts_2)
-        if nfhdtypeparts_1 ne nfhdtypeparts_2 then begin
-          if nfhdtypeparts_1 gt nfhdtypeparts_2 then fhdtypeparts_2 = [fhdtypeparts_2, strarr(nfhdtypeparts_1-nfhdtypeparts_2)] $
-          else fhdtypeparts_1 = [fhdtypeparts_1, strarr(nfhdtypeparts_2-nfhdtypeparts_1)]
-        endif
-        match_fhdtype_test = strcmp(fhdtypeparts_1, fhdtypeparts_2)
-        wh_fhdtype_diff = where(match_fhdtype_test eq 0, count_fhdtype_diff, complement = wh_fhdtype_same, ncomplement = count_fhdtype_same)
         
         if count_name_diff eq 0 then begin
           ;; same folder name, different directories
@@ -768,21 +785,6 @@ function ps_filenames, folder_names, obs_names_in, rts = rts, sim = sim, casa = 
         
         if count_name_same gt 0 then name_same_parts = strjoin(fnameparts_1[wh_name_same], '_') else name_same_parts = ''
         if count_name_diff eq 0 then name_diff_parts = strarr(2) else name_diff_parts = [str1_diff, str2_diff]
-        
-        if min(wh_fhdtype_diff) ge nfhdtypeparts_1 or min(wh_fhdtype_diff) ge nfhdtypeparts_2 then begin
-          wh_fhdtype_diff = [max(wh_fhdtype_same), wh_fhdtype_diff]
-          count_fhdtype_diff = count_fhdtype_diff + 1
-          if count_fhdtype_same gt 1 then begin
-            wh_fhdtype_same = wh_fhdtype_same[0:count_fhdtype_same-2]
-            count_fhdtype_same = count_fhdtype_same-1
-          endif else count_fhdtype_same = 0
-        endif
-        
-        str1_diff_fhdtype = strjoin(fhdtypeparts_1[wh_fhdtype_diff[where((wh_fhdtype_diff lt nfhdtypeparts_1) gt 0)]], '_')
-        str2_diff_fhdtype = strjoin(fhdtypeparts_2[wh_fhdtype_diff[where((wh_fhdtype_diff lt nfhdtypeparts_2) gt 0)]], '_')
-        
-        if count_fhdtype_same gt 0 then fhdtype_same_parts = strjoin(fhdtypeparts_1[wh_fhdtype_same], '_') else fhdtype_same_parts = ''
-        if count_fhdtype_diff eq 0 then fhdtype_diff_parts = strarr(2) else fhdtype_diff_parts = [str1_diff_fhdtype, str2_diff_fhdtype]
         
       endelse
       

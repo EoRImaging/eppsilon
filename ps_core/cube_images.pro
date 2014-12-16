@@ -1,4 +1,4 @@
-pro cube_images, folder_names, obs_info, nvis_norm = nvis_norm, pols = pols, evenodd = evenodd, $
+pro cube_images, folder_names, obs_info, nvis_norm = nvis_norm, pols = pols, cube_types = cube_types, evenodd = evenodd, $
     png = png, eps = eps, pdf = pdf, slice_range = slice_range, ratio = ratio, diff_ratio = diff_ratio, diff_frac = diff_frac, $
     log = log, data_range = data_range, color_profile = color_profile, sym_color = sym_color, $
     window_num = window_num, plot_as_map = plot_as_map
@@ -105,7 +105,7 @@ pro cube_images, folder_names, obs_info, nvis_norm = nvis_norm, pols = pols, eve
   endelse
   
   if obs_info.info_files[0] ne '' then file_struct_arr1 = fhd_file_setup(obs_info.info_files[0], pols[0])
-  if n_elements(filenames) eq 2 then if obs_info.info_files[1] ne '' then $
+  if n_elements(obs_info.info_files) eq 2 then if obs_info.info_files[1] ne '' then $
     file_struct_arr2 = fhd_file_setup(obs_info.info_files[1], pols[max_pol])
     
   if n_elements(file_struct_arr1) ne 0 then begin
@@ -157,7 +157,7 @@ pro cube_images, folder_names, obs_info, nvis_norm = nvis_norm, pols = pols, eve
   
   hpx_inds1 = getvar_savefile(filenames[0], pixel_varnames[0])
   if n_elements(filenames) gt 1 then begin
-    hpx_inds2 = getvar_savefile(filenames[1], pixel_varname[1])
+    hpx_inds2 = getvar_savefile(filenames[1], pixel_varnames[1])
     if total(abs(hpx_inds2-hpx_inds1)) gt 0 then message, 'healpix pixels do not match between the 2 files'
   endif
   
