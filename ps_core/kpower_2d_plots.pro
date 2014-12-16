@@ -27,6 +27,7 @@
 ;;    nnr: measured noise to expected noise ratio plot
 ;;    plot_noise: measured noise plot
 ;;    plot_noise: measured noise plot
+;;    power_ratio: ratio of powers in 2 savefiles or treat array supplied to power keyword as a ratio
 ;;
 ;;  Saving plots keywords
 ;;   plotfile: name of file to save plot to. If a recognized extension is present, plot will be saved as that type of file. Otherwise a png type will be used
@@ -77,7 +78,7 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, wei
     kperp_lambda_conv = kperp_lambda_conv, delay_params = delay_params, hubble_param = hubble_param, $
     multi_pos = multi_pos, start_multi_params = start_multi_params, window_num = window_num, $
     plot_weights = plot_weights, plot_noise = plot_noise, plot_sigma = plot_sigma, plot_exp_noise = plot_exp_noise, $
-    snr = snr, nnr = nnr, $
+    snr = snr, nnr = nnr, power_ratio = power_ratio, $
     kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, data_range = data_range, data_min_abs = data_min_abs, $
     color_profile = color_profile, log_cut_val = log_cut_val, plotfile = plotfile, png = png, eps = eps, pdf = pdf, $
     no_title = no_title, full_title = full_title, title_prefix = title_prefix, note = note, $
@@ -147,13 +148,45 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, wei
   
   
   if total([keyword_set(plot_weights), keyword_set(plot_sigma), keyword_set(plot_exp_noise), $
-    keyword_set(plot_noise), keyword_set(snr), keyword_set(nnr)]) gt 1 then $
+    keyword_set(plot_noise), keyword_set(snr), keyword_set(nnr), keyword_set(power_ratio)]) gt 1 then $
     message, 'only one of [plot_noise, plot_sigma, plot_exp_noise, plot_weights, snr, nnr] keywords can be set'
     
-  if n_elements(power_savefile) gt 1 then message, $
-    'Only 1 file can be specified in power_savefile'
+  if keyword_set(power_ratio) then begin
+    if n_elements(power_savefile) gt 2 or n_elements(power_savefile) eq 1 then message, $
+      'Only 2 files can be specified in power_savefile if power_ratio keyword is set'
+  endif else begin
+    if n_elements(power_savefile) gt 1 then message, $
+      'Only 1 file can be specified in power_savefile unless power_ratio keyword is set'
+  endelse
+  
+  if keyword_set(power_ratio) then begin
+    if n_elements(power) eq 0 then begin      
+      kperp_edges = getvar_savefile(power_savefile[0], 'kperp_edges')
+      if total(abs(kperp_edges - getvar_savefile(power_savefile[1], 'kperp_edges'))) ne 0 then message, 'kperp_edges do not match in savefiles'
+      kpar_edges = getvar_savefile(power_savefile[0], 'kpar_edges')
+      if total(abs(kpar_edges - getvar_savefile(power_savefile[1], 'kpar_edges'))) ne 0 then message, 'kpar_edges do not match in savefiles'
+      kperp_bin = getvar_savefile(power_savefile[0], 'kperp_bin')
+      if total(abs(kperp_bin - getvar_savefile(power_savefile[1], 'kperp_bin'))) ne 0 then message, 'kperp_bin do not match in savefiles'
+      kpar_bin = getvar_savefile(power_savefile[0], 'kpar_bin')
+      if total(abs(kpar_bin - getvar_savefile(power_savefile[1], 'kpar_bin'))) ne 0 then message, 'kpar_bin do not match in savefiles'
+      kperp_lambda_conv = getvar_savefile(power_savefile[0], 'kperp_lambda_conv')
+      if total(abs(kperp_lambda_conv - getvar_savefile(power_savefile[1], 'kperp_lambda_conv'))) ne 0 then message, 'kperp_lambda_conv do not match in savefiles'
+      delay_params = getvar_savefile(power_savefile[0], 'delay_params')
+      if total(abs(delay_params - getvar_savefile(power_savefile[1], 'delay_params'))) ne 0 then message, 'delay_params do not match in savefiles'
+      hubble_param = getvar_savefile(power_savefile[0], 'hubble_param')
+      if total(abs(hubble_param - getvar_savefile(power_savefile[1], 'hubble_param'))) ne 0 then message, 'hubble_param do not match in savefiles'
+      
+      power1 = getvar_savefile(power_savefile[0], 'power')
+      power2 = getvar_savefile(power_savefile[1], 'power')
+      
+      power = power1 / power2
+      wh0 = where(power2 eq 0, count0)
+      if count0 gt 0 then power[wh0] = 0
+      
+      plot_type = 'power_ratio'
+    endif
     
-  if n_elements(power_savefile) gt 0 then restore, power_savefile
+  endif else if n_elements(power_savefile) gt 0 then restore, power_savefile
   
   if keyword_set(snr) then begin
     power = power / noise_expval
@@ -255,6 +288,11 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, wei
       units_str = ''
       plot_title = 'Noise Ratio (' + textoidl('N_O/N_E', font = font) + ')'
       if pub then plotfile_add = '_2dnnr' + plot_exten
+    end
+    'power_ratio': begin
+      units_str = ''
+      plot_title = 'Power Ratio'
+      if pub then plotfile_add = '_2dkpower' + plot_exten
     end
   endcase
   
