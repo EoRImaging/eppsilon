@@ -2,7 +2,7 @@ pro ps_ratio_plots, folder_names, obs_info, cube_types, pols, $
     plot_path = plot_path, plot_filebase = plot_filebase, save_path = save_path, savefilebase = savefilebase, $
     note = note, spec_window_types = spec_window_types, data_range = data_range, data_min_abs = data_min_abs, $
     kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, $
-    plot_wedge_line = plot_wedge_line, quiet = quiet, png = png, eps = eps, pdf = pdf
+    plot_wedge_line = plot_wedge_line, quiet = quiet, png = png, eps = eps, pdf = pdf, window_num = window_num
     
   if n_elements(obs_info.info_files) gt 2 then message, 'Only 1 or 2 info_files can be used'
   
@@ -163,7 +163,7 @@ pro ps_ratio_plots, folder_names, obs_info, cube_types, pols, $
   
   title = type_pol_str[0] + '/' + type_pol_str[1]
   
-  kpower_2d_plots, savefiles_2d, png = png, eps = eps, pdf = pdf, plotfile = plotfile, $
+  kpower_2d_plots, savefiles_2d, png = png, eps = eps, pdf = pdf, plotfile = plotfile, window_num = window_num, $
     kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
     data_range = data_range, title_prefix = title, note = note, $
     plot_wedge_line = plot_wedge_line, hinv = hinv, /power_ratio, $

@@ -2,7 +2,7 @@ pro ps_difference_plots, folder_names, obs_info, cube_types, pols, all_type_pol 
     plot_path = plot_path, plot_filebase = plot_filebase, save_path = save_path, savefilebase = savefilebase, $
     note = note, spec_window_types = spec_window_types, data_range = data_range, data_min_abs = data_min_abs, $
     kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, plot_1d = plot_1d, axis_type_1d=axis_type_1d, $
-    plot_wedge_line = plot_wedge_line, quiet = quiet, png = png, eps = eps, pdf = pdf
+    plot_wedge_line = plot_wedge_line, quiet = quiet, png = png, eps = eps, pdf = pdf, window_num = window_num
     
   if n_elements(obs_info.info_files) gt 2 then message, 'Only 1 or 2 info_files can be used'
   
@@ -357,7 +357,7 @@ pro ps_difference_plots, folder_names, obs_info, cube_types, pols, all_type_pol 
         endelse
         start_multi_params = {ncol:ncol, nrow:nrow, ordering:'row'}
         
-        window_num = 1
+        if n_elements(window_num) eq 0 then window_num = 1
       endif else begin
         pos_use = positions[*,i]
         

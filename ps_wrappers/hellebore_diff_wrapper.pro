@@ -2,7 +2,7 @@ pro hellebore_diff_wrapper, folder_names, obs_names_in, cube_types = cube_types,
     spec_window_types = spec_window_types, all_type_pol = all_type_pol, $
     png = png, eps = eps, pdf = pdf, data_range = data_range, data_min_abs = data_min_abs, $
     kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, sim = sim, $
-    plot_1d = plot_1d, axis_type_1d=axis_type_1d
+    plot_1d = plot_1d, axis_type_1d=axis_type_1d, window_num = window_num
     
       
   if n_elements(folder_names) gt 2 then message, 'only 1 or 2 folder_names allowed'
@@ -19,6 +19,6 @@ pro hellebore_diff_wrapper, folder_names, obs_names_in, cube_types = cube_types,
     plot_path = plot_path, plot_filebase = plot_filebase, save_path = save_path, savefilebase = savefilebase, $
     note = note, kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, plot_1d = plot_1d, axis_type_1d=axis_type_1d, $
     data_range = data_range, data_min_abs = data_min_abs, $
-    quiet = quiet, png = png, eps = eps, pdf = pdf
+    quiet = quiet, png = png, eps = eps, pdf = pdf, window_num = window_num
     
 end
