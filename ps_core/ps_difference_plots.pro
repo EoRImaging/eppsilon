@@ -1,8 +1,8 @@
 pro ps_difference_plots, info_files, cube_types, pols, all_type_pol = all_type_pol, refresh_diff = refresh_diff, $
     plot_path = plot_path, plot_filebase = plot_filebase, save_path = save_path, savefilebase = savefilebase, $
     note = note, spec_window_types = spec_window_types, data_range = data_range, data_min_abs = data_min_abs, $
-    kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, axis_type_1d=axis_type_1d, plot_wedge_line = plot_wedge_line, $
-    quiet = quiet, png = png, eps = eps, pdf = pdf
+    kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, plot_1d = plot_1d, axis_type_1d=axis_type_1d, $
+    plot_wedge_line = plot_wedge_line, quiet = quiet, png = png, eps = eps, pdf = pdf
     
   if n_elements(info_files) gt 2 then message, 'Only 1 or 2 info_files can be used'
   
@@ -317,44 +317,45 @@ pro ps_difference_plots, info_files, cube_types, pols, all_type_pol = all_type_p
     cgps_close, png = png, pdf = pdf, delete_ps = delete_ps, density=600
   endif
   
-  for i=0, n_elements(wedge_amp) do begin
+  if keyword_set(plot_1d) then begin
+    for i=0, n_elements(wedge_amp) do begin
     
-    if keyword_set(pub) then plotfiles_use = plotfiles_1d[i]
-    
-    for j=0, n_cubes-1 do begin
-    
-     if n_cubes gt 1 then begin
-      if j eq 0 then begin
-        if n_cubes eq 6 then begin
-          ncol = 3
-          nrow = 2
-        endif else begin
-          nrow = 2
-          ncol = ceil(n_cubes/nrow)
-        endelse
-        start_multi_params = {ncol:ncol, nrow:nrow, ordering:'row'}
-        undefine, positions, pos_use
+      if keyword_set(pub) then plotfiles_use = plotfiles_1d[i]
+      
+      for j=0, n_cubes-1 do begin
+      
+        if n_cubes gt 1 then begin
+          if j eq 0 then begin
+            if n_cubes eq 6 then begin
+              ncol = 3
+              nrow = 2
+            endif else begin
+              nrow = 2
+              ncol = ceil(n_cubes/nrow)
+            endelse
+            start_multi_params = {ncol:ncol, nrow:nrow, ordering:'row'}
+            undefine, positions, pos_use
+            
+            window_num = 2+i
+          endif else begin
+            pos_use = positions[*,j]
+            
+          endelse
+        endif
         
-        window_num = 2+i
-      endif else begin
-        pos_use = positions[*,j]
+        if i eq n_cubes-1 and n_elements(note) gt 0 then note_use = note else undefine, note_use
         
-      endelse
-    endif
-    
-    if i eq n_cubes-1 and n_elements(note) gt 0 then note_use = note else undefine, note_use
-           
-      kpower_1d_plots, savefiles_1d[j,i], window_num=window_num, start_multi_params = start_multi_params, multi_pos = pos_use, $
-        names=titles[j], hinv = hinv, png = png, eps = eps, pdf = pdf, plotfile = plotfiles_use, note = note_use, yaxis_type = axis_type_1d
+        kpower_1d_plots, savefiles_1d[j,i], window_num=window_num, start_multi_params = start_multi_params, multi_pos = pos_use, $
+          names=titles[j], hinv = hinv, png = png, eps = eps, pdf = pdf, plotfile = plotfiles_use, note = note_use, yaxis_type = axis_type_1d
+          
+        if j eq 0 then begin
+          positions = pos_use
+          undefine, start_multi_params
+        endif
         
-      if j eq 0 then begin
-        positions = pos_use
-        undefine, start_multi_params
-      endif
+      endfor
       
     endfor
-    
-  endfor
-  
+  endif
   
 end
