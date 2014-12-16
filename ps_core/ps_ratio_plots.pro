@@ -33,9 +33,9 @@ pro ps_ratio_plots, folder_names, obs_info, cube_types, pols, $
   
   if n_elements(cube_types) eq 0 then if n_diffs eq 1 then cube_types = ['res', 'dirty'] else cube_types = 'res'
   n_diffs = max([n_elements(obs_info.info_files), n_elements(cube_types), n_elements(pols), n_elements(spec_window_types)])
-  if n_elements(pols) eq 0 then if n_diffs eq 1 then pols=['xx', 'yy'] else pols = 'xx' 
+  if n_elements(pols) eq 0 then if n_diffs eq 1 then pols=['xx', 'yy'] else pols = 'xx'
   n_diffs = max([n_elements(obs_info.info_files), n_elements(cube_types), n_elements(pols), n_elements(spec_window_types)])
-
+  
   if n_diffs eq 1 then message, 'at least one of info_files, cube_types, pols, spec_window_types must be a 2 element vector'
   
   max_file = n_elements(obs_info.info_files)-1
@@ -164,10 +164,38 @@ pro ps_ratio_plots, folder_names, obs_info, cube_types, pols, $
   
   title = type_pol_str[0] + '/' + type_pol_str[1]
   
-  kpower_2d_plots, savefiles_2d, png = png, eps = eps, pdf = pdf, plotfile = plotfile, window_num = window_num, $
+  
+  
+  kperp_edges = getvar_savefile(savefiles_2d[0], 'kperp_edges')
+  if total(abs(kperp_edges - getvar_savefile(savefiles_2d[1], 'kperp_edges'))) ne 0 then message, 'kperp_edges do not match in savefiles'
+  kpar_edges = getvar_savefile(savefiles_2d[0], 'kpar_edges')
+  if total(abs(kpar_edges - getvar_savefile(savefiles_2d[1], 'kpar_edges'))) ne 0 then message, 'kpar_edges do not match in savefiles'
+  kperp_bin = getvar_savefile(savefiles_2d[0], 'kperp_bin')
+  if total(abs(kperp_bin - getvar_savefile(savefiles_2d[1], 'kperp_bin'))) ne 0 then message, 'kperp_bin do not match in savefiles'
+  kpar_bin = getvar_savefile(savefiles_2d[0], 'kpar_bin')
+  if total(abs(kpar_bin - getvar_savefile(savefiles_2d[1], 'kpar_bin'))) ne 0 then message, 'kpar_bin do not match in savefiles'
+  kperp_lambda_conv = getvar_savefile(savefiles_2d[0], 'kperp_lambda_conv')
+  if total(abs(kperp_lambda_conv - getvar_savefile(savefiles_2d[1], 'kperp_lambda_conv'))) ne 0 then message, 'kperp_lambda_conv do not match in savefiles'
+  delay_params = getvar_savefile(savefiles_2d[0], 'delay_params')
+  if total(abs(delay_params - getvar_savefile(savefiles_2d[1], 'delay_params'))) ne 0 then message, 'delay_params do not match in savefiles'
+  hubble_param = getvar_savefile(savefiles_2d[0], 'hubble_param')
+  if total(abs(hubble_param - getvar_savefile(savefiles_2d[1], 'hubble_param'))) ne 0 then message, 'hubble_param do not match in savefiles'
+  
+  power1 = getvar_savefile(savefiles_2d[0], 'power')
+  power2 = getvar_savefile(savefiles_2d[1], 'power')
+  
+  power = power1 / power2
+  wh0 = where(power2 eq 0, count0)
+  if count0 gt 0 then power[wh0] = 0
+  
+  
+  
+  kpower_2d_plots, power = power, kperp_edges = kperp_edges, kpar_edges = kpar_edges, kperp_bin = kperp_bin, kpar_bin = kpar_bin, $
+    kperp_lambda_conv = kperp_lambda_conv, delay_params = delay_params, hubble_param = hubble_param, $
+    png = png, eps = eps, pdf = pdf, plotfile = plotfile, window_num = window_num, $
     kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
     data_range = data_range, title_prefix = title, note = note, $
-    plot_wedge_line = plot_wedge_line, hinv = hinv, /power_ratio, $
+    plot_wedge_line = plot_wedge_line, hinv = hinv, /pwr_ratio, $
     wedge_amp = wedge_amp, baseline_axis = baseline_axis, delay_axis = delay_axis, $
     kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis
     
