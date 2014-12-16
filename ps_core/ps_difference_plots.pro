@@ -38,9 +38,10 @@ pro ps_difference_plots, folder_names, obs_info, cube_types, pols, all_type_pol 
     
   if not keyword_set(all_type_pol) then begin
     if n_elements(cube_types) eq 0 then if n_diffs eq 1 then cube_types = ['dirty', 'res'] else cube_types = 'res'
-    if n_elements(pols) eq 0 then if n_diffs eq 1 then pols=['xx', 'yy'] else pols = 'xx'
-    
     n_diffs = max([n_elements(obs_info.info_files), n_elements(cube_types), n_elements(pols), n_elements(spec_window_types)])
+    if n_elements(pols) eq 0 then if n_diffs eq 1 then pols=['xx', 'yy'] else pols = 'xx'    
+    n_diffs = max([n_elements(obs_info.info_files), n_elements(cube_types), n_elements(pols), n_elements(spec_window_types)])
+ 
     if n_diffs eq 1 then message, 'at least one of info_files, cube_types, pols, spec_window_types must be a 2 element vector'
     
     n_cubes = 1
