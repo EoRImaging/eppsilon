@@ -892,6 +892,16 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
         if nfiles eq 2 then window_int_beam = [total(beam1), total(beam2)]*pix_area_mpc*(z_mpc_delta * n_freq) $
         else window_int_beam = total(beam1)*pix_area_mpc*(z_mpc_delta * n_freq)
         
+        if tag_exist(file_struct, 'beam_int') then begin
+          ave_beam_int = total(file_struct.beam_int * file_struct.n_vis_freq, 2) / total(file_struct.n_vis_freq, 2)
+          
+          ;; fix known units bug in some early runs
+          if max(ave_beam_int) lt 0.01 then ave_beam_int = ave_beam_int / (file_struct.kpix)^4.
+          
+          ;; convert rad -> Mpc^2, multiply by depth in Mpc
+          window_int_beam_obs = ave_beam_int * z_mpc_mean^2. * (z_mpc_delta * n_freq)
+        endif
+        
         volume_factor = total(beam1*0+1.)*pix_area_mpc*(z_mpc_delta * n_freq)
         if nfiles eq 2 then volume_factor = fltarr(2) + volume_factor
         
@@ -1003,6 +1013,16 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
         
         if nfiles eq 2 then window_int_beam = [total(beam1), total(beam2)]*pix_area_mpc*(z_mpc_delta * n_freq) $
         else window_int_beam = total(beam1)*pix_area_mpc*(z_mpc_delta * n_freq)
+        
+        if tag_exist(file_struct, 'beam_int') then begin
+          ave_beam_int = total(file_struct.beam_int * file_struct.n_vis_freq, 2) / total(file_struct.n_vis_freq, 2)
+          
+          ;; fix known units bug in some early runs
+          if max(ave_beam_int) lt 0.01 then ave_beam_int = ave_beam_int / (file_struct.kpix)^4.
+          
+          ;; convert rad -> Mpc^2, multiply by depth in Mpc
+          window_int_beam_obs = ave_beam_int * z_mpc_mean^2. * (z_mpc_delta * n_freq)
+        endif
         
         volume_factor = total(beam1*0+1.)*pix_area_mpc*(z_mpc_delta * n_freq)
         if nfiles eq 2 then volume_factor = fltarr(2) + volume_factor
@@ -1161,13 +1181,13 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
   for i=0, nfiles-1 do begin
     if i eq 0 then data_cube = data_cube1 else data_cube = data_cube2
     if i eq 0 then weights_cube = weights_cube1 else weights_cube = weights_cube2
-
+    
     uf_tot = total(total(abs(weights_cube),3),1)
     wh_uf_n0 = where(uf_tot gt 0, count_uf_n0)
     if count_uf_n0 eq 0 then stop
     min_dist_uf_n0 = min(wh_uf_n0, min_loc)
     uf_slice_ind = wh_uf_n0[min_loc]
-
+    
     uf_slice = uvf_slice(data_cube, kx_mpc, ky_mpc, frequencies, kperp_lambda_conv, delay_params, hubble_param, slice_axis = 1, $
       slice_inds = uf_slice_ind, slice_savefile = file_struct.uf_raw_savefile[i])
       
@@ -1188,7 +1208,7 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
       slice_inds = vf_slice_ind, slice_savefile = file_struct.vf_weight_savefile[i])
       
     if max(abs(vf_slice)) eq 0 then stop
-
+    
     uv_tot = total(total(abs(weights_cube),2),1)
     wh_uv_n0 = where(uv_tot gt 0, count_uv_n0)
     if count_uv_n0 eq 0 then stop
@@ -1265,10 +1285,10 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
       
     vf_slice = uvf_slice(data_cube, kx_mpc, ky_mpc, frequencies, kperp_lambda_conv, delay_params, hubble_param, slice_axis = 0, $
       slice_inds = vf_slice_ind, slice_savefile = file_struct.vf_savefile[i])
-          
+      
     uv_slice = uvf_slice(data_cube, kx_mpc, ky_mpc, frequencies, kperp_lambda_conv, delay_params, hubble_param, slice_axis = 2, $
       slice_inds = uv_slice_ind, slice_savefile = file_struct.uv_savefile[i])
-          
+      
   endfor
   
   if healpix or not keyword_set(uvf_input) then begin
@@ -1281,16 +1301,20 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
     window_int_k = window_int * (z_mpc_delta * n_freq) * (kx_mpc_delta * ky_mpc_delta)*z_mpc_mean^4./((2.*!pi)^2.*file_struct.kpix^4.)
     print, 'window integral from variances: ' + number_formatter(window_int_k[0], format='(e10.4)')
     if tag_exist(file_struct, 'beam_savefile') then print, 'window integral from beam: ' + number_formatter(window_int_beam[0], format='(e10.4)')
-    ;window_int = window_int_k
-    if tag_exist(file_struct, 'beam_savefile') then window_int = window_int_beam else window_int = window_int_k
+    if tag_exist(file_struct, 'beam_int') then print, 'window integral from obs.beam_integral: ' + number_formatter(window_int_beam_obs[0], format='(e10.4)')
+    
+    if tag_exist(file_struct, 'beam_int') then window_int = window_int_beam_obs $
+    else if tag_exist(file_struct, 'beam_savefile') then window_int = window_int_beam else window_int = window_int_k
   ;if keyword_set(sim) then window_int = 2.39e9 + fltarr(nfiles)
   endif else begin
     window_int_k = window_int * (z_mpc_delta * n_freq) * (2.*!pi)^2. / (kx_mpc_delta * ky_mpc_delta)
     print, 'var_cube multiplier: ', (z_mpc_delta * n_freq) * (2.*!pi)^2. / (kx_mpc_delta * ky_mpc_delta)
     print, 'window integral from variances: ' + number_formatter(window_int_k[0], format='(e10.4)')
     if tag_exist(file_struct, 'beam_savefile') then print, 'window integral from beam: ' + number_formatter(window_int_beam[0], format='(e10.4)')
-    ;window_int = window_int_k
-    if tag_exist(file_struct, 'beam_savefile') then window_int = window_int_beam else window_int = window_int_k
+    if tag_exist(file_struct, 'beam_int') then print, 'window integral from obs.beam_integral: ' + number_formatter(window_int_beam_obs[0], format='(e10.4)')
+    
+    if tag_exist(file_struct, 'beam_int') then window_int = window_int_beam_obs $
+    else if tag_exist(file_struct, 'beam_savefile') then window_int = window_int_beam else window_int = window_int_k
     ;if keyword_set(sim) then window_int = 2.39e9 + fltarr(nfiles)
     
     if keyword_set(sim) then if stregex(file_struct.savefilebase, 'yy', /boolean) then begin
@@ -1402,7 +1426,7 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
     vf_slice2 = uvf_slice(data_diff, kx_mpc, ky_mpc, frequencies, kperp_lambda_conv, delay_params, hubble_param, slice_axis = 0, $
     slice_inds = vf_slice_ind, slice_savefile = file_struct.vf_diff_savefile) $
   else vf_slice2 = vf_slice
-    
+  
   uv_slice = uvf_slice(data_sum, kx_mpc, ky_mpc, frequencies, kperp_lambda_conv, delay_params, hubble_param, slice_axis = 2, $
     slice_inds = uv_slice_ind, slice_savefile = file_struct.uv_sum_savefile)
   if nfiles eq 2 then $

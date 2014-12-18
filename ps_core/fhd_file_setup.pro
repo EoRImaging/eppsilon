@@ -575,7 +575,6 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
       if count_obs gt 1 then message, 'more than one obs structure in datafile'
       
       if count_obs ne 0 then begin
-      
         n_obs[pol_i, file_i] = n_elements(obs_arr)
         
         if j eq 0 then max_baseline_lambda = max(obs_arr.max_baseline) $
@@ -647,6 +646,14 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
         n_vis_freq_arr = fltarr([n_obs[pol_i, file_i], n_freq])
         for i=0, n_obs[pol_i, file_i]-1 do n_vis_freq_arr[i, *] = obs_arr[i].nf_vis
         
+        if tag_exist(obs_arr, 'beam_integral') then begin
+          if j eq 0 then beam_int = fltarr(npol, nfiles, n_freq)
+          beam_int_arr = fltarr([n_obs[pol_i, file_i], n_freq])
+          for i=0, n_obs[pol_i, file_i]-1 do beam_int_arr[i, *] = *(obs_arr[i].beam_integral(pol_i))
+          
+          beam_int[pol_i, file_i, *] = total(beam_int_arr * n_vis_freq_arr, 1)/total(n_vis_freq_arr, 1)
+        endif
+        
         if tag_exist(obs_arr[0], 'vis_noise') then begin
           vis_noise_arr = fltarr([n_obs[pol_i, file_i], n_freq])
           
@@ -699,6 +706,7 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
     frequencies = dblarr(n_freqbins)
     
     if n_elements(vis_noise) gt 0 then vis_noise_avg = fltarr(npol, nfiles, n_freqbins)
+    if n_elements(beam_int) gt 0 then beam_int_avg = fltarr(npol, nfiles, n_freqbins)
     n_vis_freq_avg = fltarr(npol, nfiles, n_freqbins)
     if n_avg gt 1 then begin
       for i=0, n_freqbins-1 do begin
@@ -715,15 +723,18 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
           
           if count_gt0 eq 1 then begin
             vis_noise_avg[*,*,i] = vis_noise[*,*,inds_use]
+            if n_elements(beam_int) gt 0 then beam_int_avg[*,*,i] = beam_int[*,*,inds_use]
             n_vis_freq_avg[*,*,i] = n_vis_freq[*,*,inds_use]
           endif else begin
             vis_noise_avg[*,*,i] = sqrt(total(vis_noise[*,*,inds_use]^2.*n_vis_freq[*,*,inds_use], 3)/total(n_vis_freq[*,*,inds_use],3))
+            if n_elements(beam_int) gt 0 then beam_int_avg[*,*,i] = total(beam_int[*,*,inds_use]*n_vis_freq[*,*,inds_use], 3)/total(n_vis_freq[*,*,inds_use],3)
             n_vis_freq_avg[*,*,i] = total(n_vis_freq[*,*,inds_use], 3)
           endelse
           
         endif
       endfor
       if n_elements(vis_noise) gt 0 then vis_noise = vis_noise_avg
+      if n_elements(beam_int) gt 0 then beam_int = beam_int_avg
       
       n_vis_freq = n_vis_freq_avg
     endif else begin
@@ -741,6 +752,8 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
     if no_var then metadata_struct = create_struct(metadata_struct, 'no_var', 1)
     
     if n_elements(vis_noise) gt 0 then metadata_struct = create_struct(metadata_struct, 'vis_noise', vis_noise)
+    
+    if n_elements(beam_int) gt 0 then metadata_struct = create_struct(metadata_struct, 'beam_int', beam_int)
     
     save, filename = info_file, metadata_struct
   endif
@@ -966,6 +979,9 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
       if n_elements(freq_mask) gt 0 then file_struct = create_struct(file_struct, 'freq_mask', freq_mask)
       
       if tag_exist(metadata_struct, 'vis_noise') gt 0 then file_struct = create_struct(file_struct, 'vis_noise', reform(metadata_struct.vis_noise[pol_i,*,*]))
+      
+      if tag_exist(metadata_struct, 'beam_int') then file_struct = create_struct(file_struct, 'beam_int', reform(metadata_struct.beam_int[pol_i,*,*]))
+      
       
       if pol_i eq 0 and type_i eq 0 then file_struct_arr = replicate(file_struct, ntypes, npol) else file_struct_arr[type_i, pol_i] = file_struct
     endfor
