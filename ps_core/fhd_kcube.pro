@@ -892,16 +892,6 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
         if nfiles eq 2 then window_int_beam = [total(beam1), total(beam2)]*pix_area_mpc*(z_mpc_delta * n_freq) $
         else window_int_beam = total(beam1)*pix_area_mpc*(z_mpc_delta * n_freq)
         
-        if tag_exist(file_struct, 'beam_int') then begin
-          ave_beam_int = total(file_struct.beam_int * file_struct.n_vis_freq, 2) / total(file_struct.n_vis_freq, 2)
-          
-          ;; fix known units bug in some early runs
-          if max(ave_beam_int) lt 0.01 then ave_beam_int = ave_beam_int / (file_struct.kpix)^4.
-          
-          ;; convert rad -> Mpc^2, multiply by depth in Mpc
-          window_int_beam_obs = ave_beam_int * z_mpc_mean^2. * (z_mpc_delta * n_freq)
-        endif
-        
         volume_factor = total(beam1*0+1.)*pix_area_mpc*(z_mpc_delta * n_freq)
         if nfiles eq 2 then volume_factor = fltarr(2) + volume_factor
         
@@ -909,6 +899,17 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
         if nfiles eq 2 then bandwidth_factor = fltarr(2) + bandwidth_factor
         
       endif else beam_git_hashes = ''
+      
+      if tag_exist(file_struct, 'beam_int') then begin
+        ave_beam_int = total(file_struct.beam_int * file_struct.n_vis_freq, 2) / total(file_struct.n_vis_freq, 2)
+        
+        ;; fix known units bug in some early runs
+        if max(ave_beam_int) lt 0.01 then ave_beam_int = ave_beam_int / (file_struct.kpix)^4.
+        
+        ;; convert rad -> Mpc^2, multiply by depth in Mpc
+        window_int_beam_obs = ave_beam_int * z_mpc_mean^2. * (z_mpc_delta * n_freq)
+      endif
+      
       
     endif else begin
       ;; uvf_input
@@ -1014,16 +1015,6 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
         if nfiles eq 2 then window_int_beam = [total(beam1), total(beam2)]*pix_area_mpc*(z_mpc_delta * n_freq) $
         else window_int_beam = total(beam1)*pix_area_mpc*(z_mpc_delta * n_freq)
         
-        if tag_exist(file_struct, 'beam_int') then begin
-          ave_beam_int = total(file_struct.beam_int * file_struct.n_vis_freq, 2) / total(file_struct.n_vis_freq, 2)
-          
-          ;; fix known units bug in some early runs
-          if max(ave_beam_int) lt 0.01 then ave_beam_int = ave_beam_int / (file_struct.kpix)^4.
-          
-          ;; convert rad -> Mpc^2, multiply by depth in Mpc
-          window_int_beam_obs = ave_beam_int * z_mpc_mean^2. * (z_mpc_delta * n_freq)
-        endif
-        
         volume_factor = total(beam1*0+1.)*pix_area_mpc*(z_mpc_delta * n_freq)
         if nfiles eq 2 then volume_factor = fltarr(2) + volume_factor
         
@@ -1031,6 +1022,16 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
         if nfiles eq 2 then bandwidth_factor = fltarr(2) + bandwidth_factor
         
       endif else beam_git_hashes = ''
+      
+      if tag_exist(file_struct, 'beam_int') then begin
+        ave_beam_int = total(file_struct.beam_int * file_struct.n_vis_freq, 2) / total(file_struct.n_vis_freq, 2)
+        
+        ;; fix known units bug in some early runs
+        if max(ave_beam_int) lt 0.01 then ave_beam_int = ave_beam_int / (file_struct.kpix)^4.
+        
+        ;; convert rad -> Mpc^2, multiply by depth in Mpc
+        window_int_beam_obs = ave_beam_int * z_mpc_mean^2. * (z_mpc_delta * n_freq)
+      endif
       
     endelse
     
