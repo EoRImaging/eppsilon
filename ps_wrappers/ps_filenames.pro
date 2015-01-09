@@ -1,5 +1,5 @@
 function ps_filenames, folder_names, obs_names_in, rts = rts, sim = sim, casa = casa, $
-    data_subdirs = data_subdirs, plot_paths = plot_paths, save_paths = save_paths
+    data_subdirs = data_subdirs, plot_paths = plot_paths, save_paths = save_paths, exact_obsnames = exact_obsnames
     
   n_filesets = max([n_elements(folder_names), n_elements(obs_names_in)])
   
@@ -273,7 +273,8 @@ function ps_filenames, folder_names, obs_names_in, rts = rts, sim = sim, casa = 
       endelse
       
       ;; first look for integrated info files in save_paths with names like Combined_obs_...
-      info_file = file_search(save_paths[i] +  'Combined_obs_' + obs_names[i] + '*info*', count = n_infofile)
+      if keyword_set(exact_obsnames) then info_file = file_search(save_paths[i] +  'Combined_obs_' + obs_names[i] + '_cube*info*', count = n_infofile) $
+      else info_file = file_search(save_paths[i] +  'Combined_obs_' + obs_names[i] + '*info*', count = n_infofile)
       if n_infofile gt 0 then begin
         if obs_names[i] eq '' then begin
           info_files[i] = info_file[0]
@@ -287,7 +288,15 @@ function ps_filenames, folder_names, obs_names_in, rts = rts, sim = sim, casa = 
             fhd_types[i] = fhd_types[i] + '_' + obs_names[i]
           endif
         endif else begin
-          if n_infofile gt 1 then message, 'More than one info file found with given obs_name'
+          if n_infofile gt 1 then begin
+            ;; try just using the exact obs_name
+            new_info_file = file_search(save_paths[i] +  'Combined_obs_' + obs_names[i] + '_cube*info*', count = n_new_infofile)
+            if n_new_infofile eq 1 then begin
+              exact_obsnames=1
+              info_file = new_info_file
+              n_infofile = n_new_infofile
+            endif else message, 'More than one info file found with given obs_name'
+          endif
           info_files[i] = info_file
           if stregex(info_files[i], '[0-9]+-[0-9]+', /boolean) then obs_names[i] = stregex(info_files[i], '[0-9]+-[0-9]+', /extract) else begin
             start_pos = strpos(info_files[i], 'Combined_obs_') + strlen('Combined_obs_')
@@ -301,7 +310,8 @@ function ps_filenames, folder_names, obs_names_in, rts = rts, sim = sim, casa = 
         
       endif else begin
         ;; then look for single obs info files
-        info_file = file_search(save_paths[i] + obs_name_single + '*info*', count = n_infofile)
+        if keyword_set(exact_obsnames) then info_file = file_search(save_paths[i] + obs_name_single + '_cube*info*', count = n_infofile) $
+        else info_file = file_search(save_paths[i] + obs_name_single + '*info*', count = n_infofile)
         if n_infofile gt 0 then begin
           info_basename = file_basename(info_file)
           if obs_names[i] eq '' then begin
@@ -330,7 +340,14 @@ function ps_filenames, folder_names, obs_names_in, rts = rts, sim = sim, casa = 
       endelse
       
       ;; first look for integrated cube files in folder + data_dir with names like Combined_obs_...
-      cube_file_list = file_search(folder_names[i] + '/' + data_subdirs[i] + 'Combined_obs_' + obs_names[i] + '*_cube*.sav', count = n_cubefiles)
+      if keyword_set(exact_obsnames) then begin
+        even_file_list = file_search(folder_names[i] + '/' + data_subdirs[i] + 'Combined_obs_' + obs_names[i] + '_even*_cube*.sav', count = n_even)
+        odd_file_list = file_search(folder_names[i] + '/' + data_subdirs[i] + 'Combined_obs_' + obs_names[i] + '_odd*_cube*.sav', count = n_odd)
+        if n_even gt 0 or n_odd gt 0 then begin
+          cube_file_list = [even_file_list, odd_file_list]
+          n_cubefiles = n_even + n_odd
+        endif else cube_file_list = file_search(folder_names[i] + '/' + data_subdirs[i] + 'Combined_obs_' + obs_names[i] + '_cube*.sav', count = n_cubefiles)
+      endif else cube_file_list = file_search(folder_names[i] + '/' + data_subdirs[i] + 'Combined_obs_' + obs_names[i] + '*_cube*.sav', count = n_cubefiles)
       if n_cubefiles gt 0 then begin
         cube_basename = file_basename(cube_file_list)
         pol_exist = stregex(cube_basename, '[xy][xy]', /boolean, /fold_case)
@@ -441,7 +458,14 @@ function ps_filenames, folder_names, obs_names_in, rts = rts, sim = sim, casa = 
         
       endif else begin
         ;; then look for single obs cube files
-        cube_file_list = file_search(folder_names[i] + '/' + data_subdirs[i] + obs_names[i] + '*_cube*.sav', count = n_cubefiles)
+        if keyword_set(exact_obsnames) then begin
+          even_file_list = file_search(folder_names[i] + '/' + data_subdirs[i] + obs_names[i] + '_even*_cube*.sav', count = n_even)
+          odd_file_list = file_search(folder_names[i] + '/' + data_subdirs[i] + obs_names[i] + '_odd*_cube*.sav', count = n_odd)
+          if n_even gt 0 or n_odd gt 0 then begin
+            cube_file_list = [even_file_list, odd_file_list]
+            n_cubefiles = n_even + n_odd
+          endif else cube_file_list = file_search(folder_names[i] + '/' + data_subdirs[i] + obs_names[i] + '_cube*.sav', count = n_cubefiles)
+        endif else cube_file_list = file_search(folder_names[i] + '/' + data_subdirs[i] + obs_names[i] + '*_cube*.sav', count = n_cubefiles)
         if n_cubefiles gt 0 then begin
           cube_basename = file_basename(cube_file_list)
           pol_exist = stregex(cube_basename, '[xy][xy]', /boolean, /fold_case)
@@ -520,7 +544,14 @@ function ps_filenames, folder_names, obs_names_in, rts = rts, sim = sim, casa = 
       if n_elements(datafile) eq 0 then begin
         ;; finally look for uniformly gridded uvf files
         ;; Combined
-        cube_file_list = file_search(folder_names[i] + '/' + data_subdirs[i] + 'Combined_obs_' + obs_names[i] + '*_uvf.sav', count = n_cubefiles)
+        if keyword_set(exact_obsnames) then begin
+          even_file_list = file_search(folder_names[i] + '/' + data_subdirs[i] + 'Combined_obs_' + obs_names[i] + '_even*_uvf.sav', count = n_even)
+          odd_file_list = file_search(folder_names[i] + '/' + data_subdirs[i] + 'Combined_obs_' + obs_names[i] + '_odd*_uvf.sav', count = n_odd)
+          if n_even gt 0 or n_odd gt 0 then begin
+            cube_file_list = [even_file_list, odd_file_list]
+            n_cubefiles = n_even + n_odd
+          endif else cube_file_list = file_search(folder_names[i] + '/' + data_subdirs[i] + 'Combined_obs_' + obs_names[i] + '_gridded_uvf*.sav', count = n_cubefiles)
+        endif else cube_file_list = file_search(folder_names[i] + '/' + data_subdirs[i] + 'Combined_obs_' + obs_names[i] + '*_uvf.sav', count = n_cubefiles)
         if n_cubefiles gt 0 then begin
           cube_basename = file_basename(cube_file_list)
           pol_exist = stregex(cube_basename, '[xy][xy]', /boolean, /fold_case)
@@ -603,7 +634,14 @@ function ps_filenames, folder_names, obs_names_in, rts = rts, sim = sim, casa = 
           
         endif else begin
           ;; single
-          cube_file_list = file_search(folder_names[i] + '/' + data_subdirs[i] + obs_names[i] + '*_uvf.sav', count = n_cubefiles)
+          if keyword_set(exact_obsnames) then begin
+            even_file_list = file_search(folder_names[i] + '/' + data_subdirs[i] + obs_names[i] + '_even*_uvf.sav', count = n_even)
+            odd_file_list = file_search(folder_names[i] + '/' + data_subdirs[i] + obs_names[i] + '_odd*_uvf.sav', count = n_odd)
+            if n_even gt 0 or n_odd gt 0 then begin
+              cube_file_list = [even_file_list, odd_file_list]
+              n_cubefiles = n_even + n_odd
+            endif else cube_file_list = file_search(folder_names[i] + '/' + data_subdirs[i] + obs_names[i] + '_gridded_uvf.sav', count = n_cubefiles)
+          endif else cube_file_list = file_search(folder_names[i] + '/' + data_subdirs[i] + obs_names[i] + '*_uvf.sav', count = n_cubefiles)
           if n_cubefiles gt 0 then begin
             cube_basename = file_basename(cube_file_list)
             pol_exist = stregex(cube_basename, '[xy][xy]', /boolean, /fold_case)
@@ -699,7 +737,7 @@ function ps_filenames, folder_names, obs_names_in, rts = rts, sim = sim, casa = 
     
     obs_info = {folder_names:folder_names, folder_basenames:folder_basenames, obs_names:obs_names, info_files:info_files, cube_files:cube_files, $
       fhd_types:fhd_types, integrated:integrated, plot_paths:plot_paths, save_paths:save_paths}
-    
+      
     if n_elements(folder_names) eq 2 then begin
       folderparts_1 = strsplit(folder_names[0], path_sep(), /extract)
       folderparts_2 = strsplit(folder_names[1], path_sep(), /extract)

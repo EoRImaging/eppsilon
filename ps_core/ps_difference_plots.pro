@@ -39,9 +39,9 @@ pro ps_difference_plots, folder_names, obs_info, cube_types, pols, all_type_pol 
   if not keyword_set(all_type_pol) then begin
     if n_elements(cube_types) eq 0 then if n_diffs eq 1 then cube_types = ['dirty', 'res'] else cube_types = 'res'
     n_diffs = max([n_elements(obs_info.info_files), n_elements(cube_types), n_elements(pols), n_elements(spec_window_types)])
-    if n_elements(pols) eq 0 then if n_diffs eq 1 then pols=['xx', 'yy'] else pols = 'xx'    
+    if n_elements(pols) eq 0 then if n_diffs eq 1 then pols=['xx', 'yy'] else pols = 'xx'
     n_diffs = max([n_elements(obs_info.info_files), n_elements(cube_types), n_elements(pols), n_elements(spec_window_types)])
- 
+    
     if n_diffs eq 1 then message, 'at least one of info_files, cube_types, pols, spec_window_types must be a 2 element vector'
     
     n_cubes = 1
@@ -70,11 +70,11 @@ pro ps_difference_plots, folder_names, obs_info, cube_types, pols, all_type_pol 
   if n_elements(axis_type_1d) eq 0 then axis_type_1d = 'sym_log'
   
   if n_elements(folder_names) eq 2 then begin
-    save_path = obs_info.diff_save_path
+    if n_elements(save_path) eq 0 then save_path = obs_info.diff_save_path
     note = obs_info.diff_note
     if tag_exist(obs_info, 'diff_plot_path') then plot_path = obs_info.diff_plot_path else plot_path = save_path
   endif else begin
-    save_path = obs_info.save_paths[0]
+    if n_elements(save_path) eq 0 then save_path = obs_info.save_paths[0]
     note = obs_info.fhd_types[0]
     plot_path = obs_info.plot_paths[0]
   endelse

@@ -2,7 +2,7 @@ pro mit_diff_wrapper, folder_names, obs_names_in, cube_types = cube_types, pols 
     spec_window_types = spec_window_types, all_type_pol = all_type_pol, $
     png = png, eps = eps, pdf = pdf, data_range = data_range, data_min_abs = data_min_abs, $
     kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, sim = sim, $
-    plot_1d = plot_1d, axis_type_1d=axis_type_1d, window_num = window_num
+    plot_1d = plot_1d, axis_type_1d=axis_type_1d, window_num = window_num, diff_save_path = diff_save_path, exact_obsnames = exact_obsnames
     
     
   if n_elements(folder_names) gt 2 then message, 'only 1 or 2 folder_names allowed'
@@ -67,13 +67,14 @@ pro mit_diff_wrapper, folder_names, obs_names_in, cube_types = cube_types, pols 
   endfor
   
   save_paths = folder_names + '/ps/'
-  obs_info = ps_filenames(folder_names, obs_names_in, rts = rts, sim = sim, casa = casa, data_subdirs = 'Healpix/', save_paths = save_paths, plot_paths = save_path)
-  
+  obs_info = ps_filenames(folder_names, obs_names_in, exact_obsnames = exact_obsnames, rts = rts, sim = sim, casa = casa, $
+    data_subdirs = 'Healpix/', save_paths = save_paths, plot_paths = save_path)
+    
   wh_noinfo = where(obs_info.info_files eq '', count_noinfo)
   if count_noinfo gt 0 then message, 'Info files are not all present'
-    
+  
   ps_difference_plots, folder_names, obs_info, cube_types, pols, spec_window_types = spec_window_types, all_type_pol = all_type_pol, refresh_diff = refresh_diff, $
-    plot_path = plot_path, plot_filebase = plot_filebase, save_path = save_path, savefilebase = savefilebase, $
+    plot_path = plot_path, plot_filebase = plot_filebase, save_path = diff_save_path, savefilebase = savefilebase, $
     note = note, kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, plot_1d = plot_1d, axis_type_1d=axis_type_1d, $
     data_range = data_range, data_min_abs = data_min_abs, $
     quiet = quiet, png = png, eps = eps, pdf = pdf, window_num = window_num
