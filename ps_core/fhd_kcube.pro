@@ -905,7 +905,8 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
         else ave_beam_int = total(file_struct.beam_int * file_struct.n_vis_freq) / total(file_struct.n_vis_freq)
         
         ;; fix known units bug in some early runs
-        if max(ave_beam_int) lt 0.01 then ave_beam_int = ave_beam_int / (file_struct.kpix)^4.
+        if max(ave_beam_int) lt 0.01 then ave_beam_int = ave_beam_int / (file_struct.kpix)^4. $
+        else if max(ave_beam_int) lt 0.03 then ave_beam_int = ave_beam_int / (file_struct.kpix)^2.
         
         ;; convert rad -> Mpc^2, multiply by depth in Mpc
         window_int_beam_obs = ave_beam_int * z_mpc_mean^2. * (z_mpc_delta * n_freq)
@@ -1029,7 +1030,8 @@ pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_wei
         else ave_beam_int = total(file_struct.beam_int * file_struct.n_vis_freq) / total(file_struct.n_vis_freq)
         
         ;; fix known units bug in some early runs
-        if max(ave_beam_int) lt 0.01 then ave_beam_int = ave_beam_int / (file_struct.kpix)^4.
+        if max(ave_beam_int) lt 0.01 then ave_beam_int = ave_beam_int / (file_struct.kpix)^4. $
+        else if max(ave_beam_int) lt 0.03 then ave_beam_int = ave_beam_int / (file_struct.kpix)^2.
         
         ;; convert rad -> Mpc^2, multiply by depth in Mpc
         window_int_beam_obs = ave_beam_int * z_mpc_mean^2. * (z_mpc_delta * n_freq)
