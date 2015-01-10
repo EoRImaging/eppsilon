@@ -70,8 +70,9 @@ pro ps_ratio_plots, folder_names, obs_info, cube_types, pols, $
   
   
   if n_elements(folder_names) eq 2 then begin
+    if n_elements(save_path) eq 0 then save_path = obs_info.diff_save_path
     note = obs_info.diff_note
-    if tag_exist(obs_info, 'diff_plot_path') then plot_path = obs_info.diff_plot_path else plot_path = obs_info.diff_save_path
+    if tag_exist(obs_info, 'diff_plot_path') then plot_path = obs_info.diff_plot_path else plot_path = save_path
     
     if not keyword_set(diff_ratio) then note = strjoin(strsplit(note, '-', /extract), '/')
     
