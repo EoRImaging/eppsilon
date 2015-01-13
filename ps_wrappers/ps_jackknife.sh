@@ -119,7 +119,6 @@ elif [ ! -z ${pointing_min} ] || [ ! -z ${pointing_max} ]; then
 fi
 # TODO: Field
 # use psql_call to trim the list
-echo ${psql_call}
 temp=`psql -h eor-00 mwa_qc -U mwa -c "${psql_call} order by obsid asc;" -t -A`
 if [ -z "${temp}" ]; then
   echo Observation info cut removed all obses. Quitting.
