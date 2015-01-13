@@ -79,17 +79,22 @@ if [ ! -z ${ptsrc_wedge_y_max} ]; then psql_call="${psql_call} and ptsrc_wedge_y
 if [ ! -z ${ptsrc_wedge_tot_min} ]; then psql_call="${psql_call} and ptsrc_wedge_x+ptsrc_wedge_y >= ${ptsrc_wedge_tot_min}"; fi
 if [ ! -z ${ptsrc_wedge_tot_max} ]; then psql_call="${psql_call} and ptsrc_wedge_x+ptsrc_wedge_y <= ${ptsrc_wedge_tot_max}"; fi
 # use psql_call to trim the list
-temp=`psql -h eor-00 mwa_qc -U mwa -c "${psql_call};" -t -A`
-if [ -z "${temp}" ]; then
-  echo Quality statistics cut removed all obses. Quitting.
-  exit 1
+# if you didn't make any wedge cuts, skip this part because obsids aren't in the table until wedgie has done its thing
+if [ "${psql_call}" != "select obsid from qs where obsid in ${full_obs_list}" ]; then
+  temp=`psql -h eor-00 mwa_qc -U mwa -c "${psql_call};" -t -A`
+  if [ -z "${temp}" ]; then
+    echo Quality statistics cut removed all obses. Quitting.
+    exit 1
+  fi
+  # repackage again
+  full_obs_list="("
+  for obs in ${temp}; do
+    full_obs_list=${full_obs_list}${obs},
+  done
+  full_obs_list="$(echo ${full_obs_list} | rev | cut -c 2- | rev))"
+else
+  echo No quality statistics cut to be made. Moving on.
 fi
-# repackage again
-full_obs_list="("
-for obs in ${temp}; do
-  full_obs_list=${full_obs_list}${obs},
-done
-full_obs_list="$(echo ${full_obs_list} | rev | cut -c 2- | rev))"
 
 # Now cut things based on observation options
 psql_call="select obsid from observation_info where obsid in ${full_obs_list}"
