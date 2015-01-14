@@ -27,6 +27,7 @@
 ;;    nnr: measured noise to expected noise ratio plot
 ;;    plot_noise: measured noise plot
 ;;    plot_noise: measured noise plot
+;;    pwr_ratio: ratio of powers in 2 savefiles or treat array supplied to power keyword as a ratio
 ;;
 ;;  Saving plots keywords
 ;;   plotfile: name of file to save plot to. If a recognized extension is present, plot will be saved as that type of file. Otherwise a png type will be used
@@ -77,7 +78,7 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, wei
     kperp_lambda_conv = kperp_lambda_conv, delay_params = delay_params, hubble_param = hubble_param, $
     multi_pos = multi_pos, start_multi_params = start_multi_params, window_num = window_num, $
     plot_weights = plot_weights, plot_noise = plot_noise, plot_sigma = plot_sigma, plot_exp_noise = plot_exp_noise, $
-    snr = snr, nnr = nnr, $
+    snr = snr, nnr = nnr, pwr_ratio = pwr_ratio, $
     kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, data_range = data_range, data_min_abs = data_min_abs, $
     color_profile = color_profile, log_cut_val = log_cut_val, plotfile = plotfile, png = png, eps = eps, pdf = pdf, $
     no_title = no_title, full_title = full_title, title_prefix = title_prefix, note = note, $
@@ -147,13 +148,45 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, wei
   
   
   if total([keyword_set(plot_weights), keyword_set(plot_sigma), keyword_set(plot_exp_noise), $
-    keyword_set(plot_noise), keyword_set(snr), keyword_set(nnr)]) gt 1 then $
+    keyword_set(plot_noise), keyword_set(snr), keyword_set(nnr), keyword_set(pwr_ratio)]) gt 1 then $
     message, 'only one of [plot_noise, plot_sigma, plot_exp_noise, plot_weights, snr, nnr] keywords can be set'
     
-  if n_elements(power_savefile) gt 1 then message, $
-    'Only 1 file can be specified in power_savefile'
+  if keyword_set(pwr_ratio) then begin
+    if n_elements(power_savefile) gt 2 or n_elements(power_savefile) eq 1 then message, $
+      'Only 2 files can be specified in power_savefile if pwr_ratio keyword is set'
+  endif else begin
+    if n_elements(power_savefile) gt 1 then message, $
+      'Only 1 file can be specified in power_savefile unless pwr_ratio keyword is set'
+  endelse
+  
+  if keyword_set(pwr_ratio) then begin
+    if n_elements(power) eq 0 then begin
+      kperp_edges = getvar_savefile(power_savefile[0], 'kperp_edges')
+      if total(abs(kperp_edges - getvar_savefile(power_savefile[1], 'kperp_edges'))) ne 0 then message, 'kperp_edges do not match in savefiles'
+      kpar_edges = getvar_savefile(power_savefile[0], 'kpar_edges')
+      if total(abs(kpar_edges - getvar_savefile(power_savefile[1], 'kpar_edges'))) ne 0 then message, 'kpar_edges do not match in savefiles'
+      kperp_bin = getvar_savefile(power_savefile[0], 'kperp_bin')
+      if total(abs(kperp_bin - getvar_savefile(power_savefile[1], 'kperp_bin'))) ne 0 then message, 'kperp_bin do not match in savefiles'
+      kpar_bin = getvar_savefile(power_savefile[0], 'kpar_bin')
+      if total(abs(kpar_bin - getvar_savefile(power_savefile[1], 'kpar_bin'))) ne 0 then message, 'kpar_bin do not match in savefiles'
+      kperp_lambda_conv = getvar_savefile(power_savefile[0], 'kperp_lambda_conv')
+      if total(abs(kperp_lambda_conv - getvar_savefile(power_savefile[1], 'kperp_lambda_conv'))) ne 0 then message, 'kperp_lambda_conv do not match in savefiles'
+      delay_params = getvar_savefile(power_savefile[0], 'delay_params')
+      if total(abs(delay_params - getvar_savefile(power_savefile[1], 'delay_params'))) ne 0 then message, 'delay_params do not match in savefiles'
+      hubble_param = getvar_savefile(power_savefile[0], 'hubble_param')
+      if total(abs(hubble_param - getvar_savefile(power_savefile[1], 'hubble_param'))) ne 0 then message, 'hubble_param do not match in savefiles'
+      
+      power1 = getvar_savefile(power_savefile[0], 'power')
+      power2 = getvar_savefile(power_savefile[1], 'power')
+      
+      power = power1 / power2
+      wh0 = where(power2 eq 0, count0)
+      if count0 gt 0 then power[wh0] = 0
+    endif
     
-  if n_elements(power_savefile) gt 0 then restore, power_savefile
+    plot_type = 'power_ratio'
+    
+  endif else if n_elements(power_savefile) gt 0 then restore, power_savefile
   
   if keyword_set(snr) then begin
     power = power / noise_expval
@@ -201,15 +234,18 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, wei
   n_kperp = dims[0]
   n_kpar = dims[1]
   
+  kperp_edges_use = kperp_edges
+  kpar_edges_use = kpar_edges
+  
   if keyword_set(hinv) then begin
-    kperp_edges = kperp_edges / hubble_param
-    kpar_edges = kpar_edges / hubble_param
+    kperp_edges_use = kperp_edges_use / hubble_param
+    kpar_edges_use = kpar_edges_use / hubble_param
     if plot_type eq 'power' or plot_type eq 'noise' or plot_type eq 'sigma' or plot_type eq 'exp_noise' then $
       power = power * (hubble_param)^3d
   endif
   
-  if n_elements(kperp_plot_range) eq 0 then kperp_plot_range = minmax(kperp_edges)
-  if n_elements(kpar_plot_range) eq 0 then kpar_plot_range = minmax(kpar_edges)
+  if n_elements(kperp_plot_range) eq 0 then kperp_plot_range = minmax(kperp_edges_use)
+  if n_elements(kpar_plot_range) eq 0 then kpar_plot_range = minmax(kpar_edges_use)
   
   units_str = ''
   case plot_type of
@@ -256,6 +292,11 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, wei
       plot_title = 'Noise Ratio (' + textoidl('N_O/N_E', font = font) + ')'
       if pub then plotfile_add = '_2dnnr' + plot_exten
     end
+    'power_ratio': begin
+      units_str = ''
+      plot_title = 'Power Ratio'
+      if pub then plotfile_add = '_2dkpower' + plot_exten
+    end
   endcase
   
   if pub then begin
@@ -265,21 +306,21 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, wei
   
   if keyword_set(no_units) then units_str = ''
   
-  wh_kperp_inrange = where(kperp_edges ge kperp_plot_range[0] and kperp_edges[1:*] le kperp_plot_range[1], n_kperp_plot)
-  wh_kpar_inrange = where(kpar_edges ge kpar_plot_range[0] and kpar_edges[1:*] le kpar_plot_range[1], n_kpar_plot)
+  wh_kperp_inrange = where(kperp_edges_use ge kperp_plot_range[0] and kperp_edges_use[1:*] le kperp_plot_range[1], n_kperp_plot)
+  wh_kpar_inrange = where(kpar_edges_use ge kpar_plot_range[0] and kpar_edges_use[1:*] le kpar_plot_range[1], n_kpar_plot)
   
   if n_kperp_plot eq 0 or n_kpar_plot eq 0 then message, 'No data in plot k range'
   
   if n_kperp_plot ne n_kperp then begin
     power = power[wh_kperp_inrange, *]
     temp = [wh_kperp_inrange, wh_kperp_inrange[n_kperp_plot-1]+1]
-    kperp_edges =kperp_edges[temp]
+    kperp_edges_use =kperp_edges_use[temp]
     n_kperp = n_kperp_plot
   endif
   if n_kpar_plot ne n_kpar then begin
     power = power[*, wh_kpar_inrange]
     temp = [wh_kpar_inrange, wh_kpar_inrange[n_kpar_plot-1]+1]
-    kpar_edges = kpar_edges[temp]
+    kpar_edges_use = kpar_edges_use[temp]
     n_kpar = n_kpar_plot
   endif
   
@@ -290,15 +331,15 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, wei
   
   ;; Check whether binning is log or not
   log_bins = [1, 1]
-  kperp_log_diffs = (alog10(kperp_edges) - shift(alog10(kperp_edges), 1))[2:*]
+  kperp_log_diffs = (alog10(kperp_edges_use) - shift(alog10(kperp_edges_use), 1))[2:*]
   if total(abs(kperp_log_diffs - kperp_log_diffs[0])) gt n_kperp*1e-15 then log_bins[0] = 0
-  kpar_log_diffs = (alog10(kpar_edges) - shift(alog10(kpar_edges), 1))[2:*]
+  kpar_log_diffs = (alog10(kpar_edges_use) - shift(alog10(kpar_edges_use), 1))[2:*]
   if total(abs(kpar_log_diffs - kpar_log_diffs[0])) gt n_kpar*1e-15 then log_bins[1] = 0
   
   log_bins = [0, 0]
-  kperp_diffs = (kperp_edges - shift(kperp_edges, 1))[1:*]
+  kperp_diffs = (kperp_edges_use - shift(kperp_edges_use, 1))[1:*]
   if total(abs(kperp_diffs - kperp_diffs[0])) gt n_kperp*1e-7 then log_bins[0] = 1
-  kpar_diffs = (kpar_edges - shift(kpar_edges, 1))[1:*]
+  kpar_diffs = (kpar_edges_use - shift(kpar_edges_use, 1))[1:*]
   if total(abs(kpar_diffs - kpar_diffs[0])) gt n_kpar*1e-7 then log_bins[1] = 1
   
   
@@ -320,10 +361,10 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, wei
     if log_bins[0] ne log_axes[0] then begin
       if log_bins[0] eq 0 then begin
         ;; linear binning, log axes
-        wh_kperp0 = where(kperp_edges lt 0, count_kperp0, complement = wh_kperp_good)
+        wh_kperp0 = where(kperp_edges_use lt 0, count_kperp0, complement = wh_kperp_good)
         if count_kperp0 gt 1 then stop
         
-        kperp_log_edges = alog10(kperp_edges)
+        kperp_log_edges = alog10(kperp_edges_use)
         if count_kperp0 eq 1 then begin
           kperp_log_diffs = (kperp_log_edges[1:*] - shift(kperp_log_edges[1:*], 1))[1:*]
           kperp_log_diffs = [kperp_log_diffs[0], kperp_log_diffs]
@@ -334,24 +375,24 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, wei
         kperp_bin_widths = round(kperp_log_diffs / image_kperp_delta)
       endif else begin
         ;; log binning, linear axes
-        kperp_diffs = (kperp_edges[1:*] - shift(kperp_edges[1:*], 1))[1:*]
+        kperp_diffs = (kperp_edges_use[1:*] - shift(kperp_edges_use[1:*], 1))[1:*]
         image_kperp_delta = min(kperp_diffs)/2d
         kperp_bin_widths = round(kperp_diffs / image_kperp_delta)
       endelse
       rebin_x = 1
     endif else begin
       ;; axes and binning agree
-      if log_axes[0] eq 1 then kperp_log_edges = alog10(kperp_edges)
+      if log_axes[0] eq 1 then kperp_log_edges = alog10(kperp_edges_use)
       rebin_x = 0
     endelse
     
     if log_bins[1] ne log_axes[1] then begin
       if log_bins[1] eq 0 then begin
         ;; linear binning, log axes
-        wh_kpar0 = where(kpar_edges lt 0, count_kpar0, complement = wh_kpar_good)
+        wh_kpar0 = where(kpar_edges_use lt 0, count_kpar0, complement = wh_kpar_good)
         if count_kpar0 gt 1 then stop
         
-        kpar_log_edges = alog10(kpar_edges)
+        kpar_log_edges = alog10(kpar_edges_use)
         if count_kpar0 eq 1 then begin
           kpar_log_diffs = (kpar_log_edges[1:*] - shift(kpar_log_edges[1:*], 1))[1:*]
           kpar_log_diffs = [kpar_log_diffs[0], kpar_log_diffs]
@@ -362,13 +403,13 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, wei
         kpar_bin_widths = round(kpar_log_diffs / image_kpar_delta)
       endif else begin
         ;; log binning, linear axes
-        kpar_diffs = (kpar_edges[1:*] - shift(kpar_edges[1:*], 1))[1:*]
+        kpar_diffs = (kpar_edges_use[1:*] - shift(kpar_edges_use[1:*], 1))[1:*]
         image_kpar_delta = min(kpar_diffs)/2d
         kpar_bin_widths = round(kpar_diffs / image_kpar_delta)
       endelse
       rebin_y = 1
     endif else begin
-      if log_bins[1] eq 1 then kpar_log_edges = alog10(kpar_edges)
+      if log_bins[1] eq 1 then kpar_log_edges = alog10(kpar_edges_use)
       rebin_y = 0
     endelse
     
@@ -406,8 +447,8 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, wei
     ;; axes & binning agree for both directions
     ;; expand image array to prevent interpolation in postscript
     power_plot = congrid(power, n_kperp*10, n_kpar*10)
-    if log_axes[0] eq 1 then kperp_log_edges = alog10(kperp_edges)
-    if log_axes[1] eq 1 then kpar_log_edges = alog10(kpar_edges)
+    if log_axes[0] eq 1 then kperp_log_edges = alog10(kperp_edges_use)
+    if log_axes[1] eq 1 then kpar_log_edges = alog10(kpar_edges_use)
   endelse
   
   
@@ -460,18 +501,18 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, wei
   plot_aspect = (plot_pos[3] - plot_pos[1]) / (plot_pos[2] - plot_pos[0])
   
   if log_axes[0] eq 0 then begin
-    kperp_length = max(kperp_edges) - min(kperp_edges)
-    kpar_length = max(kpar_edges) - min(kpar_edges)
+    kperp_length = max(kperp_edges_use) - min(kperp_edges_use)
+    kpar_length = max(kpar_edges_use) - min(kpar_edges_use)
   endif else begin
-    if log_axes[1] eq 0 then kpar_length = alog10(max(kpar_edges)) - alog10(min(kpar_edges[where(kpar_edges gt 0)])) $
+    if log_axes[1] eq 0 then kpar_length = alog10(max(kpar_edges_use)) - alog10(min(kpar_edges_use[where(kpar_edges_use gt 0)])) $
     else kpar_length = max(kpar_log_edges) - min(kpar_log_edges)
-    if min(kperp_edges) le 0 then begin
-      wh_zero = where(kperp_edges eq 0, n_zero)
+    if min(kperp_edges_use) le 0 then begin
+      wh_zero = where(kperp_edges_use eq 0, n_zero)
       if n_zero ne 0 then stop
       
-      wh_pos = where(kperp_edges ge 0, n_pos, complement = wh_neg, ncomplement = n_neg)
-      if n_neg gt 0 then neg_leng = max(alog10((-1)*kperp_edges[wh_neg])) - min(alog10((-1)*kperp_edges[wh_neg]))
-      if n_pos gt 0 then pos_leng = max(alog10(kperp_edges[wh_pos])) - min(alog10(kperp_edges[wh_pos]))
+      wh_pos = where(kperp_edges_use ge 0, n_pos, complement = wh_neg, ncomplement = n_neg)
+      if n_neg gt 0 then neg_leng = max(alog10((-1)*kperp_edges_use[wh_neg])) - min(alog10((-1)*kperp_edges_use[wh_neg]))
+      if n_pos gt 0 then pos_leng = max(alog10(kperp_edges_use[wh_pos])) - min(alog10(kperp_edges_use[wh_pos]))
       
       kperp_length = neg_leng + pos_leng + pos_leng/(n_pos-1)
       
@@ -681,8 +722,8 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, wei
     
   endelse
   
-  if log_axes[0] eq 1 then plot_kperp = 10^kperp_log_edges else plot_kperp = kperp_edges
-  if log_axes[1] eq 1 then plot_kpar = 10^kpar_log_edges else plot_kpar = kpar_edges
+  if log_axes[0] eq 1 then plot_kperp = 10^kperp_log_edges else plot_kperp = kperp_edges_use
+  if log_axes[1] eq 1 then plot_kpar = 10^kpar_log_edges else plot_kpar = kpar_edges_use
   
   ;; if plot title includes sigma need to replace 'sigma' with appropriate character
   ;; (textoidl has to be called after cgps_open)

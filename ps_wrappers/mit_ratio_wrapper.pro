@@ -1,13 +1,14 @@
-pro mit_cube_images, folder_names, obs_names_in, exact_obsnames = exact_obsnames, data_subdirs=data_subdirs, cube_types = cube_types, $
-    pols = pols, evenodd = evenodd, $
-    rts = rts, sim = sim, casa = casa, png = png, eps = eps, pdf = pdf, slice_range = slice_range, $
-    nvis_norm = nvis_norm, ratio = ratio, diff_ratio = diff_ratio, diff_frac = diff_frac, $
-    log = log, data_range = data_range, color_profile = color_profile, sym_color = sym_color, window_num = window_num, plot_as_map = plot_as_map
+pro mit_ratio_wrapper, folder_names, obs_names_in, exact_obsnames = exact_obsnames, cube_types = cube_types, pols = pols, $
+    spec_window_types = spec_window_types, diff_ratio = diff_ratio, diff_range = diff_range, $
+    png = png, eps = eps, pdf = pdf, data_range = data_range, $
+    kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, sim = sim, window_num = window_num, diff_save_path = diff_save_path
     
-  if n_elements(folder_names) gt 2 then message, 'No more than 2 folder_names can be supplied'
-  if n_elements(evenodd) eq 0 then evenodd = 'even'
-  if n_elements(evenodd) gt 2 then message, 'No more than 2 evenodd values can be supplied'
-  if n_elements(obs_names_in) gt 2 then message, 'No more than 2 obs_names can be supplied'
+    
+  if n_elements(folder_names) gt 2 then message, 'only 1 or 2 folder_names allowed'
+  if n_elements(folder_names) eq 0 then message, 'at least 1 folder name must be specified'
+  if n_elements(obs_names_in) gt 2 then message, 'only 1 or 2 obs_names_in allowed'
+  if n_elements(spec_window_types) gt 2 then message, 'only 1 or 2 spec_window_types allowed'
+  
   
   for i=0, n_elements(folder_names)-1 do begin
     ;; check for folder existence, otherwise look for common folder names to figure out full path. If none found, try '/nfs/mwa-09/r1/djc/EoR2013/Aug23/'
@@ -65,13 +66,17 @@ pro mit_cube_images, folder_names, obs_names_in, exact_obsnames = exact_obsnames
   endfor
   
   save_paths = folder_names + '/ps/'
-  if n_elements(data_subdirs) eq 0 then data_subdirs = 'Healpix/' else if n_elements(data_subdirs) gt 2 then message, 'No more than 2 data_subdirs can be supplied.'
   obs_info = ps_filenames(folder_names, obs_names_in, exact_obsnames = exact_obsnames, rts = rts, sim = sim, casa = casa, $
-    data_subdirs = data_subdirs, save_paths = save_paths, plot_paths = save_paths)
+    data_subdirs = 'Healpix/', save_paths = save_paths, plot_paths = save_path)
     
-  cube_images, folder_names, obs_info, nvis_norm = nvis_norm, pols = pols, cube_types = cube_types, evenodd = evenodd, $
-    png = png, eps = eps, pdf = pdf, slice_range = slice_range, ratio = ratio, diff_ratio = diff_ratio, diff_frac = diff_frac, $
-    log = log, data_range = data_range, color_profile = color_profile, sym_color = sym_color, $
-    window_num = window_num, plot_as_map = plot_as_map
-    
+  wh_noinfo = where(obs_info.info_files eq '', count_noinfo)
+  if count_noinfo gt 0 then message, 'Info files are not all present'
+  
+  if n_elements(data_range) eq 0 then data_range = [1e-3, 1e1]
+  
+  ps_ratio_plots, folder_names, obs_info, cube_types, pols, $
+    plot_path = plot_path, plot_filebase = plot_filebase, save_path = diff_save_path, savefilebase = savefilebase, $
+    note = note, spec_window_types = spec_window_types, data_range = data_range, $
+    kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, diff_ratio = diff_ratio, diff_range = diff_range, $
+    plot_wedge_line = plot_wedge_line, quiet = quiet, png = png, eps = eps, pdf = pdf, window_num = window_num
 end

@@ -1,10 +1,8 @@
-pro cube_images, folder_names, obs_info, nvis_norm = nvis_norm, pols = pols, evenodd = evenodd, $
+pro cube_images, folder_names, obs_info, nvis_norm = nvis_norm, pols = pols, cube_types = cube_types, evenodd = evenodd, $
     png = png, eps = eps, pdf = pdf, slice_range = slice_range, ratio = ratio, diff_ratio = diff_ratio, diff_frac = diff_frac, $
     log = log, data_range = data_range, color_profile = color_profile, sym_color = sym_color, $
     window_num = window_num, plot_as_map = plot_as_map
-    
-  if tag_exist(obs_info, 'diff_note') then obs_info = create_struct(obs_info, 'diff_plot_path', obs_info.diff_save_path)
-  
+        
   filenames = strarr(max([n_elements(obs_info.obs_names), n_elements(evenodd)]))
   
   if n_elements(cube_types) eq 0 then cube_types = 'res'
@@ -59,12 +57,11 @@ pro cube_images, folder_names, obs_info, nvis_norm = nvis_norm, pols = pols, eve
     
   endfor
   
-  
   if n_elements(obs_info.folder_names) eq 2 then begin
     save_path = obs_info.diff_save_path
     note = obs_info.diff_note
     if keyword_set(ratio) then note = strjoin(strsplit(note, '-', /extract), '/')
-    plot_path = obs_info.diff_plot_path
+    if tag_exist(obs_info, 'diff_plot_path') then plot_path = obs_info.diff_plot_path else plot_path = save_path
   endif else begin
     save_path = obs_info.folder_names[0] + path_sep()
     if keyword_set(rts) then note = obs_info.rts_types[0] else note = obs_info.fhd_types[0]
@@ -105,7 +102,7 @@ pro cube_images, folder_names, obs_info, nvis_norm = nvis_norm, pols = pols, eve
   endelse
   
   if obs_info.info_files[0] ne '' then file_struct_arr1 = fhd_file_setup(obs_info.info_files[0], pols[0])
-  if n_elements(filenames) eq 2 then if obs_info.info_files[1] ne '' then $
+  if n_elements(obs_info.info_files) eq 2 then if obs_info.info_files[1] ne '' then $
     file_struct_arr2 = fhd_file_setup(obs_info.info_files[1], pols[max_pol])
     
   if n_elements(file_struct_arr1) ne 0 then begin
@@ -157,7 +154,7 @@ pro cube_images, folder_names, obs_info, nvis_norm = nvis_norm, pols = pols, eve
   
   hpx_inds1 = getvar_savefile(filenames[0], pixel_varnames[0])
   if n_elements(filenames) gt 1 then begin
-    hpx_inds2 = getvar_savefile(filenames[1], pixel_varname[1])
+    hpx_inds2 = getvar_savefile(filenames[1], pixel_varnames[1])
     if total(abs(hpx_inds2-hpx_inds1)) gt 0 then message, 'healpix pixels do not match between the 2 files'
   endif
   
