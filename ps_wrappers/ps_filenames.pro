@@ -1,5 +1,5 @@
 function ps_filenames, folder_names, obs_names_in, rts = rts, sim = sim, casa = casa, $
-    data_subdirs = data_subdirs, plot_paths = plot_paths, save_paths = save_paths
+    data_subdirs = data_subdirs, plot_paths = plot_paths, save_paths = save_paths, refresh_info = refresh_info
     
   n_filesets = max([n_elements(folder_names), n_elements(obs_names_in)])
   
@@ -67,22 +67,24 @@ function ps_filenames, folder_names, obs_names_in, rts = rts, sim = sim, casa = 
       endelse
       
       ;; first look for info files in save_path
-      info_file = file_search(save_paths[i] + obs_names[i] + '*info*', count = n_infofile)
-      if n_infofile gt 0 then begin
-        if obs_names[i] eq '' then begin
-          info_files[i] = info_file[0]
-          obs_names[i] = stregex(file_basename(info_files[i]), '[0-9]+.[0-9]+_', /extract)
-          if n_infofile gt 1 then begin
-            print, 'More than 1 info files found, using first one'
-            rts_types[i] = rts_types[i] + '_' + obs_names[i]
-          endif
-        endif else begin
-          if n_infofile gt 1 then message, 'More than one info file found with given obs_name'
-          info_files[i] = info_file[0]
-          test_other_obsnames = file_search(save_paths[i] + '*info*', count = n_all_infofile)
-          if n_all_infofile gt n_infofile then rts_types[i] = rts_types[i] + '_' + obs_names[i]
-        endelse
-        
+      if not keyword_set(refresh_info) then begin
+        info_file = file_search(save_paths[i] + obs_names[i] + '*info*', count = n_infofile)
+        if n_infofile gt 0 then begin
+          if obs_names[i] eq '' then begin
+            info_files[i] = info_file[0]
+            obs_names[i] = stregex(file_basename(info_files[i]), '[0-9]+.[0-9]+_', /extract)
+            if n_infofile gt 1 then begin
+              print, 'More than 1 info files found, using first one'
+              rts_types[i] = rts_types[i] + '_' + obs_names[i]
+            endif
+          endif else begin
+            if n_infofile gt 1 then message, 'More than one info file found with given obs_name'
+            info_files[i] = info_file[0]
+            test_other_obsnames = file_search(save_paths[i] + '*info*', count = n_all_infofile)
+            if n_all_infofile gt n_infofile then rts_types[i] = rts_types[i] + '_' + obs_names[i]
+          endelse
+          
+        endif
       endif
       
       ;; then look for combined cube files in folder + data_subdir

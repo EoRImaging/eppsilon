@@ -1,4 +1,4 @@
-function hellebore_filenames, folder_names, obs_names_in, rts = rts, sim = sim, casa = casa
+function hellebore_filenames, folder_names, obs_names_in, rts = rts, sim = sim, casa = casa, refresh_info = refresh_info
 
   if keyword_set(rts) then begin
     std_savepath = base_path('data') + 'rts_data/'
@@ -125,7 +125,7 @@ function hellebore_filenames, folder_names, obs_names_in, rts = rts, sim = sim, 
     
   endelse
   
-  obs_info = ps_filenames(folder_names, obs_names_in, rts = rts, sim = sim, casa = casa, plot_paths = plot_paths)
+  obs_info = ps_filenames(folder_names, obs_names_in, rts = rts, sim = sim, casa = casa, plot_paths = plot_paths, refresh_info = refresh_info)
   
   if tag_exist(obs_info, 'diff_note') then begin
     pos = strpos(obs_info.diff_save_path, std_savepath)
