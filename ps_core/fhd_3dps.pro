@@ -15,6 +15,7 @@ pro fhd_3dps, file_struct, refresh = refresh, kcube_refresh = kcube_refresh, dft
   nfiles = n_elements(file_struct.datafile)
   
   if healpix and (keyword_set(dft_refresh_data) or keyword_set(dft_refresh_weight)) then kcube_refresh=1
+  if keyword_set(refresh_beam) then kcube_refresh = 1
   if keyword_set(kcube_refresh) then refresh = 1
   
   if n_elements(fill_holes) eq 0 then fill_holes = 0
