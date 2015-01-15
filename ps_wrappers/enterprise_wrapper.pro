@@ -48,16 +48,17 @@ pro enterprise_wrapper, folder_name, obs_name, data_subdirs=data_subdirs, rts = 
     if folder_test eq 0 then message, 'folder not found'
     
     save_path = folder_name + '/ps/'
-    obs_info = ps_filenames(folder_name, obs_name, rts = rts, sim = sim, casa = casa, save_paths = save_path, plot_path = save_path)
-    
+    obs_info = ps_filenames(folder_name, obs_name, rts = rts, sim = sim, casa = casa, $
+      save_paths = save_path, plot_path = save_path, refresh_info = refresh_info)
+      
     if obs_info.info_files[0] ne '' then datafile = obs_info.info_files[0] else $
       if obs_info.cube_files.(0) ne '' then datafile = obs_info.cube_files.(0) else $
       datafile = rts_fits2idlcube(obs_info.datafiles.(0), obs_info.weightfiles.(0), obs_info.variancefiles.(0), $
       pol_inc, save_path = obs_info.folder_names[0]+path_sep(), refresh = refresh_dft)
-    
+      
     if keyword_set(refresh_rtscube) then datafile = rts_fits2idlcube(obs_info.datafiles.(0), obs_info.weightfiles.(0), obs_info.variancefiles.(0), $
       pol_inc, save_path = obs_info.folder_names[0]+path_sep(), refresh = refresh_dft)
-  
+      
     note = obs_info.rts_types
     if not file_test(save_path, /directory) then file_mkdir, save_path
     
@@ -86,12 +87,13 @@ pro enterprise_wrapper, folder_name, obs_name, data_subdirs=data_subdirs, rts = 
     if folder_test eq 0 then message, 'folder not found'
     
     save_path = folder_name + '/ps/'
-    obs_info = ps_filenames(folder_name, obs_name, rts = rts, sim = sim, casa = casa, data_subdirs = 'Healpix/', save_paths = save_path, plot_path = save_path)   
-
+    obs_info = ps_filenames(folder_name, obs_name, rts = rts, sim = sim, casa = casa, data_subdirs = 'Healpix/', $
+      save_paths = save_path, plot_path = save_path, refresh_info = refresh_info)
+      
     if obs_info.info_files[0] ne '' then datafile = obs_info.info_files[0] else datafile = obs_info.cube_files.(0)
     plot_filebase = obs_info.fhd_types[0] + '_' + obs_info.obs_names[0]
     note = obs_info.fhd_types[0]
-
+    
     note = obs_info.fhd_types
     if not file_test(save_path, /directory) then file_mkdir, save_path
     

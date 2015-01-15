@@ -25,7 +25,7 @@ pro hellebore_wrapper, folder_name, obs_range, rts = rts, casa = casa, version =
     endelse
   endif
   
-  obs_info = hellebore_filenames(folder_name, obs_name, sim = sim, rts = rts, casa = casa)
+  obs_info = hellebore_filenames(folder_name, obs_name, sim = sim, rts = rts, casa = casa, refresh_info = refresh_info)
   if tag_exist(obs_info, 'uvf_input') then uvf_input=obs_info.uvf_input
   
   if n_elements(plot_ranges) gt 0 then begin
