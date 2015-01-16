@@ -29,8 +29,7 @@ pro kpower_1d_plots, power_savefile, plot_weights = plot_weights, multi_pos = mu
       
     endif
     if n_elements(plotfile) eq 0 and n_elements(multi_pos) eq 0 then begin
-      if keyword_set(kpar_power) then plotfile = 'idl_kpar_power_plots' else $
-        if keyword_set(kperp_power) then plotfile = 'idl_kperp_power_plots' else plotfile = 'idl_kpower_1d_plots'
+      plotfile = strsplit(power_savefile[0], '.idlsave', /regex, /extract)
       cd, current = current_dir
       print, 'no filename specified for kpower_1d_plots output. Using ' + current_dir + path_sep() + plotfile
     endif
@@ -50,6 +49,8 @@ pro kpower_1d_plots, power_savefile, plot_weights = plot_weights, multi_pos = mu
       plot_exten = '.eps'
       delete_ps = 0
     endif
+    
+    if strcmp(strmid(plotfile, strlen(plotfile)-4), plot_exten, /fold_case) eq 0 then plotfile = plotfile + plot_exten
   endif
   
   if n_elements(window_num) eq 0 then window_num = 2
@@ -76,9 +77,9 @@ pro kpower_1d_plots, power_savefile, plot_weights = plot_weights, multi_pos = mu
   plot_pos = [margin[0], margin[1], (1-margin[2]), (1-margin[3])]
   
   ;; set aspect ratio to 1
-  aspect_ratio=1
-  x_factor=1
-  y_factor=1
+  aspect_ratio=1.
+  x_factor=1.
+  y_factor=1.
   
   max_ysize = 1000
   max_xsize = 1200
@@ -183,7 +184,7 @@ pro kpower_1d_plots, power_savefile, plot_weights = plot_weights, multi_pos = mu
       
     new_pos = [new_xlen * plot_pos[0] + new_multi[0], new_ylen * plot_pos[1] + new_multi[1], $
       new_xlen * plot_pos[2] + new_multi[0], new_ylen * plot_pos[3] + new_multi[1]]
-            
+      
     plot_pos = new_pos
     
     no_erase = 1
@@ -194,13 +195,15 @@ pro kpower_1d_plots, power_savefile, plot_weights = plot_weights, multi_pos = mu
     if keyword_set(pub) then begin
       ps_aspect = y_factor / x_factor
       
-      if ps_aspect lt 1 then landscape = 1 else landscape = 0
-      IF Keyword_Set(eps) THEN landscape = 0
-      sizes = cgpswindow(LANDSCAPE=landscape, aspectRatio = ps_aspect, /sane_offsets)
-      
-      cgps_open, plotfile, /font, encapsulated=eps, /nomatch, inches=sizes.inches, xsize=sizes.xsize, ysize=sizes.ysize, $
-        xoffset=sizes.xoffset, yoffset=sizes.yoffset, landscape = landscape
+;      if ps_aspect lt 1 then landscape = 1 else landscape = 0
+;      IF Keyword_Set(eps) THEN landscape = 0
+;      sizes = cgpswindow(LANDSCAPE=landscape, aspectRatio = ps_aspect, /sane_offsets)
+;
+;      cgps_open, plotfile, /font, encapsulated=eps, /nomatch, inches=sizes.inches, xsize=sizes.xsize, ysize=sizes.ysize, $
+;        xoffset=sizes.xoffset, yoffset=sizes.yoffset, landscape = landscape
         
+      cgps_open, plotfile, /font, encapsulated=eps, landscape=1, pagetype='letter'
+      
     endif else begin
       while (ysize gt max_ysize) or (xsize gt max_xsize) do begin
         base_size = base_size - 100
@@ -219,7 +222,7 @@ pro kpower_1d_plots, power_savefile, plot_weights = plot_weights, multi_pos = mu
     
     no_erase = 0
   endelse
-    
+  
   if yaxis_type eq 'sym_log' then begin
     ymid = plot_pos[1] + (plot_pos[3]-plot_pos[1])/2.
     positive_plot_pos = [plot_pos[0], ymid, plot_pos[2], plot_pos[3]]
@@ -230,10 +233,6 @@ pro kpower_1d_plots, power_savefile, plot_weights = plot_weights, multi_pos = mu
   endif
   
   
-  if pub then begin
-    if n_elements(plotfile) eq 0 then plotfile = strsplit(power_savefile[0], '.idlsave', /regex, /extract) + '_1dkplot' + plot_exten $
-    else if strcmp(strmid(plotfile, strlen(plotfile)-4), plot_exten, /fold_case) eq 0 then plotfile = plotfile + plot_exten
-  endif
   
   color_list = ['black', 'PBG5', 'red6', 'GRN3', 'PURPLE', 'ORANGE', 'TG2','TG8', 'blue', 'olive drab', 'coral', 'magenta']
   
@@ -422,11 +421,7 @@ pro kpower_1d_plots, power_savefile, plot_weights = plot_weights, multi_pos = mu
     charsize = 2
     font = 1
     if nfiles gt 3 then legend_charsize = charsize / (nfiles/3d)  else legend_charsize = 2
-    
-    if n_elements(multi_pos) eq 0 then begin
-      cgps_open, plotfile, /font, encapsulated=eps, landscape=1, pagetype='letter'
-    endif
-    
+        
     DEVICE, /ISOLATIN1
     perp_char = '!9' + String("136B) + '!X' ;"
     
