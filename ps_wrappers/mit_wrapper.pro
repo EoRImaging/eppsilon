@@ -2,7 +2,7 @@ pro mit_wrapper, folder_name, obs_name, data_subdirs=data_subdirs, n_obs=n_obs, 
     refresh_binning = refresh_binning, refresh_info = refresh_info, refresh_beam = refresh_beam, pol_inc = pol_inc, no_spec_window = no_spec_window, $
     spec_window_type = spec_window_type, sim = sim, freq_ch_range = freq_ch_range, individual_plots = individual_plots, $
     png = png, eps = eps, plot_slices = plot_slices, slice_type = slice_type, delta_uv_lambda = delta_uv_lambda, cut_image = cut_image, $
-    plot_kpar_power = plot_kpar_power, plot_kperp_power = plot_kperp_power, $
+    plot_kpar_power = plot_kpar_power, plot_kperp_power = plot_kperp_power, plot_k0_power = plot_k0_power, $
     kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, set_data_ranges = set_data_ranges, exact_obsnames = exact_obsnames
     
   ;; The only required input is the datafile name (including the full path)
@@ -86,8 +86,9 @@ pro mit_wrapper, folder_name, obs_name, data_subdirs=data_subdirs, n_obs=n_obs, 
     
     save_path = folder_name + '/ps/'
     if n_elements(data_subdirs) eq 0 then data_subdirs = 'Healpix/'
+
     obs_info = ps_filenames(folder_name, obs_name, exact_obsnames = exact_obsnames, rts = rts, sim = sim, casa = casa, $
-      data_subdirs = data_subdirs, save_paths = save_path, plot_paths = save_path)
+      data_subdirs = data_subdirs, save_paths = save_path, plot_paths = save_path, refresh_info = refresh_info)
       
     if obs_info.info_files[0] ne '' then datafile = obs_info.info_files[0] else datafile = obs_info.cube_files.(0)
     plot_filebase = obs_info.fhd_types[0] + '_' + obs_info.obs_names[0]
@@ -192,7 +193,7 @@ pro mit_wrapper, folder_name, obs_name, data_subdirs=data_subdirs, n_obs=n_obs, 
     sim = sim, cut_image = cut_image, delta_uv_lambda = delta_uv_lambda, $
     log_kpar = log_kpar, log_kperp = log_kperp, kpar_bin = kpar_bin, kperp_bin = kperp_bin, log_k1d = log_k1d, $
     k1d_bin = k1d_bin, kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, $
-    plot_kpar_power = plot_kpar_power, plot_kperp_power = plot_kperp_power, $
+    plot_kpar_power = plot_kpar_power, plot_kperp_power = plot_kperp_power, plot_k0_power = plot_k0_power, $
     data_range = data_range, sigma_range = sigma_range, nev_range = nev_range, snr_range = snr_range, noise_range = noise_range, nnr_range = nnr_range, $
     range_1d = range_1d, baseline_axis = baseline_axis, delay_axis = delay_axis, hinv = hinv, note = note, $
     plot_wedge_line = plot_wedge_line, plot_eor_1d = plot_eor_1d, individual_plots = individual_plot, png = png, eps = eps

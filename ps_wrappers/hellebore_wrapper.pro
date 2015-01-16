@@ -3,7 +3,8 @@ pro hellebore_wrapper, folder_name, obs_range, rts = rts, casa = casa, version =
     pol_inc = pol_inc, sim = sim, freq_ch_range = freq_ch_range, freq_flag_name = freq_flag_name, $
     no_spec_window = no_spec_window, spec_window_type = spec_window_type, std_power = std_power, no_wtd_avg = no_wtd_avg, $
     cut_image = cut_image, individual_plots = individual_plots, plot_filebase = plot_filebase, png = png, eps = eps, pdf = pdf, $
-    plot_slices = plot_slices, slice_type = slice_type, uvf_plot_type = uvf_plot_type, plot_kpar_power = plot_kpar_power, plot_kperp_power = plot_kperp_power, $
+    plot_slices = plot_slices, slice_type = slice_type, uvf_plot_type = uvf_plot_type, plot_stdset = plot_stdset, $
+    plot_kpar_power = plot_kpar_power, plot_kperp_power = plot_kperp_power, plot_k0_power = plot_k0_power, $
     kperp_range_1dave = kperp_range_1dave, kpar_range_1dave = kpar_range_1dave, uv_avg = uv_avg, uv_img_clip = uv_img_clip,$
     kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, $
     t32 = t32, set_data_ranges = set_data_ranges, plot_ranges = plot_ranges, slice_range = slice_range, cube_power_info = cube_power_info
@@ -25,7 +26,7 @@ pro hellebore_wrapper, folder_name, obs_range, rts = rts, casa = casa, version =
     endelse
   endif
   
-  obs_info = hellebore_filenames(folder_name, obs_name, sim = sim, rts = rts, casa = casa)
+  obs_info = hellebore_filenames(folder_name, obs_name, sim = sim, rts = rts, casa = casa, refresh_info = refresh_info)
   if tag_exist(obs_info, 'uvf_input') then uvf_input=obs_info.uvf_input
   
   if n_elements(plot_ranges) gt 0 then begin
@@ -240,7 +241,7 @@ pro hellebore_wrapper, folder_name, obs_range, rts = rts, casa = casa, version =
     log_k1d = log_k1d, k1d_bin = k1d_bin, kperp_range_1dave = kperp_range_1dave, kpar_range_1dave = kpar_range_1dave,$
     kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
     plot_slices = plot_slices, slice_type = slice_type, uvf_plot_type = uvf_plot_type, plot_stdset = plot_stdset, $
-    plot_kpar_power = plot_kpar_power, plot_kperp_power = plot_kperp_power, $
+    plot_kpar_power = plot_kpar_power, plot_kperp_power = plot_kperp_power, plot_k0_power = plot_k0_power, $
     data_range = data_range, sigma_range = sigma_range, nev_range = nev_range, snr_range = snr_range, noise_range = noise_range, nnr_range = nnr_range, $
     range_1d = range_1d, slice_range = slice_range, $
     baseline_axis = baseline_axis, delay_axis = delay_axis, hinv = hinv, $
