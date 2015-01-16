@@ -298,10 +298,15 @@ pro fhd_3dps, file_struct, refresh = refresh, kcube_refresh = kcube_refresh, dft
   
   ;; save just k0 line for plotting purposes
   if not keyword_set(no_kzero) then begin
+    power = power[*,0]
+    noise = noise[*,0]
+    weights = weights[*,0]
+    noise_expval = noise_expval[*,0]
+    
     k_edges = kperp_edges
     k_bin = kperp_bin
     
-    save, file = savefile_k0[i], power[*,0], noise[*,0], weights[*,0], noise_expval[*,0], k_edges, k_bin, hubble_param, freq_mask, $
+    save, file = savefile_k0, power, noise, weights, noise_expval, k_edges, k_bin, hubble_param, freq_mask, $
       kperp_range, kpar_range, window_int, wt_ave_power, ave_power, ave_weights, git_hashes
   endif
   

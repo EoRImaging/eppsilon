@@ -1043,7 +1043,7 @@ pro fhd_data_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol
       
   endif
   
-  if keyword_set(plot_kperp_power) then begin
+  if keyword_set(plot_k0_power) then begin
   
     file_arr = savefiles_k0
     
