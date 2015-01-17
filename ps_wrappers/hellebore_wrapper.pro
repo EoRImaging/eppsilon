@@ -231,7 +231,7 @@ pro hellebore_wrapper, folder_name, obs_range, rts = rts, casa = casa, version =
   ;; png & eps are flags to make save plots as png or eps files rather than displaying to the screen
   
   
-  fhd_data_plots, datafile, beamfiles = beamfiles, plot_path = plot_path, plot_filebase = plot_filebase, save_path = save_path, savefilebase = savefilebase, $
+  ps_main_plots, datafile, beamfiles = beamfiles, plot_path = plot_path, plot_filebase = plot_filebase, save_path = save_path, savefilebase = savefilebase, $
     pol_inc = pol_inc, rts = rts, casa = casa, dft_fchunk=dft_fchunk, $
     refresh_dft = refresh_dft, refresh_ps = refresh_ps, refresh_binning = refresh_binning, refresh_info = refresh_info, refresh_beam = refresh_beam, $
     freq_ch_range = freq_ch_range, freq_flags = freq_flags, freq_flag_name = freq_flag_name, $
