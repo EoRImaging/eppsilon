@@ -1,4 +1,4 @@
-pro fhd_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weight = dft_refresh_weight, refresh_beam = refresh_beam, dft_ian = dft_ian, $
+pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weight = dft_refresh_weight, refresh_beam = refresh_beam, dft_ian = dft_ian, $
     dft_fchunk = dft_fchunk, freq_ch_range = freq_ch_range, freq_flags = freq_flags, $
     spec_window_type = spec_window_type, cut_image = cut_image, delta_uv_lambda = delta_uv_lambda, max_uv_lambda = max_uv_lambda, sim=sim, $
     std_power = std_power, input_units = input_units, uvf_input = uvf_input, uv_avg = uv_avg, uv_img_clip = uv_img_clip, quiet = quiet

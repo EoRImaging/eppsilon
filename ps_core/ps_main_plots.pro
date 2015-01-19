@@ -1,4 +1,4 @@
-pro fhd_data_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_inc = pol_inc, uvf_input = uvf_input, uv_avg = uv_avg, uv_img_clip = uv_img_clip, $
+pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_inc = pol_inc, uvf_input = uvf_input, uv_avg = uv_avg, uv_img_clip = uv_img_clip, $
     save_path = save_path, savefilebase = savefilebase, plot_path = plot_path, plot_filebase = plot_filebase, $
     note = note, png = png, eps = eps, pdf = pdf, $
     refresh_dft = refresh_dft, refresh_ps = refresh_ps, refresh_binning = refresh_binning, refresh_info = refresh_info, refresh_beam = refresh_beam, $
@@ -6,7 +6,7 @@ pro fhd_data_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol
     no_spec_window = no_spec_window, spec_window_type = spec_window_type, delta_uv_lambda = delta_uv_lambda, max_uv_lambda = max_uv_lambda, $
     cut_image = cut_image, dft_ian = dft_ian, sim = sim, std_power = std_power, no_wtd_avg = no_wtd_avg, no_kzero = no_kzero, $
     plot_slices = plot_slices, slice_type = slice_type, uvf_plot_type = uvf_plot_type, plot_stdset = plot_stdset, $
-    plot_kpar_power = plot_kpar_power, plot_kperp_power = plot_kperp_power, $
+    plot_kpar_power = plot_kpar_power, plot_kperp_power = plot_kperp_power, plot_k0_power = plot_k0_power, $
     data_range = data_range, sigma_range = sigma_range, nev_range = nev_range, slice_range = slice_range, $
     snr_range = snr_range, noise_range = noise_range, nnr_range = nnr_range, range_1d = range_1d, $
     log_kpar = log_kpar, log_kperp = log_kperp, kpar_bin = kpar_bin, kperp_bin = kperp_bin, log_k1d = log_k1d, $
@@ -18,6 +18,7 @@ pro fhd_data_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol
     
   if keyword_set(refresh_dft) then refresh_beam = 1
   if keyword_set(refresh_beam) then refresh_ps = 1
+  if keyword_set(refresh_ps) then refresh_beam = 1
   if keyword_set(refresh_ps) then refresh_binning = 1
   
   ;; default to making standard plot set if plot_slices isn't set
@@ -40,6 +41,8 @@ pro fhd_data_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol
   
   ;; default to cutting in image space (down to 30 degree diameter circle)
   if n_elements(cut_image) eq 0 then cut_image = 1
+  
+  if keyword_set(no_kzero) and keyword_set(plot_k0_power) then message, 'plot_k0_power cannot be set if no_kzero keyword is set.'
   
   if keyword_set(png) or keyword_set(eps) or keyword_set(pdf) then pub = 1 else pub = 0
   if pub eq 1 then begin
@@ -169,11 +172,15 @@ pro fhd_data_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol
   savefiles_kperp_1d = file_struct_arr.savefile_froot + file_struct_arr.savefilebase + power_tag + fadd_1dbin + '_kperp_power.idlsave'
   if keyword_set(plot_kperp_power) then test_save_kperp = file_test(savefiles_kperp_1d) *  (1 - file_test(savefiles_kperp_1d, /zero_length))
   
+  savefiles_k0 = file_struct_arr.savefile_froot + file_struct_arr.savefilebase + power_tag + fadd_2dbin + '_k0power.idlsave'
+  if keyword_set(plot_k0_power) then test_save_k0 = file_test(savefiles_k0) *  (1 - file_test(savefiles_k0, /zero_length))
+  
   if keyword_set(refresh_binning) then begin
     test_save_2d = test_save_2d*0
     test_save_1d = test_save_1d*0
     if keyword_set(plot_kpar_power) then test_save_kpar = test_save_kpar*0
     if keyword_set(plot_kperp_power) then test_save_kperp = test_save_kperp*0
+    if keyword_set(plot_k0_power) then test_save_k0 = test_save_k0*0
   endif
   
   if tag_exist(file_struct_arr[0], 'nside') ne 0 then healpix = 1 else healpix = 0
@@ -204,6 +211,11 @@ pro fhd_data_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol
       test_kperp = test_save_kperp[i]
     endif
     
+    if keyword_set(plot_k0_power) then begin
+      savefile_k0_use = savefiles_k0[i]
+      test_k0 = test_save_k0[i]
+    endif
+    
     if n_elements(wedge_1dbin_names) gt 1 then begin
       savefile_1d_use = savefiles_1d[i,*]
       test_1d = min(test_save_1d[i,*])
@@ -218,9 +230,16 @@ pro fhd_data_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol
         kpar_bin_file = getvar_savefile(savefile_2d_use, 'kpar_bin')
         if abs(kpar_bin - kpar_bin_file) gt 0. then test_2d=0
       endif
-      if test_2d gt 0 and n_elements(kpar_bin) ne 0 then begin
+      if n_elements(kperp_bin) ne 0 then begin
         kperp_bin_file = getvar_savefile(savefile_2d_use, 'kperp_bin')
         if abs(kperp_bin - kperp_bin_file) gt 0. then test_2d=0
+      endif
+    endif
+    
+    if keyword_set(plot_k0_power) then begin
+      if test_k0 gt 0 and n_elements(kperp_bin) ne 0 then begin
+        kperp_bin_file = getvar_savefile(savefile_k0_use, 'k_bin')
+        if abs(kperp_bin - kperp_bin_file) gt 0. then test_k0=0
       endif
     endif
     
@@ -276,6 +295,7 @@ pro fhd_data_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol
     test = test_2d * test_1d
     if keyword_set(plot_kpar_power) then test = test * test_kpar
     if keyword_set(plot_kperp_power) then test = test * test_kperp
+    if keyword_set(plot_k0_power) then test = test * test_k0
     
     if test eq 0 then begin
     
@@ -286,18 +306,20 @@ pro fhd_data_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol
           for j=0, n_elements(temp)-1 do weight_refresh[(where(weight_ind eq temp[j]))[0]] = 1
         endif
         
-        fhd_3dps, file_struct_arr[i], kcube_refresh = refresh_ps, dft_refresh_data = refresh_dft, $
+        ps_power, file_struct_arr[i], kcube_refresh = refresh_ps, dft_refresh_data = refresh_dft, $
           dft_refresh_weight = weight_refresh[i], refresh_beam = refresh_beam, $
           dft_ian = dft_ian, cut_image = cut_image, dft_fchunk = dft_fchunk, freq_ch_range = freq_ch_range, freq_flags = freq_flags, $
           spec_window_type = spec_window_type, delta_uv_lambda = delta_uv_lambda, max_uv_lambda = max_uv_lambda, $
-          savefile_2d = savefile_2d_use, savefile_1d = savefile_1d_use, savefile_kpar_power = savefile_kpar_use, savefile_kperp_power = savefile_kperp_use, $
+          savefile_2d = savefile_2d_use, savefile_1d = savefile_1d_use, $
+          savefile_kpar_power = savefile_kpar_use, savefile_kperp_power = savefile_kperp_use, savefile_k0 = savefile_k0_use, $
           std_power = std_power, no_wtd_avg = no_wtd_avg, no_kzero = no_kzero, sim=sim, $
           log_kpar = log_kpar, log_kperp = log_kperp, kpar_bin = kpar_bin, kperp_bin = kperp_bin, $
           kperp_range_1dave = kperp_range_1dave, kpar_range_1dave = kpar_range_1dave, wedge_amp = wedge_amp, /quiet
       endif else $
-        fhd_3dps, file_struct_arr[i], kcube_refresh = refresh_ps, refresh_beam = refresh_beam, freq_ch_range = freq_ch_range, $
+        ps_power, file_struct_arr[i], kcube_refresh = refresh_ps, refresh_beam = refresh_beam, freq_ch_range = freq_ch_range, $
         freq_flags = freq_flags, spec_window_type = spec_window_type, $
-        savefile_2d = savefile_2d_use, savefile_1d = savefile_1d_use, savefile_kpar_power = savefile_kpar_use, savefile_kperp_power = savefile_kperp_use, $
+        savefile_2d = savefile_2d_use, savefile_1d = savefile_1d_use, $
+        savefile_kpar_power = savefile_kpar_use, savefile_kperp_power = savefile_kperp_use, savefile_k0 = savefile_k0_use, $
         std_power = std_power, no_wtd_avg = no_wtd_avg, no_kzero = no_kzero, $
         uvf_input = uvf_input, uv_avg = uv_avg, uv_img_clip = uv_img_clip, sim=sim, $
         log_kpar = log_kpar, log_kperp = log_kperp, kpar_bin = kpar_bin, kperp_bin = kperp_bin, $
@@ -377,6 +399,7 @@ pro fhd_data_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol
     plotfile_kpar_power = plotfile_1d_base + power_tag + fadd_1dbin + '_kpar_power' + plot_exten
     plotfile_kperp_power = plotfile_1d_base + power_tag + fadd_1dbin + '_kperp_power' + plot_exten
     plotfile_kperp_weights = plotfile_1d_base + power_tag + fadd_1dbin + '_kperp_weights' + plot_exten
+    plotfile_k0_power = plotfile_1d_base + power_tag + fadd_2dbin + '_k0power' + plot_exten
   endif
   
   if keyword_set(plot_slices) then begin
@@ -1020,15 +1043,19 @@ pro fhd_data_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol
       
   endif
   
-;  if keyword_set(plot_kperp_power) then begin
-;
-;    file_arr = savefiles_kperp_1d
-;
-;    k_range = minmax([kperp_plot_range, kpar_bin, kpar_plot_range[1]])
-;
-;    kpower_1d_plots, file_arr, window_num = 14, colors = colors[0:n_cubes-1], names = titles, psyms = psyms[0:n_cubes-1], delta = delta, hinv = hinv, $
-;      png = png, eps = eps, pdf = pdf, plotfile = plotfile_kperp_weights, k_range = k_range, title = note, note = note_1d, /kperp_power, /plot_weights
-;
-;  endif
+  if keyword_set(plot_k0_power) then begin
+  
+    file_arr = savefiles_k0
+    
+    titles_use = titles
+    
+    k_range = minmax([kperp_plot_range, kperp_bin])
+    
+    kpower_1d_plots, file_arr, window_num = 14, colors = colors, names = titles_use, delta = delta, hinv = hinv, $
+      png = png, eps = eps, pdf = pdf, plotfile = plotfile_k0_power, k_range = k_range, title = note, note = note_1d, data_range = range_1d, /kperp_power
+      
+  endif
+  
+  
   
 end

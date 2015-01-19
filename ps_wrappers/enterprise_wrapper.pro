@@ -2,6 +2,7 @@ pro enterprise_wrapper, folder_name, obs_name, data_subdirs=data_subdirs, rts = 
     refresh_dft = refresh_dft, refresh_ps = refresh_ps, refresh_info = refresh_info, refresh_rtscube = refresh_rtscube, $
     refresh_binning = refresh_binning, refresh_beam = refresh_beam, pol_inc = pol_inc, no_spec_window = no_spec_window, $
     spec_window_type = spec_window_type, sim = sim, freq_ch_range = freq_ch_range, individual_plots = individual_plots, $
+    plot_kpar_power = plot_kpar_power, plot_kperp_power = plot_kperp_power, plot_k0_power = plot_k0_power, $
     png = png, eps = eps, pdf = pdf, $
     plot_slices = plot_slices, slice_type = slice_type, max_uv_lambda = max_uv_lambda, $
     kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, set_data_ranges = set_data_ranges
@@ -48,16 +49,17 @@ pro enterprise_wrapper, folder_name, obs_name, data_subdirs=data_subdirs, rts = 
     if folder_test eq 0 then message, 'folder not found'
     
     save_path = folder_name + '/ps/'
-    obs_info = ps_filenames(folder_name, obs_name, rts = rts, sim = sim, casa = casa, save_paths = save_path, plot_path = save_path)
-    
+    obs_info = ps_filenames(folder_name, obs_name, rts = rts, sim = sim, casa = casa, $
+      save_paths = save_path, plot_path = save_path, refresh_info = refresh_info)
+      
     if obs_info.info_files[0] ne '' then datafile = obs_info.info_files[0] else $
       if obs_info.cube_files.(0) ne '' then datafile = obs_info.cube_files.(0) else $
       datafile = rts_fits2idlcube(obs_info.datafiles.(0), obs_info.weightfiles.(0), obs_info.variancefiles.(0), $
       pol_inc, save_path = obs_info.folder_names[0]+path_sep(), refresh = refresh_dft)
-    
+      
     if keyword_set(refresh_rtscube) then datafile = rts_fits2idlcube(obs_info.datafiles.(0), obs_info.weightfiles.(0), obs_info.variancefiles.(0), $
       pol_inc, save_path = obs_info.folder_names[0]+path_sep(), refresh = refresh_dft)
-  
+      
     note = obs_info.rts_types
     if not file_test(save_path, /directory) then file_mkdir, save_path
     
@@ -86,12 +88,13 @@ pro enterprise_wrapper, folder_name, obs_name, data_subdirs=data_subdirs, rts = 
     if folder_test eq 0 then message, 'folder not found'
     
     save_path = folder_name + '/ps/'
-    obs_info = ps_filenames(folder_name, obs_name, rts = rts, sim = sim, casa = casa, data_subdirs = 'Healpix/', save_paths = save_path, plot_path = save_path)   
-
+    obs_info = ps_filenames(folder_name, obs_name, rts = rts, sim = sim, casa = casa, data_subdirs = 'Healpix/', $
+      save_paths = save_path, plot_path = save_path, refresh_info = refresh_info)
+      
     if obs_info.info_files[0] ne '' then datafile = obs_info.info_files[0] else datafile = obs_info.cube_files.(0)
     plot_filebase = obs_info.fhd_types[0] + '_' + obs_info.obs_names[0]
     note = obs_info.fhd_types[0]
-
+    
     note = obs_info.fhd_types
     if not file_test(save_path, /directory) then file_mkdir, save_path
     
@@ -173,7 +176,7 @@ pro enterprise_wrapper, folder_name, obs_name, data_subdirs=data_subdirs, rts = 
   ;; plot_wedge_line is a flag (defaulted to true) to plot a line marking the wedge (both horizon & FoV) (set to 0 to turn off)
   ;; pub is a flag to make save plots as eps files rather than displaying to the screen
   
-  fhd_data_plots, datafile, dft_fchunk=dft_fchunk, plot_path = plot_path, plot_filebase = plot_filebase, save_path = save_path, savefilebase = savefilebase, $
+  ps_main_plots, datafile, dft_fchunk=dft_fchunk, plot_path = plot_path, plot_filebase = plot_filebase, save_path = save_path, savefilebase = savefilebase, $
     pol_inc = pol_inc, rts = rts, $
     refresh_dft = refresh_dft, refresh_ps = refresh_ps, refresh_binning = refresh_binning, refresh_info = refresh_info, $
     note = note, $
@@ -181,6 +184,7 @@ pro enterprise_wrapper, folder_name, obs_name, data_subdirs=data_subdirs, rts = 
     cut_image = cut_image, delta_uv_lambda = delta_uv_lambda, max_uv_lambda = max_uv_lambda, $
     log_kpar = log_kpar, log_kperp = log_kperp, kpar_bin = kpar_bin, kperp_bin = kperp_bin, log_k1d = log_k1d, $
     k1d_bin = k1d_bin, kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, $
+    plot_kpar_power = plot_kpar_power, plot_kperp_power = plot_kperp_power, plot_k0_power = plot_k0_power, $
     data_range = data_range, sigma_range = sigma_range, nev_range = nev_range, snr_range = snr_range, noise_range = noise_range, nnr_range = nnr_range, $
     baseline_axis = baseline_axis, delay_axis = delay_axis, hinv = hinv, $
     plot_wedge_line = plot_wedge_line, individual_plots = individual_plot, png = png, eps = eps, pdf = pdf
