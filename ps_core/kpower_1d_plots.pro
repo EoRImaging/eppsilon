@@ -195,13 +195,13 @@ pro kpower_1d_plots, power_savefile, plot_weights = plot_weights, multi_pos = mu
     if keyword_set(pub) then begin
       ps_aspect = y_factor / x_factor
       
-;      if ps_aspect lt 1 then landscape = 1 else landscape = 0
-;      IF Keyword_Set(eps) THEN landscape = 0
-;      sizes = cgpswindow(LANDSCAPE=landscape, aspectRatio = ps_aspect, /sane_offsets)
-;
-;      cgps_open, plotfile, /font, encapsulated=eps, /nomatch, inches=sizes.inches, xsize=sizes.xsize, ysize=sizes.ysize, $
-;        xoffset=sizes.xoffset, yoffset=sizes.yoffset, landscape = landscape
-        
+      ;      if ps_aspect lt 1 then landscape = 1 else landscape = 0
+      ;      IF Keyword_Set(eps) THEN landscape = 0
+      ;      sizes = cgpswindow(LANDSCAPE=landscape, aspectRatio = ps_aspect, /sane_offsets)
+      ;
+      ;      cgps_open, plotfile, /font, encapsulated=eps, /nomatch, inches=sizes.inches, xsize=sizes.xsize, ysize=sizes.ysize, $
+      ;        xoffset=sizes.xoffset, yoffset=sizes.yoffset, landscape = landscape
+      
       cgps_open, plotfile, /font, encapsulated=eps, landscape=1, pagetype='letter'
       
     endif else begin
@@ -259,10 +259,13 @@ pro kpower_1d_plots, power_savefile, plot_weights = plot_weights, multi_pos = mu
       else message, 'No weights array included in this file'
     endif
     
+    ;noise = noise_expval
+    
     if keyword_set(hinv) then begin
       if n_elements(k_edges) ne 0 then k_edges = k_edges / hubble_param
       if n_elements(k_centers) ne 0 then k_centers = k_centers / hubble_param
       if not keyword_set(plot_weights) then power = power * (hubble_param)^3d
+      noise = noise * (hubble_param)^3d
     endif
     
     log_bins = 1
@@ -295,6 +298,7 @@ pro kpower_1d_plots, power_savefile, plot_weights = plot_weights, multi_pos = mu
       
       if n_k_plot ne n_k then begin
         power = power[wh_k_inrange]
+        noise = noise[wh_k_inrange]
         k_mid = k_mid[wh_k_inrange]
         temp = [wh_k_inrange, wh_k_inrange[n_k_plot-1]+1]
         k_edges = k_edges[temp]
@@ -304,6 +308,7 @@ pro kpower_1d_plots, power_savefile, plot_weights = plot_weights, multi_pos = mu
     endif
     
     theory_delta = (power * k_mid^3d / (2d*!pi^2d)) ^(1/2d)
+    theory_delta_noise = (noise * k_mid^3d / (2d*!pi^2d)) ^(1/2d)
     
     if keyword_set(save_text) then begin
       if keyword_set(hinv) then printf, lun,  text_labels[i]+ ' k (h Mpc^-1)' $
@@ -321,7 +326,10 @@ pro kpower_1d_plots, power_savefile, plot_weights = plot_weights, multi_pos = mu
       printf, lun, ''
     endif
     
-    if keyword_set(delta) then power = theory_delta
+    if keyword_set(delta) then begin
+      power = theory_delta
+      noise = theory_delta_noise
+    endif
     
     wh_zero = where(power eq 0d, count_zero, complement = wh_non0, ncomplement = count_non0)
     if count_non0 eq 0 then message, 'No non-zero power'
@@ -330,6 +338,7 @@ pro kpower_1d_plots, power_savefile, plot_weights = plot_weights, multi_pos = mu
       wh_keep = indgen(max(wh_non0) - min(wh_non0) + 1) + min(wh_non0)
       
       power = power[wh_keep]
+      noise = noise[wh_keep]
       k_mid = k_mid[wh_keep]
       k_edges = k_edges[[wh_keep, max(wh_keep)+1]]
       
@@ -341,6 +350,7 @@ pro kpower_1d_plots, power_savefile, plot_weights = plot_weights, multi_pos = mu
       if min(k_edges gt 0) then k_mid = [min(k_edges), k_mid, max(k_edges)] $
       else k_mid = [10^(alog10(k_mid[0])-k_log_diffs[0]), k_mid, max(k_edges)]
       power = [power[0], power, power[n_elements(power)-1]]
+      noise = [noise[0], noise, noise[n_elements(noise)-1]]
     endif
     
     
@@ -362,6 +372,7 @@ pro kpower_1d_plots, power_savefile, plot_weights = plot_weights, multi_pos = mu
       if n_elements(k_range) eq 0 then xrange = minmax(k_mid) else xrange = k_range
       
       power_plot = create_struct(tag, power)
+      noise_plot = create_struct(tag, noise)
       k_plot = create_struct(tag, k_mid)
       
       if yaxis_type ne 'clipped_log' then begin
@@ -386,6 +397,7 @@ pro kpower_1d_plots, power_savefile, plot_weights = plot_weights, multi_pos = mu
       endif
       
       power_plot = create_struct(tag, power, power_plot)
+      noise_plot = create_struct(tag, noise, noise_plot)
       k_plot = create_struct(tag, k_mid, k_plot)
       
       if yaxis_type ne 'clipped_log' then begin
@@ -402,6 +414,7 @@ pro kpower_1d_plots, power_savefile, plot_weights = plot_weights, multi_pos = mu
     endelse
     
     undefine, power
+    undefine, noise
     if n_elements(k_edges) ne 0 then undefine, k_edges
     if n_elements(k_centers) ne 0 then undefine, k_centers
   endfor
@@ -421,7 +434,7 @@ pro kpower_1d_plots, power_savefile, plot_weights = plot_weights, multi_pos = mu
     charsize = 2
     font = 1
     if nfiles gt 3 then legend_charsize = charsize / (nfiles/3d)  else legend_charsize = 2
-        
+    
     DEVICE, /ISOLATIN1
     perp_char = '!9' + String("136B) + '!X' ;"
     
@@ -519,9 +532,13 @@ pro kpower_1d_plots, power_savefile, plot_weights = plot_weights, multi_pos = mu
         xstyle=1, ystyle=1, axiscolor = 'black', xtitle = xtitle, ytitle = ytitle, title = title, psym=psyms[0], xtickformat = 'exponent', $
         ytickformat = 'exponent', thick = thick, charthick = charthick, xthick = xthick, ythick = ythick, charsize = charsize, $
         font = font, noerase = no_erase
-      for i=0, nfiles - 1 do cgplot, /overplot, k_plot.(plot_order[i]), power_plot.(plot_order[i]), psym=psyms[i], color = colors[i], $
-        thick = thick
-        
+      for i=0, nfiles - 1 do begin
+        cgplot, /overplot, k_plot.(plot_order[i]), power_plot.(plot_order[i]), psym=psyms[i], color = colors[i], $
+          thick = thick
+        cgplot, /overplot, k_plot.(plot_order[i]), noise_plot.(plot_order[i]), psym=psyms[i], color = colors[i], $
+          thick = thick, linestyle=2         
+      endfor
+      
       if log_bins gt 0 then bottom = 1 else bottom = 0
       if n_elements(names) ne 0 then $
         al_legend, names, textcolor = colors, box = 0, /right, bottom = bottom, charsize = legend_charsize, charthick = charthick
