@@ -975,8 +975,6 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
     file_arr = savefiles_kperp_1d
     
     titles_use = titles
-    if keyword_set(plot_eor_1d) then begin
-      ;eor_file_1d = base_path() + 'power_spectrum/eor_data/eor_power_1d.idlsave'
     
     if keyword_set(plot_eor_1d) then begin
       if count_catalog gt 0 then begin
@@ -1005,7 +1003,5 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
       png = png, eps = eps, pdf = pdf, plotfile = plotfile_k0_power, k_range = k_range, title = note + ' kpar=0', note = note_1d, data_range = range_1d, /kperp_power
       
   endif
-  
-  
   
 end
