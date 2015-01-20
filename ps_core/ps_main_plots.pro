@@ -6,7 +6,7 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
     no_spec_window = no_spec_window, spec_window_type = spec_window_type, delta_uv_lambda = delta_uv_lambda, max_uv_lambda = max_uv_lambda, $
     cut_image = cut_image, dft_ian = dft_ian, sim = sim, std_power = std_power, no_wtd_avg = no_wtd_avg, no_kzero = no_kzero, $
     plot_slices = plot_slices, slice_type = slice_type, uvf_plot_type = uvf_plot_type, plot_stdset = plot_stdset, $
-    plot_kpar_power = plot_kpar_power, plot_kperp_power = plot_kperp_power, plot_k0_power = plot_k0_power, $
+    plot_kpar_power = plot_kpar_power, plot_kperp_power = plot_kperp_power, plot_k0_power = plot_k0_power, plot_noise_1d = plot_noise_1d, $
     data_range = data_range, sigma_range = sigma_range, nev_range = nev_range, slice_range = slice_range, $
     snr_range = snr_range, noise_range = noise_range, nnr_range = nnr_range, range_1d = range_1d, $
     log_kpar = log_kpar, log_kperp = log_kperp, kpar_bin = kpar_bin, kperp_bin = kperp_bin, log_k1d = log_k1d, $
@@ -396,6 +396,7 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
     if n_elements(plot_filebase) eq 0 then plotfile_1d_base = plotfile_path + general_filebase else $
       plotfile_1d_base = plotfile_path + plot_filebase + uvf_tag
     plotfile_1d = plotfile_1d_base + power_tag + wedge_1dbin_names + fadd_1dbin + '_1dkpower' + plot_exten
+    plotfile_1d_noise = plotfile_1d_base + power_tag + wedge_1dbin_names + fadd_1dbin + '_1dnoise' + plot_exten
     plotfile_kpar_power = plotfile_1d_base + power_tag + fadd_1dbin + '_kpar_power' + plot_exten
     plotfile_kperp_power = plotfile_1d_base + power_tag + fadd_1dbin + '_kperp_power' + plot_exten
     plotfile_kperp_weights = plotfile_1d_base + power_tag + fadd_1dbin + '_kperp_weights' + plot_exten
@@ -892,80 +893,60 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
     endelse
   endif
   
+  if keyword_set(plot_eor_1d) then begin
+    case strlowcase(!version.os_family) OF
+      'windows': split_delim = ';'
+      'unix':    split_delim = ':'
+    endcase
+    path_dirs = strsplit(!path, split_delim, /extract)
+    
+    fhd_catalog_loc = strpos(path_dirs, 'catalog_data')
+    wh_catalog = where(fhd_catalog_loc gt 0, count_catalog)
+    if count_catalog gt 0 then begin
+      file_path = path_dirs[wh_catalog[0]]
+      ;; make sure file_path has a path separator at the end
+      pos = strpos(file_path, path_sep(), /reverse_search)
+      if pos+1-strlen(file_path) lt 0 then file_path = file_path + path_sep()
+      
+      eor_file_1d = file_path + 'eor_power_1d.idlsave'
+      flat_file_1d = file_path + 'flat_power_1d.idlsave'
+      
+      flat_power = mean(getvar_savefile(flat_file_1d, 'power'))
+      cube_power_info = create_struct(cube_power_info, 'flat_power', flat_power)
+      
+    endif else print, 'Could not locate catalog_data directory in !path variable'
+  endif
+  
   if keyword_set(plot_stdset) then begin
     for i=0, n_elements(wedge_1dbin_names)-1 do begin
       if n_elements(wedge_1dbin_names) gt 1 then file_arr = savefiles_1d[*,i] else file_arr = savefiles_1d
+      if n_elements(plotfile_1d) gt 0 then begin
+        plotfile_use = plotfile_1d[i]
+        plotfile_noise_use = plotfile_1d_noise[i]
+      endif
       
-      if n_elements(plotfile_1d) gt 0 then plotfile_use = plotfile_1d[i]
       if i gt 0 then note_use = note + ' ' + strjoin(strsplit(wedge_1dbin_names[i], '_', /extract), ' ') else note_use = note
       
       titles_use = titles
-      if keyword_set(plot_eor_1d) then begin
-        ;eor_file_1d = base_path() + 'power_spectrum/eor_data/eor_power_1d.idlsave'
-      
-        case strlowcase(!version.os_family) OF
-          'windows': split_delim = ';'
-          'unix':    split_delim = ':'
-        endcase
-        path_dirs = strsplit(!path, split_delim, /extract)
-        
-        fhd_catalog_loc = strpos(path_dirs, 'catalog_data')
-        wh_catalog = where(fhd_catalog_loc gt 0, count_catalog)
-        if count_catalog gt 0 then begin
-          file_path = path_dirs[wh_catalog[0]]
-          ;; make sure file_path has a path separator at the end
-          pos = strpos(file_path, path_sep(), /reverse_search)
-          if pos+1-strlen(file_path) lt 0 then file_path = file_path + path_sep()
-          
-          eor_file_1d = file_path + 'eor_power_1d.idlsave'
-          flat_file_1d = file_path + 'flat_power_1d.idlsave'
-          psyms = [intarr(n_elements(file_arr))+10, -3, -3]
-          file_arr = [file_arr, eor_file_1d, flat_file_1d]
-          titles_use = [titles_use, 'EoR signal', 'input flat power']
-          
-          flat_power = mean(getvar_savefile(flat_file_1d, 'power'))
-          ave_power_vals = fltarr(n_cubes)
-          wt_ave_power_vals = fltarr(n_cubes)
-          ave_weights_vals = fltarr(n_cubes)
-          for k=0, n_cubes-1 do begin
-            ave_power_vals[k] = getvar_savefile(savefiles_1d[i], 'ave_power')
-            wt_ave_power_vals[k] = getvar_savefile(savefiles_1d[i], 'wt_ave_power')
-            ave_weights_vals[k] = mean(getvar_savefile(savefiles_1d[i], 'ave_weights'))
-          endfor
-          cube_power_info = {flat_power:flat_power, ave_power:ave_power_vals, wt_ave_power:wt_ave_power_vals, ave_weights:ave_weights_vals}
-          
-        endif else print, 'Could not locate catalog_data directory in !path variable'
-        
-        
-      ; restore, eor_file_1d
-      ;      power = strarr(n_elements(k_centers))+max(power)
-      ;      flat_power_filename = base_path() + 'single_use/flat_power_1d.idlsave'
-      ;      save, filename = flat_power_filename, power, k_centers
-        
-        
-      ;    jonnie_file_text = base_path() + 'single_use/eor_pspec1d_centers.txt'
-      ;    TextFast, jonnie_data, file_path = jonnie_file_text, /read
-      ;
-      ;    k_centers = jonnie_data[0,*]
-      ;    power = jonnie_data[1,*]
-      ;    wh_good = where(power gt 0, count_good, ncomplement = count_bad)
-      ;    if count_bad gt 0 then begin
-      ;      k_centers = k_centers[wh_good]
-      ;      power = power[wh_good]
-      ;    endif
-      ;    jonnie_file_1d = cgrootname(jonnie_file_text, directory = jonnie_dir) + '.idlsave'
-      ;    jonnie_file_1d = jonnie_dir + jonnie_file_1d
-      ;    save, file = jonnie_file_1d, power, k_centers
-      ;
-      ;    file_arr = [file_arr, jonnie_file_1d]
-      ;    titles = [titles, 'PS of input cube']
-        
-      endif
       
       k_range = minmax([kperp_plot_range, kpar_bin, kpar_plot_range[1]])
       
+      
+      if keyword_set(plot_noise_1d) then kpower_1d_plots, file_arr, window_num = 15+i, names = titles_use, delta = delta, hinv = hinv, $
+        png = png, eps = eps, pdf = pdf, plotfile = plotfile_noise_use, k_range = k_range, title = note_use + ' Ob. Noise', note = note_1d, data_range = range_1d, /plot_noise
+        
+        
+      if keyword_set(plot_eor_1d) then begin
+        if count_catalog gt 0 then begin
+          psyms = [intarr(n_elements(file_arr))+10, -3, -3]
+          file_arr = [file_arr, eor_file_1d, flat_file_1d]
+          titles_use = [titles_use, 'EoR signal', 'input flat power']
+        endif
+      endif
+      
       kpower_1d_plots, file_arr, window_num = 6+i, colors = colors, names = titles_use, psyms = psyms, delta = delta, hinv = hinv, $
         png = png, eps = eps, pdf = pdf, plotfile = plotfile_use, k_range = k_range, title = note_use, note = note_1d, data_range = range_1d
+        
     endfor
   endif
   
@@ -975,34 +956,17 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
     
     titles_use = titles
     if keyword_set(plot_eor_1d) then begin
-      ;eor_file_1d = base_path() + 'power_spectrum/eor_data/eor_power_1d.idlsave'
-    
-      case strlowcase(!version.os_family) OF
-        'windows': split_delim = ';'
-        'unix':    split_delim = ':'
-      endcase
-      path_dirs = strsplit(!path, split_delim, /extract)
-      
-      fhd_catalog_loc = strpos(path_dirs, 'catalog_data')
-      wh_catalog = where(fhd_catalog_loc gt 0, count_catalog)
       if count_catalog gt 0 then begin
-        file_path = path_dirs[wh_catalog[0]]
-        ;; make sure file_path has a path separator at the end
-        pos = strpos(file_path, path_sep(), /reverse_search)
-        if pos+1-strlen(file_path) lt 0 then file_path = file_path + path_sep()
-        
-        eor_file_1d = file_path + 'eor_power_1d.idlsave'
-        flat_file_1d = file_path + 'flat_power_1d.idlsave'
         psyms = [intarr(n_elements(file_arr))+10, -3, -3]
         file_arr = [file_arr, eor_file_1d, flat_file_1d]
         titles_use = [titles_use, 'EoR signal', 'input flat power']
-      endif else print, 'Could not locate catalog_data directory in !path variable'
+      endif
     endif
     
     k_range = minmax([kperp_plot_range, kpar_bin, kpar_plot_range[1]])
     
     kpower_1d_plots, file_arr, window_num = 12, colors = colors, names = titles_use, psyms = psyms, delta = delta, hinv = hinv, $
-      png = png, eps = eps, pdf = pdf, plotfile = plotfile_kpar_power, k_range = k_range, title = note, note = note_1d, data_range = range_1d, /kpar_power
+      png = png, eps = eps, pdf = pdf, plotfile = plotfile_kpar_power, k_range = k_range, title = note + ' kpar', note = note_1d, data_range = range_1d, /kpar_power
       
   endif
   
@@ -1014,22 +978,8 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
     if keyword_set(plot_eor_1d) then begin
       ;eor_file_1d = base_path() + 'power_spectrum/eor_data/eor_power_1d.idlsave'
     
-      case strlowcase(!version.os_family) OF
-        'windows': split_delim = ';'
-        'unix':    split_delim = ':'
-      endcase
-      path_dirs = strsplit(!path, split_delim, /extract)
-      
-      fhd_catalog_loc = strpos(path_dirs, 'catalog_data')
-      wh_catalog = where(fhd_catalog_loc gt 0, count_catalog)
+    if keyword_set(plot_eor_1d) then begin
       if count_catalog gt 0 then begin
-        file_path = path_dirs[wh_catalog[0]]
-        ;; make sure file_path has a path separator at the end
-        pos = strpos(file_path, path_sep(), /reverse_search)
-        if pos+1-strlen(file_path) lt 0 then file_path = file_path + path_sep()
-        
-        eor_file_1d = file_path + 'eor_power_1d.idlsave'
-        flat_file_1d = file_path + 'flat_power_1d.idlsave'
         psyms = [intarr(n_elements(file_arr))+10, -3, -3]
         file_arr = [file_arr, eor_file_1d, flat_file_1d]
         titles_use = [titles_use, 'EoR signal', 'input flat power']
@@ -1039,7 +989,7 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
     k_range = minmax([kperp_plot_range, kpar_bin, kpar_plot_range[1]])
     
     kpower_1d_plots, file_arr, window_num = 13, colors = colors, names = titles_use, psyms = psyms, delta = delta, hinv = hinv, $
-      png = png, eps = eps, pdf = pdf, plotfile = plotfile_kperp_power, k_range = k_range, title = note, note = note_1d, data_range = range_1d, /kperp_power
+      png = png, eps = eps, pdf = pdf, plotfile = plotfile_kperp_power, k_range = k_range, title = note + ' kperp', note = note_1d, data_range = range_1d, /kperp_power
       
   endif
   
@@ -1052,7 +1002,7 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
     k_range = minmax([kperp_plot_range, kperp_bin])
     
     kpower_1d_plots, file_arr, window_num = 14, colors = colors, names = titles_use, delta = delta, hinv = hinv, $
-      png = png, eps = eps, pdf = pdf, plotfile = plotfile_k0_power, k_range = k_range, title = note, note = note_1d, data_range = range_1d, /kperp_power
+      png = png, eps = eps, pdf = pdf, plotfile = plotfile_k0_power, k_range = k_range, title = note + ' kpar=0', note = note_1d, data_range = range_1d, /kperp_power
       
   endif
   

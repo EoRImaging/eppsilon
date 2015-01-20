@@ -1,5 +1,5 @@
-pro kpower_1d_plots, power_savefile, plot_weights = plot_weights, multi_pos = multi_pos, start_multi_params = start_multi_params, $
-    data_range = data_range, k_range = k_range, $
+pro kpower_1d_plots, power_savefile, multi_pos = multi_pos, start_multi_params = start_multi_params, $
+    plot_weights = plot_weights, plot_noise = plot_noise, data_range = data_range, k_range = k_range, $
     png = png, eps = eps, pdf = pdf, plotfile = plotfile, window_num = window_num, colors = colors, names = names, psyms = psyms, $
     save_text = save_text, delta = delta, hinv = hinv, note = note, title = title, kpar_power = kpar_power, kperp_power = kperp_power, $
     yaxis_type = yaxis_type
@@ -10,6 +10,9 @@ pro kpower_1d_plots, power_savefile, plot_weights = plot_weights, multi_pos = mu
   if count_axis_type eq 0 then message, 'yaxis_type not recognized'
   
   if keyword_set(kpar_power) and keyword_set(kperp_power) then message, 'Only one of kpar_power and kperp_power can be set'
+  
+  if keyword_set(plot_weights) and keyword_set(plot_noise) then message, 'Only one of plot_weights and plot_noise can be set.'
+  
   
   if n_elements(plotfile) gt 0 or keyword_set(png) or keyword_set(eps) or keyword_set(pdf) then pub = 1 else pub = 0
   if pub eq 1 then begin
@@ -257,15 +260,20 @@ pro kpower_1d_plots, power_savefile, plot_weights = plot_weights, multi_pos = mu
     if keyword_set(plot_weights) then begin
       if n_elements(weights) ne 0 then power = weights $
       else message, 'No weights array included in this file'
+    endif else if keyword_set(plot_noise) then begin
+      if n_elements(noise) ne 0 then power = noise $
+      else message, 'No noise array included in this file'
     endif
     
-    ;noise = noise_expval
+    sigma_val = sqrt(1./weights)
+    wh_wt0 = where(weights eq 0, count_wt0)
+    if count_wt0 gt 0 then sigma_val[wh_st0] = 0
     
     if keyword_set(hinv) then begin
       if n_elements(k_edges) ne 0 then k_edges = k_edges / hubble_param
       if n_elements(k_centers) ne 0 then k_centers = k_centers / hubble_param
       if not keyword_set(plot_weights) then power = power * (hubble_param)^3d
-      noise = noise * (hubble_param)^3d
+      sigma_val = sigma_val * (hubble_param)^3d
     endif
     
     log_bins = 1
@@ -298,7 +306,7 @@ pro kpower_1d_plots, power_savefile, plot_weights = plot_weights, multi_pos = mu
       
       if n_k_plot ne n_k then begin
         power = power[wh_k_inrange]
-        noise = noise[wh_k_inrange]
+        sigma_val = sigma_val[wh_k_inrange]
         k_mid = k_mid[wh_k_inrange]
         temp = [wh_k_inrange, wh_k_inrange[n_k_plot-1]+1]
         k_edges = k_edges[temp]
@@ -308,7 +316,7 @@ pro kpower_1d_plots, power_savefile, plot_weights = plot_weights, multi_pos = mu
     endif
     
     theory_delta = (power * k_mid^3d / (2d*!pi^2d)) ^(1/2d)
-    theory_delta_noise = (noise * k_mid^3d / (2d*!pi^2d)) ^(1/2d)
+    theory_delta_sigma = (sigma_val * k_mid^3d / (2d*!pi^2d)) ^(1/2d)
     
     if keyword_set(save_text) then begin
       if keyword_set(hinv) then printf, lun,  text_labels[i]+ ' k (h Mpc^-1)' $
@@ -328,7 +336,7 @@ pro kpower_1d_plots, power_savefile, plot_weights = plot_weights, multi_pos = mu
     
     if keyword_set(delta) then begin
       power = theory_delta
-      noise = theory_delta_noise
+      sigma_val = theory_delta_sigma
     endif
     
     wh_zero = where(power eq 0d, count_zero, complement = wh_non0, ncomplement = count_non0)
@@ -338,7 +346,7 @@ pro kpower_1d_plots, power_savefile, plot_weights = plot_weights, multi_pos = mu
       wh_keep = indgen(max(wh_non0) - min(wh_non0) + 1) + min(wh_non0)
       
       power = power[wh_keep]
-      noise = noise[wh_keep]
+      sigma_val = sigma_val[wh_keep]
       k_mid = k_mid[wh_keep]
       k_edges = k_edges[[wh_keep, max(wh_keep)+1]]
       
@@ -350,7 +358,7 @@ pro kpower_1d_plots, power_savefile, plot_weights = plot_weights, multi_pos = mu
       if min(k_edges gt 0) then k_mid = [min(k_edges), k_mid, max(k_edges)] $
       else k_mid = [10^(alog10(k_mid[0])-k_log_diffs[0]), k_mid, max(k_edges)]
       power = [power[0], power, power[n_elements(power)-1]]
-      noise = [noise[0], noise, noise[n_elements(noise)-1]]
+      sigma_val = [sigma_val[0], sigma_val, sigma_val[n_elements(sigma_val)-1]]
     endif
     
     
@@ -372,7 +380,7 @@ pro kpower_1d_plots, power_savefile, plot_weights = plot_weights, multi_pos = mu
       if n_elements(k_range) eq 0 then xrange = minmax(k_mid) else xrange = k_range
       
       power_plot = create_struct(tag, power)
-      noise_plot = create_struct(tag, noise)
+      sigma_plot = create_struct(tag, sigma_val)
       k_plot = create_struct(tag, k_mid)
       
       if yaxis_type ne 'clipped_log' then begin
@@ -397,7 +405,7 @@ pro kpower_1d_plots, power_savefile, plot_weights = plot_weights, multi_pos = mu
       endif
       
       power_plot = create_struct(tag, power, power_plot)
-      noise_plot = create_struct(tag, noise, noise_plot)
+      sigma_plot = create_struct(tag, sigma_val, sigma_plot)
       k_plot = create_struct(tag, k_mid, k_plot)
       
       if yaxis_type ne 'clipped_log' then begin
@@ -414,7 +422,7 @@ pro kpower_1d_plots, power_savefile, plot_weights = plot_weights, multi_pos = mu
     endelse
     
     undefine, power
-    undefine, noise
+    undefine, sigma_val
     if n_elements(k_edges) ne 0 then undefine, k_edges
     if n_elements(k_centers) ne 0 then undefine, k_centers
   endfor
@@ -535,8 +543,8 @@ pro kpower_1d_plots, power_savefile, plot_weights = plot_weights, multi_pos = mu
       for i=0, nfiles - 1 do begin
         cgplot, /overplot, k_plot.(plot_order[i]), power_plot.(plot_order[i]), psym=psyms[i], color = colors[i], $
           thick = thick
-        cgplot, /overplot, k_plot.(plot_order[i]), noise_plot.(plot_order[i]), psym=psyms[i], color = colors[i], $
-          thick = thick, linestyle=2         
+        cgplot, /overplot, k_plot.(plot_order[i]), sigma_plot.(plot_order[i]), psym=psyms[i], color = colors[i], $
+          thick = thick, linestyle=2
       endfor
       
       if log_bins gt 0 then bottom = 1 else bottom = 0
