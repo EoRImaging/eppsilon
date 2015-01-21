@@ -3,6 +3,7 @@ pro enterprise_wrapper, folder_name, obs_name, data_subdirs=data_subdirs, rts = 
     refresh_binning = refresh_binning, refresh_beam = refresh_beam, pol_inc = pol_inc, no_spec_window = no_spec_window, $
     spec_window_type = spec_window_type, sim = sim, freq_ch_range = freq_ch_range, individual_plots = individual_plots, $
     plot_kpar_power = plot_kpar_power, plot_kperp_power = plot_kperp_power, plot_k0_power = plot_k0_power, plot_noise_1d = plot_noise_1d, $
+    coarse_harm_width = coarse_harm_width, $
     png = png, eps = eps, pdf = pdf, $
     plot_slices = plot_slices, slice_type = slice_type, max_uv_lambda = max_uv_lambda, $
     kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, set_data_ranges = set_data_ranges
@@ -187,7 +188,7 @@ pro enterprise_wrapper, folder_name, obs_name, data_subdirs=data_subdirs, rts = 
     plot_kpar_power = plot_kpar_power, plot_kperp_power = plot_kperp_power, plot_k0_power = plot_k0_power, plot_noise_1d = plot_noise_1d, $
     data_range = data_range, sigma_range = sigma_range, nev_range = nev_range, snr_range = snr_range, noise_range = noise_range, nnr_range = nnr_range, $
     baseline_axis = baseline_axis, delay_axis = delay_axis, hinv = hinv, $
-    plot_wedge_line = plot_wedge_line, individual_plots = individual_plot, png = png, eps = eps, pdf = pdf
+    plot_wedge_line = plot_wedge_line, coarse_harm_width = coarse_harm_width, individual_plots = individual_plot, png = png, eps = eps, pdf = pdf
     
   if not keyword_set(set_data_ranges) then begin
     print, 'data_range used: ', number_formatter(data_range, format = '(e7.1)')
