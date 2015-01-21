@@ -8,7 +8,8 @@ pro ps_power, file_struct, refresh = refresh, kcube_refresh = kcube_refresh, dft
     spec_window_type = spec_window_type, delta_uv_lambda = delta_uv_lambda, max_uv_lambda = max_uv_lambda, $
     std_power = std_power, no_wtd_avg = no_wtd_avg, no_kzero = no_kzero, log_kpar = log_kpar, $
     log_kperp = log_kperp, kperp_bin = kperp_bin, kpar_bin = kpar_bin, log_k1d = log_k1d, k1d_bin = k1d_bin, $
-    kperp_range_1dave = kperp_range_1dave, kpar_range_1dave = kpar_range_1dave, wedge_amp = wedge_amp, $
+    kperp_range_1dave = kperp_range_1dave, kpar_range_1dave = kpar_range_1dave, $
+    wedge_amp = wedge_amp, coarse_harm0 = coarse_harm0, coarse_width = coarse_width, $
     input_units = input_units, fill_holes = fill_holes, quiet = quiet
     
   if tag_exist(file_struct, 'nside') ne 0 then healpix = 1 else healpix = 0
@@ -352,16 +353,24 @@ pro ps_power, file_struct, refresh = refresh, kcube_refresh = kcube_refresh, dft
   if n_elements(savefile_1d) ne n_elements(wedge_amp)+1 then message, 'number of elements in savefile_1d must be 1 larger than number of elements in wedge_amp'
   
   for i=0, n_elements(savefile_1d)-1 do begin
-    if i gt 0 then wedge_amp_use = wedge_amp[i-1]
+    if i gt 0 then begin
+      wedge_amp_use = wedge_amp[i-1]
+      if n_elements(coarse_harm0) gt 0 then begin
+        coarse_harm0_use = coarse_harm0
+        coarse_width_use = coarse_width
+      endif
+    endif
     
     power_1d = kspace_rebinning_1d(power_3d, kx_mpc, ky_mpc, kz_mpc, k_edges_mpc, k_bin = k1d_bin, log_k = log_k1d, $
       noise_expval = noise_expval_3d, binned_noise_expval = noise_expval_1d, weights = weights_3d, $
-      binned_weights = weights_1d, kperp_range = kperp_range_use, kpar_range = kpar_range_use, wedge_amp = wedge_amp_use)
+      binned_weights = weights_1d, kperp_range = kperp_range_use, kpar_range = kpar_range_use, $
+      wedge_amp = wedge_amp_use, coarse_harm0 = coarse_harm0_use, coarse_width = coarse_width_use)
       
     if nfiles eq 2 then $
       noise_1d = kspace_rebinning_1d(noise_3d, kx_mpc, ky_mpc, kz_mpc, k_edges_mpc, k_bin = k1d_bin, log_k = log_k1d, $
       noise_expval = noise_expval_3d, binned_noise_expval = noise_expval_1d, weights = weights_3d, $
-      binned_weights = weights_1d, kperp_range = kperp_range_use, kpar_range = kpar_range_use, wedge_amp = wedge_amp_use)
+      binned_weights = weights_1d, kperp_range = kperp_range_use, kpar_range = kpar_range_use, $
+      wedge_amp = wedge_amp_use, coarse_harm0 = coarse_harm0_use, coarse_width = coarse_width_use)
       
     power = power_1d
     if nfiles eq 2 then noise = noise_1d

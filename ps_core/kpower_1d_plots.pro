@@ -267,7 +267,7 @@ pro kpower_1d_plots, power_savefile, multi_pos = multi_pos, start_multi_params =
     
     sigma_val = sqrt(1./weights)
     wh_wt0 = where(weights eq 0, count_wt0)
-    if count_wt0 gt 0 then sigma_val[wh_st0] = 0
+    if count_wt0 gt 0 then sigma_val[wh_wt0] = 0
     
     if keyword_set(hinv) then begin
       if n_elements(k_edges) ne 0 then k_edges = k_edges / hubble_param

@@ -5,6 +5,7 @@ pro hellebore_wrapper, folder_name, obs_range, rts = rts, casa = casa, version =
     cut_image = cut_image, individual_plots = individual_plots, plot_filebase = plot_filebase, png = png, eps = eps, pdf = pdf, $
     plot_slices = plot_slices, slice_type = slice_type, uvf_plot_type = uvf_plot_type, plot_stdset = plot_stdset, $
     plot_kpar_power = plot_kpar_power, plot_kperp_power = plot_kperp_power, plot_k0_power = plot_k0_power, plot_noise_1d = plot_noise_1d, $
+    coarse_harm_width = coarse_harm_width, $
     kperp_range_1dave = kperp_range_1dave, kpar_range_1dave = kpar_range_1dave, uv_avg = uv_avg, uv_img_clip = uv_img_clip,$
     kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, $
     t32 = t32, set_data_ranges = set_data_ranges, plot_ranges = plot_ranges, slice_range = slice_range, cube_power_info = cube_power_info
@@ -245,7 +246,7 @@ pro hellebore_wrapper, folder_name, obs_range, rts = rts, casa = casa, version =
     data_range = data_range, sigma_range = sigma_range, nev_range = nev_range, snr_range = snr_range, noise_range = noise_range, nnr_range = nnr_range, $
     range_1d = range_1d, slice_range = slice_range, $
     baseline_axis = baseline_axis, delay_axis = delay_axis, hinv = hinv, $
-    plot_wedge_line = plot_wedge_line, plot_eor_1d = plot_eor_1d, $
+    plot_wedge_line = plot_wedge_line, coarse_harm_width = coarse_harm_width, plot_eor_1d = plot_eor_1d, $
     individual_plots = individual_plots, note = note, png = png, eps = eps, pdf = pdf, cube_power_info = cube_power_info
     
     
