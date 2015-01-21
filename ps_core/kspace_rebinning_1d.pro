@@ -3,6 +3,7 @@
 function kspace_rebinning_1d, power, k1_mpc, k2_mpc, k3_mpc, k_edges_mpc, k_bin = k_bin, log_k = log_k, $
     noise_expval = noise_expval, binned_noise_expval = noise_expval_1d, weights = weights, $
     binned_weights = weights_1d, kperp_range = kperp_range, kpar_range = kpar_range, wedge_amp = wedge_amp, $
+    coarse_harm0 = coarse_harm0, coarse_width = coarse_width, $
     edge_on_grid = edge_on_grid, match_datta = match_datta, kpar_power = kpar_power, kperp_power = kperp_power
     
   power_size = size(power, /dimensions)
@@ -119,10 +120,23 @@ function kspace_rebinning_1d, power, k1_mpc, k2_mpc, k3_mpc, k_edges_mpc, k_bin 
     
     if n_elements(wedge_amp) gt 0 then begin
       temp_kperp = sqrt(rebin(kx_mpc^2d, n_kx, n_ky, n_kz) + rebin(reform(ky_mpc^2d, 1, n_ky), n_kx, n_ky, n_kz))
-      temp_kpar = rebin(reform(kz_mpc^2d, 1, 1, n_kz), n_kx, n_ky, n_kz)
-      
-      wh_above_wedge = where(temp_kpar gt temp_kperp*max(wedge_amp), count_above_wedge)
-      if count_above_wedge eq 0 then print, 'no pixels above wedge, using full volume'
+      temp_kpar = rebin(reform(kz_mpc, 1, 1, n_kz), n_kx, n_ky, n_kz)
+            
+      if n_elements(coarse_harm0) gt 0 then begin
+        n_harm = floor(n_kz/coarse_harm0)-1
+        n_width = coarse_width*2-1
+        kpar_ch_bad = rebin(coarse_harm0 * (findgen(n_harm)+1), n_harm, n_width) + $
+          rebin(reform(findgen(n_width)-(coarse_width-1), 1, n_width), n_harm, n_width)
+        
+        temp_kpar[*,*,kpar_ch_bad] = 0
+        
+        wh_above_wedge = where(temp_kpar gt temp_kperp*max(wedge_amp), count_above_wedge)
+        if count_above_wedge eq 0 then print, 'no pixels above wedge, using full volume'
+        
+      endif else begin
+        wh_above_wedge = where(temp_kpar gt temp_kperp*max(wedge_amp), count_above_wedge)
+        if count_above_wedge eq 0 then print, 'no pixels above wedge, using full volume'
+      endelse
     endif
     
     if not keyword_set(log_k) then begin

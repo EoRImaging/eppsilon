@@ -12,7 +12,7 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
     log_kpar = log_kpar, log_kperp = log_kperp, kpar_bin = kpar_bin, kperp_bin = kperp_bin, log_k1d = log_k1d, $
     k1d_bin = k1d_bin, kperp_range_1dave = kperp_range_1dave, kpar_range_1dave = kpar_range_1dave, $
     kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
-    baseline_axis = baseline_axis, delay_axis = delay_axis, hinv = hinv, plot_wedge_line = plot_wedge_line, $
+    baseline_axis = baseline_axis, delay_axis = delay_axis, hinv = hinv, plot_wedge_line = plot_wedge_line, coarse_harm_width = coarse_harm_width, $
     plot_eor_1d = plot_eor_1d, individual_plots = individual_plots, cube_power_info = cube_power_info
     
     
@@ -108,6 +108,15 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
     horizon_amp = wedge_factor * ((file_struct_arr[0].max_theta+90d) * !dpi / 180d)
     
     wedge_amp = [fov_amp, horizon_amp]
+    
+    
+    if keyword_set(coarse_harm_width) then begin
+      harm_freq = 1.28
+      bandwidth = max(file_struct_arr[0].frequencies) - min(file_struct_arr[0].frequencies) + $
+        file_struct_arr[0].frequencies[1] - file_struct_arr[0].frequencies[0]
+      coarse_harm0 = round(bandwidth / harm_freq)
+    endif
+    
   endif
   
   
@@ -150,7 +159,11 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
     note_1d = note_1d + 'kpar: [' + number_formatter(kpar_range_1dave[0]) + ',' + $
       number_formatter(kpar_range_1dave[1]) + ']'
   endif
-  if keyword_set(plot_wedge_line) then wedge_1dbin_names = ['', '_no_fov_wedge', '_no_horizon_wedge'] else wedge_1dbin_names = ''
+  
+  if keyword_set(plot_wedge_line) then begin
+    if keyword_set(coarse_harm_width) then cb_width_name = '_cbw' + number_formatter(coarse_harm_width) else cb_width_name = ''
+    wedge_1dbin_names = ['', '_no_fov_wedge' + cb_width_name, '_no_horizon_wedge' + cb_width_name]
+  endif else wedge_1dbin_names = ''
   
   ;; need general_filebase for 1D plotfiles, make sure it doesn't have a full path
   general_filebase = file_struct_arr(0).general_filebase
@@ -314,7 +327,8 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
           savefile_kpar_power = savefile_kpar_use, savefile_kperp_power = savefile_kperp_use, savefile_k0 = savefile_k0_use, $
           std_power = std_power, no_wtd_avg = no_wtd_avg, no_kzero = no_kzero, sim=sim, $
           log_kpar = log_kpar, log_kperp = log_kperp, kpar_bin = kpar_bin, kperp_bin = kperp_bin, $
-          kperp_range_1dave = kperp_range_1dave, kpar_range_1dave = kpar_range_1dave, wedge_amp = wedge_amp, /quiet
+          kperp_range_1dave = kperp_range_1dave, kpar_range_1dave = kpar_range_1dave, $
+          wedge_amp = wedge_amp, coarse_harm0 = coarse_harm0, coarse_width = coarse_harm_width, /quiet
       endif else $
         ps_power, file_struct_arr[i], kcube_refresh = refresh_ps, refresh_beam = refresh_beam, freq_ch_range = freq_ch_range, $
         freq_flags = freq_flags, spec_window_type = spec_window_type, $
@@ -323,7 +337,8 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
         std_power = std_power, no_wtd_avg = no_wtd_avg, no_kzero = no_kzero, $
         uvf_input = uvf_input, uv_avg = uv_avg, uv_img_clip = uv_img_clip, sim=sim, $
         log_kpar = log_kpar, log_kperp = log_kperp, kpar_bin = kpar_bin, kperp_bin = kperp_bin, $
-        kperp_range_1dave = kperp_range_1dave, kpar_range_1dave = kpar_range_1dave, wedge_amp = wedge_amp, /quiet
+        kperp_range_1dave = kperp_range_1dave, kpar_range_1dave = kpar_range_1dave, $
+        wedge_amp = wedge_amp, coarse_harm0 = coarse_harm0, coarse_width = coarse_harm_width, /quiet
     endif
   endfor
   
