@@ -206,7 +206,7 @@ if [ "$nchunk" -gt "1" ]; then
 	chunk_obs_list=${FHDdir}/Healpix/${version}_int_chunk${chunk}.txt
 	outfile=${FHDdir}/Healpix/${version}_int_chunk${chunk}_out.log
 	errfile=${FHDdir}/Healpix/${version}_int_chunk${chunk}_err.log
-	message=$(qsub ${hold_str} -l h_vmem=$mem,h_stack=512k,h_rt=$wallclock_time -V -v file_path_cubes=$FHDdir,obs_list_path=$chunk_obs_list,version=$version,chunk=$chunk,nslots=$nslots,legacy=$legacy -e $errfile -o $outfile -pe chost $nslots ${PSpath}ps_wrappers/integrate_job.sh)
+	message=$(qsub ${hold_str} -l h_vmem=$mem,h_stack=512k,h_rt=$wallclock_time -V -v file_path_cubes=$FHDdir,obs_list_path=$chunk_obs_list,version=$version,chunk=$chunk,nslots=$nslots,legacy=$legacy -e $errfile -o $outfile -pe chost 12 ${PSpath}ps_wrappers/integrate_job.sh)
 	message=($message)
 	if [ "$chunk" -eq 1 ]; then idlist=${message[2]}; else idlist=${idlist},${message[2]}; fi
 	echo Combined_obs_${version}_int_chunk${chunk} >> $sub_cubes_list # trick it into finding our sub cubes
