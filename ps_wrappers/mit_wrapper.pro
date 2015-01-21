@@ -1,6 +1,6 @@
 pro mit_wrapper, folder_name, obs_name, data_subdirs=data_subdirs, exact_obsnames = exact_obsnames, n_obs=n_obs, rts = rts, $
     refresh_dft = refresh_dft, refresh_info = refresh_info, refresh_ps = refresh_ps, refresh_beam = refresh_beam, $
-    refresh_binning = refresh_binning, refresh_info = refresh_info, pol_inc = pol_inc, no_spec_window = no_spec_window, $
+    refresh_binning = refresh_binning, pol_inc = pol_inc, no_spec_window = no_spec_window, $
     spec_window_type = spec_window_type, sim = sim, freq_ch_range = freq_ch_range, individual_plots = individual_plots, $
     png = png, eps = eps, plot_slices = plot_slices, slice_type = slice_type, uvf_plot_type = uvf_plot_type, plot_stdset = plot_stdset, $
     delta_uv_lambda = delta_uv_lambda, cut_image = cut_image, $
@@ -106,11 +106,13 @@ pro mit_wrapper, folder_name, obs_name, data_subdirs=data_subdirs, exact_obsname
     if keyword_set(sim) then begin
       plot_eor_1d=1
       if n_elements(range_1d) eq 0 then range_1d = [1e0, 1e7]
-    endif else range_1d = [1e4, 1e15]
+    endif
     
     if n_elements(set_data_ranges) eq 0 and not keyword_set(sim) then set_data_ranges = 1
     
     if keyword_set(set_data_ranges) then begin
+      if n_elements(range_1d) eq 0 then range_1d = [1e4, 1e15]
+      
       if keyword_set(obs_info.integrated[0]) then begin
         sigma_range = [2e5, 2e9]
         nev_range = [2e6, 2e10]

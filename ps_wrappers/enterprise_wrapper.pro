@@ -105,11 +105,13 @@ pro enterprise_wrapper, folder_name, obs_name, data_subdirs=data_subdirs, rts = 
     if keyword_set(sim) then begin
       plot_eor_1d=1
       if n_elements(range_1d) eq 0 then range_1d = [1e0, 1e7]
-    endif else range_1d = [1e4, 1e15]
+    endif
     
     if n_elements(set_data_ranges) eq 0 and not keyword_set(sim) then set_data_ranges = 1
     
     if keyword_set(set_data_ranges) then begin
+      if n_elements(range_1d) eq 0 then range_1d = [1e4, 1e15]
+           
       if keyword_set(obs_info.integrated[0]) then sigma_range = [2e0, 2e2] else sigma_range = [1e2, 2e4]
       if keyword_set(obs_info.integrated[0]) then nev_range = [5e0, 2e3] else nev_range = [5e2, 2e5]
       

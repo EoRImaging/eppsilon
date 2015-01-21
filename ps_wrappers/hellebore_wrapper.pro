@@ -98,11 +98,13 @@ pro hellebore_wrapper, folder_name, obs_range, rts = rts, casa = casa, version =
     if keyword_set(sim) then begin
       plot_eor_1d=1
       if n_elements(range_1d) eq 0 then range_1d = [1e5, 1e7]
-    endif else range_1d = [1e4, 1e15]
+    endif
     
     if n_elements(set_data_ranges) eq 0 and not keyword_set(sim) then set_data_ranges = 1
     
     if keyword_set(set_data_ranges) then begin
+      if n_elements(range_1d) eq 0 then range_1d = [1e4, 1e15]
+      
       if keyword_set(sim) then begin
         if n_elements(sigma_range) eq 0 then sigma_range = [7e9, 6e14]
         if n_elements(nev_range) eq 0 then nev_range = [2e10, 4e14]
