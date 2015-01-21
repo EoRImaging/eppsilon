@@ -366,14 +366,21 @@ pro kpower_1d_plots, power_savefile, multi_pos = multi_pos, start_multi_params =
     wh_pos = where(power gt 0d, count_pos)
     if count_pos gt 0 then pos_range = minmax(power[wh_pos])
     if count_neg gt 0 then neg_range = minmax(power[wh_neg])
+    if count_neg + count_pos gt 0 then abs_range = minmax(abs([power[wh_pos], power[wh_neg]]))
     
     if count_pos eq 0 and yaxis_type eq 'clipped_log' then message, 'No positive power and yaxis_type is clipped_log'
+    
+    wh_sigma_n0 = where(sigma_val gt 0, count_sigma_n0)
+    if count_sigma_n0 eq 0 then message, 'sigma is zero everywhere'
+    sigma_pos_range = minmax(sigma_val[wh_sigma_n0])
     
     tag = 'f' + strsplit(string(i),/extract)
     if i eq 0 then begin
       if n_elements(data_range) eq 0 then begin
-        if yaxis_type ne 'clipped_log' then yrange = 10.^([floor(alog10(min(abs(power[wh_non0])))), ceil(alog10(max(abs(power[wh_non0]))))]) $
-        else yrange = 10.^([floor(alog10(min(power[wh_pos]))), ceil(alog10(max(power)))])
+        if yaxis_type ne 'clipped_log' then range_use = pos_range else range_use = abs_range
+        
+        yrange = 10.^([floor(alog10(min([range_use[0], sigma_pos_range[0]]))), $
+          ceil(alog10(max([range_use[1], sigma_pos_range[1]])))])
       endif else begin
         yrange = data_range
       endelse
@@ -396,8 +403,10 @@ pro kpower_1d_plots, power_savefile, multi_pos = multi_pos, start_multi_params =
       
     endif else begin
       if n_elements(data_range) eq 0 then begin
-        if yaxis_type ne 'clipped_log' then yrange = minmax([yrange, 10.^([floor(alog10(min(abs(power[wh_non0])))), ceil(alog10(max(abs(power[wh_non0]))))])]) $
-        else yrange = minmax([yrange, 10.^([floor(alog10(min(power[wh_pos]))), ceil(alog10(max(power)))])])
+        if yaxis_type ne 'clipped_log' then range_use = pos_range else range_use = abs_range
+        
+        yrange = minmax([yrange, 10.^([floor(alog10(min([range_use[0], sigma_pos_range[0]]))), $
+          ceil(alog10(max([range_use[1], sigma_pos_range[1]])))])])
       endif
       if n_elements(k_range) eq 0 then begin
         xrange_new = minmax(k_mid)
