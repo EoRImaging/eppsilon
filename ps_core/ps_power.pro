@@ -382,7 +382,7 @@ pro ps_power, file_struct, refresh = refresh, kcube_refresh = kcube_refresh, dft
     kperp_range = kperp_range_use
     kperp_range_lambda = kperp_range_use * kperp_lambda_conv
     kpar_range = kpar_range_use
-stop    
+    
     save, file = savefile_1d[i], power, noise, weights, noise_expval, k_edges, k_bin, hubble_param, freq_mask, $
       kperp_range, kperp_range_lambda, kpar_range, window_int, wt_ave_power, ave_power, ave_weights, git_hashes
   endfor

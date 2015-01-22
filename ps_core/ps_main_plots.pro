@@ -297,7 +297,6 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
         kperp_range_lambda_used[*,j] = getvar_savefile(savefile_1d_use[j], 'kperp_range_lambda')
         kpar_range_used[*,j] = getvar_savefile(savefile_1d_use[j], 'kpar_range')
       endfor
-stop
       if n_elements(kperp_range_1dave) gt 0 then if max(abs(kperp_range_used - rebin(kperp_range_1dave,2,n_elements(savefile_1d_use)))) gt 0 then test_1d = 0
       if n_elements(kperp_range_lambda_1dave) gt 0 then if max(abs(kperp_range_lambda_used - rebin(kperp_range_lambda_1dave,2,n_elements(savefile_1d_use)))) gt 0 then test_1d = 0
       if n_elements(kpar_range_1dave) gt 0 then if max(abs(kpar_range_used - rebin(kpar_range_1dave,2,n_elements(savefile_1d_use)))) gt 0 then test_1d = 0
@@ -388,7 +387,7 @@ stop
     kperp_plot_range = [5./kperp_lambda_conv, min([file_struct_arr.kspan/2.,file_struct_arr.max_baseline_lambda])/kperp_lambda_conv]
     kperp_plot_range = kperp_plot_range / hubble_param
   endif
-stop  
+  
   if pub then begin
     if n_elements(plot_path) ne 0 then plotfile_path = plot_path $
     else if n_elements(save_path) ne 0 then plotfile_path = save_path else plotfile_path = file_struct_arr.savefile_froot
