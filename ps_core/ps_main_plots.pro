@@ -10,7 +10,7 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
     data_range = data_range, sigma_range = sigma_range, nev_range = nev_range, slice_range = slice_range, $
     snr_range = snr_range, noise_range = noise_range, nnr_range = nnr_range, range_1d = range_1d, $
     log_kpar = log_kpar, log_kperp = log_kperp, kpar_bin = kpar_bin, kperp_bin = kperp_bin, log_k1d = log_k1d, $
-    k1d_bin = k1d_bin, kperp_range_1dave = kperp_range_1dave, kpar_range_1dave = kpar_range_1dave, $
+    k1d_bin = k1d_bin, kperp_range_1dave = kperp_range_1dave, kperp_range_lambda_1dave = kperp_range_lambda_1dave, kpar_range_1dave = kpar_range_1dave, $
     kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
     baseline_axis = baseline_axis, delay_axis = delay_axis, hinv = hinv, plot_wedge_line = plot_wedge_line, coarse_harm_width = coarse_harm_width, $
     plot_eor_1d = plot_eor_1d, individual_plots = individual_plots, cube_power_info = cube_power_info
@@ -146,12 +146,25 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
   
   fadd_1dbin = ''
   if keyword_set(log_k) then fadd_1dbin = fadd_1dbin + '_logk'
+  if n_elements(kperp_range_1dave) gt 1 and n_elements(kperp_range_lambda_1dave) gt 1 then $
+    message, 'both kperp_range_1dave and kperp_range_lambda_1dave cannot be set'
   if n_elements(kperp_range_1dave) gt 1 then begin
     fadd_1dbin = fadd_1dbin + '_kperp' + number_formatter(kperp_range_1dave[0]) + '-' + $
       number_formatter(kperp_range_1dave[1])
     note_1d = 'kperp: [' + number_formatter(kperp_range_1dave[0]) + ',' + $
       number_formatter(kperp_range_1dave[1]) + ']'
-  endif
+  endif else begin
+    if n_elements(kperp_range_lambda_1dave) gt 1 then begin
+      fadd_1dbin = fadd_1dbin + '_kperplambda' + number_formatter(kperp_range_1dave[0]) + '-' + $
+        number_formatter(kperp_range_1dave[1])
+      note_1d = 'kperp: [' + number_formatter(kperp_range_1dave[0]) + ',' + $
+        number_formatter(kperp_range_1dave[1]) + ']'
+    endif else begin
+      ;; if no range set default to same range as is used in 2D plots
+      kperp_range_lambda_1dave = [5., min([file_struct_arr.kspan/2.,file_struct_arr.max_baseline_lambda])]
+    endelse
+  endelse
+  
   if n_elements(kpar_range_1dave) gt 1 then begin
     fadd_1dbin = fadd_1dbin + '_kpar' + number_formatter(kpar_range_1dave[0]) + '-' + $
       number_formatter(kpar_range_1dave[1])
@@ -273,34 +286,45 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
       if total(abs(old_freq_mask - rebin(file_struct_arr[i].freq_mask, n_elements(file_struct_arr[i].freq_mask), n_elements(savefile_1d_use)))) ne 0 then test_1d = 0
     endif
     
-    if test_1d gt 0 and (n_elements(kperp_range_1dave) gt 0 or n_elements(kpar_range_1dave) gt 0) then begin
+    if test_1d gt 0 and (n_elements(kperp_range_1dave) gt 0 or n_elements(kperp_range_lambda_1dave) gt 0 $
+      or n_elements(kpar_range_1dave) gt 0) then begin
       ;; check that 1d binning was over correct ranges
       kperp_range_used = fltarr(2, n_elements(savefile_1d_use))
+      kperp_range_lambda_used = fltarr(2, n_elements(savefile_1d_use))
       kpar_range_used = fltarr(2, n_elements(savefile_1d_use))
-      for j=0, n_elements(savefile_1d_use) do begin
+      for j=0, n_elements(savefile_1d_use)-1 do begin
         kperp_range_used[*,j] = getvar_savefile(savefile_1d_use[j], 'kperp_range')
+        kperp_range_lambda_used[*,j] = getvar_savefile(savefile_1d_use[j], 'kperp_range_lambda')
         kpar_range_used[*,j] = getvar_savefile(savefile_1d_use[j], 'kpar_range')
       endfor
+stop
       if n_elements(kperp_range_1dave) gt 0 then if max(abs(kperp_range_used - rebin(kperp_range_1dave,2,n_elements(savefile_1d_use)))) gt 0 then test_1d = 0
+      if n_elements(kperp_range_lambda_1dave) gt 0 then if max(abs(kperp_range_lambda_used - rebin(kperp_range_lambda_1dave,2,n_elements(savefile_1d_use)))) gt 0 then test_1d = 0
       if n_elements(kpar_range_1dave) gt 0 then if max(abs(kpar_range_used - rebin(kpar_range_1dave,2,n_elements(savefile_1d_use)))) gt 0 then test_1d = 0
     endif
     
     if keyword_set(plot_kpar_power) then begin
-      if test_kpar gt 0 and (n_elements(kperp_range_1dave) gt 0 or n_elements(kpar_range_1dave) gt 0) then begin
+      if test_kpar gt 0 and (n_elements(kperp_range_1dave) gt 0 or n_elements(kperp_range_lambda_1dave) gt 0 $
+        or n_elements(kpar_range_1dave) gt 0) then begin
         ;; check that 1d binning was over correct ranges
         kperp_range_used = getvar_savefile(savefile_kpar_use, 'kperp_range')
+        kperp_range_lambda_used = fltarr(2, n_elements(savefile_1d_use))
         kpar_range_used = getvar_savefile(savefile_kpar_use, 'kpar_range')
         if n_elements(kperp_range_1dave) gt 0 then if max(abs(kperp_range_used - kperp_range_1dave)) gt 0 then test_kpar = 0
+        if n_elements(kperp_range_lambda_1dave) gt 0 then if max(abs(kperp_range_lambda_used - rebin(kperp_range_lambda_1dave,2,n_elements(savefile_1d_use)))) gt 0 then test_1d = 0
         if n_elements(kpar_range_1dave) gt 0 then if max(abs(kpar_range_used - kpar_range_1dave)) gt 0 then test_kpar = 0
       endif
     endif
     
     if keyword_set(plot_kperp_power) then begin
-      if test_kperp gt 0 and (n_elements(kperp_range_1dave) gt 0 or n_elements(kpar_range_1dave) gt 0) then begin
+      if test_kperp gt 0 and (n_elements(kperp_range_1dave) gt 0 or n_elements(kperp_range_lambda_1dave) gt 0 $
+        or n_elements(kpar_range_1dave) gt 0) then begin
         ;; check that 1d binning was over correct ranges
         kperp_range_used = getvar_savefile(savefile_kperp_use, 'kperp_range')
+        kperp_range_lambda_used = fltarr(2, n_elements(savefile_1d_use))
         kpar_range_used = getvar_savefile(savefile_kperp_use, 'kpar_range')
         if n_elements(kperp_range_1dave) gt 0 then if max(abs(kperp_range_used - kperp_range_1dave)) gt 0 then test_kperp = 0
+        if n_elements(kperp_range_lambda_1dave) gt 0 then if max(abs(kperp_range_lambda_used - rebin(kperp_range_lambda_1dave,2,n_elements(savefile_1d_use)))) gt 0 then test_1d = 0
         if n_elements(kpar_range_1dave) gt 0 then if max(abs(kpar_range_used - kpar_range_1dave)) gt 0 then test_kperp = 0
       endif
     endif
@@ -327,7 +351,7 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
           savefile_kpar_power = savefile_kpar_use, savefile_kperp_power = savefile_kperp_use, savefile_k0 = savefile_k0_use, $
           std_power = std_power, no_wtd_avg = no_wtd_avg, no_kzero = no_kzero, sim=sim, $
           log_kpar = log_kpar, log_kperp = log_kperp, kpar_bin = kpar_bin, kperp_bin = kperp_bin, $
-          kperp_range_1dave = kperp_range_1dave, kpar_range_1dave = kpar_range_1dave, $
+          kperp_range_1dave = kperp_range_1dave, kperp_range_lambda_1dave = kperp_range_lambda_1dave, kpar_range_1dave = kpar_range_1dave, $
           wedge_amp = wedge_amp, coarse_harm0 = coarse_harm0, coarse_width = coarse_harm_width, /quiet
       endif else $
         ps_power, file_struct_arr[i], kcube_refresh = refresh_ps, refresh_beam = refresh_beam, freq_ch_range = freq_ch_range, $
@@ -337,7 +361,7 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
         std_power = std_power, no_wtd_avg = no_wtd_avg, no_kzero = no_kzero, $
         uvf_input = uvf_input, uv_avg = uv_avg, uv_img_clip = uv_img_clip, sim=sim, $
         log_kpar = log_kpar, log_kperp = log_kperp, kpar_bin = kpar_bin, kperp_bin = kperp_bin, $
-        kperp_range_1dave = kperp_range_1dave, kpar_range_1dave = kpar_range_1dave, $
+        kperp_range_1dave = kperp_range_1dave, kperp_range_lambda_1dave = kperp_range_lambda_1dave, kpar_range_1dave = kpar_range_1dave, $
         wedge_amp = wedge_amp, coarse_harm0 = coarse_harm0, coarse_width = coarse_harm_width, /quiet
     endif
   endfor
@@ -352,20 +376,9 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
   
   if n_elements(git_hashes) ne 0 then print, 'kcube hash: ' + git_hashes.kcube
   
-  ;;   baselines = get_baselines(/quiet, freq_mhz = 185)
-  ;;   quick_histplot, baselines, title = spec_window_type, xstyle=1, ystyle = 8, xrange = [0, max(kperp_edges)*kperp_lambda_conv], $
-  ;;                   position = [.1, .1, .9, .9], ytitle = 'number of baselines', xtitle = 'Baseline length ' + textoidl('(\lambda)')
-  
-  ;;   cgaxis, yaxis=1, /ylog, yrange = [1e6, 1e12] , ytitle = 'noise power', /save
-  ;;   cgplot, kperp_edges[1:*]*kperp_lambda_conv, 1/sqrt(weights[*,24]), /overplot, color='blue'
-  ;;   cgplot, kperp_edges[1:*]*kperp_lambda_conv, noise[*,24], /overplot, color='red'
-  
-  ;;   ;;cgplot, kperp_edges[1:*]*kperp_lambda_conv, total(noise,2)/(n_elements(kpar_edges)-1), /overplot, color='black', linestyle = 2
-  ;;   al_legend, ['expected', 'observed'], textcolor=['blue','red'], /right, box=0
-  ;; stop
-  
   wh_good_kperp = where(total(power, 2) gt 0, count)
   if count eq 0 then stop
+  
   ;;kperp_plot_range = [min(kperp_edges[wh_good_kperp]), max(kperp_edges[wh_good_kperp+1])]
   
   ;;kperp_plot_range = [6e-3, min([max(kperp_edges[wh_good_kperp+1]),1.1e-1])]
@@ -375,7 +388,7 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
     kperp_plot_range = [5./kperp_lambda_conv, min([file_struct_arr.kspan/2.,file_struct_arr.max_baseline_lambda])/kperp_lambda_conv]
     kperp_plot_range = kperp_plot_range / hubble_param
   endif
-  
+stop  
   if pub then begin
     if n_elements(plot_path) ne 0 then plotfile_path = plot_path $
     else if n_elements(save_path) ne 0 then plotfile_path = save_path else plotfile_path = file_struct_arr.savefile_froot
