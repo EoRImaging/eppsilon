@@ -1,11 +1,12 @@
-pro mit_wrapper, folder_name, obs_name, data_subdirs=data_subdirs, n_obs=n_obs, rts = rts, refresh_dft = refresh_dft, refresh_ps = refresh_ps, $
-    refresh_binning = refresh_binning, refresh_info = refresh_info, refresh_beam = refresh_beam, pol_inc = pol_inc, no_spec_window = no_spec_window, $
+pro mit_wrapper, folder_name, obs_name, data_subdirs=data_subdirs, exact_obsnames = exact_obsnames, n_obs=n_obs, rts = rts, $
+    refresh_dft = refresh_dft, refresh_info = refresh_info, refresh_ps = refresh_ps, refresh_beam = refresh_beam, $
+    refresh_binning = refresh_binning, pol_inc = pol_inc, no_spec_window = no_spec_window, $
     spec_window_type = spec_window_type, sim = sim, freq_ch_range = freq_ch_range, individual_plots = individual_plots, $
     png = png, eps = eps, plot_slices = plot_slices, slice_type = slice_type, uvf_plot_type = uvf_plot_type, plot_stdset = plot_stdset, $
     delta_uv_lambda = delta_uv_lambda, cut_image = cut_image, $
     plot_kpar_power = plot_kpar_power, plot_kperp_power = plot_kperp_power, plot_k0_power = plot_k0_power, plot_noise_1d = plot_noise_1d, $
-    coarse_harm_width = coarse_harm_width, $
-    kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, set_data_ranges = set_data_ranges, exact_obsnames = exact_obsnames
+    kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, coarse_harm_width = coarse_harm_width, $
+    set_data_ranges = set_data_ranges, range_1d = range_1d
     
   ;; The only required input is the datafile name (including the full path)
     
@@ -110,6 +111,8 @@ pro mit_wrapper, folder_name, obs_name, data_subdirs=data_subdirs, n_obs=n_obs, 
     if n_elements(set_data_ranges) eq 0 and not keyword_set(sim) then set_data_ranges = 1
     
     if keyword_set(set_data_ranges) then begin
+      if n_elements(range_1d) eq 0 then range_1d = [1e4, 1e15]
+      
       if keyword_set(obs_info.integrated[0]) then begin
         sigma_range = [2e5, 2e9]
         nev_range = [2e6, 2e10]
