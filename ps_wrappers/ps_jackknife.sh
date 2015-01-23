@@ -78,6 +78,9 @@ if [ ! -z ${ptsrc_wedge_y_min} ]; then psql_call="${psql_call} and ptsrc_wedge_y
 if [ ! -z ${ptsrc_wedge_y_max} ]; then psql_call="${psql_call} and ptsrc_wedge_y <= ${ptsrc_wedge_y_max}"; fi
 if [ ! -z ${ptsrc_wedge_tot_min} ]; then psql_call="${psql_call} and ptsrc_wedge_x+ptsrc_wedge_y >= ${ptsrc_wedge_tot_min}"; fi
 if [ ! -z ${ptsrc_wedge_tot_max} ]; then psql_call="${psql_call} and ptsrc_wedge_x+ptsrc_wedge_y <= ${ptsrc_wedge_tot_max}"; fi
+
+if [ ! -z ${window_yx_min} ]; then psql_call="${psql_call} and window_y >= ${window_yx_min}*window_x"; fi
+if [ ! -z ${window_yx_max} ]; then psql_call="${psql_call} and window_y <= ${window_yx_max}*window_x"; fi
 # use psql_call to trim the list
 # if you didn't make any wedge cuts, skip this part because obsids aren't in the table until wedgie has done its thing
 if [ "${psql_call}" != "select obsid from qs where obsid in ${full_obs_list}" ]; then
@@ -160,6 +163,8 @@ ${PSpath}ps_wrappers/ps_script.sh -d ${FHDdir} -f ${obsfile} -p ${priority} -w $
 ### database options
 ## Danny stats options
 # (window/wedge_res/gal_wedge/ptsrc_wedge)_(x/y/tot)_(min/max)    : various combinations of power in different places, polarizations, and min/max.
+# window_yx_min			: minimum for ratio window_y/window_x
+# window_yx_max			: maximum for ratio window_y/window_x
 ## Observation options
 # pointing_min                  : Minimum pointing to include (counting negative before zenith, zenith=0, positive after zen)
 # pointing_max                  : Maximum pointing
