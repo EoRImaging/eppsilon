@@ -366,7 +366,8 @@ pro kpower_1d_plots, power_savefile, multi_pos = multi_pos, start_multi_params =
     wh_pos = where(power gt 0d, count_pos)
     if count_pos gt 0 then pos_range = minmax(power[wh_pos])
     if count_neg gt 0 then neg_range = minmax(power[wh_neg])
-    if count_neg + count_pos gt 0 then abs_range = minmax(abs([power[wh_pos], power[wh_neg]]))
+    wh_n0 = where(abs(power) gt 0d, count_n0)
+    if count_n0 gt 0 then abs_range = minmax(abs(power[wh_n0]))
     
     if count_pos eq 0 and yaxis_type eq 'clipped_log' then message, 'No positive power and yaxis_type is clipped_log'
     

@@ -8,7 +8,7 @@ pro ps_power, file_struct, refresh = refresh, kcube_refresh = kcube_refresh, dft
     spec_window_type = spec_window_type, delta_uv_lambda = delta_uv_lambda, max_uv_lambda = max_uv_lambda, $
     std_power = std_power, no_wtd_avg = no_wtd_avg, no_kzero = no_kzero, log_kpar = log_kpar, $
     log_kperp = log_kperp, kperp_bin = kperp_bin, kpar_bin = kpar_bin, log_k1d = log_k1d, k1d_bin = k1d_bin, $
-    kperp_range_1dave = kperp_range_1dave, kpar_range_1dave = kpar_range_1dave, $
+    kperp_range_1dave = kperp_range_1dave, kperp_range_lambda_1dave = kperp_range_lambda_1dave, kpar_range_1dave = kpar_range_1dave, $
     wedge_amp = wedge_amp, coarse_harm0 = coarse_harm0, coarse_width = coarse_width, $
     input_units = input_units, fill_holes = fill_holes, quiet = quiet
     
@@ -348,6 +348,7 @@ pro ps_power, file_struct, refresh = refresh, kcube_refresh = kcube_refresh, dft
   print, 'Binning to 1D power spectrum'
   
   if keyword_set(kperp_range_1dave) then kperp_range_use = kperp_range_1dave
+  if keyword_set(kperp_range_lambda_1dave) then kperp_range_use = kperp_range_lambda_1dave / kperp_lambda_conv
   if keyword_set(kpar_range_1dave) then kpar_range_use = kpar_range_1dave
   
   if n_elements(savefile_1d) ne n_elements(wedge_amp)+1 then message, 'number of elements in savefile_1d must be 1 larger than number of elements in wedge_amp'
@@ -357,7 +358,7 @@ pro ps_power, file_struct, refresh = refresh, kcube_refresh = kcube_refresh, dft
       wedge_amp_use = wedge_amp[i-1]
       if n_elements(coarse_harm0) gt 0 then begin
         coarse_harm0_use = coarse_harm0
-        coarse_width_use = coarse_width
+        coarse_width_use = coarse_widthd
       endif
     endif
     
@@ -379,10 +380,11 @@ pro ps_power, file_struct, refresh = refresh, kcube_refresh = kcube_refresh, dft
     k_bin = k1d_bin
     noise_expval = noise_expval_1d
     kperp_range = kperp_range_use
+    kperp_range_lambda = kperp_range_use * kperp_lambda_conv
     kpar_range = kpar_range_use
     
     save, file = savefile_1d[i], power, noise, weights, noise_expval, k_edges, k_bin, hubble_param, freq_mask, $
-      kperp_range, kpar_range, window_int, wt_ave_power, ave_power, ave_weights, git_hashes
+      kperp_range, kperp_range_lambda, kpar_range, window_int, wt_ave_power, ave_power, ave_weights, git_hashes
   endfor
   
   if not keyword_set(quiet) then begin
@@ -407,10 +409,11 @@ pro ps_power, file_struct, refresh = refresh, kcube_refresh = kcube_refresh, dft
   k_bin = kpar_bin
   noise_expval = noise_expval_kpar
   kperp_range = kperp_range_use
+  kperp_range_lambda = kperp_range_use * kperp_lambda_conv
   kpar_range = kpar_range_use
   
   save, file = savefile_kpar_power, power, noise, weights, noise_expval, k_edges, k_bin, hubble_param, freq_mask, $
-    kperp_range, kpar_range, window_int, wt_ave_power, ave_power, ave_weights, git_hashes
+    kperp_range, kperp_range_lambda, kpar_range, window_int, wt_ave_power, ave_power, ave_weights, git_hashes
   ;; bin just in kperp for diagnostic plot
     
   power_kperp = kspace_rebinning_1d(power_3d, kx_mpc, ky_mpc, kz_mpc, kperp_edges_mpc, k_bin = kperp_bin, log_k = log_k1d, $
@@ -429,8 +432,9 @@ pro ps_power, file_struct, refresh = refresh, kcube_refresh = kcube_refresh, dft
   k_bin = kperp_bin
   noise_expval = noise_expval_kperp
   kperp_range = kperp_range_use
+  kperp_range_lambda = kperp_range_use * kperp_lambda_conv
   kpar_range = kpar_range_use
   
   save, file = savefile_kperp_power, power, noise, weights, noise_expval, k_edges, k_bin, hubble_param, freq_mask, $
-    kperp_range, kpar_range, window_int, wt_ave_power, ave_power, ave_weights, git_hashes
+    kperp_range, kperp_range_lambda, kpar_range, window_int, wt_ave_power, ave_power, ave_weights, git_hashes
 end
