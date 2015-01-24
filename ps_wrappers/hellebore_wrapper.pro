@@ -6,7 +6,8 @@ pro hellebore_wrapper, folder_name, obs_range, rts = rts, casa = casa, version =
     plot_slices = plot_slices, slice_type = slice_type, uvf_plot_type = uvf_plot_type, plot_stdset = plot_stdset, $
     plot_kpar_power = plot_kpar_power, plot_kperp_power = plot_kperp_power, plot_k0_power = plot_k0_power, plot_noise_1d = plot_noise_1d, $
     coarse_harm_width = coarse_harm_width, $
-    kperp_range_1dave = kperp_range_1dave, kpar_range_1dave = kpar_range_1dave, uv_avg = uv_avg, uv_img_clip = uv_img_clip,$
+    kperp_range_1dave = kperp_range_1dave, kperp_range_lambda_1dave = kperp_range_lambda_1dave, kpar_range_1dave = kpar_range_1dave, $
+    uv_avg = uv_avg, uv_img_clip = uv_img_clip,$
     kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, $
     t32 = t32, set_data_ranges = set_data_ranges, plot_ranges = plot_ranges, slice_range = slice_range, cube_power_info = cube_power_info
     
@@ -241,7 +242,8 @@ pro hellebore_wrapper, folder_name, obs_range, rts = rts, casa = casa, version =
     no_spec_window = no_spec_window, spec_window_type = spec_window_type, std_power = std_power, no_wtd_avg = no_wtd_avg, $
     sim = sim, cut_image = cut_image, dft_ian = dft_ian, uvf_input = uvf_input, uv_avg = uv_avg, uv_img_clip = uv_img_clip, $
     log_kpar = log_kpar, log_kperp = log_kperp, kpar_bin = kpar_bin, kperp_bin = kperp_bin, $
-    log_k1d = log_k1d, k1d_bin = k1d_bin, kperp_range_1dave = kperp_range_1dave, kpar_range_1dave = kpar_range_1dave,$
+    log_k1d = log_k1d, k1d_bin = k1d_bin, $
+    kperp_range_1dave = kperp_range_1dave, kperp_range_lambda_1dave = kperp_range_lambda_1dave, kpar_range_1dave = kpar_range_1dave, $
     kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
     plot_slices = plot_slices, slice_type = slice_type, uvf_plot_type = uvf_plot_type, plot_stdset = plot_stdset, $
     plot_kpar_power = plot_kpar_power, plot_kperp_power = plot_kperp_power, plot_k0_power = plot_k0_power, plot_noise_1d = plot_noise_1d, $
