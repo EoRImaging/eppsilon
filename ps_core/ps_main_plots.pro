@@ -12,7 +12,8 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
     log_kpar = log_kpar, log_kperp = log_kperp, kpar_bin = kpar_bin, kperp_bin = kperp_bin, log_k1d = log_k1d, $
     k1d_bin = k1d_bin, kperp_range_1dave = kperp_range_1dave, kperp_range_lambda_1dave = kperp_range_lambda_1dave, kpar_range_1dave = kpar_range_1dave, $
     kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
-    baseline_axis = baseline_axis, delay_axis = delay_axis, hinv = hinv, plot_wedge_line = plot_wedge_line, coarse_harm_width = coarse_harm_width, $
+    baseline_axis = baseline_axis, delay_axis = delay_axis, hinv = hinv, $
+    plot_wedge_line = plot_wedge_line, wedge_angles = wedge_angles, coarse_harm_width = coarse_harm_width, $
     plot_eor_1d = plot_eor_1d, individual_plots = individual_plots, cube_power_info = cube_power_info
     
     
@@ -108,7 +109,12 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
     horizon_amp = wedge_factor * ((file_struct_arr[0].max_theta+90d) * !dpi / 180d)
     
     wedge_amp = [fov_amp, horizon_amp]
-    
+    wedge_names = ['fov', 'horizon']
+    if n_elements(wedge_angles) gt 0 then begin
+      if min(wedge_angles) le 0 or max(wedge_angles) ge 180 then message, 'wedge_angles must be in degrees and between 0 & 180'
+      wedge_amp = [wedge_amp, wedge_factor * (wedge_angles*!dpi / 180d)]
+      wedge_names = [wedge_names, number_formatter(wedge_angles) + 'deg']
+    endif
     
     if keyword_set(coarse_harm_width) then begin
       harm_freq = 1.28
@@ -175,7 +181,7 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
   
   if keyword_set(plot_wedge_line) then begin
     if keyword_set(coarse_harm_width) then cb_width_name = '_cbw' + number_formatter(coarse_harm_width) else cb_width_name = ''
-    wedge_1dbin_names = ['', '_no_fov_wedge' + cb_width_name, '_no_horizon_wedge' + cb_width_name]
+    wedge_1dbin_names = ['', '_no_' + wedge_names + '_wedge' + cb_width_name]
   endif else wedge_1dbin_names = ''
   
   ;; need general_filebase for 1D plotfiles, make sure it doesn't have a full path
