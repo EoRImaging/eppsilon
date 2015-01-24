@@ -6,7 +6,7 @@ pro mit_wrapper, folder_name, obs_name, data_subdirs=data_subdirs, exact_obsname
     delta_uv_lambda = delta_uv_lambda, cut_image = cut_image, $
     kperp_range_1dave = kperp_range_1dave, kperp_range_lambda_1dave = kperp_range_lambda_1dave, kpar_range_1dave = kpar_range_1dave, $
     plot_kpar_power = plot_kpar_power, plot_kperp_power = plot_kperp_power, plot_k0_power = plot_k0_power, plot_noise_1d = plot_noise_1d, $
-    kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, coarse_harm_width = coarse_harm_width, $
+    kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, wedge_angles = wedge_angles, coarse_harm_width = coarse_harm_width, $
     set_data_ranges = set_data_ranges, range_1d = range_1d
     
   ;; The only required input is the datafile name (including the full path)
@@ -209,7 +209,7 @@ pro mit_wrapper, folder_name, obs_name, data_subdirs=data_subdirs, exact_obsname
     plot_kpar_power = plot_kpar_power, plot_kperp_power = plot_kperp_power, plot_k0_power = plot_k0_power, plot_noise_1d = plot_noise_1d, $
     data_range = data_range, sigma_range = sigma_range, nev_range = nev_range, snr_range = snr_range, noise_range = noise_range, nnr_range = nnr_range, $
     range_1d = range_1d, baseline_axis = baseline_axis, delay_axis = delay_axis, hinv = hinv, note = note, $
-    plot_wedge_line = plot_wedge_line, coarse_harm_width = coarse_harm_width, plot_eor_1d = plot_eor_1d, $
+    plot_wedge_line = plot_wedge_line, wedge_angles = wedge_angles, coarse_harm_width = coarse_harm_width, plot_eor_1d = plot_eor_1d, $
     individual_plots = individual_plot, png = png, eps = eps
     
   if not keyword_set(set_data_ranges) then begin

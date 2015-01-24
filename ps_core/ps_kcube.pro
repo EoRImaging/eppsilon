@@ -145,6 +145,7 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
   
   if n_elements(vis_sigma_ian) gt 0 then begin
     if max(vis_sigma_ian) gt 5. then begin
+      if n_elements(freq_ch_range) ne 0 then vis_sigma_ian = vis_sigma_ian[min(freq_ch_range):max(freq_ch_range)]
       vis_sigma = vis_sigma_ian
       vs_name = 'ian'
     endif
@@ -409,9 +410,10 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
           endif else begin
             ;;delta_kperp_rad = file_struct.kpix * z_mpc_mean / kperp_lambda_conv
           
-            if n_elements(delta_uv_lambda) gt 0 then delta_kperp_rad = delta_uv_lambda * (2.*!pi) $
-            else delta_kperp_rad = uv_cellsize_m * mean(frequencies*1e6) * (2.*!pi) / (3e8)
-            
+            if n_elements(delta_uv_lambda) gt 0 then delta_kperp_rad = delta_uv_lambda * (2.*!pi) else begin
+              if n_elements(freq_ch_range) gt 0 then delta_kperp_rad = uv_cellsize_m * mean(file_struct.frequencies*1e6) * (2.*!pi) / (3e8) $
+              else delta_kperp_rad = uv_cellsize_m * mean(frequencies*1e6) * (2.*!pi) / (3e8)
+            endelse
             ;; go a little beyond max_baseline to account for expansion due to w projection
             ;; max_kperp_rad = (file_struct.max_baseline_lambda/kperp_lambda_conv) * z_mpc_mean * 1.1
             ;; use kspan of Ian's cubes
@@ -644,7 +646,7 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
       endelse
     endfor
   endif
-  
+
   if healpix or not keyword_set(uvf_input) then begin
     if keyword_set(dft_ian) then begin
       n_kx = n_elements(u_lambda_vals)
