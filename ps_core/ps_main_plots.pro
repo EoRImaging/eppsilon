@@ -155,10 +155,10 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
       number_formatter(kperp_range_1dave[1]) + ']'
   endif else begin
     if n_elements(kperp_range_lambda_1dave) gt 1 then begin
-      fadd_1dbin = fadd_1dbin + '_kperplambda' + number_formatter(kperp_range_1dave[0]) + '-' + $
-        number_formatter(kperp_range_1dave[1])
-      note_1d = 'kperp: [' + number_formatter(kperp_range_1dave[0]) + ',' + $
-        number_formatter(kperp_range_1dave[1]) + ']'
+      fadd_1dbin = fadd_1dbin + '_kperplambda' + number_formatter(kperp_range_lambda_1dave[0]) + '-' + $
+        number_formatter(kperp_range_lambda_1dave[1])
+      note_1d = 'kperp: [' + number_formatter(kperp_range_lambda_1dave[0]) + ',' + $
+        number_formatter(kperp_range_lambda_1dave[1]) + ']'
     endif else begin
       ;; if no range set default to same range as is used in 2D plots
       kperp_range_lambda_1dave = [5., min([file_struct_arr.kspan/2.,file_struct_arr.max_baseline_lambda])]
