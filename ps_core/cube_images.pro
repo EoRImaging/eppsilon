@@ -80,7 +80,7 @@ pro cube_images, folder_names, obs_info, nvis_norm = nvis_norm, pols = pols, cub
   max_type = n_elements(cube_types)-1
   max_pol = n_elements(pols)-1
   max_eo = n_elements(evenodd)-1
-  max_cube = max_eo+max_pol+max_type+max_file
+  max_cube = max([max_eo, max_pol, max_type, max_file])
   
   if keyword_set(rts) then pixel_varnames = strarr(n_elements(filenames)) + 'pixel_nums' $
   else pixel_varnames = strarr(n_elements(filenames)) + 'hpx_inds'
