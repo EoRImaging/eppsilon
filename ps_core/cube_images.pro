@@ -80,7 +80,6 @@ pro cube_images, folder_names, obs_info, nvis_norm = nvis_norm, pols = pols, cub
   max_type = n_elements(cube_types)-1
   max_pol = n_elements(pols)-1
   max_eo = n_elements(evenodd)-1
-  max_cube = max([max_eo, max_pol, max_type, max_file])
   
   if keyword_set(rts) then pixel_varnames = strarr(n_elements(filenames)) + 'pixel_nums' $
   else pixel_varnames = strarr(n_elements(filenames)) + 'hpx_inds'
@@ -192,7 +191,7 @@ pro cube_images, folder_names, obs_info, nvis_norm = nvis_norm, pols = pols, cub
     n_freq2 = (size(cube2,/dimension))[1]
     if n_freq1 ne n_freq2 then message, 'number of frequencies do not match between the 2 files'
     if keyword_set(nvis_norm) then begin
-      if obs_info.integrated[max_cube] eq 1 then obs_varname = 'obs_arr' else obs_varname = 'obs'
+      if obs_info.integrated[max_file] eq 1 then obs_varname = 'obs_arr' else obs_varname = 'obs'
       obs_arr1 = getvar_savefile(filenames[max_file], obs_varname)
       nvis_freq = obs_arr1.nf_vis
       nvis_dims = size(nvis_freq, /dimension)
