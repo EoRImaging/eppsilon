@@ -1,8 +1,9 @@
 pro cube_images, folder_names, obs_info, nvis_norm = nvis_norm, pols = pols, cube_types = cube_types, evenodd = evenodd, $
-    png = png, eps = eps, pdf = pdf, slice_range = slice_range, ratio = ratio, diff_ratio = diff_ratio, diff_frac = diff_frac, $
+    png = png, eps = eps, pdf = pdf, slice_range = slice_range, sr2 = sr2, $
+    ratio = ratio, diff_ratio = diff_ratio, diff_frac = diff_frac, $
     log = log, data_range = data_range, color_profile = color_profile, sym_color = sym_color, $
     window_num = window_num, plot_as_map = plot_as_map
-        
+    
   filenames = strarr(max([n_elements(obs_info.obs_names), n_elements(evenodd)]))
   
   if n_elements(cube_types) eq 0 then cube_types = 'res'
@@ -10,7 +11,12 @@ pro cube_images, folder_names, obs_info, nvis_norm = nvis_norm, pols = pols, cub
   if n_elements(pols) eq 0 then pols = 'xx'
   if n_elements(pols) gt 2 then message, 'No more than 2 pols can be supplied'
   
-  n_cubes = max([n_elements(filenames), n_elements(cube_types), n_elements(pols)])
+  if n_elements(sr2) gt 0 then begin
+    if n_elements(slice_range) eq 0 then message, 'sr2 can only be set if slice_range is also set'
+    if max(sr2) eq max(slice_range) and min(sr2) eq min(slice_range) then n_slice_range = 1 else n_slice_range = 2
+  endif else n_slice_range = 1
+  
+  n_cubes = max([n_elements(filenames), n_elements(cube_types), n_elements(pols), n_slice_range])
   
   if keyword_set(ratio) and keyword_set(diff_ratio) then message, 'only one of ratio & diff_ratio keywords can be set'
   
@@ -74,18 +80,7 @@ pro cube_images, folder_names, obs_info, nvis_norm = nvis_norm, pols = pols, cub
   max_type = n_elements(cube_types)-1
   max_pol = n_elements(pols)-1
   max_eo = n_elements(evenodd)-1
-  
-  
-  ;; title to use:
-  if n_cubes gt 1 then begin
-    if keyword_set(ratio) then cube_op = '/' else cube_op = '-'
-    
-    if n_elements(folder_names) eq 1 then diff_title = evenodd[0] + '_' + cube_types[0] + '_' + pols[0] + $
-      cube_op + evenodd[max_eo] + '_' + cube_types[max_type] + '_' + pols[max_pol] $
-    else $
-      diff_title = evenodd[0] + '_' + cube_types[0] + '_' + pols[0] + $
-      cube_op + evenodd[max_eo] + '_' + cube_types[max_type] + '_' + pols[max_pol]
-  endif else diff_title = evenodd[0] + '_' + cube_types[0] + '_' + pols[0]
+  max_cube = max_eo+max_pol+max_type+max_file
   
   if keyword_set(rts) then pixel_varnames = strarr(n_elements(filenames)) + 'pixel_nums' $
   else pixel_varnames = strarr(n_elements(filenames)) + 'hpx_inds'
@@ -197,13 +192,13 @@ pro cube_images, folder_names, obs_info, nvis_norm = nvis_norm, pols = pols, cub
     n_freq2 = (size(cube2,/dimension))[1]
     if n_freq1 ne n_freq2 then message, 'number of frequencies do not match between the 2 files'
     if keyword_set(nvis_norm) then begin
-      if obs_info.integrated[1] eq 1 then obs_varname = 'obs_arr' else obs_varname = 'obs'
-      obs_arr1 = getvar_savefile(filenames[1], obs_varname)
+      if obs_info.integrated[max_cube] eq 1 then obs_varname = 'obs_arr' else obs_varname = 'obs'
+      obs_arr1 = getvar_savefile(filenames[max_file], obs_varname)
       nvis_freq = obs_arr1.nf_vis
       nvis_dims = size(nvis_freq, /dimension)
       if n_elements(nvis_dims) eq 2 then nvis_freq = total(nvis_freq, 2)
       
-      n_avg = getvar_savefile(filenames[1], 'n_avg')
+      n_avg = getvar_savefile(filenames[max_file], 'n_avg')
       n_freqbins = nvis_dims[0] / n_avg
       inds_arr = indgen(nvis_dims[0])
       if n_avg gt 1 then begin
@@ -214,7 +209,8 @@ pro cube_images, folder_names, obs_info, nvis_norm = nvis_norm, pols = pols, cub
           else n_vis_freq_avg[i] = total(nvis_freq[inds_use])
         endfor
       endif else n_vis_freq_avg = nvis_freq
-      cube2 = cube2 / rebin(reform(n_vis_freq_avg, 1, 1, n_freq2), n_elements(hpx_inds2), n_freq2)
+      if n_elements(filenames) eq 2 then cube2 = cube2 / rebin(reform(n_vis_freq_avg, 1, 1, n_freq2), n_elements(hpx_inds2), n_freq2) $
+      else cube2 = cube2 / rebin(reform(n_vis_freq_avg, 1, 1, n_freq2), n_elements(hpx_inds1), n_freq2)
     endif
   endif
   
@@ -240,10 +236,58 @@ pro cube_images, folder_names, obs_info, nvis_norm = nvis_norm, pols = pols, cub
     end
   endcase
   
+  if n_slice_range eq 2 then begin
+    case n_elements(sr2) of
+      1: begin
+        title_range = [title_range, 'slice ' + number_formatter(sr2)]
+      end
+      2: begin
+        if min(sr2) lt 0 then message, 'sr2 cannot be less than zero'
+        if max(sr2) ge n_freq1 then message, 'sr2 cannot be more than ' + number_formatter(n_freq1-1)
+        if sr2[1] lt sr2[0] then message, 'sr2[1] cannot be less than sr2[0]'
+        
+        title_range = [title_range, 'slices [' + number_formatter(sr2[0]) + ':' + number_formatter(sr2[1]) + ']']
+      end
+      else: begin
+        message, 'sr2 must be a 1 or 2 element vector'
+      end
+    endcase
+  endif
+  
+  if n_elements(title_range) eq 2 then range_str = title_range else range_str = strarr(2)
+  
+  ;; title to use:
+  if n_cubes gt 1 then begin
+    if keyword_set(ratio) then cube_op = '/' else cube_op = '-'
+    
+    if n_elements(folder_names) eq 1 then diff_title = evenodd[0] + '_' + cube_types[0] + '_' + pols[0] + '_' + range_str[0] + $
+      cube_op + evenodd[max_eo] + '_' + cube_types[max_type] + '_' + pols[max_pol] + '_' + range_str[1] $
+    else $
+      diff_title = evenodd[0] + '_' + cube_types[0] + '_' + pols[0] + '_' + range_str[0] + $
+      cube_op + evenodd[max_eo] + '_' + cube_types[max_type] + '_' + pols[max_pol] + '_' + range_str[1]
+      
+    if n_elements(title_range) eq 1 then diff_title = diff_title + ' ' + title_range
+    
+  endif else diff_title = evenodd[0] + '_' + cube_types[0] + '_' + pols[0] + ' ' + title_range
+  
+  
   
   if keyword_set(png) or keyword_set(eps) or keyword_set(pdf) then pub = 1 else pub = 0
   
   if n_cubes gt 1 then begin
+    if n_slice_range eq 2 then begin
+      if n_elements(slice_range) eq 1 then cube1 = cube1[*,slice_range] else cube1 = total(cube1[*, slice_range[0]:slice_range[1]],2)
+      if n_elements(sr2) eq 1 then cube2 = cube2[*,sr2] else cube2 = total(cube2[*, sr2[0]:sr2[1]],2)
+    endif else begin
+      if n_elements(slice_range) eq 1 then begin
+        cube1 = cube1[*,slice_range]
+        cube2 = cube2[*,slice_range]
+      endif else begin
+        cube1 = total(cube1[*, slice_range[0]:slice_range[1]],2)
+        cube2 = total(cube2[*, slice_range[0]:slice_range[1]],2)
+      endelse
+    endelse
+    
     if max(abs(cube1-cube2)) eq 0 then message, 'cubes are identical.'
     if keyword_set(diff_ratio) then begin
       print, max(cube1), max(cube2), max(cube1)/max(cube2)
@@ -251,14 +295,13 @@ pro cube_images, folder_names, obs_info, nvis_norm = nvis_norm, pols = pols, cub
       note = note + ', peak ratio = ' + number_formatter(max(cube1)/max(cube2), format = '(f5.2)')
     endif else if keyword_set(ratio) then temp = cube1/cube2 else temp = cube1-cube2
     
-    if n_elements(slice_range) eq 1 then temp = temp[*,slice_range] else temp = total(temp[*, slice_range[0]:slice_range[1]],2)
   endif else if n_elements(slice_range) eq 1 then temp = cube1[*,slice_range] else temp = total(cube1[*, slice_range[0]:slice_range[1]],2)
   
   if keyword_set(sym_color) and not keyword_set(log) then begin
     if n_elements(data_range) eq 0 then data_range = [-1,1]*max(abs(temp)) $
     else data_range = [-1,1]*max(abs(data_range))
   endif
-  if keyword_set(diff_ratio) then title = diff_title + ', peak norm., ' + title_range else title = diff_title + ', ' + title_range
+  if keyword_set(diff_ratio) then title = diff_title + ', peak norm., ' else title = diff_title
   
   healpix_quickimage, temp, hpx_inds1, nside1, title = title, savefile = plotfile, note=note, slice_ind = slice_ind, $
     log = log, color_profile = color_profile, data_range = data_range, window_num = window_num, plot_as_map = plot_as_map, png = png, eps = eps, pdf = pdf
