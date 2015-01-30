@@ -1,8 +1,16 @@
-pro code_reference_wrapper, folder_name, obs_name, data_subdirs=data_subdirs, n_obs=n_obs, rts = rts, refresh_dft = refresh_dft, refresh_ps = refresh_ps, $
-    refresh_binning = refresh_binning, refresh_info = refresh_info, refresh_beam = refresh_beam, pol_inc = pol_inc, no_spec_window = no_spec_window, $
-    spec_window_type = spec_window_type, sim = sim, freq_ch_range = freq_ch_range, individual_plots = individual_plots, $
-    png = png, eps = eps, plot_slices = plot_slices, slice_type = slice_type, delta_uv_lambda = delta_uv_lambda, cut_image = cut_image, $
-    kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, set_data_ranges = set_data_ranges
+pro code_reference_wrapper, folder_name, obs_range, rts = rts, casa = casa, version = version, refresh_dft = refresh_dft, refresh_ps = refresh_ps, $
+    refresh_binning = refresh_binning, refresh_info = refresh_info, refresh_beam = refresh_beam, dft_ian = dft_ian, $
+    pol_inc = pol_inc, sim = sim, freq_ch_range = freq_ch_range, freq_flag_name = freq_flag_name, $
+    no_spec_window = no_spec_window, spec_window_type = spec_window_type, std_power = std_power, no_wtd_avg = no_wtd_avg, $
+    cut_image = cut_image, individual_plots = individual_plots, plot_filebase = plot_filebase, png = png, eps = eps, pdf = pdf, $
+    plot_slices = plot_slices, slice_type = slice_type, uvf_plot_type = uvf_plot_type, plot_stdset = plot_stdset, $
+    plot_kpar_power = plot_kpar_power, plot_kperp_power = plot_kperp_power, plot_k0_power = plot_k0_power, plot_noise_1d = plot_noise_1d, $
+    coarse_harm_width = coarse_harm_width, $
+    kperp_range_1dave = kperp_range_1dave, kperp_range_lambda_1dave = kperp_range_lambda_1dave, kpar_range_1dave = kpar_range_1dave, $
+    uv_avg = uv_avg, uv_img_clip = uv_img_clip,$
+    kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, $
+    t32 = t32, set_data_ranges = set_data_ranges, plot_ranges = plot_ranges, slice_range = slice_range, cube_power_info = cube_power_info
+    
     
   ;; The only required input is the datafile name (including the full path)
     
@@ -17,15 +25,18 @@ pro code_reference_wrapper, folder_name, obs_name, data_subdirs=data_subdirs, n_
     ENDIF
     
     
-    save_path = folder_name + '/ps/'
+    save_path =filepath('',root=folder_name,subdir='ps')
+    plot_path=filepath('',root=folder_name,subdir='ps_plots')
+    
     if n_elements(data_subdirs) eq 0 then data_subdirs = 'Healpix/'
-    obs_info = ps_filenames(folder_name, obs_name, rts = rts, sim = sim, casa = casa, data_subdirs = data_subdirs, save_paths = save_path, plot_paths = save_path)
+    obs_info = ps_filenames(folder_name, obs_name, rts = rts, sim = sim, casa = casa, data_subdirs = data_subdirs, save_paths = save_path, plot_paths = plot_path)
         
     if obs_info.info_files[0] ne '' then datafile = obs_info.info_files[0] else datafile = obs_info.cube_files.(0)
     plot_filebase = obs_info.fhd_types[0] + '_' + obs_info.obs_names[0]
     note = obs_info.fhd_types[0]
     
     if not file_test(save_path, /directory) then file_mkdir, save_path
+    if not file_test(plot_path, /directory) then file_mkdir, plot_path
     
     print,'datafile = '+datafile
     
@@ -61,29 +72,18 @@ pro code_reference_wrapper, folder_name, obs_name, data_subdirs=data_subdirs, n_
   dft_fchunk = 1
   
   
-  ;; save_path specifies a location to save the power spectrum files.
-  ;; This is also where the code looks for intermediate save files to avoid re-running code.
-  ;; If this is parameter is not set, the files will be saved in the same directory as the datafile.
-  
-  
-  ;; savefilebase specifies a base name to use for the save files
-  
-  ;; plot_path specifies a location to save plot files.
-  ;; If this parameter is not set, the plots will be saved in the same directory as the datafile.
+   ;; savefilebase specifies a base name to use for the save files
   
   ;; plot_filebase specifies a base name to use for the plot files
-  
   
   ;; freq_ch_range specifies which frequency channels to include in the power spectrum.
   ;; Fewer number of channels makes the dfts faster
   
   ;; pol_inc specifies which polarizations to generate the power spectra for.
-  ;; The default is ['xx,'yy']
   
   ;; cut_image keyword only applies to Healpix datasets. It allows for limiting the field of view in the
-  ;; image plane by only using Healpix pixels inside a 30 degree diameter circle centered in the middle of the field.
+  ;; image plane to match calculated k-modes (centered on image center).
   ;; Currently defaults to on. Set equal to 0 to turn it off, 1 to turn it on
-  
   
   ;; There are 3 refresh flags to indicate that various stages should be re-calculated
   ;;   (rather than using previous save files if they exist).
@@ -91,6 +91,11 @@ pro code_reference_wrapper, folder_name, obs_name, data_subdirs=data_subdirs, n_
   ;; The earliest stage is refresh_dft, which is only used for Healpix datasets (it's ignored otherwise)
   ;; The next stage is refresh_ps and the last stage is refresh_binning.
   ;; To set any of these flags, set them equal to 1 (true)
+  
+  ;; options for spectral windowing:
+  ;; available window funtions are: ['Hann', 'Hamming', 'Blackman', 'Nutall', 'Blackman-Nutall', 'Blackman-Harris']
+  ;; Default is to use Blackman-Harris, for no spectral windowing set no_spec_window = 1
+  ;; To use another window type use the spec_window_type keyword, eg spec_window_type = 'hann'
   
   ;; options for binning:
   ;; log_kperp, log_kpar and log_k1d are flags: set to 1 (true) for logarithmic bins
@@ -107,18 +112,26 @@ pro code_reference_wrapper, folder_name, obs_name, data_subdirs=data_subdirs, n_
   ;; delay_axis is a flag (defaulted to true) to mark delay time along right axis of 2d plots (set to 0 to turn off)
   ;; hinv is a flag (defaulted to true) to use h^-1 Mpc rather than physical Mpc in plot units (set to 0 to turn off)
   ;; plot_wedge_line is a flag (defaulted to true) to plot a line marking the wedge (both horizon & FoV) (set to 0 to turn off)
-  ;; pub is a flag to make save plots as eps files rather than displaying to the screen
+  ;; png & eps are flags to make save plots as png or eps files rather than displaying to the screen
   
-  fhd_data_plots, datafile, dft_fchunk=dft_fchunk, plot_path = plot_path, plot_filebase = plot_filebase, save_path = save_path, savefilebase = savefilebase, $
-    pol_inc = pol_inc, rts = rts, $
+  
+  ps_main_plots, datafile, beamfiles = beamfiles, plot_path = plot_path, plot_filebase = plot_filebase, save_path = save_path, savefilebase = savefilebase, $
+    pol_inc = pol_inc, rts = rts, casa = casa, dft_fchunk=dft_fchunk, $
     refresh_dft = refresh_dft, refresh_ps = refresh_ps, refresh_binning = refresh_binning, refresh_info = refresh_info, refresh_beam = refresh_beam, $
-    freq_ch_range = freq_ch_range, no_spec_window = no_spec_window, spec_window_type = spec_window_type, $
-    sim = sim, cut_image = cut_image, delta_uv_lambda = delta_uv_lambda, $
-    log_kpar = log_kpar, log_kperp = log_kperp, kpar_bin = kpar_bin, kperp_bin = kperp_bin, log_k1d = log_k1d, $
-    k1d_bin = k1d_bin, kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, $
+    freq_ch_range = freq_ch_range, freq_flags = freq_flags, freq_flag_name = freq_flag_name, $
+    no_spec_window = no_spec_window, spec_window_type = spec_window_type, std_power = std_power, no_wtd_avg = no_wtd_avg, $
+    sim = sim, cut_image = cut_image, dft_ian = dft_ian, uvf_input = uvf_input, uv_avg = uv_avg, uv_img_clip = uv_img_clip, $
+    log_kpar = log_kpar, log_kperp = log_kperp, kpar_bin = kpar_bin, kperp_bin = kperp_bin, $
+    log_k1d = log_k1d, k1d_bin = k1d_bin, $
+    kperp_range_1dave = kperp_range_1dave, kperp_range_lambda_1dave = kperp_range_lambda_1dave, kpar_range_1dave = kpar_range_1dave, $
+    kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
+    plot_slices = plot_slices, slice_type = slice_type, uvf_plot_type = uvf_plot_type, plot_stdset = plot_stdset, $
+    plot_kpar_power = plot_kpar_power, plot_kperp_power = plot_kperp_power, plot_k0_power = plot_k0_power, plot_noise_1d = plot_noise_1d, $
     data_range = data_range, sigma_range = sigma_range, nev_range = nev_range, snr_range = snr_range, noise_range = noise_range, nnr_range = nnr_range, $
+    range_1d = range_1d, slice_range = slice_range, $
     baseline_axis = baseline_axis, delay_axis = delay_axis, hinv = hinv, $
-    plot_wedge_line = plot_wedge_line, individual_plots = individual_plot, png = png, eps = eps
+    plot_wedge_line = plot_wedge_line, coarse_harm_width = coarse_harm_width, plot_eor_1d = plot_eor_1d, $
+    individual_plots = individual_plots, note = note, png = png, eps = eps, pdf = pdf, cube_power_info = cube_power_info
     
   if not keyword_set(set_data_ranges) then begin
     print, 'data_range used: ', number_formatter(data_range, format = '(e7.1)')
