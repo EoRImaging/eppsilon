@@ -1,4 +1,4 @@
-pro ps_ratio_plots, folder_names, obs_info, cube_types, pols, diff_ratio_all_pol = diff_ratio_all_pol, $
+pro ps_ratio_plots, folder_names, obs_info, cube_types, pols, all_pol_diff_ratio = all_pol_diff_ratio, $
     plot_path = plot_path, plot_filebase = plot_filebase, save_path = save_path, savefilebase = savefilebase, $
     note = note, spec_window_types = spec_window_types, data_range = data_range, $
     kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, diff_ratio = diff_ratio, diff_range = diff_range, $
@@ -30,13 +30,13 @@ pro ps_ratio_plots, folder_names, obs_info, cube_types, pols, diff_ratio_all_pol
   
   if n_elements(obs_info.info_files) eq 2 or n_elements(spec_window_types) eq 2 $
     and n_elements(cube_types) eq 0 and n_elements(pols) eq 0 $
-    and n_elements(diff_ratio_all_pol) eq 0 and n_elements(diff_ratio) eq 0 then diff_ratio_all_pol = 1
+    and n_elements(all_pol_diff_ratio) eq 0 and n_elements(diff_ratio) eq 0 then all_pol_diff_ratio = 1
     
-  if keyword_set(diff_ratio) or keyword_set(diff_ratio_all_pol) then begin
+  if keyword_set(diff_ratio) or keyword_set(all_pol_diff_ratio) then begin
   
-    if keyword_set(diff_ratio_all_pol) then begin
+    if keyword_set(all_pol_diff_ratio) then begin
       if  n_elements(obs_info.info_files) ne 2 and n_elements(spec_window_types) lt 2 then $
-        message, 'diff_ratio_all_pol requires 2 folder names and/or 2 obs names and/or 2 spec windows'
+        message, 'all_pol_diff_ratio requires 2 folder names and/or 2 obs names and/or 2 spec windows'
         
       pols = ['xx', 'yy']
       
@@ -97,9 +97,9 @@ pro ps_ratio_plots, folder_names, obs_info, cube_types, pols, diff_ratio_all_pol
   
   if n_elements(spec_window_types) eq 2 then note = note + ' ' + spec_window_types[0] + ' over ' + spec_window_types[1]
   
-  if keyword_set(diff_ratio) or keyword_set(diff_ratio_all_pol) then begin
+  if keyword_set(diff_ratio) or keyword_set(all_pol_diff_ratio) then begin
   
-    if keyword_set(diff_ratio_all_pol) then begin
+    if keyword_set(all_pol_diff_ratio) then begin
       if n_elements(folder_names) eq 2 and folder_names[0] ne folder_names[1] then begin
         plot_filebase = obs_info.name_same_parts + '__' + obs_info.name_diff_parts[0] + '_' + obs_info.obs_names[0] + sw_tags[0] + $
           '_diffratio_' + obs_info.name_diff_parts[1]  + '_' + obs_info.obs_names[1] + sw_tags[max_sw]
@@ -139,9 +139,9 @@ pro ps_ratio_plots, folder_names, obs_info, cube_types, pols, diff_ratio_all_pol
   if n_elements(obs_info.info_files) eq 2 then file_struct_arr2 = fhd_file_setup(obs_info.info_files[1], pol_inc, spec_window_type = spec_window_types[max_sw]) $
   else file_struct_arr2 = file_struct_arr1
   
-  if keyword_set(diff_ratio) or keyword_set(diff_ratio_all_pol) then begin
-    type_pol_str = strarr(nsets, 2)
-    if keyword_set(diff_ratio_all_pol) then begin
+  if keyword_set(diff_ratio) or keyword_set(all_pol_diff_ratio) then begin
+    type_pol_str = strarr(n_sets, 2)
+    if keyword_set(all_pol_diff_ratio) then begin
       type_pol_str[0, *] = cube_types + '_' + pols[0]
       type_pol_str[1, *] = cube_types + '_' + pols[0]
       type_pol_str[2, *] = cube_types + '_' + pols[max_pol]
@@ -153,15 +153,15 @@ pro ps_ratio_plots, folder_names, obs_info, cube_types, pols, diff_ratio_all_pol
     
     type_pol_locs = intarr(n_sets, 2)
     for i=0, n_sets-1 do begin
-      wh_type_pol1 = where(file_struct_arr1.type_pol_str eq type_pol_str[i, 0], count_type_pol)
+      wh_type_pol1 = where(file_struct_arr1.type_pol_str eq type_pol_str[i,0], count_type_pol)
       if count_type_pol eq 0 then $
-        message, 'requested type_pol not found: ' + type_pol_str[i, 0] + ' not in ' + file_struct_arr1.power_savefile else type_pol_locs[0, i] = wh_type_pol1
-      wh_type_pol2 = where(file_struct_arr2.type_pol_str eq type_pol_str[i, 1], count_type_pol)
+        message, 'requested type_pol not found: ' + type_pol_str[i,0] + ' not in ' + file_struct_arr1.power_savefile else type_pol_locs[i,0] = wh_type_pol1
+      wh_type_pol2 = where(file_struct_arr2.type_pol_str eq type_pol_str[i,1], count_type_pol)
       if count_type_pol eq 0 then $
-        message, 'requested type_pol not found: ' + type_pol_str[i, 1] + ' not in ' + file_struct_arr2.power_savefile else type_pol_locs[1, i] = wh_type_pol2
+        message, 'requested type_pol not found: ' + type_pol_str[i,1] + ' not in ' + file_struct_arr2.power_savefile else type_pol_locs[i,1] = wh_type_pol2
     endfor
     
-    if keyword_set(diff_ratio_all_pol) then begin
+    if keyword_set(all_pol_diff_ratio) then begin
       titles = strarr(2,3)
       for i=0, 1 do titles[i,*] = [obs_info.fhd_types[0] + ' ' + type_pol_str[2*i,0] + '/' + type_pol_str[2*i,1], $
         obs_info.fhd_types[1] + ' ' + type_pol_str[2*i+1,0] + '/' + type_pol_str[2*i+1,1], 'Ratio Difference']
@@ -238,11 +238,16 @@ pro ps_ratio_plots, folder_names, obs_info, cube_types, pols, diff_ratio_all_pol
   if keyword_set(log_kpar) then fadd_2dbin = fadd_2dbin + '_logkpar'
   if keyword_set(log_kperp) then fadd_2dbin = fadd_2dbin + '_logkperp'
   
-  if keyword_set(diff_ratio) then begin
+  if keyword_set(diff_ratio) or keyword_set(all_pol_diff_ratio) then begin
     savefiles_2d = strarr(n_sets, 2)
-    for i=0, 1 do savefiles_2d[*, i] = [file_struct_arr1[type_pol_locs[0, i]].savefile_froot + file_struct_arr1[type_pol_locs[0, i]].savefilebase + file_struct_arr1[0].power_tag, $
-      file_struct_arr2[type_pol_locs[1, i]].savefile_froot + file_struct_arr2[type_pol_locs[1, i]].savefilebase + file_struct_arr2[0].power_tag] + $
-      fadd_2dbin + '_2dkpower.idlsave'
+    for j=0, n_sets/2-1 do begin
+      for i=0, 1 do begin
+        savefiles_2d[2*j, i] = file_struct_arr1[type_pol_locs[2*j, i]].savefile_froot + file_struct_arr1[type_pol_locs[2*j, i]].savefilebase + file_struct_arr1[0].power_tag
+        savefiles_2d[2*j+1, i] =file_struct_arr2[type_pol_locs[2*j+1, i]].savefile_froot + file_struct_arr2[type_pol_locs[2*j+1, i]].savefilebase + file_struct_arr2[0].power_tag
+      endfor
+    endfor
+    savefiles_2d = savefiles_2d + fadd_2dbin + '_2dkpower.idlsave'
+    
   endif else savefiles_2d = [file_struct_arr1[type_pol_locs[0]].savefile_froot + file_struct_arr1[type_pol_locs[0]].savefilebase + file_struct_arr1[0].power_tag, $
     file_struct_arr2[type_pol_locs[1]].savefile_froot + file_struct_arr2[type_pol_locs[1]].savefilebase + file_struct_arr2[0].power_tag] + $
     fadd_2dbin + '_2dkpower.idlsave'
@@ -255,9 +260,9 @@ pro ps_ratio_plots, folder_names, obs_info, cube_types, pols, diff_ratio_all_pol
     plotfile_2d = plot_path + plot_filebase + '_2dkpower' + plot_exten
   endif else plot_exten = ''
   
-  if keyword_set(diff_ratio) or keyword_set(diff_ratio_all_pol) then begin
+  if keyword_set(diff_ratio) or keyword_set(all_pol_diff_ratio) then begin
   
-    for i=0, nsets/2-1 do begin
+    for i=0, n_sets/2-1 do begin
       kperp_edges = getvar_savefile(savefiles_2d[2*i,0], 'kperp_edges')
       if total(abs(kperp_edges - getvar_savefile(savefiles_2d[2*i+1,0], 'kperp_edges'))) ne 0 then message, 'kperp_edges do not match in savefiles'
       kpar_edges = getvar_savefile(savefiles_2d[2*i,0], 'kpar_edges')
