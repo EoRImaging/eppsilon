@@ -1,4 +1,4 @@
-pro ps_ratio_plots, folder_names, obs_info, cube_types, pols, $
+pro ps_ratio_plots, folder_names, obs_info, cube_types, pols, diff_ratio_all_pol = diff_ratio_all_pol, $
     plot_path = plot_path, plot_filebase = plot_filebase, save_path = save_path, savefilebase = savefilebase, $
     note = note, spec_window_types = spec_window_types, data_range = data_range, $
     kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, diff_ratio = diff_ratio, diff_range = diff_range, $
@@ -28,16 +28,30 @@ pro ps_ratio_plots, folder_names, obs_info, cube_types, pols, $
     endelse
   endif else sw_tags = ''
   
-  if keyword_set(diff_ratio) then begin
-    if n_elements(obs_info.info_files) ne 2 and n_elements(spec_window_types) lt 2 and n_elements(pols) lt 2 then $
-      message, 'diff_ratio requires 2 folder names and/or 2 obs names and/or 2 spec windows and/or 2 pols'
+  if n_elements(obs_info.info_files) eq 2 or n_elements(spec_window_types) eq 2 $
+    and n_elements(cube_types) eq 0 and n_elements(pols) eq 0 $
+    and n_elements(diff_ratio_all_pol) eq 0 and n_elements(diff_ratio) eq 0 then diff_ratio_all_pol = 1
+    
+  if keyword_set(diff_ratio) or keyword_set(diff_ratio_all_pol) then begin
+  
+    if keyword_set(diff_ratio_all_pol) then begin
+      if  n_elements(obs_info.info_files) ne 2 and n_elements(spec_window_types) lt 2 then $
+        message, 'diff_ratio_all_pol requires 2 folder names and/or 2 obs names and/or 2 spec windows'
+        
+      pols = ['xx', 'yy']
       
+      n_sets=4
+    endif else begin
+      if n_elements(obs_info.info_files) ne 2 and n_elements(spec_window_types) lt 2 and n_elements(pols) lt 2 then $
+        message, 'diff_ratio requires 2 folder names and/or 2 obs names and/or 2 spec windows and/or 2 pols'
+        
+      if n_elements(pols) eq 0 then pols = 'xx'
+      
+      n_sets=2
+    endelse
+    
     if n_elements(cube_types) ne 2 then cube_types = ['res', 'dirty']
     
-    if n_elements(pols) eq 0 then pols = 'xx'
-    if n_elements(pols) eq 2 then pol_tags = '_' + pols else pol_tags = ''
-    
-    n_sets=2
   endif else begin
     n_diffs = max([n_elements(obs_info.info_files), n_elements(cube_types), n_elements(pols), n_elements(spec_window_types)])
     if n_diffs gt 2 then message, 'only 1 or 2 of [folder_names, obs_names, cube_types, pols, spec_window_types] allowed'
@@ -83,16 +97,25 @@ pro ps_ratio_plots, folder_names, obs_info, cube_types, pols, $
   
   if n_elements(spec_window_types) eq 2 then note = note + ' ' + spec_window_types[0] + ' over ' + spec_window_types[1]
   
-  if keyword_set(diff_ratio) then begin
+  if keyword_set(diff_ratio) or keyword_set(diff_ratio_all_pol) then begin
   
-    if n_elements(folder_names) eq 2 and folder_names[0] ne folder_names[1] then begin
-      plot_filebase = obs_info.name_same_parts + '__' + obs_info.name_diff_parts[0] + '_' + obs_info.obs_names[0] + pol_tags[0] + sw_tags[0] + $
-        '_diffratio_' + obs_info.name_diff_parts[1]  + '_' + obs_info.obs_names[1] + pol_tags[max_pol] + sw_tags[max_sw]
-    endif else if n_elements(obs_info.info_files) eq 2 then $
-      plot_filebase = obs_info.folder_basenames[0] + '__' + obs_info.obs_names[0] + pol_tags[0] + sw_tags[0] + '_diffratio_' + $
-      obs_info.obs_names[1] + pol_tags[max_pol] + sw_tags[max_sw] $
-    else plot_filebase = obs_info.fhd_types[0] + pol_tags[0] + sw_tags[0] + '_diffratio_' + pol_tags[max_pol] + sw_tags[max_sw]
-    
+    if keyword_set(diff_ratio_all_pol) then begin
+      if n_elements(folder_names) eq 2 and folder_names[0] ne folder_names[1] then begin
+        plot_filebase = obs_info.name_same_parts + '__' + obs_info.name_diff_parts[0] + '_' + obs_info.obs_names[0] + sw_tags[0] + $
+          '_diffratio_' + obs_info.name_diff_parts[1]  + '_' + obs_info.obs_names[1] + sw_tags[max_sw]
+      endif else if n_elements(obs_info.info_files) eq 2 then $
+        plot_filebase = obs_info.folder_basenames[0] + '__' + obs_info.obs_names[0] + sw_tags[0] + '_diffratio_' + $
+        obs_info.obs_names[1] + sw_tags[max_sw] $
+      else plot_filebase = obs_info.fhd_types[0] + sw_tags[0] + '_diffratio_' + sw_tags[max_sw]
+    endif else begin
+      if n_elements(folder_names) eq 2 and folder_names[0] ne folder_names[1] then begin
+        plot_filebase = obs_info.name_same_parts + '__' + obs_info.name_diff_parts[0] + '_' + obs_info.obs_names[0] + pols[0] + sw_tags[0] + $
+          '_diffratio_' + obs_info.name_diff_parts[1]  + '_' + obs_info.obs_names[1] + pols[max_pol] + sw_tags[max_sw]
+      endif else if n_elements(obs_info.info_files) eq 2 then $
+        plot_filebase = obs_info.folder_basenames[0] + '__' + obs_info.obs_names[0] + pols[0] + sw_tags[0] + '_diffratio_' + $
+        obs_info.obs_names[1] + pols[max_pol] + sw_tags[max_sw] $
+      else plot_filebase = obs_info.fhd_types[0] + pols[0] + sw_tags[0] + '_diffratio_' + pols[max_pol] + sw_tags[max_sw]
+    endelse
   endif else begin
   
     if n_elements(folder_names) eq 1 then begin
@@ -116,22 +139,33 @@ pro ps_ratio_plots, folder_names, obs_info, cube_types, pols, $
   if n_elements(obs_info.info_files) eq 2 then file_struct_arr2 = fhd_file_setup(obs_info.info_files[1], pol_inc, spec_window_type = spec_window_types[max_sw]) $
   else file_struct_arr2 = file_struct_arr1
   
-  if keyword_set(diff_ratio) then begin
-    type_pol_str = strarr(n_sets, 2)
-    type_pol_str[0, *] = cube_types + '_' + pols[0]
-    type_pol_str[1, *] = cube_types + '_' + pols[max_pol]
+  if keyword_set(diff_ratio) or keyword_set(diff_ratio_all_pol) then begin
+    type_pol_str = strarr(nsets, 2)
+    if keyword_set(diff_ratio_all_pol) then begin
+      type_pol_str[0, *] = cube_types + '_' + pols[0]
+      type_pol_str[1, *] = cube_types + '_' + pols[0]
+      type_pol_str[2, *] = cube_types + '_' + pols[max_pol]
+      type_pol_str[3, *] = cube_types + '_' + pols[max_pol]
+    endif else begin
+      type_pol_str[0, *] = cube_types + '_' + pols[0]
+      type_pol_str[1, *] = cube_types + '_' + pols[max_pol]
+    endelse
     
     type_pol_locs = intarr(n_sets, 2)
-    for i=0, 1 do begin
-      wh_type_pol1 = where(file_struct_arr1.type_pol_str eq type_pol_str[0, i], count_type_pol)
+    for i=0, n_sets-1 do begin
+      wh_type_pol1 = where(file_struct_arr1.type_pol_str eq type_pol_str[i, 0], count_type_pol)
       if count_type_pol eq 0 then $
-        message, 'requested type_pol not found: ' + type_pol_str[0, i] + ' not in ' + file_struct_arr1.power_savefile else type_pol_locs[0, i] = wh_type_pol1
-      wh_type_pol2 = where(file_struct_arr2.type_pol_str eq type_pol_str[1, i], count_type_pol)
+        message, 'requested type_pol not found: ' + type_pol_str[i, 0] + ' not in ' + file_struct_arr1.power_savefile else type_pol_locs[0, i] = wh_type_pol1
+      wh_type_pol2 = where(file_struct_arr2.type_pol_str eq type_pol_str[i, 1], count_type_pol)
       if count_type_pol eq 0 then $
-        message, 'requested type_pol not found: ' + type_pol_str[1, i] + ' not in ' + file_struct_arr2.power_savefile else type_pol_locs[1, i] = wh_type_pol2
+        message, 'requested type_pol not found: ' + type_pol_str[i, 1] + ' not in ' + file_struct_arr2.power_savefile else type_pol_locs[1, i] = wh_type_pol2
     endfor
     
-    titles = [obs_info.fhd_types[0] + ' ' + type_pol_str[0,0] + '/' + type_pol_str[0,1], $
+    if keyword_set(diff_ratio_all_pol) then begin
+      titles = strarr(2,3)
+      for i=0, 1 do titles[i,*] = [obs_info.fhd_types[0] + ' ' + type_pol_str[2*i,0] + '/' + type_pol_str[2*i,1], $
+        obs_info.fhd_types[1] + ' ' + type_pol_str[2*i+1,0] + '/' + type_pol_str[2*i+1,1], 'Ratio Difference']
+    endif else titles = [obs_info.fhd_types[0] + ' ' + type_pol_str[0,0] + '/' + type_pol_str[0,1], $
       obs_info.fhd_types[1] + ' ' + type_pol_str[1,0] + '/' + type_pol_str[1,1], 'Ratio Difference']
       
   endif else begin
@@ -221,85 +255,90 @@ pro ps_ratio_plots, folder_names, obs_info, cube_types, pols, $
     plotfile_2d = plot_path + plot_filebase + '_2dkpower' + plot_exten
   endif else plot_exten = ''
   
-  if keyword_set(diff_ratio) then begin
+  if keyword_set(diff_ratio) or keyword_set(diff_ratio_all_pol) then begin
   
-    kperp_edges = getvar_savefile(savefiles_2d[0,0], 'kperp_edges')
-    if total(abs(kperp_edges - getvar_savefile(savefiles_2d[1,0], 'kperp_edges'))) ne 0 then message, 'kperp_edges do not match in savefiles'
-    kpar_edges = getvar_savefile(savefiles_2d[0,0], 'kpar_edges')
-    if total(abs(kpar_edges - getvar_savefile(savefiles_2d[1], 'kpar_edges'))) ne 0 then message, 'kpar_edges do not match in savefiles'
-    kperp_bin = getvar_savefile(savefiles_2d[0,0], 'kperp_bin')
-    if total(abs(kperp_bin - getvar_savefile(savefiles_2d[1,0], 'kperp_bin'))) ne 0 then message, 'kperp_bin do not match in savefiles'
-    kpar_bin = getvar_savefile(savefiles_2d[0,0], 'kpar_bin')
-    if total(abs(kpar_bin - getvar_savefile(savefiles_2d[1,0], 'kpar_bin'))) ne 0 then message, 'kpar_bin do not match in savefiles'
-    kperp_lambda_conv = getvar_savefile(savefiles_2d[0,0], 'kperp_lambda_conv')
-    if total(abs(kperp_lambda_conv - getvar_savefile(savefiles_2d[1,0], 'kperp_lambda_conv'))) ne 0 then message, 'kperp_lambda_conv do not match in savefiles'
-    delay_params = getvar_savefile(savefiles_2d[0,0], 'delay_params')
-    if total(abs(delay_params - getvar_savefile(savefiles_2d[1,0], 'delay_params'))) ne 0 then message, 'delay_params do not match in savefiles'
-    hubble_param = getvar_savefile(savefiles_2d[0,0], 'hubble_param')
-    if total(abs(hubble_param - getvar_savefile(savefiles_2d[1,0], 'hubble_param'))) ne 0 then message, 'hubble_param do not match in savefiles'
-    
-    power1 = getvar_savefile(savefiles_2d[0,0], 'power')
-    power2 = getvar_savefile(savefiles_2d[0,1], 'power')
-    
-    power_ratio1 = power1 / power2
-    wh0 = where(power2 eq 0, count0)
-    if count0 gt 0 then power_ratio1[wh0] = 0
-    
-    power1 = getvar_savefile(savefiles_2d[1,0], 'power')
-    power2 = getvar_savefile(savefiles_2d[1,1], 'power')
-    
-    power_ratio2 = power1 / power2
-    wh0 = where(power2 eq 0, count0)
-    if count0 gt 0 then power_ratio2[wh0] = 0
-    
-    power_diff_ratio = power_ratio1-power_ratio2
-    
-    
-    kperp_plot_range = [5./kperp_lambda_conv, min([file_struct_arr1.kspan/2.,file_struct_arr1.max_baseline_lambda])/kperp_lambda_conv]
-    if keyword_set(hinv) then kperp_plot_range = kperp_plot_range / hubble_param
-    
-    
-    ncol=3
-    nrow=1
-    start_multi_params = {ncol:ncol, nrow:nrow, ordering:'row'}
-    
-    kpower_2d_plots, power = power_ratio1, multi_pos = pos_use, start_multi_params = start_multi_params, $
-      kperp_edges = kperp_edges, kpar_edges = kpar_edges, kperp_bin = kperp_bin, kpar_bin = kpar_bin, $
-      kperp_lambda_conv = kperp_lambda_conv, delay_params = delay_params, hubble_param = hubble_param, $
-      png = png, eps = eps, pdf = pdf, plotfile = plotfile_2d, window_num = window_num, $
-      kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
-      data_range = data_range, full_title = titles[0], $
-      plot_wedge_line = plot_wedge_line, hinv = hinv, /pwr_ratio, $
-      wedge_amp = wedge_amp, baseline_axis = baseline_axis, delay_axis = delay_axis, $
-      kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis
+    for i=0, nsets/2-1 do begin
+      kperp_edges = getvar_savefile(savefiles_2d[2*i,0], 'kperp_edges')
+      if total(abs(kperp_edges - getvar_savefile(savefiles_2d[2*i+1,0], 'kperp_edges'))) ne 0 then message, 'kperp_edges do not match in savefiles'
+      kpar_edges = getvar_savefile(savefiles_2d[2*i,0], 'kpar_edges')
+      if total(abs(kpar_edges - getvar_savefile(savefiles_2d[2*i+1,0], 'kpar_edges'))) ne 0 then message, 'kpar_edges do not match in savefiles'
+      kperp_bin = getvar_savefile(savefiles_2d[2*i,0], 'kperp_bin')
+      if total(abs(kperp_bin - getvar_savefile(savefiles_2d[2*i+1,0], 'kperp_bin'))) ne 0 then message, 'kperp_bin do not match in savefiles'
+      kpar_bin = getvar_savefile(savefiles_2d[2*i,0], 'kpar_bin')
+      if total(abs(kpar_bin - getvar_savefile(savefiles_2d[2*i+1,0], 'kpar_bin'))) ne 0 then message, 'kpar_bin do not match in savefiles'
+      kperp_lambda_conv = getvar_savefile(savefiles_2d[2*i,0], 'kperp_lambda_conv')
+      if total(abs(kperp_lambda_conv - getvar_savefile(savefiles_2d[2*i+1,0], 'kperp_lambda_conv'))) ne 0 then message, 'kperp_lambda_conv do not match in savefiles'
+      delay_params = getvar_savefile(savefiles_2d[2*i,0], 'delay_params')
+      if total(abs(delay_params - getvar_savefile(savefiles_2d[2*i+1,0], 'delay_params'))) ne 0 then message, 'delay_params do not match in savefiles'
+      hubble_param = getvar_savefile(savefiles_2d[2*i,0], 'hubble_param')
+      if total(abs(hubble_param - getvar_savefile(savefiles_2d[2*i+1,0], 'hubble_param'))) ne 0 then message, 'hubble_param do not match in savefiles'
       
-    positions = pos_use
-    undefine, start_multi_params
-    pos_use = positions[*,1]
+      power1 = getvar_savefile(savefiles_2d[2*i,0], 'power')
+      power2 = getvar_savefile(savefiles_2d[2*i,1], 'power')
+      
+      power_ratio1 = power1 / power2
+      wh0 = where(power2 eq 0, count0)
+      if count0 gt 0 then power_ratio1[wh0] = 0
+      
+      power1 = getvar_savefile(savefiles_2d[2*i+1,0], 'power')
+      power2 = getvar_savefile(savefiles_2d[2*i+1,1], 'power')
+      
+      power_ratio2 = power1 / power2
+      wh0 = where(power2 eq 0, count0)
+      if count0 gt 0 then power_ratio2[wh0] = 0
+      
+      power_diff_ratio = power_ratio1-power_ratio2
+      
+      if i eq 0 then begin
+        kperp_plot_range = [5./kperp_lambda_conv, min([file_struct_arr1.kspan/2.,file_struct_arr1.max_baseline_lambda])/kperp_lambda_conv]
+        if keyword_set(hinv) then kperp_plot_range = kperp_plot_range / hubble_param
+        
+        
+        ncol=3
+        nrow=n_sets/2
+        start_multi_params = {ncol:ncol, nrow:nrow, ordering:'row'}
+      endif else pos_use = positions[*,3*i]
+      
+      kpower_2d_plots, power = power_ratio1, multi_pos = pos_use, start_multi_params = start_multi_params, $
+        kperp_edges = kperp_edges, kpar_edges = kpar_edges, kperp_bin = kperp_bin, kpar_bin = kpar_bin, $
+        kperp_lambda_conv = kperp_lambda_conv, delay_params = delay_params, hubble_param = hubble_param, $
+        png = png, eps = eps, pdf = pdf, plotfile = plotfile_2d, window_num = window_num, $
+        kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
+        data_range = data_range, full_title = titles[i,0], $
+        plot_wedge_line = plot_wedge_line, hinv = hinv, /pwr_ratio, $
+        wedge_amp = wedge_amp, baseline_axis = baseline_axis, delay_axis = delay_axis, $
+        kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis
+        
+      if i eq 0 then begin
+        positions = pos_use
+        undefine, start_multi_params
+      endif
+      pos_use = positions[*,3*i+1]
+      
+      kpower_2d_plots, power = power_ratio2, multi_pos = pos_use, start_multi_params = start_multi_params, $
+        kperp_edges = kperp_edges, kpar_edges = kpar_edges, kperp_bin = kperp_bin, kpar_bin = kpar_bin, $
+        kperp_lambda_conv = kperp_lambda_conv, delay_params = delay_params, hubble_param = hubble_param, $
+        png = png, eps = eps, pdf = pdf, plotfile = plotfile_2d, window_num = window_num, $
+        kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
+        data_range = data_range, full_title = titles[i,1], $
+        plot_wedge_line = plot_wedge_line, hinv = hinv, /pwr_ratio, $
+        wedge_amp = wedge_amp, baseline_axis = baseline_axis, delay_axis = delay_axis, $
+        kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis
+        
+      pos_use = positions[*,3*i+2]
+      
+      kpower_2d_plots, power = power_diff_ratio, multi_pos = pos_use, start_multi_params = start_multi_params, $
+        kperp_edges = kperp_edges, kpar_edges = kpar_edges, kperp_bin = kperp_bin, kpar_bin = kpar_bin, $
+        kperp_lambda_conv = kperp_lambda_conv, delay_params = delay_params, hubble_param = hubble_param, $
+        png = png, eps = eps, pdf = pdf, plotfile = plotfile_2d, window_num = window_num, color_profile = 'sym_log', $
+        kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
+        data_range = diff_range, full_title = titles[i,2], note = note, $
+        plot_wedge_line = plot_wedge_line, hinv = hinv, /pwr_ratio, $
+        wedge_amp = wedge_amp, baseline_axis = baseline_axis, delay_axis = delay_axis, $
+        kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis
+        
+    endfor
     
-    kpower_2d_plots, power = power_ratio2, multi_pos = pos_use, start_multi_params = start_multi_params, $
-      kperp_edges = kperp_edges, kpar_edges = kpar_edges, kperp_bin = kperp_bin, kpar_bin = kpar_bin, $
-      kperp_lambda_conv = kperp_lambda_conv, delay_params = delay_params, hubble_param = hubble_param, $
-      png = png, eps = eps, pdf = pdf, plotfile = plotfile_2d, window_num = window_num, $
-      kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
-      data_range = data_range, full_title = titles[1], $
-      plot_wedge_line = plot_wedge_line, hinv = hinv, /pwr_ratio, $
-      wedge_amp = wedge_amp, baseline_axis = baseline_axis, delay_axis = delay_axis, $
-      kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis
-      
-    pos_use = positions[*,2]
-    
-    kpower_2d_plots, power = power_diff_ratio, multi_pos = pos_use, start_multi_params = start_multi_params, $
-      kperp_edges = kperp_edges, kpar_edges = kpar_edges, kperp_bin = kperp_bin, kpar_bin = kpar_bin, $
-      kperp_lambda_conv = kperp_lambda_conv, delay_params = delay_params, hubble_param = hubble_param, $
-      png = png, eps = eps, pdf = pdf, plotfile = plotfile_2d, window_num = window_num, color_profile = 'sym_log', $
-      kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
-      data_range = diff_range, full_title = titles[2], note = note, $
-      plot_wedge_line = plot_wedge_line, hinv = hinv, /pwr_ratio, $
-      wedge_amp = wedge_amp, baseline_axis = baseline_axis, delay_axis = delay_axis, $
-      kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis
-      
-      
     if keyword_set(pub) then begin
       cgps_close, png = png, pdf = pdf, delete_ps = delete_ps, density=600
     endif
