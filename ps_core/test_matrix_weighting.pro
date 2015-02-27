@@ -37,8 +37,8 @@ pro test_matrix_weighting, save_filebase = save_filebase, covar_use = covar_use,
   norm_err_factor_range = fltarr(n_trials, 2)
   peak_norm = fltarr(n_trials)
   peak_norm_meas = fltarr(n_trials)
-  peak_ratio = fltarr(n_trials, 5)
-  power_ratio = fltarr(n_trials, 5)
+  peak_ratio = fltarr(n_trials, 4);5)
+  power_ratio = fltarr(n_trials, 4);5)
   peak_power = fltarr(n_trials, 2)
   unflagged_frac = fltarr(n_trials)
   for i=0, n_trials-1 do begin
@@ -129,7 +129,7 @@ pro test_matrix_weighting, save_filebase = save_filebase, covar_use = covar_use,
     temp = shift(abs(fft(total(abs(inv_covar_f)^2.,2))), n_freq[i]/2)*n_freq[i]*delta_f[i]
     
     wt_power = abs(wt_signal_ft)^2./norm
-    wt_power_norm = wt_power * n_freq[i] / total((signal_weights)^2.)
+    ;wt_power_norm = wt_power * n_freq[i] / total((signal_weights)^2.)
     power = abs(signal_ft)^2./(n_freq[i]*delta_f[i])
     power_norm = abs(signal_ft)^2./(total(signal_weights^2.)*delta_f[i])
     power_nobp = abs(signal_nobp_ft)^2./(n_freq[i]*delta_f[i])
@@ -142,19 +142,19 @@ pro test_matrix_weighting, save_filebase = save_filebase, covar_use = covar_use,
     
     
     ;norm_err_factor_range[i,*] = minmax(wt_power/power)
-    ratio_names = ['flag/no flag', 'flag norm/no flag',  'weight/flag', 'weight/no flag', 'weight norm/no flag']
+    ratio_names = ['flag/no flag', 'flag norm/no flag',  'weight/flag', 'weight/no flag'];, 'weight norm/no flag']
     
     peak_ratio[i, 0] = power[wh_peak]/power_nobp[wh_peak]
     peak_ratio[i, 1] = power_norm[wh_peak]/power_nobp[wh_peak]
     peak_ratio[i, 2] = wt_power[wh_peak]/power[wh_peak]
     peak_ratio[i, 3] = wt_power[wh_peak]/power_nobp[wh_peak]
-    peak_ratio[i, 4] = wt_power_norm[wh_peak]/power_nobp[wh_peak]
+    ;peak_ratio[i, 4] = wt_power_norm[wh_peak]/power_nobp[wh_peak]
     
     power_ratio[i, 0] = total(power)/total(power_nobp)
     power_ratio[i, 1] = total(power_norm)/total(power_nobp)
     power_ratio[i, 2] = total(wt_power)/total(power)
     power_ratio[i, 3] = total(wt_power)/total(power_nobp)
-    power_ratio[i, 4] = total(wt_power_norm)/total(power_nobp)
+    ;power_ratio[i, 4] = total(wt_power_norm)/total(power_nobp)
     unflagged_frac[i] = 1.-count_edges/float(n_freq[i])
   endfor
   
@@ -271,10 +271,10 @@ pro test_matrix_weighting, save_filebase = save_filebase, covar_use = covar_use,
   
   ;print, norm_err_factor_range
   print, 'peak ratios:'
-  for i=0, 4 do print, ratio_names[i], peak_ratio[*, i], format = '(a20, 3f9.3)'
+  for i=0, 3 do print, ratio_names[i], peak_ratio[*, i], format = '(a20, 3f9.3)'
   print, ''
   print, 'integral ratios:'
-  for i=0, 4 do print, ratio_names[i], power_ratio[*, i], format = '(a20, 3f9.3)'
+  for i=0, 3 do print, ratio_names[i], power_ratio[*, i], format = '(a20, 3f9.3)'
   print, ''
   print, 'unflagged fraction', unflagged_frac, format = '(a20, 3f9.3)'
 ;print, ''
