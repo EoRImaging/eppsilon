@@ -364,7 +364,7 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
           type_inc = [type_inc, 'res']
           if npol gt 1 then cube_varname = [cube_varname,transpose(residual_varname)] else cube_varname = [cube_varname, residual_varname]
         endelse
-      endif else if type_inc eq ['dirty', 'model'] then begin
+      endif else if (Max(type_inc EQ 'dirty')<Max(type_inc EQ 'model')) then begin
         ;; residual can be constructed from dirty-model
         type_inc = [type_inc, 'res']
         if npol gt 1 then cube_varname = [cube_varname,transpose(strarr(npol))] else cube_varname = [cube_varname, '']
