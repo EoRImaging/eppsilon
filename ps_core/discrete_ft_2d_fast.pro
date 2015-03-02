@@ -4,7 +4,7 @@
 ; k1 & k2 are kx/ky values to test at
 
 
-function discrete_ft_2d_fast, locations1, locations2, data, k1, k2, timing = timing, fchunk = fchunk, exp2pi = exp2pi
+function discrete_ft_2d_fast, locations1, locations2, data, k1, k2, timing = timing, fchunk = fchunk, exp2pi = exp2pi, no_progress = no_progress
 
   print, 'Beginning discrete 2D FT'
 
@@ -79,7 +79,7 @@ function discrete_ft_2d_fast, locations1, locations2, data, k1, k2, timing = tim
     
      this_step = j
      wh = where(progress_steps eq this_step, count)
-     if count gt 0 then begin
+     if count gt 0 and not keyword_set(no_progress) then begin
         print, 'progress: on step ' + number_formatter(this_step) + ' of ' + number_formatter(nsteps) + $
                ' (~ ' + number_formatter(round(100d*this_step/(nsteps))) + '% done)'
         if this_step gt 0 then begin

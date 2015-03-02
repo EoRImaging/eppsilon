@@ -45,7 +45,7 @@ pro ps_power, file_struct, refresh = refresh, kcube_refresh = kcube_refresh, dft
       dft_ian = dft_ian, dft_fchunk = dft_fchunk, freq_ch_range = freq_ch_range, freq_flags = freq_flags, $
       cut_image = cut_image, delta_uv_lambda = delta_uv_lambda, max_uv_lambda = max_uv_lambda, $
       uvf_input = uvf_input, uv_avg = uv_avg, uv_img_clip = uv_img_clip, sim=sim, $
-      spec_window_type = spec_window_type, std_power = std_power, input_units = input_units, /quiet
+      spec_window_type = spec_window_type, std_power = std_power, input_units = input_units, no_dft_progress = no_dft_progress
       
     if nfiles eq 1 then begin
       restore, file_struct.kcube_savefile

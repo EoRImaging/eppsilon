@@ -14,7 +14,7 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
     kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
     baseline_axis = baseline_axis, delay_axis = delay_axis, hinv = hinv, $
     plot_wedge_line = plot_wedge_line, wedge_angles = wedge_angles, coarse_harm_width = coarse_harm_width, $
-    plot_eor_1d = plot_eor_1d, individual_plots = individual_plots, cube_power_info = cube_power_info
+    plot_eor_1d = plot_eor_1d, individual_plots = individual_plots, cube_power_info = cube_power_info, no_dft_progress = no_dft_progress
     
     
   if keyword_set(refresh_dft) then refresh_beam = 1
@@ -357,7 +357,7 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
           std_power = std_power, no_wtd_avg = no_wtd_avg, no_kzero = no_kzero, sim=sim, $
           log_kpar = log_kpar, log_kperp = log_kperp, kpar_bin = kpar_bin, kperp_bin = kperp_bin, $
           kperp_range_1dave = kperp_range_1dave, kperp_range_lambda_1dave = kperp_range_lambda_1dave, kpar_range_1dave = kpar_range_1dave, $
-          wedge_amp = wedge_amp, coarse_harm0 = coarse_harm0, coarse_width = coarse_harm_width, /quiet
+          wedge_amp = wedge_amp, coarse_harm0 = coarse_harm0, coarse_width = coarse_harm_width, /quiet, no_dft_progress = no_dft_progress
       endif else $
         ps_power, file_struct_arr[i], kcube_refresh = refresh_ps, refresh_beam = refresh_beam, freq_ch_range = freq_ch_range, $
         freq_flags = freq_flags, spec_window_type = spec_window_type, $
@@ -367,7 +367,7 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
         uvf_input = uvf_input, uv_avg = uv_avg, uv_img_clip = uv_img_clip, sim=sim, $
         log_kpar = log_kpar, log_kperp = log_kperp, kpar_bin = kpar_bin, kperp_bin = kperp_bin, $
         kperp_range_1dave = kperp_range_1dave, kperp_range_lambda_1dave = kperp_range_lambda_1dave, kpar_range_1dave = kpar_range_1dave, $
-        wedge_amp = wedge_amp, coarse_harm0 = coarse_harm0, coarse_width = coarse_harm_width, /quiet
+        wedge_amp = wedge_amp, coarse_harm0 = coarse_harm0, coarse_width = coarse_harm_width, /quiet, no_dft_progress = no_dft_progress
     endif
   endfor
   
