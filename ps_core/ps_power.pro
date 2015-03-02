@@ -10,7 +10,7 @@ pro ps_power, file_struct, refresh = refresh, kcube_refresh = kcube_refresh, dft
     log_kperp = log_kperp, kperp_bin = kperp_bin, kpar_bin = kpar_bin, log_k1d = log_k1d, k1d_bin = k1d_bin, $
     kperp_range_1dave = kperp_range_1dave, kperp_range_lambda_1dave = kperp_range_lambda_1dave, kpar_range_1dave = kpar_range_1dave, $
     wedge_amp = wedge_amp, coarse_harm0 = coarse_harm0, coarse_width = coarse_width, $
-    input_units = input_units, fill_holes = fill_holes, quiet = quiet
+    input_units = input_units, fill_holes = fill_holes, quiet = quiet, no_dft_progress = no_dft_progress
     
   if tag_exist(file_struct, 'nside') ne 0 then healpix = 1 else healpix = 0
   ;refresh=1
