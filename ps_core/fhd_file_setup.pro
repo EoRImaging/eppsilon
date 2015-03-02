@@ -465,27 +465,30 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
       if count_nside gt 0 then this_healpix = 1 else this_healpix = 0
       
       for type_i=0, ntypes-1 do begin
-        wh = where(strlowcase(varnames) eq strlowcase(cube_varname[type_i, pol_i]), count)
-        if count eq 0 then message, cube_varname[type_i, pol_i] + ' is not present in datafile (datafile=' + datafile[pol_i, file_i] + ')'
-        
-        data_size = getvar_savefile(datafile[pol_i, file_i], cube_varname[type_i, pol_i], /return_size)
-        
-        if data_size[0] eq 0 then message, 'data cube has no size'
-        if data_size[n_elements(data_size)-2] eq 10 then begin
-          ;; data is a pointer
-          if keyword_set(uvf_input) then begin
-            if data_size[0] ne 2 then message, 'Data are in a pointer array, format unknown'
-            if data_size[1] ne npol then message, 'Data are in a pointer array, format unknown'
-            data = getvar_savefile(datafile[pol_i, file_i], cube_varname[type_i, pol_i])
-            dims2 = size(*data[0], /dimension)
-            this_data_dims = [dims2, data_size[2], data_size[1]]
-            undefine_fhd, data
-          endif else message, 'Data is in a pointer array, format unknown'
+        if cube_varname[type_i, pol_i] ne '' then begin
+          wh = where(strlowcase(varnames) eq strlowcase(cube_varname[type_i, pol_i]), count)
+          if count eq 0 then message, cube_varname[type_i, pol_i] + ' is not present in datafile (datafile=' + datafile[pol_i, file_i] + ')'
           
-        endif else this_data_dims = data_size[1:data_size[0]]
+          data_size = getvar_savefile(datafile[pol_i, file_i], cube_varname[type_i, pol_i], /return_size)
+          
+          if data_size[0] eq 0 then message, 'data cube has no size'
+          if data_size[n_elements(data_size)-2] eq 10 then begin
+            ;; data is a pointer
+            if keyword_set(uvf_input) then begin
+              if data_size[0] ne 2 then message, 'Data are in a pointer array, format unknown'
+              if data_size[1] ne npol then message, 'Data are in a pointer array, format unknown'
+              data = getvar_savefile(datafile[pol_i, file_i], cube_varname[type_i, pol_i])
+              dims2 = size(*data[0], /dimension)
+              this_data_dims = [dims2, data_size[2], data_size[1]]
+              undefine_fhd, data
+            endif else message, 'Data is in a pointer array, format unknown'
+            
+          endif else this_data_dims = data_size[1:data_size[0]]
+          
+          if type_i eq 0 and j eq 0 then data_dims = this_data_dims else if total(abs(this_data_dims - data_dims)) ne 0 then message, 'data dimensions in files do not match'
+        endfor
         
-        if type_i eq 0 and j eq 0 then data_dims = this_data_dims else if total(abs(this_data_dims - data_dims)) ne 0 then message, 'data dimensions in files do not match'
-      endfor
+      endif
       
       void = getvar_savefile(weightfile[pol_i, file_i], names = wt_varnames)
       void = getvar_savefile(variancefile[pol_i, file_i], names = var_varnames)
