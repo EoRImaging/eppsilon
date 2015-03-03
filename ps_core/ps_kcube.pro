@@ -590,10 +590,10 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
             
             if keyword_set(dft_ian) then begin
               transform = discrete_ft_2D_fast(x_rot[wh_close], y_rot[wh_close], arr, u_lambda_vals, v_lambda_vals, /exp2pi, $
-                timing = ft_time, fchunk = dft_fchunk, quiet = no_dft_progress)
+                timing = ft_time, fchunk = dft_fchunk, no_progress = no_dft_progress)
             endif else begin
               transform = discrete_ft_2D_fast(x_rot[wh_close], y_rot[wh_close], arr, kx_rad_vals, ky_rad_vals, $
-                timing = ft_time, fchunk = dft_fchunk, quiet = no_dft_progress)
+                timing = ft_time, fchunk = dft_fchunk, no_progress = no_dft_progress)
             endelse
             
             weights_cube = temporary(transform)
@@ -617,10 +617,10 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
               
               if keyword_set(dft_ian) then begin
                 transform = discrete_ft_2D_fast(x_rot[wh_close], y_rot[wh_close], arr, u_lambda_vals, v_lambda_vals, /exp2pi, $
-                  timing = ft_time, fchunk = dft_fchunk, quiet = no_dft_progress)
+                  timing = ft_time, fchunk = dft_fchunk, no_progress = no_dft_progress)
               endif else begin
                 transform = discrete_ft_2D_fast(x_rot[wh_close], y_rot[wh_close], arr, kx_rad_vals, ky_rad_vals, $
-                  timing = ft_time, fchunk = dft_fchunk, quiet = no_dft_progress)
+                  timing = ft_time, fchunk = dft_fchunk, no_progress = no_dft_progress)
               endelse
               variance_cube = abs(temporary(transform)) ;; make variances real, positive definite (amplitude)
               undefine, arr
