@@ -486,9 +486,9 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
           endif else this_data_dims = data_size[1:data_size[0]]
           
           if type_i eq 0 and j eq 0 then data_dims = this_data_dims else if total(abs(this_data_dims - data_dims)) ne 0 then message, 'data dimensions in files do not match'
-        endfor
+        endif
+      endfor
         
-      endif
       
       void = getvar_savefile(weightfile[pol_i, file_i], names = wt_varnames)
       void = getvar_savefile(variancefile[pol_i, file_i], names = var_varnames)
