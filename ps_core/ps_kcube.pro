@@ -168,6 +168,8 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
   vs_mean = mean(vis_sigma)
   ;vis_sigma[*] = vs_mean
   
+  t_sys_used = (2. * (1.38065e-23) * 1e26) * vis_sigma / (eff_area * sqrt(df * tau)) ;; in K
+  
   n_vis = reform(file_struct.n_vis)
   n_vis_freq = reform(file_struct.n_vis_freq)
   if n_elements(freq_ch_range) ne 0 then n_vis = total(n_vis_freq[*, min(freq_ch_range):max(freq_ch_range)], 2)
