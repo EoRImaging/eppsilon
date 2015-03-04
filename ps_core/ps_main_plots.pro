@@ -191,17 +191,37 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
   savefiles_2d = file_struct_arr.savefile_froot + file_struct_arr.savefilebase + power_tag + fadd_2dbin + '_2dkpower.idlsave'
   test_save_2d = file_test(savefiles_2d) *  (1 - file_test(savefiles_2d, /zero_length))
   
-  if n_elements(wedge_1dbin_names) gt 1 then begin
-    savefiles_1d = strarr(n_cubes, n_elements(wedge_1dbin_names))
-    for i=0, n_elements(wedge_1dbin_names)-1 do savefiles_1d[*,i] = file_struct_arr.savefile_froot + file_struct_arr.savefilebase + $
-      power_tag + replicate(wedge_1dbin_names[i], n_cubes) + fadd_1dbin + '_1dkpower.idlsave'
-  endif else savefiles_1d = file_struct_arr.savefile_froot + file_struct_arr.savefilebase + power_tag + wedge_1dbin_names + fadd_1dbin + '_1dkpower.idlsave'
+  ;wt_measures = [strarr(2)+'ave', strarr(2)+'min']
+  ;wt_cutoffs = [0.5,1, 2, 0.5,1, 2]
+  
+  ;wt_measures = strarr(1)+'ave';, strarr(2)+'min']
+  ;wt_measures = strarr(3)+'min'
+  ;wt_measures=['ave','min']
+  ;wt_cutoffs = [2,1];, 2];, 1, 2]
+  
+  if n_elements(wt_cutoffs) gt 0 then kperp_density_1dbin_names = ['', '_kperp_density_' + wt_measures + '_gt' + number_formatter(wt_cutoffs)] $
+  else kperp_density_1dbin_names = ['']
+  savefiles_1d = strarr(n_cubes, n_elements(kperp_density_1dbin_names), n_elements(wedge_1dbin_names))
+  for i=0, n_elements(wedge_1dbin_names)-1 do begin
+    for j=0, n_elements(kperp_density_1dbin_names)-1 do begin
+      savefiles_1d[*,j,i] = file_struct_arr.savefile_froot + file_struct_arr.savefilebase + power_tag + $
+        kperp_density_1dbin_names[j] + wedge_1dbin_names[i] + fadd_1dbin + '_1dkpower.idlsave'
+    endfor
+  endfor
   test_save_1d = file_test(savefiles_1d) *  (1 - file_test(savefiles_1d, /zero_length))
   
-  savefiles_kpar_1d = file_struct_arr.savefile_froot + file_struct_arr.savefilebase + power_tag + fadd_1dbin + '_kpar_power.idlsave'
+  savefiles_kpar_1d = strarr(n_cubes, n_elements(kperp_density_1dbin_names))
+  for j=0, n_elements(kperp_density_1dbin_names)-1 do begin
+    savefiles_kpar_1d[*,j] = file_struct_arr.savefile_froot + file_struct_arr.savefilebase + power_tag + $
+      kperp_density_1dbin_names[j] + fadd_1dbin + '_kpar_power.idlsave'
+  endfor
   if keyword_set(plot_kpar_power) then test_save_kpar = file_test(savefiles_kpar_1d) *  (1 - file_test(savefiles_kpar_1d, /zero_length))
   
-  savefiles_kperp_1d = file_struct_arr.savefile_froot + file_struct_arr.savefilebase + power_tag + fadd_1dbin + '_kperp_power.idlsave'
+  savefiles_kperp_1d = strarr(n_cubes, n_elements(kperp_density_1dbin_names))
+  for j=0, n_elements(kperp_density_1dbin_names)-1 do begin
+    savefiles_kperp_1d[*,j] = file_struct_arr.savefile_froot + file_struct_arr.savefilebase + power_tag + $
+      kperp_density_1dbin_names[j] + fadd_1dbin + '_kperp_power.idlsave'
+  endfor
   if keyword_set(plot_kperp_power) then test_save_kperp = file_test(savefiles_kperp_1d) *  (1 - file_test(savefiles_kperp_1d, /zero_length))
   
   savefiles_k0 = file_struct_arr.savefile_froot + file_struct_arr.savefilebase + power_tag + fadd_2dbin + '_k0power.idlsave'
@@ -233,14 +253,14 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
     savefile_2d_use = savefiles_2d[i]
     test_2d = test_save_2d[i]
     
+    savefile_kpar_use = savefiles_kpar_1d[i,*]
     if keyword_set(plot_kpar_power) then begin
-      savefile_kpar_use = savefiles_kpar_1d[i]
-      test_kpar = test_save_kpar[i]
+      test_kpar = min(test_save_kpar[i,*])
     endif
     
+    savefile_kperp_use = savefiles_kperp_1d[i,*]
     if keyword_set(plot_kperp_power) then begin
-      savefile_kperp_use = savefiles_kperp_1d[i]
-      test_kperp = test_save_kperp[i]
+      test_kperp = min(test_save_kperp[i,*])
     endif
     
     if keyword_set(plot_k0_power) then begin
@@ -248,13 +268,9 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
       test_k0 = test_save_k0[i]
     endif
     
-    if n_elements(wedge_1dbin_names) gt 1 then begin
-      savefile_1d_use = savefiles_1d[i,*]
-      test_1d = min(test_save_1d[i,*])
-    endif else begin
-      savefile_1d_use = savefiles_1d[i]
-      test_1d = test_save_1d[i]
-    endelse
+    
+    savefile_1d_use = reform(savefiles_1d[i,*,*], n_elements(kperp_density_1dbin_names), n_elements(wedge_1dbin_names))
+    test_1d = min(test_save_1d[i,*,*])
     
     ;; if binsizes are specified, check that binsize is right
     if (n_elements(kperp_bin) ne 0 or n_elements(kpar_bin) ne 0) and test_2d gt 0 then begin
@@ -356,7 +372,7 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
           savefile_kpar_power = savefile_kpar_use, savefile_kperp_power = savefile_kperp_use, savefile_k0 = savefile_k0_use, $
           std_power = std_power, no_wtd_avg = no_wtd_avg, no_kzero = no_kzero, sim=sim, $
           log_kpar = log_kpar, log_kperp = log_kperp, kpar_bin = kpar_bin, kperp_bin = kperp_bin, $
-          kperp_range_1dave = kperp_range_1dave, kperp_range_lambda_1dave = kperp_range_lambda_1dave, kpar_range_1dave = kpar_range_1dave, $
+          kperp_range_1dave = kperp_range_1dave, kperp_range_lambda_1dave = kperp_range_lambda_1dave, kpar_range_1dave = kpar_range_1dave, wt_measures, wt_cutoffs, $
           wedge_amp = wedge_amp, coarse_harm0 = coarse_harm0, coarse_width = coarse_harm_width, /quiet, no_dft_progress = no_dft_progress
       endif else $
         ps_power, file_struct_arr[i], kcube_refresh = refresh_ps, refresh_beam = refresh_beam, freq_ch_range = freq_ch_range, $
@@ -366,7 +382,7 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
         std_power = std_power, no_wtd_avg = no_wtd_avg, no_kzero = no_kzero, $
         uvf_input = uvf_input, uv_avg = uv_avg, uv_img_clip = uv_img_clip, sim=sim, $
         log_kpar = log_kpar, log_kperp = log_kperp, kpar_bin = kpar_bin, kperp_bin = kperp_bin, $
-        kperp_range_1dave = kperp_range_1dave, kperp_range_lambda_1dave = kperp_range_lambda_1dave, kpar_range_1dave = kpar_range_1dave, $
+        kperp_range_1dave = kperp_range_1dave, kperp_range_lambda_1dave = kperp_range_lambda_1dave, kpar_range_1dave = kpar_range_1dave, wt_measures, wt_cutoffs, $
         wedge_amp = wedge_amp, coarse_harm0 = coarse_harm0, coarse_width = coarse_harm_width, /quiet, no_dft_progress = no_dft_progress
     endif
   endfor
@@ -926,6 +942,25 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
     endelse
   endif
   
+  
+  ave_power_vals = fltarr(n_cubes)
+  wt_ave_power_vals = fltarr(n_cubes)
+  ave_weights_vals = fltarr(n_cubes)
+  ave_weights_freq_vals = fltarr(n_cubes, n_freq)
+  wt_ave_power_freq_vals = fltarr(n_cubes, n_freq)
+  ave_power_freq_vals = fltarr(n_cubes, n_freq)
+  for k=0, n_cubes-1 do begin
+    ave_power_vals[k] = getvar_savefile(savefiles_1d[k,0,0], 'ave_power')
+    wt_ave_power_vals[k] = getvar_savefile(savefiles_1d[k,0,0], 'wt_ave_power')
+    ave_weights_vals[k] = mean(getvar_savefile(savefiles_1d[k,0,0], 'ave_weights'))
+    ave_weights_freq_vals[k,*] = (getvar_savefile(savefiles_1d[k,0,0], 'ave_weights'))[0,*]
+    wt_ave_power_freq_vals[k,*] = (getvar_savefile(savefiles_1d[k,0,0], 'wt_ave_power_freq'))[0,*]
+    ave_power_freq_vals[k,*] = (getvar_savefile(savefiles_1d[k,0,0], 'ave_power_freq'))[0,*]
+  endfor
+  cube_power_info = {ave_power:ave_power_vals, wt_ave_power:wt_ave_power_vals, $
+    ave_weights:ave_weights_vals, ave_weights_freq:ave_weights_freq_vals, wt_ave_power_freq:wt_ave_power_freq_vals, $
+    ave_power_freq:ave_power_freq_vals}
+    
   if keyword_set(plot_eor_1d) then begin
     case strlowcase(!version.os_family) OF
       'windows': split_delim = ';'
@@ -952,7 +987,8 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
   
   if keyword_set(plot_stdset) then begin
     for i=0, n_elements(wedge_1dbin_names)-1 do begin
-      if n_elements(wedge_1dbin_names) gt 1 then file_arr = savefiles_1d[*,i] else file_arr = savefiles_1d
+      file_arr = reform(savefiles_1d[*,*,i], n_cubes*n_elements(kperp_density_1dbin_names))
+      
       if n_elements(plotfile_1d) gt 0 then begin
         plotfile_use = plotfile_1d[i]
         plotfile_noise_use = plotfile_1d_noise[i]
@@ -960,7 +996,9 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
       
       if i gt 0 then note_use = note + ' ' + strjoin(strsplit(wedge_1dbin_names[i], '_', /extract), ' ') else note_use = note
       
-      titles_use = titles
+      titles_use = strarr(n_cubes, n_elements(kperp_density_1dbin_names))
+      for j=0, n_elements(kperp_density_1dbin_names)-1 do titles_use[*,j] = titles + kperp_density_1dbin_names[j]
+      titles_use = reform(titles_use, n_cubes*n_elements(kperp_density_1dbin_names))
       
       k_range = minmax([kperp_plot_range, kpar_bin, kpar_plot_range[1]])
       
@@ -985,9 +1023,11 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
   
   if keyword_set(plot_kpar_power) then begin
   
-    file_arr = savefiles_kpar_1d
+    file_arr = reform(savefiles_kpar_1d, n_cubes*n_elements(kperp_density_1dbin_names))
     
-    titles_use = titles
+    titles_use = strarr(n_cubes, n_elements(kperp_density_1dbin_names))
+    for j=0, n_elements(kperp_density_1dbin_names)-1 do titles_use[*,j] = titles + kperp_density_1dbin_names[j]
+    titles_use = reform(titles_use, n_cubes*n_elements(kperp_density_1dbin_names))
     if keyword_set(plot_eor_1d) then begin
       if count_catalog gt 0 then begin
         psyms = [intarr(n_elements(file_arr))+10, -3, -3]
@@ -1005,9 +1045,11 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
   
   if keyword_set(plot_kperp_power) then begin
   
-    file_arr = savefiles_kperp_1d
+    file_arr = reform(savefiles_kperp_1d, n_cubes*n_elements(kperp_density_1dbin_names))
     
-    titles_use = titles
+    titles_use = strarr(n_cubes, n_elements(kperp_density_1dbin_names))
+    for j=0, n_elements(kperp_density_1dbin_names)-1 do titles_use[*,j] = titles + kperp_density_1dbin_names[j]
+    titles_use = reform(titles_use, n_cubes*n_elements(kperp_density_1dbin_names))
     
     if keyword_set(plot_eor_1d) then begin
       if count_catalog gt 0 then begin
