@@ -684,8 +684,8 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
     weights_cube1 = getvar_savefile(file_struct.uvf_weight_savefile[0], 'weights_cube')
     if nfiles eq 2 then weights_cube2 = getvar_savefile(file_struct.uvf_weight_savefile[1], 'weights_cube')
     
-    ave_weights = mean(abs(weights_cube1))
-    if nfiles eq 2 then ave_weights = [ave_weights, mean(abs(weights_cube2))]
+    ave_weights = total(total(abs(weights_cube1),2),1)/(n_kx*n_ky)
+    if nfiles eq 2 then ave_weights = transpose([[ave_weights], [total(total(abs(weights_cube2),2),1)/(n_kx*n_ky)]])
     
     void = getvar_savefile(file_struct.uvf_weight_savefile[0], names = uvf_varnames)
     wh_hash = where(uvf_varnames eq 'uvf_wt_git_hash', count_hash)
@@ -725,9 +725,6 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
       if nfiles eq 2 then weights_cube2 = temporary(temp2)
     endif else dims2 = size(weights_cube1, /dimension)
     
-    ave_weights = mean(abs(weights_cube1))
-    if nfiles eq 2 then ave_weights = [ave_weights, mean(abs(weights_cube2))]
-    
     n_kx = dims2[0]
     if abs(file_struct.kpix-1/(n_kx[0] * (abs(file_struct.degpix) * !pi / 180d)))/file_struct.kpix gt 1e-4 then stop
     kx_mpc_delta = (2.*!pi)*file_struct.kpix / z_mpc_mean
@@ -736,6 +733,9 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
     n_ky = dims2[1]
     ky_mpc_delta = (2.*!pi)*file_struct.kpix / z_mpc_mean
     ky_mpc = (dindgen(n_ky)-n_ky/2) * kx_mpc_delta
+    
+    ave_weights = total(total(abs(weights_cube1),2),1)/(n_kx*n_ky)
+    if nfiles eq 2 then ave_weights = transpose([[ave_weights], [total(total(abs(weights_cube2),2),1)/(n_kx*n_ky)]])
     
     pix_area_rad = (!dtor*file_struct.degpix)^2.
     pix_area_mpc = pix_area_rad * z_mpc_mean^2.
@@ -1395,6 +1395,13 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
     if count_sig2_0 ne 0 then sum_weights2[wh_sig2_0] = 0
     undefine, sigma2_cube2, wh_sig2_0, count_sig2_0
     
+    wt_ave_power_freq = fltarr(2, n_freq)
+    wt_ave_power_freq[0,*] = total(total(sum_weights1 * abs(data_cube1)^2., 2), 1)/total(total(sum_weights1, 2), 1)
+    wt_ave_power_freq[1,*] = total(total(sum_weights2 * abs(data_cube2)^2., 2), 1)/total(total(sum_weights2, 2), 1)
+    ave_power_freq = fltarr(2, n_freq)
+    for i=0, n_freq-1 do ave_power_freq[*, i] = [mean(abs((data_cube1[*,*,i])[where(sum_weights1[*,*,i] ne 0),*])^2.), $
+      mean(abs((data_cube2[*,*,i])[where(sum_weights2[*,*,i] ne 0),*])^2.)]
+      
     sum_weights_net = sum_weights1 + sum_weights2
     wh_wt0 = where(sum_weights_net eq 0, count_wt0)
     
@@ -1410,6 +1417,15 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
     if count_wt0 ne 0 then sum_sigma2[wh_wt0] = 0
     
   endif else begin
+    sum_weights1 = 1./sigma2_cube1
+    wh_sig1_0 = where(sigma2_cube1 eq 0, count_sig1_0)
+    if count_sig1_0 ne 0 then sum_weights1[wh_sig1_0] = 0
+    
+    wt_ave_power_freq = total(total(sum_weights1 * abs(data_cube1)^2., 2), 1)/total(total(sum_weights1, 2), 1)
+    ave_power_freq = fltarr(n_freq)
+    for i=0, n_freq-1 do ave_power_freq[i] = mean(abs((data_cube1[*,*,i])[where(sum_weights1[*,*,i] ne 0),*])^2.)
+    undefine, sum_weights1
+    
     data_sum = temporary(data_cube1)
     sum_sigma2 = temporary(sigma2_cube1)
   endelse
@@ -1502,7 +1518,6 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
   kz_mpc = kz_mpc_orig[where(n_val ge 0)]
   n_kz = n_elements(kz_mpc)
   
-  
   if keyword_set(std_power) then begin
     ;; comov_dist_los goes from large to small z
     z_relative = dindgen(n_freq)*z_mpc_delta
@@ -1558,7 +1573,7 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
     
     save, file = file_struct.kcube_savefile, data_sum_1, data_sum_2, data_diff_1, data_diff_2, sigma2_1, sigma2_2, n_val, $
       kx_mpc, ky_mpc, kz_mpc, kperp_lambda_conv, delay_params, hubble_param, n_freq_contrib, freq_mask, $
-      vs_name, vs_mean, window_int, wt_meas_ave, wt_meas_min, ave_weights, t_sys_meas, git_hashes
+      vs_name, vs_mean, t_sys_meas, window_int, wt_meas_ave, wt_meas_min, ave_weights, wt_ave_power_freq, ave_power_freq, git_hashes
       
   endif else begin
     ;; these an and bn calculations don't match the standard
@@ -1703,7 +1718,7 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
     
     save, file = file_struct.kcube_savefile, data_sum_1, data_sum_2, data_diff_1, data_diff_2, sigma2_1, sigma2_2, $
       kx_mpc, ky_mpc, kz_mpc, kperp_lambda_conv, delay_params, hubble_param, n_freq_contrib, freq_mask, $
-      vs_name, vs_mean, window_int, wt_meas_ave, wt_meas_min, ave_weights, t_sys_meas, git_hashes
+      vs_name, vs_mean, t_sys_meas, window_int, wt_meas_ave, wt_meas_min, ave_weights, wt_ave_power_freq, ave_power_freq, git_hashes
   endelse
   
 end
