@@ -375,6 +375,7 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
   restore, savefiles_2d[0]
   if n_elements(window_int) gt 0 then print, 'window integral: ', window_int
   if n_elements(vs_name) ne 0 then vs_note = vs_name + ': ~' + number_formatter(vs_mean, format = '(f10.2)')
+  if n_elements(t_sys_meas) ne 0 then print, 'Tsys range: ' + minmax(t_sys_meas)
   
   if n_elements(kperp_range_1dave) gt 0 and keyword_set(hinv) then kperp_range_1dave = kperp_range_1dave * hubble_param
   if n_elements(kpar_range_1dave) gt 0 and keyword_set(hinv) then kpar_range_1dave = kpar_range_1dave * hubble_param

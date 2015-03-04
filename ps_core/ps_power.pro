@@ -222,7 +222,7 @@ pro ps_power, file_struct, refresh = refresh, kcube_refresh = kcube_refresh, dft
     
     save, file = file_struct.power_savefile, power_3d, noise_3d, noise_expval_3d, weights_3d, $
       kx_mpc, ky_mpc, kz_mpc, kperp_lambda_conv, delay_params, hubble_param, n_freq_contrib, freq_mask, $
-      vs_name, vs_mean, window_int, wt_meas_ave, wt_meas_min, ave_weights, git_hashes
+      vs_name, vs_mean, window_int, wt_meas_ave, wt_meas_min, ave_weights, t_sys_meas, git_hashes
       
     write_ps_fits, file_struct.fits_power_savefile, power_3d, weights_3d, noise_expval_3d, noise_3d = noise_3d, $
       kx_mpc, ky_mpc, kz_mpc, kperp_lambda_conv, delay_params, hubble_param
@@ -288,7 +288,8 @@ pro ps_power, file_struct, refresh = refresh, kcube_refresh = kcube_refresh, dft
   kperp_plot_range = [min(kperp_edges[wh_good_kperp]), max(kperp_edges[wh_good_kperp+1])]
   
   save, file = savefile_2d, power, noise, weights, noise_expval, kperp_edges, kpar_edges, kperp_bin, kpar_bin, $
-    kperp_lambda_conv, delay_params, hubble_param, freq_mask, vs_name, vs_mean, window_int, wt_ave_power, ave_power, ave_weights, git_hashes
+    kperp_lambda_conv, delay_params, hubble_param, freq_mask, vs_name, vs_mean, window_int, $
+    wt_ave_power, ave_power, ave_weights, t_sys_meas, git_hashes
     
   if not keyword_set(quiet) then begin
     kpower_2d_plots, savefile_2d, kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $

@@ -168,7 +168,7 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
   vs_mean = mean(vis_sigma)
   ;vis_sigma[*] = vs_mean
   
-  t_sys_used = (eff_area * sqrt(df * tau) * vis_sigma) / ((2. * (1.38065e-23) * 1e26))  ;; in K
+  t_sys_meas = (eff_area * sqrt(df * tau) * vis_sigma) / ((2. * (1.38065e-23) * 1e26))  ;; in K
   
   n_vis = reform(file_struct.n_vis)
   n_vis_freq = reform(file_struct.n_vis_freq)
@@ -1558,7 +1558,7 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
     
     save, file = file_struct.kcube_savefile, data_sum_1, data_sum_2, data_diff_1, data_diff_2, sigma2_1, sigma2_2, n_val, $
       kx_mpc, ky_mpc, kz_mpc, kperp_lambda_conv, delay_params, hubble_param, n_freq_contrib, freq_mask, $
-      vs_name, vs_mean, window_int, wt_meas_ave, wt_meas_min, ave_weights, git_hashes
+      vs_name, vs_mean, window_int, wt_meas_ave, wt_meas_min, ave_weights, t_sys_meas, git_hashes
       
   endif else begin
     ;; these an and bn calculations don't match the standard
@@ -1703,7 +1703,7 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
     
     save, file = file_struct.kcube_savefile, data_sum_1, data_sum_2, data_diff_1, data_diff_2, sigma2_1, sigma2_2, $
       kx_mpc, ky_mpc, kz_mpc, kperp_lambda_conv, delay_params, hubble_param, n_freq_contrib, freq_mask, $
-      vs_name, vs_mean, window_int, wt_meas_ave, wt_meas_min, ave_weights, git_hashes
+      vs_name, vs_mean, window_int, wt_meas_ave, wt_meas_min, ave_weights, t_sys_meas, git_hashes
   endelse
   
 end
