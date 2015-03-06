@@ -87,6 +87,15 @@ pro test_matrix_weighting, save_filebase = save_filebase, covar_use = covar_use,
     covar_f_inst = diag_matrix(freq_var)
     covar_eta_inst = shift(matrix_multiply(ft_matrix, matrix_multiply(covar_f_inst, conj(ft_matrix), /btranspose)), n_freq[i]/2, n_freq[i]/2)
     
+    ;    filename = base_path('data') + 'single_use/foreground_covar_eta.txt'
+    ;    header = ['delta_f=', 'n_freq=', 'delta_eta=']+number_formatter([delta_f[i], n_freq[i], delta_eta[i]])
+    ;    textfast, covar_eta_fg, header, file_path=filename, /write
+    ;
+    ;    filename = base_path('data') + 'single_use/instrument_covar_f.txt'
+    ;    header = ['delta_f=', 'n_freq=', 'delta_eta=']+number_formatter([delta_f[i], n_freq[i], delta_eta[i]])
+    ;    textfast, covar_f_inst, header, file_path=filename, /write
+    
+    
     ;signal_power = shift([5e6, fltarr(n_freq[i]-1)+1.], n_freq[i]/2)
     ;signal_power = abs(test_signal_ft)
     
@@ -118,7 +127,6 @@ pro test_matrix_weighting, save_filebase = save_filebase, covar_use = covar_use,
     
     inv_covar_f = la_invert(covar_f)
     inv_covar_eta = shift(matrix_multiply(ft_matrix, matrix_multiply(inv_covar_f, conj(ft_matrix), /btranspose)), n_freq[i]/2, n_freq[i]/2)
-    ;inv_covar_eta_inst = shift(matrix_multiply(ft_matrix, matrix_multiply(1./covar_f, conj(ft_matrix), /btranspose)), n_freq[i]/2, n_freq[i]/2)
     
     wt_signal = matrix_multiply(inv_covar_f, signal_nobp) * delta_f[i]
     ;wt_signal = matrix_multiply(inv_covar_f, signal) * delta_f[i]
@@ -134,14 +142,10 @@ pro test_matrix_weighting, save_filebase = save_filebase, covar_use = covar_use,
     power_norm = abs(signal_ft)^2./(total(signal_weights^2.)*delta_f[i])
     power_nobp = abs(signal_nobp_ft)^2./(n_freq[i]*delta_f[i])
     
-    ;print, minmax(wt_power/power)
-    ;print, minmax(power/wt_power)
-    ;wh_peak = (where(signal_power eq max(signal_power)))[0]
     wh_peak = (where(power_nobp eq max(power_nobp)))[0]
     peak_power[i,*] = [power_nobp[wh_peak], wt_power[wh_peak]]
     
     
-    ;norm_err_factor_range[i,*] = minmax(wt_power/power)
     ratio_names = ['flag/no flag', 'flag norm/no flag',  'weight/flag', 'weight/no flag'];, 'weight norm/no flag']
     
     peak_ratio[i, 0] = power[wh_peak]/power_nobp[wh_peak]
