@@ -11,7 +11,7 @@ function rts_fits2idlcube, datafiles, weightfiles, variancefiles, pol_inc, save_
   n_odd = total(odd_mask)
   
   if n_even ne n_odd then message, 'number of even and odd files are not equal'
-  if n_even eq 0 then begin
+  if n_even eq 0 or n_odd eq 0 then begin
     nfiles = 1
     n_freq = n_elements(datafiles)
     datafile_arr = datafiles

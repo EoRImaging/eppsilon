@@ -1,7 +1,8 @@
 pro ps_ratio_plots, folder_names, obs_info, cube_types, pols, all_pol_diff_ratio = all_pol_diff_ratio, $
     plot_path = plot_path, plot_filebase = plot_filebase, save_path = save_path, savefilebase = savefilebase, $
     note = note, spec_window_types = spec_window_types, data_range = data_range, $
-    kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, diff_ratio = diff_ratio, diff_range = diff_range, $
+    kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, $
+    diff_ratio = diff_ratio, diff_range = diff_range, diff_min_abs = diff_min_abs, $
     plot_wedge_line = plot_wedge_line, quiet = quiet, png = png, eps = eps, pdf = pdf, window_num = window_num
     
   if n_elements(obs_info.info_files) gt 2 then message, 'Only 1 or 2 info_files can be used'
@@ -337,7 +338,7 @@ pro ps_ratio_plots, folder_names, obs_info, cube_types, pols, all_pol_diff_ratio
         kperp_lambda_conv = kperp_lambda_conv, delay_params = delay_params, hubble_param = hubble_param, $
         png = png, eps = eps, pdf = pdf, plotfile = plotfile_2d, window_num = window_num, color_profile = 'sym_log', $
         kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
-        data_range = diff_range, full_title = titles[i,2], note = note, $
+        data_range = diff_range, data_min_abs = diff_min_abs, full_title = titles[i,2], note = note, $
         plot_wedge_line = plot_wedge_line, hinv = hinv, /pwr_ratio, $
         wedge_amp = wedge_amp, baseline_axis = baseline_axis, delay_axis = delay_axis, $
         kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis
