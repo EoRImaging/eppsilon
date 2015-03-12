@@ -1,5 +1,5 @@
 pro test_matrix_weighting, save_filebase = save_filebase, covar_use = covar_use, bp_edge_val = bp_edge_val, $
-    plot_covar = plot_covar, use_test_signal = use_test_signal, bp_edges_high = bp_edges_high, $
+    plot_covar = plot_covar, use_test_signal = use_test_signal, no_vec = no_vec, $
     png = png, eps = eps, pdf = pdf
     
   if n_elements(save_filebase) gt 0 or keyword_set(png) or keyword_set(eps) or keyword_set(pdf) then pub = 1 else pub = 0
@@ -68,7 +68,7 @@ pro test_matrix_weighting, save_filebase = save_filebase, covar_use = covar_use,
     
     eta_vals = indgen(n_freq[i])*delta_eta[i] - n_freq[i]*delta_eta[i]
     
-    eta_var = [1e4, fltarr(n_freq[i]-1)+1.]
+    if covar_use ne 'foreground' then eta_var = [1e4, fltarr(n_freq[i]-1)] else eta_var = [1e4, fltarr(n_freq[i]-1)+1.] ;; ensure invertability
     if keyword_set(use_test_signal) then eta_var = shift(test_signal_ft * 10. / max(test_signal_ft), n_freq[i]/2)*1e4
     ;eta_var = sin(4.*!dpi*frequencies/(n_freq[i]*delta_f[i]))
     covar_eta_fg = diag_matrix(shift(eta_var, n_freq[i]/2))
@@ -104,17 +104,28 @@ pro test_matrix_weighting, save_filebase = save_filebase, covar_use = covar_use,
     
     signal = fft([5e6, fltarr(n_freq[i]-1)+1.],/inverse)*delta_eta[i]
     if keyword_set(use_test_signal) then signal = test_signal
+    if max(abs(imaginary(signal))) eq 0 then signal = real_part(signal) else stop
     
-    signal = signal + randomn(seed, n_freq[i])*max(signal)/100.
-    signal_nobp = signal
+    noise = randomn(seed, n_freq[i])*max(signal)/100.
     
-    if keyword_set(bp_edges_high) then signal_weights = freq_var $
-    else signal_weights = 1./freq_var
+    signal_nobp = signal + noise
     
-    signal_weights_ft = shift(fft(signal_weights), n_freq[i]/2)*n_freq[i]*delta_f[i]
-    signal = signal*signal_weights
+    if covar_use ne 'foreground' then noise = noise * sqrt(freq_var)
+    signal = signal + noise
+    
+    if not keyword_set(no_vec) then begin
+      vec_wt = 1./freq_var
+      wh_inf = where(finite(freq_var) ne 1, count_inf)
+      if count_inf gt 0 then vec_wt[wh_inf] = 0
+      wt_signal_vec = signal * vec_wt
+      if count_inf gt 0 then wt_signal_vec[wh_inf] = 0
+    endif else begin
+      wt_signal_vec = signal
+      vec_wt = fltarr(n_freq[i]) + 1.
+    endelse
     
     signal_ft = shift(fft(signal), n_freq[i]/2)*n_freq[i]*delta_f[i]
+    wt_signal_vec_ft = shift(fft(wt_signal_vec), n_freq[i]/2)*n_freq[i]*delta_f[i]
     signal_nobp_ft = shift(fft(signal_nobp), n_freq[i]/2)*n_freq[i]*delta_f[i]
     
     case covar_use of
@@ -128,8 +139,11 @@ pro test_matrix_weighting, save_filebase = save_filebase, covar_use = covar_use,
     inv_covar_f = la_invert(covar_f)
     inv_covar_eta = shift(matrix_multiply(ft_matrix, matrix_multiply(inv_covar_f, conj(ft_matrix), /btranspose)), n_freq[i]/2, n_freq[i]/2)
     
-    wt_signal = matrix_multiply(inv_covar_f, signal_nobp) * delta_f[i]
-    ;wt_signal = matrix_multiply(inv_covar_f, signal) * delta_f[i]
+    ;wt_signal = matrix_multiply(inv_covar_f, signal_nobp) * delta_f[i]
+    temp_signal = signal
+    wh_sig_inf = where(finite(signal) ne 1, count_sig_inf)
+    if count_sig_inf gt 0 then if max(abs(inv_covar_f[wh_sig_inf, *])) eq 0 then temp_signal[wh_sig_inf] = 0 else stop
+    wt_signal = matrix_multiply(inv_covar_f, temp_signal) * delta_f[i]
     
     wt_signal_ft = shift(fft(wt_signal), n_freq[i]/2)*n_freq[i]*delta_f[i]
     
@@ -137,9 +151,8 @@ pro test_matrix_weighting, save_filebase = save_filebase, covar_use = covar_use,
     temp = shift(abs(fft(total(abs(inv_covar_f)^2.,2))), n_freq[i]/2)*n_freq[i]*delta_f[i]
     
     wt_power = abs(wt_signal_ft)^2./norm
-    ;wt_power_norm = wt_power * n_freq[i] / total((signal_weights)^2.)
-    power = abs(signal_ft)^2./(n_freq[i]*delta_f[i])
-    power_norm = abs(signal_ft)^2./(total(signal_weights^2.)*delta_f[i])
+    power = abs(wt_signal_vec_ft)^2./(n_freq[i]*delta_f[i])
+    power_norm = abs(wt_signal_vec_ft)^2./(total(vec_wt^2.)*delta_f[i])
     power_nobp = abs(signal_nobp_ft)^2./(n_freq[i]*delta_f[i])
     
     wh_peak = (where(power_nobp eq max(power_nobp)))[0]
@@ -226,6 +239,10 @@ pro test_matrix_weighting, save_filebase = save_filebase, covar_use = covar_use,
   wh_pos = where([power, wt_power, power_nobp] gt 0, count_pos)
   if count_pos gt 0 then yrange = minmax(([power, wt_power, power_nobp])[wh_pos])
   
+  wh_pos = where([wt_power, power_nobp] gt 0, count_pos)
+  if count_pos gt 0 then yrange2 = minmax(([wt_power, power_nobp])[wh_pos])
+  
+  
   if pub ne 1 then begin
     if windowavailable(2) then begin
       wset, 2
@@ -257,7 +274,7 @@ pro test_matrix_weighting, save_filebase = save_filebase, covar_use = covar_use,
   
   ;  cgplot, eta_vals, wt_power/power_nobp, position=pos_use[*,3], /noerase, xtitle = 'eta (1/MHz)', yrange = [0.5,1.5], $
   ;    title = 'Weighted Power/Power no bandpass', xstyle=1, font = font, charsize = charsize
-  cgplot, eta_vals, power_nobp, position=pos_use[*,3], /noerase, xtitle = 'eta (1/MHz)', yrange = [.1,1.1]*yrange[1], $
+  cgplot, eta_vals, power_nobp, position=pos_use[*,3], /noerase, xtitle = 'eta (1/MHz)', yrange = [.1,1.1]*yrange2[1], $
     title = 'Power w/o bandpass', xstyle=1, font = font, charsize = charsize, xrange = xrange
   cgplot, eta_vals, wt_power, /over, color='red', linestyle = 2, font = font, charsize = charsize
   
