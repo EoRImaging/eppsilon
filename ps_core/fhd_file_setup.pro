@@ -278,16 +278,17 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
     
     if not keyword_set(refresh_info) then begin
       ; check for pre-saved info file. If it exists, restore it and return structure. Otherwise construct structure.
-      info_file = froot + general_filebase + '_info.idlsave'
+      if keyword_set(uvf_input) then uvf_info_tag = '_uvf' else uvf_info_tag = ''
+      info_file = froot + general_filebase + uvf_info_tag + '_info.idlsave'
       info_filetest = file_test(info_file)
       if info_filetest eq 1 then begin
         ;; check if info file has the right polarizations
-        info_pol_inc = getvar_savefile(info_file, 'pol_inc')
-        match2, pol_inc, info_pol_inc, suba, subb
+        info_metadata = getvar_savefile(info_file, 'metadata_struct')
+        match2, pol_inc, info_metadata.pol_inc, suba, subb
         if min([suba, subb]) ge 0 then begin
           ;; looks good, restore & check for directory structure changes
           file_struct_arr = fhd_file_setup(info_file, save_path = save_path, weight_savefilebase = weight_savefilebase_in, $
-            uvf_savefilebase = uvf_savefilebase_in, savefilebase = savefilebase_in)
+            uvf_savefilebase = uvf_savefilebase_in, savefilebase = savefilebase_in, uvf_input = uvf_input)
             
           return, file_struct_arr
         endif
@@ -300,18 +301,28 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
     void = getvar_savefile(datafile[0], names = varnames)
     
     if keyword_set(sim) then begin
-      if max(strmatch(varnames, 'model*',/fold_case)) then begin
-        if n_elements(modelvar) eq 0 then begin
+      if n_elements(modelvar) eq 0 then begin
+        if max(strmatch(varnames, 'model*',/fold_case)) then begin
           if keyword_set(uvf_input) then model_varname = strupcase('model_uv_arr') else $
             if max(pol_exist) gt 0 then model_varname = strupcase('model_cube') else model_varname = strupcase('model_' + pol_inc + '_cube')
-        endif else model_varname = modelvar
-        if n_elements(model_varname) ne npol then $
-          if n_elements(model_varname) eq 1 then model_varname = replicate(model_varname, npol) $
-        else message, 'modelvar must be a scalar or have the same number of elements as pol_inc'
-        
-        type_inc = ['model']
-        if npol gt 1 then cube_varname = transpose(model_varname) else cube_varname = model_varname
-      endif else message, 'sim files must contain model cubes'
+        endif else begin
+          print, 'No model cubes found, checking for dirty or residual cubes'
+          if max(strmatch(varnames, 'dirty*',/fold_case)) then begin
+            if keyword_set(uvf_input) then model_varname = strupcase('dirty_uv_arr') else $
+              if max(pol_exist) gt 0 then model_varname = strupcase('dirty_cube') else model_varname = strupcase('dirty_' + pol_inc + '_cube')
+          endif else if max(strmatch(varnames, 'res*',/fold_case)) then begin
+            if keyword_set(uvf_input) then model_varname = strupcase('res_uv_arr') else $
+              if max(pol_exist) gt 0 then model_varname = strupcase('res_cube') else model_varname = strupcase('res_' + pol_inc + '_cube')
+          endif
+        endelse
+      endif else model_varname = modelvar
+      
+      if n_elements(model_varname) ne npol then $
+        if n_elements(model_varname) eq 1 then model_varname = replicate(model_varname, npol) $
+      else message, 'modelvar must be a scalar or have the same number of elements as pol_inc'
+      
+      type_inc = ['model']
+      if npol gt 1 then cube_varname = transpose(model_varname) else cube_varname = model_varname
       ntypes = n_elements(type_inc)
       type_pol_str = strarr(npol, ntypes)
       for i=0, npol-1 do type_pol_str[i, *] = type_inc + '_' + pol_inc[i]
@@ -488,7 +499,7 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
           if type_i eq 0 and j eq 0 then data_dims = this_data_dims else if total(abs(this_data_dims - data_dims)) ne 0 then message, 'data dimensions in files do not match'
         endif
       endfor
-        
+      
       
       void = getvar_savefile(weightfile[pol_i, file_i], names = wt_varnames)
       void = getvar_savefile(variancefile[pol_i, file_i], names = var_varnames)
