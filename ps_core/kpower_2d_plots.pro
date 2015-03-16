@@ -461,8 +461,9 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, wei
     log_color_calc, power_plot, power_log_norm, cb_ticks, cb_ticknames, color_range, n_colors, data_range = data_range, $
     color_profile = color_profile, log_cut_val = log_cut_val, min_abs = data_min_abs, oob_low = oob_low
     
-  max_ysize = 1000
-  max_xsize = 1200
+  screen_size = get_screen_size()
+  max_xsize = screen_size[0]
+  max_ysize = screen_size[1]
   base_size = 600
   if n_elements(multi_pos) eq 4 then begin
     ;; work out positions scaled to the area allowed in multi_pos with proper aspect ratio
@@ -629,8 +630,9 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, wei
     
     no_erase = 1
   endif else begin
-    xsize = round(base_size * x_factor)
-    ysize = round(base_size * y_factor)
+    base_size_use = base_size
+    xsize = round(base_size_use * x_factor)
+    ysize = round(base_size_use * y_factor)
     
     if keyword_set(pub) then begin
       ps_aspect = y_factor / x_factor
@@ -644,9 +646,9 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, wei
         
     endif else begin
       while (ysize gt max_ysize) or (xsize gt max_xsize) do begin
-        base_size = base_size - 100
-        xsize = round(base_size * x_factor)
-        ysize = round(base_size * y_factor)
+        base_size_use = base_size_use - 100
+        xsize = round(base_size_use * x_factor)
+        ysize = round(base_size_use * y_factor)
       endwhile
       
       
@@ -714,7 +716,7 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, wei
     font = -1
     if n_elements(charsize_in) eq 0 then begin
       if n_elements(multi_pos) gt 0 then begin
-        charsize = 2d * (multi_size[0]/float(base_size))
+        charsize = 2d * (multi_size[0]/float(base_size_use))
       endif else charsize = 2
     endif else charsize = charsize_in
     

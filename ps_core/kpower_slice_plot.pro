@@ -39,7 +39,7 @@ pro kpower_slice_plot, slice_savefile, multi_pos = multi_pos, start_multi_params
       delete_ps = 1
     endif else if keyword_set(pdf) then begin
       plot_exten = '.pdf'
-      delete_ps = 1    
+      delete_ps = 1
     endif else if keyword_set(eps) then begin
       plot_exten = '.eps'
       delete_ps = 0
@@ -181,9 +181,11 @@ pro kpower_slice_plot, slice_savefile, multi_pos = multi_pos, start_multi_params
     
   if keyword_set(all_zero) then power_log_norm = power_log_norm * 0 + annotate_color
   
-  max_ysize = 1000
-  max_xsize = 1200
+  screen_size = get_screen_size()
+  max_xsize = screen_size[0]
+  max_ysize = screen_size[1]
   base_size = 600
+  
   if n_elements(multi_pos) eq 4 then begin
     ;; work out positions scaled to the area allowed in multi_pos with proper aspect ratio
     multi_xlen = (multi_pos[2]-multi_pos[0])
@@ -266,7 +268,7 @@ pro kpower_slice_plot, slice_savefile, multi_pos = multi_pos, start_multi_params
       xsize = round(base_size * x_factor * ncol)
       ysize = round(base_size * y_factor * nrow)
       while (ysize gt max_ysize) or (xsize gt max_xsize) do begin
-        base_size_use = base_size_use - 100
+        if base_size_use gt 100 then base_size_use = base_size_use - 100 else base_size_use = base_size_use * .75
         xsize = round(base_size_use * x_factor * ncol)
         ysize = round(base_size_use * y_factor * nrow)
       endwhile
@@ -278,7 +280,7 @@ pro kpower_slice_plot, slice_savefile, multi_pos = multi_pos, start_multi_params
         if ps_aspect lt 1 then landscape = 1 else landscape = 0
         IF Keyword_Set(eps) THEN landscape = 0
         sizes = cgpswindow(LANDSCAPE=landscape, aspectRatio = ps_aspect, /sane_offsets)
-  
+        
         cgps_open, plotfile, /font, encapsulated=eps, /nomatch, inches=sizes.inches, xsize=sizes.xsize, ysize=sizes.ysize, $
           xoffset=sizes.xoffset, yoffset=sizes.yoffset, landscape = landscape
       endif else begin
@@ -290,7 +292,7 @@ pro kpower_slice_plot, slice_savefile, multi_pos = multi_pos, start_multi_params
         if make_win eq 1 then window, window_num, xsize = xsize, ysize = ysize
         cgerase, background_color
       endelse
-            
+      
       ;; calculate multi_size & multi x/ylen not calculated earlier
       multi_xlen = (multi_pos[2,0]-multi_pos[0,0])
       multi_ylen = (multi_pos[3,0]-multi_pos[1,0])
@@ -328,14 +330,15 @@ pro kpower_slice_plot, slice_savefile, multi_pos = multi_pos, start_multi_params
     
     no_erase = 1
   endif else begin
-    xsize = round(base_size * x_factor)
-    ysize = round(base_size * y_factor)
+    base_size_use = base_size
+    xsize = round(base_size_use * x_factor)
+    ysize = round(base_size_use * y_factor)
     
     if not keyword_set(pub) then begin
       while (ysize gt max_ysize) or (xsize gt max_xsize) do begin
-        base_size = base_size - 100
-        xsize = round(base_size * x_factor)
-        ysize = round(base_size * y_factor)
+        if base_size_use gt 100 then base_size_use = base_size_use - 100 else base_size_use = base_size_use * .75
+        xsize = round(base_size_use * x_factor)
+        ysize = round(base_size_use * y_factor)
       endwhile
     endif
     
@@ -386,7 +389,7 @@ pro kpower_slice_plot, slice_savefile, multi_pos = multi_pos, start_multi_params
       if ps_aspect lt 1 then landscape = 1 else landscape = 0
       IF Keyword_Set(eps) THEN landscape = 0
       sizes = cgpswindow(LANDSCAPE=landscape, aspectRatio = ps_aspect, /sane_offsets)
-
+      
       cgps_open, plotfile, /font, encapsulated=eps, /nomatch, inches=sizes.inches, xsize=sizes.xsize, ysize=sizes.ysize, $
         xoffset=sizes.xoffset, yoffset=sizes.yoffset, landscape = landscape
     endif
@@ -399,7 +402,7 @@ pro kpower_slice_plot, slice_savefile, multi_pos = multi_pos, start_multi_params
     font = -1
     if n_elements(charsize_in) eq 0 then begin
       if n_elements(multi_pos) gt 0 then begin
-        charsize = 1.2d * (multi_size[0]/float(base_size))
+        charsize = 1.2d * (multi_size[0]/float(base_size_use))
       endif else charsize = 2
     endif else charsize = charsize_in
     
