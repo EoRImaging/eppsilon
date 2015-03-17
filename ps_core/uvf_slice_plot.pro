@@ -229,9 +229,9 @@ pro uvf_slice_plot, slice_savefile, multi_pos = multi_pos, start_multi_params = 
     endif
   endif
   
-  
-  max_ysize = 1000
-  max_xsize = 1200
+  screen_size = get_screen_size()
+  max_xsize = screen_size[0]
+  max_ysize = screen_size[1]
   base_size = 600
   if n_elements(multi_pos) eq 4 then begin
     ;; work out positions scaled to the area allowed in multi_pos with proper aspect ratio
@@ -310,7 +310,7 @@ pro uvf_slice_plot, slice_savefile, multi_pos = multi_pos, start_multi_params = 
       xsize = round(base_size * x_factor * ncol)
       ysize = round(base_size * y_factor * nrow)
       while (ysize gt max_ysize) or (xsize gt max_xsize) do begin
-        base_size_use = base_size_use - 100
+        if base_size_use gt 100 then base_size_use = base_size_use - 100 else base_size_use = base_size_use * .75
         xsize = round(base_size_use * x_factor * ncol)
         ysize = round(base_size_use * y_factor * nrow)
       endwhile
@@ -373,14 +373,15 @@ pro uvf_slice_plot, slice_savefile, multi_pos = multi_pos, start_multi_params = 
     
     no_erase = 1
   endif else begin
-    xsize = round(base_size * x_factor)
-    ysize = round(base_size * y_factor)
+    base_size_use = base_size
+    xsize = round(base_size_use * x_factor)
+    ysize = round(base_size_use * y_factor)
     
     if not keyword_set(pub) then begin
       while (ysize gt max_ysize) or (xsize gt max_xsize) do begin
-        base_size = base_size - 100
-        xsize = round(base_size * x_factor)
-        ysize = round(base_size * y_factor)
+        if base_size_use gt 100 then base_size_use = base_size_use - 100 else base_size_use = base_size_use * .75
+        xsize = round(base_size_use * x_factor)
+        ysize = round(base_size_use * y_factor)
       endwhile
     endif
     no_erase = 0
@@ -446,7 +447,7 @@ pro uvf_slice_plot, slice_savefile, multi_pos = multi_pos, start_multi_params = 
     font = -1
     if n_elements(charsize_in) eq 0 then begin
       if n_elements(multi_pos) gt 0 then begin
-        charsize = 1.2d * (multi_size[0]/float(base_size))
+        charsize = 1.2d * (multi_size[0]/float(base_size_use))
       endif else charsize = 2
     endif else charsize = charsize_in
     
