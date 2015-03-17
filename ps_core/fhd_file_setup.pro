@@ -288,7 +288,11 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
         if min([suba, subb]) ge 0 then begin
           ;; looks good, restore & check for directory structure changes
           file_struct_arr = fhd_file_setup(info_file, save_path = save_path, weight_savefilebase = weight_savefilebase_in, $
-            uvf_savefilebase = uvf_savefilebase_in, savefilebase = savefilebase_in, uvf_input = uvf_input)
+            uvf_savefilebase = uvf_savefilebase_in, savefilebase = savefilebase_in, $
+            uvf_input = uvf_input, uv_avg = uv_avg, uv_img_clip = uv_img_clip, dft_ian = dft_ian, $
+            freq_ch_range = freq_ch_range, freq_flags = freq_flags, freq_flag_name = freq_flag_name, $
+            spec_window_type = spec_window_type, delta_uv_lambda = delta_uv_lambda, max_uv_lambda = max_uv_lambda, $
+            std_power = std_power, no_wtd_avg = no_wtd_avg)
             
           return, file_struct_arr
         endif
