@@ -490,6 +490,8 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
               if data_size[1] ne npol then message, 'Data are in a pointer array, format unknown'
               data = getvar_savefile(datafile[pol_i, file_i], cube_varname[type_i, pol_i])
               dims2 = size(*data[0], /dimension)
+              if min(dims2) eq 0 then  message, 'data cube is empty (file: ' + datafile[pol_i, file_i] + $
+                ', cube name: ' + cube_varname[type_i, pol_i] + ')'
               this_data_dims = [dims2, data_size[2], data_size[1]]
               undefine_fhd, data
             endif else message, 'Data is in a pointer array, format unknown'
