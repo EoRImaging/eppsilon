@@ -92,7 +92,8 @@ pro enterprise_wrapper, folder_name, obs_name, data_subdirs=data_subdirs, rts = 
     
     save_path = folder_name + '/ps/'
     if keyword_set(uvf_input) then data_subdirs = '' else data_subdirs = 'Healpix/'
-    obs_info = ps_filenames(folder_name, obs_name, rts = rts, sim = sim, uvf_input = uvf_input, casa = casa, data_subdirs = data_subdirs, $
+    obs_info = ps_filenames(folder_name, obs_name, exact_obsnames = exact_obsnames, rts = rts, sim = sim, $
+      uvf_input = uvf_input, casa = casa, data_subdirs = data_subdirs, $
       save_paths = save_path, plot_path = save_path, refresh_info = refresh_info)
       
     if obs_info.info_files[0] ne '' then datafile = obs_info.info_files[0] else datafile = obs_info.cube_files.(0)
