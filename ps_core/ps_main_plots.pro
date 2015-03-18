@@ -240,14 +240,17 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
   if tag_exist(file_struct_arr, 'uvf_savefile') then uvf_input = 0 else uvf_input = 1
   
   n_freq = n_elements(file_struct_arr[0].frequencies)
-  if n_elements(freq_ch_range) ne 0 then if max(freq_ch_range) gt n_freq-1 then message, 'invalid freq_ch_range'
+  if n_elements(freq_ch_range) ne 0 then begin
+    if max(freq_ch_range) gt n_freq-1 then message, 'invalid freq_ch_range'
+    n_freq = freq_ch_range[1]-freq_ch_range[0]+1
+  endif
   
   if healpix and n_elements(dft_fchunk) ne 0 then if dft_fchunk gt n_freq then begin
     print, 'dft_fchunk is larger than the number of frequency slices, setting it to the number of slices -- ' + $
       number_formatter(n_freq)
     dft_fchunk = n_freq
   endif
-    
+  
   for i=0, n_cubes-1 do begin
     savefile_2d_use = savefiles_2d[i]
     test_2d = test_save_2d[i]
