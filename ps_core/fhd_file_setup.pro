@@ -288,7 +288,11 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
         if min([suba, subb]) ge 0 then begin
           ;; looks good, restore & check for directory structure changes
           file_struct_arr = fhd_file_setup(info_file, save_path = save_path, weight_savefilebase = weight_savefilebase_in, $
-            uvf_savefilebase = uvf_savefilebase_in, savefilebase = savefilebase_in, uvf_input = uvf_input)
+            uvf_savefilebase = uvf_savefilebase_in, savefilebase = savefilebase_in, $
+            uvf_input = uvf_input, uv_avg = uv_avg, uv_img_clip = uv_img_clip, dft_ian = dft_ian, $
+            freq_ch_range = freq_ch_range, freq_flags = freq_flags, freq_flag_name = freq_flag_name, $
+            spec_window_type = spec_window_type, delta_uv_lambda = delta_uv_lambda, max_uv_lambda = max_uv_lambda, $
+            std_power = std_power, no_wtd_avg = no_wtd_avg)
             
           return, file_struct_arr
         endif
@@ -490,6 +494,8 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
               if data_size[1] ne npol then message, 'Data are in a pointer array, format unknown'
               data = getvar_savefile(datafile[pol_i, file_i], cube_varname[type_i, pol_i])
               dims2 = size(*data[0], /dimension)
+              if min(dims2) eq 0 then  message, 'data cube is empty (file: ' + datafile[pol_i, file_i] + $
+                ', cube name: ' + cube_varname[type_i, pol_i] + ')'
               this_data_dims = [dims2, data_size[2], data_size[1]]
               undefine_fhd, data
             endif else message, 'Data is in a pointer array, format unknown'

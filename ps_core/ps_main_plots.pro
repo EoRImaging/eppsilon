@@ -247,8 +247,7 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
       number_formatter(n_freq)
     dft_fchunk = n_freq
   endif
-  
-  
+    
   for i=0, n_cubes-1 do begin
     savefile_2d_use = savefiles_2d[i]
     test_2d = test_save_2d[i]
@@ -329,10 +328,10 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
         or n_elements(kpar_range_1dave) gt 0) then begin
         ;; check that 1d binning was over correct ranges
         kperp_range_used = getvar_savefile(savefile_kpar_use, 'kperp_range')
-        kperp_range_lambda_used = fltarr(2, n_elements(savefile_1d_use))
+        kperp_range_lambda_used = getvar_savefile(savefile_kpar_use, 'kperp_range_lambda')
         kpar_range_used = getvar_savefile(savefile_kpar_use, 'kpar_range')
         if n_elements(kperp_range_1dave) gt 0 then if max(abs(kperp_range_used - kperp_range_1dave)) gt 0 then test_kpar = 0
-        if n_elements(kperp_range_lambda_1dave) gt 0 then if max(abs(kperp_range_lambda_used - rebin(kperp_range_lambda_1dave,2,n_elements(savefile_1d_use)))) gt 0 then test_1d = 0
+        if n_elements(kperp_range_lambda_1dave) gt 0 then if max(abs(kperp_range_lambda_used - rebin(kperp_range_lambda_1dave,2,n_elements(savefile_1d_use)))) gt 0 then test_kpar = 0
         if n_elements(kpar_range_1dave) gt 0 then if max(abs(kpar_range_used - kpar_range_1dave)) gt 0 then test_kpar = 0
       endif
     endif
@@ -342,10 +341,10 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
         or n_elements(kpar_range_1dave) gt 0) then begin
         ;; check that 1d binning was over correct ranges
         kperp_range_used = getvar_savefile(savefile_kperp_use, 'kperp_range')
-        kperp_range_lambda_used = fltarr(2, n_elements(savefile_1d_use))
+        kperp_range_lambda_used = getvar_savefile(savefile_kperp_use, 'kperp_range_lambda')
         kpar_range_used = getvar_savefile(savefile_kperp_use, 'kpar_range')
         if n_elements(kperp_range_1dave) gt 0 then if max(abs(kperp_range_used - kperp_range_1dave)) gt 0 then test_kperp = 0
-        if n_elements(kperp_range_lambda_1dave) gt 0 then if max(abs(kperp_range_lambda_used - rebin(kperp_range_lambda_1dave,2,n_elements(savefile_1d_use)))) gt 0 then test_1d = 0
+        if n_elements(kperp_range_lambda_1dave) gt 0 then if max(abs(kperp_range_lambda_used - rebin(kperp_range_lambda_1dave,2,n_elements(savefile_1d_use)))) gt 0 then test_kperp = 0
         if n_elements(kpar_range_1dave) gt 0 then if max(abs(kpar_range_used - kpar_range_1dave)) gt 0 then test_kperp = 0
       endif
     endif

@@ -603,6 +603,8 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, wei
       multi_pos_use = multi_pos[*,0]
     endif else multi_pos_use = multi_pos
     
+    base_size_use = mean(round([!d.x_size*multi_xlen/x_factor, !d.y_size*multi_ylen/y_factor]))
+    
     multi_aspect = multi_size[1]/float(multi_size[0])
     
     new_aspect = aspect_ratio/multi_aspect
