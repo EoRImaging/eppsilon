@@ -2,7 +2,7 @@ pro kpower_1d_plots, power_savefile, multi_pos = multi_pos, start_multi_params =
     plot_weights = plot_weights, plot_noise = plot_noise, data_range = data_range, k_range = k_range, $
     png = png, eps = eps, pdf = pdf, plotfile = plotfile, window_num = window_num, colors = colors, names = names, psyms = psyms, $
     save_text = save_text, delta = delta, hinv = hinv, note = note, title = title, kpar_power = kpar_power, kperp_power = kperp_power, $
-    yaxis_type = yaxis_type, plot_error_bars = plot_error_bars, has_error = has_error
+    yaxis_type = yaxis_type, plot_error_bars = plot_error_bars
     
   if n_elements(yaxis_type) eq 0 then yaxis_type = 'clipped_log'
   yaxis_type_list = ['clipped_log', 'sym_log', 'folded_log']
@@ -74,11 +74,7 @@ pro kpower_1d_plots, power_savefile, multi_pos = multi_pos, start_multi_params =
   if n_elements(psyms) gt 0 then begin
     if n_elements(psym) eq 1 then psyms = intarr(nfiles) + psyms
     if n_elements(psyms) ne nfiles then message, 'Number of psyms does not match number of files'
-  endif else psyms = intarr(nfiles) + 10
-  if n_elements(has_error) gt 0 then begin
-    if n_elements(has_error) ne nfiles then message, 'Number of elements in has_error must match number of files'
-  endif else has_error = intarr(nfiles) + 1
-  
+  endif else psyms = intarr(nfiles) + 10  
   
   margin = [0.15, 0.2, 0.05, 0.1]
   plot_pos = [margin[0], margin[1], (1-margin[2]), (1-margin[3])]
