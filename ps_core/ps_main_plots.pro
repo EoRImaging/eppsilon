@@ -9,8 +9,9 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
     plot_kpar_power = plot_kpar_power, plot_kperp_power = plot_kperp_power, plot_k0_power = plot_k0_power, plot_noise_1d = plot_noise_1d, $
     data_range = data_range, sigma_range = sigma_range, nev_range = nev_range, slice_range = slice_range, $
     snr_range = snr_range, noise_range = noise_range, nnr_range = nnr_range, range_1d = range_1d, $
-    log_kpar = log_kpar, log_kperp = log_kperp, kpar_bin = kpar_bin, kperp_bin = kperp_bin, log_k1d = log_k1d, $
-    k1d_bin = k1d_bin, kperp_range_1dave = kperp_range_1dave, kperp_range_lambda_1dave = kperp_range_lambda_1dave, kpar_range_1dave = kpar_range_1dave, $
+    log_kpar = log_kpar, log_kperp = log_kperp, kpar_bin = kpar_bin, kperp_bin = kperp_bin, $
+    log_k1d = log_k1d, k1d_bin = k1d_bin, plot_1d_delta = plot_1d_delta, plot_1d_error_bars = plot_1d_error_bars, $
+    kperp_range_1dave = kperp_range_1dave, kperp_range_lambda_1dave = kperp_range_lambda_1dave, kpar_range_1dave = kpar_range_1dave, $
     kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
     baseline_axis = baseline_axis, delay_axis = delay_axis, hinv = hinv, $
     plot_wedge_line = plot_wedge_line, wedge_angles = wedge_angles, coarse_harm_width = coarse_harm_width, $
@@ -955,6 +956,7 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
   wt_ave_power_freq_vals = fltarr(n_cubes, n_freq)
   ave_power_freq_vals = fltarr(n_cubes, n_freq)
   for k=0, n_cubes-1 do begin
+    void = getvar_savefile(savefiles_1d[k,0,0], names=varnames)
     ave_power_vals[k] = getvar_savefile(savefiles_1d[k,0,0], 'ave_power')
     wt_ave_power_vals[k] = getvar_savefile(savefiles_1d[k,0,0], 'wt_ave_power')
     ave_weights_vals[k] = mean(getvar_savefile(savefiles_1d[k,0,0], 'ave_weights'))
@@ -1008,8 +1010,9 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
       k_range = minmax([kperp_plot_range, kpar_bin, kpar_plot_range[1]])
       
       
-      if keyword_set(plot_noise_1d) then kpower_1d_plots, file_arr, window_num = 15+i, names = titles_use, delta = delta, hinv = hinv, $
-        png = png, eps = eps, pdf = pdf, plotfile = plotfile_noise_use, k_range = k_range, title = note_use + ' Ob. Noise', note = note_1d, data_range = range_1d, /plot_noise
+      if keyword_set(plot_noise_1d) then kpower_1d_plots, file_arr, window_num = 15+i, names = titles_use, delta = plot_1d_delta, hinv = hinv, $
+        png = png, eps = eps, pdf = pdf, plotfile = plotfile_noise_use, k_range = k_range, title = note_use + ' Ob. Noise', note = note_1d, $
+        plot_error_bars = plot_1d_error_bars, data_range = range_1d, /plot_noise
         
         
       if keyword_set(plot_eor_1d) then begin
@@ -1020,8 +1023,9 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
         endif
       endif
       
-      kpower_1d_plots, file_arr, window_num = 6+i, colors = colors, names = titles_use, psyms = psyms, delta = delta, hinv = hinv, $
-        png = png, eps = eps, pdf = pdf, plotfile = plotfile_use, k_range = k_range, title = note_use, note = note_1d, data_range = range_1d
+      kpower_1d_plots, file_arr, window_num = 6+i, colors = colors, names = titles_use, psyms = psyms, delta = plot_1d_delta, hinv = hinv, $
+        png = png, eps = eps, pdf = pdf, plotfile = plotfile_use, k_range = k_range, title = note_use, note = note_1d, data_range = range_1d, $
+        plot_error_bars = plot_1d_error_bars
         
     endfor
   endif
@@ -1043,8 +1047,9 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
     
     k_range = minmax([kperp_plot_range, kpar_bin, kpar_plot_range[1]])
     
-    kpower_1d_plots, file_arr, window_num = 12, colors = colors, names = titles_use, psyms = psyms, delta = delta, hinv = hinv, $
-      png = png, eps = eps, pdf = pdf, plotfile = plotfile_kpar_power, k_range = k_range, title = note + ' kpar', note = note_1d, data_range = range_1d, /kpar_power
+    kpower_1d_plots, file_arr, window_num = 12, colors = colors, names = titles_use, psyms = psyms, delta = plot_1d_delta, hinv = hinv, $
+      png = png, eps = eps, pdf = pdf, plotfile = plotfile_kpar_power, k_range = k_range, title = note + ' kpar', note = note_1d, $
+      plot_error_bars = plot_1d_error_bars, data_range = range_1d, /kpar_power
       
   endif
   
@@ -1066,8 +1071,9 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
     
     k_range = minmax([kperp_plot_range, kpar_bin, kpar_plot_range[1]])
     
-    kpower_1d_plots, file_arr, window_num = 13, colors = colors, names = titles_use, psyms = psyms, delta = delta, hinv = hinv, $
-      png = png, eps = eps, pdf = pdf, plotfile = plotfile_kperp_power, k_range = k_range, title = note + ' kperp', note = note_1d, data_range = range_1d, /kperp_power
+    kpower_1d_plots, file_arr, window_num = 13, colors = colors, names = titles_use, psyms = psyms, delta = plot_1d_delta, hinv = hinv, $
+      png = png, eps = eps, pdf = pdf, plotfile = plotfile_kperp_power, k_range = k_range, title = note + ' kperp', note = note_1d, $
+      plot_error_bars = plot_1d_error_bars, data_range = range_1d, /kperp_power
       
   endif
   
@@ -1079,8 +1085,9 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
     
     k_range = minmax([kperp_plot_range, kperp_bin])
     
-    kpower_1d_plots, file_arr, window_num = 14, colors = colors, names = titles_use, delta = delta, hinv = hinv, $
-      png = png, eps = eps, pdf = pdf, plotfile = plotfile_k0_power, k_range = k_range, title = note + ' kpar=0', note = note_1d, data_range = range_1d, /kperp_power
+    kpower_1d_plots, file_arr, window_num = 14, colors = colors, names = titles_use, delta = plot_1d_delta, hinv = hinv, $
+      png = png, eps = eps, pdf = pdf, plotfile = plotfile_k0_power, k_range = k_range, title = note + ' kpar=0', note = note_1d, $
+      plot_error_bars = plot_1d_error_bars, data_range = range_1d, /kperp_power
       
   endif
   

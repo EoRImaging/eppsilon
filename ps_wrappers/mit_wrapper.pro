@@ -7,7 +7,7 @@ pro mit_wrapper, folder_name, obs_name, data_subdirs=data_subdirs, exact_obsname
     kperp_range_1dave = kperp_range_1dave, kperp_range_lambda_1dave = kperp_range_lambda_1dave, kpar_range_1dave = kpar_range_1dave, $
     plot_kpar_power = plot_kpar_power, plot_kperp_power = plot_kperp_power, plot_k0_power = plot_k0_power, plot_noise_1d = plot_noise_1d, $
     kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, wedge_angles = wedge_angles, coarse_harm_width = coarse_harm_width, $
-    set_data_ranges = set_data_ranges, range_1d = range_1d
+    set_data_ranges = set_data_ranges, range_1d = range_1d, plot_1d_delta = plot_1d_delta, plot_1d_error_bars = plot_1d_error_bars
     
   ;; The only required input is the datafile name (including the full path)
     
@@ -117,7 +117,7 @@ pro mit_wrapper, folder_name, obs_name, data_subdirs=data_subdirs, exact_obsname
     if n_elements(set_data_ranges) eq 0 and not keyword_set(sim) then set_data_ranges = 1
     
     if keyword_set(set_data_ranges) then begin
-      if n_elements(range_1d) eq 0 then range_1d = [1e4, 1e15]
+      if n_elements(range_1d) eq 0 then if keyword_set(plot_1d_delta) then range_1d = [1e0, 1e10] else range_1d = [1e4, 1e15]
       
       if keyword_set(obs_info.integrated[0]) then begin
         sigma_range = [2e5, 2e9]
@@ -204,6 +204,7 @@ pro mit_wrapper, folder_name, obs_name, data_subdirs=data_subdirs, exact_obsname
     sim = sim, cut_image = cut_image, delta_uv_lambda = delta_uv_lambda, $
     log_kpar = log_kpar, log_kperp = log_kperp, kpar_bin = kpar_bin, kperp_bin = kperp_bin, log_k1d = log_k1d, $
     k1d_bin = k1d_bin, kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, $
+    plot_1d_delta = plot_1d_delta, plot_1d_error_bars = plot_1d_error_bars, $
     kperp_range_1dave = kperp_range_1dave, kperp_range_lambda_1dave = kperp_range_lambda_1dave, kpar_range_1dave = kpar_range_1dave, $
     plot_slices = plot_slices, slice_type = slice_type, uvf_plot_type = uvf_plot_type, plot_stdset = plot_stdset, $
     plot_kpar_power = plot_kpar_power, plot_kperp_power = plot_kperp_power, plot_k0_power = plot_k0_power, plot_noise_1d = plot_noise_1d, $
