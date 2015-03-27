@@ -321,9 +321,9 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
         kperp_range_lambda_used[*,j] = getvar_savefile(savefile_1d_use[j], 'kperp_range_lambda')
         kpar_range_used[*,j] = getvar_savefile(savefile_1d_use[j], 'kpar_range')
       endfor
-      if n_elements(kperp_range_1dave) gt 0 then if max(abs(kperp_range_used - rebin(kperp_range_1dave,2,n_elements(savefile_1d_use)))) gt 0 then test_1d = 0
-      if n_elements(kperp_range_lambda_1dave) gt 0 then if max(abs(kperp_range_lambda_used - rebin(kperp_range_lambda_1dave,2,n_elements(savefile_1d_use)))) gt 0 then test_1d = 0
-      if n_elements(kpar_range_1dave) gt 0 then if max(abs(kpar_range_used - rebin(kpar_range_1dave,2,n_elements(savefile_1d_use)))) gt 0 then test_1d = 0
+      if n_elements(kperp_range_1dave) gt 0 then if max(abs(1.-kperp_range_used/rebin(kperp_range_1dave,2,n_elements(savefile_1d_use)))) gt 1e-6 then test_1d = 0
+      if n_elements(kperp_range_lambda_1dave) gt 0 then if max(abs(1.-kperp_range_lambda_used/rebin(kperp_range_lambda_1dave,2,n_elements(savefile_1d_use)))) gt 1e-6 then test_1d = 0
+      if n_elements(kpar_range_1dave) gt 0 then if max(abs(1.-kpar_range_used/rebin(kpar_range_1dave,2,n_elements(savefile_1d_use)))) gt 1e-6 then test_1d = 0
     endif
     
     if keyword_set(plot_kpar_power) then begin
@@ -333,9 +333,9 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
         kperp_range_used = getvar_savefile(savefile_kpar_use, 'kperp_range')
         kperp_range_lambda_used = getvar_savefile(savefile_kpar_use, 'kperp_range_lambda')
         kpar_range_used = getvar_savefile(savefile_kpar_use, 'kpar_range')
-        if n_elements(kperp_range_1dave) gt 0 then if max(abs(kperp_range_used - kperp_range_1dave)) gt 0 then test_kpar = 0
-        if n_elements(kperp_range_lambda_1dave) gt 0 then if max(abs(kperp_range_lambda_used - rebin(kperp_range_lambda_1dave,2,n_elements(savefile_1d_use)))) gt 0 then test_kpar = 0
-        if n_elements(kpar_range_1dave) gt 0 then if max(abs(kpar_range_used - kpar_range_1dave)) gt 0 then test_kpar = 0
+        if n_elements(kperp_range_1dave) gt 0 then if max(abs(1.-kperp_range_used/kperp_range_1dave)) gt 1e-6 then test_kpar = 0
+        if n_elements(kperp_range_lambda_1dave) gt 0 then if max(abs(1.-kperp_range_lambda_used/rebin(kperp_range_lambda_1dave,2,n_elements(savefile_1d_use)))) gt 1e-6 then test_kpar = 0
+        if n_elements(kpar_range_1dave) gt 0 then if max(abs(1.-kpar_range_used/kpar_range_1dave)) gt 1e-6 then test_kpar = 0
       endif
     endif
     
@@ -346,9 +346,9 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
         kperp_range_used = getvar_savefile(savefile_kperp_use, 'kperp_range')
         kperp_range_lambda_used = getvar_savefile(savefile_kperp_use, 'kperp_range_lambda')
         kpar_range_used = getvar_savefile(savefile_kperp_use, 'kpar_range')
-        if n_elements(kperp_range_1dave) gt 0 then if max(abs(kperp_range_used - kperp_range_1dave)) gt 0 then test_kperp = 0
-        if n_elements(kperp_range_lambda_1dave) gt 0 then if max(abs(kperp_range_lambda_used - rebin(kperp_range_lambda_1dave,2,n_elements(savefile_1d_use)))) gt 0 then test_kperp = 0
-        if n_elements(kpar_range_1dave) gt 0 then if max(abs(kpar_range_used - kpar_range_1dave)) gt 0 then test_kperp = 0
+        if n_elements(kperp_range_1dave) gt 0 then if max(abs(1-kperp_range_used/kperp_range_1dave)) gt 1e-6 then test_kperp = 0
+        if n_elements(kperp_range_lambda_1dave) gt 0 then if max(abs(1-kperp_range_lambda_used/rebin(kperp_range_lambda_1dave,2,n_elements(savefile_1d_use)))) gt 1e-6 then test_kperp = 0
+        if n_elements(kpar_range_1dave) gt 0 then if max(abs(1-kpar_range_used/kpar_range_1dave)) gt 1e-6 then test_kperp = 0
       endif
     endif
     

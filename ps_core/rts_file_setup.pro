@@ -395,14 +395,16 @@ function rts_file_setup, filename, pol_inc, save_path = save_path, refresh_info 
       if j eq 0 then frequencies = getvar_savefile(datafile[pol_i, file_i], 'frequencies') else $
         if total(abs(frequencies-getvar_savefile(datafile[pol_i, file_i], 'frequencies'))) ne 0 then $
         message, 'frequencies do not match between datafiles'
+      n_freq = n_elements(frequencies)
+      
       if j eq 0 then nside = getvar_savefile(datafile[pol_i, file_i], 'nside') else if nside ne getvar_savefile(datafile[pol_i, file_i], 'nside') then $
         message, 'nside does not match between datafiles'
       if j eq 0 then time_resolution = getvar_savefile(datafile[pol_i, file_i], 'time_resolution') else $
         if time_resolution ne getvar_savefile(datafile[pol_i, file_i], 'time_resolution') then $
         message, 'time_resolution does not match between datafiles'
         
-      if j eq 0 then n_vis = fltarr(npol, nfiles)
-      n_vis[pol_i, file_i] = total(getvar_savefile(datafile[pol_i, file_i], 'n_vis_arr'))
+      if j eq 0 then n_vis_freq = fltarr(npol, nfiles, n_freq)
+      n_vis_freq[pol_i, file_i, *] = getvar_savefile(datafile[pol_i, file_i], 'n_vis_arr')
       
       if j eq 0 then kpix_arr = getvar_savefile(datafile[pol_i, file_i], 'kpix_arr') else $
         if total(abs(kpix_arr- getvar_savefile(datafile[pol_i, file_i], 'kpix_arr'))) ne 0 then $
@@ -445,7 +447,6 @@ function rts_file_setup, filename, pol_inc, save_path = save_path, refresh_info 
     ;; convert to MHz if in Hz
     if mean(frequencies) gt 1000. then frequencies = frequencies/1e6
     
-    n_freq = n_elements(frequencies)
     npix = n_elements(temporary(pixels))
     max_baseline_lambda = max_baseline * max(frequencies*1e6) / (3e8)
     
@@ -454,7 +455,7 @@ function rts_file_setup, filename, pol_inc, save_path = save_path, refresh_info 
     ;;time_resolution = 0.5;; native resolution of visibilities in s
     
     freq_diffs = ((frequencies - shift(frequencies, 1))[1:*]) * 1e6 ;in Hz
-    if total(abs(freq_diffs - freq_diffs[0])) gt 0 then print, 'inconsistent freq channel differences, using the smallest.'    
+    if total(abs(freq_diffs - freq_diffs[0])) gt 0 then print, 'inconsistent freq channel differences, using the smallest.'
     freq_resolution = min(freq_diffs)
     
     ;; pointing offset from zenith (for calculating horizon distance for wedge line)
@@ -466,8 +467,8 @@ function rts_file_setup, filename, pol_inc, save_path = save_path, refresh_info 
     ;; n_obs
     n_obs = lonarr(npol, nfiles) + 1
     
-    ;; n_vis_freq
-    n_vis_freq = n_vis / n_freq
+    ;; n_vis
+     n_vis = total(n_vis_freq, 3)
     
     metadata_struct = {datafile:datafile, weightfile: datafile, variancefile:datafile, $
       cube_varname:data_varname, weight_varname:weight_varname, variance_varname:variance_varname, $

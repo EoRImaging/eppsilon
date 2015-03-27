@@ -37,7 +37,7 @@ pro enterprise_diff_wrapper, folder_names, obs_names_in, cube_types = cube_types
   if keyword_set(uvf_input) then data_subdirs = '' else data_subdirs = 'Healpix/'
   obs_info = ps_filenames(folder_names, obs_names_in, exact_obsnames = exact_obsnames, rts = rts, sim = sim, $
     uvf_input = uvf_input, casa = casa, data_subdirs = data_subdirs, $
-    save_paths = save_path, plot_path = save_path, refresh_info = refresh_info)
+    save_paths = save_paths, plot_path = save_path, refresh_info = refresh_info)
     
   wh_noinfo = where(obs_info.info_files eq '', count_noinfo)
   if count_noinfo gt 0 then message, 'Info files are not all present'

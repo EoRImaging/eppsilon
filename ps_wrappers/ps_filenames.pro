@@ -113,6 +113,14 @@ function ps_filenames, folder_names, obs_names_in, rts = rts, sim = sim, uvf_inp
       
       ;; then look for original fits files
       fits_file_list = file_search(folder_names[i] + '/' + data_subdirs[i] + obs_names[i] + '*_image*.fits', count = n_fitsfiles)
+      wh_cube = where(stregex(fits_file_list, 'cube', /boolean), count_cube, complement = wh_orig, ncomplement = count_orig)
+      if count_cube gt 0 then if count_orig gt 0 then begin
+        fits_file_list = fits_file_list[wh_orig]
+        n_fitsfiles = count_orig
+      endif else begin
+        fits_file_list = -1
+        n_fitsfiles = 0
+      endelse
       if n_fitsfiles gt 0 then begin
         if obs_names[i] eq '' then begin
           obs_name_arr = stregex(file_basename(fits_file_list), '[0-9]+.[0-9]+_', /extract)

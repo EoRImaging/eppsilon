@@ -8,7 +8,8 @@ pro enterprise_wrapper, folder_name, obs_name, data_subdirs=data_subdirs, rts = 
     coarse_harm_width = coarse_harm_width, $
     png = png, eps = eps, pdf = pdf, $
     plot_slices = plot_slices, slice_type = slice_type, max_uv_lambda = max_uv_lambda, $
-    kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, set_data_ranges = set_data_ranges
+    kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, set_data_ranges = set_data_ranges,$
+    cube_power_info = cube_power_info
     
   ;; The only required input is the datafile name (including the full path)
     
@@ -56,7 +57,7 @@ pro enterprise_wrapper, folder_name, obs_name, data_subdirs=data_subdirs, rts = 
       save_paths = save_path, plot_path = save_path, refresh_info = refresh_info)
       
     if obs_info.info_files[0] ne '' then datafile = obs_info.info_files[0] else $
-      if obs_info.cube_files.(0) ne '' then datafile = obs_info.cube_files.(0) else $
+      if obs_info.cube_files.(0)[0] ne '' then datafile = obs_info.cube_files.(0) else $
       datafile = rts_fits2idlcube(obs_info.datafiles.(0), obs_info.weightfiles.(0), obs_info.variancefiles.(0), $
       pol_inc, save_path = obs_info.folder_names[0]+path_sep(), refresh = refresh_dft)
       
@@ -214,9 +215,9 @@ pro enterprise_wrapper, folder_name, obs_name, data_subdirs=data_subdirs, rts = 
     print, 'data_range used: ', number_formatter(data_range, format = '(e7.1)')
     print, 'sigma_range used: ', number_formatter(sigma_range, format = '(e7.1)')
     print, 'nev_range used: ', number_formatter(nev_range, format = '(e7.1)')
-    print, 'nnr_range used: ', number_formatter(nnr_range, format = '(e7.1)')
+    if n_elements(nnr_range) gt 0 then print, 'nnr_range used: ', number_formatter(nnr_range, format = '(e7.1)')
     print, 'snr_range used: ', number_formatter(snr_range, format = '(e7.1)')
-    print, 'noise_range used: ', number_formatter(noise_range, format = '(e7.1)')
+    if n_elements(noise_range) gt 0 then print, 'noise_range used: ', number_formatter(noise_range, format = '(e7.1)')
   endif
   
 end
