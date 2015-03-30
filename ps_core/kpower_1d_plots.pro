@@ -74,7 +74,7 @@ pro kpower_1d_plots, power_savefile, multi_pos = multi_pos, start_multi_params =
   if n_elements(psyms) gt 0 then begin
     if n_elements(psym) eq 1 then psyms = intarr(nfiles) + psyms
     if n_elements(psyms) ne nfiles then message, 'Number of psyms does not match number of files'
-  endif else psyms = intarr(nfiles) + 10  
+  endif else psyms = intarr(nfiles) + 10
   
   margin = [0.15, 0.2, 0.05, 0.1]
   plot_pos = [margin[0], margin[1], (1-margin[2]), (1-margin[3])]
@@ -265,6 +265,11 @@ pro kpower_1d_plots, power_savefile, multi_pos = multi_pos, start_multi_params =
       else message, 'No noise array included in this file'
     endif
     
+    if n_elements(weights) eq 0 then begin
+    print, 'no weights in file ' + power_savefile[i] + ', using 1s'
+    weights = fltarr(n_elements(power)) + 1
+    endif
+    
     sigma_val = sqrt(1./weights)
     wh_wt0 = where(weights eq 0, count_wt0)
     if count_wt0 gt 0 then sigma_val[wh_wt0] = 0
@@ -275,7 +280,7 @@ pro kpower_1d_plots, power_savefile, multi_pos = multi_pos, start_multi_params =
       if not keyword_set(plot_weights) then power = power * (hubble_param)^3d
       sigma_val = sigma_val * (hubble_param)^3d
     endif
-    
+
     log_bins = 1
     if n_elements(k_centers) ne 0 then k_log_diffs = (alog10(k_centers) - shift(alog10(k_centers), 1))[2:*] $
     else k_log_diffs = (alog10(k_edges) - shift(alog10(k_edges), 1))[2:*]
@@ -303,7 +308,7 @@ pro kpower_1d_plots, power_savefile, multi_pos = multi_pos, start_multi_params =
       wh_k_inrange = where(k_edges ge k_range[0] and k_edges[1:*] le k_range[1], n_k_plot)
       
       if n_k_plot eq 0 then message, 'No data in plot k range'
-      
+
       if n_k_plot ne n_k then begin
         power = power[wh_k_inrange]
         sigma_val = sigma_val[wh_k_inrange]
@@ -314,7 +319,7 @@ pro kpower_1d_plots, power_savefile, multi_pos = multi_pos, start_multi_params =
       endif
       
     endif
-    
+
     theory_delta2 = power * k_mid^3d / (2d*!pi^2d)
     theory_delta2_sigma = sigma_val * k_mid^3d / (2d*!pi^2d)
     
@@ -352,7 +357,7 @@ pro kpower_1d_plots, power_savefile, multi_pos = multi_pos, start_multi_params =
       
       wh_zero = where(power eq 0d, count_zero, complement = wh_non0, ncomplement = count_non0)
     endif
-    
+
     ;; extend arrays for plotting full histogram bins if plotting w/ psym=10
     if psyms[i] eq 10 then begin
       if min(k_edges gt 0) then k_mid = [min(k_edges), k_mid, max(k_edges)] $
@@ -360,7 +365,6 @@ pro kpower_1d_plots, power_savefile, multi_pos = multi_pos, start_multi_params =
       power = [power[0], power, power[n_elements(power)-1]]
       sigma_val = [sigma_val[0], sigma_val, sigma_val[n_elements(sigma_val)-1]]
     endif
-    
     
     wh_neg = where(power lt 0d, count_neg)
     wh_pos = where(power gt 0d, count_pos)
@@ -432,7 +436,7 @@ pro kpower_1d_plots, power_savefile, multi_pos = multi_pos, start_multi_params =
     endelse
     
     undefine, power
-    undefine, sigma_val
+    undefine, sigma_val, weights
     if n_elements(k_edges) ne 0 then undefine, k_edges
     if n_elements(k_centers) ne 0 then undefine, k_centers
   endfor
@@ -557,7 +561,7 @@ pro kpower_1d_plots, power_savefile, multi_pos = multi_pos, start_multi_params =
           
           cgplot, /overplot, k_plot.(plot_order[i]), power_plot.(plot_order[i]), psym=psyms[i], color = colors[i], $
             thick = thick, err_yhigh = err_high, err_ylow = err_low, err_thick = thick, err_width=0, /err_clip
-
+            
         endif else begin
           cgplot, /overplot, k_plot.(plot_order[i]), power_plot.(plot_order[i]), psym=psyms[i], color = colors[i], $
             thick = thick
