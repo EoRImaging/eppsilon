@@ -964,7 +964,7 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
       getvar_savefile(savefiles_1d[k,0,0], 'uv_pix_area'))
     ave_weights_freq_vals[k,*] = (getvar_savefile(savefiles_1d[k,0,0], 'ave_weights')/$
       getvar_savefile(savefiles_1d[k,0,0], 'uv_pix_area'))[0,*]
-    nbsl_lambda2[k] = file_struct_arr[0].n_vis[0]/getvar_savefile(savefiles_1d[k,0,0], 'uv_area')
+    nbsl_lambda2[k] = mean(file_struct_arr[0].n_vis_freq[0,*])/getvar_savefile(savefiles_1d[k,0,0], 'uv_area')
     nbsl_lambda2_freq[k,*] = file_struct_arr[0].n_vis_freq[0,*]/getvar_savefile(savefiles_1d[k,0,0], 'uv_area')
     wt_ave_power_freq_vals[k,*] = (getvar_savefile(savefiles_1d[k,0,0], 'wt_ave_power_freq'))[0,*]
     ave_power_freq_vals[k,*] = (getvar_savefile(savefiles_1d[k,0,0], 'ave_power_freq'))[0,*]
