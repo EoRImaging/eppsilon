@@ -648,7 +648,7 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
       endelse
     endfor
   endif
-
+  
   if healpix or not keyword_set(uvf_input) then begin
     if keyword_set(dft_ian) then begin
       n_kx = n_elements(u_lambda_vals)
@@ -683,9 +683,6 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
   if healpix or not keyword_set(uvf_input) then begin
     weights_cube1 = getvar_savefile(file_struct.uvf_weight_savefile[0], 'weights_cube')
     if nfiles eq 2 then weights_cube2 = getvar_savefile(file_struct.uvf_weight_savefile[1], 'weights_cube')
-    
-    ave_weights = total(total(abs(weights_cube1),2),1)/(n_kx*n_ky)
-    if nfiles eq 2 then ave_weights = transpose([[ave_weights], [total(total(abs(weights_cube2),2),1)/(n_kx*n_ky)]])
     
     void = getvar_savefile(file_struct.uvf_weight_savefile[0], names = uvf_varnames)
     wh_hash = where(uvf_varnames eq 'uvf_wt_git_hash', count_hash)
@@ -1245,6 +1242,9 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
       weights_cube2 = weights_cube2 * pix_area_rad
       variance_cube2 = variance_cube2 * pix_area_rad
     endif
+    
+    ave_weights = total(total(abs(weights_cube1),2),1)/(n_kx*n_ky)
+    if nfiles eq 2 then ave_weights = transpose([[ave_weights], [total(total(abs(weights_cube2),2),1)/(n_kx*n_ky)]])
   endif
   
   ;; make sigma2 cubes

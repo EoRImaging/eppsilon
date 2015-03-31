@@ -6,7 +6,7 @@ pro enterprise_wrapper, folder_name, obs_name, data_subdirs=data_subdirs, rts = 
     kperp_range_1dave = kperp_range_1dave, kperp_range_lambda_1dave = kperp_range_lambda_1dave, kpar_range_1dave = kpar_range_1dave, $
     plot_kpar_power = plot_kpar_power, plot_kperp_power = plot_kperp_power, plot_k0_power = plot_k0_power, plot_noise_1d = plot_noise_1d, $
     coarse_harm_width = coarse_harm_width, $
-    png = png, eps = eps, pdf = pdf, $
+    png = png, eps = eps, pdf = pdf, plot_stdset = plot_stdset, $
     plot_slices = plot_slices, slice_type = slice_type, max_uv_lambda = max_uv_lambda, $
     kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, set_data_ranges = set_data_ranges,$
     cube_power_info = cube_power_info
@@ -211,7 +211,7 @@ pro enterprise_wrapper, folder_name, obs_name, data_subdirs=data_subdirs, rts = 
     individual_plots = individual_plots, note = note, png = png, eps = eps, pdf = pdf, cube_power_info = cube_power_info
     
     
-  if not keyword_set(set_data_ranges) then begin
+  if not keyword_set(set_data_ranges)and keyword_set(plot_stdset) then begin
     print, 'data_range used: ', number_formatter(data_range, format = '(e7.1)')
     print, 'sigma_range used: ', number_formatter(sigma_range, format = '(e7.1)')
     print, 'nev_range used: ', number_formatter(nev_range, format = '(e7.1)')
