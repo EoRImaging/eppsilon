@@ -1,8 +1,9 @@
-function rts_fits2idlcube, datafiles, weightfiles, variancefiles, pol_inc, save_path = save_path, refresh = refresh
-
+function rts_fits2idlcube, datafiles, weightfiles, variancefiles, pol_inc, $
+    save_path = save_path, refresh = refresh, no_wtvar = no_wtvar
+    
   if n_elements(datafiles) eq 0 then message, 'datafiles must be passed in'
-  if n_elements(weightfiles) ne n_elements(datafiles) then message, 'different number of weightfiles and datafiles'
-  if n_elements(variancefiles) ne n_elements(datafiles) then message, 'different number of variancefiles and datafiles'
+  if not keyword_set(no_wtvar) then if n_elements(weightfiles) ne n_elements(datafiles) then message, 'different number of weightfiles and datafiles'
+  if not keyword_set(no_wtvar) then if n_elements(variancefiles) ne n_elements(datafiles) then message, 'different number of variancefiles and datafiles'
   
   ;; check for even/odd files, separate them if present
   even_mask = stregex(datafiles, 'even', /boolean)
@@ -25,25 +26,27 @@ function rts_fits2idlcube, datafiles, weightfiles, variancefiles, pol_inc, save_
     datafile_arr[*,0] = datafiles[where(even_mask gt 0)]
     datafile_arr[*,1] = datafiles[where(odd_mask gt 0)]
     
-    wt_even_mask = stregex(weightfiles, 'even', /boolean)
-    wt_n_even = total(wt_even_mask)
-    wt_odd_mask = stregex(weightfiles, 'odd', /boolean)
-    wt_n_odd = total(wt_odd_mask)
-    if wt_n_even ne n_even or wt_n_odd ne n_odd then message, 'number of even and odd weight files do not match datafiles'
-    
-    weightfile_arr = strarr(n_freq, nfiles)
-    weightfile_arr[*,0] = weightfiles[where(even_mask gt 0)]
-    weightfile_arr[*,1] = weightfiles[where(odd_mask gt 0)]
-    
-    var_even_mask = stregex(variancefiles, 'even', /boolean)
-    var_n_even = total(var_even_mask)
-    var_odd_mask = stregex(variancefiles, 'odd', /boolean)
-    var_n_odd = total(var_odd_mask)
-    if var_n_even ne n_even or var_n_odd ne n_odd then message, 'number of even and odd variance files do not match datafiles'
-    
-    variancefile_arr = strarr(n_freq, nfiles)
-    variancefile_arr[*,0] = variancefiles[where(even_mask gt 0)]
-    variancefile_arr[*,1] = variancefiles[where(odd_mask gt 0)]
+    if not keyword_set(no_wtvar) then begin
+      wt_even_mask = stregex(weightfiles, 'even', /boolean)
+      wt_n_even = total(wt_even_mask)
+      wt_odd_mask = stregex(weightfiles, 'odd', /boolean)
+      wt_n_odd = total(wt_odd_mask)
+      if wt_n_even ne n_even or wt_n_odd ne n_odd then message, 'number of even and odd weight files do not match datafiles'
+      
+      weightfile_arr = strarr(n_freq, nfiles)
+      weightfile_arr[*,0] = weightfiles[where(even_mask gt 0)]
+      weightfile_arr[*,1] = weightfiles[where(odd_mask gt 0)]
+      
+      var_even_mask = stregex(variancefiles, 'even', /boolean)
+      var_n_even = total(var_even_mask)
+      var_odd_mask = stregex(variancefiles, 'odd', /boolean)
+      var_n_odd = total(var_odd_mask)
+      if var_n_even ne n_even or var_n_odd ne n_odd then message, 'number of even and odd variance files do not match datafiles'
+      
+      variancefile_arr = strarr(n_freq, nfiles)
+      variancefile_arr[*,0] = variancefiles[where(even_mask gt 0)]
+      variancefile_arr[*,1] = variancefiles[where(odd_mask gt 0)]
+    endif
   endelse
   
   
@@ -188,188 +191,191 @@ function rts_fits2idlcube, datafiles, weightfiles, variancefiles, pol_inc, save_
           
       endfor
       
-      for i=0, n_freq-1 do begin
-        ;        temp = strsplit(weightfile_arr[i, file_i], '_',/extract)
-        ;        freq_loc = where(strpos(strlowcase(strsplit(weightfile_arr[i, file_i], '_',/extract)), 'mhz') gt -1, count)
-        ;        if count gt 1 then stop else freq_loc = freq_loc[0]
-        ;        if float(temp[freq_loc]) ne frequencies[i] then message, 'data and weights frequencies do not match'
+      if not keyword_set(no_wtvar) then begin
+        for i=0, n_freq-1 do begin
+          ;        temp = strsplit(weightfile_arr[i, file_i], '_',/extract)
+          ;        freq_loc = where(strpos(strlowcase(strsplit(weightfile_arr[i, file_i], '_',/extract)), 'mhz') gt -1, count)
+          ;        if count gt 1 then stop else freq_loc = freq_loc[0]
+          ;        if float(temp[freq_loc]) ne frequencies[i] then message, 'data and weights frequencies do not match'
+        
+          data = mrdfits(weightfile_arr[i, file_i], 1, hdr, /silent)
+          
+          this_nside = fxpar(hdr, 'nside')
+          if this_nside ne nside then message, 'weights nside value does not agree with datafiles'
+          this_dims = fxpar(hdr, 'naxis*')
+          if total(abs(this_dims-dims)) ne 0 then message, 'weights dimensions do not agree with datafiles'
+          
+          col_types = fxpar(hdr, 'ttype*')
+          
+          pix_col = where(strpos(strlowcase(col_types), 'pix') gt -1, count)
+          if count ne 1 then stop else pix_col = pix_col[0]
+          ordering = strtrim(fxpar(hdr, 'tunit' + number_formatter(pix_col+1)))
+          
+          pixels = data.(pix_col)
+          if total(abs(pixel_nums-pixels)) ne 0 then message, 'weights pixel nums do not agree with datafiles'
+          
+          xx_col = where(strpos(strlowcase(col_types), 'weighted pp') gt -1, count)
+          if count ne 1 then stop else xx_col = xx_col[0]
+          
+          if i eq 0 then xx_weights = fltarr(npix, n_freq)
+          
+          xx_weights[*,i] = data.(xx_col)
+          
+          yy_col = where(strpos(strlowcase(col_types), 'weighted qq') gt -1, count)
+          if count ne 1 then stop else yy_col = yy_col[0]
+          
+          if i eq 0 then yy_weights = fltarr(npix, n_freq)
+          yy_weights[*,i] =  data.(yy_col)
+          
+          undefine, data
+          
+          data2 = mrdfits(weightfile_arr[i, file_i], 'MWA_SUBINT_TABLE', hdr2, /silent)
+          col_types2 = fxpar(hdr2, 'ttype*')
+          
+          ;        freq_col = where(strpos(strlowcase(col_types2), 'freq') gt -1, count)
+          ;        if count ne 1 then stop else freq_col = freq_col[0]
+          ;        freq_arr = data.(freq_col)
+          ;        if max(abs(freq_arr - freq_arr[0])) gt 0 then print, 'frequencies in file ' + weightfile_arr[i, file_i] + ' vary by ' + number_formatter(max(abs(freq_arr - freq_arr[0])))
+          ;        if abs(frequencies2[i] - freq_arr[0]) gt 1e-3 then message, 'frequencies are not the same in weights and data files.'
+          
+          time_col = where(strpos(strlowcase(col_types2), 'fracmjd') gt -1, count)
+          if count ne 1 then stop else time_col = time_col[0]
+          time_arr = data2.(time_col)
+          time_diffs = ((time_arr - shift(time_arr, 1))[1:*])*3600*24 ;fractional days to seconds
+          time_diffs = round(time_diffs*2.)/2. ;round to nearest 1/2 second
+          if total(abs(time_diffs - time_diffs[0])) gt 0 then print, 'inconsistent time resolutions in file ' + weightfile_arr[i, file_i] + ' using the smallest value.'
+          if abs(time_resolution - min(time_diffs)) ne 0 then message, 'time resolutions are not the same in weights and data files'
+          
+          obs_ra_col = where(strpos(strlowcase(col_types2), 'ha_pt') gt -1, count)
+          if count ne 1 then stop else obs_ra_col = obs_ra_col[0]
+          obs_ra_arr = data2.(obs_ra_col)
+          if total(abs(obs_ra_arr - obs_ra_arr[0])) gt 0 then message, 'inconsistent obs_ra in file ' + weightfile_arr[i, file_i]
+          if abs(obs_ra - obs_ra_arr[0]) ne 0 then message, 'obs_ra is not the same in weights and data files'
+          
+          obs_dec_col = where(strpos(strlowcase(col_types2), 'dec_pt') gt -1, count)
+          if count ne 1 then stop else obs_dec_col = obs_dec_col[0]
+          obs_dec_arr = data2.(obs_dec_col)
+          if total(abs(obs_dec_arr - obs_dec_arr[0])) gt 0 then message, 'inconsistent obs_dec in file ' + weightfile_arr[i, file_i]
+          if abs(obs_dec - obs_dec_arr[0]) ne 0 then message, 'obs_dec is not the same in weights and data files'
+          
+          zen_ra_col = where(strpos(strlowcase(col_types2), 'ra_ph') gt -1, count)
+          if count ne 1 then stop else zen_ra_col = zen_ra_col[0]
+          zen_ra_arr = data2.(zen_ra_col)
+          if total(abs(zen_ra_arr - zen_ra_arr[0])) gt 0 then message, 'inconsistent zen_ra in file ' + weightfile_arr[i, file_i]
+          if abs(zen_ra - zen_ra_arr[0]) ne 0 then message, 'zen_ra is not the same in weights and data files'
+          
+          zen_dec_col = where(strpos(strlowcase(col_types2), 'dec_ph') gt -1, count)
+          if count ne 1 then stop else zen_dec_col = zen_dec_col[0]
+          zen_dec_arr = data2.(zen_dec_col)
+          if total(abs(zen_dec_arr - zen_dec_arr[0])) gt 0 then message, 'inconsistent zen_dec in file ' + weightfile_arr[i, file_i]
+          if abs(zen_dec - zen_dec_arr[0]) ne 0 then message, 'zen_dec is not the same in weights and data files'
+          
+          undefine, data2
+          
+          data3 = mrdfits(weightfile_arr[i, file_i], 'UWPS Header', hdr3, /silent)
+          if fxpar(hdr3, 'freq') ne frequencies[i] then message, 'data and weights frequencies do not match'
+          if fxpar(hdr3, 'n_bsnl') ne n_vis_arr[i] then print, 'data and weights n_vis do not match for weightfile: ' + weightfile_arr[i, file_i]
+          if fxpar(hdr3, 'uv_pixsz') ne kpix_arr[i] then  message, 'data and weights uv pixel sizes do not match'
+          if fxpar(hdr3, 'uv_span') ne kspan_arr[i] then message, 'data and weights uv spans do not match'
+          if (time_integration-fxpar(hdr3, 'time_int')) ne 0 then message, 'data and weights time integrations do not match'
+          if (max_baseline-fxpar(hdr3, 'max_bsnl')) ne 0 then message, 'data and weights max baseline do not match'
+          
+          
+        endfor
+        
+        for i=0, n_freq-1 do begin
+          ;        temp = strsplit(variancefile_arr[i, file_i], '_',/extract)
+          ;        freq_loc = where(strpos(strlowcase(strsplit(variancefile_arr[i, file_i], '_',/extract)), 'mhz') gt -1, count)
+          ;        if count gt 1 then stop else freq_loc = freq_loc[0]
+          ;        if float(temp[freq_loc]) ne frequencies[i] then message, 'data and variances frequencies do not match'
+        
+          data = mrdfits(variancefile_arr[i, file_i], 1, hdr, /silent)
+          
+          this_nside = fxpar(hdr, 'nside')
+          if this_nside ne nside then message, 'variances nside value does not agree with datafiles'
+          this_dims = fxpar(hdr, 'naxis*')
+          if total(abs(this_dims-dims)) ne 0 then message, 'variances dimensions do not agree with datafiles'
+          
+          col_types = fxpar(hdr, 'ttype*')
+          
+          pix_col = where(strpos(strlowcase(col_types), 'pix') gt -1, count)
+          if count ne 1 then stop else pix_col = pix_col[0]
+          ordering = strtrim(fxpar(hdr, 'tunit' + number_formatter(pix_col+1)))
+          
+          pixels = data.(pix_col)
+          if total(abs(pixel_nums-pixels)) ne 0 then message, 'variances pixel nums do not agree with datafiles'
+          
+          xx_col = where(strpos(strlowcase(col_types), 'weighted pp') gt -1, count)
+          if count ne 1 then stop else xx_col = xx_col[0]
+          
+          if i eq 0 then xx_variances = fltarr(npix, n_freq)
+          
+          xx_variances[*,i] = data.(xx_col)
+          
+          yy_col = where(strpos(strlowcase(col_types), 'weighted qq') gt -1, count)
+          if count ne 1 then stop else yy_col = yy_col[0]
+          
+          if i eq 0 then yy_variances = fltarr(npix, n_freq)
+          yy_variances[*,i] =  data.(yy_col)
+          
+          undefine, data
+          
+          data2 = mrdfits(variancefile_arr[i, file_i], 'MWA_SUBINT_TABLE', hdr2, /silent)
+          col_types2 = fxpar(hdr2, 'ttype*')
+          
+          ;        freq_col = where(strpos(strlowcase(col_types2), 'freq') gt -1, count)
+          ;        if count ne 1 then stop else freq_col = freq_col[0]
+          ;        freq_arr = data.(freq_col)
+          ;        if max(abs(freq_arr - freq_arr[0])) gt 0 then print, 'frequencies in file ' + variancefile_arr[i, file_i] + ' vary by ' + number_formatter(max(abs(freq_arr - freq_arr[0])))
+          ;        if abs(frequencies2[i] - freq_arr[0]) gt 1e-3 then message, 'frequencies are not the same in variance and data files.'
+          
+          time_col = where(strpos(strlowcase(col_types2), 'fracmjd') gt -1, count)
+          if count ne 1 then stop else time_col = time_col[0]
+          time_arr = data2.(time_col)
+          time_diffs = ((time_arr - shift(time_arr, 1))[1:*])*3600*24 ;fractional days to seconds
+          time_diffs = round(time_diffs*2.)/2. ;round to nearest 1/2 second
+          if total(abs(time_diffs - time_diffs[0])) gt 0 then print, 'inconsistent time resolutions in file ' + variancefile_arr[i, file_i] + ' using the smallest value.'
+          if abs(time_resolution - min(time_diffs)) ne 0 then message, 'time resolutions are not the same in variance and data files'
+          
+          obs_ra_col = where(strpos(strlowcase(col_types2), 'ha_pt') gt -1, count)
+          if count ne 1 then stop else obs_ra_col = obs_ra_col[0]
+          obs_ra_arr = data2.(obs_ra_col)
+          if total(abs(obs_ra_arr - obs_ra_arr[0])) gt 0 then message, 'inconsistent obs_ra in file ' + variancefile_arr[i, file_i]
+          if abs(obs_ra - obs_ra_arr[0]) ne 0 then message, 'obs_ra is not the same in variance and data files'
+          
+          obs_dec_col = where(strpos(strlowcase(col_types2), 'dec_pt') gt -1, count)
+          if count ne 1 then stop else obs_dec_col = obs_dec_col[0]
+          obs_dec_arr = data2.(obs_dec_col)
+          if total(abs(obs_dec_arr - obs_dec_arr[0])) gt 0 then message, 'inconsistent obs_dec in file ' + variancefile_arr[i, file_i]
+          if abs(obs_dec - obs_dec_arr[0]) ne 0 then message, 'obs_dec is not the same in variance and data files'
+          
+          zen_ra_col = where(strpos(strlowcase(col_types2), 'ra_ph') gt -1, count)
+          if count ne 1 then stop else zen_ra_col = zen_ra_col[0]
+          zen_ra_arr = data2.(zen_ra_col)
+          if total(abs(zen_ra_arr - zen_ra_arr[0])) gt 0 then message, 'inconsistent zen_ra in file ' + variancefile_arr[i, file_i]
+          if abs(zen_ra - zen_ra_arr[0]) ne 0 then message, 'zen_ra is not the same in variance and data files'
+          
+          zen_dec_col = where(strpos(strlowcase(col_types2), 'dec_ph') gt -1, count)
+          if count ne 1 then stop else zen_dec_col = zen_dec_col[0]
+          zen_dec_arr = data2.(zen_dec_col)
+          if total(abs(zen_dec_arr - zen_dec_arr[0])) gt 0 then message, 'inconsistent zen_dec in file ' + variancefile_arr[i, file_i]
+          if abs(zen_dec - zen_dec_arr[0]) ne 0 then message, 'zen_dec is not the same in variance and data files'
+          
+          undefine, data2
+          
+          data3 = mrdfits(variancefile_arr[i, file_i], 'UWPS Header', hdr3, /silent)
+          if fxpar(hdr3, 'freq') ne frequencies[i] then message, 'data and variance frequencies do not match'
+          if fxpar(hdr3, 'n_bsnl') ne n_vis_arr[i] then print, 'data and variance n_vis do not match, variance file: ' + variancefile_arr[i, file_i]
+          if fxpar(hdr3, 'uv_pixsz') ne kpix_arr[i] then message, 'data and variance uv pixel sizes do not match'
+          if fxpar(hdr3, 'uv_span') ne kspan_arr[i] then message, 'data and variance uv spans do not match'
+          if (time_integration-fxpar(hdr3, 'time_int')) ne 0 then message, 'data and variance time integrations do not match'
+          if (max_baseline-fxpar(hdr3, 'max_bsnl')) ne 0 then message, 'data and variance max baseline do not match'
+          
+        endfor
+      endif
       
-        data = mrdfits(weightfile_arr[i, file_i], 1, hdr, /silent)
-        
-        this_nside = fxpar(hdr, 'nside')
-        if this_nside ne nside then message, 'weights nside value does not agree with datafiles'
-        this_dims = fxpar(hdr, 'naxis*')
-        if total(abs(this_dims-dims)) ne 0 then message, 'weights dimensions do not agree with datafiles'
-        
-        col_types = fxpar(hdr, 'ttype*')
-        
-        pix_col = where(strpos(strlowcase(col_types), 'pix') gt -1, count)
-        if count ne 1 then stop else pix_col = pix_col[0]
-        ordering = strtrim(fxpar(hdr, 'tunit' + number_formatter(pix_col+1)))
-        
-        pixels = data.(pix_col)
-        if total(abs(pixel_nums-pixels)) ne 0 then message, 'weights pixel nums do not agree with datafiles'
-        
-        xx_col = where(strpos(strlowcase(col_types), 'weighted pp') gt -1, count)
-        if count ne 1 then stop else xx_col = xx_col[0]
-        
-        if i eq 0 then xx_weights = fltarr(npix, n_freq)
-        
-        xx_weights[*,i] = data.(xx_col)
-        
-        yy_col = where(strpos(strlowcase(col_types), 'weighted qq') gt -1, count)
-        if count ne 1 then stop else yy_col = yy_col[0]
-        
-        if i eq 0 then yy_weights = fltarr(npix, n_freq)
-        yy_weights[*,i] =  data.(yy_col)
-        
-        undefine, data
-        
-        data2 = mrdfits(weightfile_arr[i, file_i], 'MWA_SUBINT_TABLE', hdr2, /silent)
-        col_types2 = fxpar(hdr2, 'ttype*')
-        
-        ;        freq_col = where(strpos(strlowcase(col_types2), 'freq') gt -1, count)
-        ;        if count ne 1 then stop else freq_col = freq_col[0]
-        ;        freq_arr = data.(freq_col)
-        ;        if max(abs(freq_arr - freq_arr[0])) gt 0 then print, 'frequencies in file ' + weightfile_arr[i, file_i] + ' vary by ' + number_formatter(max(abs(freq_arr - freq_arr[0])))
-        ;        if abs(frequencies2[i] - freq_arr[0]) gt 1e-3 then message, 'frequencies are not the same in weights and data files.'
-        
-        time_col = where(strpos(strlowcase(col_types2), 'fracmjd') gt -1, count)
-        if count ne 1 then stop else time_col = time_col[0]
-        time_arr = data2.(time_col)
-        time_diffs = ((time_arr - shift(time_arr, 1))[1:*])*3600*24 ;fractional days to seconds
-        time_diffs = round(time_diffs*2.)/2. ;round to nearest 1/2 second
-        if total(abs(time_diffs - time_diffs[0])) gt 0 then print, 'inconsistent time resolutions in file ' + weightfile_arr[i, file_i] + ' using the smallest value.'
-        if abs(time_resolution - min(time_diffs)) ne 0 then message, 'time resolutions are not the same in weights and data files'
-        
-        obs_ra_col = where(strpos(strlowcase(col_types2), 'ha_pt') gt -1, count)
-        if count ne 1 then stop else obs_ra_col = obs_ra_col[0]
-        obs_ra_arr = data2.(obs_ra_col)
-        if total(abs(obs_ra_arr - obs_ra_arr[0])) gt 0 then message, 'inconsistent obs_ra in file ' + weightfile_arr[i, file_i]
-        if abs(obs_ra - obs_ra_arr[0]) ne 0 then message, 'obs_ra is not the same in weights and data files'
-        
-        obs_dec_col = where(strpos(strlowcase(col_types2), 'dec_pt') gt -1, count)
-        if count ne 1 then stop else obs_dec_col = obs_dec_col[0]
-        obs_dec_arr = data2.(obs_dec_col)
-        if total(abs(obs_dec_arr - obs_dec_arr[0])) gt 0 then message, 'inconsistent obs_dec in file ' + weightfile_arr[i, file_i]
-        if abs(obs_dec - obs_dec_arr[0]) ne 0 then message, 'obs_dec is not the same in weights and data files'
-        
-        zen_ra_col = where(strpos(strlowcase(col_types2), 'ra_ph') gt -1, count)
-        if count ne 1 then stop else zen_ra_col = zen_ra_col[0]
-        zen_ra_arr = data2.(zen_ra_col)
-        if total(abs(zen_ra_arr - zen_ra_arr[0])) gt 0 then message, 'inconsistent zen_ra in file ' + weightfile_arr[i, file_i]
-        if abs(zen_ra - zen_ra_arr[0]) ne 0 then message, 'zen_ra is not the same in weights and data files'
-        
-        zen_dec_col = where(strpos(strlowcase(col_types2), 'dec_ph') gt -1, count)
-        if count ne 1 then stop else zen_dec_col = zen_dec_col[0]
-        zen_dec_arr = data2.(zen_dec_col)
-        if total(abs(zen_dec_arr - zen_dec_arr[0])) gt 0 then message, 'inconsistent zen_dec in file ' + weightfile_arr[i, file_i]
-        if abs(zen_dec - zen_dec_arr[0]) ne 0 then message, 'zen_dec is not the same in weights and data files'
-        
-        undefine, data2
-        
-        data3 = mrdfits(weightfile_arr[i, file_i], 'UWPS Header', hdr3, /silent)
-        if fxpar(hdr3, 'freq') ne frequencies[i] then message, 'data and weights frequencies do not match'       
-        if fxpar(hdr3, 'n_bsnl') ne n_vis_arr[i] then print, 'data and weights n_vis do not match for weightfile: ' + weightfile_arr[i, file_i]
-        if fxpar(hdr3, 'uv_pixsz') ne kpix_arr[i] then  message, 'data and weights uv pixel sizes do not match'        
-        if fxpar(hdr3, 'uv_span') ne kspan_arr[i] then message, 'data and weights uv spans do not match'     
-        if (time_integration-fxpar(hdr3, 'time_int')) ne 0 then message, 'data and weights time integrations do not match'
-        if (max_baseline-fxpar(hdr3, 'max_bsnl')) ne 0 then message, 'data and weights max baseline do not match'
-        
-        
-      endfor
-      
-      for i=0, n_freq-1 do begin
-        ;        temp = strsplit(variancefile_arr[i, file_i], '_',/extract)
-        ;        freq_loc = where(strpos(strlowcase(strsplit(variancefile_arr[i, file_i], '_',/extract)), 'mhz') gt -1, count)
-        ;        if count gt 1 then stop else freq_loc = freq_loc[0]
-        ;        if float(temp[freq_loc]) ne frequencies[i] then message, 'data and variances frequencies do not match'
-      
-        data = mrdfits(variancefile_arr[i, file_i], 1, hdr, /silent)
-        
-        this_nside = fxpar(hdr, 'nside')
-        if this_nside ne nside then message, 'variances nside value does not agree with datafiles'
-        this_dims = fxpar(hdr, 'naxis*')
-        if total(abs(this_dims-dims)) ne 0 then message, 'variances dimensions do not agree with datafiles'
-        
-        col_types = fxpar(hdr, 'ttype*')
-        
-        pix_col = where(strpos(strlowcase(col_types), 'pix') gt -1, count)
-        if count ne 1 then stop else pix_col = pix_col[0]
-        ordering = strtrim(fxpar(hdr, 'tunit' + number_formatter(pix_col+1)))
-        
-        pixels = data.(pix_col)
-        if total(abs(pixel_nums-pixels)) ne 0 then message, 'variances pixel nums do not agree with datafiles'
-        
-        xx_col = where(strpos(strlowcase(col_types), 'weighted pp') gt -1, count)
-        if count ne 1 then stop else xx_col = xx_col[0]
-        
-        if i eq 0 then xx_variances = fltarr(npix, n_freq)
-        
-        xx_variances[*,i] = data.(xx_col)
-        
-        yy_col = where(strpos(strlowcase(col_types), 'weighted qq') gt -1, count)
-        if count ne 1 then stop else yy_col = yy_col[0]
-        
-        if i eq 0 then yy_variances = fltarr(npix, n_freq)
-        yy_variances[*,i] =  data.(yy_col)
-        
-        undefine, data
-        
-        data2 = mrdfits(variancefile_arr[i, file_i], 'MWA_SUBINT_TABLE', hdr2, /silent)
-        col_types2 = fxpar(hdr2, 'ttype*')
-        
-        ;        freq_col = where(strpos(strlowcase(col_types2), 'freq') gt -1, count)
-        ;        if count ne 1 then stop else freq_col = freq_col[0]
-        ;        freq_arr = data.(freq_col)
-        ;        if max(abs(freq_arr - freq_arr[0])) gt 0 then print, 'frequencies in file ' + variancefile_arr[i, file_i] + ' vary by ' + number_formatter(max(abs(freq_arr - freq_arr[0])))
-        ;        if abs(frequencies2[i] - freq_arr[0]) gt 1e-3 then message, 'frequencies are not the same in variance and data files.'
-        
-        time_col = where(strpos(strlowcase(col_types2), 'fracmjd') gt -1, count)
-        if count ne 1 then stop else time_col = time_col[0]
-        time_arr = data2.(time_col)
-        time_diffs = ((time_arr - shift(time_arr, 1))[1:*])*3600*24 ;fractional days to seconds
-        time_diffs = round(time_diffs*2.)/2. ;round to nearest 1/2 second
-        if total(abs(time_diffs - time_diffs[0])) gt 0 then print, 'inconsistent time resolutions in file ' + variancefile_arr[i, file_i] + ' using the smallest value.'
-        if abs(time_resolution - min(time_diffs)) ne 0 then message, 'time resolutions are not the same in variance and data files'
-        
-        obs_ra_col = where(strpos(strlowcase(col_types2), 'ha_pt') gt -1, count)
-        if count ne 1 then stop else obs_ra_col = obs_ra_col[0]
-        obs_ra_arr = data2.(obs_ra_col)
-        if total(abs(obs_ra_arr - obs_ra_arr[0])) gt 0 then message, 'inconsistent obs_ra in file ' + variancefile_arr[i, file_i]
-        if abs(obs_ra - obs_ra_arr[0]) ne 0 then message, 'obs_ra is not the same in variance and data files'
-        
-        obs_dec_col = where(strpos(strlowcase(col_types2), 'dec_pt') gt -1, count)
-        if count ne 1 then stop else obs_dec_col = obs_dec_col[0]
-        obs_dec_arr = data2.(obs_dec_col)
-        if total(abs(obs_dec_arr - obs_dec_arr[0])) gt 0 then message, 'inconsistent obs_dec in file ' + variancefile_arr[i, file_i]
-        if abs(obs_dec - obs_dec_arr[0]) ne 0 then message, 'obs_dec is not the same in variance and data files'
-        
-        zen_ra_col = where(strpos(strlowcase(col_types2), 'ra_ph') gt -1, count)
-        if count ne 1 then stop else zen_ra_col = zen_ra_col[0]
-        zen_ra_arr = data2.(zen_ra_col)
-        if total(abs(zen_ra_arr - zen_ra_arr[0])) gt 0 then message, 'inconsistent zen_ra in file ' + variancefile_arr[i, file_i]
-        if abs(zen_ra - zen_ra_arr[0]) ne 0 then message, 'zen_ra is not the same in variance and data files'
-        
-        zen_dec_col = where(strpos(strlowcase(col_types2), 'dec_ph') gt -1, count)
-        if count ne 1 then stop else zen_dec_col = zen_dec_col[0]
-        zen_dec_arr = data2.(zen_dec_col)
-        if total(abs(zen_dec_arr - zen_dec_arr[0])) gt 0 then message, 'inconsistent zen_dec in file ' + variancefile_arr[i, file_i]
-        if abs(zen_dec - zen_dec_arr[0]) ne 0 then message, 'zen_dec is not the same in variance and data files'
-        
-        undefine, data2
-        
-        data3 = mrdfits(variancefile_arr[i, file_i], 'UWPS Header', hdr3, /silent)
-        if fxpar(hdr3, 'freq') ne frequencies[i] then message, 'data and variance frequencies do not match'
-        if fxpar(hdr3, 'n_bsnl') ne n_vis_arr[i] then print, 'data and variance n_vis do not match, variance file: ' + variancefile_arr[i, file_i]
-        if fxpar(hdr3, 'uv_pixsz') ne kpix_arr[i] then message, 'data and variance uv pixel sizes do not match'
-        if fxpar(hdr3, 'uv_span') ne kspan_arr[i] then message, 'data and variance uv spans do not match'
-        if (time_integration-fxpar(hdr3, 'time_int')) ne 0 then message, 'data and variance time integrations do not match'
-        if (max_baseline-fxpar(hdr3, 'max_bsnl')) ne 0 then message, 'data and variance max baseline do not match'
-        
-      endfor
-      
-      save, file = idl_cube_savefile[file_i], nside, frequencies, time_resolution, n_vis_arr, kpix_arr, kspan_arr, time_integration, max_baseline, $
+      save, file = idl_cube_savefile[file_i], nside, frequencies, time_resolution, $
+        n_vis_arr, kpix_arr, kspan_arr, time_integration, max_baseline, $
         obs_ra, obs_dec, zen_ra, zen_dec, $
         pixel_nums, xx_data, yy_data, xx_weights, yy_weights, xx_variances, yy_variances
         

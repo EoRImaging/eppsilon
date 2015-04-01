@@ -1,4 +1,4 @@
-pro enterprise_wrapper, folder_name, obs_name, data_subdirs=data_subdirs, rts = rts, $
+pro enterprise_wrapper, folder_name, obs_name, data_subdirs=data_subdirs, rts = rts, no_wtvar_rts = no_wtvar_rts, $
     refresh_dft = refresh_dft, refresh_ps = refresh_ps, refresh_info = refresh_info, refresh_rtscube = refresh_rtscube, $
     refresh_binning = refresh_binning, refresh_beam = refresh_beam, pol_inc = pol_inc, no_spec_window = no_spec_window, $
     spec_window_type = spec_window_type, sim = sim, uvf_input = uvf_input, $
@@ -54,16 +54,18 @@ pro enterprise_wrapper, folder_name, obs_name, data_subdirs=data_subdirs, rts = 
     
     save_path = folder_name + '/ps/'
     obs_info = ps_filenames(folder_name, obs_name, rts = rts, sim = sim, casa = casa, $
-      save_paths = save_path, plot_path = save_path, refresh_info = refresh_info)
+      save_paths = save_path, plot_path = save_path, refresh_info = refresh_info, no_wtvar_rts = no_wtvar_rts)
       
     if obs_info.info_files[0] ne '' then datafile = obs_info.info_files[0] else $
       if obs_info.cube_files.(0)[0] ne '' then datafile = obs_info.cube_files.(0) else $
       datafile = rts_fits2idlcube(obs_info.datafiles.(0), obs_info.weightfiles.(0), obs_info.variancefiles.(0), $
-      pol_inc, save_path = obs_info.folder_names[0]+path_sep(), refresh = refresh_dft)
+      pol_inc, save_path = obs_info.folder_names[0]+path_sep(), refresh = refresh_dft, no_wtvar = no_wtvar_rts)
       
     if keyword_set(refresh_rtscube) then datafile = rts_fits2idlcube(obs_info.datafiles.(0), obs_info.weightfiles.(0), obs_info.variancefiles.(0), $
-      pol_inc, save_path = obs_info.folder_names[0]+path_sep(), refresh = refresh_dft)
+      pol_inc, save_path = obs_info.folder_names[0]+path_sep(), /refresh, no_wtvar = no_wtvar_rts)
       
+    if keyword_set(no_wtvar_rts) then stop
+    
     note = obs_info.rts_types
     if not file_test(save_path, /directory) then file_mkdir, save_path
     
