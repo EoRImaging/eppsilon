@@ -671,7 +671,9 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
           beam_int_arr = fltarr([n_obs[pol_i, file_i], n_freq])
           for i=0, n_obs[pol_i, file_i]-1 do beam_int_arr[i, *] = *(obs_arr[i].beam_integral(pol_i))
           
+          wh_freq_all_0 = where(total(n_vis_freq_arr, 1) eq 0, count_freq_all_0)
           beam_int[pol_i, file_i, *] = total(beam_int_arr * n_vis_freq_arr, 1)/total(n_vis_freq_arr, 1)
+          if count_freq_all_0 gt 0 then beam_int[pol_i, file_i, wh_freq_all_0]=0
         endif
         
         if tag_exist(obs_arr[0], 'vis_noise') then begin
