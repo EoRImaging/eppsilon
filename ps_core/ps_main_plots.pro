@@ -952,6 +952,8 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
   wt_ave_power_vals = fltarr(n_cubes)
   ave_weights_vals = fltarr(n_cubes)
   ave_weights_freq_vals = fltarr(n_cubes, n_freq)
+  uv_pix_area = fltarr(n_cubes)
+  uv_area = fltarr(n_cubes)
   nbsl_lambda2 = fltarr(n_cubes)
   nbsl_lambda2_freq = fltarr(n_cubes, n_freq)
   wt_ave_power_freq_vals = fltarr(n_cubes, n_freq)
@@ -960,18 +962,18 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
     void = getvar_savefile(savefiles_1d[k,0,0], names=varnames)
     ave_power_vals[k] = getvar_savefile(savefiles_1d[k,0,0], 'ave_power')
     wt_ave_power_vals[k] = getvar_savefile(savefiles_1d[k,0,0], 'wt_ave_power')
-    ave_weights_vals[k] = mean(getvar_savefile(savefiles_1d[k,0,0], 'ave_weights')/$
-      getvar_savefile(savefiles_1d[k,0,0], 'uv_pix_area'))
-    ave_weights_freq_vals[k,*] = (getvar_savefile(savefiles_1d[k,0,0], 'ave_weights')/$
-      getvar_savefile(savefiles_1d[k,0,0], 'uv_pix_area'))[0,*]
-    nbsl_lambda2[k] = file_struct_arr[0].n_vis[0]/getvar_savefile(savefiles_1d[k,0,0], 'uv_area')
-    nbsl_lambda2_freq[k,*] = file_struct_arr[0].n_vis_freq[0,*]/getvar_savefile(savefiles_1d[k,0,0], 'uv_area')
+    uv_pix_area[k] = getvar_savefile(savefiles_1d[k,0,0], 'uv_pix_area')
+    uv_area[k] = getvar_savefile(savefiles_1d[k,0,0], 'uv_area')
+    ave_weights_vals[k] = mean(getvar_savefile(savefiles_1d[k,0,0], 'ave_weights')/uv_pix_area[k])
+    ave_weights_freq_vals[k,*] = (getvar_savefile(savefiles_1d[k,0,0], 'ave_weights')/uv_pix_area[k])[0,*]
+    nbsl_lambda2[k] = file_struct_arr[0].n_vis[0]/uv_area[k]
+    nbsl_lambda2_freq[k,*] = file_struct_arr[0].n_vis_freq[0,*]/uv_area[k]    
     wt_ave_power_freq_vals[k,*] = (getvar_savefile(savefiles_1d[k,0,0], 'wt_ave_power_freq'))[0,*]
     ave_power_freq_vals[k,*] = (getvar_savefile(savefiles_1d[k,0,0], 'ave_power_freq'))[0,*]
   endfor
   cube_power_info = {ave_power:ave_power_vals, wt_ave_power:wt_ave_power_vals, $
     ave_weights:ave_weights_vals, ave_weights_freq:ave_weights_freq_vals, wt_ave_power_freq:wt_ave_power_freq_vals, $
-    ave_power_freq:ave_power_freq_vals, nbsl_lambda2:nbsl_lambda2, nbsl_lambda2_freq:nbsl_lambda2_freq}
+    ave_power_freq:ave_power_freq_vals, uv_pix_area:uv_pix_area, uv_area:uv_area, nbsl_lambda2:nbsl_lambda2, nbsl_lambda2_freq:nbsl_lambda2_freq}
     
   if keyword_set(plot_eor_1d) then begin
     case strlowcase(!version.os_family) OF
