@@ -84,8 +84,9 @@ pro kpower_1d_plots, power_savefile, multi_pos = multi_pos, start_multi_params =
   x_factor=1.
   y_factor=1.
   
-  max_ysize = 1000
-  max_xsize = 1200
+  screen_size = get_screen_size()
+  max_xsize = screen_size[0]
+  max_ysize = screen_size[1]
   base_size = 600
   if n_elements(multi_pos) eq 4 then begin
     ;; work out positions scaled to the area allowed in multi_pos with proper aspect ratio
@@ -198,15 +199,15 @@ pro kpower_1d_plots, power_savefile, multi_pos = multi_pos, start_multi_params =
     if keyword_set(pub) then begin
       ps_aspect = y_factor / x_factor
       
-      ;      if ps_aspect lt 1 then landscape = 1 else landscape = 0
-      ;      IF Keyword_Set(eps) THEN landscape = 0
-      ;      sizes = cgpswindow(LANDSCAPE=landscape, aspectRatio = ps_aspect, /sane_offsets)
-      ;
-      ;      cgps_open, plotfile, /font, encapsulated=eps, /nomatch, inches=sizes.inches, xsize=sizes.xsize, ysize=sizes.ysize, $
-      ;        xoffset=sizes.xoffset, yoffset=sizes.yoffset, landscape = landscape
+      if ps_aspect lt 1 then landscape = 1 else landscape = 0
+      IF Keyword_Set(eps) THEN landscape = 0
+      sizes = cgpswindow(LANDSCAPE=landscape, aspectRatio = ps_aspect, /sane_offsets)
       
-      cgps_open, plotfile, /font, encapsulated=eps, landscape=1, pagetype='letter'
-      
+      cgps_open, plotfile, /font, encapsulated=eps, /nomatch, inches=sizes.inches, xsize=sizes.xsize, ysize=sizes.ysize, $
+        xoffset=sizes.xoffset, yoffset=sizes.yoffset, landscape = landscape
+        
+    ;cgps_open, plotfile, /font, encapsulated=eps, landscape=1, pagetype='letter'
+        
     endif else begin
       while (ysize gt max_ysize) or (xsize gt max_xsize) do begin
         base_size = base_size - 100
@@ -266,8 +267,8 @@ pro kpower_1d_plots, power_savefile, multi_pos = multi_pos, start_multi_params =
     endif
     
     if n_elements(weights) eq 0 then begin
-    print, 'no weights in file ' + power_savefile[i] + ', using 1s'
-    weights = fltarr(n_elements(power)) + 1
+      print, 'no weights in file ' + power_savefile[i] + ', using 1s'
+      weights = fltarr(n_elements(power)) + 1
     endif
     
     sigma_val = sqrt(1./weights)
@@ -280,7 +281,7 @@ pro kpower_1d_plots, power_savefile, multi_pos = multi_pos, start_multi_params =
       if not keyword_set(plot_weights) then power = power * (hubble_param)^3d
       sigma_val = sigma_val * (hubble_param)^3d
     endif
-
+    
     log_bins = 1
     if n_elements(k_centers) ne 0 then k_log_diffs = (alog10(k_centers) - shift(alog10(k_centers), 1))[2:*] $
     else k_log_diffs = (alog10(k_edges) - shift(alog10(k_edges), 1))[2:*]
@@ -308,7 +309,7 @@ pro kpower_1d_plots, power_savefile, multi_pos = multi_pos, start_multi_params =
       wh_k_inrange = where(k_edges ge k_range[0] and k_edges[1:*] le k_range[1], n_k_plot)
       
       if n_k_plot eq 0 then message, 'No data in plot k range'
-
+      
       if n_k_plot ne n_k then begin
         power = power[wh_k_inrange]
         sigma_val = sigma_val[wh_k_inrange]
@@ -319,7 +320,7 @@ pro kpower_1d_plots, power_savefile, multi_pos = multi_pos, start_multi_params =
       endif
       
     endif
-
+    
     theory_delta2 = power * k_mid^3d / (2d*!pi^2d)
     theory_delta2_sigma = sigma_val * k_mid^3d / (2d*!pi^2d)
     
@@ -357,7 +358,7 @@ pro kpower_1d_plots, power_savefile, multi_pos = multi_pos, start_multi_params =
       
       wh_zero = where(power eq 0d, count_zero, complement = wh_non0, ncomplement = count_non0)
     endif
-
+    
     ;; extend arrays for plotting full histogram bins if plotting w/ psym=10
     if psyms[i] eq 10 then begin
       if min(k_edges gt 0) then k_mid = [min(k_edges), k_mid, max(k_edges)] $

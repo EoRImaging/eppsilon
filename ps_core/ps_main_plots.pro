@@ -962,12 +962,21 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
     void = getvar_savefile(savefiles_1d[k,0,0], names=varnames)
     ave_power_vals[k] = getvar_savefile(savefiles_1d[k,0,0], 'ave_power')
     wt_ave_power_vals[k] = getvar_savefile(savefiles_1d[k,0,0], 'wt_ave_power')
+<<<<<<< HEAD
     uv_pix_area[k] = getvar_savefile(savefiles_1d[k,0,0], 'uv_pix_area')
     uv_area[k] = getvar_savefile(savefiles_1d[k,0,0], 'uv_area')
     ave_weights_vals[k] = mean(getvar_savefile(savefiles_1d[k,0,0], 'ave_weights')/uv_pix_area[k])
     ave_weights_freq_vals[k,*] = (getvar_savefile(savefiles_1d[k,0,0], 'ave_weights')/uv_pix_area[k])[0,*]
     nbsl_lambda2[k] = file_struct_arr[0].n_vis[0]/uv_area[k]
     nbsl_lambda2_freq[k,*] = file_struct_arr[0].n_vis_freq[0,*]/uv_area[k]    
+=======
+    ave_weights_vals[k] = mean(getvar_savefile(savefiles_1d[k,0,0], 'ave_weights')/$
+      getvar_savefile(savefiles_1d[k,0,0], 'uv_pix_area'))
+    ave_weights_freq_vals[k,*] = (getvar_savefile(savefiles_1d[k,0,0], 'ave_weights')/$
+      getvar_savefile(savefiles_1d[k,0,0], 'uv_pix_area'))[0,*]
+    nbsl_lambda2[k] = mean(file_struct_arr[0].n_vis_freq[0,*])/getvar_savefile(savefiles_1d[k,0,0], 'uv_area')
+    nbsl_lambda2_freq[k,*] = file_struct_arr[0].n_vis_freq[0,*]/getvar_savefile(savefiles_1d[k,0,0], 'uv_area')
+>>>>>>> 5843d86427398f88a0ab33ae2b11ed13a316e778
     wt_ave_power_freq_vals[k,*] = (getvar_savefile(savefiles_1d[k,0,0], 'wt_ave_power_freq'))[0,*]
     ave_power_freq_vals[k,*] = (getvar_savefile(savefiles_1d[k,0,0], 'ave_power_freq'))[0,*]
   endfor
