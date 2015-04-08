@@ -718,7 +718,8 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, wei
     font = -1
     if n_elements(charsize_in) eq 0 then begin
       if n_elements(multi_pos) gt 0 then begin
-        charsize = 0.8d * (multi_size[0]/float(base_size_use))
+        ;charsize = 0.8d * (multi_size[0]/float(base_size_use))
+        charsize = base_size_use / 250.
       endif else charsize = 2
     endif else charsize = charsize_in
        
