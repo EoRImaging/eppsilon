@@ -1396,11 +1396,11 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
     undefine, sigma2_cube2, wh_sig2_0, count_sig2_0
     
     wt_ave_power_freq = fltarr(2, n_freq)
-    wt_ave_power_freq[0,*] = total(total(sum_weights1 * abs(data_cube1)^2., 2), 1)/total(total(sum_weights1, 2), 1)
-    wt_ave_power_freq[1,*] = total(total(sum_weights2 * abs(data_cube2)^2., 2), 1)/total(total(sum_weights2, 2), 1)
+    wt_ave_power_freq[0,*] = total(total(sum_weights1 * abs(data_cube1)^2., 2), 1)/total(total(sum_weights1, 2), 1) * (z_mpc_delta * n_freq)^2.
+    wt_ave_power_freq[1,*] = total(total(sum_weights2 * abs(data_cube2)^2., 2), 1)/total(total(sum_weights2, 2), 1) * (z_mpc_delta * n_freq)^2.
     ave_power_freq = fltarr(2, n_freq)
     for i=0, n_freq-1 do ave_power_freq[*, i] = [mean(abs((data_cube1[*,*,i])[where(sum_weights1[*,*,i] ne 0),*])^2.), $
-      mean(abs((data_cube2[*,*,i])[where(sum_weights2[*,*,i] ne 0),*])^2.)]
+      mean(abs((data_cube2[*,*,i])[where(sum_weights2[*,*,i] ne 0),*])^2.)] * (z_mpc_delta * n_freq)^2.
       
     sum_weights_net = sum_weights1 + sum_weights2
     wh_wt0 = where(sum_weights_net eq 0, count_wt0)
