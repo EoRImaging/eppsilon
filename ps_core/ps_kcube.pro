@@ -1326,16 +1326,16 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
     else if tag_exist(file_struct, 'beam_savefile') then window_int = window_int_beam else window_int = window_int_k
     ;if keyword_set(sim) then window_int = 2.39e9 + fltarr(nfiles)
     
-    if keyword_set(sim) then if stregex(file_struct.savefilebase, 'yy', /boolean) then begin
-    
-      ;volume_factor_2 = ((1./file_struct.kpix)^2. * z_mpc_mean^2.)*(z_mpc_delta * n_freq)
-      ;window_int = volume_factor*16
-    
-      ;conv_factor = conv_factor_adrian/(2.*!pi)
-      conv_factor = conv_factor / z_mpc_mean
-      window_int = bandwidth_factor ;bandwidth_factor = z_mpc_delta * n_freq
-      
-    endif
+;    if keyword_set(sim) then if stregex(file_struct.savefilebase, 'yy', /boolean) then begin
+;    
+;      ;volume_factor_2 = ((1./file_struct.kpix)^2. * z_mpc_mean^2.)*(z_mpc_delta * n_freq)
+;      ;window_int = volume_factor*16
+;    
+;      ;conv_factor = conv_factor_adrian/(2.*!pi)
+;      conv_factor = conv_factor / z_mpc_mean
+;      window_int = bandwidth_factor ;bandwidth_factor = z_mpc_delta * n_freq
+;      
+;    endif
     
   endelse
   
