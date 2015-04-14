@@ -346,6 +346,8 @@ pro uvf_slice_plot, slice_savefile, multi_pos = multi_pos, start_multi_params = 
       multi_pos_use = multi_pos[*,0]
     endif else multi_pos_use = multi_pos
     
+    base_size_use = mean(round([!d.x_size*multi_xlen/x_factor, !d.y_size*multi_ylen/y_factor]))
+    
     multi_aspect = multi_size[1]/float(multi_size[0])
     
     new_aspect = aspect_ratio/multi_aspect
@@ -420,7 +422,8 @@ pro uvf_slice_plot, slice_savefile, multi_pos = multi_pos, start_multi_params = 
     ythick = 3
     if n_elements(charsize_in) eq 0 then begin
       if n_elements(multi_pos) gt 0 then begin
-        charsize = 1.2d * (mean(multi_size)/10000.)
+        ;charsize = 0.8d * (multi_size[0]/float(base_size_use))
+        charsize = base_size_use / 250.
       endif else charsize = 2
     endif else charsize = charsize_in
     
