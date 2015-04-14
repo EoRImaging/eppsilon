@@ -223,7 +223,8 @@ pro ps_power, file_struct, refresh = refresh, kcube_refresh = kcube_refresh, dft
     
     save, file = file_struct.power_savefile, power_3d, noise_3d, noise_expval_3d, weights_3d, $
       kx_mpc, ky_mpc, kz_mpc, kperp_lambda_conv, delay_params, hubble_param, n_freq_contrib, freq_mask, $
-      vs_name, vs_mean, t_sys_meas, window_int, wt_meas_ave, wt_meas_min, ave_weights, wt_ave_power_freq, ave_power_freq, git_hashes
+      vs_name, vs_mean, t_sys_meas, window_int, git_hashes, $
+      wt_meas_ave, wt_meas_min, ave_weights, wt_ave_power_freq, ave_power_freq, wt_ave_power_uvf, ave_power_uvf
       
     write_ps_fits, file_struct.fits_power_savefile, power_3d, weights_3d, noise_expval_3d, noise_3d = noise_3d, $
       kx_mpc, ky_mpc, kz_mpc, kperp_lambda_conv, delay_params, hubble_param
@@ -292,8 +293,8 @@ pro ps_power, file_struct, refresh = refresh, kcube_refresh = kcube_refresh, dft
   kperp_plot_range = [min(kperp_edges[wh_good_kperp]), max(kperp_edges[wh_good_kperp+1])]
   
   save, file = savefile_2d, power, noise, weights, noise_expval, kperp_edges, kpar_edges, kperp_bin, kpar_bin, $
-    kperp_lambda_conv, delay_params, hubble_param, freq_mask, vs_name, vs_mean, t_sys_meas, window_int, $
-    wt_ave_power, ave_power, ave_weights, wt_ave_power_freq, ave_power_freq, uv_pix_area, uv_area, git_hashes
+    kperp_lambda_conv, delay_params, hubble_param, freq_mask, vs_name, vs_mean, t_sys_meas, window_int, git_hashes, $
+    wt_ave_power, ave_power, ave_weights, wt_ave_power_freq, ave_power_freq, wt_ave_power_uvf, ave_power_uvf, uv_pix_area, uv_area
     
   if not keyword_set(quiet) then begin
     kpower_2d_plots, savefile_2d, kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
@@ -404,8 +405,8 @@ pro ps_power, file_struct, refresh = refresh, kcube_refresh = kcube_refresh, dft
       kpar_range = kpar_range_use
       
       save, file = savefile_1d[j,i], power, noise, weights, noise_expval, k_edges, k_bin, hubble_param, freq_mask, $
-        kperp_range, kperp_range_lambda, kpar_range, window_int, $
-        wt_ave_power, ave_power, ave_weights, wt_ave_power_freq, ave_power_freq, uv_pix_area, uv_area, git_hashes
+        kperp_range, kperp_range_lambda, kpar_range, window_int, git_hashes, $
+        wt_ave_power, ave_power, ave_weights, wt_ave_power_freq, ave_power_freq, wt_ave_power_uvf, ave_power_uvf, uv_pix_area, uv_area
     endfor
   endfor
   
@@ -447,8 +448,8 @@ pro ps_power, file_struct, refresh = refresh, kcube_refresh = kcube_refresh, dft
     kpar_range = kpar_range_use
     
     save, file = savefile_kpar_power[j], power, noise, weights, noise_expval, k_edges, k_bin, hubble_param, freq_mask, $
-      kperp_range, kperp_range_lambda, kpar_range, window_int, $
-      wt_ave_power, ave_power, ave_weights, wt_ave_power_freq, ave_power_freq, uv_pix_area, uv_area, git_hashes
+      kperp_range, kperp_range_lambda, kpar_range, window_int, git_hashes, $
+      wt_ave_power, ave_power, ave_weights, wt_ave_power_freq, ave_power_freq, wt_ave_power_uvf, ave_power_uvf, uv_pix_area, uv_area
   endfor
   
   ;; bin just in kperp for diagnostic plot
@@ -484,8 +485,8 @@ pro ps_power, file_struct, refresh = refresh, kcube_refresh = kcube_refresh, dft
     kpar_range = kpar_range_use
     
     save, file = savefile_kperp_power[j], power, noise, weights, noise_expval, k_edges, k_bin, hubble_param, freq_mask, $
-      kperp_range, kperp_range_lambda, kpar_range, window_int, $
-      wt_ave_power, ave_power, ave_weights, wt_ave_power_freq, ave_power_freq, uv_pix_area, uv_area, git_hashes
+      kperp_range, kperp_range_lambda, kpar_range, window_int, git_hashes, $
+      wt_ave_power, ave_power, ave_weights, wt_ave_power_freq, ave_power_freq, wt_ave_power_uvf, ave_power_uvf, uv_pix_area, uv_area
   endfor
   
 end

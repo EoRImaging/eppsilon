@@ -1324,18 +1324,18 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
     
     if tag_exist(file_struct, 'beam_int') then window_int = window_int_beam_obs $
     else if tag_exist(file_struct, 'beam_savefile') then window_int = window_int_beam else window_int = window_int_k
-    ;if keyword_set(sim) then window_int = 2.39e9 + fltarr(nfiles)
+  ;if keyword_set(sim) then window_int = 2.39e9 + fltarr(nfiles)
     
-;    if keyword_set(sim) then if stregex(file_struct.savefilebase, 'yy', /boolean) then begin
-;    
-;      ;volume_factor_2 = ((1./file_struct.kpix)^2. * z_mpc_mean^2.)*(z_mpc_delta * n_freq)
-;      ;window_int = volume_factor*16
-;    
-;      ;conv_factor = conv_factor_adrian/(2.*!pi)
-;      conv_factor = conv_factor / z_mpc_mean
-;      window_int = bandwidth_factor ;bandwidth_factor = z_mpc_delta * n_freq
-;      
-;    endif
+  ;    if keyword_set(sim) then if stregex(file_struct.savefilebase, 'yy', /boolean) then begin
+  ;
+  ;      ;volume_factor_2 = ((1./file_struct.kpix)^2. * z_mpc_mean^2.)*(z_mpc_delta * n_freq)
+  ;      ;window_int = volume_factor*16
+  ;
+  ;      ;conv_factor = conv_factor_adrian/(2.*!pi)
+  ;      conv_factor = conv_factor / z_mpc_mean
+  ;      window_int = bandwidth_factor ;bandwidth_factor = z_mpc_delta * n_freq
+  ;
+  ;    endif
     
   endelse
   
@@ -1402,6 +1402,11 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
     for i=0, n_freq-1 do ave_power_freq[*, i] = [mean(abs((data_cube1[*,*,i])[where(sum_weights1[*,*,i] ne 0),*])^2.), $
       mean(abs((data_cube2[*,*,i])[where(sum_weights2[*,*,i] ne 0),*])^2.)] * (z_mpc_delta * n_freq)^2.
       
+    wt_ave_power_uvf = [total(sum_weights1 * abs(data_cube1)^2.)/total(sum_weights1), $
+      total(sum_weights2 * abs(data_cube2)^2.)/total(sum_weights2)] * (z_mpc_delta * n_freq)^2.
+    ave_power_uvf = [mean(abs(data_cube1[where(sum_weights1 ne 0),*])^2.), $
+      mean(abs(data_cube2[where(sum_weights2 ne 0),*])^2.)] * (z_mpc_delta * n_freq)^2.
+      
     sum_weights_net = sum_weights1 + sum_weights2
     wh_wt0 = where(sum_weights_net eq 0, count_wt0)
     
@@ -1424,6 +1429,9 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
     wt_ave_power_freq = total(total(sum_weights1 * abs(data_cube1)^2., 2), 1)/total(total(sum_weights1, 2), 1)
     ave_power_freq = fltarr(n_freq)
     for i=0, n_freq-1 do ave_power_freq[i] = mean(abs((data_cube1[*,*,i])[where(sum_weights1[*,*,i] ne 0),*])^2.)
+    
+    wt_ave_power_uvf = total(sum_weights1 * abs(data_cube1)^2.)/total(sum_weights)
+    ave_power_uvf = mean(abs(data_cube1[where(sum_weights1 ne 0),*])^2.)
     undefine, sum_weights1
     
     data_sum = temporary(data_cube1)
@@ -1573,7 +1581,8 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
     
     save, file = file_struct.kcube_savefile, data_sum_1, data_sum_2, data_diff_1, data_diff_2, sigma2_1, sigma2_2, n_val, $
       kx_mpc, ky_mpc, kz_mpc, kperp_lambda_conv, delay_params, hubble_param, n_freq_contrib, freq_mask, $
-      vs_name, vs_mean, t_sys_meas, window_int, wt_meas_ave, wt_meas_min, ave_weights, wt_ave_power_freq, ave_power_freq, git_hashes
+      vs_name, vs_mean, t_sys_meas, window_int, git_hashes, $
+      wt_meas_ave, wt_meas_min, ave_weights, wt_ave_power_freq, ave_power_freq, wt_ave_power_uvf, ave_power_uvf
       
   endif else begin
     ;; these an and bn calculations don't match the standard
@@ -1718,8 +1727,8 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
     
     save, file = file_struct.kcube_savefile, data_sum_1, data_sum_2, data_diff_1, data_diff_2, sigma2_1, sigma2_2, $
       kx_mpc, ky_mpc, kz_mpc, kperp_lambda_conv, delay_params, hubble_param, n_freq_contrib, freq_mask, $
-      vs_name, vs_mean, t_sys_meas, window_int, $
-      wt_meas_ave, wt_meas_min, ave_weights, wt_ave_power_freq, ave_power_freq, git_hashes
+      vs_name, vs_mean, t_sys_meas, window_int, git_hashes, $
+      wt_meas_ave, wt_meas_min, ave_weights, wt_ave_power_freq, ave_power_freq, wt_ave_power_uvf, ave_power_uvf
   endelse
   
 end

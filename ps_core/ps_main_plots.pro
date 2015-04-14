@@ -20,7 +20,6 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
     
   if keyword_set(refresh_dft) then refresh_beam = 1
   if keyword_set(refresh_beam) then refresh_ps = 1
-  if keyword_set(refresh_ps) then refresh_beam = 1
   if keyword_set(refresh_ps) then refresh_binning = 1
   
   ;; default to making standard plot set if plot_slices isn't set
@@ -84,6 +83,8 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
   endelse
   time1 = systime(1)
   print, 'file setup time: ' + number_formatter(time1-time0)
+  
+  if not tag_exist(file_struct_arr, 'beam_int') and keyword_set(refresh_ps) then refresh_beam = 1
   
   nfiles = file_struct_arr[0].nfiles
   
@@ -958,6 +959,8 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
   nbsl_lambda2_freq = fltarr(n_cubes, n_freq)
   wt_ave_power_freq_vals = fltarr(n_cubes, n_freq)
   ave_power_freq_vals = fltarr(n_cubes, n_freq)
+  ave_power_uvf_vals = fltarr(n_cubes)
+  wt_ave_power_uvf_vals = fltarr(n_cubes)
   for k=0, n_cubes-1 do begin
     void = getvar_savefile(savefiles_1d[k,0,0], names=varnames)
     ave_power_vals[k] = getvar_savefile(savefiles_1d[k,0,0], 'ave_power')
@@ -967,13 +970,16 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
     ave_weights_vals[k] = mean(getvar_savefile(savefiles_1d[k,0,0], 'ave_weights')/uv_pix_area[k])
     ave_weights_freq_vals[k,*] = (getvar_savefile(savefiles_1d[k,0,0], 'ave_weights')/uv_pix_area[k])[0,*]
     nbsl_lambda2[k] = file_struct_arr[0].n_vis[0]/uv_area[k]
-    nbsl_lambda2_freq[k,*] = file_struct_arr[0].n_vis_freq[0,*]/uv_area[k]    
+    nbsl_lambda2_freq[k,*] = file_struct_arr[0].n_vis_freq[0,*]/uv_area[k]
     wt_ave_power_freq_vals[k,*] = (getvar_savefile(savefiles_1d[k,0,0], 'wt_ave_power_freq'))[0,*]
     ave_power_freq_vals[k,*] = (getvar_savefile(savefiles_1d[k,0,0], 'ave_power_freq'))[0,*]
+    ave_power_uvf_vals = getvar_savefile(savefiles_1d[k,0,0], 'ave_power_uvf')
+    wt_ave_power_uvf_vals = getvar_savefile(savefiles_1d[k,0,0], 'wt_ave_power_uvf')
   endfor
   cube_power_info = {ave_power:ave_power_vals, wt_ave_power:wt_ave_power_vals, $
     ave_weights:ave_weights_vals, ave_weights_freq:ave_weights_freq_vals, wt_ave_power_freq:wt_ave_power_freq_vals, $
-    ave_power_freq:ave_power_freq_vals, uv_pix_area:uv_pix_area, uv_area:uv_area, nbsl_lambda2:nbsl_lambda2, nbsl_lambda2_freq:nbsl_lambda2_freq}
+    ave_power_freq:ave_power_freq_vals, wt_ave_power_uvf:wt_ave_power_uvf_vals, ave_power_uvf:ave_power_uvf_vals, $
+    uv_pix_area:uv_pix_area, uv_area:uv_area, nbsl_lambda2:nbsl_lambda2, nbsl_lambda2_freq:nbsl_lambda2_freq}
     
   if keyword_set(plot_eor_1d) then begin
     case strlowcase(!version.os_family) OF
