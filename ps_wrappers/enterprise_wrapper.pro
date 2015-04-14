@@ -100,12 +100,16 @@ pro enterprise_wrapper, folder_name, obs_name, data_subdirs=data_subdirs, rts = 
       save_paths = save_path, plot_path = save_path, refresh_info = refresh_info)
       
     if obs_info.info_files[0] ne '' then datafile = obs_info.info_files[0] else datafile = obs_info.cube_files.(0)
-    plot_filebase = obs_info.fhd_types[0] + '_' + obs_info.obs_names[0]
+    if keyword_set(uvf_input) then plot_filebase = obs_info.fhd_types[0] + '_uvf'$
+    else  plot_filebase = obs_info.fhd_types[0]
+    if stregex(obs_info.fhd_types[0], obs_info.obs_names[0], /boolean) eq 0 then $
+      plot_filebase = plot_filebase + '_' + obs_info.obs_names[0]
+
     note = obs_info.fhd_types[0]
+    if keyword_set(uvf_input) then note = note + '_uvf'
     
     if tag_exist(obs_info, 'beam_files') then beamfiles = obs_info.beam_files
     
-    note = obs_info.fhd_types
     if not file_test(save_path, /directory) then file_mkdir, save_path
     
     plot_path = save_path + 'plots/'
