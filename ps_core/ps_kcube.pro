@@ -185,12 +185,12 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
         test_beam = file_test(file_struct.beam_savefile[i]) * ( 1- file_test(file_struct.beam_savefile[i], /zero_length)) $
       else test_beam = 1
       
-      if test_uvf eq 1 and n_elements(freq_mask) ne 0 then begin
+      if test_uvf eq 1 and n_elements(freq_flags) ne 0 then begin
         old_freq_mask = getvar_savefile(file_struct.uvf_savefile[i], 'freq_mask')
         if total(abs(old_freq_mask - freq_mask)) ne 0 then test_uvf = 0
       endif
       
-      if test_wt_uvf eq 1 and n_elements(freq_mask) ne 0 then begin
+      if test_wt_uvf eq 1 and n_elements(freq_flags) ne 0 then begin
         old_freq_mask = getvar_savefile(file_struct.uvf_savefile[i], 'freq_mask')
         if total(abs(old_freq_mask - freq_mask)) ne 0 then test_uvf = 0
       endif
@@ -209,8 +209,15 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
           if n_elements(freq_flags) ne 0 then data_cube = data_cube * rebin(reform(freq_mask, 1, 1, n_elements(file_struct.frequencies)), size(data_cube, /dimension), /sample)
           if n_elements(freq_ch_range) ne 0 then data_cube = data_cube[*, *, min(freq_ch_range):max(freq_ch_range)]
           
-          if keyword_set(dft_ian) then save, file = file_struct.uvf_savefile[i], u_lambda_vals, v_lambda_vals, data_cube, freq_mask, uvf_git_hash $
-          else save, file = file_struct.uvf_savefile[i], kx_rad_vals, ky_rad_vals, data_cube, freq_mask, uvf_git_hash
+          if n_elements(freq_flags) gt 0 then begin
+            if keyword_set(dft_ian) then save, file = file_struct.uvf_savefile[i], u_lambda_vals, v_lambda_vals, data_cube, $
+              freq_mask, uvf_git_hash $
+            else save, file = file_struct.uvf_savefile[i], kx_rad_vals, ky_rad_vals, data_cube, freq_mask, uvf_git_hash
+          endif else begin
+            if keyword_set(dft_ian) then save, file = file_struct.uvf_savefile[i], u_lambda_vals, v_lambda_vals, data_cube, $
+              uvf_git_hash $
+            else save, file = file_struct.uvf_savefile[i], kx_rad_vals, ky_rad_vals, data_cube, uvf_git_hash
+          endelse
           undefine, data_cube
           
           test_uvf = 1
@@ -238,9 +245,15 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
             variance_cube = variance_cube[*, *, min(freq_ch_range):max(freq_ch_range)]
           endif
           
-          if keyword_set(dft_ian) then $
-            save, file = file_struct.uvf_weight_savefile[i], u_lambda_vals, v_lambda_vals, weights_cube, variance_cube, freq_mask, uvf_wt_git_hash else $
-            save, file = file_struct.uvf_weight_savefile[i], kx_rad_vals, ky_rad_vals, weights_cube, variance_cube, freq_mask, uvf_wt_git_hash
+          if n_elements(freq_flags) gt 0 then begin
+            if keyword_set(dft_ian) then save, file = file_struct.uvf_weight_savefile[i], u_lambda_vals, v_lambda_vals, weights_cube, $
+              variance_cube, freq_mask, uvf_wt_git_hash $
+            else save, file = file_struct.uvf_weight_savefile[i], kx_rad_vals, ky_rad_vals, weights_cube, variance_cube, freq_mask, uvf_wt_git_hash
+          endif else begin
+            if keyword_set(dft_ian) then save, file = file_struct.uvf_weight_savefile[i], u_lambda_vals, v_lambda_vals, $
+              weights_cube, variance_cube, uvf_wt_git_hash $
+            else save, file = file_struct.uvf_weight_savefile[i], kx_rad_vals, ky_rad_vals, weights_cube, variance_cube, uvf_wt_git_hash
+          endelse
           undefine, weights_cube, variance_cube
           
           test_wt_uvf = 1
@@ -260,7 +273,7 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
           kx_rad_vals = getvar_savefile(input_uvf_files[i,1], 'kx_rad_vals')
           ky_rad_vals = getvar_savefile(input_uvf_files[i,1], 'ky_rad_vals')
           
-          if n_elements(freq_mask) ne 0 then begin
+          if n_elements(freq_flags) ne 0 then begin
             dirty_freq_mask = getvar_savefile(input_uvf_files[i,0], 'freq_mask')
             model_freq_mask = getvar_savefile(input_uvf_files[i,1], 'freq_mask')
             if total(abs(dirty_freq_mask - freq_mask)) ne 0 then message, 'freq_mask of dirty file does not match current freq_mask'
@@ -276,8 +289,14 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
           if uvf_git_hash_dirty ne uvf_git_hash then print, 'git hashes for dirty and model cubes does not match'
           
           data_cube = temporary(dirty_cube) - temporary(model_cube)
-          if keyword_set(dft_ian) then save, file = file_struct.uvf_savefile[i], u_lambda_vals, v_lambda_vals, data_cube, freq_mask, uvf_git_hash $
-          else save, file = file_struct.uvf_savefile[i], kx_rad_vals, ky_rad_vals, data_cube, freq_mask, uvf_git_hash
+          
+          if n_elements(freq_flags) gt 0 then begin
+            if keyword_set(dft_ian) then save, file = file_struct.uvf_savefile[i], u_lambda_vals, v_lambda_vals, data_cube, freq_mask, uvf_git_hash $
+            else save, file = file_struct.uvf_savefile[i], kx_rad_vals, ky_rad_vals, data_cube, freq_mask, uvf_git_hash
+          endif else begin
+            if keyword_set(dft_ian) then save, file = file_struct.uvf_savefile[i], u_lambda_vals, v_lambda_vals, data_cube, uvf_git_hash $
+            else save, file = file_struct.uvf_savefile[i], kx_rad_vals, ky_rad_vals, data_cube, uvf_git_hash
+          endelse
           undefine, data_cube
         endif else begin
         
@@ -568,8 +587,13 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
             
             git, repo_path = ps_repository_dir(), result=uvf_git_hash
             
-            if keyword_set(dft_ian) then save, file = file_struct.uvf_savefile[i], u_lambda_vals, v_lambda_vals, data_cube, freq_mask, uvf_git_hash $
-            else save, file = file_struct.uvf_savefile[i], kx_rad_vals, ky_rad_vals, data_cube, freq_mask, uvf_git_hash
+            if n_elements(freq_flags) then begin
+              if keyword_set(dft_ian) then save, file = file_struct.uvf_savefile[i], u_lambda_vals, v_lambda_vals, data_cube, freq_mask, uvf_git_hash $
+              else save, file = file_struct.uvf_savefile[i], kx_rad_vals, ky_rad_vals, data_cube, freq_mask, uvf_git_hash
+            endif else begin
+              if keyword_set(dft_ian) then save, file = file_struct.uvf_savefile[i], u_lambda_vals, v_lambda_vals, data_cube, uvf_git_hash $
+              else save, file = file_struct.uvf_savefile[i], kx_rad_vals, ky_rad_vals, data_cube, uvf_git_hash
+            endelse
             undefine, data_cube
           endif
           
@@ -631,9 +655,15 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
             
             git, repo_path = ps_repository_dir(), result=uvf_wt_git_hash
             
-            if keyword_set(dft_ian) then $
-              save, file = file_struct.uvf_weight_savefile[i], u_lambda_vals, v_lambda_vals, weights_cube, variance_cube, freq_mask, uvf_wt_git_hash else $
-              save, file = file_struct.uvf_weight_savefile[i], kx_rad_vals, ky_rad_vals, weights_cube, variance_cube, freq_mask, uvf_wt_git_hash
+            if n_elements(freq_flags) then begin
+              if keyword_set(dft_ian) then save, file = file_struct.uvf_weight_savefile[i], u_lambda_vals, v_lambda_vals, $
+                weights_cube, variance_cube, freq_mask, uvf_wt_git_hash $
+              else save, file = file_struct.uvf_weight_savefile[i], kx_rad_vals, ky_rad_vals, weights_cube, variance_cube, freq_mask, uvf_wt_git_hash
+            endif else begin
+              if keyword_set(dft_ian) then save, file = file_struct.uvf_weight_savefile[i], u_lambda_vals, v_lambda_vals, $
+                weights_cube, variance_cube, uvf_wt_git_hash $
+              else save, file = file_struct.uvf_weight_savefile[i], kx_rad_vals, ky_rad_vals, weights_cube, variance_cube, uvf_wt_git_hash
+            endelse
             undefine, new_pix_vec, weights_cube, variance_cube
           endif
         endelse
@@ -1024,6 +1054,7 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
         bandwidth_factor = z_mpc_delta * n_freq
         if nfiles eq 2 then bandwidth_factor = fltarr(2) + bandwidth_factor
         
+        undefine, beam1, beam2
       endif else beam_git_hashes = ''
       
       if tag_exist(file_struct, 'beam_int') then begin
@@ -1199,8 +1230,8 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
       
     uf_weight_slice = uvf_slice(weights_cube, kx_mpc, ky_mpc, frequencies, kperp_lambda_conv, delay_params, hubble_param, slice_axis = 1, $
       slice_inds = uf_slice_ind, slice_savefile = file_struct.uf_weight_savefile[i])
-      
-      
+    undefine, uf_slice, uf_weight_slice
+    
     vf_tot = total(total(abs(weights_cube),3),2)
     wh_vf_n0 = where(vf_tot gt 0, count_vf_n0)
     if count_vf_n0 eq 0 then stop
@@ -1214,6 +1245,7 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
       slice_inds = vf_slice_ind, slice_savefile = file_struct.vf_weight_savefile[i])
       
     if max(abs(vf_slice)) eq 0 then stop
+    undefine, vf_slice, vf_weight_slice
     
     uv_tot = total(total(abs(weights_cube),2),1)
     wh_uv_n0 = where(uv_tot gt 0, count_uv_n0)
@@ -1228,7 +1260,9 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
       slice_inds = uv_slice_ind, slice_savefile = file_struct.uv_weight_savefile[i])
       
     if max(abs(uv_slice)) eq 0 then stop
+    undefine, uv_slice, uv_weight_slice
     
+    undefine, data_cube, weights_cube
   endfor
   
   if healpix or not keyword_set(uvf_input) then begin
@@ -1291,13 +1325,17 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
     if i eq 0 then data_cube = data_cube1 else data_cube = data_cube2
     uf_slice = uvf_slice(data_cube, kx_mpc, ky_mpc, frequencies, kperp_lambda_conv, delay_params, hubble_param, slice_axis = 1, $
       slice_inds = uf_slice_ind, slice_savefile = file_struct.uf_savefile[i])
-      
+    undefine, uf_slice
+    
     vf_slice = uvf_slice(data_cube, kx_mpc, ky_mpc, frequencies, kperp_lambda_conv, delay_params, hubble_param, slice_axis = 0, $
       slice_inds = vf_slice_ind, slice_savefile = file_struct.vf_savefile[i])
-      
+    undefine, vf_slice
+    
     uv_slice = uvf_slice(data_cube, kx_mpc, ky_mpc, frequencies, kperp_lambda_conv, delay_params, hubble_param, slice_axis = 2, $
       slice_inds = uv_slice_ind, slice_savefile = file_struct.uv_savefile[i])
-      
+    undefine, uv_slice
+    
+    undefine, data_cube
   endfor
   
   if healpix or not keyword_set(uvf_input) then begin
@@ -1386,12 +1424,12 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
   if nfiles eq 2 then begin
     ;; Now construct added & subtracted cubes (weighted by inverse variance) & new variances
     sum_weights1 = 1./sigma2_cube1
-    wh_sig1_0 = where(sigma2_cube1 eq 0, count_sig1_0)
+    wh_sig1_0 = where(sigma2_cube1 eq 0, count_sig1_0, complement = wh_sig1_n0)
     if count_sig1_0 ne 0 then sum_weights1[wh_sig1_0] = 0
     undefine, sigma2_cube1, wh_sig1_0, count_sig1_0
     
     sum_weights2 = 1./sigma2_cube2
-    wh_sig2_0 = where(sigma2_cube2 eq 0, count_sig2_0)
+    wh_sig2_0 = where(sigma2_cube2 eq 0, count_sig2_0, complement = wh_sig2_n0)
     if count_sig2_0 ne 0 then sum_weights2[wh_sig2_0] = 0
     undefine, sigma2_cube2, wh_sig2_0, count_sig2_0
     
@@ -1404,9 +1442,11 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
       
     wt_ave_power_uvf = [total(sum_weights1 * abs(data_cube1)^2.)/total(sum_weights1), $
       total(sum_weights2 * abs(data_cube2)^2.)/total(sum_weights2)] * (z_mpc_delta * n_freq)^2.
-    ave_power_uvf = [mean(abs(data_cube1[where(sum_weights1 ne 0),*])^2.), $
-      mean(abs(data_cube2[where(sum_weights2 ne 0),*])^2.)] * (z_mpc_delta * n_freq)^2.
-      
+    ave_power_uvf = fltarr(2)
+    ave_power_uvf[0] = mean(abs(data_cube1[wh_sig1_n0])^2.) * (z_mpc_delta * n_freq)^2.
+    ave_power_uvf[1] = mean(abs(data_cube2[wh_sig2_n0])^2.) * (z_mpc_delta * n_freq)^2.
+    undefine, wh_sig1_n0, wh_sig2_n0
+    
     sum_weights_net = sum_weights1 + sum_weights2
     wh_wt0 = where(sum_weights_net eq 0, count_wt0)
     
@@ -1423,7 +1463,7 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
     
   endif else begin
     sum_weights1 = 1./sigma2_cube1
-    wh_sig1_0 = where(sigma2_cube1 eq 0, count_sig1_0)
+    wh_sig1_0 = where(sigma2_cube1 eq 0, count_sig1_0, complement = wh_sig1_n0)
     if count_sig1_0 ne 0 then sum_weights1[wh_sig1_0] = 0
     
     wt_ave_power_freq = total(total(sum_weights1 * abs(data_cube1)^2., 2), 1)/total(total(sum_weights1, 2), 1)
@@ -1431,8 +1471,8 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
     for i=0, n_freq-1 do ave_power_freq[i] = mean(abs((data_cube1[*,*,i])[where(sum_weights1[*,*,i] ne 0),*])^2.)
     
     wt_ave_power_uvf = total(sum_weights1 * abs(data_cube1)^2.)/total(sum_weights)
-    ave_power_uvf = mean(abs(data_cube1[where(sum_weights1 ne 0),*])^2.)
-    undefine, sum_weights1
+    ave_power_uvf = mean(abs(data_cube1[wh_sig1_n0])^2.)
+    undefine, sum_weights1, wh_sig1_n0
     
     data_sum = temporary(data_cube1)
     sum_sigma2 = temporary(sigma2_cube1)
@@ -1452,13 +1492,15 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
   if nfiles eq 2 then $
     uf_slice = uvf_slice(data_diff, kx_mpc, ky_mpc, frequencies, kperp_lambda_conv, delay_params, hubble_param, slice_axis = 1, $
     slice_inds = uf_slice_ind, slice_savefile = file_struct.uf_diff_savefile)
-    
+  undefine, uf_slice
+  
   vf_slice = uvf_slice(data_sum, kx_mpc, ky_mpc, frequencies, kperp_lambda_conv, delay_params, hubble_param, slice_axis = 0, $
     slice_inds = vf_slice_ind, slice_savefile = file_struct.vf_sum_savefile)
   if nfiles eq 2 then $
     vf_slice2 = uvf_slice(data_diff, kx_mpc, ky_mpc, frequencies, kperp_lambda_conv, delay_params, hubble_param, slice_axis = 0, $
     slice_inds = vf_slice_ind, slice_savefile = file_struct.vf_diff_savefile) $
   else vf_slice2 = vf_slice
+  undefine, vf_slice
   
   uv_slice = uvf_slice(data_sum, kx_mpc, ky_mpc, frequencies, kperp_lambda_conv, delay_params, hubble_param, slice_axis = 2, $
     slice_inds = uv_slice_ind, slice_savefile = file_struct.uv_sum_savefile)
@@ -1466,6 +1508,7 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
     uv_slice2 = uvf_slice(data_diff, kx_mpc, ky_mpc, frequencies, kperp_lambda_conv, delay_params, hubble_param, slice_axis = 2, $
     slice_inds = uv_slice_ind, slice_savefile = file_struct.uv_diff_savefile) $
   else uv_slice2 = uv_slice
+  undefine, uv_slice
   
   
   ;; apply spectral windowing function if desired
@@ -1579,11 +1622,18 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
     git, repo_path = ps_repository_dir(), result=kcube_git_hash
     git_hashes = {uvf:uvf_git_hashes, uvf_wt:uvf_wt_git_hashes, beam:beam_git_hashes, kcube:kcube_git_hash}
     
-    save, file = file_struct.kcube_savefile, data_sum_1, data_sum_2, data_diff_1, data_diff_2, sigma2_1, sigma2_2, n_val, $
-      kx_mpc, ky_mpc, kz_mpc, kperp_lambda_conv, delay_params, hubble_param, n_freq_contrib, freq_mask, $
-      vs_name, vs_mean, t_sys_meas, window_int, git_hashes, $
-      wt_meas_ave, wt_meas_min, ave_weights, wt_ave_power_freq, ave_power_freq, wt_ave_power_uvf, ave_power_uvf
-      
+    if n_elements(freq_flags) gt 0 then begin
+      save, file = file_struct.kcube_savefile, data_sum_1, data_sum_2, data_diff_1, data_diff_2, sigma2_1, sigma2_2, n_val, $
+        kx_mpc, ky_mpc, kz_mpc, kperp_lambda_conv, delay_params, hubble_param, n_freq_contrib, freq_mask, $
+        vs_name, vs_mean, t_sys_meas, window_int, git_hashes, $
+        wt_meas_ave, wt_meas_min, ave_weights, wt_ave_power_freq, ave_power_freq, wt_ave_power_uvf, ave_power_uvf
+    endif else begin
+      save, file = file_struct.kcube_savefile, data_sum_1, data_sum_2, data_diff_1, data_diff_2, sigma2_1, sigma2_2, n_val, $
+        kx_mpc, ky_mpc, kz_mpc, kperp_lambda_conv, delay_params, hubble_param, n_freq_contrib, $
+        vs_name, vs_mean, t_sys_meas, window_int, git_hashes, $
+        wt_meas_ave, wt_meas_min, ave_weights, wt_ave_power_freq, ave_power_freq, wt_ave_power_uvf, ave_power_uvf
+    endelse
+    
   endif else begin
     ;; these an and bn calculations don't match the standard
     ;; convention (they down by a factor of 2) but they make more sense
@@ -1725,10 +1775,17 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
     git, repo_path = ps_repository_dir(), result=kcube_git_hash
     git_hashes = {uvf:uvf_git_hashes, uvf_wt:uvf_wt_git_hashes, beam:beam_git_hashes, kcube:kcube_git_hash}
     
-    save, file = file_struct.kcube_savefile, data_sum_1, data_sum_2, data_diff_1, data_diff_2, sigma2_1, sigma2_2, $
-      kx_mpc, ky_mpc, kz_mpc, kperp_lambda_conv, delay_params, hubble_param, n_freq_contrib, freq_mask, $
-      vs_name, vs_mean, t_sys_meas, window_int, git_hashes, $
-      wt_meas_ave, wt_meas_min, ave_weights, wt_ave_power_freq, ave_power_freq, wt_ave_power_uvf, ave_power_uvf
+    if n_elements(freq_flags) gt 0 then begin
+      save, file = file_struct.kcube_savefile, data_sum_1, data_sum_2, data_diff_1, data_diff_2, sigma2_1, sigma2_2, $
+        kx_mpc, ky_mpc, kz_mpc, kperp_lambda_conv, delay_params, hubble_param, n_freq_contrib, freq_mask, $
+        vs_name, vs_mean, t_sys_meas, window_int, git_hashes, $
+        wt_meas_ave, wt_meas_min, ave_weights, wt_ave_power_freq, ave_power_freq, wt_ave_power_uvf, ave_power_uvf
+    endif else begin
+      save, file = file_struct.kcube_savefile, data_sum_1, data_sum_2, data_diff_1, data_diff_2, sigma2_1, sigma2_2, $
+        kx_mpc, ky_mpc, kz_mpc, kperp_lambda_conv, delay_params, hubble_param, n_freq_contrib, $
+        vs_name, vs_mean, t_sys_meas, window_int, git_hashes, $
+        wt_meas_ave, wt_meas_min, ave_weights, wt_ave_power_freq, ave_power_freq, wt_ave_power_uvf, ave_power_uvf
+    endelse
   endelse
   
 end
