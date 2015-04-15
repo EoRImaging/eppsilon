@@ -328,10 +328,10 @@ pro ps_power, file_struct, refresh = refresh, kcube_refresh = kcube_refresh, dft
     
     if n_elements(freq_flags) ne 0 then begin
       save, file = savefile_k0, power, noise, weights, noise_expval, k_edges, k_bin, hubble_param, freq_mask, $
-        kperp_range, kpar_range, window_int, wt_ave_power, ave_power, ave_weights, uv_pix_area, uv_area, git_hashes
+        window_int, wt_ave_power, ave_power, ave_weights, uv_pix_area, uv_area, git_hashes
     endif else begin
       save, file = savefile_k0, power, noise, weights, noise_expval, k_edges, k_bin, hubble_param, $
-        kperp_range, kpar_range, window_int, wt_ave_power, ave_power, ave_weights, uv_pix_area, uv_area, git_hashes
+        window_int, wt_ave_power, ave_power, ave_weights, uv_pix_area, uv_area, git_hashes
     endelse
   endif
   
