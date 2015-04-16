@@ -483,6 +483,8 @@ function rts_file_setup, filename, pol_inc, save_path = save_path, refresh_info 
     
     if n_elements(vis_noise) gt 0 then metadata_struct = create_struct(metadata_struct, 'vis_noise', vis_noise)
     
+    if n_elements(info_file) eq 0 then info_file = froot + general_filebase + '_info.idlsave'
+    
     save, filename = info_file, metadata_struct, pol_inc
   endif
   
