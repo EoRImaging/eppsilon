@@ -9,7 +9,7 @@ pro enterprise_wrapper, folder_name, obs_name, data_subdirs=data_subdirs, rts = 
     png = png, eps = eps, pdf = pdf, plot_stdset = plot_stdset, $
     plot_slices = plot_slices, slice_type = slice_type, max_uv_lambda = max_uv_lambda, $
     kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, set_data_ranges = set_data_ranges,$
-    cube_power_info = cube_power_info
+    cube_power_info = cube_power_info, ps_foldername = ps_foldername
     
   ;; The only required input is the datafile name (including the full path)
     
@@ -52,8 +52,9 @@ pro enterprise_wrapper, folder_name, obs_name, data_subdirs=data_subdirs, rts = 
     
     if folder_test eq 0 then message, 'folder not found'
     
-    save_path = folder_name + '/ps/'
-    obs_info = ps_filenames(folder_name, obs_name, rts = rts, sim = sim, casa = casa, $
+    if n_elements(ps_foldername) eq 0 then ps_foldername = 'ps/'
+    save_path = folder_name + '/' + ps_foldername
+        obs_info = ps_filenames(folder_name, obs_name, rts = rts, sim = sim, casa = casa, $
       save_paths = save_path, plot_path = save_path, refresh_info = refresh_info, no_wtvar_rts = no_wtvar_rts)
       
     if obs_info.info_files[0] ne '' then datafile = obs_info.info_files[0] else $
@@ -93,7 +94,8 @@ pro enterprise_wrapper, folder_name, obs_name, data_subdirs=data_subdirs, rts = 
     
     if folder_test eq 0 then message, 'folder not found'
     
-    save_path = folder_name + '/ps/'
+    if n_elements(ps_foldername) eq 0 then ps_foldername = 'ps/'
+    save_path = folder_name + '/' + ps_foldername
     if keyword_set(uvf_input) then data_subdirs = '' else data_subdirs = 'Healpix/'
     obs_info = ps_filenames(folder_name, obs_name, exact_obsnames = exact_obsnames, rts = rts, sim = sim, $
       uvf_input = uvf_input, casa = casa, data_subdirs = data_subdirs, $
