@@ -1,5 +1,5 @@
 pro cube_images, folder_names, obs_info, nvis_norm = nvis_norm, pols = pols, cube_types = cube_types, evenodd = evenodd, $
-    png = png, eps = eps, pdf = pdf, slice_range = slice_range, sr2 = sr2, $
+    rts = rts, png = png, eps = eps, pdf = pdf, slice_range = slice_range, sr2 = sr2, $
     ratio = ratio, diff_ratio = diff_ratio, diff_frac = diff_frac, $
     log = log, data_range = data_range, color_profile = color_profile, sym_color = sym_color, $
     window_num = window_num, plot_as_map = plot_as_map
@@ -95,10 +95,20 @@ pro cube_images, folder_names, obs_info, nvis_norm = nvis_norm, pols = pols, cub
     else cube_varnames = [cube_varnames, cube_types[max_type] + '_' + pols[max_pol] + '_cube']
   endelse
   
-  if obs_info.info_files[0] ne '' then file_struct_arr1 = fhd_file_setup(obs_info.info_files[0], pols[0])
-  if n_elements(obs_info.info_files) eq 2 then if obs_info.info_files[1] ne '' then $
-    file_struct_arr2 = fhd_file_setup(obs_info.info_files[1], pols[max_pol])
-    
+  if obs_info.info_files[0] ne '' then begin
+    if keyword_set(rts) then file_struct_arr1 = rts_file_setup(obs_info.info_files[0], pols[0]) $
+    else $
+      if keyword_set(casa) then file_struct_arr1 = casa_file_setup(obs_info.info_files[0], pols[0]) $
+    else file_struct_arr1 = fhd_file_setup(obs_info.info_files[0], pols[0])
+  endif
+  
+  if n_elements(obs_info.info_files) eq 2 then if obs_info.info_files[1] ne '' then begin
+    if keyword_set(rts) then file_struct_arr1 = rts_file_setup(obs_info.info_files[1], pols[max_pol]) $
+    else $
+      if keyword_set(casa) then file_struct_arr1 = casa_file_setup(obs_info.info_files[1], pols[max_pol]) $
+    else file_struct_arr1 = fhd_file_setup(obs_info.info_files[1], pols[max_pol])
+  endif
+  
   if n_elements(file_struct_arr1) ne 0 then begin
     if cube_types[0] eq 'weights' or cube_types[0] eq 'variance' then wh_match = where(file_struct_arr1.pol eq pols[0], count_match) $
     else wh_match = where(file_struct_arr1.pol eq pols[0] and file_struct_arr1.type eq cube_types[0], count_match)
