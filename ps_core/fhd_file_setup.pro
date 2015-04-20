@@ -5,7 +5,8 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
     uvf_savefilebase = uvf_savefilebase_in, savefilebase = savefilebase_in, $
     freq_ch_range = freq_ch_range, freq_flags = freq_flags, freq_flag_name = freq_flag_name, $
     spec_window_type = spec_window_type, delta_uv_lambda = delta_uv_lambda, max_uv_lambda = max_uv_lambda, $
-    sim = sim, std_power = std_power, no_wtd_avg = no_wtd_avg, refresh_info = refresh_info
+    sim = sim, std_power = std_power, inverse_covar_weight = inverse_covar_weight, no_wtd_avg = no_wtd_avg, $
+    refresh_info = refresh_info
     
   if n_elements(pol_inc) ne 0 then pol_inc_in = pol_inc
   
@@ -292,7 +293,7 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
             uvf_input = uvf_input, uv_avg = uv_avg, uv_img_clip = uv_img_clip, dft_ian = dft_ian, $
             freq_ch_range = freq_ch_range, freq_flags = freq_flags, freq_flag_name = freq_flag_name, $
             spec_window_type = spec_window_type, delta_uv_lambda = delta_uv_lambda, max_uv_lambda = max_uv_lambda, $
-            std_power = std_power, no_wtd_avg = no_wtd_avg)
+            std_power = std_power, inverse_covar_weight = inverse_covar_weight, no_wtd_avg = no_wtd_avg)
             
           return, file_struct_arr
         endif
@@ -828,7 +829,8 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
   uvf_tag = uv_tag + fch_tag
   
   if keyword_set(std_power) then power_tag = power_tag + '_stdp' else power_tag = ''
-  if keyword_set(no_wtd_avg) then power_tag = power_tag + '_nowtavg' else power_tag = power_tag + ''
+  if keyword_set(inverse_covar_weight) then power_tag = power_tag + '_invcovar'
+  if keyword_set(no_wtd_avg) then power_tag = power_tag + '_nowtavg'
   power_tag = power_tag + sw_tag
   
   if keyword_set(dft_ian) then dft_label = '_ian' else dft_label = ''
