@@ -131,7 +131,7 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
   npol = max(file_struct_arr.pol_index) + 1
   ntype = max(file_struct_arr.type_index) + 1
   n_cubes = n_elements(file_struct_arr)
-  if n_cubes ne ntype * npol then stop
+  if n_cubes ne ntype * npol then message, 'number of cubes does not match expected value'
   
   file_labels = file_struct_arr.file_label
   wt_file_labels = file_struct_arr.wt_file_label
@@ -188,8 +188,9 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
   
   ;; need general_filebase for 1D plotfiles, make sure it doesn't have a full path
   general_filebase = file_struct_arr(0).general_filebase
-  for i=0, n_cubes-1 do if file_struct_arr(i).general_filebase ne general_filebase then stop
-  
+  for i=0, n_cubes-1 do if file_struct_arr(i).general_filebase ne general_filebase then $
+    message, 'general_filebase does not match between 1d savefiles'
+    
   savefiles_2d = file_struct_arr.savefile_froot + file_struct_arr.savefilebase + power_tag + fadd_2dbin + '_2dkpower.idlsave'
   test_save_2d = file_test(savefiles_2d) *  (1 - file_test(savefiles_2d, /zero_length))
   
@@ -404,8 +405,8 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
   
   if n_elements(git_hashes) ne 0 then print, 'kcube hash: ' + git_hashes.kcube
   
-  wh_good_kperp = where(total(power, 2) gt 0, count)
-  if count eq 0 then stop
+  ;;wh_good_kperp = where(total(power, 2) gt 0, count)
+  ;;if count eq 0 then message, '2d power appears to be entirely zero'
   
   ;;kperp_plot_range = [min(kperp_edges[wh_good_kperp]), max(kperp_edges[wh_good_kperp+1])]
   

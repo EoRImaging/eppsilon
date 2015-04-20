@@ -296,7 +296,7 @@ pro ps_power, file_struct, refresh = refresh, kcube_refresh = kcube_refresh, dft
   noise_expval = binned_noise_expval
   
   wh_good_kperp = where(total(weights, 2) gt 0, count)
-  if count eq 0 then stop
+  if count eq 0 then message, '2d weights appear to be entirely zero'
   kperp_plot_range = [min(kperp_edges[wh_good_kperp]), max(kperp_edges[wh_good_kperp+1])]
   
   if n_elements(freq_flags) ne 0 then begin

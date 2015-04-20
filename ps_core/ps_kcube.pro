@@ -53,9 +53,12 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
     even_freq = 0
     
     freq_diff_hist = histogram(freq_diff, binsize = min(freq_diff)*.1, locations=locs, reverse_indices = ri)
-    if max(freq_diff_hist)/float(n_freq) lt .5 then stop else begin
+    if max(freq_diff_hist)/float(n_freq) lt .5 then begin
+      message, 'frequency channel width distribution is strange, nominal channel width is unclear.'
+    endif else begin
       peak_bin = (where(freq_diff_hist eq max(freq_diff_hist), count_peak))[0]
-      if count_peak eq 1 then peak_diffs = freq_diff[ri[ri[peak_bin] : ri[peak_bin+1]-1]]
+      if count_peak eq 1 then peak_diffs = freq_diff[ri[ri[peak_bin] : ri[peak_bin+1]-1]] $
+      else message, 'frequency channel width distribution is strange, nominal channel width is unclear.'
       
       f_delta = mean(peak_diffs)
     endelse
@@ -88,7 +91,7 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
   kz_mpc_delta = (2.*!pi) / z_mpc_length
   kz_mpc_orig = findgen(round(kz_mpc_range / kz_mpc_delta)) * kz_mpc_delta - kz_mpc_range/2.
   if n_elements(n_kz) ne 0 then begin
-    if n_elements(kz_mpc_orig) ne n_kz then stop
+    if n_elements(kz_mpc_orig) ne n_kz then message, 'something has gone wrong with kz_mpc calculation.'
   endif else n_kz = n_elements(kz_mpc_orig)
   
   if input_units eq 'jansky' then begin
@@ -135,9 +138,9 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
     vis_sigma_adam = getvar_savefile(vis_sigma_file, 'vis_sigma')
     
     if n_elements(freq_ch_range) ne 0 then begin
-      if n_elements(vis_sigma_adam) ne n_freq_orig then stop
+      if n_elements(vis_sigma_adam) ne n_freq_orig then message, 'vis_sig file has incorrect number of frequency channels'
       vis_sigma_adam = vis_sigma_adam[min(freq_ch_range):max(freq_ch_range)]
-    endif else if n_elements(vis_sigma_adam) ne n_freq then stop
+    endif else if n_elements(vis_sigma_adam) ne n_freq then message, 'vis_sig file has incorrect number of frequency channels'
     
     wh_nan = where(finite(vis_sigma_adam) eq 0, count_nan)
     if count_nan gt 0 then vis_sigma_adam[wh_nan] = 0
@@ -395,7 +398,8 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
                   min_pix = min([pixel_nums1, listpix])
                   max_pix = max([pixel_nums1, listpix])
                   wh = where(histogram(listpix, min = min_pix, max = max_pix) gt 0 and histogram(pixel_nums1, min = min_pix, max = max_pix) eq 0, count_out)
-                  if count_out gt 0 then outside_pix = wh + min_pix else stop
+                  if count_out gt 0 then outside_pix = wh + min_pix else $
+                    message, 'Something has gone wrong with finding excluded Healpix pixels in region of interest'
                   pix2vec_ring, file_struct.nside, outside_pix, out_center_vec
                   new_out_vec = rot_matrix ## out_center_vec
                   x_out_rot = new_out_vec[*,0] * cos(pred_angle) - new_out_vec[*,1] * sin(pred_angle)
@@ -471,7 +475,8 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
                   min_pix = min([pixel_nums1, listpix])
                   max_pix = max([pixel_nums1, listpix])
                   wh = where(histogram(listpix, min = min_pix, max = max_pix) gt 0 and histogram(pixel_nums1, min = min_pix, max = max_pix) eq 0, count_out)
-                  if count_out gt 0 then outside_pix = wh + min_pix else stop
+                  if count_out gt 0 then outside_pix = wh + min_pix else $
+                    message, 'Something has gone wrong with finding excluded Healpix pixels in region of interest'
                   pix2vec_ring, file_struct.nside, outside_pix, out_center_vec
                   new_out_vec = rot_matrix ## out_center_vec
                   x_out_rot = new_out_vec[*,0] * cos(pred_angle) - new_out_vec[*,1] * sin(pred_angle)
@@ -568,7 +573,7 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
             if time1 - time0 gt 60 then print, 'Time to restore cube was ' + number_formatter((time1 - time0)/60.) + ' minutes'
             
             if size(arr,/type) eq 6 or size(arr,/type) eq 9 then $
-              if max(abs(imaginary(arr))) eq 0 then arr = real_part(arr) else stop
+              if max(abs(imaginary(arr))) eq 0 then arr = real_part(arr) else message, 'Data in Healpix cubes is complex.'
             if not healpix then arr = reform(arr, dims[0]*dims[1], n_freq)
             
             if count_far ne 0 then arr = arr[wh_close, *]
@@ -607,7 +612,7 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
             if time1 - time0 gt 60 then print, 'Time to restore cube was ' + number_formatter((time1 - time0)/60.) + ' minutes'
             
             if size(arr,/type) eq 6 or size(arr,/type) eq 9 then $
-              if max(abs(imaginary(arr))) eq 0 then arr = real_part(arr) else stop
+              if max(abs(imaginary(arr))) eq 0 then arr = real_part(arr) else message, 'Weights in Healpix cubes is complex.'
             if not healpix then arr = reform(arr, dims[0]*dims[1], n_freq)
             
             if count_far ne 0 then arr = arr[wh_close, *]
@@ -634,7 +639,7 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
               if time1 - time0 gt 60 then print, 'Time to restore cube was ' + number_formatter((time1 - time0)/60.) + ' minutes'
               
               if size(arr,/type) eq 6 or size(arr,/type) eq 9 then $
-                if max(abs(imaginary(arr))) eq 0 then arr = real_part(arr) else stop
+                if max(abs(imaginary(arr))) eq 0 then arr = real_part(arr) else  message, 'Variances in Healpix cubes is complex.'
               if not healpix then arr = reform(arr, dims[0]*dims[1], n_freq)
               
               if count_far ne 0 then arr = arr[wh_close, *]
@@ -753,7 +758,8 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
     endif else dims2 = size(weights_cube1, /dimension)
     
     n_kx = dims2[0]
-    if abs(file_struct.kpix-1/(n_kx[0] * (abs(file_struct.degpix) * !pi / 180d)))/file_struct.kpix gt 1e-4 then stop
+    if abs(file_struct.kpix-1/(n_kx[0] * (abs(file_struct.degpix) * !pi / 180d)))/file_struct.kpix gt 1e-4 then $
+      message, 'Something has gone wrong with calculating uv pixel size'
     kx_mpc_delta = (2.*!pi)*file_struct.kpix / z_mpc_mean
     kx_mpc = (dindgen(n_kx)-n_kx/2) * kx_mpc_delta
     
@@ -1221,7 +1227,7 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
     
     uf_tot = total(total(abs(weights_cube),3),1)
     wh_uf_n0 = where(uf_tot gt 0, count_uf_n0)
-    if count_uf_n0 eq 0 then stop
+    if count_uf_n0 eq 0 then message, 'uvf weights appear to be entirely zero'
     min_dist_uf_n0 = min(wh_uf_n0, min_loc)
     uf_slice_ind = wh_uf_n0[min_loc]
     
@@ -1234,7 +1240,7 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
     
     vf_tot = total(total(abs(weights_cube),3),2)
     wh_vf_n0 = where(vf_tot gt 0, count_vf_n0)
-    if count_vf_n0 eq 0 then stop
+    if count_vf_n0 eq 0 then message, 'uvf weights appear to be entirely zero'
     min_dist_vf_n0 = min(abs(n_kx/2-wh_vf_n0), min_loc)
     vf_slice_ind = wh_vf_n0[min_loc]
     
@@ -1244,12 +1250,12 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
     vf_weight_slice = uvf_slice(weights_cube, kx_mpc, ky_mpc, frequencies, kperp_lambda_conv, delay_params, hubble_param, slice_axis = 0, $
       slice_inds = vf_slice_ind, slice_savefile = file_struct.vf_weight_savefile[i])
       
-    if max(abs(vf_slice)) eq 0 then stop
+    if max(abs(vf_slice)) eq 0 then message, 'vf data slice is entirely zero'
     undefine, vf_slice, vf_weight_slice
     
     uv_tot = total(total(abs(weights_cube),2),1)
     wh_uv_n0 = where(uv_tot gt 0, count_uv_n0)
-    if count_uv_n0 eq 0 then stop
+    if count_uv_n0 eq 0 then message, 'uvf weights appear to be entirely zero'
     min_dist_uv_n0 = min(wh_uv_n0, min_loc)
     uv_slice_ind = wh_uv_n0[min_loc]
     
@@ -1259,7 +1265,7 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
     uv_weight_slice = uvf_slice(weights_cube, kx_mpc, ky_mpc, frequencies, kperp_lambda_conv, delay_params, hubble_param, slice_axis = 2, $
       slice_inds = uv_slice_ind, slice_savefile = file_struct.uv_weight_savefile[i])
       
-    if max(abs(uv_slice)) eq 0 then stop
+    if max(abs(uv_slice)) eq 0 then message, 'uv data slice is entirely zero'
     undefine, uv_slice, uv_weight_slice
     
     undefine, data_cube, weights_cube
