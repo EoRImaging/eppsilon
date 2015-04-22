@@ -1,7 +1,8 @@
 function casa_file_setup, filename, pol_inc, save_path = save_path, refresh_info = refresh_info, $
     weight_savefilebase = weight_savefilebase_in, variance_savefilebase = variance_savefilebase_in, $
     uvf_savefilebase = uvf_savefilebase_in, savefilebase = savefilebase_in, $
-    spec_window_type = spec_window_type, delta_uv_lambda = delta_uv_lambda, max_uv_lambda = max_uv_lambda
+    spec_window_type = spec_window_type, delta_uv_lambda = delta_uv_lambda, max_uv_lambda = max_uv_lambda, $
+    std_power = std_power, inverse_covar_weight = inverse_covar_weight
     
   if n_elements(pol_inc) ne 0 then pol_inc_in = pol_inc
   
@@ -126,7 +127,9 @@ function casa_file_setup, filename, pol_inc, save_path = save_path, refresh_info
         if min([suba, subb]) ge 0 then begin
           ;; looks good, restore & check for directory structure changes
           file_struct_arr = casa_file_setup(info_file, save_path = save_path, weight_savefilebase = weight_savefilebase_in, $
-            uvf_savefilebase = uvf_savefilebase_in, savefilebase = savefilebase_in)
+            uvf_savefilebase = uvf_savefilebase_in, savefilebase = savefilebase_in, $
+            spec_window_type = spec_window_type, delta_uv_lambda = delta_uv_lambda, max_uv_lambda = max_uv_lambda, $
+            std_power = std_power, inverse_covar_weight = inverse_covar_weight)
             
           return, file_struct_arr
         endif
@@ -277,6 +280,7 @@ function casa_file_setup, filename, pol_inc, save_path = save_path, refresh_info
   uvf_tag = uv_tag + fch_tag
   
   if keyword_set(std_power) then power_tag = power_tag + '_stdp' else power_tag = ''
+  if keyword_set(inverse_covar_weight) then power_tag = power_tag + '_invcovar'
   power_tag = power_tag + sw_tag
   
   wt_file_label = '_weights_' + strlowcase(pol_inc)

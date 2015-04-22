@@ -1,7 +1,8 @@
 function rts_file_setup, filename, pol_inc, save_path = save_path, refresh_info = refresh_info, $
     weight_savefilebase = weight_savefilebase_in, variance_savefilebase = variance_savefilebase_in, $
     uvf_savefilebase = uvf_savefilebase_in, savefilebase = savefilebase_in, $
-    spec_window_type = spec_window_type, delta_uv_lambda = delta_uv_lambda, max_uv_lambda = max_uv_lambda
+    spec_window_type = spec_window_type, delta_uv_lambda = delta_uv_lambda, max_uv_lambda = max_uv_lambda, $
+    std_power = std_power, inverse_covar_weight = inverse_covar_weight
     
   if n_elements(pol_inc) ne 0 then pol_inc_in = pol_inc
   
@@ -282,7 +283,9 @@ function rts_file_setup, filename, pol_inc, save_path = save_path, refresh_info 
         if min([suba, subb]) ge 0 then begin
           ;; looks good, restore & check for directory structure changes
           file_struct_arr = rts_file_setup(info_file, save_path = save_path, weight_savefilebase = weight_savefilebase_in, $
-            uvf_savefilebase = uvf_savefilebase_in, savefilebase = savefilebase_in)
+            uvf_savefilebase = uvf_savefilebase_in, savefilebase = savefilebase_in, $
+            spec_window_type = spec_window_type, delta_uv_lambda = delta_uv_lambda, max_uv_lambda = max_uv_lambda, $
+            std_power = std_power, inverse_covar_weight = inverse_covar_weight)
             
           return, file_struct_arr
         endif
@@ -468,7 +471,7 @@ function rts_file_setup, filename, pol_inc, save_path = save_path, refresh_info 
     n_obs = lonarr(npol, nfiles) + 1
     
     ;; n_vis
-     n_vis = total(n_vis_freq, 3)
+    n_vis = total(n_vis_freq, 3)
     
     metadata_struct = {datafile:datafile, weightfile: datafile, variancefile:datafile, $
       cube_varname:data_varname, weight_varname:weight_varname, variance_varname:variance_varname, $
@@ -533,6 +536,7 @@ function rts_file_setup, filename, pol_inc, save_path = save_path, refresh_info 
   uvf_tag = uv_tag + fch_tag
   
   if keyword_set(std_power) then power_tag = power_tag + '_stdp' else power_tag = ''
+  if keyword_set(inverse_covar_weight) then power_tag = power_tag + '_invcovar'
   power_tag = power_tag + sw_tag
   
   if keyword_set(dft_ian) then dft_label = '_ian' else dft_label = ''
