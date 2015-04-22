@@ -429,7 +429,7 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
     
     if keyword_set(individual_plots) then begin
       if n_elements(plot_filebase) eq 0 then begin
-        plotfile_base = plotfile_path + file_struct_arr[0].savefilebase + power_tag
+        plotfile_base = plotfile_path + file_struct_arr.savefilebase + power_tag
         plotfile_base_wt = plotfile_path + general_filebase + wt_file_labels[uniq(weight_ind, sort(weight_ind))] + power_tag
         plotfiles_2d_wt = plotfile_base_wt + fadd_2dbin + '_2d' + plot_fadd + plot_exten
       endif else begin
