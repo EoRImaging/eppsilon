@@ -342,7 +342,7 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, wei
   if total(abs(kperp_diffs - kperp_diffs[0])) gt n_kperp*1e-7 then log_bins[0] = 1
   kpar_diffs = (kpar_edges_use - shift(kpar_edges_use, 1))[1:*]
   if kpar_edges_use[0] eq 0 then kpar_diffs = kpar_diffs[1:*] ;; lowest bin may have lower edge set to zero
-  if total(abs(kpar_diffs - kpar_diffs[0])) gt n_kpar*1e-7 then log_bins[1] = 1  
+  if total(abs(kpar_diffs - kpar_diffs[0])) gt n_kpar*1e-7 then log_bins[1] = 1
   
   
   if keyword_set(norm_2d) then begin
@@ -369,7 +369,7 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, wei
           kperp_log_diffs = (kperp_log_edges[1:*] - shift(kperp_log_edges[1:*], 1))[1:*]
           kperp_log_diffs = [kperp_log_diffs[0], kperp_log_diffs]
           kperp_log_edges[wh_kperp0] = kperp_log_edges[wh_kperp0+1] - kperp_log_diffs[wh_kperp0]
-        endif
+        endif else kperp_log_diffs = (kperp_log_edges - shift(kperp_log_edges, 1))[1:*]
         
         image_kperp_delta = min(kperp_log_diffs)
         kperp_bin_widths = round(kperp_log_diffs / image_kperp_delta)
@@ -397,7 +397,7 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, wei
           kpar_log_diffs = (kpar_log_edges[1:*] - shift(kpar_log_edges[1:*], 1))[1:*]
           kpar_log_diffs = [kpar_log_diffs[0], kpar_log_diffs]
           kpar_log_edges[wh_kpar0] = kpar_log_edges[wh_kpar0+1] - kpar_log_diffs[wh_kpar0]
-        endif
+        endif else kpar_log_diffs = (kpar_log_edges - shift(kpar_log_edges, 1))[1:*]
         
         image_kpar_delta = min(kpar_log_diffs)/2d
         kpar_bin_widths = round(kpar_log_diffs / image_kpar_delta)
