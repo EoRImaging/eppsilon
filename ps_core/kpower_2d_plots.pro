@@ -361,7 +361,7 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, wei
     if log_bins[0] ne log_axes[0] then begin
       if log_bins[0] eq 0 then begin
         ;; linear binning, log axes
-        wh_kperp0 = where(kperp_edges_use lt 0, count_kperp0, complement = wh_kperp_good)
+        wh_kperp0 = where(kperp_edges_use le 0, count_kperp0, complement = wh_kperp_good)
         if count_kperp0 gt 1 then stop
         
         kperp_log_edges = alog10(kperp_edges_use)
@@ -389,7 +389,7 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, wei
     if log_bins[1] ne log_axes[1] then begin
       if log_bins[1] eq 0 then begin
         ;; linear binning, log axes
-        wh_kpar0 = where(kpar_edges_use lt 0, count_kpar0, complement = wh_kpar_good)
+        wh_kpar0 = where(kpar_edges_use le 0, count_kpar0, complement = wh_kpar_good)
         if count_kpar0 gt 1 then stop
         
         kpar_log_edges = alog10(kpar_edges_use)
