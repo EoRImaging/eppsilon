@@ -36,6 +36,9 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
   ;; default to plot wedge line
   if n_elements(plot_wedge_line) eq 0 then plot_wedge_line=1
   
+  ;; if inverse covariance weighted don't use spectral window
+  if keyword_set(inverse_covar_weight) then no_spec_window = 1
+   
   ;; default to blackman-harris spectral window
   if not keyword_set(no_spec_window) then begin
     if n_elements(spec_window_type) eq 0 then spec_window_type = 'Blackman-Harris'
