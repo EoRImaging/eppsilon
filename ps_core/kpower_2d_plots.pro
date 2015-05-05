@@ -330,19 +330,19 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, wei
   endif
   
   ;; Check whether binning is log or not
-  log_bins = [1, 1]
-  kperp_log_diffs = (alog10(kperp_edges_use) - shift(alog10(kperp_edges_use), 1))[2:*]
-  if total(abs(kperp_log_diffs - kperp_log_diffs[0])) gt n_kperp*1e-15 then log_bins[0] = 0
-  kpar_log_diffs = (alog10(kpar_edges_use) - shift(alog10(kpar_edges_use), 1))[2:*]
-  if total(abs(kpar_log_diffs - kpar_log_diffs[0])) gt n_kpar*1e-15 then log_bins[1] = 0
+  ;  log_bins = [1, 1]
+  ;  kperp_log_diffs = (alog10(kperp_edges_use) - shift(alog10(kperp_edges_use), 1))[2:*]
+  ;  if total(abs(kperp_log_diffs - kperp_log_diffs[0])) gt n_kperp*1e-15 then log_bins[0] = 0
+  ;  kpar_log_diffs = (alog10(kpar_edges_use) - shift(alog10(kpar_edges_use), 1))[2:*]
+  ;  if total(abs(kpar_log_diffs - kpar_log_diffs[0])) gt n_kpar*1e-15 then log_bins[1] = 0
   
   log_bins = [0, 0]
   kperp_diffs = (kperp_edges_use - shift(kperp_edges_use, 1))[1:*]
+  if kperp_edges_use[0] eq 0 then kperp_diffs = kperp_diffs[1:*] ;; lowest bin may have lower edge set to zero
   if total(abs(kperp_diffs - kperp_diffs[0])) gt n_kperp*1e-7 then log_bins[0] = 1
   kpar_diffs = (kpar_edges_use - shift(kpar_edges_use, 1))[1:*]
+  if kpar_edges_use[0] eq 0 then kpar_diffs = kpar_diffs[1:*] ;; lowest bin may have lower edge set to zero
   if total(abs(kpar_diffs - kpar_diffs[0])) gt n_kpar*1e-7 then log_bins[1] = 1
-  
-  
   
   
   if keyword_set(norm_2d) then begin
@@ -361,7 +361,7 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, wei
     if log_bins[0] ne log_axes[0] then begin
       if log_bins[0] eq 0 then begin
         ;; linear binning, log axes
-        wh_kperp0 = where(kperp_edges_use lt 0, count_kperp0, complement = wh_kperp_good)
+        wh_kperp0 = where(kperp_edges_use le 0, count_kperp0, complement = wh_kperp_good)
         if count_kperp0 gt 1 then stop
         
         kperp_log_edges = alog10(kperp_edges_use)
@@ -369,7 +369,7 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, wei
           kperp_log_diffs = (kperp_log_edges[1:*] - shift(kperp_log_edges[1:*], 1))[1:*]
           kperp_log_diffs = [kperp_log_diffs[0], kperp_log_diffs]
           kperp_log_edges[wh_kperp0] = kperp_log_edges[wh_kperp0+1] - kperp_log_diffs[wh_kperp0]
-        endif
+        endif else kperp_log_diffs = (kperp_log_edges - shift(kperp_log_edges, 1))[1:*]
         
         image_kperp_delta = min(kperp_log_diffs)
         kperp_bin_widths = round(kperp_log_diffs / image_kperp_delta)
@@ -389,7 +389,7 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, wei
     if log_bins[1] ne log_axes[1] then begin
       if log_bins[1] eq 0 then begin
         ;; linear binning, log axes
-        wh_kpar0 = where(kpar_edges_use lt 0, count_kpar0, complement = wh_kpar_good)
+        wh_kpar0 = where(kpar_edges_use le 0, count_kpar0, complement = wh_kpar_good)
         if count_kpar0 gt 1 then stop
         
         kpar_log_edges = alog10(kpar_edges_use)
@@ -397,7 +397,7 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, wei
           kpar_log_diffs = (kpar_log_edges[1:*] - shift(kpar_log_edges[1:*], 1))[1:*]
           kpar_log_diffs = [kpar_log_diffs[0], kpar_log_diffs]
           kpar_log_edges[wh_kpar0] = kpar_log_edges[wh_kpar0+1] - kpar_log_diffs[wh_kpar0]
-        endif
+        endif else kpar_log_diffs = (kpar_log_edges - shift(kpar_log_edges, 1))[1:*]
         
         image_kpar_delta = min(kpar_log_diffs)/2d
         kpar_bin_widths = round(kpar_log_diffs / image_kpar_delta)
@@ -507,7 +507,7 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, wei
   endif else begin
     if log_axes[1] eq 0 then kpar_length = alog10(max(kpar_edges_use)) - alog10(min(kpar_edges_use[where(kpar_edges_use gt 0)])) $
     else kpar_length = max(kpar_log_edges) - min(kpar_log_edges)
-    if min(kperp_edges_use) le 0 then begin
+    if min(kperp_edges_use) lt 0 then begin
       wh_zero = where(kperp_edges_use eq 0, n_zero)
       if n_zero ne 0 then stop
       
@@ -722,7 +722,7 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, wei
         charsize = base_size_use / 250.
       endif else charsize = 2
     endif else charsize = charsize_in
-       
+    
     perp_char = '!9' + string(120B) + '!X'
     
   endelse
