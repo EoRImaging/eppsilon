@@ -1480,7 +1480,7 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
     ave_power_freq = fltarr(n_freq)
     for i=0, n_freq-1 do ave_power_freq[i] = mean(abs((data_cube1[*,*,i])[where(sum_weights1[*,*,i] ne 0),*])^2.)
     
-    wt_ave_power_uvf = total(sum_weights1 * abs(data_cube1)^2.)/total(sum_weights)
+    wt_ave_power_uvf = total(sum_weights1 * abs(data_cube1)^2.)/total(sum_weights1)
     ave_power_uvf = mean(abs(data_cube1[wh_sig1_n0])^2.)
     undefine, sum_weights1, wh_sig1_n0
     
