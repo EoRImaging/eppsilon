@@ -321,7 +321,7 @@ pro ps_power, file_struct, refresh = refresh, kcube_refresh = kcube_refresh, dft
   ;; save just k0 line for plotting purposes
   if not keyword_set(no_kzero) then begin
     power = power[*,0]
-    noise = noise[*,0]
+    if n_elements(noise) gt 0 then noise = noise[*,0] ;else stop
     weights = weights[*,0]
     noise_expval = noise_expval[*,0]
     

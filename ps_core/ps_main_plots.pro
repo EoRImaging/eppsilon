@@ -5,7 +5,8 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
     dft_fchunk = dft_fchunk, freq_ch_range = freq_ch_range, freq_flags = freq_flags, freq_flag_name = freq_flag_name, $
     no_spec_window = no_spec_window, spec_window_type = spec_window_type, delta_uv_lambda = delta_uv_lambda, max_uv_lambda = max_uv_lambda, $
     cut_image = cut_image, dft_ian = dft_ian, sim = sim, $
-    std_power = std_power, inverse_covar_weight = inverse_covar_weight, no_wtd_avg = no_wtd_avg, no_kzero = no_kzero, $
+    std_power = std_power, inverse_covar_weight = inverse_covar_weight, no_wtd_avg = no_wtd_avg, $
+    norm_rts_with_fhd = norm_rts_with_fhd, no_kzero = no_kzero, $
     plot_slices = plot_slices, slice_type = slice_type, uvf_plot_type = uvf_plot_type, plot_stdset = plot_stdset, $
     plot_kpar_power = plot_kpar_power, plot_kperp_power = plot_kperp_power, plot_k0_power = plot_k0_power, plot_noise_1d = plot_noise_1d, $
     data_range = data_range, sigma_range = sigma_range, nev_range = nev_range, slice_range = slice_range, $
@@ -72,7 +73,8 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
   time0 = systime(1)
   if keyword_set(rts) then begin
     file_struct_arr = rts_file_setup(datafile, pol_inc, savefilebase = savefilebase, save_path = save_path, $
-      spec_window_type = spec_window_type, delta_uv_lambda = delta_uv_lambda, max_uv_lambda = max_uv_lambda, refresh_info = refresh_info)
+      spec_window_type = spec_window_type, delta_uv_lambda = delta_uv_lambda, max_uv_lambda = max_uv_lambda, $
+      use_fhd_norm = norm_rts_with_fhd, refresh_info = refresh_info)
   endif else if keyword_set(casa) then begin
     file_struct_arr = casa_file_setup(datafile, pol_inc, savefilebase = savefilebase, save_path = save_path, $
       spec_window_type = spec_window_type, delta_uv_lambda = delta_uv_lambda, max_uv_lambda = max_uv_lambda, refresh_info = refresh_info)
@@ -163,12 +165,14 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
     note_1d = 'kperp: [' + number_formatter(kperp_range_1dave[0]) + ',' + $
       number_formatter(kperp_range_1dave[1]) + ']'
   endif else begin
+    if n_elements(kperp_range_1dave) gt 0 then print, '2 values must be specified for kperp_range_lambda_1dave, defaulting to normal range'
     if n_elements(kperp_range_lambda_1dave) gt 1 then begin
       fadd_1dbin = fadd_1dbin + '_kperplambda' + number_formatter(kperp_range_lambda_1dave[0]) + '-' + $
         number_formatter(kperp_range_lambda_1dave[1])
       note_1d = 'kperp: [' + number_formatter(kperp_range_lambda_1dave[0]) + ',' + $
         number_formatter(kperp_range_lambda_1dave[1]) + ']'
     endif else begin
+      if n_elements(kperp_range_lambda_1dave) gt 0 then print, '2 values must be specified for kperp_range_lambda_1dave, defaulting to normal range'
       ;; if no range set default to same range as is used in 2D plots
       kperp_range_lambda_1dave = [5., min([file_struct_arr.kspan/2.,file_struct_arr.max_baseline_lambda])]
     endelse
@@ -963,25 +967,54 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
   ave_power_freq_vals = fltarr(n_cubes, n_freq)
   ave_power_uvf_vals = fltarr(n_cubes)
   wt_ave_power_uvf_vals = fltarr(n_cubes)
+  
   for k=0, n_cubes-1 do begin
+    
     void = getvar_savefile(savefiles_1d[k,0,0], names=varnames)
-    ave_power_vals[k] = getvar_savefile(savefiles_1d[k,0,0], 'ave_power')
-    wt_ave_power_vals[k] = getvar_savefile(savefiles_1d[k,0,0], 'wt_ave_power')
-    uv_pix_area[k] = getvar_savefile(savefiles_1d[k,0,0], 'uv_pix_area')
-    uv_area[k] = getvar_savefile(savefiles_1d[k,0,0], 'uv_area')
-    ave_weights_vals[k] = mean(getvar_savefile(savefiles_1d[k,0,0], 'ave_weights')/uv_pix_area[k])
-    ave_weights_freq_vals[k,*] = (getvar_savefile(savefiles_1d[k,0,0], 'ave_weights')/uv_pix_area[k])[0,*]
-    nbsl_lambda2[k] = file_struct_arr[0].n_vis[0]/uv_area[k]
-    nbsl_lambda2_freq[k,*] = file_struct_arr[0].n_vis_freq[0,*]/uv_area[k]
-    wt_ave_power_freq_vals[k,*] = (getvar_savefile(savefiles_1d[k,0,0], 'wt_ave_power_freq'))[0,*]
-    ave_power_freq_vals[k,*] = (getvar_savefile(savefiles_1d[k,0,0], 'ave_power_freq'))[0,*]
-    ave_power_uvf_vals = getvar_savefile(savefiles_1d[k,0,0], 'ave_power_uvf')
-    wt_ave_power_uvf_vals = getvar_savefile(savefiles_1d[k,0,0], 'wt_ave_power_uvf')
+    
+    if max(strmatch(varnames, 'ave_power', /fold_case)) gt 0 then $
+      ave_power_vals[k] = getvar_savefile(savefiles_1d[k,0,0], 'ave_power') else ave_power_vals[k] = -1
+    if max(strmatch(varnames, 'wt_ave_power', /fold_case)) gt 0 then $
+      wt_ave_power_vals[k] = getvar_savefile(savefiles_1d[k,0,0], 'wt_ave_power') else wt_ave_power_vals[k] = -1
+    if max(strmatch(varnames, 'uv_pix_area', /fold_case)) gt 0 then $
+      uv_pix_area[k] = getvar_savefile(savefiles_1d[k,0,0], 'uv_pix_area') else uv_pix_area[k] = -1
+    if max(strmatch(varnames, 'uv_area', /fold_case)) gt 0 then begin
+      uv_area[k] = getvar_savefile(savefiles_1d[k,0,0], 'uv_area')
+      
+      nbsl_lambda2[k] = file_struct_arr[0].n_vis[0]/uv_area[k]
+      nbsl_lambda2_freq[k,*] = file_struct_arr[0].n_vis_freq[0,*]/uv_area[k]
+    endif else begin
+      uv_area[k] = -1
+      nbsl_lambda2[k] = -1
+      nbsl_lambda2_freq[k,*] = -1
+    endelse
+    
+    if max(strmatch(varnames, 'ave_weights', /fold_case)) gt 0 and uv_pix_area[k] gt -1 then begin
+      ave_weights_vals[k] = mean(getvar_savefile(savefiles_1d[k,0,0], 'ave_weights')/uv_pix_area[k])
+      ave_weights_freq_vals[k,*] = (getvar_savefile(savefiles_1d[k,0,0], 'ave_weights')/uv_pix_area[k])[0,*]
+    endif else begin
+      ave_weights_vals[k] = -1
+      ave_weights_freq_vals[k,*] = -1
+    endelse
+    
+    if max(strmatch(varnames, 'wt_ave_power_freq', /fold_case)) gt 0 then $
+      wt_ave_power_freq_vals[k,*] = (getvar_savefile(savefiles_1d[k,0,0], 'wt_ave_power_freq'))[0,*] $
+    else wt_ave_power_freq_vals[k,*] = -1
+    if max(strmatch(varnames, 'ave_power_freq', /fold_case)) gt 0 then $
+      ave_power_freq_vals[k,*] = (getvar_savefile(savefiles_1d[k,0,0], 'ave_power_freq'))[0,*] $
+    else ave_power_freq_vals[k,*] = -1
+    if max(strmatch(varnames, 'ave_power_uvf', /fold_case)) gt 0 then $
+      ave_power_uvf_vals[k] = (getvar_savefile(savefiles_1d[k,0,0], 'ave_power_uvf'))[0,*] $
+    else ave_power_uvf_vals[k] = -1
+    if max(strmatch(varnames, 'wt_ave_power_uvf', /fold_case)) gt 0 then $
+      wt_ave_power_uvf_vals[k] = (getvar_savefile(savefiles_1d[k,0,0], 'wt_ave_power_uvf'))[0,*] $
+    else wt_ave_power_uvf_vals[k] = -1
   endfor
   cube_power_info = {ave_power:ave_power_vals, wt_ave_power:wt_ave_power_vals, $
+    uv_pix_area:uv_pix_area, uv_area:uv_area, $
     ave_weights:ave_weights_vals, ave_weights_freq:ave_weights_freq_vals, wt_ave_power_freq:wt_ave_power_freq_vals, $
     ave_power_freq:ave_power_freq_vals, wt_ave_power_uvf:wt_ave_power_uvf_vals, ave_power_uvf:ave_power_uvf_vals, $
-    uv_pix_area:uv_pix_area, uv_area:uv_area, nbsl_lambda2:nbsl_lambda2, nbsl_lambda2_freq:nbsl_lambda2_freq}
+    nbsl_lambda2:nbsl_lambda2, nbsl_lambda2_freq:nbsl_lambda2_freq}
     
   if keyword_set(plot_eor_1d) then begin
     case strlowcase(!version.os_family) OF

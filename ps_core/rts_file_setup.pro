@@ -2,7 +2,7 @@ function rts_file_setup, filename, pol_inc, save_path = save_path, refresh_info 
     weight_savefilebase = weight_savefilebase_in, variance_savefilebase = variance_savefilebase_in, $
     uvf_savefilebase = uvf_savefilebase_in, savefilebase = savefilebase_in, $
     spec_window_type = spec_window_type, delta_uv_lambda = delta_uv_lambda, max_uv_lambda = max_uv_lambda, $
-    std_power = std_power, inverse_covar_weight = inverse_covar_weight
+    std_power = std_power, inverse_covar_weight = inverse_covar_weight, use_fhd_norm = use_fhd_norm
     
   if n_elements(pol_inc) ne 0 then pol_inc_in = pol_inc
   
@@ -91,6 +91,8 @@ function rts_file_setup, filename, pol_inc, save_path = save_path, refresh_info 
       if n_elements(no_var) gt 0 then metadata_struct = create_struct(metadata_struct, 'no_var', 1)
       
       if n_elements(vis_noise) gt 0 then metadata_struct = create_struct(metadata_struct, 'vis_noise', vis_noise)
+      
+      if n_elements(beam_int) gt 0 then metadata_struct = create_struct(metadata_struct, 'beam_int', beam_int)
       
       save, filename = info_file, metadata_struct
       
@@ -486,6 +488,8 @@ function rts_file_setup, filename, pol_inc, save_path = save_path, refresh_info 
     
     if n_elements(vis_noise) gt 0 then metadata_struct = create_struct(metadata_struct, 'vis_noise', vis_noise)
     
+    if n_elements(beam_int) gt 0 then metadata_struct = create_struct(metadata_struct, 'beam_int', beam_int)
+    
     if n_elements(info_file) eq 0 then info_file = froot + general_filebase + '_info.idlsave'
     
     save, filename = info_file, metadata_struct, pol_inc
@@ -537,7 +541,19 @@ function rts_file_setup, filename, pol_inc, save_path = save_path, refresh_info 
   
   if keyword_set(std_power) then power_tag = power_tag + '_stdp' else power_tag = ''
   if keyword_set(inverse_covar_weight) then power_tag = power_tag + '_invcovar'
+  if keyword_set(use_fhd_norm) then power_tag = power_tag + '_fhdnorm'
   power_tag = power_tag + sw_tag
+  
+  if keyword_set(use_fhd_norm) then begin
+    beam_int = fltarr(n_elements(pol_inc), n_elements(metadata_struct.datafile), $
+      n_elements(metadata_struct.frequencies)) + 0.0645
+    vis_noise = fltarr(n_elements(pol_inc), n_elements(metadata_struct.datafile), $
+      n_elements(metadata_struct.frequencies)) + 27.65
+      
+    metadata_struct = create_struct(metadata_struct, 'vis_noise', vis_noise)
+    
+    metadata_struct = create_struct(metadata_struct, 'beam_int', beam_int)
+  endif
   
   if keyword_set(dft_ian) then dft_label = '_ian' else dft_label = ''
   
@@ -695,6 +711,8 @@ function rts_file_setup, filename, pol_inc, save_path = save_path, refresh_info 
       if n_elements(freq_mask) gt 0 then file_struct = create_struct(file_struct, 'freq_mask', freq_mask)
       
       if tag_exist(metadata_struct, 'vis_noise') gt 0 then file_struct = create_struct(file_struct, 'vis_noise', reform(metadata_struct.vis_noise[pol_i,*,*]))
+      
+      if tag_exist(metadata_struct, 'beam_int') then file_struct = create_struct(file_struct, 'beam_int', reform(metadata_struct.beam_int[pol_i,*,*]))
       
       if pol_i eq 0 and type_i eq 0 then file_struct_arr = replicate(file_struct, ntypes, npol) else file_struct_arr[type_i, pol_i] = file_struct
       

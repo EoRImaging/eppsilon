@@ -42,7 +42,7 @@ function kspace_rebinning_1d, power, k1_mpc, k2_mpc, k3_mpc, k_edges_mpc, k_bin 
     weights_use = weights
     weighted_power = weights_use * power
   endif else begin
-    weights_use = dblarr(power_size) + 1d
+    ;weights_use = dblarr(power_size) + 1d
     weighted_power = power
   endelse
   
@@ -51,8 +51,8 @@ function kspace_rebinning_1d, power, k1_mpc, k2_mpc, k3_mpc, k_edges_mpc, k_bin 
       message, 'If noise_expval array is provided, it must have the same dimensionality as the power'
     weighted_noise_expval = weights_use * noise_expval
   endif else begin
-    noise_expval = 1/sqrt(weights_use)
-    weighted_noise_expval = sqrt(weights_use)
+  ;noise_expval = 1/sqrt(weights_use)
+  ;weighted_noise_expval = sqrt(weights_use)
   endelse
   
   if power_dim eq 3 then begin
@@ -69,37 +69,6 @@ function kspace_rebinning_1d, power, k1_mpc, k2_mpc, k3_mpc, k_edges_mpc, k_bin 
     if n_elements(ky_mpc) ne n_ky then message, 'Length of k2_mpc must be the same as the second dimension of the power array'
     if n_elements(kz_mpc) ne n_kz then message, 'Length of k3_mpc must be the same as the third dimension of the power array'
     
-    if n_elements(kperp_range) gt 0 then begin
-      if  n_elements(kperp_range) ne 2 then message, 'kperp_range must be a 2 element vector'
-      
-      wh_good = where(abs(kx_mpc) ge kperp_range[0] and abs(kx_mpc) le kperp_range[1], count_good, ncomplement = count_bad)
-      if count_good eq 0 then message, 'No kx values within kperp_range'
-      
-      if count_bad gt 0 then begin
-        weighted_power = weighted_power[wh_good,*,*]
-        weights_use = weights_use[wh_good,*,*]
-        weighted_noise_expval = weighted_noise_expval[wh_good,*,*]
-        if n_elements(kperp_density_measure) gt 0  and n_elements(kperp_density_cutoff) gt 0 $
-          then kperp_density_measure = kperp_density_measure[wh_good,*,*]
-        kx_mpc = kx_mpc[wh_good]
-        n_kx = n_elements(kx_mpc)
-      endif
-      
-      
-      wh_good = where(abs(ky_mpc) ge kperp_range[0] and abs(ky_mpc) le kperp_range[1], count_good, ncomplement = count_bad)
-      if count_good eq 0 then message, 'No ky values within kperp_range'
-      
-      if count_bad gt 0 then begin
-        weighted_power = weighted_power[*,wh_good,*]
-        weights_use = weights_use[*,wh_good,*]
-        weighted_noise_expval = weighted_noise_expval[*,wh_good,*]
-        if n_elements(kperp_density_measure) gt 0  and n_elements(kperp_density_cutoff) gt 0 $
-          then kperp_density_measure = kperp_density_measure[*,wh_good,*]
-        ky_mpc = ky_mpc[wh_good]
-        n_ky = n_elements(ky_mpc)
-      endif
-    endif else kperp_range = minmax(abs([kx_mpc, ky_mpc]))
-    
     if n_elements(kpar_range) gt 0 then begin
       if  n_elements(kpar_range) ne 2 then message, 'kpar_range must be a 2 element vector'
       
@@ -108,8 +77,8 @@ function kspace_rebinning_1d, power, k1_mpc, k2_mpc, k3_mpc, k_edges_mpc, k_bin 
       
       if count_bad gt 0 then begin
         weighted_power = weighted_power[*,*,wh_good]
-        weights_use = weights_use[*,*,wh_good]
-        weighted_noise_expval = weighted_noise_expval[*,*,wh_good]
+        if n_elements(weights_use) gt 0 then weights_use = weights_use[*,*,wh_good]
+        if n_elements(weighted_noise_expval) gt 0 then weighted_noise_expval = weighted_noise_expval[*,*,wh_good]
         kz_mpc = kz_mpc[wh_good]
         n_kz = n_elements(kz_mpc)
       endif
@@ -129,16 +98,39 @@ function kspace_rebinning_1d, power, k1_mpc, k2_mpc, k3_mpc, k_edges_mpc, k_bin 
     
     temp = reform(temp, n_kx*n_ky, n_kz)
     weighted_power = reform(weighted_power, n_kx*n_ky, n_kz)
-    weighted_noise_expval = reform(weighted_noise_expval, n_kx*n_ky, n_kz)
-    weights_use = reform(weights_use, n_kx*n_ky, n_kz)
+    if n_elements(weighted_noise_expval) gt 0 then weighted_noise_expval = reform(weighted_noise_expval, n_kx*n_ky, n_kz)
+    if n_elements(weights_use) gt 0 then weights_use = reform(weights_use, n_kx*n_ky, n_kz)
+    if n_elements(kperp_density_measure) gt 0 and n_elements(kperp_density_cutoff) gt 0 $
+      then kperp_density_measure = reform(kperp_density_measure, n_kx*n_ky)
+      
+    if n_elements(kperp_range) gt 0 then begin
+      if  n_elements(kperp_range) ne 2 then message, 'kperp_range must be a 2 element vector'
+      
+      kperp_vals = sqrt(rebin(kx_mpc^2d, n_kx, n_ky) + rebin(reform(ky_mpc^2d, 1, n_ky), n_kx, n_ky))
+      
+      wh_good = where(kperp_vals ge kperp_range[0] and kperp_vals le kperp_range[1], count_good, ncomplement = count_bad)
+      if count_good eq 0 then message, 'No kperp values within kperp_range'
+      
+      if count_bad gt 0 then begin
+        temp = temp[wh_good,*]
+        weighted_power = weighted_power[wh_good,*]
+        if n_elements(weights_use) gt 0 then weights_use = weights_use[wh_good,*]
+        if n_elements(weighted_noise_expval) gt 0 then weighted_noise_expval = weighted_noise_expval[wh_good,*]
+        if n_elements(kperp_density_measure) gt 0 and n_elements(kperp_density_cutoff) gt 0 $
+          then kperp_density_measure = kperp_density_measure[wh_good]
+      endif
+      
+    endif else kperp_range = minmax(abs([kx_mpc, ky_mpc]))
+    
+    
     if n_elements(kperp_density_measure) gt 0 and n_elements(kperp_density_cutoff) gt 0 then begin
       wh_kperp_dense = where(kperp_density_measure gt kperp_density_cutoff, count_kperp_dense)
       
       if count_kperp_dense gt 0 then begin
         temp = temp[wh_kperp_dense, *]
         weighted_power = weighted_power[wh_kperp_dense, *]/0.52
-        weighted_noise_expval = weighted_noise_expval[wh_kperp_dense, *]
-        weights_use = weights_use[wh_kperp_dense, *]
+        if n_elements(weighted_noise_expval) gt 0 then weighted_noise_expval = weighted_noise_expval[wh_kperp_dense, *]
+        if n_elements(weights_use) gt 0 then weights_use = weights_use[wh_kperp_dense, *]
       endif else print, 'no kperp values exceed kperp_density_cutoff, using full volume'
       
     endif
@@ -167,8 +159,8 @@ function kspace_rebinning_1d, power, k1_mpc, k2_mpc, k3_mpc, k_edges_mpc, k_bin 
       if count_above_wedge gt 0 then begin
         temp = temp[wh_above_wedge]
         weighted_power = weighted_power[wh_above_wedge]
-        weighted_noise_expval = weighted_noise_expval[wh_above_wedge]
-        weights_use = weights_use[wh_above_wedge]
+        if n_elements(weighted_noise_expval) gt 0 then weighted_noise_expval = weighted_noise_expval[wh_above_wedge]
+        if n_elements(weights_use) gt 0 then weights_use = weights_use[wh_above_wedge]
       endif else print, 'no pixels above wedge, using full volume'
     endif
     
@@ -226,7 +218,7 @@ function kspace_rebinning_1d, power, k1_mpc, k2_mpc, k3_mpc, k_edges_mpc, k_bin 
     
     n_k = n_elements(k_hist)
     power_1d = dblarr(n_k)
-    nev_1d = dblarr(n_k)
+    if n_elements(weighted_noise_expval) gt 0 then nev_1d = dblarr(n_k)
     weights_1d = dblarr(n_k)
     norm = dblarr(n_k)
     
@@ -234,8 +226,9 @@ function kspace_rebinning_1d, power, k1_mpc, k2_mpc, k3_mpc, k_edges_mpc, k_bin 
       if k_hist[i] ne 0 then begin
         inds =  k_ri[k_ri[i] : k_ri[i+1]-1]
         power_1d[i] = total(weighted_power[inds])
-        nev_1d[i] = total(weighted_noise_expval[inds])
-        weights_1d[i] = total(weights_use[inds])
+        if n_elements(weighted_noise_expval) gt 0 then nev_1d[i] = total(weighted_noise_expval[inds])
+        if n_elements(weights_use) gt 0 then weights_1d[i] = total(weights_use[inds]) $
+        else weights_1d[i] = k_hist[i]
         norm[i] = k_hist[i]
       endif
     endfor
@@ -261,8 +254,8 @@ function kspace_rebinning_1d, power, k1_mpc, k2_mpc, k3_mpc, k_edges_mpc, k_bin 
       
       if count_bad gt 0 then begin
         weighted_power = weighted_power[wh_good,*]
-        weights_use = weights_use[wh_good,*]
-        weighted_noise_expval = weighted_noise_expval[wh_good,*]
+        if n_elements(weights_use) gt 0 then weights_use = weights_use[wh_good,*]
+        if n_elements(weighted_noise_expval) gt 0 then weighted_noise_expval = weighted_noise_expval[wh_good,*]
         kperp_mpc = kperp_mpc[wh_good]
         n_kperp = n_elements(kperp_mpc)
       endif
@@ -276,8 +269,8 @@ function kspace_rebinning_1d, power, k1_mpc, k2_mpc, k3_mpc, k_edges_mpc, k_bin 
       
       if count_bad gt 0 then begin
         weighted_power = weighted_power[*,wh_good]
-        weights_use = weights_use[*,wh_good]
-        weighted_noise_expval = weighted_noise_expval[*,wh_good]
+        if n_elements(weights_use) gt 0 then weights_use = weights_use[*,wh_good]
+        if n_elements(weighted_noise_expval) gt 0 then weighted_noise_expval = weighted_noise_expval[*,wh_good]
         kpar_mpc = kpar_mpc[wh_good]
         n_kz = n_elements(kpar_mpc)
       endif
@@ -357,13 +350,13 @@ function kspace_rebinning_1d, power, k1_mpc, k2_mpc, k3_mpc, k_edges_mpc, k_bin 
     
     if n_elements(wedge_amp) gt 0 then if count_above_wedge gt 0 then begin
       weighted_power = weighted_power[wh_above_wedge]
-      weighted_noise_expval = weighted_noise_expval[wh_above_wedge]
-      weights_use = weights_use[wh_above_wedge]
+      if n_elements(weighted_noise_expval) gt 0 then weighted_noise_expval = weighted_noise_expval[wh_above_wedge]
+      if n_elements(weights_use) gt 0 then weights_use = weights_use[wh_above_wedge]
     endif
     
     n_k = n_elements(k_hist)
     power_1d = dblarr(n_k)
-    nev_1d = dblarr(n_k)
+    if n_elements(weighted_noise_expval) gt 0 then nev_1d = dblarr(n_k)
     weights_1d = dblarr(n_k)
     norm = dblarr(n_k)
     
@@ -371,8 +364,9 @@ function kspace_rebinning_1d, power, k1_mpc, k2_mpc, k3_mpc, k_edges_mpc, k_bin 
       if k_hist[i] ne 0 then begin
         inds = k_ri[k_ri[i] : k_ri[i+1]-1]
         power_1d[i] = total(weighted_power[inds])
-        nev_1d[i] = total(weighted_noise_expval[inds])
-        weights_1d[i] = total(weights_use[inds])
+        if n_elements(weighted_noise_expval) gt 0 then nev_1d[i] = total(weighted_noise_expval[inds])
+        if n_elements(weights_use) gt 0 then weights_1d[i] = total(weights_use[inds]) $
+        else weights_1d[i] = k_hist[i]
         norm[i] = k_hist[i]
       endif
     endfor
@@ -390,11 +384,11 @@ function kspace_rebinning_1d, power, k1_mpc, k2_mpc, k3_mpc, k_edges_mpc, k_bin 
   
   
   power_ave = power_1d/weights_1d
-  noise_expval_1d = nev_1d/weights_1d
+  if n_elements(nev_1d) gt 0 then noise_expval_1d = nev_1d/weights_1d
   wh = where(weights_1d eq 0, count)
   if count ne 0 then begin
     power_ave[wh] = 0d
-    noise_expval_1d[wh] = 0d
+    if n_elements(nev_1d) gt 0 then noise_expval_1d[wh] = 0d
   endif
   
   return, power_ave

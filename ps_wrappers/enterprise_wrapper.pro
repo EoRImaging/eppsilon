@@ -1,15 +1,18 @@
 pro enterprise_wrapper, folder_name, obs_name, data_subdirs=data_subdirs, rts = rts, no_wtvar_rts = no_wtvar_rts, $
-    refresh_dft = refresh_dft, refresh_ps = refresh_ps, refresh_info = refresh_info, refresh_rtscube = refresh_rtscube, $
-    refresh_binning = refresh_binning, refresh_beam = refresh_beam, pol_inc = pol_inc, no_spec_window = no_spec_window, $
+    refresh_dft = refresh_dft, refresh_ps = refresh_ps, refresh_info = refresh_info, $
+    refresh_rtscube = refresh_rtscube, refresh_binning = refresh_binning, refresh_beam = refresh_beam, $
+    pol_inc = pol_inc, no_spec_window = no_spec_window, $
     spec_window_type = spec_window_type, sim = sim, uvf_input = uvf_input, $
     freq_ch_range = freq_ch_range, individual_plots = individual_plots, $
-    kperp_range_1dave = kperp_range_1dave, kperp_range_lambda_1dave = kperp_range_lambda_1dave, kpar_range_1dave = kpar_range_1dave, $
-    plot_kpar_power = plot_kpar_power, plot_kperp_power = plot_kperp_power, plot_k0_power = plot_k0_power, plot_noise_1d = plot_noise_1d, $
-    coarse_harm_width = coarse_harm_width, $
+    kperp_range_1dave = kperp_range_1dave, kperp_range_lambda_1dave = kperp_range_lambda_1dave, $
+    kpar_range_1dave = kpar_range_1dave, plot_kpar_power = plot_kpar_power, plot_kperp_power = plot_kperp_power, $
+    plot_k0_power = plot_k0_power, plot_noise_1d = plot_noise_1d, $
+    coarse_harm_width = coarse_harm_width, kpar_plot_range = kpar_plot_range, $
     png = png, eps = eps, pdf = pdf, plot_stdset = plot_stdset, $
     plot_slices = plot_slices, slice_type = slice_type, max_uv_lambda = max_uv_lambda, $
     kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, set_data_ranges = set_data_ranges,$
-    cube_power_info = cube_power_info, ps_foldername = ps_foldername
+    cube_power_info = cube_power_info, ps_foldername = ps_foldername, data_range = data_range, $
+    norm_rts_with_fhd = norm_rts_with_fhd
     
   ;; The only required input is the datafile name (including the full path)
     
@@ -33,7 +36,8 @@ pro enterprise_wrapper, folder_name, obs_name, data_subdirs=data_subdirs, rts = 
   
     if n_elements(folder_name) eq 0 then folder_name = '/data3/MWA/bpindor/RTS/feb_9/'
     
-    ;; check for folder existence, otherwise look for common folder names to figure out full path. If none found, try '/data3/MWA/bpindor/RTS/'
+    ;; check for folder existence, otherwise look for common folder names to figure out full path.
+    ;; If none found, try '/data3/MWA/bpindor/RTS/'
     start_path = '/data3/MWA/bpindor/RTS/'
     folder_test = file_test(folder_name, /directory)
     if folder_test eq 0 then begin
@@ -54,7 +58,7 @@ pro enterprise_wrapper, folder_name, obs_name, data_subdirs=data_subdirs, rts = 
     
     if n_elements(ps_foldername) eq 0 then ps_foldername = 'ps/'
     save_path = folder_name + '/' + ps_foldername
-        obs_info = ps_filenames(folder_name, obs_name, rts = rts, sim = sim, casa = casa, $
+    obs_info = ps_filenames(folder_name, obs_name, rts = rts, sim = sim, casa = casa, $
       save_paths = save_path, plot_path = save_path, refresh_info = refresh_info, no_wtvar_rts = no_wtvar_rts)
       
     if obs_info.info_files[0] ne '' then datafile = obs_info.info_files[0] else $
@@ -62,10 +66,13 @@ pro enterprise_wrapper, folder_name, obs_name, data_subdirs=data_subdirs, rts = 
       datafile = rts_fits2idlcube(obs_info.datafiles.(0), obs_info.weightfiles.(0), obs_info.variancefiles.(0), $
       pol_inc, save_path = obs_info.folder_names[0]+path_sep(), refresh = refresh_dft, no_wtvar = no_wtvar_rts)
       
-    if keyword_set(refresh_rtscube) then datafile = rts_fits2idlcube(obs_info.datafiles.(0), obs_info.weightfiles.(0), obs_info.variancefiles.(0), $
+    if keyword_set(refresh_rtscube) then $
+      datafile = rts_fits2idlcube(obs_info.datafiles.(0), obs_info.weightfiles.(0), obs_info.variancefiles.(0), $
       pol_inc, save_path = obs_info.folder_names[0]+path_sep(), /refresh, no_wtvar = no_wtvar_rts)
       
-    if keyword_set(no_wtvar_rts) then stop
+    if keyword_set(no_wtvar_rts) then return
+    
+    max_uv_lambda = 300
     
     note = obs_info.rts_types
     if not file_test(save_path, /directory) then file_mkdir, save_path
@@ -106,7 +113,7 @@ pro enterprise_wrapper, folder_name, obs_name, data_subdirs=data_subdirs, rts = 
     else  plot_filebase = obs_info.fhd_types[0]
     if stregex(obs_info.fhd_types[0], obs_info.obs_names[0], /boolean) eq 0 then $
       plot_filebase = plot_filebase + '_' + obs_info.obs_names[0]
-
+      
     note = obs_info.fhd_types[0]
     if keyword_set(uvf_input) then note = note + '_uvf'
     
@@ -140,7 +147,8 @@ pro enterprise_wrapper, folder_name, obs_name, data_subdirs=data_subdirs, rts = 
     
   endelse
   
-  ;; dft_fchunk applies only to Healpix datasets (it's ignored otherwise) and it specifies how many frequencies to process
+  ;; dft_fchunk applies only to Healpix datasets (it's ignored otherwise) and it specifies how many
+  ;;   frequencies to process
   ;;   through the dft at once. This keyword allows for trade-offs between memory use and speed.
   ;; The optimum setting varies by computer and the speed is NOT a linear function of this parameter
   ;;   (it's not even monotonic) so some experimenting is required. The memory required is approximately linear --
@@ -172,7 +180,8 @@ pro enterprise_wrapper, folder_name, obs_name, data_subdirs=data_subdirs, rts = 
   ;; The default is ['xx,'yy']
   
   ;; cut_image keyword only applies to Healpix datasets. It allows for limiting the field of view in the
-  ;; image plane by only using Healpix pixels inside a 30 degree diameter circle centered in the middle of the field.
+  ;; image plane by only using Healpix pixels inside a 30 degree diameter circle
+  ;; centered in the middle of the field.
   ;; Currently defaults to on. Set equal to 0 to turn it off, 1 to turn it on
   
   
@@ -192,31 +201,45 @@ pro enterprise_wrapper, folder_name, obs_name, data_subdirs=data_subdirs, rts = 
   ;; options for plotting:
   ;; kperp_linear_axis is a flag, set to 1 to use a linear kperp axis (default is log axis)
   ;; kpar_linear_axis is a flag, set to 1 to use a linear kpar axis (default is log axis)
-  ;; data_range specifies the min & max value of the signal colorbar (values outside that range are clipped to those values)
+  ;; data_range specifies the min & max value of the signal colorbar (values outside that range are
+  ;     clipped to those values)
   ;; sigma_range, nev_range, snr_range, noise_range, nnr_range control the other colorbar ranges
-  ;; baseline_axis is a flag (defaulted to true) to mark baseline; length along top axis of 2d plots (set to 0 to turn off)
-  ;; delay_axis is a flag (defaulted to true) to mark delay time along right axis of 2d plots (set to 0 to turn off)
-  ;; hinv is a flag (defaulted to true) to use h^-1 Mpc rather than physical Mpc in plot units (set to 0 to turn off)
-  ;; plot_wedge_line is a flag (defaulted to true) to plot a line marking the wedge (both horizon & FoV) (set to 0 to turn off)
+  ;; baseline_axis is a flag (defaulted to true) to mark baseline; length along top axis of 2d plots
+  ;     (set to 0 to turn off)
+  ;; delay_axis is a flag (defaulted to true) to mark delay time along right axis of 2d plots
+  ;    (set to 0 to turn off)
+  ;; hinv is a flag (defaulted to true) to use h^-1 Mpc rather than physical Mpc in plot units
+  ;    (set to 0 to turn off)
+  ;; plot_wedge_line is a flag (defaulted to true) to plot a line marking the wedge (both horizon & FoV)
+  ;    (set to 0 to turn off)
   ;; pub is a flag to make save plots as eps files rather than displaying to the screen
   
-  ps_main_plots, datafile, beamfiles = beamfiles, plot_path = plot_path, plot_filebase = plot_filebase, save_path = save_path, savefilebase = savefilebase, $
-    pol_inc = pol_inc, rts = rts, casa = casa, dft_fchunk=dft_fchunk, $
-    refresh_dft = refresh_dft, refresh_ps = refresh_ps, refresh_binning = refresh_binning, refresh_info = refresh_info, refresh_beam = refresh_beam, $
+  ps_main_plots, datafile, beamfiles = beamfiles, plot_path = plot_path, plot_filebase = plot_filebase, $
+    save_path = save_path, savefilebase = savefilebase, pol_inc = pol_inc, rts = rts, casa = casa, $
+    refresh_dft = refresh_dft, refresh_ps = refresh_ps, refresh_binning = refresh_binning, $
+    refresh_info = refresh_info, refresh_beam = refresh_beam, $
     freq_ch_range = freq_ch_range, freq_flags = freq_flags, freq_flag_name = freq_flag_name, $
-    no_spec_window = no_spec_window, spec_window_type = spec_window_type, std_power = std_power, no_wtd_avg = no_wtd_avg, $
-    sim = sim, cut_image = cut_image, dft_ian = dft_ian, uvf_input = uvf_input, uv_avg = uv_avg, uv_img_clip = uv_img_clip, $
+    max_uv_lambda = max_uv_lambda, no_spec_window = no_spec_window, spec_window_type = spec_window_type, $
+    std_power = std_power, no_wtd_avg = no_wtd_avg, $
+    sim = sim, cut_image = cut_image, dft_ian = dft_ian, $
+    uvf_input = uvf_input, uv_avg = uv_avg, uv_img_clip = uv_img_clip, $
     log_kpar = log_kpar, log_kperp = log_kperp, kpar_bin = kpar_bin, kperp_bin = kperp_bin, $
     log_k1d = log_k1d, k1d_bin = k1d_bin, $
-    kperp_range_1dave = kperp_range_1dave, kperp_range_lambda_1dave = kperp_range_lambda_1dave, kpar_range_1dave = kpar_range_1dave, $
-    kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
+    kperp_range_1dave = kperp_range_1dave, kperp_range_lambda_1dave = kperp_range_lambda_1dave, $
+    kpar_range_1dave = kpar_range_1dave, $
+    kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, $
+    kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
     plot_slices = plot_slices, slice_type = slice_type, uvf_plot_type = uvf_plot_type, plot_stdset = plot_stdset, $
-    plot_kpar_power = plot_kpar_power, plot_kperp_power = plot_kperp_power, plot_k0_power = plot_k0_power, plot_noise_1d = plot_noise_1d, $
-    data_range = data_range, sigma_range = sigma_range, nev_range = nev_range, snr_range = snr_range, noise_range = noise_range, nnr_range = nnr_range, $
+    plot_kpar_power = plot_kpar_power, plot_kperp_power = plot_kperp_power, plot_k0_power = plot_k0_power, $
+    plot_noise_1d = plot_noise_1d, $
+    data_range = data_range, sigma_range = sigma_range, nev_range = nev_range, snr_range = snr_range, $
+    noise_range = noise_range, nnr_range = nnr_range, $
     range_1d = range_1d, slice_range = slice_range, $
     baseline_axis = baseline_axis, delay_axis = delay_axis, hinv = hinv, $
     plot_wedge_line = plot_wedge_line, coarse_harm_width = coarse_harm_width, plot_eor_1d = plot_eor_1d, $
-    individual_plots = individual_plots, note = note, png = png, eps = eps, pdf = pdf, cube_power_info = cube_power_info
+    individual_plots = individual_plots, note = note, png = png, eps = eps, pdf = pdf, $
+    cube_power_info = cube_power_info, $
+    norm_rts_with_fhd = norm_rts_with_fhd
     
     
   if not keyword_set(set_data_ranges)and keyword_set(plot_stdset) then begin
@@ -225,7 +248,8 @@ pro enterprise_wrapper, folder_name, obs_name, data_subdirs=data_subdirs, rts = 
     print, 'nev_range used: ', number_formatter(nev_range, format = '(e7.1)')
     if n_elements(nnr_range) gt 0 then print, 'nnr_range used: ', number_formatter(nnr_range, format = '(e7.1)')
     print, 'snr_range used: ', number_formatter(snr_range, format = '(e7.1)')
-    if n_elements(noise_range) gt 0 then print, 'noise_range used: ', number_formatter(noise_range, format = '(e7.1)')
+    if n_elements(noise_range) gt 0 then print, 'noise_range used: ', $
+      number_formatter(noise_range, format = '(e7.1)')
   endif
   
 end
