@@ -6,7 +6,7 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
     std_power = std_power, inverse_covar_weight = inverse_covar_weight, $
     input_units = input_units, uvf_input = uvf_input, $
     uv_avg = uv_avg, uv_img_clip = uv_img_clip, no_dft_progress = no_dft_progress
-    
+      
   if tag_exist(file_struct, 'nside') ne 0 then healpix = 1 else healpix = 0
   if keyword_set(uvf_input) or tag_exist(file_struct, 'uvf_savefile') eq 0 then uvf_input = 1 else uvf_input = 0
   nfiles = n_elements(file_struct.datafile)
@@ -1539,38 +1539,49 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
   
   if keyword_set(inverse_covar_weight) then begin
   
-    max_eta_val = 1e4
+    max_eta_val = max(sum_sigma2)
     eta_var = shift([max_eta_val, fltarr(n_freq-1)], n_freq/2)
     covar_eta_fg = diag_matrix(eta_var)
     
+    identity = diag_matrix([fltarr(n_freq)+1d])
     ft_matrix = fft(identity, dimension=1)*n_freq*z_mpc_delta
     inv_ft_matrix = fft(identity, dimension=1, /inverse)*kz_mpc_delta
+    undefine, identity
     
     covar_z_fg = matrix_multiply(inv_ft_matrix, matrix_multiply(shift(covar_eta_fg, n_freq/2, n_freq/2), conj(inv_ft_matrix), /btranspose))
-    ;covar_f = fltarr(n_kx, n_ky, n_freq, n_freq)
+
     wt_data_sum = fltarr(n_kx, n_ky, n_freq)
-    wt_data_dif = fltarr(n_kx, n_ky, n_freq)
+    wt_data_diff = fltarr(n_kx, n_ky, n_freq)
     wt_sum_sigma2 = fltarr(n_kx, n_ky, n_freq)
+    wt_power_norm = fltarr(n_kx, n_ky, n_freq)
     for i=0, n_kx-1 do begin
       for j=0, n_ky-1 do begin
-        covar_z = diag_matrix(sum_sigma2[i,j,*]) + covar_z_fg
+        var_z_inst = reform(sum_sigma2[i,j,*])
+        if max(abs(var_z_inst)) eq 0 then continue
+        
+        ;; need to convert zeros which represet lack of measurements to infinities (or large numbers)
+        wh_var0 = where(var_z_inst eq 0, count_var0)
+        if count_var0 gt 0 then var_z_inst[wh_var0] = 1e6
+        
+        covar_z = diag_matrix(var_z_inst) + covar_z_fg
         inv_covar_z = la_invert(covar_z)
         inv_covar_kz = shift(matrix_multiply(ft_matrix, matrix_multiply(inv_covar_z, conj(ft_matrix), /btranspose)), n_freq/2, n_freq/2)
         
-        inv_var = 1/sum_sigma2[i,j,*]
-        wh_sigma0 = where(sum_sigma2[i,j,*] eq 0, count_sigma0)
-        if count_sigma0 gt 0 then vec_wt[wh_sigma0] = 0
-        norm = total(inv_var)^2./(n_freq*total(inv_var^2.))
+        inv_var = 1/var_z_inst
+        wh_sigma0 = where(var_z_inst eq 0, count_sigma0)
+        if count_sigma0 gt 0 then inv_var[wh_sigma0] = 0
+        norm2 = total(inv_var)^2./(n_freq*total(inv_var^2.))
         
-        wt_data_sum[i,j,*] = matrix_multiply(inv_covar_z, data_sum[i,j,*]) * z_mpc_delta/sqrt(norm*total(abs(inv_covar_kz)^2.,2)*kz_mpc_delta)
-        wt_data_diff[i,j,*] = matrix_multiply(inv_covar_z, data_diff[i,j,*]) * z_mpc_delta/sqrt(norm*total(abs(inv_covar_kz)^2.,2)*kz_mpc_delta)
+        wt_data_sum[i,j,*] = matrix_multiply(inv_covar_z, reform(data_sum[i,j,*])) * z_mpc_delta
+        wt_data_diff[i,j,*] = matrix_multiply(inv_covar_z, reform(data_diff[i,j,*])) * z_mpc_delta
+        wt_power_norm[i,j,*] = norm2 * total(abs(inv_covar_kz)^2.,2) * kz_mpc_delta
         
-        wt_sum_sigma2[i,j,*] = shift(matrix_multiply(inv_covar_z, matrix_multiply(sum_sigma2[i,j,*], conj(inv_covar_z), /btranspose)), n_freq/2, n_freq/2)$
-          /(norm*total(abs(inv_covar_kz)^2.,2)*kz_mpc_delta)
+        wt_sum_sigma2[i,j,*] = diag_matrix(shift(matrix_multiply(inv_covar_z, matrix_multiply(diag_matrix(var_z_inst), conj(inv_covar_z), /btranspose)), n_freq/2, n_freq/2))
+
       endfor
     endfor
-    undefine, covar_f_fg
-    
+    undefine, covar_z_fg, ft_matrix, inv_ft_matrix, covar_z, inv_covar_z, inv_covar_kz
+
     data_sum = temporary(wt_data_sum)
     data_diff = temporary(wt_data_diff)
     sum_sigma2 = temporary(wt_sum_sigma2)
