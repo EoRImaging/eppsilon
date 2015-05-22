@@ -144,14 +144,14 @@ function ps_filenames, folder_names, obs_names_in, rts = rts, sim = sim, uvf_inp
         weightfile_list = ''
         variancefile_list = ''
       endif else begin
-          ;; now get weights & variance files
-          weightfile_list = file_search(folder_names[i] + '/' + data_subdirs[i] + obs_names[i] + '*_weights*MHz*.fits', count = n_wtfiles)
-          if not keyword_set(no_wtvar_rts) then if n_wtfiles ne n_elements(fits_files) and info_files[i] eq '' $
-            then message, 'number of weight files does not match number of datafiles'
+        ;; now get weights & variance files
+        weightfile_list = file_search(folder_names[i] + '/' + data_subdirs[i] + obs_names[i] + '*_weights*MHz*.fits', count = n_wtfiles)
+        if not keyword_set(no_wtvar_rts) then if n_wtfiles ne n_elements(fits_files) and info_files[i] eq '' $
+          then message, 'number of weight files does not match number of datafiles'
           
-          variancefile_list = file_search(folder_names[i] + '/' + data_subdirs[i] + obs_names[i] + '*_variance*MHz*.fits', count = n_varfiles)
-          if not keyword_set(no_wtvar_rts) then if n_varfiles ne n_elements(fits_files) and info_files[i] eq '' $
-            then message, 'number of variance files does not match number of datafiles'
+        variancefile_list = file_search(folder_names[i] + '/' + data_subdirs[i] + obs_names[i] + '*_variance*MHz*.fits', count = n_varfiles)
+        if not keyword_set(no_wtvar_rts) then if n_varfiles ne n_elements(fits_files) and info_files[i] eq '' $
+          then message, 'number of variance files does not match number of datafiles'
       endelse
       
       if i eq 0 then begin
@@ -262,6 +262,7 @@ function ps_filenames, folder_names, obs_names_in, rts = rts, sim = sim, uvf_inp
       weightfiles:weightfiles, variancefiles:variancefiles, casa_types:casa_types, plot_paths:plot_paths, save_paths:save_paths}
       
   endif else begin
+    ; FHD
     obs_names = strarr(n_filesets)
     fhd_types = strarr(n_filesets)
     folder_basenames = strarr(n_filesets)
@@ -287,6 +288,7 @@ function ps_filenames, folder_names, obs_names_in, rts = rts, sim = sim, uvf_inp
       endelse
       
       if keyword_set(uvf_input) then uvf_info_tag = 'uvf' else uvf_info_tag = ''
+      
       ;; first look for integrated info files in save_paths with names like Combined_obs_...
       if keyword_set(exact_obsnames) then info_file = file_search(save_paths[i] +  'Combined_obs_' + obs_names[i] + '_cube*' + uvf_info_tag + '*info*', count = n_infofile) $
       else info_file = file_search(save_paths[i] +  'Combined_obs_' + obs_names[i] + '*_cube*' + uvf_info_tag + '*info*', count = n_infofile)
@@ -529,6 +531,7 @@ function ps_filenames, folder_names, obs_names_in, rts = rts, sim = sim, uvf_inp
               endif
               
             endif else begin
+              ;; obsname not an empty string
               if max(pol_exist) gt 0 then begin
                 if min(pol_exist) eq 0 then message, 'some files with given obs_name have pol identifiers and some do not'
                 pols = stregex(cube_basename, '[xy][xy]', /extract, /fold_case)

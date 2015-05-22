@@ -2,11 +2,11 @@ pro cube_images, folder_names, obs_info, nvis_norm = nvis_norm, pols = pols, cub
     rts = rts, png = png, eps = eps, pdf = pdf, slice_range = slice_range, sr2 = sr2, $
     ratio = ratio, diff_ratio = diff_ratio, diff_frac = diff_frac, $
     log = log, data_range = data_range, color_profile = color_profile, sym_color = sym_color, $
-    window_num = window_num, plot_as_map = plot_as_map
+    window_num = window_num, plot_as_map = plot_as_map, plotfile = plotfile_out
     
   filenames = strarr(max([n_elements(obs_info.obs_names), n_elements(evenodd)]))
   
-  if n_elements(cube_types) eq 0 then cube_types = 'res'
+  if n_elements(cube_types) eq 0 then cube_types = 'dirty'
   if n_elements(cube_types) gt 2 then message, 'No more than 2 cube_types can be supplied'
   if n_elements(pols) eq 0 then pols = 'xx'
   if n_elements(pols) gt 2 then message, 'No more than 2 pols can be supplied'
@@ -154,6 +154,13 @@ pro cube_images, folder_names, obs_info, nvis_norm = nvis_norm, pols = pols, cub
     
     if keyword_set(diff_ratio) then plotfile = plot_path + plot_filebase + '_imagenormdiff' $
     else if keyword_set(ratio) then plotfile = plot_path + plot_filebase + '_imageratio' else plotfile = plot_path + plot_filebase + '_image'
+
+    if n_elements(slice_range) gt 0 then begin
+      plotfile = plotfile + '_ch' + number_formatter(min(slice_range))
+      if n_elements(slice_range) eq 2 then plotfile = plotfile + '-' + number_formatter(max(slice_range))
+    endif
+    
+    plotfile_out = plotfile
   endif
   
   hpx_inds1 = getvar_savefile(filenames[0], pixel_varnames[0])

@@ -65,9 +65,10 @@ pro mit_cube_images, folder_names, obs_names_in, exact_obsnames = exact_obsnames
   endfor
   
   save_paths = folder_names + '/ps/'
+  plot_paths = save_paths + 'plots/'
   if n_elements(data_subdirs) eq 0 then data_subdirs = 'Healpix/' else if n_elements(data_subdirs) gt 2 then message, 'No more than 2 data_subdirs can be supplied.'
   obs_info = ps_filenames(folder_names, obs_names_in, exact_obsnames = exact_obsnames, rts = rts, sim = sim, casa = casa, $
-    data_subdirs = data_subdirs, save_paths = save_paths, plot_paths = save_paths)
+    data_subdirs = data_subdirs, save_paths = save_paths, plot_paths = plot_paths)
     
   cube_images, folder_names, obs_info, nvis_norm = nvis_norm, pols = pols, cube_types = cube_types, evenodd = evenodd, $
     png = png, eps = eps, pdf = pdf, slice_range = slice_range, sr2 = sr2, $
