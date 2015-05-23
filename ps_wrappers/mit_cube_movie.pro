@@ -1,10 +1,29 @@
+; Wrapper to make movies for FHD output image cubes.
+; Movies can run over frequencies, obsids or a set of supplied files.
+; This wrapper also supports making movies over differenced or ratioed images
+;    (anything supported by ps_core/cube_images)
+; To make a movie over frequency, simply specify 1-2 folder_names and
+;    optionally 1-2 obs_names_in, cube_types, pols & even/odd designations
+;    (specifying 2 sets results in differencing by default but ratios and difference ratios are optional)
+;   by default, movies over frequency will make one frame per frequency,
+;   for averaging use the n_freq_frames keyword (number of channels averaged per frame = n_freq/n_freq_frames)
+; To make a movie over all obsids in a given folder, specify the folder and set keyword movie_axis = 'obsid'
+;   As above, cube_types, pols & even/odd designations are available
+; To make a movie over a set of supplied files, supply a list of folder_names &/or obs_names_in
+;
+; The individual frame images are deleted by default, to prevent this set delete_images = 0
+;
+; The movie file name can be defined using the movie_file keyword,
+;   otherwise a default choice is made and the filename used is reported
+;
+;
 pro mit_cube_movie, folder_names, obs_names_in, exact_obsnames = exact_obsnames, data_subdirs=data_subdirs, $
     movie_axis = movie_axis, cube_types = cube_types, pols = pols, evenodd = evenodd, $
     rts = rts, sim = sim, casa = casa, png = png, slice_range = slice_range, sr2 = sr2, $
     nvis_norm = nvis_norm, ratio = ratio, diff_ratio = diff_ratio, diff_frac = diff_frac, $
     log = log, data_range = data_range, color_profile = color_profile, sym_color = sym_color, $
     window_num = window_num, plot_as_map = plot_as_map, $
-    delete_images = delete_images, n_freq_frames = n_freq_frames
+    delete_images = delete_images, n_freq_frames = n_freq_frames, movie_file = movie_file
     
   if n_elements(evenodd) eq 0 then evenodd = 'even'
   
@@ -202,6 +221,8 @@ pro mit_cube_movie, folder_names, obs_names_in, exact_obsnames = exact_obsnames,
         
       plotfiles[i] = temp
       undefine, temp
+      
+      if n_elements(slice_range) eq 0 then undefine, slice_range_use
     endfor
   endelse
   
@@ -209,12 +230,26 @@ pro mit_cube_movie, folder_names, obs_names_in, exact_obsnames = exact_obsnames,
     have_exten = stregex(plotfiles, '.png' ,/boolean)
     if min(have_exten) eq 0 then plotfiles[where(have_exten eq 0)] += '.png'
     
-    if movie_axis eq 'frequency' then begin
-      ch_loc = stregex(plotfiles[0], '_ch[0-9]+')
-      movie_file = strmid(plotfiles[0], 0, ch_loc)
-      if n_freq_per_frame gt 1 then movie_file = movie_file + '_' + number_formatter(n_freq_per_frame) + 'chave'
-      movie_file = movie_file + '_freq_movie.gif'
-    endif else stop
+    if n_elements(movie_file) eq 0 then begin
+      case movie_axis of
+        'frequency':  begin
+          ch_loc = stregex(plotfiles[0], '_ch[0-9]+')
+          movie_file = strmid(plotfiles[0], 0, ch_loc)
+          if n_freq_per_frame gt 1 then movie_file = movie_file + '_' + number_formatter(n_freq_per_frame) + 'chave'
+          movie_file = movie_file + '_freq_movie.gif'
+        end
+        'obsid': begin
+          temp = stregex(plotfiles[0], obs_info[0].obs_names, length = temp2)
+          movie_file = strmid(plotfiles[0], 0, temp) + obs_info[0].obs_names + '-' + $
+            obs_info[n_frames-1].obs_names + strmid(plotfiles[0], temp + temp2)
+            
+          movie_file = movie_file + '_obsid_movie.gif'
+        end
+        'file': begin
+          movie_file = plotfiles[0] + '_file_movie.gif'
+        end
+      endcase
+    endif
     
     cmd = 'convert -delay 20 -loop 0 ' + strjoin(plotfiles, ' ') + ' ' + movie_file
     
