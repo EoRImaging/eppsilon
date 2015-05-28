@@ -322,8 +322,8 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, wei
     temp = [wh_kpar_inrange, wh_kpar_inrange[n_kpar_plot-1]+1]
     kpar_edges_use = kpar_edges_use[temp]
 
-    max_delay_plot = delay_params[1] * n_kpar_plot / n_kpar
-
+    max_delay_plot = delay_params[1] * n_kpar_plot / float(n_kpar)
+    
     n_kpar = n_kpar_plot    
   endif else max_delay_plot = delay_params[1]
   
