@@ -826,7 +826,7 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, wei
     color = annotate_color
   if keyword_set(delay_axis) then begin
     min_delay_plot = 2d*alog10(delay_params[0]) - alog10(delay_params[0]*2) ;; in analogy with min kperp/par with 0 bins
-    cgaxis, yaxis=1, yrange = [min_delay_plot, delay_params[1]], ytickformat = ytickformat, charthick = charthick, xthick = xthick, $
+    cgaxis, yaxis=1, yrange = [min_delay_plot, max_delay_plot], ytickformat = ytickformat, charthick = charthick, xthick = xthick, $
       ythick = ythick, charsize = charsize, font = font, ystyle = 1, color = annotate_color
       
     cgtext, xloc_delay, yloc_delay, '(ns)', /normal, alignment=0.5, charsize=charsize*0.9, $
