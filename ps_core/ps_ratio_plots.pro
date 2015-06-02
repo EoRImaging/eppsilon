@@ -1,9 +1,11 @@
 pro ps_ratio_plots, folder_names, obs_info, cube_types, pols, all_pol_diff_ratio = all_pol_diff_ratio, $
-    plot_path = plot_path, plot_filebase = plot_filebase, save_path = save_path, savefilebase = savefilebase, $
+    freq_ch_range = freq_ch_range, $plot_path = plot_path, plot_filebase = plot_filebase, $
+    save_path = save_path, savefilebase = savefilebase, $
     note = note, spec_window_types = spec_window_types, data_range = data_range, $
     kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, $
     diff_ratio = diff_ratio, diff_range = diff_range, diff_min_abs = diff_min_abs, $
-    plot_wedge_line = plot_wedge_line, quiet = quiet, png = png, eps = eps, pdf = pdf, window_num = window_num
+    plot_wedge_line = plot_wedge_line, quiet = quiet, png = png, eps = eps, pdf = pdf, $
+    window_num = window_num
     
   if n_elements(obs_info.info_files) gt 2 then message, 'Only 1 or 2 info_files can be used'
   
@@ -136,8 +138,10 @@ pro ps_ratio_plots, folder_names, obs_info, cube_types, pols, all_pol_diff_ratio
   if keyword_set(pub) and not file_test(plot_path, /directory) then file_mkdir, plot_path
   
   
-  file_struct_arr1 = fhd_file_setup(obs_info.info_files[0], pol_inc, spec_window_type = spec_window_types[0])
-  if n_elements(obs_info.info_files) eq 2 then file_struct_arr2 = fhd_file_setup(obs_info.info_files[1], pol_inc, spec_window_type = spec_window_types[max_sw]) $
+  file_struct_arr1 = fhd_file_setup(obs_info.info_files[0], pol_inc, $
+    spec_window_type = spec_window_types[0], freq_ch_range = freq_ch_range)
+  if n_elements(obs_info.info_files) eq 2 then file_struct_arr2 = fhd_file_setup(obs_info.info_files[1], $
+    pol_inc, spec_window_type = spec_window_types[max_sw], freq_ch_range = freq_ch_range) $
   else file_struct_arr2 = file_struct_arr1
   
   if keyword_set(diff_ratio) or keyword_set(all_pol_diff_ratio) then begin
@@ -213,7 +217,14 @@ pro ps_ratio_plots, folder_names, obs_info, cube_types, pols, all_pol_diff_ratio
   
   if keyword_set(plot_wedge_line) then begin
     z0_freq = 1420.40 ;; MHz
-    redshifts = z0_freq/file_struct_arr1[0].frequencies - 1 ;; frequencies will be identical if kx, ky, kz match
+    
+    freq_use = file_struct_arr[0].frequencies
+    if n_elements(freq_ch_range) ne 0 then begin
+      if max(freq_ch_range) gt n_elements(freq_use)-1 then message, 'invalid freq_ch_range'
+      freq_use = freq_use[freq_ch_range[0]:freq_ch_range[1]]
+    endif
+    
+    redshifts = z0_freq/freq_use - 1 ;; frequencies will be identical if kx, ky, kz match
     mean_redshift = mean(redshifts)
     
     cosmology_measures, mean_redshift, wedge_factor = wedge_factor
