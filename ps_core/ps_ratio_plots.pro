@@ -1,5 +1,5 @@
 pro ps_ratio_plots, folder_names, obs_info, cube_types, pols, all_pol_diff_ratio = all_pol_diff_ratio, $
-    freq_ch_range = freq_ch_range, $plot_path = plot_path, plot_filebase = plot_filebase, $
+    freq_ch_range = freq_ch_range, plot_path = plot_path, plot_filebase = plot_filebase, $
     save_path = save_path, savefilebase = savefilebase, $
     note = note, spec_window_types = spec_window_types, data_range = data_range, $
     kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, $
