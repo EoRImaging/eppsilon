@@ -31,6 +31,13 @@ pro ps_ratio_plots, folder_names, obs_info, cube_types, pols, all_pol_diff_ratio
     endelse
   endif else sw_tags = ''
   
+  
+  if n_elements(freq_ch_range) ne 0 then begin
+    if min(freq_ch_range) lt 0 or max(freq_ch_range) - min(freq_ch_range) lt 3 then message, 'invalid freq_ch_range'
+    fch_tag = '_ch' + number_formatter(min(freq_ch_range)) + '-' + number_formatter(max(freq_ch_range))
+  endif else fch_tag = ''
+
+
   if n_elements(obs_info.info_files) eq 2 or n_elements(spec_window_types) eq 2 $
     and n_elements(cube_types) eq 0 and n_elements(pols) eq 0 $
     and n_elements(all_pol_diff_ratio) eq 0 and n_elements(diff_ratio) eq 0 then all_pol_diff_ratio = 1
@@ -134,6 +141,7 @@ pro ps_ratio_plots, folder_names, obs_info, cube_types, pols, all_pol_diff_ratio
     endif else plot_filebase = obs_info.name_same_parts + '__' + strjoin([obs_info.name_diff_parts[0], cube_types[0], pols[0]], '_') + sw_tags[0] + $
       '_over_' + strjoin([obs_info.name_diff_parts[1], cube_types[max_type], pols[max_pol]], '_') + sw_tags[max_sw]
   endelse
+  plot_filebase = plot_filebase + fch_tag
   
   if keyword_set(pub) and not file_test(plot_path, /directory) then file_mkdir, plot_path
   

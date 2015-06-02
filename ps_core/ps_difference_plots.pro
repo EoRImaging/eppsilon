@@ -28,6 +28,13 @@ pro ps_difference_plots, folder_names, obs_info, cube_types, pols, all_type_pol 
     endelse
   endif else sw_tags = ''
   
+  
+  if n_elements(freq_ch_range) ne 0 then begin
+    if min(freq_ch_range) lt 0 or max(freq_ch_range) - min(freq_ch_range) lt 3 then message, 'invalid freq_ch_range'
+    fch_tag = '_ch' + number_formatter(min(freq_ch_range)) + '-' + number_formatter(max(freq_ch_range))
+  endif else fch_tag = ''
+    
+  
   n_diffs = max([n_elements(obs_info.info_files), n_elements(cube_types), n_elements(pols), n_elements(spec_window_types)])
   if n_diffs gt 2 then message, 'only 1 or 2 of [folder_names, obs_names, cube_types, pols, spec_window_types] allowed'
   
@@ -105,7 +112,7 @@ pro ps_difference_plots, folder_names, obs_info, cube_types, pols, all_type_pol 
     endif else plot_filebase = obs_info.name_same_parts + '__' + strjoin([obs_info.name_diff_parts[0], cube_types[0], pols[0]], '_') + sw_tags[0] + $
       '_minus_' + strjoin([obs_info.name_diff_parts[1], cube_types[max_type], pols[max_pol]], '_') + sw_tags[max_sw]
   endelse
-  
+  plot_filebase = plot_filebase + fch_tag 
   
   if not file_test(plot_path, /directory) then file_mkdir, plot_path
   if not file_test(save_path, /directory) then file_mkdir, save_path
