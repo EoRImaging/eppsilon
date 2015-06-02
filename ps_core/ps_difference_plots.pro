@@ -1,4 +1,5 @@
-pro ps_difference_plots, folder_names, obs_info, cube_types, pols, all_type_pol = all_type_pol, refresh_diff = refresh_diff, $
+pro ps_difference_plots, folder_names, obs_info, cube_types, pols, all_type_pol = all_type_pol, $
+    refresh_diff = refresh_diff, freq_ch_range = freq_ch_range, $
     plot_path = plot_path, plot_filebase = plot_filebase, save_path = save_path, savefilebase = savefilebase, $
     note = note, spec_window_types = spec_window_types, data_range = data_range, data_min_abs = data_min_abs, $
     kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, plot_1d = plot_1d, axis_type_1d=axis_type_1d, $
@@ -110,8 +111,10 @@ pro ps_difference_plots, folder_names, obs_info, cube_types, pols, all_type_pol 
   if not file_test(save_path, /directory) then file_mkdir, save_path
   
   
-  file_struct_arr1 = fhd_file_setup(obs_info.info_files[0], pol_inc, spec_window_type = spec_window_types[0])
-  if n_elements(obs_info.info_files) eq 2 then file_struct_arr2 = fhd_file_setup(obs_info.info_files[1], pol_inc, spec_window_type = spec_window_types[max_sw]) $
+  file_struct_arr1 = fhd_file_setup(obs_info.info_files[0], pol_inc, $
+    spec_window_type = spec_window_types[0], freq_ch_range = freq_ch_range)
+  if n_elements(obs_info.info_files) eq 2 then file_struct_arr2 = fhd_file_setup(obs_info.info_files[1], $
+    pol_inc, spec_window_type = spec_window_types[max_sw], freq_ch_range = freq_ch_range) $
   else file_struct_arr2 = file_struct_arr1
   type_pol_str1 = file_struct_arr1.type_pol_str
   type_pol_str2 = file_struct_arr2.type_pol_str
@@ -163,7 +166,14 @@ pro ps_difference_plots, folder_names, obs_info, cube_types, pols, all_type_pol 
   
   if keyword_set(plot_wedge_line) then begin
     z0_freq = 1420.40 ;; MHz
-    redshifts = z0_freq/file_struct_arr1[0].frequencies - 1 ;; frequencies will be identical if kx, ky, kz match
+    
+    freq_use = file_struct_arr[0].frequencies
+    if n_elements(freq_ch_range) ne 0 then begin
+      if max(freq_ch_range) gt n_elements(freq_use)-1 then message, 'invalid freq_ch_range'
+      freq_use = freq_use[freq_ch_range[0]:freq_ch_range[1]]
+    endif
+    
+    redshifts = z0_freq/freq_use - 1 ;; frequencies will be identical if kx, ky, kz match
     mean_redshift = mean(redshifts)
     
     cosmology_measures, mean_redshift, wedge_factor = wedge_factor
