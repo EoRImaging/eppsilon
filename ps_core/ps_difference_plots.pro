@@ -167,7 +167,7 @@ pro ps_difference_plots, folder_names, obs_info, cube_types, pols, all_type_pol 
   if keyword_set(plot_wedge_line) then begin
     z0_freq = 1420.40 ;; MHz
     
-    freq_use = file_struct_arr[0].frequencies
+    freq_use = file_struct_arr1[0].frequencies
     if n_elements(freq_ch_range) ne 0 then begin
       if max(freq_ch_range) gt n_elements(freq_use)-1 then message, 'invalid freq_ch_range'
       freq_use = freq_use[freq_ch_range[0]:freq_ch_range[1]]
