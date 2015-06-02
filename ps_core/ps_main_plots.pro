@@ -40,7 +40,7 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
   
   ;; if inverse covariance weighted don't use spectral window
   if keyword_set(inverse_covar_weight) then no_spec_window = 1
-   
+  
   ;; default to blackman-harris spectral window
   if not keyword_set(no_spec_window) then begin
     if n_elements(spec_window_type) eq 0 then spec_window_type = 'Blackman-Harris'
@@ -973,7 +973,7 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
   wt_ave_power_uvf_vals = fltarr(n_cubes)
   
   for k=0, n_cubes-1 do begin
-    
+  
     void = getvar_savefile(savefiles_1d[k,0,0], names=varnames)
     
     if max(strmatch(varnames, 'ave_power', /fold_case)) gt 0 then $
@@ -986,7 +986,9 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
       uv_area[k] = getvar_savefile(savefiles_1d[k,0,0], 'uv_area')
       
       nbsl_lambda2[k] = file_struct_arr[0].n_vis[0]/uv_area[k]
-      nbsl_lambda2_freq[k,*] = file_struct_arr[0].n_vis_freq[0,*]/uv_area[k]
+      if n_elements(freq_ch_range) gt 0 then $
+        nbsl_lambda2_freq[k,*] = file_struct_arr[0].n_vis_freq[0,freq_ch_range[0]:freq_ch_range[1]]/uv_area[k] $
+      else nbsl_lambda2_freq[k,*] = file_struct_arr[0].n_vis_freq[0,*]/uv_area[k]
     endif else begin
       uv_area[k] = -1
       nbsl_lambda2[k] = -1
