@@ -14,6 +14,7 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
     log_kpar = log_kpar, log_kperp = log_kperp, kpar_bin = kpar_bin, kperp_bin = kperp_bin, $
     log_k1d = log_k1d, k1d_bin = k1d_bin, plot_1d_delta = plot_1d_delta, plot_1d_error_bars = plot_1d_error_bars, $
     kperp_range_1dave = kperp_range_1dave, kperp_range_lambda_1dave = kperp_range_lambda_1dave, kpar_range_1dave = kpar_range_1dave, $
+    wt_cutoffs = wt_cutoffs, wt_measures = wt_measures, fix_sim_input = fix_sim_input, $
     kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, kperp_plot_range = kperp_plot_range, $
     kpar_plot_range = kpar_plot_range, $
     baseline_axis = baseline_axis, delay_axis = delay_axis, hinv = hinv, $
@@ -203,14 +204,6 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
   savefiles_2d = file_struct_arr.savefile_froot + file_struct_arr.savefilebase + power_tag + fadd_2dbin + '_2dkpower.idlsave'
   test_save_2d = file_test(savefiles_2d) *  (1 - file_test(savefiles_2d, /zero_length))
   
-  ;wt_measures = [strarr(2)+'ave', strarr(2)+'min']
-  ;wt_cutoffs = [0.5,1, 2, 0.5,1, 2]
-  
-  ;wt_measures = strarr(1)+'ave';, strarr(2)+'min']
-  ;wt_measures = strarr(3)+'min'
-  ;wt_measures=['ave','min']
-  ;wt_cutoffs = [2,1];, 2];, 1, 2]
-  
   if n_elements(wt_cutoffs) gt 0 then kperp_density_1dbin_names = ['', '_kperp_density_' + wt_measures + '_gt' + number_formatter(wt_cutoffs)] $
   else kperp_density_1dbin_names = ['']
   savefiles_1d = strarr(n_cubes, n_elements(kperp_density_1dbin_names), n_elements(wedge_1dbin_names))
@@ -387,7 +380,7 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
           std_power = std_power, inverse_covar_weight = inverse_covar_weight, no_wtd_avg = no_wtd_avg, no_kzero = no_kzero, sim=sim, $
           log_kpar = log_kpar, log_kperp = log_kperp, kpar_bin = kpar_bin, kperp_bin = kperp_bin, $
           kperp_range_1dave = kperp_range_1dave, kperp_range_lambda_1dave = kperp_range_lambda_1dave, kpar_range_1dave = kpar_range_1dave, $
-          wt_measures = wt_measures, wt_cutoffs = wt_cutoffs, $
+          wt_measures = wt_measures, wt_cutoffs = wt_cutoffs, fix_sim_input = fix_sim_input, $
           wedge_amp = wedge_amp, coarse_harm0 = coarse_harm0, coarse_width = coarse_harm_width, /quiet, no_dft_progress = no_dft_progress
       endif else $
         ps_power, file_struct_arr[i], kcube_refresh = refresh_ps, refresh_beam = refresh_beam, freq_ch_range = freq_ch_range, $
@@ -398,7 +391,7 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
         uvf_input = uvf_input, uv_avg = uv_avg, uv_img_clip = uv_img_clip, sim=sim, $
         log_kpar = log_kpar, log_kperp = log_kperp, kpar_bin = kpar_bin, kperp_bin = kperp_bin, $
         kperp_range_1dave = kperp_range_1dave, kperp_range_lambda_1dave = kperp_range_lambda_1dave, kpar_range_1dave = kpar_range_1dave, $
-        wt_measures = wt_measures, wt_cutoffs = wt_cutoffs, $
+        wt_measures = wt_measures, wt_cutoffs = wt_cutoffs, fix_sim_input = fix_sim_input, $
         wedge_amp = wedge_amp, coarse_harm0 = coarse_harm0, coarse_width = coarse_harm_width, /quiet, no_dft_progress = no_dft_progress
     endif
   endfor

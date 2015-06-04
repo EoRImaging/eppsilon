@@ -101,7 +101,7 @@ function kspace_rebinning_1d, power, k1_mpc, k2_mpc, k3_mpc, k_edges_mpc, k_bin 
     if n_elements(weighted_noise_expval) gt 0 then weighted_noise_expval = reform(weighted_noise_expval, n_kx*n_ky, n_kz)
     if n_elements(weights_use) gt 0 then weights_use = reform(weights_use, n_kx*n_ky, n_kz)
     if n_elements(kperp_density_measure) gt 0 and n_elements(kperp_density_cutoff) gt 0 $
-      then kperp_density_measure = reform(kperp_density_measure, n_kx*n_ky)
+      then kperp_density_measure_use = reform(kperp_density_measure, n_kx*n_ky)
       
     if n_elements(kperp_range) gt 0 then begin
       if  n_elements(kperp_range) ne 2 then message, 'kperp_range must be a 2 element vector'
@@ -116,19 +116,19 @@ function kspace_rebinning_1d, power, k1_mpc, k2_mpc, k3_mpc, k_edges_mpc, k_bin 
         weighted_power = weighted_power[wh_good,*]
         if n_elements(weights_use) gt 0 then weights_use = weights_use[wh_good,*]
         if n_elements(weighted_noise_expval) gt 0 then weighted_noise_expval = weighted_noise_expval[wh_good,*]
-        if n_elements(kperp_density_measure) gt 0 and n_elements(kperp_density_cutoff) gt 0 $
-          then kperp_density_measure = kperp_density_measure[wh_good]
+        if n_elements(kperp_density_measure_use) gt 0 and n_elements(kperp_density_cutoff) gt 0 $
+          then kperp_density_measure_use = kperp_density_measure_use[wh_good]
       endif
       
     endif else kperp_range = minmax(abs([kx_mpc, ky_mpc]))
     
     
-    if n_elements(kperp_density_measure) gt 0 and n_elements(kperp_density_cutoff) gt 0 then begin
-      wh_kperp_dense = where(kperp_density_measure gt kperp_density_cutoff, count_kperp_dense)
+    if n_elements(kperp_density_measure_use) gt 0 and n_elements(kperp_density_cutoff) gt 0 then begin
+      wh_kperp_dense = where(kperp_density_measure_use gt kperp_density_cutoff, count_kperp_dense)
       
       if count_kperp_dense gt 0 then begin
         temp = temp[wh_kperp_dense, *]
-        weighted_power = weighted_power[wh_kperp_dense, *]/0.52
+        weighted_power = weighted_power[wh_kperp_dense, *]/0.5
         if n_elements(weighted_noise_expval) gt 0 then weighted_noise_expval = weighted_noise_expval[wh_kperp_dense, *]
         if n_elements(weights_use) gt 0 then weights_use = weights_use[wh_kperp_dense, *]
       endif else print, 'no kperp values exceed kperp_density_cutoff, using full volume'
@@ -148,7 +148,7 @@ function kspace_rebinning_1d, power, k1_mpc, k2_mpc, k3_mpc, k_edges_mpc, k_bin 
         temp_kpar[*,*,kpar_ch_bad] = 0
       endif
       
-      if n_elements(kperp_density_measure) gt 0 and n_elements(kperp_density_cutoff) gt 0 then begin
+      if n_elements(kperp_density_measure_use) gt 0 and n_elements(kperp_density_cutoff) gt 0 then begin
         if count_kperp_dense gt 0 then begin
           temp_kperp = temp_kperp[wh_kperp_dense, *]
           temp_kpar = temp_kpar[wh_kperp_dense, *]
@@ -286,8 +286,8 @@ function kspace_rebinning_1d, power, k1_mpc, k2_mpc, k3_mpc, k_edges_mpc, k_bin 
       temp = sqrt(rebin(kperp_mpc, n_kperp, n_kpar)^2 + rebin(reform(kpar_mpc, 1, n_kpar), n_kperp, n_kpar)^2)
     endelse
     
-    if n_elements(kperp_density_measure) gt 0 and n_elements(kperp_density_cutoff) gt 0 then begin
-      wh_kperp_good = where(kperp_density_measure gt kperp_density_cutoff, count_kperp_good)
+    if n_elements(kperp_density_measure_use) gt 0 and n_elements(kperp_density_cutoff) gt 0 then begin
+      wh_kperp_good = where(kperp_density_measure_use gt kperp_density_cutoff, count_kperp_good)
       
       if count_kperp_good gt 0 then temp = temp[wh_kperp_good, *] $
       else print, 'no kperp values exceed kperp_density_cutoff, using full volume'
@@ -298,7 +298,7 @@ function kspace_rebinning_1d, power, k1_mpc, k2_mpc, k3_mpc, k_edges_mpc, k_bin 
       temp_kperp = rebin(kperp_mpc, n_kperp, n_kpar)
       temp_kpar = rebin(reform(kpar_mpc, 1, n_kpar), n_kperp, n_kpar)
       
-      if n_elements(kperp_density_measure) gt 0 and n_elements(kperp_density_cutoff) gt 0 and count_kperp_good gt 0 then begin
+      if n_elements(kperp_density_measure_use) gt 0 and n_elements(kperp_density_cutoff) gt 0 and count_kperp_good gt 0 then begin
         temp_kperp = temp_kperp[wh_kperp_good, *]
         temp_kpar = temp_kpar[wh_kperp_good, *]
       endif

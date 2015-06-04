@@ -5,7 +5,8 @@ pro enterprise_wrapper, folder_name, obs_name, data_subdirs=data_subdirs, rts = 
     spec_window_type = spec_window_type, sim = sim, uvf_input = uvf_input, $
     freq_ch_range = freq_ch_range, individual_plots = individual_plots, $
     kperp_range_1dave = kperp_range_1dave, kperp_range_lambda_1dave = kperp_range_lambda_1dave, $
-    kpar_range_1dave = kpar_range_1dave, plot_kpar_power = plot_kpar_power, plot_kperp_power = plot_kperp_power, $
+    kpar_range_1dave = kpar_range_1dave, use_weight_cutoff = use_weight_cutoff, fix_sim_input = fix_sim_input, $
+    plot_kpar_power = plot_kpar_power, plot_kperp_power = plot_kperp_power, $
     plot_k0_power = plot_k0_power, plot_noise_1d = plot_noise_1d, $
     coarse_harm_width = coarse_harm_width, kpar_plot_range = kpar_plot_range, $
     png = png, eps = eps, pdf = pdf, plot_stdset = plot_stdset, $
@@ -126,7 +127,22 @@ pro enterprise_wrapper, folder_name, obs_name, data_subdirs=data_subdirs, rts = 
     
     if keyword_set(sim) then begin
       plot_eor_1d=1
-      if n_elements(range_1d) eq 0 then range_1d = [1e0, 1e7]
+      if n_elements(range_1d) eq 0 then range_1d = [1e3, 1e7]
+      
+      if keyword_set(use_weight_cutoff) then begin
+        ;wt_measures = [strarr(2)+'ave', strarr(2)+'min']
+        ;wt_cutoffs = [0.5,1, 2, 0.5,1, 2]
+      
+        ;wt_measures = strarr(1)+'ave';, strarr(2)+'min']
+        ;wt_measures = strarr(3)+'min'
+        ;wt_measures=['ave','min']
+        ;wt_cutoffs = [2,1];, 2];, 1, 2]
+        ;wt_cutoffs = 1;[0.5,1];, 1, 2]
+        ;wt_measures = 'min'; strarr(2)+'min';[strarr(2)+'ave', strarr(2)+'min']
+      
+        wt_cutoffs = 1
+        wt_measures = 'min'
+      endif
     endif
     
     if n_elements(set_data_ranges) eq 0 and not keyword_set(sim) then set_data_ranges = 1
@@ -227,6 +243,7 @@ pro enterprise_wrapper, folder_name, obs_name, data_subdirs=data_subdirs, rts = 
     log_k1d = log_k1d, k1d_bin = k1d_bin, $
     kperp_range_1dave = kperp_range_1dave, kperp_range_lambda_1dave = kperp_range_lambda_1dave, $
     kpar_range_1dave = kpar_range_1dave, $
+    wt_cutoffs = wt_cutoffs, wt_measures = wt_measures, fix_sim_input = fix_sim_input, $
     kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, $
     kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
     plot_slices = plot_slices, slice_type = slice_type, uvf_plot_type = uvf_plot_type, plot_stdset = plot_stdset, $

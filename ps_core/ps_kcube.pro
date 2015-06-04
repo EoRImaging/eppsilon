@@ -1,12 +1,12 @@
 pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weight = dft_refresh_weight, $
-    refresh_beam = refresh_beam, dft_ian = dft_ian, sim=sim, $
+    refresh_beam = refresh_beam, dft_ian = dft_ian, sim=sim, fix_sim_input = fix_sim_input, $
     dft_fchunk = dft_fchunk, freq_ch_range = freq_ch_range, freq_flags = freq_flags, $
     spec_window_type = spec_window_type, cut_image = cut_image, $
     delta_uv_lambda = delta_uv_lambda, max_uv_lambda = max_uv_lambda, $
     std_power = std_power, inverse_covar_weight = inverse_covar_weight, $
     input_units = input_units, uvf_input = uvf_input, $
     uv_avg = uv_avg, uv_img_clip = uv_img_clip, no_dft_progress = no_dft_progress
-      
+    
   if tag_exist(file_struct, 'nside') ne 0 then healpix = 1 else healpix = 0
   if keyword_set(uvf_input) or tag_exist(file_struct, 'uvf_savefile') eq 0 then uvf_input = 1 else uvf_input = 0
   nfiles = n_elements(file_struct.datafile)
@@ -1224,6 +1224,13 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
   data_cube1[0:n_kx/2-1, 0, *] = 0
   if nfiles eq 2 then data_cube2[0:n_kx/2-1, 0, *] = 0
   
+  if keyword_set(sim) and keyword_set(fix_sim_input) then begin
+    ;; fix for some sims that used saved uvf inputs without correcting for factor of 2 loss
+    data_cube1 = data_cube1 * 2.
+    if nfiles eq 2 then data_cube2 = data_cube2 * 2.
+  endif
+  
+  
   ;; save some slices of the raw data cube (before dividing by weights) & weights
   for i=0, nfiles-1 do begin
     if i eq 0 then data_cube = data_cube1 else data_cube = data_cube2
@@ -1455,6 +1462,7 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
     ave_power_uvf = fltarr(2)
     ave_power_uvf[0] = mean(abs(data_cube1[wh_sig1_n0])^2.) * (z_mpc_delta * n_freq)^2.
     ave_power_uvf[1] = mean(abs(data_cube2[wh_sig2_n0])^2.) * (z_mpc_delta * n_freq)^2.
+    
     undefine, wh_sig1_n0, wh_sig2_n0
     
     sum_weights_net = sum_weights1 + sum_weights2
@@ -1549,7 +1557,7 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
     undefine, identity
     
     covar_z_fg = matrix_multiply(inv_ft_matrix, matrix_multiply(shift(covar_eta_fg, n_freq/2, n_freq/2), conj(inv_ft_matrix), /btranspose))
-
+    
     wt_data_sum = fltarr(n_kx, n_ky, n_freq)
     wt_data_diff = fltarr(n_kx, n_ky, n_freq)
     wt_sum_sigma2 = fltarr(n_kx, n_ky, n_freq)
@@ -1577,11 +1585,11 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
         wt_power_norm[i,j,*] = norm2 * total(abs(inv_covar_kz)^2.,2) * kz_mpc_delta
         
         wt_sum_sigma2[i,j,*] = diag_matrix(shift(matrix_multiply(inv_covar_z, matrix_multiply(diag_matrix(var_z_inst), conj(inv_covar_z), /btranspose)), n_freq/2, n_freq/2))
-
+        
       endfor
     endfor
     undefine, covar_z_fg, ft_matrix, inv_ft_matrix, covar_z, inv_covar_z, inv_covar_kz
-
+    
     data_sum = temporary(wt_data_sum)
     data_diff = temporary(wt_data_diff)
     sum_sigma2 = temporary(wt_sum_sigma2)
