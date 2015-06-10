@@ -8,12 +8,13 @@ pro enterprise_wrapper, folder_name, obs_name, data_subdirs=data_subdirs, rts = 
     kpar_range_1dave = kpar_range_1dave, use_weight_cutoff = use_weight_cutoff, fix_sim_input = fix_sim_input, $
     plot_kpar_power = plot_kpar_power, plot_kperp_power = plot_kperp_power, $
     plot_k0_power = plot_k0_power, plot_noise_1d = plot_noise_1d, $
-    coarse_harm_width = coarse_harm_width, kpar_plot_range = kpar_plot_range, $
+    coarse_harm_width = coarse_harm_width, kperp_plot_range = kperp_plot_range, $
+    kperp_lambda_plot_range = kperp_lambda_plot_range, kpar_plot_range = kpar_plot_range, $
     png = png, eps = eps, pdf = pdf, plot_stdset = plot_stdset, $
     plot_slices = plot_slices, slice_type = slice_type, max_uv_lambda = max_uv_lambda, $
     kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, set_data_ranges = set_data_ranges,$
     cube_power_info = cube_power_info, ps_foldername = ps_foldername, data_range = data_range, $
-    norm_rts_with_fhd = norm_rts_with_fhd
+    norm_rts_with_fhd = norm_rts_with_fhd, wedge_angles = wedge_angles
     
   ;; The only required input is the datafile name (including the full path)
     
@@ -140,8 +141,8 @@ pro enterprise_wrapper, folder_name, obs_name, data_subdirs=data_subdirs, rts = 
         ;wt_cutoffs = 1;[0.5,1];, 1, 2]
         ;wt_measures = 'min'; strarr(2)+'min';[strarr(2)+'ave', strarr(2)+'min']
       
-        wt_cutoffs = 1
-        wt_measures = 'min'
+        wt_cutoffs = [0,1]
+        wt_measures = strarr(2)+'min'
       endif
     endif
     
@@ -244,8 +245,8 @@ pro enterprise_wrapper, folder_name, obs_name, data_subdirs=data_subdirs, rts = 
     kperp_range_1dave = kperp_range_1dave, kperp_range_lambda_1dave = kperp_range_lambda_1dave, $
     kpar_range_1dave = kpar_range_1dave, $
     wt_cutoffs = wt_cutoffs, wt_measures = wt_measures, fix_sim_input = fix_sim_input, $
-    kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, $
-    kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
+    kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, kperp_plot_range = kperp_plot_range, $
+    kperp_lambda_plot_range = kperp_lambda_plot_range, kpar_plot_range = kpar_plot_range, $
     plot_slices = plot_slices, slice_type = slice_type, uvf_plot_type = uvf_plot_type, plot_stdset = plot_stdset, $
     plot_kpar_power = plot_kpar_power, plot_kperp_power = plot_kperp_power, plot_k0_power = plot_k0_power, $
     plot_noise_1d = plot_noise_1d, $
@@ -253,7 +254,7 @@ pro enterprise_wrapper, folder_name, obs_name, data_subdirs=data_subdirs, rts = 
     noise_range = noise_range, nnr_range = nnr_range, $
     range_1d = range_1d, slice_range = slice_range, $
     baseline_axis = baseline_axis, delay_axis = delay_axis, hinv = hinv, $
-    plot_wedge_line = plot_wedge_line, coarse_harm_width = coarse_harm_width, plot_eor_1d = plot_eor_1d, $
+    plot_wedge_line = plot_wedge_line, wedge_angles = wedge_angles, coarse_harm_width = coarse_harm_width, plot_eor_1d = plot_eor_1d, $
     individual_plots = individual_plots, note = note, png = png, eps = eps, pdf = pdf, $
     cube_power_info = cube_power_info, $
     norm_rts_with_fhd = norm_rts_with_fhd

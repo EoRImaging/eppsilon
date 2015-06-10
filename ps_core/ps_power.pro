@@ -277,66 +277,82 @@ pro ps_power, file_struct, refresh = refresh, kcube_refresh = kcube_refresh, dft
   
   print, 'Binning to 2D power spectrum'
   
-  power_rebin = kspace_rebinning_2d(power_3D, kx_mpc, ky_mpc, kz_mpc, kperp_edges_mpc, kpar_edges_mpc, log_kpar = log_kpar, $
-    log_kperp = log_kperp, kperp_bin = kperp_bin, kpar_bin = kpar_bin, $
-    noise_expval = noise_expval_3d, binned_noise_expval = binned_noise_expval, weights = weights_3d, $
-    binned_weights = binned_weights, fill_holes = fill_holes)
-    
-    
-  if nfiles eq 2 then $
-    noise_rebin = kspace_rebinning_2d(noise_3D, kx_mpc, ky_mpc, kz_mpc, kperp_edges_mpc, kpar_edges_mpc, log_kpar = log_kpar, $
-    log_kperp = log_kperp, kperp_bin = kperp_bin, kpar_bin = kpar_bin, $
-    noise_expval = noise_expval_3d, binned_noise_expval = binned_noise_expval, $
-    weights = weights_3d, binned_weights = binned_weights, fill_holes = fill_holes)
-    
-    
-  power = power_rebin
-  if nfiles eq 2 then noise = noise_rebin
-  kperp_edges = kperp_edges_mpc
-  kpar_edges = kpar_edges_mpc
-  weights = binned_weights
-  noise_expval = binned_noise_expval
+  n_wt_cuts = n_elements(wt_cutoffs)
   
-  wh_good_kperp = where(total(weights, 2) gt 0, count)
-  if count eq 0 then message, '2d weights appear to be entirely zero'
-  kperp_plot_range = [min(kperp_edges[wh_good_kperp]), max(kperp_edges[wh_good_kperp+1])]
+  for j=0, n_wt_cuts-1 do begin
   
-  if n_elements(freq_flags) ne 0 then begin
-    save, file = savefile_2d, power, noise, weights, noise_expval, kperp_edges, kpar_edges, kperp_bin, kpar_bin, $
-      kperp_lambda_conv, delay_params, hubble_param, freq_mask, vs_name, vs_mean, t_sys_meas, window_int, git_hashes, $
-      wt_ave_power, ave_power, ave_weights, wt_ave_power_freq, ave_power_freq, wt_ave_power_uvf, ave_power_uvf, uv_pix_area, uv_area
-  endif else begin
-    save, file = savefile_2d, power, noise, weights, noise_expval, kperp_edges, kpar_edges, kperp_bin, kpar_bin, $
-      kperp_lambda_conv, delay_params, hubble_param, vs_name, vs_mean, t_sys_meas, window_int, git_hashes, $
-      wt_ave_power, ave_power, ave_weights, wt_ave_power_freq, ave_power_freq, wt_ave_power_uvf, ave_power_uvf, uv_pix_area, uv_area
-  endelse
-  
-  if not keyword_set(quiet) then begin
-    kpower_2d_plots, savefile_2d, kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
-      data_range = data_range
-    kpower_2d_plots, savefile_2d, /plot_weights, kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
-      window_num = 2, title = 'Weights'
-  endif
-  
-  ;; save just k0 line for plotting purposes
-  if not keyword_set(no_kzero) then begin
-    power = power[*,0]
-    if n_elements(noise) gt 0 then noise = noise[*,0] ;else stop
-    weights = weights[*,0]
-    noise_expval = noise_expval[*,0]
+    if wt_cutoffs[j] gt 0 then begin
+      case wt_measures[j] of
+        'ave': wt_meas_use = wt_meas_ave
+        'min': wt_meas_use = wt_meas_min
+      endcase
+      
+      wt_cutoff_use = wt_cutoffs[j]
+    endif else undefine, wt_cutoff_use, wt_meas_use
     
-    k_edges = kperp_edges
-    k_bin = kperp_bin
+    
+    power_rebin = kspace_rebinning_2d(power_3D, kx_mpc, ky_mpc, kz_mpc, kperp_edges_mpc, kpar_edges_mpc, log_kpar = log_kpar, $
+      log_kperp = log_kperp, kperp_bin = kperp_bin, kpar_bin = kpar_bin, $
+      noise_expval = noise_expval_3d, binned_noise_expval = binned_noise_expval, weights = weights_3d, $
+      binned_weights = binned_weights, fill_holes = fill_holes, $
+      kperp_density_measure = wt_meas_use, kperp_density_cutoff = wt_cutoff_use)
+      
+    undefine, wt_cutoff_use, wt_meas_use
+    if nfiles eq 2 then $
+      noise_rebin = kspace_rebinning_2d(noise_3D, kx_mpc, ky_mpc, kz_mpc, kperp_edges_mpc, kpar_edges_mpc, log_kpar = log_kpar, $
+      log_kperp = log_kperp, kperp_bin = kperp_bin, kpar_bin = kpar_bin, $
+      noise_expval = noise_expval_3d, binned_noise_expval = binned_noise_expval, $
+      weights = weights_3d, binned_weights = binned_weights, fill_holes = fill_holes, $
+      kperp_density_measure = wt_meas_use, kperp_density_cutoff = wt_cutoff_use)
+      
+      
+    power = power_rebin
+    if nfiles eq 2 then noise = noise_rebin
+    kperp_edges = kperp_edges_mpc
+    kpar_edges = kpar_edges_mpc
+    weights = binned_weights
+    noise_expval = binned_noise_expval
+    
+    wh_good_kperp = where(total(weights, 2) gt 0, count)
+    if count eq 0 then message, '2d weights appear to be entirely zero'
+    kperp_plot_range = [min(kperp_edges[wh_good_kperp]), max(kperp_edges[wh_good_kperp+1])]
     
     if n_elements(freq_flags) ne 0 then begin
-      save, file = savefile_k0, power, noise, weights, noise_expval, k_edges, k_bin, hubble_param, freq_mask, $
-        window_int, wt_ave_power, ave_power, ave_weights, uv_pix_area, uv_area, git_hashes
+      save, file = savefile_2d[j], power, noise, weights, noise_expval, kperp_edges, kpar_edges, kperp_bin, kpar_bin, $
+        kperp_lambda_conv, delay_params, hubble_param, freq_mask, vs_name, vs_mean, t_sys_meas, window_int, git_hashes, $
+        wt_ave_power, ave_power, ave_weights, wt_ave_power_freq, ave_power_freq, wt_ave_power_uvf, ave_power_uvf, uv_pix_area, uv_area
     endif else begin
-      save, file = savefile_k0, power, noise, weights, noise_expval, k_edges, k_bin, hubble_param, $
-        window_int, wt_ave_power, ave_power, ave_weights, uv_pix_area, uv_area, git_hashes
+      save, file = savefile_2d[j], power, noise, weights, noise_expval, kperp_edges, kpar_edges, kperp_bin, kpar_bin, $
+        kperp_lambda_conv, delay_params, hubble_param, vs_name, vs_mean, t_sys_meas, window_int, git_hashes, $
+        wt_ave_power, ave_power, ave_weights, wt_ave_power_freq, ave_power_freq, wt_ave_power_uvf, ave_power_uvf, uv_pix_area, uv_area
     endelse
-  endif
-  
+    
+    if not keyword_set(quiet) then begin
+      kpower_2d_plots, savefile_2d[j], kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
+        data_range = data_range
+      kpower_2d_plots, savefile_2d[j], /plot_weights, kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
+        window_num = 2, title = 'Weights'
+    endif
+    
+    ;; save just k0 line for plotting purposes
+    if not keyword_set(no_kzero) then begin
+      power = power[*,0]
+      if n_elements(noise) gt 0 then noise = noise[*,0] ;else stop
+      weights = weights[*,0]
+      noise_expval = noise_expval[*,0]
+      
+      k_edges = kperp_edges
+      k_bin = kperp_bin
+      
+      if n_elements(freq_flags) ne 0 then begin
+        save, file = savefile_k0[j], power, noise, weights, noise_expval, k_edges, k_bin, hubble_param, freq_mask, $
+          window_int, wt_ave_power, ave_power, ave_weights, uv_pix_area, uv_area, git_hashes
+      endif else begin
+        save, file = savefile_k0[j], power, noise, weights, noise_expval, k_edges, k_bin, hubble_param, $
+          window_int, wt_ave_power, ave_power, ave_weights, uv_pix_area, uv_area, git_hashes
+      endelse
+    endif
+  endfor
   
   ;; now do slices
   y_tot = total(total(abs(power_3d),3),1)
@@ -373,17 +389,15 @@ pro ps_power, file_struct, refresh = refresh, kcube_refresh = kcube_refresh, dft
     
   print, 'Binning to 1D power spectrum'
   
-  n_wt_cuts = n_elements(wt_cutoffs)
-  
   if keyword_set(kperp_range_1dave) then kperp_range_use = kperp_range_1dave
   if keyword_set(kperp_range_lambda_1dave) then kperp_range_use = kperp_range_lambda_1dave / kperp_lambda_conv
   if keyword_set(kpar_range_1dave) then kpar_range_use = kpar_range_1dave
   
-  if n_elements(savefile_1d) ne (n_elements(wedge_amp)+1)*(n_wt_cuts+1) then $
+  if n_elements(savefile_1d) ne (n_elements(wedge_amp)+1)*(n_wt_cuts) then $
     message, 'number of elements in savefile_1d is wrong'
     
   for i=0, n_elements(wedge_amp) do begin
-    for j=0, n_wt_cuts do begin
+    for j=0, n_wt_cuts-1 do begin
       if i gt 0 then begin
         wedge_amp_use = wedge_amp[i-1]
         if n_elements(coarse_harm0) gt 0 then begin
@@ -392,13 +406,13 @@ pro ps_power, file_struct, refresh = refresh, kcube_refresh = kcube_refresh, dft
         endif
       endif
       
-      if j gt 0 then begin
-        case wt_measures[j-1] of
+      if wt_cutoffs[j] gt 0 then begin
+        case wt_measures[j] of
           'ave': wt_meas_use = wt_meas_ave
           'min': wt_meas_use = wt_meas_min
         endcase
         
-        wt_cutoff_use = wt_cutoffs[j-1]
+        wt_cutoff_use = wt_cutoffs[j]
       endif else undefine, wt_cutoff_use, wt_meas_use
       
       power_1d = kspace_rebinning_1d(power_3d, kx_mpc, ky_mpc, kz_mpc, k_edges_mpc, k_bin = k1d_bin, log_k = log_k1d, $
@@ -442,14 +456,14 @@ pro ps_power, file_struct, refresh = refresh, kcube_refresh = kcube_refresh, dft
   
   ;; bin just in kpar for diagnostic plot
   
-  for j=0, n_wt_cuts do begin
-    if j gt 0 then begin
-      case wt_measures[j-1] of
+  for j=0, n_wt_cuts-1 do begin
+    if wt_cutoffs[j] gt 0 then begin
+      case wt_measures[j] of
         'ave': wt_meas_use = wt_meas_ave
         'min': wt_meas_use = wt_meas_min
       endcase
       
-      wt_cutoff_use = wt_cutoffs[j-1]
+      wt_cutoff_use = wt_cutoffs[j]
     endif else undefine, wt_cutoff_use, wt_meas_use
     
     power_kpar = kspace_rebinning_1d(power_3d, kx_mpc, ky_mpc, kz_mpc, kpar_edges_mpc, k_bin = kpar_bin, log_k = log_k1d, $
@@ -486,14 +500,14 @@ pro ps_power, file_struct, refresh = refresh, kcube_refresh = kcube_refresh, dft
   
   ;; bin just in kperp for diagnostic plot
   
-  for j=0, n_wt_cuts do begin
-    if j gt 0 then begin
-      case wt_measures[j-1] of
+  for j=0, n_wt_cuts-1 do begin
+    if wt_cutoffs[j] gt 0 then begin
+      case wt_measures[j] of
         'ave': wt_meas_use = wt_meas_ave
         'min': wt_meas_use = wt_meas_min
       endcase
       
-      wt_cutoff_use = wt_cutoffs[j-1]
+      wt_cutoff_use = wt_cutoffs[j]
     endif else undefine, wt_cutoff_use, wt_meas_use
     power_kperp = kspace_rebinning_1d(power_3d, kx_mpc, ky_mpc, kz_mpc, kperp_edges_mpc, k_bin = kperp_bin, log_k = log_k1d, $
       noise_expval = noise_expval_3d, binned_noise_expval = noise_expval_kperp, weights = weights_3d, $

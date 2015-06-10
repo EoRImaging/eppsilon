@@ -16,7 +16,7 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
     kperp_range_1dave = kperp_range_1dave, kperp_range_lambda_1dave = kperp_range_lambda_1dave, kpar_range_1dave = kpar_range_1dave, $
     wt_cutoffs = wt_cutoffs, wt_measures = wt_measures, fix_sim_input = fix_sim_input, $
     kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, kperp_plot_range = kperp_plot_range, $
-    kpar_plot_range = kpar_plot_range, $
+    kperp_lambda_plot_range = kperp_lambda_plot_range, kpar_plot_range = kpar_plot_range, $
     baseline_axis = baseline_axis, delay_axis = delay_axis, hinv = hinv, $
     plot_wedge_line = plot_wedge_line, wedge_angles = wedge_angles, coarse_harm_width = coarse_harm_width, $
     plot_eor_1d = plot_eor_1d, individual_plots = individual_plots, cube_power_info = cube_power_info, no_dft_progress = no_dft_progress
@@ -122,8 +122,8 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
     wedge_names = ['fov', 'horizon']
     if n_elements(wedge_angles) gt 0 then begin
       if min(wedge_angles) le 0 or max(wedge_angles) ge 180 then message, 'wedge_angles must be in degrees and between 0 & 180'
-      wedge_amp = [wedge_amp, wedge_factor * (wedge_angles*!dpi / 180d)]
-      wedge_names = [wedge_names, number_formatter(wedge_angles) + 'deg']
+      wedge_amp = [wedge_factor * (wedge_angles*!dpi / 180d)]
+      wedge_names = [number_formatter(wedge_angles) + 'deg']
     endif
     
     if keyword_set(coarse_harm_width) then begin
@@ -196,40 +196,58 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
     wedge_1dbin_names = ['', '_no_' + wedge_names + '_wedge' + cb_width_name]
   endif else wedge_1dbin_names = ''
   
+  if n_elements(wt_cutoffs) gt 0 then begin
+    kperp_density_names = strarr(n_elements(wt_cutoffs))
+    wh_cutoff0 = where(wt_cutoffs eq 0, count_cutoff0, complement = wh_cutoff_n0, ncomplement = count_cutoff_n0)
+    
+    if count_cutoff0 gt 0 then kperp_density_names[wh_cutoff0] = ['']
+    if count_cutoff_n0 gt 0 then kperp_density_names[wh_cutoff_n0] = ['_kperp_density_' + wt_measures[wh_cutoff_n0] + '_gt' + number_formatter(wt_cutoffs[wh_cutoff_n0])]
+  endif else begin
+    kperp_density_names = ['']
+    wt_cutoffs = 0
+  endelse
+  
   ;; need general_filebase for 1D plotfiles, make sure it doesn't have a full path
   general_filebase = file_struct_arr(0).general_filebase
   for i=0, n_cubes-1 do if file_struct_arr(i).general_filebase ne general_filebase then $
     message, 'general_filebase does not match between 1d savefiles'
     
-  savefiles_2d = file_struct_arr.savefile_froot + file_struct_arr.savefilebase + power_tag + fadd_2dbin + '_2dkpower.idlsave'
+    
+  savefiles_2d = strarr(n_cubes, n_elements(kperp_density_names))
+  for j=0, n_elements(kperp_density_names)-1 do begin
+    savefiles_2d[*,j] = file_struct_arr.savefile_froot + file_struct_arr.savefilebase + power_tag + $
+      fadd_2dbin + kperp_density_names[j] + '_2dkpower.idlsave'
+  endfor
   test_save_2d = file_test(savefiles_2d) *  (1 - file_test(savefiles_2d, /zero_length))
   
-  if n_elements(wt_cutoffs) gt 0 then kperp_density_1dbin_names = ['', '_kperp_density_' + wt_measures + '_gt' + number_formatter(wt_cutoffs)] $
-  else kperp_density_1dbin_names = ['']
-  savefiles_1d = strarr(n_cubes, n_elements(kperp_density_1dbin_names), n_elements(wedge_1dbin_names))
+  savefiles_1d = strarr(n_cubes, n_elements(kperp_density_names), n_elements(wedge_1dbin_names))
   for i=0, n_elements(wedge_1dbin_names)-1 do begin
-    for j=0, n_elements(kperp_density_1dbin_names)-1 do begin
+    for j=0, n_elements(kperp_density_names)-1 do begin
       savefiles_1d[*,j,i] = file_struct_arr.savefile_froot + file_struct_arr.savefilebase + power_tag + $
-        kperp_density_1dbin_names[j] + wedge_1dbin_names[i] + fadd_1dbin + '_1dkpower.idlsave'
+        kperp_density_names[j] + wedge_1dbin_names[i] + fadd_1dbin + '_1dkpower.idlsave'
     endfor
   endfor
   test_save_1d = file_test(savefiles_1d) *  (1 - file_test(savefiles_1d, /zero_length))
   
-  savefiles_kpar_1d = strarr(n_cubes, n_elements(kperp_density_1dbin_names))
-  for j=0, n_elements(kperp_density_1dbin_names)-1 do begin
+  savefiles_kpar_1d = strarr(n_cubes, n_elements(kperp_density_names))
+  for j=0, n_elements(kperp_density_names)-1 do begin
     savefiles_kpar_1d[*,j] = file_struct_arr.savefile_froot + file_struct_arr.savefilebase + power_tag + $
-      kperp_density_1dbin_names[j] + fadd_1dbin + '_kpar_power.idlsave'
+      kperp_density_names[j] + fadd_1dbin + '_kpar_power.idlsave'
   endfor
   if keyword_set(plot_kpar_power) then test_save_kpar = file_test(savefiles_kpar_1d) *  (1 - file_test(savefiles_kpar_1d, /zero_length))
   
-  savefiles_kperp_1d = strarr(n_cubes, n_elements(kperp_density_1dbin_names))
-  for j=0, n_elements(kperp_density_1dbin_names)-1 do begin
+  savefiles_kperp_1d = strarr(n_cubes, n_elements(kperp_density_names))
+  for j=0, n_elements(kperp_density_names)-1 do begin
     savefiles_kperp_1d[*,j] = file_struct_arr.savefile_froot + file_struct_arr.savefilebase + power_tag + $
-      kperp_density_1dbin_names[j] + fadd_1dbin + '_kperp_power.idlsave'
+      kperp_density_names[j] + fadd_1dbin + '_kperp_power.idlsave'
   endfor
   if keyword_set(plot_kperp_power) then test_save_kperp = file_test(savefiles_kperp_1d) *  (1 - file_test(savefiles_kperp_1d, /zero_length))
   
-  savefiles_k0 = file_struct_arr.savefile_froot + file_struct_arr.savefilebase + power_tag + fadd_2dbin + '_k0power.idlsave'
+  savefiles_k0 = strarr(n_cubes, n_elements(kperp_density_names))
+  for j=0, n_elements(kperp_density_names)-1 do begin
+    savefiles_k0[*,j] = file_struct_arr.savefile_froot + file_struct_arr.savefilebase + power_tag + fadd_2dbin + $
+      kperp_density_names[j]+ '_k0power.idlsave'
+  endfor
   if keyword_set(plot_k0_power) then test_save_k0 = file_test(savefiles_k0) *  (1 - file_test(savefiles_k0, /zero_length))
   
   if keyword_set(refresh_binning) then begin
@@ -257,8 +275,9 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
   endif
   
   for i=0, n_cubes-1 do begin
-    savefile_2d_use = savefiles_2d[i]
-    test_2d = test_save_2d[i]
+  
+    savefile_2d_use = reform(savefiles_2d[i,*], n_elements(kperp_density_names))
+    test_2d = min(test_save_2d[i,*])
     
     savefile_kpar_use = savefiles_kpar_1d[i,*]
     if keyword_set(plot_kpar_power) then begin
@@ -270,49 +289,52 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
       test_kperp = min(test_save_kperp[i,*])
     endif
     
-    if keyword_set(plot_k0_power) then begin
-      savefile_k0_use = savefiles_k0[i]
-      test_k0 = test_save_k0[i]
-    endif
+    savefile_k0_use = savefiles_k0[i,*]
+    if keyword_set(plot_k0_power) then test_k0 = min(test_save_k0[i,*])
     
-    
-    savefile_1d_use = reform(savefiles_1d[i,*,*], n_elements(kperp_density_1dbin_names), n_elements(wedge_1dbin_names))
+    savefile_1d_use = reform(savefiles_1d[i,*,*], n_elements(kperp_density_names), n_elements(wedge_1dbin_names))
     test_1d = min(test_save_1d[i,*,*])
     
     ;; if binsizes are specified, check that binsize is right
     if (n_elements(kperp_bin) ne 0 or n_elements(kpar_bin) ne 0) and test_2d gt 0 then begin
       if n_elements(kpar_bin) ne 0 then begin
-        kpar_bin_file = getvar_savefile(savefile_2d_use, 'kpar_bin')
-        if abs(kpar_bin - kpar_bin_file) gt 0. then test_2d=0
+        kpar_bin_file = fltarr(n_elements(savefile_2d_use))
+        for j=0, n_elements(savefile_2d_use)-1 do kpar_bin_file[j] = getvar_savefile(savefile_2d_use[j], 'kpar_bin')
+        if max(abs(kpar_bin - kpar_bin_file)) gt 0. then test_2d=0
       endif
       if n_elements(kperp_bin) ne 0 then begin
-        kperp_bin_file = getvar_savefile(savefile_2d_use, 'kperp_bin')
-        if abs(kperp_bin - kperp_bin_file) gt 0. then test_2d=0
+        kperp_bin_file = fltarr(n_elements(savefile_2d_use))
+        for j=0, n_elements(savefile_2d_use)-1 do kperp_bin_file[j] = getvar_savefile(savefile_2d_use, 'kperp_bin')
+        if max(abs(kperp_bin - kperp_bin_file)) gt 0. then test_2d=0
       endif
     endif
     
     if keyword_set(plot_k0_power) then begin
       if test_k0 gt 0 and n_elements(kperp_bin) ne 0 then begin
-        kperp_bin_file = getvar_savefile(savefile_k0_use, 'k_bin')
-        if abs(kperp_bin - kperp_bin_file) gt 0. then test_k0=0
+        kperp_bin_file = fltarr(n_elements(savefile_k0_use))
+        for j=0, n_elements(savefile_k0_use) do kperp_bin_file[j] = getvar_savefile(savefile_k0_use[j], 'k_bin')
+        if max(abs(kperp_bin - kperp_bin_file)) gt 0. then test_k0=0
       endif
     endif
     
     if n_elements(k1d_bin) ne 0 and test_1d gt 0 then begin
       kbin_file = fltarr(n_elements(savefile_1d_use))
-      for j=0, n_elements(savefile_1d_use) do k_bin_file = getvar_savefile(savefile_1d_use[j], 'k_bin')
+      for j=0, n_elements(savefile_1d_use)-1 do k_bin_file[j] = getvar_savefile(savefile_1d_use[j], 'k_bin')
       if max(abs(k_bin - k_bin_file)) gt 0. then test_1d=0
     endif
     
     if test_2d gt 0 and n_elements(freq_flags) ne 0 then begin
-      old_freq_mask = getvar_savefile(savefile_2d_use, 'freq_mask')
-      if total(abs(old_freq_mask - file_struct_arr[i].freq_mask)) ne 0 then test_2d = 0
+      for j=0, n_elements(savefile_2d_use)-1 do begin
+        old_freq_mask = getvar_savefile(savefile_2d_use[j], 'freq_mask')
+        if total(abs(old_freq_mask - file_struct_arr[i].freq_mask)) ne 0 then test_2d = 0
+      endfor
     endif
     
     if test_1d gt 0 and n_elements(freq_flags) ne 0 then begin
-      old_freq_mask = fltarr(n_elements(file_struct_arr[i].freq_mask),n_elements(savefile_1d_use))
-      for j=0, n_elements(savefile_1d_use) do old_freq_mask[*,j] = getvar_savefile(savefile_1d_use[j], 'freq_mask')
-      if total(abs(old_freq_mask - rebin(file_struct_arr[i].freq_mask, n_elements(file_struct_arr[i].freq_mask), n_elements(savefile_1d_use)))) ne 0 then test_1d = 0
+      for j=0, n_elements(savefile_1d_use)-1 do begin
+        old_freq_mask = getvar_savefile(savefile_1d_use[j], 'freq_mask')
+        if total(abs(old_freq_mask - file_struct_arr[i].freq_mask)) ne 0 then test_2d = 0
+      endfor
     endif
     
     if test_1d gt 0 and (n_elements(kperp_range_1dave) gt 0 or n_elements(kperp_range_lambda_1dave) gt 0 $
@@ -415,9 +437,17 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
   ;;kperp_plot_range = [6e-3, min([max(kperp_edges[wh_good_kperp+1]),1.1e-1])]
   ;;kperp_plot_range = [5./kperp_lambda_conv, min([max(kperp_edges[wh_good_kperp+1]),1.1e-1])]
   
-  if not keyword_set(kperp_plot_range) then begin
-    kperp_plot_range = [5./kperp_lambda_conv, min([file_struct_arr.kspan/2.,file_struct_arr.max_baseline_lambda])/kperp_lambda_conv]
-    kperp_plot_range = kperp_plot_range / hubble_param
+  if n_elements(kperp_lambda_plot_range) gt 0 then begin
+    kperp_plot_range = kperp_lambda_plot_range / kperp_lambda_conv
+    if keyword_set(hinv) then kperp_plot_range = kperp_plot_range / hubble_param
+  endif
+  
+  if n_elements(kperp_plot_range) eq 0 then begin
+    if n_elements(max_uv_lambda) gt 0 then $
+      max_kperp_lambda = min([max_uv_lambda, min(file_struct_arr.kspan/2.),min(file_struct_arr.max_baseline_lambda)])$
+    else max_kperp_lambda = min([file_struct_arr.kspan/2.,file_struct_arr.max_baseline_lambda])
+    kperp_plot_range = [5./kperp_lambda_conv, max_kperp_lambda/kperp_lambda_conv]
+    if keyword_set(hinv) then kperp_plot_range = kperp_plot_range / hubble_param
   endif
   
   if pub then begin
@@ -443,12 +473,21 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
     endif else if n_elements(plot_filebase) eq 0 then plotfile_base = plotfile_path + general_filebase + power_tag $
     else plotfile_base = plotfile_path + plot_filebase + uvf_tag + power_tag
     
-    plotfiles_2d = plotfile_base + fadd_2dbin + '_2dkpower' + plot_fadd + plot_exten
+    plotfiles_2d = strarr(n_elements(plotfile_base), n_elements(kperp_density_names))
+    for j=0, n_elements(kperp_density_names)-1 do begin
+      plotfiles_2d[*,j] = plotfile_base + fadd_2dbin + kperp_density_names[j] + '_2dkpower' + plot_fadd + plot_exten
+    endfor
+    ;plotfiles_2d = plotfile_base + fadd_2dbin + '_2dkpower' + plot_fadd + plot_exten
     plotfiles_2d_error = plotfile_base + fadd_2dbin + '_2derror' + plot_fadd + plot_exten
     if keyword_set(pub) and keyword_set(individual_plots) then $
       plotfiles_2d_noise_expval = plotfile_base + fadd_2dbin + '_2dnoise_expval' + plot_fadd + plot_exten
     plotfiles_2d_noise = plotfile_base + fadd_2dbin + '_2dnoise' + plot_fadd + plot_exten
-    plotfiles_2d_snr = plotfile_base + fadd_2dbin + '_2dsnr' + plot_fadd + plot_exten
+    
+    plotfiles_2d_snr = strarr(n_elements(plotfile_base), n_elements(kperp_density_names))
+    for j=0, n_elements(kperp_density_names)-1 do begin
+      plotfiles_2d_snr[*,j] = plotfile_base + fadd_2dbin + kperp_density_names[j] + '_2dsnr' + plot_fadd + plot_exten
+    endfor
+    
     plotfiles_2d_nnr = plotfile_base + fadd_2dbin + '_2dnnr' + plot_fadd + plot_exten
     
     
@@ -574,46 +613,54 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
   
   if keyword_set(pub) then font = 1 else font = -1
   
+  window_num=0
   if keyword_set(plot_stdset) then begin
     if keyword_set(pub) and keyword_set(individual_plots) then begin
-      for i=0, n_cubes-1 do kpower_2d_plots, savefiles_2d[i], png = png, eps = eps, pdf = pdf, plotfile = plotfiles_2d[i], $
-        kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
-        data_range = data_range, title_prefix = titles[i], note = note, $
-        plot_wedge_line = plot_wedge_line, hinv = hinv, $
-        wedge_amp = wedge_amp, baseline_axis = baseline_axis, delay_axis = delay_axis, $
-        kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis
+      for j=0, n_elements(kperp_density_names)-1 do begin
+        note_use = note + ', ' + kperp_density_names[j]
         
-      for i=0, npol -1 do kpower_2d_plots, savefiles_2d[i], /plot_sigma, png = png, eps = eps, pdf = pdf, plotfile = plotfiles_2d_error[i],$
+        for i=0, n_cubes-1 do kpower_2d_plots, savefiles_2d[i,j], png = png, eps = eps, pdf = pdf, plotfile = plotfiles_2d[i,j], $
+          kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
+          data_range = data_range, title_prefix = titles[i], note = note_use, $
+          plot_wedge_line = plot_wedge_line, hinv = hinv, $
+          wedge_amp = wedge_amp, baseline_axis = baseline_axis, delay_axis = delay_axis, $
+          kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis
+      endfor
+      
+      for i=0, npol -1 do kpower_2d_plots, savefiles_2d[i,0], /plot_sigma, png = png, eps = eps, pdf = pdf, plotfile = plotfiles_2d_error[i],$
         kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
         data_range = sigma_range, title_prefix = file_struct_arr[i].pol, note = note + ' ' + vs_note, $
         plot_wedge_line = plot_wedge_line, hinv = hinv, $
         wedge_amp = wedge_amp, baseline_axis = baseline_axis, delay_axis = delay_axis, $
         kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis
         
-      for i=0, npol -1 do kpower_2d_plots, savefiles_2d[i], /plot_exp_noise, png = png, eps = eps, pdf = pdf, plotfile = plotfiles_2d_noise_expval[i],$
+      for i=0, npol -1 do kpower_2d_plots, savefiles_2d[i,0], /plot_exp_noise, png = png, eps = eps, pdf = pdf, plotfile = plotfiles_2d_noise_expval[i],$
         kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
         data_range = nev_range, title_prefix = file_struct_arr[i].pol, note = note + ' ' + vs_note, $
         plot_wedge_line = plot_wedge_line, hinv = hinv, $
         wedge_amp = wedge_amp, baseline_axis = baseline_axis, delay_axis = delay_axis, $
         kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis
         
+      for j=0, n_elements(kperp_density_names)-1 do begin
+        note_use = note + ', ' + kperp_density_names[j]
         
-      for i=0, n_cubes-1 do kpower_2d_plots, savefiles_2d[i], png = png, eps = eps, pdf = pdf, /snr, plotfile = plotfiles_2d_snr[i], $
-        kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
-        data_range = snr_range, title_prefix = titles[i], note = note, $
-        plot_wedge_line = plot_wedge_line, hinv = hinv, $
-        wedge_amp = wedge_amp, baseline_axis = baseline_axis, delay_axis = delay_axis, $
-        kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis
-        
+        for i=0, n_cubes-1 do kpower_2d_plots, savefiles_2d[i,j], png = png, eps = eps, pdf = pdf, /snr, plotfile = plotfiles_2d_snr[i,j], $
+          kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
+          data_range = snr_range, title_prefix = titles[i], note = note, $
+          plot_wedge_line = plot_wedge_line, hinv = hinv, $
+          wedge_amp = wedge_amp, baseline_axis = baseline_axis, delay_axis = delay_axis, $
+          kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis
+      endfor
+      
       if nfiles eq 2 then begin
-        for i=0, n_cubes-1 do kpower_2d_plots, savefiles_2d[i], png = png, eps = eps, pdf = pdf, /plot_noise, plotfile = plotfiles_2d_noise[i], $
+        for i=0, n_cubes-1 do kpower_2d_plots, savefiles_2d[i,0], png = png, eps = eps, pdf = pdf, /plot_noise, plotfile = plotfiles_2d_noise[i], $
           kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
           data_range = noise_range, title_prefix = titles[i], note = note + ' ' + vs_note, $
           plot_wedge_line = plot_wedge_line, hinv = hinv, $
           wedge_amp = wedge_amp, baseline_axis = baseline_axis, delay_axis = delay_axis, $
           kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis
           
-        for i=0, n_cubes-1 do kpower_2d_plots, savefiles_2d[i], png = png, eps = eps, pdf = pdf, /nnr, plotfile = plotfiles_2d_nnr[i], $
+        for i=0, n_cubes-1 do kpower_2d_plots, savefiles_2d[i,0], png = png, eps = eps, pdf = pdf, /nnr, plotfile = plotfiles_2d_nnr[i], $
           kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
           data_range = nnr_range, title_prefix = titles[i], note = note + ' ' + vs_note, $
           plot_wedge_line = plot_wedge_line, hinv = hinv, $
@@ -630,30 +677,32 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
         ncol = ntype
         nrow = npol
       endelse
-      start_multi_params = {ncol:ncol, nrow:nrow, ordering:'row'}
-      
-      window_num = 1
-      for i=0, n_cubes-1 do begin
-        if i gt 0 then  pos_use = positions[*,i]
-        if i eq n_cubes-1 and n_elements(note) gt 0 then note_use = note else undefine, note_use
+      for j=0, n_elements(kperp_density_names)-1 do begin
+        start_multi_params = {ncol:ncol, nrow:nrow, ordering:'row'}
         
-        kpower_2d_plots, savefiles_2d[i], multi_pos = pos_use, start_multi_params = start_multi_params, png = png, eps = eps, pdf = pdf, $
-          plotfile = plotfiles_2d, kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
-          data_range = data_range, title_prefix = titles[i], note = note_use, $
-          plot_wedge_line = plot_wedge_line, hinv = hinv, $
-          wedge_amp = wedge_amp, baseline_axis = baseline_axis, delay_axis = delay_axis, $
-          kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, window_num = window_num
+        window_num = window_num+1
+        for i=0, n_cubes-1 do begin
+          if i gt 0 then  pos_use = positions[*,i]
+          if i eq n_cubes-1 and n_elements(note) gt 0 then note_use = note + ', ' + kperp_density_names[j] else undefine, note_use
+          if keyword_set(pub) then plotfile_use = plotfiles_2d[j] else undefine, plotfile_use
           
-        if i eq 0 then begin
-          positions = pos_use
-          undefine, start_multi_params
+          kpower_2d_plots, savefiles_2d[i,j], multi_pos = pos_use, start_multi_params = start_multi_params, png = png, eps = eps, pdf = pdf, $
+            plotfile = plotfile_use, kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
+            data_range = data_range, title_prefix = titles[i], note = note_use, $
+            plot_wedge_line = plot_wedge_line, hinv = hinv, $
+            wedge_amp = wedge_amp, baseline_axis = baseline_axis, delay_axis = delay_axis, $
+            kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, window_num = window_num
+            
+          if i eq 0 then begin
+            positions = pos_use
+            undefine, start_multi_params
+          endif
+        endfor
+        undefine, positions, pos_use
+        if keyword_set(pub) then begin
+          cgps_close, png = png, pdf = pdf, delete_ps = delete_ps, density = 600
         endif
       endfor
-      undefine, positions, pos_use
-      if keyword_set(pub) then begin
-        cgps_close, png = png, pdf = pdf, delete_ps = delete_ps, density = 600
-      endif
-      
       if keyword_set(kperp_linear_axis) then begin
         ;; aspect ratio doesn't work out for kperp_linear with multiple rows
         ncol = 2*npol
@@ -664,7 +713,7 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
       endelse
       start_multi_params = {ncol:ncol, nrow:nrow, ordering:'row'}
       
-      window_num = 2
+      window_num = window_num+1
       for i=0, npol*2-1 do begin
         if i gt 0 then pos_use = positions[*,i]
         if i eq npol*2-1 and n_elements(note) gt 0 then note_use = note + ' ' + vs_note else undefine, note_use
@@ -672,14 +721,14 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
         pol_ind = i / 2
         
         if i mod 2 eq 0 then $
-          kpower_2d_plots, savefiles_2d[pol_ind], multi_pos = pos_use, start_multi_params = start_multi_params, png = png, eps = eps, pdf = pdf, $
+          kpower_2d_plots, savefiles_2d[pol_ind,0], multi_pos = pos_use, start_multi_params = start_multi_params, png = png, eps = eps, pdf = pdf, $
           plotfile = plotfiles_2d_error, /plot_sigma, data_range = sigma_range, $
           kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
           title_prefix = file_struct_arr[pol_ind].pol, $
           plot_wedge_line = plot_wedge_line, wedge_amp = wedge_amp, hinv = hinv, baseline_axis = baseline_axis, $
           delay_axis = delay_axis, kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, $
           window_num = window_num else $
-          kpower_2d_plots, savefiles_2d[pol_ind], multi_pos = pos_use, start_multi_params = start_multi_params, $
+          kpower_2d_plots, savefiles_2d[pol_ind,0], multi_pos = pos_use, start_multi_params = start_multi_params, $
           png = png, eps = eps, pdf = pdf, /plot_exp_noise, kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
           data_range = nev_range, title_prefix = file_struct_arr[pol_ind].pol, note = note_use, $
           plot_wedge_line = plot_wedge_line, hinv = hinv, $
@@ -705,33 +754,36 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
         ncol = ntype
         nrow = npol
       endelse
-      start_multi_params = {ncol:ncol, nrow:nrow, ordering:'row'}
-      
-      window_num = 3
-      ;;snr_range = [1e0, 1e6]
-      for i=0, n_cubes-1 do begin
-        if i gt 0 then  pos_use = positions[*,i]
-        if i eq n_cubes-1 and n_elements(note) gt 0 then note_use = note else undefine, note_use
+      for j=0, n_elements(kperp_density_names)-1 do begin
+        start_multi_params = {ncol:ncol, nrow:nrow, ordering:'row'}
         
-        kpower_2d_plots, savefiles_2d[i], /snr, multi_pos = pos_use, start_multi_params = start_multi_params, png = png, eps = eps, pdf = pdf, $
-          plotfile = plotfiles_2d_snr, kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
-          data_range = snr_range, title_prefix = titles[i], note = note_use, $
-          plot_wedge_line = plot_wedge_line, wedge_amp = wedge_amp, $
-          hinv = hinv, baseline_axis = baseline_axis, delay_axis = delay_axis, kperp_linear_axis = kperp_linear_axis, $
-          kpar_linear_axis = kpar_linear_axis, window_num = window_num
-        if i eq 0 then begin
-          positions = pos_use
-          undefine, start_multi_params
+        window_num = window_num+1
+        ;;snr_range = [1e0, 1e6]
+        for i=0, n_cubes-1 do begin
+          if i gt 0 then  pos_use = positions[*,i]
+          if i eq n_cubes-1 and n_elements(note) gt 0 then note_use = note + ', ' + kperp_density_names[j] else undefine, note_use
+          if keyword_set(pub) then plotfile_use = plotfiles_2d_snr[j] else undefine, plotfile_use
+          
+          kpower_2d_plots, savefiles_2d[i,j], /snr, multi_pos = pos_use, start_multi_params = start_multi_params, png = png, eps = eps, pdf = pdf, $
+            plotfile = plotfile_use, kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
+            data_range = snr_range, title_prefix = titles[i], note = note_use, $
+            plot_wedge_line = plot_wedge_line, wedge_amp = wedge_amp, $
+            hinv = hinv, baseline_axis = baseline_axis, delay_axis = delay_axis, kperp_linear_axis = kperp_linear_axis, $
+            kpar_linear_axis = kpar_linear_axis, window_num = window_num
+          if i eq 0 then begin
+            positions = pos_use
+            undefine, start_multi_params
+          endif
+        endfor
+        undefine, positions, pos_use
+        if keyword_set(pub) then begin
+          cgps_close, png = png, pdf = pdf, delete_ps = delete_ps, density = 600
         endif
       endfor
-      undefine, positions, pos_use
-      if keyword_set(pub) then begin
-        cgps_close, png = png, pdf = pdf, delete_ps = delete_ps, density = 600
-      endif
       
       if nfiles eq 2 then begin
       
-        window_num = 4
+        window_num = window_num+1
         start_multi_params = {ncol:ncol, nrow:nrow, ordering:'row'}
         
         ;;noise_range = [1e18, 1e22]
@@ -755,7 +807,7 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
           cgps_close, png = png, pdf = pdf, delete_ps = delete_ps, density = 600
         endif
         
-        window_num = 5
+        window_num = window_num+1
         start_multi_params = {ncol:ncol, nrow:nrow, ordering:'row'}
         undefine, pos_use
         
@@ -851,7 +903,7 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
         uv_slice_savefile = transpose(uv_slice_savefile)
       endif
       
-      window_num = 9
+      window_num = window_num+1
       start_multi_params = {ncol:ncol, nrow:nrow, ordering:'row'}
       undefine, pos_use
       
@@ -883,7 +935,7 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
         cgps_close, png = png, pdf = pdf, delete_ps = delete_ps, density = 600
       endif
       
-      window_num = 10
+      window_num = window_num+1
       start_multi_params = {ncol:ncol, nrow:nrow, ordering:'row'}
       undefine, pos_use
       
@@ -916,7 +968,7 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
         cgps_close, png = png, pdf = pdf, delete_ps = delete_ps, density = 600
       endif
       
-      window_num = 11
+      window_num = window_num+1
       start_multi_params = {ncol:ncol, nrow:nrow, ordering:'row'}
       undefine, pos_use
       
@@ -1041,7 +1093,7 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
   
   if keyword_set(plot_stdset) then begin
     for i=0, n_elements(wedge_1dbin_names)-1 do begin
-      file_arr = reform(savefiles_1d[*,*,i], n_cubes*n_elements(kperp_density_1dbin_names))
+      file_arr = reform(savefiles_1d[*,*,i], n_cubes*n_elements(kperp_density_names))
       
       if n_elements(plotfile_1d) gt 0 then begin
         plotfile_use = plotfile_1d[i]
@@ -1050,18 +1102,19 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
       
       if i gt 0 then note_use = note + ' ' + strjoin(strsplit(wedge_1dbin_names[i], '_', /extract), ' ') else note_use = note
       
-      titles_use = strarr(n_cubes, n_elements(kperp_density_1dbin_names))
-      for j=0, n_elements(kperp_density_1dbin_names)-1 do titles_use[*,j] = titles + kperp_density_1dbin_names[j]
-      titles_use = reform(titles_use, n_cubes*n_elements(kperp_density_1dbin_names))
+      titles_use = strarr(n_cubes, n_elements(kperp_density_names))
+      for j=0, n_elements(kperp_density_names)-1 do titles_use[*,j] = titles + kperp_density_names[j]
+      titles_use = reform(titles_use, n_cubes*n_elements(kperp_density_names))
       
       k_range = minmax([kperp_plot_range, kpar_bin, kpar_plot_range[1]])
       
+      if keyword_set(plot_noise_1d) then begin
+        window_num = window_num+1
+        kpower_1d_plots, file_arr, window_num = window_num, names = titles_use, delta = plot_1d_delta, hinv = hinv, $
+          png = png, eps = eps, pdf = pdf, plotfile = plotfile_noise_use, k_range = k_range, title = note_use + ' Ob. Noise', note = note_1d, $
+          plot_error_bars = plot_1d_error_bars, data_range = range_1d, /plot_noise
+      endif
       
-      if keyword_set(plot_noise_1d) then kpower_1d_plots, file_arr, window_num = 15+i, names = titles_use, delta = plot_1d_delta, hinv = hinv, $
-        png = png, eps = eps, pdf = pdf, plotfile = plotfile_noise_use, k_range = k_range, title = note_use + ' Ob. Noise', note = note_1d, $
-        plot_error_bars = plot_1d_error_bars, data_range = range_1d, /plot_noise
-        
-        
       if keyword_set(plot_eor_1d) then begin
         if count_catalog gt 0 then begin
           psyms = [intarr(n_elements(file_arr))+10, -3, -3]
@@ -1070,7 +1123,8 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
         endif
       endif
       
-      kpower_1d_plots, file_arr, window_num = 6+i, colors = colors, names = titles_use, psyms = psyms, delta = plot_1d_delta, hinv = hinv, $
+      window_num = window_num+1
+      kpower_1d_plots, file_arr, window_num = window_num, colors = colors, names = titles_use, psyms = psyms, delta = plot_1d_delta, hinv = hinv, $
         png = png, eps = eps, pdf = pdf, plotfile = plotfile_use, k_range = k_range, title = note_use, note = note_1d, data_range = range_1d, $
         plot_error_bars = plot_1d_error_bars
         
@@ -1079,11 +1133,11 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
   
   if keyword_set(plot_kpar_power) then begin
   
-    file_arr = reform(savefiles_kpar_1d, n_cubes*n_elements(kperp_density_1dbin_names))
+    file_arr = reform(savefiles_kpar_1d, n_cubes*n_elements(kperp_density_names))
     
-    titles_use = strarr(n_cubes, n_elements(kperp_density_1dbin_names))
-    for j=0, n_elements(kperp_density_1dbin_names)-1 do titles_use[*,j] = titles + kperp_density_1dbin_names[j]
-    titles_use = reform(titles_use, n_cubes*n_elements(kperp_density_1dbin_names))
+    titles_use = strarr(n_cubes, n_elements(kperp_density_names))
+    for j=0, n_elements(kperp_density_names)-1 do titles_use[*,j] = titles + kperp_density_names[j]
+    titles_use = reform(titles_use, n_cubes*n_elements(kperp_density_names))
     if keyword_set(plot_eor_1d) then begin
       if count_catalog gt 0 then begin
         psyms = [intarr(n_elements(file_arr))+10, -3, -3]
@@ -1094,7 +1148,8 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
     
     k_range = minmax([kperp_plot_range, kpar_bin, kpar_plot_range[1]])
     
-    kpower_1d_plots, file_arr, window_num = 12, colors = colors, names = titles_use, psyms = psyms, delta = plot_1d_delta, hinv = hinv, $
+    window_num = window_num+1
+    kpower_1d_plots, file_arr, window_num = window_num, colors = colors, names = titles_use, psyms = psyms, delta = plot_1d_delta, hinv = hinv, $
       png = png, eps = eps, pdf = pdf, plotfile = plotfile_kpar_power, k_range = k_range, title = note + ' kpar', note = note_1d, $
       plot_error_bars = plot_1d_error_bars, data_range = range_1d, /kpar_power
       
@@ -1102,11 +1157,11 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
   
   if keyword_set(plot_kperp_power) then begin
   
-    file_arr = reform(savefiles_kperp_1d, n_cubes*n_elements(kperp_density_1dbin_names))
+    file_arr = reform(savefiles_kperp_1d, n_cubes*n_elements(kperp_density_names))
     
-    titles_use = strarr(n_cubes, n_elements(kperp_density_1dbin_names))
-    for j=0, n_elements(kperp_density_1dbin_names)-1 do titles_use[*,j] = titles + kperp_density_1dbin_names[j]
-    titles_use = reform(titles_use, n_cubes*n_elements(kperp_density_1dbin_names))
+    titles_use = strarr(n_cubes, n_elements(kperp_density_names))
+    for j=0, n_elements(kperp_density_names)-1 do titles_use[*,j] = titles + kperp_density_names[j]
+    titles_use = reform(titles_use, n_cubes*n_elements(kperp_density_names))
     
     if keyword_set(plot_eor_1d) then begin
       if count_catalog gt 0 then begin
@@ -1118,7 +1173,8 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
     
     k_range = minmax([kperp_plot_range, kpar_bin, kpar_plot_range[1]])
     
-    kpower_1d_plots, file_arr, window_num = 13, colors = colors, names = titles_use, psyms = psyms, delta = plot_1d_delta, hinv = hinv, $
+    window_num = window_num+1
+    kpower_1d_plots, file_arr, window_num = window_num, colors = colors, names = titles_use, psyms = psyms, delta = plot_1d_delta, hinv = hinv, $
       png = png, eps = eps, pdf = pdf, plotfile = plotfile_kperp_power, k_range = k_range, title = note + ' kperp', note = note_1d, $
       plot_error_bars = plot_1d_error_bars, data_range = range_1d, /kperp_power
       
@@ -1128,11 +1184,14 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
   
     file_arr = savefiles_k0
     
-    titles_use = titles
+    titles_use = strarr(n_cubes, n_elements(kperp_density_names))
+    for j=0, n_elements(kperp_density_names)-1 do titles_use[*,j] = titles + kperp_density_names[j]
+    titles_use = reform(titles_use, n_cubes*n_elements(kperp_density_names))
     
     k_range = minmax([kperp_plot_range, kperp_bin])
     
-    kpower_1d_plots, file_arr, window_num = 14, colors = colors, names = titles_use, delta = plot_1d_delta, hinv = hinv, $
+    window_num = window_num+1
+    kpower_1d_plots, file_arr, window_num = window_num, colors = colors, names = titles_use, delta = plot_1d_delta, hinv = hinv, $
       png = png, eps = eps, pdf = pdf, plotfile = plotfile_k0_power, k_range = k_range, title = note + ' kpar=0', note = note_1d, $
       plot_error_bars = plot_1d_error_bars, data_range = range_1d, /kperp_power
       
