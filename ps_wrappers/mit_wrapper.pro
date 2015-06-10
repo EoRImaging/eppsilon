@@ -1,6 +1,6 @@
 pro mit_wrapper, folder_name, obs_name, data_subdirs=data_subdirs, exact_obsnames = exact_obsnames, n_obs=n_obs, rts = rts, $
     refresh_dft = refresh_dft, refresh_info = refresh_info, refresh_ps = refresh_ps, refresh_beam = refresh_beam, $
-    refresh_binning = refresh_binning, pol_inc = pol_inc, no_spec_window = no_spec_window, $
+    refresh_binning = refresh_binning, pol_inc = pol_inc, type_inc = type_inc, no_spec_window = no_spec_window, $
     spec_window_type = spec_window_type, sim = sim, freq_ch_range = freq_ch_range, individual_plots = individual_plots, $
     png = png, eps = eps, plot_slices = plot_slices, slice_type = slice_type, uvf_plot_type = uvf_plot_type, plot_stdset = plot_stdset, $
     delta_uv_lambda = delta_uv_lambda, cut_image = cut_image, $
@@ -9,7 +9,8 @@ pro mit_wrapper, folder_name, obs_name, data_subdirs=data_subdirs, exact_obsname
     kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, $
     kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
     wedge_angles = wedge_angles, coarse_harm_width = coarse_harm_width, $
-    set_data_ranges = set_data_ranges, range_1d = range_1d, plot_1d_delta = plot_1d_delta, plot_1d_error_bars = plot_1d_error_bars
+    set_data_ranges = set_data_ranges, range_1d = range_1d, plot_1d_delta = plot_1d_delta, plot_1d_error_bars = plot_1d_error_bars, $
+    data_range = data_range
     
   ;; The only required input is the datafile name (including the full path)
     
@@ -116,6 +117,9 @@ pro mit_wrapper, folder_name, obs_name, data_subdirs=data_subdirs, exact_obsname
       if n_elements(range_1d) eq 0 then range_1d = [1e0, 1e7]
     endif
     
+    wt_cutoffs = [0,1]
+    wt_measures = strarr(2)+'min'
+    
     if n_elements(set_data_ranges) eq 0 and not keyword_set(sim) then set_data_ranges = 1
     
     if keyword_set(set_data_ranges) then begin
@@ -200,7 +204,7 @@ pro mit_wrapper, folder_name, obs_name, data_subdirs=data_subdirs, exact_obsname
   ;; pub is a flag to make save plots as eps files rather than displaying to the screen
   
   ps_main_plots, datafile, dft_fchunk=dft_fchunk, plot_path = plot_path, plot_filebase = plot_filebase, save_path = save_path, savefilebase = savefilebase, $
-    pol_inc = pol_inc, rts = rts, $
+    pol_inc = pol_inc, type_inc = type_inc, rts = rts, $
     refresh_dft = refresh_dft, refresh_ps = refresh_ps, refresh_binning = refresh_binning, refresh_info = refresh_info, refresh_beam = refresh_beam, $
     freq_ch_range = freq_ch_range, no_spec_window = no_spec_window, spec_window_type = spec_window_type, $
     sim = sim, cut_image = cut_image, delta_uv_lambda = delta_uv_lambda, $
@@ -209,6 +213,7 @@ pro mit_wrapper, folder_name, obs_name, data_subdirs=data_subdirs, exact_obsname
     kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
     plot_1d_delta = plot_1d_delta, plot_1d_error_bars = plot_1d_error_bars, $
     kperp_range_1dave = kperp_range_1dave, kperp_range_lambda_1dave = kperp_range_lambda_1dave, kpar_range_1dave = kpar_range_1dave, $
+    wt_cutoffs = wt_cutoffs, wt_measures = wt_measures, $
     plot_slices = plot_slices, slice_type = slice_type, uvf_plot_type = uvf_plot_type, plot_stdset = plot_stdset, $
     plot_kpar_power = plot_kpar_power, plot_kperp_power = plot_kperp_power, plot_k0_power = plot_k0_power, plot_noise_1d = plot_noise_1d, $
     data_range = data_range, sigma_range = sigma_range, nev_range = nev_range, snr_range = snr_range, noise_range = noise_range, nnr_range = nnr_range, $
