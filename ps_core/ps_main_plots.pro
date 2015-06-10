@@ -452,7 +452,7 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
     else max_kperp_lambda = min([file_struct_arr.kspan/2.,file_struct_arr.max_baseline_lambda])
     kperp_plot_range = [5./kperp_lambda_conv, max_kperp_lambda/kperp_lambda_conv]
     
-    if keyword_set(hinv) then kperp_plot_range = kperp_plot_range * hubble_param
+    if keyword_set(hinv) then kperp_plot_range = kperp_plot_range / hubble_param
   endif
   
   if pub then begin
