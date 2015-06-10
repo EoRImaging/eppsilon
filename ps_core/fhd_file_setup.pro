@@ -1,4 +1,4 @@
-function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefile = variancefile, beamfile = beamfile, pixelfile = pixelfile, $
+function fhd_file_setup, filename, weightfile = weightfile, variancefile = variancefile, beamfile = beamfile, pixelfile = pixelfile, $
     dirtyvar = dirtyvar, modelvar = modelvar, weightvar = weightvar, variancevar = variancevar, beamvar = beamvar, $
     pixelvar = pixelvar, save_path = save_path, uvf_input = uvf_input, uv_avg = uv_avg, uv_img_clip = uv_img_clip, dft_ian = dft_ian, $
     weight_savefilebase = weight_savefilebase_in, $
@@ -8,8 +8,6 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
     sim = sim, std_power = std_power, inverse_covar_weight = inverse_covar_weight, no_wtd_avg = no_wtd_avg, $
     refresh_info = refresh_info
     
-  if n_elements(pol_inc) ne 0 then pol_inc_in = pol_inc
-  
   ;; check to see if filename is an info file
   wh_info = strpos(filename, '_info.idlsave')
   if max(wh_info) gt -1 then begin
@@ -21,83 +19,9 @@ function fhd_file_setup, filename, pol_inc, weightfile = weightfile, variancefil
     if n_elements(save_path) ne 0 then froot = save_path $
     else info_filebase = cgRootName(info_file, directory=froot)
     
-    if n_elements(pol_inc_in) ne 0 then begin
-      match, pol_inc, pol_inc_in, suba, subb, count = count_pol
-      if count_pol ne n_elements(pol_inc_in) then refresh_info = 1
-    endif
-    
     if not tag_exist(metadata_struct, 'nfiles') then begin
-      ;; this is an old info file from before polarizations could be in different files.
-      ;;Need to adjust the metadata_struct to the new format
-    
-      nfiles = n_elements(metadata_struct.datafile)
-      npol = n_elements(pol_inc)
-      n_freq = n_elements(metadata_struct.frequencies)
-      
-      datafile = strarr(npol, nfiles)
-      weightfile = strarr(npol, nfiles)
-      variancefile = strarr(npol, nfiles)
-      beamfile = strarr(npol, nfiles)
-      n_vis = fltarr(npol, nfiles)
-      n_vis_freq = fltarr(npol, nfiles, n_freq)
-      if tag_exist(metadata_struct, 'nside') then pixelfile = strarr(npol, nfiles)
-      if tag_exist(metadata_struct, 'vis_noise') then vis_noise = fltarr(npol, nfiles, n_freq)
-      for i=0, npol-1 do begin
-        datafile[i,*] = metadata_struct.datafile
-        weightfile[i,*] = metadata_struct.weightfile
-        variancefile[i,*] = metadata_struct.variancefile
-        if tag_exist(metadata_struct, 'beamfile') then beamfile[i,*] = metadata_struct.beamfile else beamfile[i,*] = metadata_struct.datafile
-        n_vis[i,*] = metadata_struct.n_vis
-        if tag_exist(metadata_struct, 'n_vis_freq') then begin
-          nfvis_dims = size(metadata_struct.n_vis_freq, /dimension)
-          if nfvis_dims[0] eq nfiles then n_vis_freq[i,*,*] = metadata_struct.n_vis_freq $
-          else n_vis_freq[i,*,*] = rebin(reform(metadata_struct.n_vis_freq, 1, n_freq), nfiles, n_freq, /sample)
-        endif else n_vis_freq[i,*,*] = rebin(metadata_struct.n_vis, nfiles, n_freq)/n_freq
-        if tag_exist(metadata_struct, 'nside') then pixelfile[i,*] = metadata_struct.pixelfile
-        if tag_exist(metadata_struct, 'vis_noise') then vis_noise = rebin(reform(metadata_struct.vis_noise[i,*], 1, n_freq), nfiles, n_freq, /sample)
-      endfor
-      
-      
-      type_inc = strarr(metadata_struct.ntypes)
-      for i=0, metadata_struct.ntypes-1 do type_inc[i] = (strsplit(metadata_struct.type_pol_str[i], '_',/extract))[0]
-      
-      cube_varname = metadata_struct.cube_varname
-      weight_varname = metadata_struct.weight_varname
-      variance_varname = metadata_struct.variance_varname
-      if tag_exist(metadata_struct, 'beam_varname') then beam_varname = metadata_struct.beam_varname else beam_varname = strupcase('beam_' + pol_inc + '_cube')
-      frequencies = metadata_struct.frequencies
-      freq_resolution = metadata_struct.freq_resolution
-      time_resolution = metadata_struct.time_resolution
-      max_baseline_lambda = metadata_struct.max_baseline_lambda
-      max_theta = metadata_struct.max_theta
-      degpix = metadata_struct.degpix
-      kpix = metadata_struct.kpix
-      kspan = metadata_struct.kspan
-      general_filebase = metadata_struct.general_filebase
-      infile_label = metadata_struct.infile_label
-      type_pol_str = transpose(reform(metadata_struct.type_pol_str, metadata_struct.ntypes, npol))
-      n_obs = metadata_struct.n_obs
-      if tag_exist(metadata_struct, 'nside') then begin
-        pixel_varname = metadata_struct.pixel_varname
-        nside = metadata_struct.nside
-      endif
-      if tag_exist(metadata_struct, 'no_var') then no_var = metadata_struct.no_var
-      undefine, metadata_struct
-      
-      metadata_struct = {datafile: datafile, weightfile: weightfile, variancefile:variancefile, beamfile:beamfile, $
-        cube_varname:cube_varname, weight_varname:weight_varname, variance_varname:variance_varname, beam_varname:beam_varname, $
-        frequencies:frequencies, freq_resolution:freq_resolution, time_resolution:time_resolution, $
-        n_vis:n_vis, n_vis_freq:n_vis_freq, max_baseline_lambda:max_baseline_lambda, max_theta:max_theta, degpix:degpix, kpix:kpix, kspan:kspan, $
-        general_filebase:general_filebase, infile_label:infile_label, type_pol_str:type_pol_str, type_inc:type_inc, n_obs:n_obs, pol_inc:pol_inc, nfiles:nfiles}
-        
-      if n_elements(nside) gt 0 then metadata_struct = create_struct(metadata_struct, 'pixelfile', pixelfile, 'pixel_varname', pixel_varname, 'nside', nside)
-      
-      if n_elements(no_var) gt 0 then metadata_struct = create_struct(metadata_struct, 'no_var', 1)
-      
-      if n_elements(vis_noise) gt 0 then metadata_struct = create_struct(metadata_struct, 'vis_noise', vis_noise)
-      
-      save, filename = info_file, metadata_struct
-      
+      print, 'Info file is very old, creating a new one.'
+      refresh_info = 1
     endif
     
     if keyword_set(refresh_info) then begin

@@ -1,4 +1,5 @@
-pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_inc = pol_inc, uvf_input = uvf_input, uv_avg = uv_avg, uv_img_clip = uv_img_clip, $
+pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_inc = pol_inc, type_inc = type_inc, $
+    uvf_input = uvf_input, uv_avg = uv_avg, uv_img_clip = uv_img_clip, $
     save_path = save_path, savefilebase = savefilebase, plot_path = plot_path, plot_filebase = plot_filebase, $
     note = note, png = png, eps = eps, pdf = pdf, $
     refresh_dft = refresh_dft, refresh_ps = refresh_ps, refresh_binning = refresh_binning, refresh_info = refresh_info, refresh_beam = refresh_beam, $
@@ -77,14 +78,14 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
   
   time0 = systime(1)
   if keyword_set(rts) then begin
-    file_struct_arr = rts_file_setup(datafile, pol_inc, savefilebase = savefilebase, save_path = save_path, $
+    file_struct_arr = rts_file_setup(datafile, savefilebase = savefilebase, save_path = save_path, $
       spec_window_type = spec_window_type, delta_uv_lambda = delta_uv_lambda, max_uv_lambda = max_uv_lambda, $
       use_fhd_norm = norm_rts_with_fhd, refresh_info = refresh_info)
   endif else if keyword_set(casa) then begin
-    file_struct_arr = casa_file_setup(datafile, pol_inc, savefilebase = savefilebase, save_path = save_path, $
+    file_struct_arr = casa_file_setup(datafile, savefilebase = savefilebase, save_path = save_path, $
       spec_window_type = spec_window_type, delta_uv_lambda = delta_uv_lambda, max_uv_lambda = max_uv_lambda, refresh_info = refresh_info)
   endif else begin
-    file_struct_arr = fhd_file_setup(datafile, beamfile = beamfiles, pol_inc, uvf_input = uvf_input, uv_avg = uv_avg, uv_img_clip = uv_img_clip, dft_ian = dft_ian, $
+    file_struct_arr = fhd_file_setup(datafile, beamfile = beamfiles, uvf_input = uvf_input, uv_avg = uv_avg, uv_img_clip = uv_img_clip, dft_ian = dft_ian, $
       savefilebase = savefilebase, save_path = save_path, freq_ch_range = freq_ch_range, freq_flags = freq_flags, freq_flag_name = freq_flag_name, $
       spec_window_type = spec_window_type, delta_uv_lambda = delta_uv_lambda, max_uv_lambda = max_uv_lambda, sim = sim, $
       std_power = std_power, inverse_covar_weight = inverse_covar_weight, no_wtd_avg = no_wtd_avg, refresh_info = refresh_info)
@@ -135,6 +136,44 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
     
   endif
   
+  
+  if n_elements(pol_inc) gt 0 or n_elements(type_inc) gt 0 then begin
+    if n_elements(pol_inc) gt 0 then begin
+      for i=0,n_elements(pol_inc)-1 do begin
+        wh_this_pol = where(file_struct_arr.pol eq pol_inc[i], count_this_pol)
+        if count_this_pol gt 0 then begin
+          if n_elements(wh_pol) eq 0 then begin
+            wh_pol = wh_this_pol
+            pol_inds = intarr(count_this_pol) + i
+          endif else begin
+            wh_pol = [wh_pol, wh_this_pol]
+            pol_inds = [pol_inds, intarr(count_this_pol) + i]
+          endelse
+        endif else message, 'desired pol ' + pol_inc[i] + ' is not available'
+      endfor
+      
+      file_struct_arr = file_struct_arr[wh_pol]
+      file_struct_arr.pol_index = pol_inds
+    endif
+    
+    if n_elements(type_inc) gt 0 then begin
+      for i=0,n_elements(type_inc)-1 do begin
+        wh_this_type = where(file_struct_arr.type eq type_inc[i], count_this_type)
+        if count_this_type gt 0 then begin
+          if n_elements(wh_type) eq 0 then begin
+            wh_type = wh_this_type
+            type_inds = intarr(count_this_type) + i
+          endif else begin
+            wh_type = [wh_type, wh_this_type]
+            type_inds = [type_inds, intarr(count_this_type) + i]
+          endelse
+        endif else message, 'desired type ' + type_inc[i] + ' is not available'
+      endfor
+      
+      file_struct_arr = file_struct_arr[wh_type]
+      file_struct_arr.type_index = type_inds
+    endif
+  endif
   
   npol = max(file_struct_arr.pol_index) + 1
   ntype = max(file_struct_arr.type_index) + 1

@@ -1,11 +1,9 @@
-function rts_file_setup, filename, pol_inc, save_path = save_path, refresh_info = refresh_info, $
+function rts_file_setup, filename, save_path = save_path, refresh_info = refresh_info, $
     weight_savefilebase = weight_savefilebase_in, variance_savefilebase = variance_savefilebase_in, $
     uvf_savefilebase = uvf_savefilebase_in, savefilebase = savefilebase_in, $
     spec_window_type = spec_window_type, delta_uv_lambda = delta_uv_lambda, max_uv_lambda = max_uv_lambda, $
     std_power = std_power, inverse_covar_weight = inverse_covar_weight, use_fhd_norm = use_fhd_norm
-    
-  if n_elements(pol_inc) ne 0 then pol_inc_in = pol_inc
-  
+      
   ;; check to see if filename is an info file
   wh_info = strpos(filename, '_info.idlsave')
   if max(wh_info) gt -1 then begin
@@ -17,17 +15,12 @@ function rts_file_setup, filename, pol_inc, save_path = save_path, refresh_info 
     if n_elements(save_path) ne 0 then froot = save_path $
     else info_filebase = cgRootName(info_file, directory=froot)
     
-    if n_elements(pol_inc_in) ne 0 then begin
-      match, pol_inc, pol_inc_in, suba, subb, count = count_pol
-      if count_pol ne n_elements(pol_inc_in) then refresh_info = 1
-    endif
-    
     if not tag_exist(metadata_struct, 'nfiles') then begin
       ;; this is an old info file from before polarizations could be in different files.
       ;;Need to adjust the metadata_struct to the new format
     
       nfiles = n_elements(metadata_struct.datafile)
-      npol = n_elements(pol_inc)
+      npol = n_elements(metadata_struct.pol_inc)
       n_freq = n_elements(metadata_struct.frequencies)
       
       datafile = strarr(npol, nfiles)
