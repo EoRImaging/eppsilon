@@ -150,11 +150,12 @@ function kspace_rebinning_1d, power, k1_mpc, k2_mpc, k3_mpc, k_edges_mpc, k_bin 
         n_width = coarse_width*2-1
         kpar_ch_bad = rebin(coarse_harm0 * (findgen(n_harm)+1), n_harm, n_width) + $
           rebin(reform(findgen(n_width)-(coarse_width-1), 1, n_width), n_harm, n_width)
-          
+ 
         temp_kpar[*,kpar_ch_bad] = 0
       endif
       
       wh_above_wedge = where(temp_kpar gt temp_kperp*max(wedge_amp), count_above_wedge, ncomplement = count_below_wedge)
+
       if count_above_wedge gt 0 then begin
         temp = temp[wh_above_wedge]
         weighted_power = weighted_power[wh_above_wedge]
@@ -163,6 +164,8 @@ function kspace_rebinning_1d, power, k1_mpc, k2_mpc, k3_mpc, k_edges_mpc, k_bin 
       endif else print, 'no pixels above wedge, using full volume'
       
     endif
+    undefine, temp_kperp, temp_kpar
+    
     
     if not keyword_set(log_k) then begin
     
@@ -285,27 +288,31 @@ function kspace_rebinning_1d, power, k1_mpc, k2_mpc, k3_mpc, k_edges_mpc, k_bin 
     endif else begin
       temp = sqrt(rebin(kperp_mpc, n_kperp, n_kpar)^2 + rebin(reform(kpar_mpc, 1, n_kpar), n_kperp, n_kpar)^2)
     endelse
+    temp_kperp = rebin(kperp_mpc, n_kperp, n_kpar)
+    temp_kpar = rebin(reform(kpar_mpc, 1, n_kpar), n_kperp, n_kpar)
     
     if n_elements(kperp_density_measure_use) gt 0 and n_elements(kperp_density_cutoff) gt 0 then begin
       wh_kperp_good = where(kperp_density_measure_use gt kperp_density_cutoff, count_kperp_good)
       
-      if count_kperp_good gt 0 then temp = temp[wh_kperp_good, *] $
-      else print, 'no kperp values exceed kperp_density_cutoff, using full volume'
+      if count_kperp_good gt 0 then begin
+        temp = temp[wh_kperp_good, *]
+        temp_kperp = temp_kperp[wh_kperp_good, *]
+        temp_kpar = temp_kpar[wh_kperp_good, *]
+        weighted_power = weighted_power[wh_good,*]/0.5
+        if n_elements(weights_use) gt 0 then weights_use = weights_use[wh_good,*]
+        if n_elements(weighted_noise_expval) gt 0 then weighted_noise_expval = weighted_noise_expval[wh_good,*]
+      endif else print, 'no kperp values exceed kperp_density_cutoff, using full volume'
       
     endif
     
     if n_elements(wedge_amp) gt 0 then begin
-      temp_kperp = rebin(kperp_mpc, n_kperp, n_kpar)
-      temp_kpar = rebin(reform(kpar_mpc, 1, n_kpar), n_kperp, n_kpar)
-      
-      if n_elements(kperp_density_measure_use) gt 0 and n_elements(kperp_density_cutoff) gt 0 and count_kperp_good gt 0 then begin
-        temp_kperp = temp_kperp[wh_kperp_good, *]
-        temp_kpar = temp_kpar[wh_kperp_good, *]
-      endif
-      
       wh_above_wedge = where(temp_kpar gt temp_kperp*max(wedge_amp), count_above_wedge)
-      if count_above_wedge gt 0 then temp = temp[wh_above_wedge] $
-      else print, 'no pixels above wedge, using full volume'
+      if count_above_wedge gt 0 then begin
+        temp = temp[wh_above_wedge]
+        weighted_power = weighted_power[wh_above_wedge]
+        if n_elements(weights_use) gt 0 then weights_use = weights_use[wh_above_wedge]
+        if n_elements(weighted_noise_expval) gt 0 then weighted_noise_expval = weighted_noise_expval[wh_above_wedge]
+      endif else print, 'no pixels above wedge, using full volume'
     endif
     
     if not keyword_set(log_k) then begin

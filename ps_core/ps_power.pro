@@ -389,8 +389,11 @@ pro ps_power, file_struct, refresh = refresh, kcube_refresh = kcube_refresh, dft
     
   print, 'Binning to 1D power spectrum'
   
-  if keyword_set(kperp_range_1dave) then kperp_range_use = kperp_range_1dave
+
+  n_wt_cuts = n_elements(wt_cutoffs)
+  
   if keyword_set(kperp_range_lambda_1dave) then kperp_range_use = kperp_range_lambda_1dave / kperp_lambda_conv
+  if keyword_set(kperp_range_1dave) then kperp_range_use = kperp_range_1dave
   if keyword_set(kpar_range_1dave) then kpar_range_use = kpar_range_1dave
   
   if n_elements(savefile_1d) ne (n_elements(wedge_amp)+1)*(n_wt_cuts) then $
