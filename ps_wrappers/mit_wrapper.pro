@@ -5,12 +5,13 @@ pro mit_wrapper, folder_name, obs_name, data_subdirs=data_subdirs, exact_obsname
     png = png, eps = eps, plot_slices = plot_slices, slice_type = slice_type, uvf_plot_type = uvf_plot_type, plot_stdset = plot_stdset, $
     delta_uv_lambda = delta_uv_lambda, cut_image = cut_image, $
     kperp_range_1dave = kperp_range_1dave, kperp_range_lambda_1dave = kperp_range_lambda_1dave, kpar_range_1dave = kpar_range_1dave, $
+    log_k1d = log_k1d, k1d_bin = k1d_bin, $
     plot_kpar_power = plot_kpar_power, plot_kperp_power = plot_kperp_power, plot_k0_power = plot_k0_power, plot_noise_1d = plot_noise_1d, $
     kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, $
     kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
     wedge_angles = wedge_angles, coarse_harm_width = coarse_harm_width, $
     set_data_ranges = set_data_ranges, range_1d = range_1d, plot_1d_delta = plot_1d_delta, plot_1d_error_bars = plot_1d_error_bars, $
-    data_range = data_range
+    data_range = data_range, wt_cutoffs = wt_cutoffs 
     
   ;; The only required input is the datafile name (including the full path)
     
@@ -117,8 +118,8 @@ pro mit_wrapper, folder_name, obs_name, data_subdirs=data_subdirs, exact_obsname
       if n_elements(range_1d) eq 0 then range_1d = [1e0, 1e7]
     endif
     
-    wt_cutoffs = [0,1]
-    wt_measures = strarr(2)+'min'
+    if n_elements(wt_cutoffs) eq 0 then wt_cutoffs = [0,1]
+    wt_measures = strarr(n_elements(wt_cutoffs))+'min'
     
     if n_elements(set_data_ranges) eq 0 and not keyword_set(sim) then set_data_ranges = 1
     
