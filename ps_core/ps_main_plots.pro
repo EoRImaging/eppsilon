@@ -350,7 +350,7 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
       endif
       if n_elements(kperp_bin) ne 0 then begin
         kperp_bin_file = fltarr(n_elements(savefile_2d_use))
-        for j=0, n_elements(savefile_2d_use)-1 do kperp_bin_file[j] = getvar_savefile(savefile_2d_use, 'kperp_bin')
+        for j=0, n_elements(savefile_2d_use)-1 do kperp_bin_file[j] = getvar_savefile(savefile_2d_use[j], 'kperp_bin')
         if max(abs(kperp_bin - kperp_bin_file)) gt 0. then test_2d=0
       endif
     endif
