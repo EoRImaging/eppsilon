@@ -200,7 +200,7 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
   if keyword_set(log_kperp) then fadd_2dbin = fadd_2dbin + '_logkperp'
   
   fadd_1dbin = ''
-  if keyword_set(log_k) then fadd_1dbin = fadd_1dbin + '_logk'
+  if keyword_set(log_k1d) then fadd_1dbin = fadd_1dbin + '_logk'
   if n_elements(kperp_range_1dave) gt 1 and n_elements(kperp_range_lambda_1dave) gt 1 then $
     message, 'both kperp_range_1dave and kperp_range_lambda_1dave cannot be set'
     
@@ -210,7 +210,8 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
     note_1d = 'kperp: [' + number_formatter(kperp_range_1dave[0]) + ',' + $
       number_formatter(kperp_range_1dave[1]) + ']'
       
-    if keyword_set(hinv) then kperp_range_1d_use = kperp_range_1dave / hubble_param else kperp_range_1d_use = kperp_range_1dave
+    ;; if we're plotting in [k]=h/Mpc then assume these numbers are in h/Mpc. Convert to 1/Mpc for internal code usage
+    if keyword_set(hinv) then kperp_range_1d_use = kperp_range_1dave * hubble_param else kperp_range_1d_use = kperp_range_1dave
     
   endif else begin
     if n_elements(kperp_range_1dave) gt 0 then print, '2 values must be specified for kperp_range_1dave, defaulting to normal range'
@@ -233,7 +234,8 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
     note_1d = note_1d + 'kpar: [' + number_formatter(kpar_range_1dave[0]) + ',' + $
       number_formatter(kpar_range_1dave[1]) + ']'
       
-    if keyword_set(hinv) then kpar_range_1d_use = kpar_range_1dave / hubble_param else kpar_range_1d_use = kpar_range_1dave
+    ;; if we're plotting in [k]=h/Mpc then assume these numbers are in h/Mpc. Convert to 1/Mpc for internal code usage
+    if keyword_set(hinv) then kpar_range_1d_use = kpar_range_1dave * hubble_param else kpar_range_1d_use = kpar_range_1dave
     
   endif else if n_elements(kpar_range_1dave) gt 0 then print, '2 values must be specified for kpar_range_1dave, defaulting to full range'
   
@@ -364,9 +366,9 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
     endif
     
     if n_elements(k1d_bin) ne 0 and test_1d gt 0 then begin
-      kbin_file = fltarr(n_elements(savefile_1d_use))
-      for j=0, n_elements(savefile_1d_use)-1 do k_bin_file[j] = getvar_savefile(savefile_1d_use[j], 'k_bin')
-      if max(abs(k_bin - k_bin_file)) gt 0. then test_1d=0
+      k_bin_file = fltarr(n_elements(savefile_1d_use))
+      for j=0, n_elements(savefile_1d_use)-1 do k_bin_file[j] = getvar_savefile(savefile_1d_use[j], 'k_bin')      
+      if max(abs(k1d_bin - k_bin_file)) gt 0. then test_1d=0
     endif
     
     if test_2d gt 0 and n_elements(freq_flags) ne 0 then begin
@@ -443,21 +445,21 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
           dft_refresh_weight = weight_refresh[i], refresh_beam = refresh_beam, $
           dft_ian = dft_ian, cut_image = cut_image, dft_fchunk = dft_fchunk, freq_ch_range = freq_ch_range, freq_flags = freq_flags, $
           spec_window_type = spec_window_type, delta_uv_lambda = delta_uv_lambda, max_uv_lambda = max_uv_lambda, $
-          savefile_2d = savefile_2d_use, savefile_1d = savefile_1d_use, $
+          savefile_2d = savefile_2d_use, savefile_1d = savefile_1d_use, hinv = hinv, $
           savefile_kpar_power = savefile_kpar_use, savefile_kperp_power = savefile_kperp_use, savefile_k0 = savefile_k0_use, $
           std_power = std_power, inverse_covar_weight = inverse_covar_weight, no_wtd_avg = no_wtd_avg, no_kzero = no_kzero, sim=sim, $
-          log_kpar = log_kpar, log_kperp = log_kperp, kpar_bin = kpar_bin, kperp_bin = kperp_bin, $
+          log_k1d = log_k1d, k1d_bin = k1d_bin, log_kpar = log_kpar, log_kperp = log_kperp, kpar_bin = kpar_bin, kperp_bin = kperp_bin, $
           kperp_range_1dave = kperp_range_1d_use, kperp_range_lambda_1dave = kperp_range_lambda_1dave, kpar_range_1dave = kpar_range_1d_use, $
           wt_measures = wt_measures, wt_cutoffs = wt_cutoffs, fix_sim_input = fix_sim_input, $
           wedge_amp = wedge_amp, coarse_harm0 = coarse_harm0, coarse_width = coarse_harm_width, /quiet, no_dft_progress = no_dft_progress
       endif else $
         ps_power, file_struct_arr[i], kcube_refresh = refresh_ps, refresh_beam = refresh_beam, freq_ch_range = freq_ch_range, $
         freq_flags = freq_flags, spec_window_type = spec_window_type, $
-        savefile_2d = savefile_2d_use, savefile_1d = savefile_1d_use, $
+        savefile_2d = savefile_2d_use, savefile_1d = savefile_1d_use, hinv = hinv, $
         savefile_kpar_power = savefile_kpar_use, savefile_kperp_power = savefile_kperp_use, savefile_k0 = savefile_k0_use, $
         std_power = std_power, inverse_covar_weight = inverse_covar_weight, no_wtd_avg = no_wtd_avg, no_kzero = no_kzero, $
         uvf_input = uvf_input, uv_avg = uv_avg, uv_img_clip = uv_img_clip, sim=sim, $
-        log_kpar = log_kpar, log_kperp = log_kperp, kpar_bin = kpar_bin, kperp_bin = kperp_bin, $
+        log_k1d = log_k1d, k1d_bin = k1d_bin, log_kpar = log_kpar, log_kperp = log_kperp, kpar_bin = kpar_bin, kperp_bin = kperp_bin, $
         kperp_range_1dave = kperp_range_1d_use, kperp_range_lambda_1dave = kperp_range_lambda_1dave, kpar_range_1dave = kpar_range_1d_use, $
         wt_measures = wt_measures, wt_cutoffs = wt_cutoffs, fix_sim_input = fix_sim_input, $
         wedge_amp = wedge_amp, coarse_harm0 = coarse_harm0, coarse_width = coarse_harm_width, /quiet, no_dft_progress = no_dft_progress
@@ -482,6 +484,8 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
   
   if n_elements(kperp_lambda_plot_range) gt 0 then begin
     kperp_plot_range = kperp_lambda_plot_range / kperp_lambda_conv
+    
+    ;; if we're plotting in [k]=h/Mpc then need to convert from 1/Mpc
     if keyword_set(hinv) then kperp_plot_range = kperp_plot_range / hubble_param
   endif
   
@@ -491,6 +495,7 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
     else max_kperp_lambda = min([file_struct_arr.kspan/2.,file_struct_arr.max_baseline_lambda])
     kperp_plot_range = [5./kperp_lambda_conv, max_kperp_lambda/kperp_lambda_conv]
     
+    ;; if we're plotting in [k]=h/Mpc then need to convert from 1/Mpc
     if keyword_set(hinv) then kperp_plot_range = kperp_plot_range / hubble_param
   endif
   

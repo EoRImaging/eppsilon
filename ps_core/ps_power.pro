@@ -1,6 +1,6 @@
 pro ps_power, file_struct, refresh = refresh, kcube_refresh = kcube_refresh, dft_refresh_data = dft_refresh_data, $
     dft_refresh_weight = dft_refresh_weight, refresh_beam = refresh_beam, $
-    savefile_2d = savefile_2d, savefile_1d = savefile_1d, $
+    savefile_2d = savefile_2d, savefile_1d = savefile_1d, hinv = hinv, $
     savefile_kpar_power = savefile_kpar_power, savefile_kperp_power = savefile_kperp_power, savefile_k0 = savefile_k0, $
     dft_ian = dft_ian, cut_image = cut_image, $
     uvf_input = uvf_input, uv_avg = uv_avg, uv_img_clip = uv_img_clip, sim=sim, $
@@ -389,7 +389,7 @@ pro ps_power, file_struct, refresh = refresh, kcube_refresh = kcube_refresh, dft
     
   print, 'Binning to 1D power spectrum'
   
-
+  
   n_wt_cuts = n_elements(wt_cutoffs)
   
   if keyword_set(kperp_range_lambda_1dave) then kperp_range_use = kperp_range_lambda_1dave / kperp_lambda_conv
@@ -450,6 +450,49 @@ pro ps_power, file_struct, refresh = refresh, kcube_refresh = kcube_refresh, dft
           kperp_range, kperp_range_lambda, kpar_range, window_int, git_hashes, $
           wt_ave_power, ave_power, ave_weights, wt_ave_power_freq, ave_power_freq, wt_ave_power_uvf, ave_power_uvf, uv_pix_area, uv_area
       endelse
+      
+      textfile = strmid(savefile_1d[j,i], 0, stregex(savefile_1d[j,i], '.idlsave')) + '.txt'
+      
+      nrows = n_elements(k_edges)
+      if nfiles eq 2 then ncol = 5 else ncol = 4
+      data = fltarr(ncol, nrows)
+      
+      sigma_vals = sqrt(1./weights)
+      wh_wt0 = where(weights eq 0, count_wh_wt0)
+      if count_wh_wt0 gt 0 then sigma_vals[wh_wt0]= !values.f_infinity
+      
+      if not keyword_set(hinv) then begin
+        data[0, *] = k_edges
+        data[1, *] = [0, power]
+        data[2, *] = [0, sigma_vals]
+        data[3, *] = [0, noise_expval]
+        header = ['k bin max (Mpc^-1)', 'power (mK^2 Mpc^3)', 'sigma (mK^2 Mpc^3)', 'expected noise (mK^2 Mpc^3)']
+        if nfiles eq 2 then begin
+          data[4,*] = [0, noise]
+          header = [header, 'observed noise (mK^2 Mpc^3)']
+        endif
+      endif else begin
+        data[0, *] = k_edges / hubble_param
+        data[1, *] = [0, power] * (hubble_param)^3d
+        data[2, *] = [0, sigma_vals] * (hubble_param)^3d
+        data[3, *] = [0, noise_expval] * (hubble_param)^3d
+        header = ['k bin max (h Mpc^-1)', 'power (mK^2 h^-3 Mpc^3)', 'sigma (mK^2 h^-3 Mpc^3)', 'expected noise (mK^2 h^-3 Mpc^3)']
+        if nfiles eq 2 then begin
+          data[4,*] = [0, noise] * (hubble_param)^3d
+          header = [header, 'observed noise (mK^2 h^-3 Mpc^3)']
+        endif
+      endelse
+      
+      data_use = Strarr(ncol,nrows+1)
+      data_use[*,0]=header
+      data_use[*,1:*]=(data)
+      
+      delimiter=String(9B)
+      format_code=String(format='("(",A,"(A,",A,A,A,"))")',Strn(ncol),'"',delimiter,'"')
+      
+      openw,unit,textfile,/Get_LUN
+      printf,unit,format=format_code,data_use
+      free_lun,unit
     endfor
   endfor
   
@@ -469,13 +512,13 @@ pro ps_power, file_struct, refresh = refresh, kcube_refresh = kcube_refresh, dft
       wt_cutoff_use = wt_cutoffs[j]
     endif else undefine, wt_cutoff_use, wt_meas_use
     
-    power_kpar = kspace_rebinning_1d(power_3d, kx_mpc, ky_mpc, kz_mpc, kpar_edges_mpc, k_bin = kpar_bin, log_k = log_k1d, $
+    power_kpar = kspace_rebinning_1d(power_3d, kx_mpc, ky_mpc, kz_mpc, kpar_edges_mpc, k_bin = kpar_bin, log_k = log_kpar, $
       noise_expval = noise_expval_3d, binned_noise_expval = noise_expval_kpar, weights = weights_3d, $
       binned_weights = weights_1d, kperp_range = kperp_range_use, kpar_range = kpar_range_use, /kpar_power, $
       kperp_density_measure = wt_meas_use, kperp_density_cutoff = wt_cutoff_use)
       
     if nfiles eq 2 then $
-      noise_kpar = kspace_rebinning_1d(noise_3d, kx_mpc, ky_mpc, kz_mpc, kpar_edges_mpc, k_bin = kpar_bin, log_k = log_k1d, $
+      noise_kpar = kspace_rebinning_1d(noise_3d, kx_mpc, ky_mpc, kz_mpc, kpar_edges_mpc, k_bin = kpar_bin, log_k = log_kpar, $
       noise_expval = noise_expval_3d, binned_noise_expval = noise_expval_kpar, weights = weights_3d, $
       binned_weights = weights_1d, kperp_range = kperp_range_use, kpar_range = kpar_range_use, /kpar_power, $
       kperp_density_measure = wt_meas_use, kperp_density_cutoff = wt_cutoff_use)
@@ -512,13 +555,13 @@ pro ps_power, file_struct, refresh = refresh, kcube_refresh = kcube_refresh, dft
       
       wt_cutoff_use = wt_cutoffs[j]
     endif else undefine, wt_cutoff_use, wt_meas_use
-    power_kperp = kspace_rebinning_1d(power_3d, kx_mpc, ky_mpc, kz_mpc, kperp_edges_mpc, k_bin = kperp_bin, log_k = log_k1d, $
+    power_kperp = kspace_rebinning_1d(power_3d, kx_mpc, ky_mpc, kz_mpc, kperp_edges_mpc, k_bin = kperp_bin, log_k = log_kperp, $
       noise_expval = noise_expval_3d, binned_noise_expval = noise_expval_kperp, weights = weights_3d, $
       binned_weights = weights_1d, kperp_range = kperp_range_use, kpar_range = kpar_range_use, /kperp_power, $
       kperp_density_measure = wt_meas_use, kperp_density_cutoff = wt_cutoff_use)
       
     if nfiles eq 2 then $
-      noise_kperp = kspace_rebinning_1d(noise_3d, kx_mpc, ky_mpc, kz_mpc, kperp_edges_mpc, k_bin = kperp_bin, log_k = log_k1d, $
+      noise_kperp = kspace_rebinning_1d(noise_3d, kx_mpc, ky_mpc, kz_mpc, kperp_edges_mpc, k_bin = kperp_bin, log_k = log_kperp, $
       noise_expval = noise_expval_3d, binned_noise_expval = noise_expval_kperp, weights = weights_3d, $
       binned_weights = weights_1d, kperp_range = kperp_range_use, kpar_range = kpar_range_use, /kperp_power, $
       kperp_density_measure = wt_meas_use, kperp_density_cutoff = wt_cutoff_use)

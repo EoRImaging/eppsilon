@@ -150,12 +150,12 @@ function kspace_rebinning_1d, power, k1_mpc, k2_mpc, k3_mpc, k_edges_mpc, k_bin 
         n_width = coarse_width*2-1
         kpar_ch_bad = rebin(coarse_harm0 * (findgen(n_harm)+1), n_harm, n_width) + $
           rebin(reform(findgen(n_width)-(coarse_width-1), 1, n_width), n_harm, n_width)
- 
+          
         temp_kpar[*,kpar_ch_bad] = 0
       endif
       
       wh_above_wedge = where(temp_kpar gt temp_kperp*max(wedge_amp), count_above_wedge, ncomplement = count_below_wedge)
-
+      
       if count_above_wedge gt 0 then begin
         temp = temp[wh_above_wedge]
         weighted_power = weighted_power[wh_above_wedge]
@@ -215,8 +215,9 @@ function kspace_rebinning_1d, power, k1_mpc, k2_mpc, k3_mpc, k_edges_mpc, k_bin 
       
       print, 'Histogramming array of log k values'
       ;; Use histogram with reverse indicies to bin in log k (want even spacing in log space.)
-      k_hist = histogram(temporary(k_array), binsize = k_bin, min = k_min, omax = k_max, locations = log_k_locs, $
+      k_hist = histogram((k_array), binsize = k_bin, min = k_min, omax = k_max, locations = log_k_locs, $
         reverse_indices = k_ri)
+      undefine, k_array
     endelse
     
     n_k = n_elements(k_hist)
