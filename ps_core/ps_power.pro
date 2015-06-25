@@ -1,6 +1,6 @@
 pro ps_power, file_struct, refresh = refresh, kcube_refresh = kcube_refresh, dft_refresh_data = dft_refresh_data, $
     dft_refresh_weight = dft_refresh_weight, refresh_beam = refresh_beam, $
-    savefile_2d = savefile_2d, savefile_1d = savefile_1d, hinv = hinv, $
+    savefile_2d = savefile_2d, savefile_1d = savefile_1d, savefile_1to2d_mask = savefile_1to2d_mask, hinv = hinv, $
     savefile_kpar_power = savefile_kpar_power, savefile_kperp_power = savefile_kperp_power, savefile_k0 = savefile_k0, $
     dft_ian = dft_ian, cut_image = cut_image, $
     uvf_input = uvf_input, uv_avg = uv_avg, uv_img_clip = uv_img_clip, sim=sim, $
@@ -416,11 +416,13 @@ pro ps_power, file_struct, refresh = refresh, kcube_refresh = kcube_refresh, dft
         endcase
         
         wt_cutoff_use = wt_cutoffs[j]
+if i eq 2 then stop
       endif else undefine, wt_cutoff_use, wt_meas_use
       
       power_1d = kspace_rebinning_1d(power_3d, kx_mpc, ky_mpc, kz_mpc, k_edges_mpc, k_bin = k1d_bin, log_k = log_k1d, $
         noise_expval = noise_expval_3d, binned_noise_expval = noise_expval_1d, weights = weights_3d, $
-        binned_weights = weights_1d, kperp_range = kperp_range_use, kpar_range = kpar_range_use, $
+        binned_weights = weights_1d, kperp_range = kperp_range_use, kpar_range = kpar_range_use, bin_mask_3d = bin_mask_3d, $
+        noise_frac_3d = noise_frac_3d, $
         wedge_amp = wedge_amp_use, coarse_harm0 = coarse_harm0_use, coarse_width = coarse_width_use, $
         kperp_density_measure = wt_meas_use, kperp_density_cutoff = wt_cutoff_use)
         
@@ -483,6 +485,8 @@ pro ps_power, file_struct, refresh = refresh, kcube_refresh = kcube_refresh, dft
         endif
       endelse
       
+      ;; add hash to indicate header line for Danny
+      header[0] = '# ' + header[0]
       data_use = Strarr(ncol,nrows+1)
       data_use[*,0]=header
       data_use[*,1:*]=(data)
@@ -493,6 +497,31 @@ pro ps_power, file_struct, refresh = refresh, kcube_refresh = kcube_refresh, dft
       openw,unit,textfile,/Get_LUN
       printf,unit,format=format_code,data_use
       free_lun,unit
+      
+      mask_weights = long(bin_mask_3d gt 0)
+      
+      mask_1to2d_ave = kspace_rebinning_2d(bin_mask_3d, kx_mpc, ky_mpc, kz_mpc, kperp_edges_mpc, kpar_edges_mpc, log_kpar = log_kpar, $
+        log_kperp = log_kperp, kperp_bin = kperp_bin, kpar_bin = kpar_bin, $
+        binned_weights = binned_weights, fill_holes = fill_holes)
+        
+      mask_1to2d = kspace_rebinning_2d(bin_mask_3d, kx_mpc, ky_mpc, kz_mpc, kperp_edges_mpc, kpar_edges_mpc, log_kpar = log_kpar, $
+        log_kperp = log_kperp, kperp_bin = kperp_bin, kpar_bin = kpar_bin, weights = mask_weights, $
+        binned_weights = binned_weights, fill_holes = fill_holes)
+
+      noise_frac_1to2d = kspace_rebinning_2d(noise_frac_3d, kx_mpc, ky_mpc, kz_mpc, kperp_edges_mpc, kpar_edges_mpc, log_kpar = log_kpar, $
+        log_kperp = log_kperp, kperp_bin = kperp_bin, kpar_bin = kpar_bin, weights = mask_weights, $
+        binned_weights = binned_weights, fill_holes = fill_holes)
+        
+      if n_elements(freq_flags) ne 0 then begin
+        save, file = savefile_1to2d_mask[j,i], mask_1to2d, mask_1to2d_ave, noise_frac_1to2d, kperp_edges, kpar_edges, kpar_bin, kpar_bin, kperp_bin, k_edges, k_bin, $
+          kperp_range, kperp_range_lambda, kpar_range, kperp_lambda_conv, delay_params, hubble_param, freq_mask, window_int, git_hashes, $
+          wt_ave_power, ave_power, ave_weights, wt_ave_power_freq, ave_power_freq, wt_ave_power_uvf, ave_power_uvf, uv_pix_area, uv_area
+      endif else begin
+        save, file = savefile_1to2d_mask[j,i], mask_1to2d, mask_1to2d_ave, noise_frac_1to2d, kperp_edges, kpar_edges, kpar_bin, kpar_bin, kperp_bin, k_edges, k_bin, $
+          kperp_range, kperp_range_lambda, kpar_range, kperp_lambda_conv, delay_params, hubble_param, window_int, git_hashes, $
+          wt_ave_power, ave_power, ave_weights, wt_ave_power_freq, ave_power_freq, wt_ave_power_uvf, ave_power_uvf, uv_pix_area, uv_area
+      endelse
+      
     endfor
   endfor
   

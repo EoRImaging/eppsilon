@@ -2,7 +2,8 @@ pro mit_wrapper, folder_name, obs_name, data_subdirs=data_subdirs, exact_obsname
     refresh_dft = refresh_dft, refresh_info = refresh_info, refresh_ps = refresh_ps, refresh_beam = refresh_beam, $
     refresh_binning = refresh_binning, pol_inc = pol_inc, type_inc = type_inc, no_spec_window = no_spec_window, $
     spec_window_type = spec_window_type, sim = sim, freq_ch_range = freq_ch_range, individual_plots = individual_plots, $
-    png = png, eps = eps, plot_slices = plot_slices, slice_type = slice_type, uvf_plot_type = uvf_plot_type, plot_stdset = plot_stdset, $
+    png = png, eps = eps, $
+    plot_slices = plot_slices, slice_type = slice_type, uvf_plot_type = uvf_plot_type, plot_stdset = plot_stdset, plot_1to2d = plot_1to2d, $
     delta_uv_lambda = delta_uv_lambda, cut_image = cut_image, $
     kperp_range_1dave = kperp_range_1dave, kperp_range_lambda_1dave = kperp_range_lambda_1dave, kpar_range_1dave = kpar_range_1dave, $
     log_k1d = log_k1d, k1d_bin = k1d_bin, $
@@ -215,7 +216,7 @@ pro mit_wrapper, folder_name, obs_name, data_subdirs=data_subdirs, exact_obsname
     plot_1d_delta = plot_1d_delta, plot_1d_error_bars = plot_1d_error_bars, $
     kperp_range_1dave = kperp_range_1dave, kperp_range_lambda_1dave = kperp_range_lambda_1dave, kpar_range_1dave = kpar_range_1dave, $
     wt_cutoffs = wt_cutoffs, wt_measures = wt_measures, $
-    plot_slices = plot_slices, slice_type = slice_type, uvf_plot_type = uvf_plot_type, plot_stdset = plot_stdset, $
+    plot_slices = plot_slices, slice_type = slice_type, uvf_plot_type = uvf_plot_type, plot_stdset = plot_stdset, plot_1to2d = plot_1to2d, $
     plot_kpar_power = plot_kpar_power, plot_kperp_power = plot_kperp_power, plot_k0_power = plot_k0_power, plot_noise_1d = plot_noise_1d, $
     data_range = data_range, sigma_range = sigma_range, nev_range = nev_range, snr_range = snr_range, noise_range = noise_range, nnr_range = nnr_range, $
     range_1d = range_1d, baseline_axis = baseline_axis, delay_axis = delay_axis, hinv = hinv, note = note, $

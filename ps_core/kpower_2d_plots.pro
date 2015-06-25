@@ -79,6 +79,8 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, wei
     multi_pos = multi_pos, start_multi_params = start_multi_params, window_num = window_num, $
     plot_weights = plot_weights, plot_noise = plot_noise, plot_sigma = plot_sigma, plot_exp_noise = plot_exp_noise, $
     snr = snr, nnr = nnr, pwr_ratio = pwr_ratio, $
+    plot_mask = plot_mask, mask_savefile = mask_savefile, mask_contour = mask_contour, contour_levels = contour_levels, $
+    plot_1d_noisefrac = plot_1d_noisefrac, $
     kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, data_range = data_range, data_min_abs = data_min_abs, $
     color_profile = color_profile, log_cut_val = log_cut_val, plotfile = plotfile, png = png, eps = eps, pdf = pdf, $
     no_title = no_title, full_title = full_title, title_prefix = title_prefix, note = note, $
@@ -227,19 +229,53 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, wei
     plot_type = 'nnr'
   endif
   
+  if keyword_set(plot_mask) then begin
+    power = mask_1to2d_ave
+    plot_type = 'mask'
+  endif
+  
+  if keyword_set(plot_1d_noisefrac) then begin
+    power = noise_frac_1to2d
+    plot_type = 'noise_frac'
+  endif
+  
   if n_elements(plot_type) eq 0 then plot_type = 'power'
   
   
-  dims = size(power, /dimension)
-  n_kperp = dims[0]
-  n_kpar = dims[1]
+  if keyword_set(mask_contour) then begin
+    if plot_type ne 'mask' then begin
+      if n_elements(mask_savefile) eq 0 then message, 'mask_savefile must be supplied if mask_contour is set'
+      
+      kperp_edges = getvar_savefile(power_savefile, 'kperp_edges')
+      if total(abs(kperp_edges - getvar_savefile(mask_savefile, 'kperp_edges'))) ne 0 then message, 'mask_savefile kperp_edges do not match power_savefile'
+      kpar_edges = getvar_savefile(power_savefile, 'kpar_edges')
+      if total(abs(kpar_edges - getvar_savefile(mask_savefile, 'kpar_edges'))) ne 0 then message, 'mask_savefile kpar_edges do not match power_savefile'
+      kperp_bin = getvar_savefile(power_savefile, 'kperp_bin')
+      if total(abs(kperp_bin - getvar_savefile(mask_savefile, 'kperp_bin'))) ne 0 then message, 'mask_savefile kperp_bin does not match power_savefile'
+      kpar_bin = getvar_savefile(power_savefile, 'kpar_bin')
+      if total(abs(kpar_bin - getvar_savefile(mask_savefile, 'kpar_bin'))) ne 0 then message, 'mask_savefile kpar_bin does not match power_savefile'
+      kperp_lambda_conv = getvar_savefile(power_savefile, 'kperp_lambda_conv')
+      if total(abs(kperp_lambda_conv - getvar_savefile(mask_savefile, 'kperp_lambda_conv'))) ne 0 then message, 'mask_savefile kperp_lambda_conv does not match power_savefile'
+      delay_params = getvar_savefile(power_savefile, 'delay_params')
+      if total(abs(delay_params - getvar_savefile(mask_savefile, 'delay_params'))) ne 0 then message, 'mask_savefile delay_params does not match power_savefile'
+      hubble_param = getvar_savefile(power_savefile, 'hubble_param')
+      if total(abs(hubble_param - getvar_savefile(mask_savefile, 'hubble_param'))) ne 0 then message, 'mask_savefile hubble_param does not match power_savefile'
+    endif else if n_elements(mask_savefile) eq 0 then mask_savefile = power_savefile
+    
+    mask = getvar_savefile(mask_savefile, 'mask_1to2d')
+  endif
+  
+  n_kperp = n_elements(kperp_edges) - 1
+  n_kpar = n_elements(kpar_edges) -1
   
   kperp_edges_use = kperp_edges
   kpar_edges_use = kpar_edges
+  kpar_bin_use = kpar_bin
   
   if keyword_set(hinv) then begin
     kperp_edges_use = kperp_edges_use / hubble_param
     kpar_edges_use = kpar_edges_use / hubble_param
+    kpar_bin_use = kpar_bin_use / hubble_param
     if plot_type eq 'power' or plot_type eq 'noise' or plot_type eq 'sigma' or plot_type eq 'exp_noise' then $
       power = power * (hubble_param)^3d
   endif
@@ -253,18 +289,21 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, wei
       if keyword_set(hinv) then units_str = textoidl(' (mK^2 h^{-3} Mpc^3)', font = font) $
       else units_str = textoidl(' (mK^2 Mpc^3)', font = font)
       
+      color_type = 'log'
       plot_title = textoidl('P_k', font = font)
       if pub then plotfile_add = '_2dkpower' + plot_exten
     end
     'weight': begin
       units_str = ''
       plot_title = 'Weights'
+      color_type = 'log'
       if pub then plotfile_add = '_2dweight' + plot_exten
     end
     'sigma': begin
       if keyword_set(hinv) then units_str = textoidl(' (mK^2 h^{-3} Mpc^3)', font = font) $
       else units_str = textoidl(' (mK^2 Mpc^3)', font = font)
       
+      color_type = 'log'
       plot_title = 'Error (sigma)'
       if pub then plotfile_add = '_2dsigma' + plot_exten
     end
@@ -272,11 +311,13 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, wei
       if keyword_set(hinv) then units_str = textoidl(' (mK^2 h^{-3} Mpc^3)', font = font) $
       else units_str = textoidl(' (mK^2 Mpc^3)', font = font)
       
+      color_type = 'log'
       plot_title = 'Expected Noise'
       if pub then plotfile_add = '_2dnoise_expval' + plot_exten
     end
     'snr': begin
       units_str = ''
+      color_type = 'log'
       plot_title = 'SNR (' + textoidl('P_k/N_E', font = font) + ')'
       if pub then plotfile_add = '_2dsnr' + plot_exten
     end
@@ -284,18 +325,33 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, wei
       if keyword_set(hinv) then units_str = textoidl(' (mK^2 h^{-3} Mpc^3)', font = font) $
       else units_str = textoidl(' (mK^2 Mpc^3)', font = font)
       
+      color_type = 'log'
       plot_title = 'Observed Noise'
       if pub then plotfile_add = '_2dnoise' + plot_exten
     end
     'nnr': begin
       units_str = ''
+      color_type = 'log'
       plot_title = 'Noise Ratio (' + textoidl('N_O/N_E', font = font) + ')'
       if pub then plotfile_add = '_2dnnr' + plot_exten
     end
     'power_ratio': begin
       units_str = ''
+      color_type = 'log'
       plot_title = 'Power Ratio'
       if pub then plotfile_add = '_2dkpower' + plot_exten
+    end
+    'mask': begin
+      units_str = '1D bin number * fill fraction'
+      color_type = 'integer'
+      plot_title = ''
+      if pub then plotfile_add = '_1to2dmask' + plot_exten
+    end
+    'noise_frac': begin
+      units_str = 'Noise fraction in 1d bin'
+      color_type = 'linear'
+      plot_title = ''
+      if pub then plotfile_add = '_1to2dnoisefrac' + plot_exten
     end
   endcase
   
@@ -306,26 +362,40 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, wei
   
   if keyword_set(no_units) then units_str = ''
   
-  wh_kperp_inrange = where(kperp_edges_use ge kperp_plot_range[0] and kperp_edges_use[1:*] le kperp_plot_range[1], n_kperp_plot)
-  wh_kpar_inrange = where(kpar_edges_use ge kpar_plot_range[0] and kpar_edges_use[1:*] le kpar_plot_range[1], n_kpar_plot)
+  wh_kperp_inrange = where(kperp_edges_use[0:n_kperp-1] ge kperp_plot_range[0] and kperp_edges_use[1:*] le kperp_plot_range[1], n_kperp_plot)
+  wh_kpar_inrange = where(kpar_edges_use[0:n_kpar-1] ge kpar_plot_range[0] and kpar_edges_use[1:*] le kpar_plot_range[1], n_kpar_plot)
   
   if n_kperp_plot eq 0 or n_kpar_plot eq 0 then message, 'No data in plot k range'
   
   if n_kperp_plot ne n_kperp then begin
     power = power[wh_kperp_inrange, *]
+    if keyword_set(mask_contour) then mask = mask[wh_kperp_inrange, *]
     temp = [wh_kperp_inrange, wh_kperp_inrange[n_kperp_plot-1]+1]
     kperp_edges_use =kperp_edges_use[temp]
     n_kperp = n_kperp_plot
   endif
+  
+  lin_delay_kpar_slope = (delay_params[1] - delay_params[0])/(max(kpar_edges_use) - kpar_bin_use)
+  lin_delay_kpar_intercept = delay_params[0] / (lin_delay_kpar_slope * kpar_bin_use)
+  linear_delay_edges = lin_delay_kpar_slope * kpar_edges_use + lin_delay_kpar_intercept
+  
+  log_delay_kpar_slope = (alog10(delay_params[1]) - alog10(delay_params[0]))/(alog10(max(kpar_edges_use)) - alog10(kpar_bin_use))
+  log_delay_kpar_intercept = alog10(delay_params[0]) / (log_delay_kpar_slope * alog10(kpar_bin_use))
+  log_delay_edges = 10^(log_delay_kpar_slope * alog10(kpar_edges_use) + log_delay_kpar_intercept)
+  
   if n_kpar_plot ne n_kpar then begin
     power = power[*, wh_kpar_inrange]
-    temp = [wh_kpar_inrange, wh_kpar_inrange[n_kpar_plot-1]+1]
-    kpar_edges_use = kpar_edges_use[temp]
-
-    max_delay_plot = delay_params[1] * n_kpar_plot / float(n_kpar)
+    if keyword_set(mask_contour) then mask = mask[*, wh_kpar_inrange]
     
-    n_kpar = n_kpar_plot    
-  endif else max_delay_plot = delay_params[1]
+    temp = [wh_kpar_inrange, wh_kpar_inrange[n_kpar_plot-1]+1]
+    
+    kpar_edges_use = kpar_edges_use[temp]
+    
+    linear_delay_edges = linear_delay_edges[temp]
+    log_delay_edges = log_delay_edges[temp]
+    
+    n_kpar = n_kpar_plot
+  endif
   
   if max(abs(power)) eq 0 then begin
     print, 'power is entirely zero.'
@@ -347,7 +417,6 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, wei
   if kpar_edges_use[0] eq 0 then kpar_diffs = kpar_diffs[1:*] ;; lowest bin may have lower edge set to zero
   if total(abs(kpar_diffs - kpar_diffs[0])) gt n_kpar*1e-7 then log_bins[1] = 1
   
-  
   if keyword_set(norm_2d) then begin
     if n_elements(norm_factor) eq 0 then norm_factor = 1/max(power)
     power = power * norm_factor
@@ -362,6 +431,7 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, wei
   if total(abs(log_bins-log_axes)) ne 0 then begin
     ;; need to make a new image array with varying bin sizes
     if log_bins[0] ne log_axes[0] then begin
+      ;; kperp direction
       if log_bins[0] eq 0 then begin
         ;; linear binning, log axes
         wh_kperp0 = where(kperp_edges_use le 0, count_kperp0, complement = wh_kperp_good)
@@ -390,16 +460,23 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, wei
     endelse
     
     if log_bins[1] ne log_axes[1] then begin
+      ;; kpar direction
       if log_bins[1] eq 0 then begin
         ;; linear binning, log axes
         wh_kpar0 = where(kpar_edges_use le 0, count_kpar0, complement = wh_kpar_good)
         if count_kpar0 gt 1 then stop
         
         kpar_log_edges = alog10(kpar_edges_use)
+        delay_log_edges = alog10(linear_delay_edges)
         if count_kpar0 eq 1 then begin
           kpar_log_diffs = (kpar_log_edges[1:*] - shift(kpar_log_edges[1:*], 1))[1:*]
           kpar_log_diffs = [kpar_log_diffs[0], kpar_log_diffs]
           kpar_log_edges[wh_kpar0] = kpar_log_edges[wh_kpar0+1] - kpar_log_diffs[wh_kpar0]
+          
+          delay_log_diffs = (delay_log_edges[1:*] - shift(delay_log_edges[1:*], 1))[1:*]
+          delay_log_diffs = [delay_log_diffs[0], delay_log_diffs]
+          delay_log_edges[wh_kpar0] = delay_log_edges[wh_kpar0+1] - delay_log_diffs[wh_kpar0]
+          
         endif else kpar_log_diffs = (kpar_log_edges - shift(kpar_log_edges, 1))[1:*]
         
         image_kpar_delta = min(kpar_log_diffs)/2d
@@ -409,6 +486,9 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, wei
         kpar_diffs = (kpar_edges_use[1:*] - shift(kpar_edges_use[1:*], 1))[1:*]
         image_kpar_delta = min(kpar_diffs)/2d
         kpar_bin_widths = round(kpar_diffs / image_kpar_delta)
+        
+        delay_diffs = (log_delay_edges[1:*] - shift(log_delay_edges[1:*], 1))[1:*]
+        delay_edges = findgen(n_kpar)*delay_diffs + log_delay_edges[0]
       endelse
       rebin_y = 1
     endif else begin
@@ -441,17 +521,46 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, wei
     
     kperp_inds = rebin(kperp_inds, nkperp_image, nkpar_image)
     power_plot = power[kperp_inds, kpar_inds]
+    if keyword_set(mask_contour) then begin
+      mask_plot = mask[kperp_inds, kpar_inds]
+      if log_axes[0] eq 0 then mask_kperp = findgen(nkperp_image)*(max(kperp_edges_use) - min(kperp_edges_use))/nkperp_image + min(kperp_edges_use) $
+      else mask_kperp = 10^(findgen(nkperp_image)*(max(kperp_log_edges) - min(kperp_log_edges))/nkperp_image + min(kperp_log_edges))
+      if log_axes[1] eq 0 then mask_kpar = findgen(nkpar_image)*(max(kpar_edges_use) - min(kpar_edges_use))/nkpar_image + min(kpar_edges_use) $
+      else mask_kpar = 10^(findgen(nkpar_image)*(max(kpar_log_edges) - min(kpar_log_edges))/nkpar_image + min(kpar_log_edges))
+    endif
     
     ;; now expand array in any non-rebinned direction to prevent interpolation
-    if rebin_x eq 0 then power_plot = congrid(power_plot, nkperp_image*10, nkpar_image)
-    if rebin_y eq 0 then power_plot = congrid(power_plot, nkperp_image, nkpar_image*10)
-    
+    if rebin_x eq 0 or nkperp_image lt 15 then power_plot = congrid(power_plot, nkperp_image*10, nkpar_image)
+    if rebin_y eq 0 or nkpar_image lt 15 then power_plot = congrid(power_plot, nkperp_image, nkpar_image*10)
+    if keyword_set(mask_contour) then begin
+      if rebin_x eq 0 or nkperp_image lt 15 then begin
+        mask_plot = congrid(mask_plot, nkperp_image*10, nkpar_image)
+        if log_axes[0] eq 0 then mask_kperp = findgen(nkperp_image*10)*(max(kperp_edges_use) - min(kperp_edges_use))/nkperp_image + min(kperp_edges_use) $
+        else mask_kperp = 10^(findgen(nkperp_image*10)*(max(kperp_log_edges) - min(kperp_log_edges))/(nkperp_image*10) + min(kperp_log_edges))
+      endif
+      if rebin_y eq 0or nkpar_image lt 15 then begin
+        mask_plot = congrid(mask_plot, nkperp_image, nkpar_image*10)
+        if log_axes[1] eq 0 then mask_kpar = findgen(nkpar_image*10)*(max(kpar_edges_use) - min(kpar_edges_use))/nkpar_image + min(kpar_edges_use) $
+        else mask_kpar = 10^(findgen(nkpar_image*10)*(max(kpar_log_edges) - min(kpar_log_edges))/(nkpar_image*10) + min(kpar_log_edges))
+      endif
+    endif
   endif else begin
     ;; axes & binning agree for both directions
     ;; expand image array to prevent interpolation in postscript
     power_plot = congrid(power, n_kperp*10, n_kpar*10)
     if log_axes[0] eq 1 then kperp_log_edges = alog10(kperp_edges_use)
-    if log_axes[1] eq 1 then kpar_log_edges = alog10(kpar_edges_use)
+    if log_axes[1] eq 1 then begin
+      kpar_log_edges = alog10(kpar_edges_use)
+      delay_log_edges = log_delay_edges
+    endif else delay_edges = linear_delay_edges
+    
+    if keyword_set(mask_contour) then begin
+      mask_plot = congrid(mask, n_kperp*10, n_kpar*10)
+      if log_axes[0] eq 0 then mask_kperp = findgen(nkperp_image*10)*(max(kperp_edges_use) - min(kperp_edges_use))/nkperp_image + min(kperp_edges_use) $
+      else mask_kperp = 10^(findgen(nkperp_image*10)*(max(kperp_log_edges) - min(kperp_log_edges))/nkperp_image + min(kperp_log_edges))
+      if log_axes[1] eq 0 then mask_kpar = findgen(nkpar_image*10)*(max(kpar_edges_use) - min(kpar_edges_use))/nkpar_image + min(kpar_edges_use) $
+      else mask_kpar = 10^(findgen(nkpar_image*10)*(max(kpar_log_edges) - min(kpar_log_edges))/nkpar_image + min(kpar_log_edges))
+    endif
   endelse
   
   
@@ -460,10 +569,75 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, wei
   background_color = 'white'
   annotate_color = 'black'
   
-  if not keyword_set(no_plot) then $
-    log_color_calc, power_plot, power_log_norm, cb_ticks, cb_ticknames, color_range, n_colors, data_range = data_range, $
-    color_profile = color_profile, log_cut_val = log_cut_val, min_abs = data_min_abs, oob_low = oob_low
-    
+  if not keyword_set(no_plot) then begin
+    case color_type of
+      'integer': begin
+        color_range = [0, ceil(max(power_plot))]
+        n_colors = color_range[1] - color_range[0] + 1
+        
+        power_log_norm = power_plot
+        
+        max_bin = ceil(max(power_plot))
+        cb_tick_size = ceil(max_bin/8.)
+        cb_tick_vals = indgen(8) * cb_tick_size
+        
+        wh_large = where(cb_tick_vals gt max_bin, count_large, complement = wh_good)
+        if count_large gt 0 then cb_tick_vals = cb_tick_vals[wh_good]
+        cb_ticknames = number_formatter(cb_tick_vals)
+        cb_ticks = cb_tick_vals + 0.5
+        
+        if max_bin gt max(cb_tick_vals) then begin
+          cb_tick_vals = [cb_tick_vals, max_bin]
+          cb_ticknames = [cb_ticknames, ' ']
+          cb_ticks = [cb_ticks, color_range[1]+1]
+        endif
+        
+        cgloadct, 25, /brewer, /reverse, BOTTOM = 0, NCOLORS = n_colors, clip = [0, 235]
+      end
+      'log': log_color_calc, power_plot, power_log_norm, cb_ticks, cb_ticknames, color_range, n_colors, data_range = data_range, $
+        color_profile = color_profile, log_cut_val = log_cut_val, min_abs = data_min_abs, oob_low = oob_low
+      'linear': begin
+        if n_elements(data_range) eq 0 then data_range = minmax(power_plot)
+        color_range = [0, 255]
+        n_colors = color_range[1] - color_range[0] + 1
+        
+        power_log_norm = power_plot*(color_range[1] - color_range[0])/(data_range[1]-data_range[0]) + color_range[0]
+        
+        cb_tick_size = (data_range[1] - data_range[0])/8.
+        cb_tick_size = 10.^round(alog10(cb_tick_size))
+        cb_tick_vals = findgen(12) * cb_tick_size + data_range[0]
+        
+        wh_large = where(cb_tick_vals gt data_range[1], count_large, complement = wh_good)
+        if count_large gt 0 then cb_tick_vals = cb_tick_vals[wh_good]
+        cb_ticknames = number_formatter(cb_tick_vals, format = '(f9.5)')
+        cb_ticks = cb_tick_vals*(color_range[1] - color_range[0])/(data_range[1]-data_range[0])
+        
+        if data_range[1] gt max(cb_tick_vals) then begin
+          cb_tick_vals = [cb_tick_vals, data_range[1]]
+          cb_ticknames = [cb_ticknames, ' ']
+          cb_ticks = [cb_ticks, color_range[1]]
+        endif
+        
+        cgloadct, 25, /brewer, /reverse, BOTTOM = 0, NCOLORS = n_colors, clip = [0, 235]
+        
+      end
+    endcase
+  endif
+  
+  if keyword_set(mask_contour) then begin
+    if n_elements(contour_levels) then begin
+      if size(contour_levels, /type) then begin
+        if contour_levels eq 'all' then levels = indgen(ceil(max(mask_plot))) + 1 $
+        else message, 'contour_levels is an unrecognized string'
+      endif else levels = contour_levels
+    endif else begin
+      levels = (indgen(6)+1) * ceil(max(mask_plot)/6.)
+      if min(levels) gt 1 then levels = [1, levels]
+      wh_large = where(levels gt max(power_plot), count_large, complement = wh_good)
+      if count_large gt 0 then levels = levels[wh_good]
+    endelse
+  endif
+  
   screen_size = get_screen_size()
   max_xsize = screen_size[0]
   max_ysize = screen_size[1]
@@ -680,8 +854,8 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, wei
     
     ;; xloc_delay = plot_pos[2] + 0.2* (multi_pos[2]-plot_pos[2])
     ;; yloc_delay = (plot_pos[3] - plot_pos[1])/2d + plot_pos[1]
-    xloc_delay = plot_pos[2] + 0.15 * (multi_pos_use[2]-plot_pos[2])
-    yloc_delay = plot_pos[1] + 0.1* (plot_pos[1]-multi_pos_use[1])
+    xloc_delay = plot_pos[2] + 0.10 * (multi_pos_use[2]-plot_pos[2])
+    yloc_delay = plot_pos[1] - 0.2 * (plot_pos[1]-multi_pos_use[1])
     
     xloc_note = .99*multi_pos_use[2]
     yloc_note = multi_pos_use[1] + 0.1* (plot_pos[1]-multi_pos_use[1])
@@ -731,7 +905,13 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, wei
   endelse
   
   if log_axes[0] eq 1 then plot_kperp = 10^kperp_log_edges else plot_kperp = kperp_edges_use
-  if log_axes[1] eq 1 then plot_kpar = 10^kpar_log_edges else plot_kpar = kpar_edges_use
+  if log_axes[1] eq 1 then begin
+    plot_kpar = 10^kpar_log_edges
+    plot_delay = 10^delay_log_edges
+  endif else begin
+    plot_kpar = kpar_edges_use
+    plot_delay = delay_edges
+  endelse
   
   ;; if plot title includes sigma need to replace 'sigma' with appropriate character
   ;; (textoidl has to be called after cgps_open)
@@ -787,6 +967,12 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, wei
     title=initial_title, position = plot_pos, noerase = no_erase, color = annotate_color, background = background_color, $
     axkeywords = axkeywords, /axes
     
+  if keyword_set(mask_contour) then begin
+    if keyword_set(png) then c_thick = [3,1,1,1,1] else c_thick = [2,1,1,1,1]
+    cgcontour, mask_plot, mask_kperp, mask_kpar, levels = levels, $;c_color = ['black', 'dark_grey', 'dark_grey'], $
+      thick = thick, charsize = charsize, font = font, label=0, /onimage, c_thick = c_thick;, c_linestyle=[0,2,1]
+  endif
+  
   if keyword_set(plot_wedge_line) then begin
     n_lines = n_elements(wedge_amp)
     sorted_amp = reverse(wedge_amp[sort(wedge_amp)])
@@ -825,8 +1011,8 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, wei
     charthick = charthick, xthick = xthick, ythick = ythick, charsize = charsize, font = font, xstyle = 1, $
     color = annotate_color
   if keyword_set(delay_axis) then begin
-    min_delay_plot = 2d*alog10(delay_params[0]) - alog10(delay_params[0]*2) ;; in analogy with min kperp/par with 0 bins
-    cgaxis, yaxis=1, yrange = [min_delay_plot, max_delay_plot], ytickformat = ytickformat, charthick = charthick, xthick = xthick, $
+    ;min_delay_plot = 2d*alog10(delay_params[0]) - alog10(delay_params[0]*2) ;; in analogy with min kperp/par with 0 bins
+    cgaxis, yaxis=1, yrange = minmax(plot_delay), ytickformat = ytickformat, charthick = charthick, xthick = xthick, $
       ythick = ythick, charsize = charsize, font = font, ystyle = 1, color = annotate_color
       
     cgtext, xloc_delay, yloc_delay, '(ns)', /normal, alignment=0.5, charsize=charsize*0.9, $
