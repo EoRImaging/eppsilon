@@ -3,6 +3,7 @@ pro ps_difference_plots, folder_names, obs_info, cube_types, pols, all_type_pol 
     plot_path = plot_path, plot_filebase = plot_filebase, save_path = save_path, savefilebase = savefilebase, $
     note = note, spec_window_types = spec_window_types, data_range = data_range, data_min_abs = data_min_abs, $
     kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, plot_1d = plot_1d, axis_type_1d=axis_type_1d, $
+    wt_cutoffs = wt_cutoffs, wt_measures = wt_measures, $
     plot_wedge_line = plot_wedge_line, quiet = quiet, png = png, eps = eps, pdf = pdf, window_num = window_num
     
   if n_elements(obs_info.info_files) gt 2 then message, 'Only 1 or 2 info_files can be used'
@@ -33,7 +34,7 @@ pro ps_difference_plots, folder_names, obs_info, cube_types, pols, all_type_pol 
     if min(freq_ch_range) lt 0 or max(freq_ch_range) - min(freq_ch_range) lt 3 then message, 'invalid freq_ch_range'
     fch_tag = '_ch' + number_formatter(min(freq_ch_range)) + '-' + number_formatter(max(freq_ch_range))
   endif else fch_tag = ''
-    
+  
   
   n_diffs = max([n_elements(obs_info.info_files), n_elements(cube_types), n_elements(pols), n_elements(spec_window_types)])
   if n_diffs gt 2 then message, 'only 1 or 2 of [folder_names, obs_names, cube_types, pols, spec_window_types] allowed'
@@ -89,6 +90,20 @@ pro ps_difference_plots, folder_names, obs_info, cube_types, pols, all_type_pol 
   
   if n_elements(spec_window_types) eq 2 then note = note + ' ' + spec_window_types[0] + ' minus ' + spec_window_types[1]
   
+  if n_elements(wt_cutoffs) gt 0 then begin
+    kperp_density_names = strarr(n_elements(wt_cutoffs))
+    wh_cutoff0 = where(wt_cutoffs eq 0, count_cutoff0, complement = wh_cutoff_n0, ncomplement = count_cutoff_n0)
+    
+    if count_cutoff0 gt 0 then kperp_density_names[wh_cutoff0] = ['']
+    if count_cutoff_n0 gt 0 then kperp_density_names[wh_cutoff_n0] = ['_kperp_density_' + wt_measures[wh_cutoff_n0] + '_gt' + number_formatter(wt_cutoffs[wh_cutoff_n0])]
+    
+  endif else begin
+    kperp_density_names = ['']
+    wt_cutoffs = 0
+  endelse
+  
+  
+  
   if keyword_set(all_type_pol) then begin
   
     if n_elements(folder_names) eq 2 and folder_names[0] ne folder_names[1] then begin
@@ -112,16 +127,15 @@ pro ps_difference_plots, folder_names, obs_info, cube_types, pols, all_type_pol 
     endif else plot_filebase = obs_info.name_same_parts + '__' + strjoin([obs_info.name_diff_parts[0], cube_types[0], pols[0]], '_') + sw_tags[0] + $
       '_minus_' + strjoin([obs_info.name_diff_parts[1], cube_types[max_type], pols[max_pol]], '_') + sw_tags[max_sw]
   endelse
-  plot_filebase = plot_filebase + fch_tag 
+  plot_filebase = plot_filebase + fch_tag
   
   if not file_test(plot_path, /directory) then file_mkdir, plot_path
   if not file_test(save_path, /directory) then file_mkdir, save_path
   
-  
-  file_struct_arr1 = fhd_file_setup(obs_info.info_files[0], pol_inc, $
+  file_struct_arr1 = fhd_file_setup(obs_info.info_files[0], $
     spec_window_type = spec_window_types[0], freq_ch_range = freq_ch_range)
   if n_elements(obs_info.info_files) eq 2 then file_struct_arr2 = fhd_file_setup(obs_info.info_files[1], $
-    pol_inc, spec_window_type = spec_window_types[max_sw], freq_ch_range = freq_ch_range) $
+    spec_window_type = spec_window_types[max_sw], freq_ch_range = freq_ch_range) $
   else file_struct_arr2 = file_struct_arr1
   type_pol_str1 = file_struct_arr1.type_pol_str
   type_pol_str2 = file_struct_arr2.type_pol_str
@@ -250,10 +264,10 @@ pro ps_difference_plots, folder_names, obs_info, cube_types, pols, all_type_pol 
     if n_elements(plot_filebase) eq 0 then plot_filebase = savefilebase_use
     
     savefile = save_path + savefilebase_use + '_power.idlsave'
-    savefile_2d = save_path + savefilebase_use + '_2dkpower.idlsave'
+    savefile_2d = save_path + savefilebase_use + kperp_density_names + '_2dkpower.idlsave'
     
     for wedge_i=0, n_elements(wedge_1dbin_names)-1 do begin
-      savefiles_1d[i, wedge_i] = save_path + savefilebase_use + wedge_1dbin_names[wedge_i] + '_1dkpower.idlsave'
+      savefiles_1d[i, wedge_i] = save_path + savefilebase_use + kperp_density_names + wedge_1dbin_names[wedge_i] + '_1dkpower.idlsave'
     endfor
     
     test_save = file_test(savefile) *  (1 - file_test(savefile, /zero_length))
@@ -316,15 +330,33 @@ pro ps_difference_plots, folder_names, obs_info, cube_types, pols, all_type_pol 
       if count_wt2_0 gt 0 then weight_diff[wh_wt2_0] = 0
       undefine, var1, var2, var_diff
       
-      save, file = savefile, power_diff, weight_diff, kx_mpc, ky_mpc, kz_mpc, kperp_lambda_conv, delay_params, hubble_param
       
+      wt_meas_ave1 = getvar_savefile(power_file1, 'wt_meas_ave')
+      wt_meas_ave2 = getvar_savefile(power_file2, 'wt_meas_ave')
+      wt_meas_ave = wt_meas_ave1 < wt_meas_ave2
+      
+      wt_meas_min1 = getvar_savefile(power_file1, 'wt_meas_min')
+      wt_meas_min2 = getvar_savefile(power_file2, 'wt_meas_min')
+      wt_meas_min = wt_meas_min1 < wt_meas_min2
+      
+      save, file = savefile, power_diff, weight_diff, wt_meas_ave, wt_meas_min, $
+        kx_mpc, ky_mpc, kz_mpc, kperp_lambda_conv, delay_params, hubble_param
+        
     endif else if min([test_save_1d, test_save_2d]) eq 0 then restore, savefile
     
     if test_save_2d eq 0 or keyword_set(refresh_diff) then begin
     
+      if wt_cutoffs gt 0 then begin
+        case wt_measures of
+          'ave': wt_meas_use = wt_meas_ave
+          'min': wt_meas_use = wt_meas_min
+        endcase
+      endif
+      
       power_rebin = kspace_rebinning_2d(power_diff, kx_mpc, ky_mpc, kz_mpc, kperp_edges_mpc, kpar_edges_mpc, log_kpar = log_kpar, $
         log_kperp = log_kperp, kperp_bin = kperp_bin, kpar_bin = kpar_bin, weights = weight_diff, $
-        binned_weights = binned_weights)
+        binned_weights = binned_weights, $
+        kperp_density_measure = wt_meas_use, kperp_density_cutoff = wt_cutoffs)
         
       power = power_rebin
       kperp_edges = kperp_edges_mpc
@@ -340,8 +372,16 @@ pro ps_difference_plots, folder_names, obs_info, cube_types, pols, all_type_pol 
       for wedge_i=0, n_elements(wedge_amp) do begin
         if wedge_i gt 0 then wedge_amp_use = wedge_amp[wedge_i-1]
         
+        if wt_cutoffs gt 0 then begin
+          case wt_measures of
+            'ave': wt_meas_use = wt_meas_ave
+            'min': wt_meas_use = wt_meas_min
+          endcase
+        endif
+        
         power_rebin = kspace_rebinning_1d(power_diff, kx_mpc, ky_mpc, kz_mpc, k_edges_mpc, k_bin = k_bin, log_k = log_k, $
-          weights = weight_diff, binned_weights = binned_weights, wedge_amp = wedge_amp_use)
+          weights = weight_diff, binned_weights = binned_weights, wedge_amp = wedge_amp_use, $
+          kperp_density_measure = wt_meas_use, kperp_density_cutoff = wt_cutoffs)
           
         power = power_rebin
         k_edges = k_edges_mpc
@@ -353,8 +393,8 @@ pro ps_difference_plots, folder_names, obs_info, cube_types, pols, all_type_pol 
     
     
     if pub then begin
-      plotfile_2d = plot_path + plot_filebase + '_2dkpower' + plot_exten
-      if i eq 0 then plotfiles_1d = plot_path + plot_filebase + ['', wedge_1dbin_names] + '_1dkpower' + plot_exten
+      plotfile_2d = plot_path + plot_filebase + kperp_density_names + '_2dkpower' + plot_exten
+      if i eq 0 then plotfiles_1d = plot_path + plot_filebase + ['', wedge_1dbin_names] + kperp_density_names + '_1dkpower' + plot_exten
     endif else plot_exten = ''
     
     
