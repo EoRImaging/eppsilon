@@ -416,7 +416,7 @@ pro ps_power, file_struct, refresh = refresh, kcube_refresh = kcube_refresh, dft
         endcase
         
         wt_cutoff_use = wt_cutoffs[j]
-if i eq 2 then stop
+
       endif else undefine, wt_cutoff_use, wt_meas_use
       
       power_1d = kspace_rebinning_1d(power_3d, kx_mpc, ky_mpc, kz_mpc, k_edges_mpc, k_bin = k1d_bin, log_k = log_k1d, $

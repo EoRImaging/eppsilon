@@ -146,10 +146,10 @@ pro ps_ratio_plots, folder_names, obs_info, cube_types, pols, all_pol_diff_ratio
   if keyword_set(pub) and not file_test(plot_path, /directory) then file_mkdir, plot_path
   
   
-  file_struct_arr1 = fhd_file_setup(obs_info.info_files[0], pol_inc, $
+  file_struct_arr1 = fhd_file_setup(obs_info.info_files[0], $
     spec_window_type = spec_window_types[0], freq_ch_range = freq_ch_range)
   if n_elements(obs_info.info_files) eq 2 then file_struct_arr2 = fhd_file_setup(obs_info.info_files[1], $
-    pol_inc, spec_window_type = spec_window_types[max_sw], freq_ch_range = freq_ch_range) $
+    spec_window_type = spec_window_types[max_sw], freq_ch_range = freq_ch_range) $
   else file_struct_arr2 = file_struct_arr1
   
   if keyword_set(diff_ratio) or keyword_set(all_pol_diff_ratio) then begin
