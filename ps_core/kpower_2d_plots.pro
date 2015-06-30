@@ -492,7 +492,11 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, wei
       endelse
       rebin_y = 1
     endif else begin
-      if log_bins[1] eq 1 then kpar_log_edges = alog10(kpar_edges_use)
+      ;; axes agree
+      if log_bins[1] eq 1 then begin
+        kpar_log_edges = alog10(kpar_edges_use)
+        delay_log_edges = log_delay_edges
+      endif else delay_edges = linear_delay_edges
       rebin_y = 0
     endelse
     

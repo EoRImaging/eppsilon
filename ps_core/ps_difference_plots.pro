@@ -407,11 +407,23 @@ pro ps_difference_plots, folder_names, obs_info, cube_types, pols, all_type_pol 
     if n_cubes gt 1 then begin
       if i eq 0 then begin
         if n_cubes eq 6 then begin
-          ncol = 3
-          nrow = 2
+          if keyword_set(kperp_linear_axis) then begin
+            ;; aspect ratio doesn't work out for kperp_linear with multiple rows
+            ncol = 6
+            nrow = 1
+          endif else begin
+            ncol = 3
+            nrow = 2
+          endelse
         endif else begin
-          nrow = 2
-          ncol = ceil(n_cubes/nrow)
+          if keyword_set(kperp_linear_axis) then begin
+            ;; aspect ratio doesn't work out for kperp_linear with multiple rows
+            ncol = n_cubes
+            nrow = 1
+          endif else begin
+            nrow = 2
+            ncol = ceil(n_cubes/nrow)
+          endelse
         endelse
         start_multi_params = {ncol:ncol, nrow:nrow, ordering:'row'}
         
