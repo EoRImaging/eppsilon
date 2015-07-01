@@ -378,7 +378,7 @@ pro ps_ratio_plots, folder_names, obs_info, cube_types, pols, all_pol_diff_ratio
         kperp_lambda_conv = kperp_lambda_conv, delay_params = delay_params, hubble_param = hubble_param, $
         png = png, eps = eps, pdf = pdf, plotfile = plotfile_2d, window_num = window_num, color_profile = 'sym_log', $
         kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
-        data_range = diff_range, data_min_abs = diff_min_abs, full_title = titles[i,2], note = note, $
+        data_range = diff_range, data_min_abs = diff_min_abs, full_title = titles[i,2], note = note + ', ' + kperp_density_names, $
         plot_wedge_line = plot_wedge_line, hinv = hinv, /pwr_ratio, $
         wedge_amp = wedge_amp, baseline_axis = baseline_axis, delay_axis = delay_axis, $
         kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis
@@ -422,7 +422,7 @@ pro ps_ratio_plots, folder_names, obs_info, cube_types, pols, all_pol_diff_ratio
       kperp_lambda_conv = kperp_lambda_conv, delay_params = delay_params, hubble_param = hubble_param, $
       png = png, eps = eps, pdf = pdf, plotfile = plotfile_2d, window_num = window_num, $
       kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
-      data_range = data_range, title_prefix = title, note = note, $
+      data_range = data_range, title_prefix = title, note = note + ', ' + kperp_density_names, $
       plot_wedge_line = plot_wedge_line, hinv = hinv, /pwr_ratio, $
       wedge_amp = wedge_amp, baseline_axis = baseline_axis, delay_axis = delay_axis, $
       kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis

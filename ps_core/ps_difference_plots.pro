@@ -441,7 +441,7 @@ pro ps_difference_plots, folder_names, obs_info, cube_types, pols, all_type_pol 
       endelse
     endif
     
-    if i eq n_cubes-1 and n_elements(note) gt 0 then note_use = note else undefine, note_use
+    if i eq n_cubes-1 and n_elements(note) gt 0 then note_use = note + ', ' + kperp_density_names else undefine, note_use
     
     kpower_2d_plots, savefile_2d, multi_pos = pos_use, start_multi_params = start_multi_params, $
       kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, note = note_use, $
