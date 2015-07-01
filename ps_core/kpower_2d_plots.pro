@@ -23,7 +23,7 @@
 ;;    plot_noise: measured noise plot
 ;;    plot_sigma: sqrt(variance) = 1/sqrt(weights) plot
 ;;    plot_exp_noise: expected noise plot
-;;    snr: power to expected noise ratio plot
+;;    snr: power to sigma ratio plot
 ;;    nnr: measured noise to expected noise ratio plot
 ;;    plot_noise: measured noise plot
 ;;    plot_noise: measured noise plot
@@ -191,7 +191,7 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, wei
   endif else if n_elements(power_savefile) gt 0 then restore, power_savefile
   
   if keyword_set(snr) then begin
-    power = power / noise_expval
+    power = power * sqrt(weights)
     wh_err0 = where(noise_expval eq 0, count_err0)
     if count_err0 gt 0 then power[wh_err0] = 0
     
@@ -318,7 +318,7 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, wei
     'snr': begin
       units_str = ''
       color_type = 'log'
-      plot_title = 'SNR (' + textoidl('P_k/N_E', font = font) + ')'
+      plot_title = 'SNR (' + textoidl('P_k/\sigma', font = font) + ')'
       if pub then plotfile_add = '_2dsnr' + plot_exten
     end
     'noise': begin
