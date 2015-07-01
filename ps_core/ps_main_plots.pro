@@ -244,16 +244,25 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
     wedge_1dbin_names = ['', '_no_' + wedge_names + '_wedge' + cb_width_name]
   endif else wedge_1dbin_names = ''
   
-  if n_elements(wt_cutoffs) gt 0 then begin
-    kperp_density_names = strarr(n_elements(wt_cutoffs))
-    wh_cutoff0 = where(wt_cutoffs eq 0, count_cutoff0, complement = wh_cutoff_n0, ncomplement = count_cutoff_n0)
-    
-    if count_cutoff0 gt 0 then kperp_density_names[wh_cutoff0] = ['']
-    if count_cutoff_n0 gt 0 then kperp_density_names[wh_cutoff_n0] = ['_kperp_density_' + wt_measures[wh_cutoff_n0] + '_gt' + number_formatter(wt_cutoffs[wh_cutoff_n0])]
-  endif else begin
-    kperp_density_names = ['']
-    wt_cutoffs = 0
-  endelse
+  
+  ;; density correction defaults & file naming for 2D & 1D files
+  if n_elements(wt_cutoffs) eq 0 then begin
+    ;; default to wt_cutoffs = 1, wt_measures = 'min'
+    wt_cutoffs = 1
+    wt_measures = 'min'
+  endif else if n_elements(wt_measures) eq 0 then begin
+    print, 'wt_cutoffs is specified but wt_measures is not. Defaulting wt_measures to "min".'
+    wt_measures = strarr(n_elements(wt_cutoffs)) + 'min'
+  endif
+  
+  kperp_density_names = strarr(n_elements(wt_cutoffs))
+  wh_cutoff0 = where(wt_cutoffs eq 0, count_cutoff0, complement = wh_cutoff_n0, ncomplement = count_cutoff_n0)
+  wh_std = where(wt_cutoffs eq 1 and wt_measures eq 'min', count_std)
+  
+  if count_cutoff0 gt 0 then kperp_density_names[wh_cutoff0] = '_nodensitycorr'
+  if count_cutoff_n0 gt 0 then kperp_density_names[wh_cutoff_n0] = '_kperp_density_' + wt_measures[wh_cutoff_n0] + '_gt' + number_formatter(wt_cutoffs[wh_cutoff_n0])
+  
+  if count_std gt 0 then kperp_density_names[wh_std] = '_dencorr'
   
   ;; need general_filebase for 1D plotfiles, make sure it doesn't have a full path
   general_filebase = file_struct_arr(0).general_filebase

@@ -90,17 +90,25 @@ pro ps_difference_plots, folder_names, obs_info, cube_types, pols, all_type_pol 
   
   if n_elements(spec_window_types) eq 2 then note = note + ' ' + spec_window_types[0] + ' minus ' + spec_window_types[1]
   
-  if n_elements(wt_cutoffs) gt 0 then begin
-    kperp_density_names = strarr(n_elements(wt_cutoffs))
-    wh_cutoff0 = where(wt_cutoffs eq 0, count_cutoff0, complement = wh_cutoff_n0, ncomplement = count_cutoff_n0)
-    
-    if count_cutoff0 gt 0 then kperp_density_names[wh_cutoff0] = ['']
-    if count_cutoff_n0 gt 0 then kperp_density_names[wh_cutoff_n0] = ['_kperp_density_' + wt_measures[wh_cutoff_n0] + '_gt' + number_formatter(wt_cutoffs[wh_cutoff_n0])]
-    
-  endif else begin
-    kperp_density_names = ['']
-    wt_cutoffs = 0
-  endelse
+  
+  ;; density correction defaults & file naming for 2D & 1D files
+  if n_elements(wt_cutoffs) eq 0 then begin
+    ;; default to wt_cutoffs = 1, wt_measures = 'min'
+    wt_cutoffs = 1
+    wt_measures = 'min'
+  endif else if n_elements(wt_measures) eq 0 then begin
+    print, 'wt_cutoffs is specified but wt_measures is not. Defaulting wt_measures to "min".'
+    wt_measures = strarr(n_elements(wt_cutoffs)) + 'min'
+  endif
+  
+  kperp_density_names = strarr(n_elements(wt_cutoffs))
+  wh_cutoff0 = where(wt_cutoffs eq 0, count_cutoff0, complement = wh_cutoff_n0, ncomplement = count_cutoff_n0)
+  wh_std = where(wt_cutoffs eq 0 and wt_measures eq 'min', count_std)
+  
+  if count_cutoff0 gt 0 then kperp_density_names[wh_cutoff0] = '_nodensitycorr'
+  if count_cutoff_n0 gt 0 then kperp_density_names[wh_cutoff_n0] = '_kperp_density_' + wt_measures[wh_cutoff_n0] + '_gt' + number_formatter(wt_cutoffs[wh_cutoff_n0])
+  
+  if count_std gt 1 then kperp_density_names[wh_std] = '_dencorr'
   
   
   

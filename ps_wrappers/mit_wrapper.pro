@@ -118,10 +118,7 @@ pro mit_wrapper, folder_name, obs_name, data_subdirs=data_subdirs, exact_obsname
       plot_eor_1d=1
       if n_elements(range_1d) eq 0 then range_1d = [1e0, 1e7]
     endif
-    
-    if n_elements(wt_cutoffs) eq 0 then wt_cutoffs = [0,1]
-    wt_measures = strarr(n_elements(wt_cutoffs))+'min'
-    
+
     if n_elements(set_data_ranges) eq 0 and not keyword_set(sim) then set_data_ranges = 1
     
     if keyword_set(set_data_ranges) then begin
@@ -130,6 +127,7 @@ pro mit_wrapper, folder_name, obs_name, data_subdirs=data_subdirs, exact_obsname
       if keyword_set(obs_info.integrated[0]) then begin
         sigma_range = [2e5, 2e9]
         nev_range = [2e6, 2e10]
+        ;sigma_range = nev_range
       endif else begin
         sigma_range = [1e4, 2e6]
         nev_range = [5e4, 2e7]

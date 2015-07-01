@@ -4,6 +4,7 @@ pro ps_ratio_plots, folder_names, obs_info, cube_types, pols, all_pol_diff_ratio
     note = note, spec_window_types = spec_window_types, data_range = data_range, $
     kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, $
     diff_ratio = diff_ratio, diff_range = diff_range, diff_min_abs = diff_min_abs, $
+    wt_cutoffs = wt_cutoffs, wt_measures = wt_measures, $
     plot_wedge_line = plot_wedge_line, quiet = quiet, png = png, eps = eps, pdf = pdf, $
     window_num = window_num
     
@@ -32,12 +33,32 @@ pro ps_ratio_plots, folder_names, obs_info, cube_types, pols, all_pol_diff_ratio
   endif else sw_tags = ''
   
   
+  ;; density correction defaults & file naming for 2D & 1D files
+  if n_elements(wt_cutoffs) eq 0 then begin
+    ;; default to wt_cutoffs = 1, wt_measures = 'min'
+    wt_cutoffs = 1
+    wt_measures = 'min'
+  endif else if n_elements(wt_measures) eq 0 then begin
+    print, 'wt_cutoffs is specified but wt_measures is not. Defaulting wt_measures to "min".'
+    wt_measures = strarr(n_elements(wt_cutoffs)) + 'min'
+  endif
+  
+  kperp_density_names = strarr(n_elements(wt_cutoffs))
+  wh_cutoff0 = where(wt_cutoffs eq 0, count_cutoff0, complement = wh_cutoff_n0, ncomplement = count_cutoff_n0)
+  wh_std = where(wt_cutoffs eq 0 and wt_measures eq 'min', count_std)
+  
+  if count_cutoff0 gt 0 then kperp_density_names[wh_cutoff0] = '_nodensitycorr'
+  if count_cutoff_n0 gt 0 then kperp_density_names[wh_cutoff_n0] = '_kperp_density_' + wt_measures[wh_cutoff_n0] + '_gt' + number_formatter(wt_cutoffs[wh_cutoff_n0])
+  
+  if count_std gt 1 then kperp_density_names[wh_std] = '_dencorr'
+  
+  
   if n_elements(freq_ch_range) ne 0 then begin
     if min(freq_ch_range) lt 0 or max(freq_ch_range) - min(freq_ch_range) lt 3 then message, 'invalid freq_ch_range'
     fch_tag = '_ch' + number_formatter(min(freq_ch_range)) + '-' + number_formatter(max(freq_ch_range))
   endif else fch_tag = ''
-
-
+  
+  
   if n_elements(obs_info.info_files) eq 2 or n_elements(spec_window_types) eq 2 $
     and n_elements(cube_types) eq 0 and n_elements(pols) eq 0 $
     and n_elements(all_pol_diff_ratio) eq 0 and n_elements(diff_ratio) eq 0 then all_pol_diff_ratio = 1
@@ -266,11 +287,11 @@ pro ps_ratio_plots, folder_names, obs_info, cube_types, pols, all_pol_diff_ratio
         savefiles_2d[2*j+1, i] =file_struct_arr2[type_pol_locs[2*j+1, i]].savefile_froot + file_struct_arr2[type_pol_locs[2*j+1, i]].savefilebase + file_struct_arr2[0].power_tag
       endfor
     endfor
-    savefiles_2d = savefiles_2d + fadd_2dbin + '_2dkpower.idlsave'
+    savefiles_2d = savefiles_2d + fadd_2dbin + kperp_density_names + '_2dkpower.idlsave'
     
   endif else savefiles_2d = [file_struct_arr1[type_pol_locs[0]].savefile_froot + file_struct_arr1[type_pol_locs[0]].savefilebase + file_struct_arr1[0].power_tag, $
     file_struct_arr2[type_pol_locs[1]].savefile_froot + file_struct_arr2[type_pol_locs[1]].savefilebase + file_struct_arr2[0].power_tag] + $
-    fadd_2dbin + '_2dkpower.idlsave'
+    fadd_2dbin + kperp_density_names + '_2dkpower.idlsave'
     
   test_save_2d = file_test(savefiles_2d) *  (1 - file_test(savefiles_2d, /zero_length))
   
