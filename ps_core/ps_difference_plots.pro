@@ -103,13 +103,12 @@ pro ps_difference_plots, folder_names, obs_info, cube_types, pols, all_type_pol 
   
   kperp_density_names = strarr(n_elements(wt_cutoffs))
   wh_cutoff0 = where(wt_cutoffs eq 0, count_cutoff0, complement = wh_cutoff_n0, ncomplement = count_cutoff_n0)
-  wh_std = where(wt_cutoffs eq 0 and wt_measures eq 'min', count_std)
+  wh_std = where(wt_cutoffs eq 1 and wt_measures eq 'min', count_std)
   
   if count_cutoff0 gt 0 then kperp_density_names[wh_cutoff0] = '_nodensitycorr'
-  if count_cutoff_n0 gt 1 then kperp_density_names[wh_cutoff_n0] = '_kperp_density_' + wt_measures[wh_cutoff_n0] + '_gt' + number_formatter(wt_cutoffs[wh_cutoff_n0])
+  if count_cutoff_n0 gt 0 then kperp_density_names[wh_cutoff_n0] = '_kperp_density_' + wt_measures[wh_cutoff_n0] + '_gt' + number_formatter(wt_cutoffs[wh_cutoff_n0])
   
   if count_std gt 0 then kperp_density_names[wh_std] = '_dencorr'
-  
   
   
   if keyword_set(all_type_pol) then begin
