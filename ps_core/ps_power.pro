@@ -344,11 +344,17 @@ pro ps_power, file_struct, refresh = refresh, kcube_refresh = kcube_refresh, dft
       k_edges = kperp_edges
       k_bin = kperp_bin
       
+      textfile = strmid(savefile_k0[j], 0, stregex(savefile_k0[j], '.idlsave')) + '.txt'
+      save_1D_text, textfile, k_edges, power, weights, noise_expval, hubble_param, noise, $
+        nfiles = nfiles
+        
       if n_elements(freq_flags) ne 0 then begin
-        save, file = savefile_k0[j], power, noise, weights, noise_expval, k_edges, k_bin, hubble_param, freq_mask, $
+        save, file = savefile_k0[j], power, noise, weights, noise_expval, k_edges, k_bin, $
+          kperp_lambda_conv, delay_params, hubble_param, freq_mask, $
           window_int, wt_ave_power, ave_power, ave_weights, uv_pix_area, uv_area, git_hashes
       endif else begin
-        save, file = savefile_k0[j], power, noise, weights, noise_expval, k_edges, k_bin, hubble_param, $
+        save, file = savefile_k0[j], power, noise, weights, noise_expval, k_edges, k_bin, $
+          kperp_lambda_conv, delay_params, hubble_param, $
           window_int, wt_ave_power, ave_power, ave_weights, uv_pix_area, uv_area, git_hashes
       endelse
     endif
@@ -416,7 +422,7 @@ pro ps_power, file_struct, refresh = refresh, kcube_refresh = kcube_refresh, dft
         endcase
         
         wt_cutoff_use = wt_cutoffs[j]
-
+        
       endif else undefine, wt_cutoff_use, wt_meas_use
       
       power_1d = kspace_rebinning_1d(power_3d, kx_mpc, ky_mpc, kz_mpc, k_edges_mpc, k_bin = k1d_bin, log_k = log_k1d, $
@@ -444,60 +450,19 @@ pro ps_power, file_struct, refresh = refresh, kcube_refresh = kcube_refresh, dft
       kpar_range = kpar_range_use
       
       if n_elements(freq_flags) ne 0 then begin
-        save, file = savefile_1d[j,i], power, noise, weights, noise_expval, k_edges, k_bin, hubble_param, freq_mask, $
+        save, file = savefile_1d[j,i], power, noise, weights, noise_expval, k_edges, k_bin, kperp_lambda_conv, delay_params, hubble_param, freq_mask, $
           kperp_range, kperp_range_lambda, kpar_range, window_int, git_hashes, $
           wt_ave_power, ave_power, ave_weights, wt_ave_power_freq, ave_power_freq, wt_ave_power_uvf, ave_power_uvf, uv_pix_area, uv_area
       endif else begin
-        save, file = savefile_1d[j,i], power, noise, weights, noise_expval, k_edges, k_bin, hubble_param, $
+        save, file = savefile_1d[j,i], power, noise, weights, noise_expval, k_edges, k_bin, kperp_lambda_conv, delay_params, hubble_param, $
           kperp_range, kperp_range_lambda, kpar_range, window_int, git_hashes, $
           wt_ave_power, ave_power, ave_weights, wt_ave_power_freq, ave_power_freq, wt_ave_power_uvf, ave_power_uvf, uv_pix_area, uv_area
       endelse
       
       textfile = strmid(savefile_1d[j,i], 0, stregex(savefile_1d[j,i], '.idlsave')) + '.txt'
-      
-      nrows = n_elements(k_edges)
-      if nfiles eq 2 then ncol = 5 else ncol = 4
-      data = fltarr(ncol, nrows)
-      
-      sigma_vals = sqrt(1./weights)
-      wh_wt0 = where(weights eq 0, count_wh_wt0)
-      if count_wh_wt0 gt 0 then sigma_vals[wh_wt0]= !values.f_infinity
-      
-      if not keyword_set(hinv) then begin
-        data[0, *] = k_edges
-        data[1, *] = [0, power]
-        data[2, *] = [0, sigma_vals]
-        data[3, *] = [0, noise_expval]
-        header = ['k bin max (Mpc^-1)', 'power (mK^2 Mpc^3)', 'sigma (mK^2 Mpc^3)', 'expected noise (mK^2 Mpc^3)']
-        if nfiles eq 2 then begin
-          data[4,*] = [0, noise]
-          header = [header, 'observed noise (mK^2 Mpc^3)']
-        endif
-      endif else begin
-        data[0, *] = k_edges / hubble_param
-        data[1, *] = [0, power] * (hubble_param)^3d
-        data[2, *] = [0, sigma_vals] * (hubble_param)^3d
-        data[3, *] = [0, noise_expval] * (hubble_param)^3d
-        header = ['k bin max (h Mpc^-1)', 'power (mK^2 h^-3 Mpc^3)', 'sigma (mK^2 h^-3 Mpc^3)', 'expected noise (mK^2 h^-3 Mpc^3)']
-        if nfiles eq 2 then begin
-          data[4,*] = [0, noise] * (hubble_param)^3d
-          header = [header, 'observed noise (mK^2 h^-3 Mpc^3)']
-        endif
-      endelse
-      
-      ;; add hash to indicate header line for Danny
-      header[0] = '# ' + header[0]
-      data_use = Strarr(ncol,nrows+1)
-      data_use[*,0]=header
-      data_use[*,1:*]=(data)
-      
-      delimiter=String(9B)
-      format_code=String(format='("(",A,"(A,",A,A,A,"))")',Strn(ncol),'"',delimiter,'"')
-      
-      openw,unit,textfile,/Get_LUN
-      printf,unit,format=format_code,data_use
-      free_lun,unit
-      
+      save_1D_text, textfile, k_edges, power, weights, noise_expval, hubble_param, noise, $
+        nfiles = nfiles
+        
       mask_weights = long(bin_mask_3d gt 0)
       
       mask_1to2d_ave = kspace_rebinning_2d(bin_mask_3d, kx_mpc, ky_mpc, kz_mpc, kperp_edges_mpc, kpar_edges_mpc, log_kpar = log_kpar, $
@@ -507,7 +472,7 @@ pro ps_power, file_struct, refresh = refresh, kcube_refresh = kcube_refresh, dft
       mask_1to2d = kspace_rebinning_2d(bin_mask_3d, kx_mpc, ky_mpc, kz_mpc, kperp_edges_mpc, kpar_edges_mpc, log_kpar = log_kpar, $
         log_kperp = log_kperp, kperp_bin = kperp_bin, kpar_bin = kpar_bin, weights = mask_weights, $
         binned_weights = binned_weights, fill_holes = fill_holes)
-
+        
       noise_frac_1to2d = kspace_rebinning_2d(noise_frac_3d, kx_mpc, ky_mpc, kz_mpc, kperp_edges_mpc, kpar_edges_mpc, log_kpar = log_kpar, $
         log_kperp = log_kperp, kperp_bin = kperp_bin, kpar_bin = kpar_bin, weights = mask_weights, $
         binned_weights = binned_weights, fill_holes = fill_holes)
@@ -563,11 +528,11 @@ pro ps_power, file_struct, refresh = refresh, kcube_refresh = kcube_refresh, dft
     kpar_range = kpar_range_use
     
     if n_elements(freq_flags) ne 0 then begin
-      save, file = savefile_kpar_power[j], power, noise, weights, noise_expval, k_edges, k_bin, hubble_param, freq_mask, $
+      save, file = savefile_kpar_power[j], power, noise, weights, noise_expval, k_edges, k_bin, kperp_lambda_conv, delay_params, hubble_param, freq_mask, $
         kperp_range, kperp_range_lambda, kpar_range, window_int, git_hashes, $
         wt_ave_power, ave_power, ave_weights, wt_ave_power_freq, ave_power_freq, wt_ave_power_uvf, ave_power_uvf, uv_pix_area, uv_area
     endif else begin
-      save, file = savefile_kpar_power[j], power, noise, weights, noise_expval, k_edges, k_bin, hubble_param, $
+      save, file = savefile_kpar_power[j], power, noise, weights, noise_expval, k_edges, k_bin, kperp_lambda_conv, delay_params, hubble_param, $
         kperp_range, kperp_range_lambda, kpar_range, window_int, git_hashes, $
         wt_ave_power, ave_power, ave_weights, wt_ave_power_freq, ave_power_freq, wt_ave_power_uvf, ave_power_uvf, uv_pix_area, uv_area
     endelse
@@ -606,11 +571,11 @@ pro ps_power, file_struct, refresh = refresh, kcube_refresh = kcube_refresh, dft
     kpar_range = kpar_range_use
     
     if n_elements(freq_flags) ne 0 then begin
-      save, file = savefile_kperp_power[j], power, noise, weights, noise_expval, k_edges, k_bin, hubble_param, freq_mask, $
+      save, file = savefile_kperp_power[j], power, noise, weights, noise_expval, k_edges, k_bin, kperp_lambda_conv, delay_params, hubble_param, freq_mask, $
         kperp_range, kperp_range_lambda, kpar_range, window_int, git_hashes, $
         wt_ave_power, ave_power, ave_weights, wt_ave_power_freq, ave_power_freq, wt_ave_power_uvf, ave_power_uvf, uv_pix_area, uv_area
     endif else begin
-      save, file = savefile_kperp_power[j], power, noise, weights, noise_expval, k_edges, k_bin, hubble_param, $
+      save, file = savefile_kperp_power[j], power, noise, weights, noise_expval, k_edges, k_bin, kperp_lambda_conv, delay_params, hubble_param, $
         kperp_range, kperp_range_lambda, kpar_range, window_int, git_hashes, $
         wt_ave_power, ave_power, ave_weights, wt_ave_power_freq, ave_power_freq, wt_ave_power_uvf, ave_power_uvf, uv_pix_area, uv_area
     endelse

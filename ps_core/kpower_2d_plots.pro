@@ -86,10 +86,12 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, wei
     no_title = no_title, full_title = full_title, title_prefix = title_prefix, note = note, $
     norm_2d = norm_2d, norm_factor = norm_factor, $
     wedge_amp = wedge_amp, plot_wedge_line = plot_wedge_line, $
-    baseline_axis = baseline_axis, delay_axis = delay_axis, kperp_linear_axis = kperp_linear_axis, $
+    baseline_axis = baseline_axis, delay_axis = delay_axis, cable_length_axis = cable_length_axis, kperp_linear_axis = kperp_linear_axis, $
     kpar_linear_axis = kpar_linear_axis, no_units = no_units, hinv = hinv, charsize = charsize_in, $
     cb_size = cb_size_in, margin=margin_in, cb_margin = cb_margin_in
     
+  if keyword_set(delay_axis) and keyword_set(cable_length_axis) then message, 'Only one of delay_axis and cable_length_axis can be set'
+  
   if n_elements(plotfile) gt 0 or keyword_set(png) or keyword_set(eps) or keyword_set(pdf) then pub = 1 else pub = 0
   if pub eq 1 then begin
     if not (keyword_set(png) or keyword_set(eps) or keyword_set(pdf)) then begin
@@ -382,7 +384,7 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, wei
   log_delay_kpar_slope = (alog10(delay_params[1]) - alog10(delay_params[0]))/(alog10(max(kpar_edges_use)) - alog10(kpar_bin_use))
   log_delay_kpar_intercept = alog10(delay_params[0]) / (log_delay_kpar_slope * alog10(kpar_bin_use))
   log_delay_edges = 10^(log_delay_kpar_slope * alog10(kpar_edges_use) + log_delay_kpar_intercept)
-  
+  ;stop
   if n_kpar_plot ne n_kpar then begin
     power = power[*, wh_kpar_inrange]
     if keyword_set(mask_contour) then mask = mask[*, wh_kpar_inrange]
@@ -661,7 +663,7 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, wei
   if n_elements(margin_in) lt 4 then begin
     margin = [0.2, 0.2, 0.02, 0.1]
     if keyword_set(baseline_axis) and not keyword_set(no_title) then margin[3] = 0.15
-    if keyword_set(delay_axis) then margin[2] = 0.07
+    if keyword_set(delay_axis) or keyword_set(cable_length_axis) then margin[2] = 0.07
   endif else margin = margin_in
   
   if n_elements(cb_margin_in) lt 2 then begin
@@ -917,6 +919,11 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, wei
     plot_delay = delay_edges
   endelse
   
+  cable_index_ref = 0.81
+  ;; delay is in ns, factor of 2 to account for reflection bounce
+  plot_cable_length = plot_delay * cable_index_ref * 0.3/2.
+  
+  
   ;; if plot title includes sigma need to replace 'sigma' with appropriate character
   ;; (textoidl has to be called after cgps_open)
   if keyword_set(plot_sigma) then plot_title = repstr(plot_title, 'sigma', textoidl('\sigma', font=font))
@@ -1014,12 +1021,20 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, wei
     cgaxis, xaxis=1, xrange = minmax(plot_kperp), xtickv = xticks, xtickname = replicate(' ', n_elements(xticks)), $
     charthick = charthick, xthick = xthick, ythick = ythick, charsize = charsize, font = font, xstyle = 1, $
     color = annotate_color
-  if keyword_set(delay_axis) then begin
-    ;min_delay_plot = 2d*alog10(delay_params[0]) - alog10(delay_params[0]*2) ;; in analogy with min kperp/par with 0 bins
-    cgaxis, yaxis=1, yrange = minmax(plot_delay), ytickformat = ytickformat, charthick = charthick, xthick = xthick, $
+  if keyword_set(delay_axis) or keyword_set(cable_length_axis) then begin
+  
+    if keyword_set(delay_axis) then begin
+      yrange_use = minmax(plot_delay)
+      units_text = '(ns)'
+    endif else begin
+      yrange_use = minmax(plot_cable_length)
+      units_text = '(cbl m)'
+    endelse
+    
+    cgaxis, yaxis=1, yrange = yrange_use, ytickformat = ytickformat, charthick = charthick, xthick = xthick, $
       ythick = ythick, charsize = charsize, font = font, ystyle = 1, color = annotate_color
       
-    cgtext, xloc_delay, yloc_delay, '(ns)', /normal, alignment=0.5, charsize=charsize*0.9, $
+    cgtext, xloc_delay, yloc_delay, units_text, /normal, alignment=0.5, charsize=charsize*0.9, $
       color = annotate_color, font = font
       
   endif else $

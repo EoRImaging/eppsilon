@@ -18,7 +18,7 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
     wt_cutoffs = wt_cutoffs, wt_measures = wt_measures, fix_sim_input = fix_sim_input, $
     kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, kperp_plot_range = kperp_plot_range, $
     kperp_lambda_plot_range = kperp_lambda_plot_range, kpar_plot_range = kpar_plot_range, $
-    baseline_axis = baseline_axis, delay_axis = delay_axis, hinv = hinv, $
+    baseline_axis = baseline_axis, delay_axis = delay_axis, cable_length_axis = cable_length_axis, hinv = hinv, $
     plot_wedge_line = plot_wedge_line, wedge_angles = wedge_angles, coarse_harm_width = coarse_harm_width, $
     plot_eor_1d = plot_eor_1d, individual_plots = individual_plots, cube_power_info = cube_power_info, no_dft_progress = no_dft_progress
     
@@ -32,7 +32,7 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
   
   ;; default to including baseline axis & delay axis
   if n_elements(baseline_axis) eq 0 then baseline_axis = 1
-  if n_elements(delay_axis) eq 0 then delay_axis = 1
+  if n_elements(delay_axis) eq 0 and n_elements(cable_length_axis) eq 0 then delay_axis = 1
   
   ;; default to hinv
   if n_elements(hinv) eq 0 then hinv = 1
@@ -729,7 +729,7 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
           kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
           data_range = data_range, title_prefix = titles[i], note = note_use, $
           plot_wedge_line = plot_wedge_line, hinv = hinv, $
-          wedge_amp = wedge_amp, baseline_axis = baseline_axis, delay_axis = delay_axis, $
+          wedge_amp = wedge_amp, baseline_axis = baseline_axis, delay_axis = delay_axis, cable_length_axis = cable_length_axis, $
           kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis
       endfor
       
@@ -737,14 +737,14 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
         kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
         data_range = sigma_range, title_prefix = file_struct_arr[i].pol, note = note + ' ' + vs_note, $
         plot_wedge_line = plot_wedge_line, hinv = hinv, $
-        wedge_amp = wedge_amp, baseline_axis = baseline_axis, delay_axis = delay_axis, $
+        wedge_amp = wedge_amp, baseline_axis = baseline_axis, delay_axis = delay_axis, cable_length_axis = cable_length_axis, $
         kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis
         
       for i=0, npol -1 do kpower_2d_plots, savefiles_2d[i,0], /plot_exp_noise, png = png, eps = eps, pdf = pdf, plotfile = plotfiles_2d_noise_expval[i],$
         kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
         data_range = nev_range, title_prefix = file_struct_arr[i].pol, note = note + ' ' + vs_note, $
         plot_wedge_line = plot_wedge_line, hinv = hinv, $
-        wedge_amp = wedge_amp, baseline_axis = baseline_axis, delay_axis = delay_axis, $
+        wedge_amp = wedge_amp, baseline_axis = baseline_axis, delay_axis = delay_axis, cable_length_axis = cable_length_axis, $
         kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis
         
       for j=0, n_elements(kperp_density_names)-1 do begin
@@ -754,7 +754,7 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
           kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
           data_range = snr_range, title_prefix = titles[i], note = note, $
           plot_wedge_line = plot_wedge_line, hinv = hinv, $
-          wedge_amp = wedge_amp, baseline_axis = baseline_axis, delay_axis = delay_axis, $
+          wedge_amp = wedge_amp, baseline_axis = baseline_axis, delay_axis = delay_axis, cable_length_axis = cable_length_axis, $
           kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis
       endfor
       
@@ -763,14 +763,14 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
           kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
           data_range = noise_range, title_prefix = titles[i], note = note + ' ' + vs_note, $
           plot_wedge_line = plot_wedge_line, hinv = hinv, $
-          wedge_amp = wedge_amp, baseline_axis = baseline_axis, delay_axis = delay_axis, $
+          wedge_amp = wedge_amp, baseline_axis = baseline_axis, delay_axis = delay_axis, cable_length_axis = cable_length_axis, $
           kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis
           
         for i=0, n_cubes-1 do kpower_2d_plots, savefiles_2d[i,0], png = png, eps = eps, pdf = pdf, /nnr, plotfile = plotfiles_2d_nnr[i], $
           kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
           data_range = nnr_range, title_prefix = titles[i], note = note + ' ' + vs_note, $
           plot_wedge_line = plot_wedge_line, hinv = hinv, $
-          wedge_amp = wedge_amp, baseline_axis = baseline_axis, delay_axis = delay_axis, $
+          wedge_amp = wedge_amp, baseline_axis = baseline_axis, delay_axis = delay_axis, cable_length_axis = cable_length_axis, $
           kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis
       endif
     endif else begin
@@ -796,7 +796,7 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
             plotfile = plotfile_use, kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
             data_range = data_range, title_prefix = titles[i], note = note_use, $
             plot_wedge_line = plot_wedge_line, hinv = hinv, $
-            wedge_amp = wedge_amp, baseline_axis = baseline_axis, delay_axis = delay_axis, $
+            wedge_amp = wedge_amp, baseline_axis = baseline_axis, delay_axis = delay_axis, cable_length_axis = cable_length_axis, $
             kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, window_num = window_num
             
           if i eq 0 then begin
@@ -832,13 +832,13 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
           kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
           title_prefix = file_struct_arr[pol_ind].pol, $
           plot_wedge_line = plot_wedge_line, wedge_amp = wedge_amp, hinv = hinv, baseline_axis = baseline_axis, $
-          delay_axis = delay_axis, kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, $
+          delay_axis = delay_axis, cable_length_axis = cable_length_axis, kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, $
           window_num = window_num else $
           kpower_2d_plots, savefiles_2d[pol_ind,0], multi_pos = pos_use, start_multi_params = start_multi_params, $
           png = png, eps = eps, pdf = pdf, /plot_exp_noise, kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
           data_range = nev_range, title_prefix = file_struct_arr[pol_ind].pol, note = note_use, $
           plot_wedge_line = plot_wedge_line, hinv = hinv, $
-          wedge_amp = wedge_amp, baseline_axis = baseline_axis, delay_axis = delay_axis, $
+          wedge_amp = wedge_amp, baseline_axis = baseline_axis, delay_axis = delay_axis, cable_length_axis = cable_length_axis, $
           kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis
         if i eq 0 then begin
           positions = pos_use
@@ -874,7 +874,8 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
             plotfile = plotfile_use, kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
             data_range = snr_range, title_prefix = titles[i], note = note_use, $
             plot_wedge_line = plot_wedge_line, wedge_amp = wedge_amp, $
-            hinv = hinv, baseline_axis = baseline_axis, delay_axis = delay_axis, kperp_linear_axis = kperp_linear_axis, $
+            hinv = hinv, baseline_axis = baseline_axis, delay_axis = delay_axis, cable_length_axis = cable_length_axis, $
+            kperp_linear_axis = kperp_linear_axis, $
             kpar_linear_axis = kpar_linear_axis, window_num = window_num
           if i eq 0 then begin
             positions = pos_use
@@ -902,7 +903,8 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
             kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, data_range = noise_range, $
             title_prefix = titles[i], note = note_use, $
             plot_wedge_line = plot_wedge_line, wedge_amp = wedge_amp, hinv = hinv, $
-            baseline_axis = baseline_axis, delay_axis = delay_axis, kperp_linear_axis = kperp_linear_axis, $
+            baseline_axis = baseline_axis, delay_axis = delay_axis, cable_length_axis = cable_length_axis, $
+            kperp_linear_axis = kperp_linear_axis, $
             kpar_linear_axis = kpar_linear_axis, window_num = window_num
           if i eq 0 then begin
             positions = pos_use
@@ -926,7 +928,8 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
             kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, data_range = nnr_range, $
             title_prefix = titles[i], note = note_use, $
             plot_wedge_line = plot_wedge_line, wedge_amp = wedge_amp, hinv = hinv, $
-            baseline_axis = baseline_axis, delay_axis = delay_axis, kperp_linear_axis = kperp_linear_axis, $
+            baseline_axis = baseline_axis, delay_axis = delay_axis, cable_length_axis = cable_length_axis, $
+            kperp_linear_axis = kperp_linear_axis, $
             kpar_linear_axis = kpar_linear_axis, window_num = window_num
           if i eq 0 then begin
             positions = pos_use
@@ -953,21 +956,21 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
             plotfile = uf_slice_plotfile[i], plot_xrange = kperp_plot_range, plot_yrange = kpar_plot_range, $
             title_prefix = slice_titles[i], note = note_use, data_range = slice_range, $
             plot_wedge_line = plot_wedge_line, wedge_amp = wedge_amp, hinv = hinv, $
-            baseline_axis = baseline_axis, delay_axis = delay_axis, linear_axes = kperp_linear_axis, $
+            baseline_axis = baseline_axis, delay_axis = delay_axis, cable_length_axis = cable_length_axis, linear_axes = kperp_linear_axis, $
             window_num = window_num
             
           kpower_slice_plot, vf_slice_savefile[i], multi_pos = pos_use, start_multi_params = start_multi_params, png = png, eps = eps, pdf = pdf, $
             plotfile = vf_slice_plotfile[i], plot_xrange = kperp_plot_range, plot_yrange = kpar_plot_range, $
             title_prefix = slice_titles[i], note = note_use, data_range = slice_range, $
             plot_wedge_line = plot_wedge_line, wedge_amp = wedge_amp, hinv = hinv, $
-            baseline_axis = baseline_axis, delay_axis = delay_axis, linear_axes = kperp_linear_axis, $
+            baseline_axis = baseline_axis, delay_axis = delay_axis, cable_length_axis = cable_length_axis, linear_axes = kperp_linear_axis, $
             window_num = window_num
             
           kpower_slice_plot, uv_slice_savefile[i], multi_pos = pos_use, start_multi_params = start_multi_params, png = png, eps = eps, pdf = pdf, $
             plotfile = uv_slice_plotfile[i], plot_xrange = kperp_plot_range, plot_yrange = kpar_plot_range, $
             title_prefix = slice_titles[i], note = note_use, data_range = slice_range, $
             plot_wedge_line = plot_wedge_line, wedge_amp = wedge_amp, hinv = hinv, $
-            baseline_axis = baseline_axis, delay_axis = delay_axis, linear_axes = kperp_linear_axis, $
+            baseline_axis = baseline_axis, delay_axis = delay_axis, cable_length_axis = cable_length_axis, linear_axes = kperp_linear_axis, $
             window_num = window_num
             
         endif else begin
@@ -1022,7 +1025,7 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
             plotfile = uf_slice_plotfile, plot_xrange = kperp_plot_range, plot_yrange = kpar_plot_range, $
             title_prefix = slice_titles[i], note = note_use, data_range = slice_range, $
             plot_wedge_line = plot_wedge_line, wedge_amp = wedge_amp, hinv = hinv, $
-            baseline_axis = baseline_axis, delay_axis = delay_axis, linear_axes = kperp_linear_axis, $
+            baseline_axis = baseline_axis, delay_axis = delay_axis, cable_length_axis = cable_length_axis, linear_axes = kperp_linear_axis, $
             window_num = window_num
         endif else begin
         
@@ -1055,7 +1058,7 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
             plot_xrange = kperp_plot_range, plot_yrange = kpar_plot_range, $
             title_prefix = slice_titles[i], note = note_use, data_range = slice_range, $
             plot_wedge_line = plot_wedge_line, wedge_amp = wedge_amp, hinv = hinv, $
-            baseline_axis = baseline_axis, delay_axis = delay_axis, linear_axes = kperp_linear_axis, $
+            baseline_axis = baseline_axis, delay_axis = delay_axis, cable_length_axis = cable_length_axis, linear_axes = kperp_linear_axis, $
             window_num = window_num
         endif else begin
         
@@ -1088,7 +1091,7 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
             plot_xrange = kperp_plot_range, plot_yrange = kperp_plot_range, $
             title_prefix = slice_titles[i], note = note_use, data_range = slice_range, $
             plot_wedge_line = plot_wedge_line, wedge_amp = wedge_amp, hinv = hinv, $
-            baseline_axis = baseline_axis, delay_axis = delay_axis, linear_axes = kperp_linear_axis, $
+            baseline_axis = baseline_axis, delay_axis = delay_axis, cable_length_axis = cable_length_axis, linear_axes = kperp_linear_axis, $
             window_num = window_num
         endif else begin
         
@@ -1258,7 +1261,7 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
     window_num = window_num+1
     kpower_1d_plots, file_arr, window_num = window_num, colors = colors, names = titles_use, psyms = psyms, delta = plot_1d_delta, hinv = hinv, $
       png = png, eps = eps, pdf = pdf, plotfile = plotfile_kpar_power, k_range = k_range, title = note + ' kpar', note = note_1d, $
-      plot_error_bars = plot_1d_error_bars, data_range = range_1d, /kpar_power
+      plot_error_bars = plot_1d_error_bars, data_range = range_1d, /kpar_power, delay_axis = delay_axis, cable_length_axis = cable_length_axis
       
   endif
   
@@ -1283,7 +1286,7 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
     window_num = window_num+1
     kpower_1d_plots, file_arr, window_num = window_num, colors = colors, names = titles_use, psyms = psyms, delta = plot_1d_delta, hinv = hinv, $
       png = png, eps = eps, pdf = pdf, plotfile = plotfile_kperp_power, k_range = k_range, title = note + ' kperp', note = note_1d, $
-      plot_error_bars = plot_1d_error_bars, data_range = range_1d, /kperp_power
+      plot_error_bars = plot_1d_error_bars, data_range = range_1d, /kperp_power, baseline_axis = baseline_axis
       
   endif
   
@@ -1300,7 +1303,7 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
     window_num = window_num+1
     kpower_1d_plots, file_arr, window_num = window_num, colors = colors, names = titles_use, delta = plot_1d_delta, hinv = hinv, $
       png = png, eps = eps, pdf = pdf, plotfile = plotfile_k0_power, k_range = k_range, title = note + ' kpar=0', note = note_1d, $
-      plot_error_bars = plot_1d_error_bars, data_range = range_1d, /kperp_power
+      plot_error_bars = plot_1d_error_bars, data_range = range_1d, /kperp_power, baseline_axis = baseline_axis
       
   endif
   
@@ -1333,7 +1336,7 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
         /plot_mask, /mask_contour, contour_levels = 'all', $
         title_prefix = title_use, note = note_use, $
         plot_wedge_line = plot_wedge_line, hinv = hinv, $
-        wedge_amp = wedge_amp, baseline_axis = baseline_axis, delay_axis = delay_axis, $
+        wedge_amp = wedge_amp, baseline_axis = baseline_axis, delay_axis = delay_axis, cable_length_axis = cable_length_axis, $
         kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, window_num = window_num
         
       if i eq 0 then begin
@@ -1395,7 +1398,7 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
         mask_savefile = savefiles_1to2d_mask[wh_2d_use, density_index, wedge_index], /mask_contour, contour_levels = levels, $
         data_range = data_range, title_prefix = title_use, note = note_use, $
         plot_wedge_line = 0, hinv = hinv, $
-        wedge_amp = wedge_amp, baseline_axis = baseline_axis, delay_axis = delay_axis, $
+        wedge_amp = wedge_amp, baseline_axis = baseline_axis, delay_axis = delay_axis, cable_length_axis = cable_length_axis, $
         kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, window_num = window_num
         
       if i eq 0 then begin
@@ -1427,7 +1430,7 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
         mask_savefile = savefiles_1to2d_mask[wh_2d_use, density_index, wedge_index], /mask_contour, contour_levels = levels, /plot_1d_noisefrac, $
         data_range = [0,1], title_prefix = title_use, note = note_use, $
         plot_wedge_line = 0, hinv = hinv, $
-        wedge_amp = wedge_amp, baseline_axis = baseline_axis, delay_axis = delay_axis, $
+        wedge_amp = wedge_amp, baseline_axis = baseline_axis, delay_axis = delay_axis, cable_length_axis = cable_length_axis, $
         kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, window_num = window_num
         
       if i eq 0 then begin
@@ -1458,7 +1461,7 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
           mask_savefile = savefiles_1to2d_mask[wh_2d_use, density_index, wedge_index], /mask_contour, contour_levels = 'all', $
           data_range = data_range, title_prefix = title_use, note = note_use, $
           plot_wedge_line = 0, hinv = hinv, $
-          wedge_amp = wedge_amp, baseline_axis = baseline_axis, delay_axis = delay_axis, $
+          wedge_amp = wedge_amp, baseline_axis = baseline_axis, delay_axis = delay_axis, cable_length_axis = cable_length_axis, $
           kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, window_num = window_num
           
         if i eq 0 then begin
