@@ -32,16 +32,18 @@ pro ps_ratio_plots, folder_names, obs_info, cube_types, pols, all_pol_diff_ratio
     endelse
   endif else sw_tags = ''
   
-  
   ;; density correction defaults & file naming for 2D & 1D files
   if n_elements(wt_cutoffs) eq 0 then begin
     ;; default to wt_cutoffs = 1, wt_measures = 'min'
     wt_cutoffs = 1
     wt_measures = 'min'
-  endif else if n_elements(wt_measures) eq 0 then begin
-    print, 'wt_cutoffs is specified but wt_measures is not. Defaulting wt_measures to "min".'
-    wt_measures = strarr(n_elements(wt_cutoffs)) + 'min'
-  endif
+  endif else begin
+    if n_elements(wt_cutoffs) gt 2 then message, 'Only 2 wt_cutoffs values can be used.'
+    if n_elements(wt_measures) eq 0 then begin
+      print, 'wt_cutoffs is specified but wt_measures is not. Defaulting wt_measures to "min".'
+      wt_measures = strarr(n_elements(wt_cutoffs)) + 'min'
+    endif
+  endelse
   
   kperp_density_names = strarr(n_elements(wt_cutoffs))
   wh_cutoff0 = where(wt_cutoffs eq 0, count_cutoff0, complement = wh_cutoff_n0, ncomplement = count_cutoff_n0)
@@ -59,7 +61,7 @@ pro ps_ratio_plots, folder_names, obs_info, cube_types, pols, all_pol_diff_ratio
   endif else fch_tag = ''
   
   
-  if n_elements(obs_info.info_files) eq 2 or n_elements(spec_window_types) eq 2 $
+  if (n_elements(obs_info.info_files) eq 2 or n_elements(spec_window_types) eq 2 or n_elements(wt_cutoffs) eq 2) $
     and n_elements(cube_types) eq 0 and n_elements(pols) eq 0 $
     and n_elements(all_pol_diff_ratio) eq 0 and n_elements(diff_ratio) eq 0 then all_pol_diff_ratio = 1
     
@@ -73,8 +75,9 @@ pro ps_ratio_plots, folder_names, obs_info, cube_types, pols, all_pol_diff_ratio
       
       n_sets=4
     endif else begin
-      if n_elements(obs_info.info_files) ne 2 and n_elements(spec_window_types) lt 2 and n_elements(pols) lt 2 then $
-        message, 'diff_ratio requires 2 folder names and/or 2 obs names and/or 2 spec windows and/or 2 pols'
+      if n_elements(obs_info.info_files) ne 2 and n_elements(spec_window_types) lt 2 $
+        and n_elements(pols) lt 2 and n_elements(wt_cutoffs) lt 2 then $
+        message, 'diff_ratio requires 2 folder names and/or 2 obs names and/or 2 spec windows and/or 2 wt_cutoffs and/or 2 pols'
         
       if n_elements(pols) eq 0 then pols = 'xx'
       
@@ -84,15 +87,18 @@ pro ps_ratio_plots, folder_names, obs_info, cube_types, pols, all_pol_diff_ratio
     if n_elements(cube_types) ne 2 then cube_types = ['res', 'dirty']
     
   endif else begin
-    n_diffs = max([n_elements(obs_info.info_files), n_elements(cube_types), n_elements(pols), n_elements(spec_window_types)])
-    if n_diffs gt 2 then message, 'only 1 or 2 of [folder_names, obs_names, cube_types, pols, spec_window_types] allowed'
+    n_diffs = max([n_elements(obs_info.info_files), n_elements(cube_types), n_elements(pols), $
+      n_elements(spec_window_types), n_elements(wt_cutoffs)])
+    if n_diffs gt 2 then message, 'only 1 or 2 of [folder_names, obs_names, cube_types, pols, spec_window_types, wt_cutoffs] allowed'
     
     if n_elements(cube_types) eq 0 then if n_diffs eq 1 then cube_types = ['res', 'dirty'] else cube_types = 'res'
-    n_diffs = max([n_elements(obs_info.info_files), n_elements(cube_types), n_elements(pols), n_elements(spec_window_types)])
+    n_diffs = max([n_elements(obs_info.info_files), n_elements(cube_types), n_elements(pols), $
+      n_elements(spec_window_types), n_elements(wt_cutoffs)])
     if n_elements(pols) eq 0 then if n_diffs eq 1 then pols=['xx', 'yy'] else pols = 'xx'
-    n_diffs = max([n_elements(obs_info.info_files), n_elements(cube_types), n_elements(pols), n_elements(spec_window_types)])
-    
-    if n_diffs eq 1 then message, 'at least one of info_files, cube_types, pols, spec_window_types must be a 2 element vector'
+    n_diffs = max([n_elements(obs_info.info_files), n_elements(cube_types), n_elements(pols), $
+      n_elements(spec_window_types), n_elements(wt_cutoffs)])
+      
+    if n_diffs eq 1 then message, 'at least one of info_files, cube_types, pols, spec_window_types, wt_cutoffs must be a 2 element vector'
     
     n_sets=1
   endelse
@@ -102,6 +108,7 @@ pro ps_ratio_plots, folder_names, obs_info, cube_types, pols, all_pol_diff_ratio
   max_pol = n_elements(pols)-1
   max_sw = n_elements(spec_window_types)-1
   if max_sw lt 0 then max_sw=0
+  max_wtcut = n_elements(wt_cutoffs)
   
   ;; default to including baseline axis & delay axis
   if n_elements(baseline_axis) eq 0 then baseline_axis = 1
@@ -287,15 +294,20 @@ pro ps_ratio_plots, folder_names, obs_info, cube_types, pols, all_pol_diff_ratio
         savefiles_2d[2*j+1, i] =file_struct_arr2[type_pol_locs[2*j+1, i]].savefile_froot + file_struct_arr2[type_pol_locs[2*j+1, i]].savefilebase + file_struct_arr2[0].power_tag
       endfor
     endfor
-    savefiles_2d = savefiles_2d + fadd_2dbin + kperp_density_names + '_2dkpower.idlsave'
+    
+    if n_elements(kperp_density_names) gt 1 then begin
+      kperp_density_use = strarr(n_sets, 2)
+      for i=0, 1 do kperp_density_use[*,i] = kperp_density_names[i]
+    endif else kperp_density_use = kperp_density_names[0]
+    savefiles_2d = savefiles_2d + fadd_2dbin + kperp_density_use + '_2dkpower.idlsave'
     
   endif else savefiles_2d = [file_struct_arr1[type_pol_locs[0]].savefile_froot + file_struct_arr1[type_pol_locs[0]].savefilebase + file_struct_arr1[0].power_tag, $
     file_struct_arr2[type_pol_locs[1]].savefile_froot + file_struct_arr2[type_pol_locs[1]].savefilebase + file_struct_arr2[0].power_tag] + $
     fadd_2dbin + kperp_density_names + '_2dkpower.idlsave'
-    
+  
   test_save_2d = file_test(savefiles_2d) *  (1 - file_test(savefiles_2d, /zero_length))
   
-  if min(test_save_2d) eq 0 then message, '2D savefile not found: ' + savefiles_2d[where(test_save_2d eq 0)]
+  if min(test_save_2d) eq 0 then message, '2D savefile not found: ' + strjoin(savefiles_2d[where(test_save_2d eq 0)], ', ')
   
   if pub then begin
     plotfile_2d = plot_path + plot_filebase + '_2dkpower' + plot_exten
