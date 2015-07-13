@@ -2,7 +2,8 @@ pro kpower_1d_plots, power_savefile, multi_pos = multi_pos, start_multi_params =
     plot_weights = plot_weights, plot_noise = plot_noise, data_range = data_range, k_range = k_range, $
     png = png, eps = eps, pdf = pdf, plotfile = plotfile, window_num = window_num, colors = colors, names = names, psyms = psyms, $
     save_text = save_text, delta = delta, hinv = hinv, note = note, title = title, kpar_power = kpar_power, kperp_power = kperp_power, $
-    yaxis_type = yaxis_type, plot_error_bars = plot_error_bars
+    yaxis_type = yaxis_type, plot_error_bars = plot_error_bars, $
+    delay_params = delay_params, delay_axis = delay_axis, cable_length_axis = cable_length_axis, baseline_axis = baseline_axis
     
   if n_elements(yaxis_type) eq 0 then yaxis_type = 'clipped_log'
   yaxis_type_list = ['clipped_log', 'sym_log', 'folded_log']
@@ -10,6 +11,11 @@ pro kpower_1d_plots, power_savefile, multi_pos = multi_pos, start_multi_params =
   if count_axis_type eq 0 then message, 'yaxis_type not recognized'
   
   if keyword_set(kpar_power) and keyword_set(kperp_power) then message, 'Only one of kpar_power and kperp_power can be set'
+  
+  if keyword_set(baseline_axis) and not keyword_set(kperp_power) then message, 'baseline_axis can only be set if kperp_power is set'
+  if keyword_set(delay_axis) and keyword_set(cable_length_axis) then message, 'Only one of delay_axis and cable_length_axis can be set'
+  if keyword_set(delay_axis) and not keyword_set(kpar_power) then message, 'delay_axis can only be set if kpar_power is set'
+  if keyword_set(cable_length_axis) and not keyword_set(kpar_power) then message, 'cable_length_axis can only be set if kpar_power is set'
   
   if keyword_set(plot_weights) and keyword_set(plot_noise) then message, 'Only one of plot_weights and plot_noise can be set.'
   
@@ -77,6 +83,10 @@ pro kpower_1d_plots, power_savefile, multi_pos = multi_pos, start_multi_params =
   endif else psyms = intarr(nfiles) + 10
   
   margin = [0.15, 0.2, 0.05, 0.1]
+  if keyword_set(baseline_axis) or keyword_set(delay_axis) or keyword_set(cable_length_axis) then begin
+    margin[3] = 0.15
+    initial_title = ''
+  endif else initial_title = title
   plot_pos = [margin[0], margin[1], (1-margin[2]), (1-margin[3])]
   
   ;; set aspect ratio to 1
@@ -282,6 +292,17 @@ pro kpower_1d_plots, power_savefile, multi_pos = multi_pos, start_multi_params =
       sigma_val = sigma_val * (hubble_param)^3d
     endif
     
+    if keyword_set(kpar_power) then begin
+      lin_delay_kpar_slope = (delay_params[1] - delay_params[0])/(max(k_edges) - k_bin)
+      lin_delay_kpar_intercept = delay_params[0] / (lin_delay_kpar_slope * k_bin)
+      linear_delay_edges = lin_delay_kpar_slope * k_edges + lin_delay_kpar_intercept
+      
+      log_delay_kpar_slope = (alog10(delay_params[1]) - alog10(delay_params[0]))/(alog10(max(k_edges)) - alog10(k_bin))
+      log_delay_kpar_intercept = alog10(delay_params[0]) / (log_delay_kpar_slope * alog10(k_bin))
+      log_delay_edges = 10^(log_delay_kpar_slope * alog10(k_edges) + log_delay_kpar_intercept)
+      
+    endif
+    
     log_bins = 1
     if n_elements(k_centers) ne 0 then k_log_diffs = (alog10(k_centers) - shift(alog10(k_centers), 1))[2:*] $
     else k_log_diffs = (alog10(k_edges) - shift(alog10(k_edges), 1))[2:*]
@@ -293,15 +314,18 @@ pro kpower_1d_plots, power_savefile, multi_pos = multi_pos, start_multi_params =
         if log_bins then begin
           k_bin = alog10(k_centers[2])-alog10(k_centers[1])
           k_edges = 10^([alog10(k_centers) - k_bin, alog10(max(k_centers)) + k_bin])
+          if keyword_set(kpar_power) then delay_edges = log_delay_edges
         endif else begin
           k_bin = k_centers[2] - k_centers[1]
           k_edges = [k_centers - k_bin, max(k_centers) + k_bin]
+          if keyword_set(kpar_power) then delay_edges = linear_delay_edges
         endelse
       endif
     endif else begin
       if n_elements(k_bin) eq 0 then $
         if log_bins then k_bin = alog10(k_edges[2])-alog10(k_edges[1]) else k_bin = k_edges[2] - k_edges[1]
       if log_bins then k_mid = 10^(alog10(k_edges[1:*]) - k_bin/2.) else k_mid = k_edges[1:*] - k_bin/2.
+      if keyword_set(kpar_power) then if log_bins then delay_edges = log_delay_edges else delay_edges = linear_delay_edges
     endelse
     
     ;; limit to k_range if set
@@ -316,6 +340,7 @@ pro kpower_1d_plots, power_savefile, multi_pos = multi_pos, start_multi_params =
         k_mid = k_mid[wh_k_inrange]
         temp = [wh_k_inrange, wh_k_inrange[n_k_plot-1]+1]
         k_edges = k_edges[temp]
+        if keyword_set(kpar_power) then delay_edges = delay_edges[temp]
         n_k = n_k_plot
       endif
       
@@ -355,6 +380,7 @@ pro kpower_1d_plots, power_savefile, multi_pos = multi_pos, start_multi_params =
       sigma_val = sigma_val[wh_keep]
       k_mid = k_mid[wh_keep]
       k_edges = k_edges[[wh_keep, max(wh_keep)+1]]
+      if keyword_set(kpar_power) then delay_edges = delay_edges[temp]
       
       wh_zero = where(power eq 0d, count_zero, complement = wh_non0, ncomplement = count_non0)
     endif
@@ -489,10 +515,34 @@ pro kpower_1d_plots, power_savefile, multi_pos = multi_pos, start_multi_params =
     else xtitle = textoidl('k (Mpc^{-1})', font = font)
   endelse
   
+  
+  if keyword_set(baseline_axis) or keyword_set(delay_axis) or keyword_set(cable_length_axis) then begin
+    style = 9
+    
+    case 1 of
+      keyword_set(baseline_axis): begin
+        if keyword_set(hinv) then axis_range = minmax(xrange * hubble_param * kperp_lambda_conv) $
+        else axis_range = minmax(xrange* kperp_lambda_conv)
+        axis_title = 'baseline length ' + textoidl('(\lambda)', font = font)
+      end
+      keyword_set(delay_axis): begin
+        axis_range = minmax(delay_edges)
+        axis_title = 'delay (ns)'
+      end
+      keyword_set(cable_length_axis): begin
+        cable_index_ref = 0.81
+        ;; delay is in ns, factor of 2 to account for reflection bounce
+        axis_range = minmax(delay_edges * cable_index_ref * 0.3)/2.
+        axis_title = 'cable length (m)'
+      end
+    endcase
+    
+  endif else style = 1
+  
   case yaxis_type of
     'sym_log': begin
       cgplot, k_plot.(plot_order[0]), power_plot.(plot_order[0]), position = positive_plot_pos, /ylog, /xlog, xrange = xrange, yrange = yrange, $
-        xstyle=1, ystyle=1, axiscolor = 'black', title = title, psym=psyms[0], xtickformat = '(A1)', /nodata,$
+        xstyle=1, ystyle=1, axiscolor = 'black', title = initial_title, psym=psyms[0], xtickformat = '(A1)', /nodata,$
         ytickformat = 'exponent', thick = thick, charthick = charthick, xthick = xthick, ythick = ythick, charsize = charsize, $
         font = font, noerase = no_erase
       for i=0, nfiles - 1 do if n_pos[i] gt 0 then begin
@@ -510,9 +560,17 @@ pro kpower_1d_plots, power_savefile, multi_pos = multi_pos, start_multi_params =
         
         
       cgplot, k_plot.(plot_order[0]), -1*(power_plot.(plot_order[0])), position = negative_plot_pos, /ylog, /xlog, xrange = xrange, yrange = reverse(yrange), $
-        xstyle=1, ystyle=1, axiscolor = 'black', psym=psyms[0], xtickformat = 'exponent', /nodata, $
+        xstyle=style, ystyle=1, axiscolor = 'black', psym=psyms[0], xtickformat = 'exponent', /nodata, $
         ytickformat = 'exponent', thick = thick, charthick = charthick, xthick = xthick, ythick = ythick, charsize = charsize, $
         font = font, /noerase
+        
+      if keyword_set(baseline_axis) or keyword_set(delay_axis) or keyword_set(cable_length_axis) then begin
+        cgaxis, xaxis=1, xtickv = xticks_in2, xticks = x_nticks, xminor=n_minor, xrange = axis_range, xtickformat = xtickformat, $
+          xthick = xthick, xtitle = axis_title, $
+          charthick = charthick, ythick = ythick, charsize = charsize, font = font, xstyle = 1, color = annotate_color
+          
+      endif
+      
       for i=0, nfiles - 1 do if n_neg[i] gt 0 then begin
         temp_plot = -1*(power_plot.(plot_order[i]))
         if n_pos[i] gt 0 then temp_plot[wh_pos] = yrange[0]
@@ -522,10 +580,19 @@ pro kpower_1d_plots, power_savefile, multi_pos = multi_pos, start_multi_params =
       endif
     end
     'folded_log': begin
+    
       cgplot, k_plot.(plot_order[0]), power_plot.(plot_order[0]), position = plot_pos, /nodata, /ylog, /xlog, xrange = xrange, yrange = yrange, $
-        xstyle=1, ystyle=1, axiscolor = 'black', xtitle = xtitle, ytitle = ytitle, title = title, psym=psyms[0], xtickformat = 'exponent', $
+        xstyle=style, ystyle=1, axiscolor = 'black', xtitle = xtitle, ytitle = ytitle, title = initial_title, psym=psyms[0], xtickformat = 'exponent', $
         ytickformat = 'exponent', thick = thick, charthick = charthick, xthick = xthick, ythick = ythick, charsize = charsize, $
         font = font, noerase = no_erase
+        
+      if keyword_set(baseline_axis) or keyword_set(delay_axis) or keyword_set(cable_length_axis) then begin
+        cgaxis, xaxis=1, xtickv = xticks_in2, xticks = x_nticks, xminor=n_minor, xrange = axis_range, xtickformat = xtickformat, $
+          xthick = xthick, xtitle = axis_title, $
+          charthick = charthick, ythick = ythick, charsize = charsize, font = font, xstyle = 1, color = annotate_color
+          
+      endif
+      
       for i=0, nfiles - 1 do begin
         if n_pos[i] gt 0 then begin
           temp_plot = power_plot.(plot_order[i])
@@ -551,10 +618,20 @@ pro kpower_1d_plots, power_savefile, multi_pos = multi_pos, start_multi_params =
         
     end
     'clipped_log': begin
+    
       cgplot, k_plot.(plot_order[0]), power_plot.(plot_order[0]), position = plot_pos, /ylog, /xlog, xrange = xrange, yrange = yrange, $
-        xstyle=1, ystyle=1, axiscolor = 'black', xtitle = xtitle, ytitle = ytitle, title = title, psym=psyms[0], xtickformat = 'exponent', $
+        xstyle=style, ystyle=1, axiscolor = 'black', xtitle = xtitle, ytitle = ytitle, title = initial_title, psym=psyms[0], xtickformat = 'exponent', $
         ytickformat = 'exponent', thick = thick, charthick = charthick, xthick = xthick, ythick = ythick, charsize = charsize, $
         font = font, noerase = no_erase
+        
+      if keyword_set(baseline_axis) or keyword_set(delay_axis) or keyword_set(cable_length_axis) then begin
+      
+        cgaxis, xaxis=1, xtickv = xticks_in2, xticks = x_nticks, xminor=n_minor, xrange = axis_range, xtickformat = xtickformat, $
+          xthick = xthick, xtitle = axis_title, $
+          charthick = charthick, ythick = ythick, charsize = charsize, font = font, xstyle = 1, color = annotate_color
+          
+      endif
+      
       for i=0, nfiles - 1 do begin
         if keyword_set(plot_error_bars) then begin
           err_high = sigma_plot.(plot_order[i])
@@ -580,6 +657,14 @@ pro kpower_1d_plots, power_savefile, multi_pos = multi_pos, start_multi_params =
   if n_elements(note) ne 0 then begin
     if keyword_set(pub) then char_factor = 0.75 else char_factor = 1
     cgtext, xloc_note, yloc_note, note, /normal, alignment=1, charsize = char_factor*charsize, font = font
+  endif
+  
+  if keyword_set(baseline_axis) or keyword_set(delay_axis) or keyword_set(cable_length_axis) then begin
+    xloc_title = (plot_pos[2] - plot_pos[0])/2. + plot_pos[0]
+    yloc_title = plot_pos[3] + 0.6* (1-plot_pos[3])
+    
+    cgtext, xloc_title, yloc_title, title, /normal, alignment=0.5, charsize=1.2 * charsize, $
+      color = annotate_color, font = font
   endif
   
   if keyword_set(pub) and n_elements(multi_pos) eq 0 then begin

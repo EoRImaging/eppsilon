@@ -6,9 +6,9 @@ pro mit_wrapper, folder_name, obs_name, data_subdirs=data_subdirs, exact_obsname
     plot_slices = plot_slices, slice_type = slice_type, uvf_plot_type = uvf_plot_type, plot_stdset = plot_stdset, plot_1to2d = plot_1to2d, $
     delta_uv_lambda = delta_uv_lambda, cut_image = cut_image, $
     kperp_range_1dave = kperp_range_1dave, kperp_range_lambda_1dave = kperp_range_lambda_1dave, kpar_range_1dave = kpar_range_1dave, $
-    log_k1d = log_k1d, k1d_bin = k1d_bin, $
+    log_k1d = log_k1d, k1d_bin = k1d_bin, no_kzero = no_kzero, $
     plot_kpar_power = plot_kpar_power, plot_kperp_power = plot_kperp_power, plot_k0_power = plot_k0_power, plot_noise_1d = plot_noise_1d, $
-    kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, $
+    kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, cable_length_axis = cable_length_axis, $
     kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
     wedge_angles = wedge_angles, coarse_harm_width = coarse_harm_width, $
     set_data_ranges = set_data_ranges, range_1d = range_1d, plot_1d_delta = plot_1d_delta, plot_1d_error_bars = plot_1d_error_bars, $
@@ -210,14 +210,14 @@ pro mit_wrapper, folder_name, obs_name, data_subdirs=data_subdirs, exact_obsname
     sim = sim, cut_image = cut_image, delta_uv_lambda = delta_uv_lambda, $
     log_kpar = log_kpar, log_kperp = log_kperp, kpar_bin = kpar_bin, kperp_bin = kperp_bin, log_k1d = log_k1d, $
     k1d_bin = k1d_bin, kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, $
-    kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
+    kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, no_kzero = no_kzero, $
     plot_1d_delta = plot_1d_delta, plot_1d_error_bars = plot_1d_error_bars, $
     kperp_range_1dave = kperp_range_1dave, kperp_range_lambda_1dave = kperp_range_lambda_1dave, kpar_range_1dave = kpar_range_1dave, $
     wt_cutoffs = wt_cutoffs, wt_measures = wt_measures, $
     plot_slices = plot_slices, slice_type = slice_type, uvf_plot_type = uvf_plot_type, plot_stdset = plot_stdset, plot_1to2d = plot_1to2d, $
     plot_kpar_power = plot_kpar_power, plot_kperp_power = plot_kperp_power, plot_k0_power = plot_k0_power, plot_noise_1d = plot_noise_1d, $
     data_range = data_range, sigma_range = sigma_range, nev_range = nev_range, snr_range = snr_range, noise_range = noise_range, nnr_range = nnr_range, $
-    range_1d = range_1d, baseline_axis = baseline_axis, delay_axis = delay_axis, hinv = hinv, note = note, $
+    range_1d = range_1d, baseline_axis = baseline_axis, delay_axis = delay_axis, cable_length_axis = cable_length_axis, hinv = hinv, note = note, $
     plot_wedge_line = plot_wedge_line, wedge_angles = wedge_angles, coarse_harm_width = coarse_harm_width, plot_eor_1d = plot_eor_1d, $
     individual_plots = individual_plots, png = png, eps = eps
     
