@@ -113,11 +113,11 @@ pro ps_difference_plots, folder_names, obs_info, cube_types, pols, all_type_pol 
   
   if keyword_set(all_type_pol) then begin
   
-    if n_elements(folder_names) eq 2 and folder_names[0] ne folder_names[1] then begin
+    if n_elements(folder_names) eq 2 and folder_names[0] ne folder_names[n_elements(folder_names)-1] then begin
       plot_filebase = obs_info.name_same_parts + '__' + obs_info.name_diff_parts[0] + '_' + obs_info.obs_names[0] + sw_tags[0] + $
         '_minus_' + obs_info.name_diff_parts[1]  + '_' + obs_info.obs_names[1] + sw_tags[max_sw]
     endif else plot_filebase = obs_info.folder_basenames[0] + '__' + obs_info.obs_names[0] + sw_tags[0] + '_minus_' + $
-      obs_info.obs_names[1] + sw_tags[max_sw]
+      obs_info.obs_names[max_file] + sw_tags[max_sw]
       
   endif else begin
   
@@ -141,7 +141,7 @@ pro ps_difference_plots, folder_names, obs_info, cube_types, pols, all_type_pol 
   
   file_struct_arr1 = fhd_file_setup(obs_info.info_files[0], $
     spec_window_type = spec_window_types[0], freq_ch_range = freq_ch_range)
-  if n_elements(obs_info.info_files) eq 2 then file_struct_arr2 = fhd_file_setup(obs_info.info_files[1], $
+  if n_elements(obs_info.info_files) eq 2 or max_sw eq 1 then file_struct_arr2 = fhd_file_setup(obs_info.info_files[max_file], $
     spec_window_type = spec_window_types[max_sw], freq_ch_range = freq_ch_range) $
   else file_struct_arr2 = file_struct_arr1
   type_pol_str1 = file_struct_arr1.type_pol_str
