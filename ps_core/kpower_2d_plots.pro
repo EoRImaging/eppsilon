@@ -196,19 +196,20 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, wei
   endif else if n_elements(power_savefile) gt 0 then restore, power_savefile
   
   if keyword_set(snr) then begin
+    if n_elements(weights) eq 0 then message, 'weights is undefined'
     power_use = power * sqrt(weights)
-    wh_err0 = where(noise_expval eq 0, count_err0)
-    if count_err0 gt 0 then power_use[wh_err0] = 0
     
     plot_type = 'snr'
   endif
   
   if keyword_set(plot_weights) then begin
+    if n_elements(weights) eq 0 then message, 'weights is undefined'
     power_use = weights
     plot_type = 'weight'
   endif
   
   if keyword_set(plot_sigma) then begin
+    if n_elements(weights) eq 0 then message, 'weights is undefined'
     power_use = 1/sqrt(weights)
     wh_wt0 = where(weights eq 0, count_wt0)
     if count_wt0 gt 0 then power_use[wh_wt0 ] = 0
@@ -216,30 +217,32 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, wei
   endif
   
   if keyword_set(plot_exp_noise) then begin
+    if n_elements(noise_expval) eq 0 then message, 'noise_expval is undefined'
     power_use = noise_expval
     plot_type = 'exp_noise'
   endif
   
   if keyword_set(plot_noise) then begin
-    if n_elements(noise) eq 0 then message, 'noise is undefined in this file'
+    if n_elements(noise) eq 0 then message, 'noise is undefined'
     power_use = noise
     plot_type = 'noise'
   endif
   
   if keyword_set(plot_sim_noise) then begin
-    if n_elements(sim_noise) eq 0 then message, 'sim_noise is undefined in this file'
+    if n_elements(sim_noise) eq 0 then message, 'sim_noise is undefined'
     power_use = sim_noise
     plot_type = 'sim_noise'
   endif
   
   if keyword_set(plot_simnoise_diff) then begin
-    if n_elements(sim_noise_diff) eq 0 then message, 'sim_noise_diff is undefined in this file'
+    if n_elements(sim_noise_diff) eq 0 then message, 'sim_noise_diff is undefined'
     power_use = sim_noise_diff
     plot_type = 'sim_noise_diff'
   endif
   
   if keyword_set(nnr) then begin
     if n_elements(noise) eq 0 then message, 'noise is undefined in this file'
+    if n_elements(noise_expval) eq 0 then message, 'noise_expval is undefined'
     power_use = noise / noise_expval
     wh_err0 = where(noise_expval eq 0, count_err0)
     if count_err0 gt 0 then power_use[wh_err0] = 0
@@ -249,12 +252,14 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, wei
   
   if keyword_set(sim_snr) then begin
     if n_elements(sim_noise) eq 0 then message, 'sim_noise is undefined in this file'
+    if n_elements(weights) eq 0 then message, 'weights is undefined'
     power_use = sim_noise * sqrt(weights)
     plot_type = 'sim_snr'
   endif
   
   if keyword_set(sim_nnr) then begin
     if n_elements(sim_noise_diff) eq 0 then message, 'sim_noise_diff is undefined in this file'
+    if n_elements(noise_expval) eq 0 then message, 'noise_expval is undefined'
     power_use = sim_noise_diff / noise_expval
     wh_err0 = where(noise_expval eq 0, count_err0)
     if count_err0 gt 0 then power_use[wh_err0] = 0
