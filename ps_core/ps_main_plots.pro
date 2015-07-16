@@ -10,7 +10,7 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
     norm_rts_with_fhd = norm_rts_with_fhd, no_kzero = no_kzero, $
     plot_slices = plot_slices, slice_type = slice_type, uvf_plot_type = uvf_plot_type, plot_stdset = plot_stdset, plot_1to2d = plot_1to2d, $
     plot_kpar_power = plot_kpar_power, plot_kperp_power = plot_kperp_power, plot_k0_power = plot_k0_power, plot_noise_1d = plot_noise_1d, $
-    data_range = data_range, sigma_range = sigma_range, nev_range = nev_range, slice_range = slice_range, $
+    data_range = data_range, sigma_range = sigma_range, nev_range = nev_range, slice_range = slice_range, plot_sim_noise = plot_sim_noise, $
     snr_range = snr_range, noise_range = noise_range, nnr_range = nnr_range, range_1d = range_1d, $
     log_kpar = log_kpar, log_kperp = log_kperp, kpar_bin = kpar_bin, kperp_bin = kperp_bin, $
     log_k1d = log_k1d, k1d_bin = k1d_bin, plot_1d_delta = plot_1d_delta, plot_1d_error_bars = plot_1d_error_bars, $
@@ -575,6 +575,8 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
     if keyword_set(pub) and keyword_set(individual_plots) then $
       plotfiles_2d_noise_expval = plotfile_base + fadd_2dbin + '_2dnoise_expval' + plot_fadd + plot_exten
     plotfiles_2d_noise = plotfile_base + fadd_2dbin + '_2dnoise' + plot_fadd + plot_exten
+    plotfiles_2d_sim_noise = plotfile_base + fadd_2dbin + '_2dsimnoise' + plot_fadd + plot_exten
+    plotfiles_2d_sim_noise_diff = plotfile_base + fadd_2dbin + '_2dsimnoisediff' + plot_fadd + plot_exten
     
     plotfiles_2d_snr = strarr(n_elements(plotfile_base), n_elements(kperp_density_names))
     for j=0, n_elements(kperp_density_names)-1 do begin
@@ -582,12 +584,16 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
     endfor
     
     plotfiles_2d_nnr = plotfile_base + fadd_2dbin + '_2dnnr' + plot_fadd + plot_exten
+    plotfiles_2d_sim_snr = plotfile_base + fadd_2dbin + '_2dsimsnr' + plot_fadd + plot_exten
+    plotfiles_2d_sim_nnr = plotfile_base + fadd_2dbin + '_2dsimnnr' + plot_fadd + plot_exten
     
     
     if n_elements(plot_filebase) eq 0 then plotfile_1d_base = plotfile_path + general_filebase else $
       plotfile_1d_base = plotfile_path + plot_filebase + uvf_tag
     plotfile_1d = plotfile_1d_base + power_tag + wedge_1dbin_names + fadd_1dbin + '_1dkpower' + plot_exten
     plotfile_1d_noise = plotfile_1d_base + power_tag + wedge_1dbin_names + fadd_1dbin + '_1dnoise' + plot_exten
+    plotfile_1d_sim_noise_diff = plotfile_1d_base + power_tag + wedge_1dbin_names + fadd_1dbin + '_1dsimnoisediff' + plot_exten
+    plotfile_1d_sim_noise = plotfile_1d_base + power_tag + wedge_1dbin_names + fadd_1dbin + '_1dsimnoise' + plot_exten
     plotfile_kpar_power = plotfile_1d_base + power_tag + fadd_1dbin + '_kpar_power' + plot_exten
     plotfile_kperp_power = plotfile_1d_base + power_tag + fadd_1dbin + '_kperp_power' + plot_exten
     plotfile_kperp_weights = plotfile_1d_base + power_tag + fadd_1dbin + '_kperp_weights' + plot_exten
@@ -759,7 +765,26 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
       endfor
       
       if nfiles eq 2 then begin
-        for i=0, n_cubes-1 do kpower_2d_plots, savefiles_2d[i,0], png = png, eps = eps, pdf = pdf, /plot_noise, plotfile = plotfiles_2d_noise[i], $
+        for i=0, n_cubes-1 do kpower_2d_plots, savefiles_2d[i,0], png = png, eps = eps, pdf = pdf, /plot_noise, $
+          plotfile = plotfiles_2d_noise[i], $
+          kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
+          data_range = noise_range, title_prefix = titles[i], note = note + ' ' + vs_note, $
+          plot_wedge_line = plot_wedge_line, hinv = hinv, $
+          wedge_amp = wedge_amp, baseline_axis = baseline_axis, delay_axis = delay_axis, cable_length_axis = cable_length_axis, $
+          kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis
+          
+        if keyword_set(plot_sim_noise) then $
+          for i=0, n_cubes-1 do kpower_2d_plots, savefiles_2d[i,0], png = png, eps = eps, pdf = pdf, /plot_sim_noise, $
+          plotfile = plotfiles_2d_sim_noise[i], $
+          kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
+          data_range = noise_range, title_prefix = titles[i], note = note + ' ' + vs_note, $
+          plot_wedge_line = plot_wedge_line, hinv = hinv, $
+          wedge_amp = wedge_amp, baseline_axis = baseline_axis, delay_axis = delay_axis, cable_length_axis = cable_length_axis, $
+          kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis
+          
+        if keyword_set(plot_sim_noise) then $
+          for i=0, n_cubes-1 do kpower_2d_plots, savefiles_2d[i,0], png = png, eps = eps, pdf = pdf, /plot_simnoise_diff, $
+          plotfile = plotfiles_2d_sim_noise_diff[i], $
           kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
           data_range = noise_range, title_prefix = titles[i], note = note + ' ' + vs_note, $
           plot_wedge_line = plot_wedge_line, hinv = hinv, $
@@ -767,6 +792,13 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
           kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis
           
         for i=0, n_cubes-1 do kpower_2d_plots, savefiles_2d[i,0], png = png, eps = eps, pdf = pdf, /nnr, plotfile = plotfiles_2d_nnr[i], $
+          kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
+          data_range = nnr_range, title_prefix = titles[i], note = note + ' ' + vs_note, $
+          plot_wedge_line = plot_wedge_line, hinv = hinv, $
+          wedge_amp = wedge_amp, baseline_axis = baseline_axis, delay_axis = delay_axis, cable_length_axis = cable_length_axis, $
+          kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis
+          
+        for i=0, n_cubes-1 do kpower_2d_plots, savefiles_2d[i,0], png = png, eps = eps, pdf = pdf, /sim_nnr, plotfile = plotfiles_2d_sim_nnr[i], $
           kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
           data_range = nnr_range, title_prefix = titles[i], note = note + ' ' + vs_note, $
           plot_wedge_line = plot_wedge_line, hinv = hinv, $
@@ -888,12 +920,64 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
         endif
       endfor
       
+      if keyword_set(plot_sim_noise) then begin
+        window_num = window_num+1
+        start_multi_params = {ncol:ncol, nrow:nrow, ordering:'row'}
+        undefine, pos_use
+        
+        for i=0, n_cubes-1 do begin
+          if i gt 0 then  pos_use = positions[*,i]
+          if i eq n_cubes-1 and n_elements(note) gt 0 then note_use = note + ' ' + vs_note else undefine, note_use
+          
+          kpower_2d_plots, savefiles_2d[i], /plot_sim_noise, multi_pos = pos_use, start_multi_params = start_multi_params, png = png, eps = eps, pdf = pdf, $
+            plotfile = plotfiles_2d_sim_noise, $
+            kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, data_range = noise_range, $
+            title_prefix = titles[i], note = note_use, $
+            plot_wedge_line = plot_wedge_line, wedge_amp = wedge_amp, hinv = hinv, $
+            baseline_axis = baseline_axis, delay_axis = delay_axis, cable_length_axis = cable_length_axis, $
+            kperp_linear_axis = kperp_linear_axis, $
+            kpar_linear_axis = kpar_linear_axis, window_num = window_num
+          if i eq 0 then begin
+            positions = pos_use
+            undefine, start_multi_params
+          endif
+        endfor
+        if keyword_set(pub) then begin
+          cgps_close, png = png, pdf = pdf, delete_ps = delete_ps, density = 600
+        endif
+        
+        window_num = window_num+1
+        start_multi_params = {ncol:ncol, nrow:nrow, ordering:'row'}
+        undefine, pos_use
+        
+        for i=0, n_cubes-1 do begin
+          if i gt 0 then  pos_use = positions[*,i]
+          if i eq n_cubes-1 and n_elements(note) gt 0 then note_use = note + ' ' + vs_note else undefine, note_use
+          
+          kpower_2d_plots, savefiles_2d[i], /sim_snr, multi_pos = pos_use, start_multi_params = start_multi_params, $
+            png = png, eps = eps, pdf = pdf, plotfile = plotfiles_2d_sim_snr, $
+            kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, data_range = sim_snr_range, $
+            title_prefix = titles[i], note = note_use, $
+            plot_wedge_line = plot_wedge_line, wedge_amp = wedge_amp, hinv = hinv, $
+            baseline_axis = baseline_axis, delay_axis = delay_axis, cable_length_axis = cable_length_axis, $
+            kperp_linear_axis = kperp_linear_axis, $
+            kpar_linear_axis = kpar_linear_axis, window_num = window_num
+          if i eq 0 then begin
+            positions = pos_use
+            undefine, start_multi_params
+          endif
+        endfor
+        if keyword_set(pub) then begin
+          cgps_close, png = png, pdf = pdf, delete_ps = delete_ps, density = 600
+        endif
+      endif
+      
       if nfiles eq 2 then begin
       
         window_num = window_num+1
         start_multi_params = {ncol:ncol, nrow:nrow, ordering:'row'}
+        undefine, pos_use
         
-        ;;noise_range = [1e18, 1e22]
         for i=0, n_cubes-1 do begin
           if i gt 0 then  pos_use = positions[*,i]
           if i eq n_cubes-1 and n_elements(note) gt 0 then note_use = note + ' ' + vs_note else undefine, note_use
@@ -913,6 +997,33 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
         endfor
         if keyword_set(pub) then begin
           cgps_close, png = png, pdf = pdf, delete_ps = delete_ps, density = 600
+        endif
+        
+        if keyword_set(plot_sim_noise) then begin
+          window_num = window_num+1
+          start_multi_params = {ncol:ncol, nrow:nrow, ordering:'row'}
+          undefine, pos_use
+          
+          for i=0, n_cubes-1 do begin
+            if i gt 0 then  pos_use = positions[*,i]
+            if i eq n_cubes-1 and n_elements(note) gt 0 then note_use = note + ' ' + vs_note else undefine, note_use
+            
+            kpower_2d_plots, savefiles_2d[i], /plot_simnoise_diff, multi_pos = pos_use, start_multi_params = start_multi_params, png = png, eps = eps, pdf = pdf, $
+              plotfile = plotfiles_2d_sim_noise_diff, $
+              kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, data_range = noise_range, $
+              title_prefix = titles[i], note = note_use, $
+              plot_wedge_line = plot_wedge_line, wedge_amp = wedge_amp, hinv = hinv, $
+              baseline_axis = baseline_axis, delay_axis = delay_axis, cable_length_axis = cable_length_axis, $
+              kperp_linear_axis = kperp_linear_axis, $
+              kpar_linear_axis = kpar_linear_axis, window_num = window_num
+            if i eq 0 then begin
+              positions = pos_use
+              undefine, start_multi_params
+            endif
+          endfor
+          if keyword_set(pub) then begin
+            cgps_close, png = png, pdf = pdf, delete_ps = delete_ps, density = 600
+          endif
         endif
         
         window_num = window_num+1
@@ -938,6 +1049,33 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
         endfor
         if keyword_set(pub) then begin
           cgps_close, png = png, pdf = pdf, delete_ps = delete_ps, density = 600
+        endif
+        
+        window_num = window_num+1
+        start_multi_params = {ncol:ncol, nrow:nrow, ordering:'row'}
+        undefine, pos_use
+        
+        if keyword_set(plot_sim_noise) then begin
+          for i=0, n_cubes-1 do begin
+            if i gt 0 then  pos_use = positions[*,i]
+            if i eq n_cubes-1 and n_elements(note) gt 0 then note_use = note + ' ' + vs_note else undefine, note_use
+            
+            kpower_2d_plots, savefiles_2d[i], /sim_nnr, multi_pos = pos_use, start_multi_params = start_multi_params, png = png, eps = eps, pdf = pdf, $
+              plotfile = plotfiles_2d_sim_nnr, $
+              kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, data_range = nnr_range, $
+              title_prefix = titles[i], note = note_use, $
+              plot_wedge_line = plot_wedge_line, wedge_amp = wedge_amp, hinv = hinv, $
+              baseline_axis = baseline_axis, delay_axis = delay_axis, cable_length_axis = cable_length_axis, $
+              kperp_linear_axis = kperp_linear_axis, $
+              kpar_linear_axis = kpar_linear_axis, window_num = window_num
+            if i eq 0 then begin
+              positions = pos_use
+              undefine, start_multi_params
+            endif
+          endfor
+          if keyword_set(pub) then begin
+            cgps_close, png = png, pdf = pdf, delete_ps = delete_ps, density = 600
+          endif
         endif
         
       endif
@@ -1390,8 +1528,8 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
       density_index = i mod n_elements(kperp_density_names)
       title_use = wedge_1dbin_names[wedge_index] + ' ' + kperp_density_names[density_index]
       
-      ;if keyword_set(zoom) then levels = 1 else levels = 'all'
-      levels = 'all'
+      if keyword_set(zoom) then levels = 1 else levels = 'all'
+      ;levels = 'all'
       
       kpower_2d_plots, savefiles_2d[wh_2d_use, density_index], multi_pos = pos_use, start_multi_params = start_multi_params, png = png, eps = eps, pdf = pdf, $
         plotfile = plotfile_use, kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $

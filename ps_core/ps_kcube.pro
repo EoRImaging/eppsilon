@@ -1364,7 +1364,7 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
     ;;   note that we can convert both the weights and variance to uvf from kperp,rz and all jacobians will cancel
     window_int_k = window_int * (z_mpc_delta * n_freq) * (kx_mpc_delta * ky_mpc_delta)*z_mpc_mean^4./((2.*!pi)^2.*file_struct.kpix^4.)
     print, 'window integral from variances: ' + number_formatter(window_int_k[0], format='(e10.4)')
-    if tag_exist(file_struct, 'beam_savefile') then print, 'window integral from beam: ' + number_formatter(window_int_beam[0], format='(e10.4)')
+    if tag_exist(file_struct, 'beam_savefile') then print, 'window integral from beam cube: ' + number_formatter(window_int_beam[0], format='(e10.4)')
     if tag_exist(file_struct, 'beam_int') then print, 'window integral from obs.beam_integral: ' + number_formatter(window_int_beam_obs[0], format='(e10.4)')
     
     if tag_exist(file_struct, 'beam_int') then window_int = window_int_beam_obs $
@@ -1374,35 +1374,14 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
     window_int_k = window_int * (z_mpc_delta * n_freq) * (2.*!pi)^2. / (kx_mpc_delta * ky_mpc_delta)
     print, 'var_cube multiplier: ', (z_mpc_delta * n_freq) * (2.*!pi)^2. / (kx_mpc_delta * ky_mpc_delta)
     print, 'window integral from variances: ' + number_formatter(window_int_k[0], format='(e10.4)')
-    if tag_exist(file_struct, 'beam_savefile') then print, 'window integral from beam: ' + number_formatter(window_int_beam[0], format='(e10.4)')
+    if tag_exist(file_struct, 'beam_savefile') then print, 'window integral from beam cube: ' + number_formatter(window_int_beam[0], format='(e10.4)')
     if tag_exist(file_struct, 'beam_int') then print, 'window integral from obs.beam_integral: ' + number_formatter(window_int_beam_obs[0], format='(e10.4)')
     
     if tag_exist(file_struct, 'beam_int') then window_int = window_int_beam_obs $
     else if tag_exist(file_struct, 'beam_savefile') then window_int = window_int_beam else window_int = window_int_k
-  ;if keyword_set(sim) then window_int = 2.39e9 + fltarr(nfiles)
-    
-  ;    if keyword_set(sim) then if stregex(file_struct.savefilebase, 'yy', /boolean) then begin
-  ;
-  ;      ;volume_factor_2 = ((1./file_struct.kpix)^2. * z_mpc_mean^2.)*(z_mpc_delta * n_freq)
-  ;      ;window_int = volume_factor*16
-  ;
-  ;      ;conv_factor = conv_factor_adrian/(2.*!pi)
-  ;      conv_factor = conv_factor / z_mpc_mean
-  ;      window_int = bandwidth_factor ;bandwidth_factor = z_mpc_delta * n_freq
-  ;
-  ;    endif
     
   endelse
   
-  
-  ;; old convention
-  ;; take care of FT convention for EoR (uv -> kx,ky)
-  ;  data_cube1 = data_cube1 / (2.*!pi)^2.
-  ;  sigma2_cube1 = sigma2_cube1 / (2.*!pi)^4.
-  ;  if nfiles eq 2 then begin
-  ;    data_cube2 = data_cube2 / (2.*!pi)^2.
-  ;    sigma2_cube2 = sigma2_cube2 / (2.*!pi)^4.
-  ;  endif
   
   ;; get sigma^2 into Jy^2
   sigma2_cube1 = sigma2_cube1 * rebin(reform(vis_sigma, 1, 1, n_freq), n_kx, n_ky, n_freq)^2.
@@ -1427,16 +1406,9 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
     sigma2_cube2 = sigma2_cube2  / window_int[1]
   endif
   
-  ;; temp = data_cube1[*,*,10]
-  ;; temp_exp = complex(dblarr(165, 83+82))
-  ;; temp_exp[*, 82:*] = temp
-  ;; temp_exp[*, 0:81] = conj(reverse(reverse(temp[*,1:*]),2))
-  ;; temp_exp[0:81, 82] =  reverse(conj(temp[83:*,0]))
-  ;; temp_exp = temp_exp[0:163, 0:163]
-  ;; temp_img = fft_shift(fft(fft_shift(temp_exp)))
-  ;; temp_2 = fft_shift(fft(fft_shift(temp_img), /inverse))
-  ;; quick_image, abs(temp_exp), title='107',/log
-  
+  ;; make simulated noise cubes
+  sim_noise1 = randomn(seed, n_kx, n_ky, n_kz) * sqrt(sigma2_cube1) + complex(0,1) * randomn(seed, n_kx, n_ky, n_kz) * sqrt(sigma2_cube1)
+  if nfiles eq 2 then sim_noise2 = randomn(seed, n_kx, n_ky, n_kz) * sqrt(sigma2_cube2) + complex(0,1) * randomn(seed, n_kx, n_ky, n_kz) * sqrt(sigma2_cube2)
   
   if nfiles eq 2 then begin
     ;; Now construct added & subtracted cubes (weighted by inverse variance) & new variances
@@ -1470,7 +1442,9 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
     
     data_sum = (sum_weights1 * data_cube1 + sum_weights2 * data_cube2)/sum_weights_net
     data_diff = (sum_weights1 * data_cube1 - sum_weights2 * data_cube2)/sum_weights_net
-    undefine, data_cube1, data_cube2
+    sim_noise_sum = (sum_weights1 * sim_noise1 + sum_weights2 * sim_noise2)/sum_weights_net
+    sim_noise_diff = (sum_weights1 * sim_noise1 - sum_weights2 * sim_noise2)/sum_weights_net
+    undefine, data_cube1, data_cube2, sim_noise1, sim_noise2
     
     if count_wt0 ne 0 then data_sum[wh_wt0] = 0
     if count_wt0 ne 0 then data_diff[wh_wt0] = 0
@@ -1478,6 +1452,8 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
     
     sum_sigma2 = 1./temporary(sum_weights_net)
     if count_wt0 ne 0 then sum_sigma2[wh_wt0] = 0
+    
+  ;sim_noise = randomn(seed, n_kx, n_ky, n_kz) * sqrt(sum_sigma2) + complex(0,1) * randomn(seed, n_kx, n_ky, n_kz) * sqrt(sum_sigma2)
     
   endif else begin
     sum_weights1 = 1./sigma2_cube1
@@ -1494,6 +1470,7 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
     
     data_sum = temporary(data_cube1)
     sum_sigma2 = temporary(sigma2_cube1)
+    sim_noise_sum = temporary(sim_noise1)
   endelse
   
   mask = intarr(n_kx, n_ky, n_kz) + 1
@@ -1540,7 +1517,11 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
     window_expand = rebin(reform(window, 1, 1, n_freq), n_kx, n_ky, n_freq, /sample)
     
     data_sum = data_sum * window_expand
-    if nfiles eq 2 then data_diff = data_diff * window_expand
+    sim_noise_sum = sim_noise_sum * window_expand
+    if nfiles eq 2 then begin
+      data_diff = data_diff * window_expand
+      sim_noise_diff = sim_noise_diff * window_expand
+    endif
     
     sum_sigma2 = sum_sigma2 * temporary(window_expand^2.)
   endif
@@ -1602,34 +1583,39 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
     ;; old ft convention
     ; data_sum_ft = fft(data_sum, dimension=3) * n_freq * z_mpc_delta / (2.*!pi)
     data_sum_ft = fft(data_sum, dimension=3) * n_freq * z_mpc_delta
+    sim_noise_sum_ft = fft(sim_noise_sum, dimension=3) * n_freq * z_mpc_delta
     
     ;; put k0 in middle of cube
     data_sum_ft = shift(data_sum_ft, [0,0,n_kz/2])
+    sim_noise_sum_ft = shift(sim_noise_sum_ft, [0,0,n_kz/2])
     
-    undefine, data_sum
+    undefine, data_sum, sim_noise_sum
     if nfiles eq 2 then begin
-      ;; old ft convention
-      ; data_diff_ft = fft(data_diff, dimension=3) * n_freq * z_mpc_delta / (2.*!pi)
       data_diff_ft = fft(data_diff, dimension=3) * n_freq * z_mpc_delta
       ;; put k0 in middle of cube
       data_diff_ft = shift(data_diff_ft, [0,0,n_kz/2])
       undefine, data_diff
+      
+      sim_noise_diff_ft = fft(sim_noise_diff, dimension=3) * n_freq * z_mpc_delta
+      ;; put k0 in middle of cube
+      sim_noise_diff_ft = shift(sim_noise_diff_ft, [0,0,n_kz/2])
+      undefine, sim_noise_diff
     endif
   endif else begin
     ;; Not evenly spaced. Do a dft
     z_exp =  exp(-1.*complex(0,1)*matrix_multiply(comov_dist_los, kz_mpc_orig, /btranspose))
     
-    ;; old ft convention
-    ;    data_sum_ft = z_mpc_delta/(2.*!pi) * $
-    ;      reform(matrix_multiply(reform(temporary(data_sum), n_kx*n_ky, n_freq), z_exp), n_kx, n_ky, n_kz)
-    ;    if nfiles eq 2 then $
-    ;      data_diff_ft = z_mpc_delta/(2.*!pi) * $
-    ;      reform(matrix_multiply(reform(temporary(data_diff), n_kx*n_ky, n_freq), z_exp), n_kx, n_ky, n_kz)
+    
     data_sum_ft = z_mpc_delta * $
       reform(matrix_multiply(reform(temporary(data_sum), n_kx*n_ky, n_freq), z_exp), n_kx, n_ky, n_kz)
-    if nfiles eq 2 then $
+    sim_noise_sum_ft = z_mpc_delta * $
+      reform(matrix_multiply(reform(temporary(sim_noise_sum), n_kx*n_ky, n_freq), z_exp), n_kx, n_ky, n_kz)
+    if nfiles eq 2 then begin
       data_diff_ft = z_mpc_delta * $
-      reform(matrix_multiply(reform(temporary(data_diff), n_kx*n_ky, n_freq), z_exp), n_kx, n_ky, n_kz)
+        reform(matrix_multiply(reform(temporary(data_diff), n_kx*n_ky, n_freq), z_exp), n_kx, n_ky, n_kz)
+      sim_noise_diff_ft  = z_mpc_delta * $
+        reform(matrix_multiply(reform(temporary(sim_noise_diff), n_kx*n_ky, n_freq), z_exp), n_kx, n_ky, n_kz)
+    endif
   endelse
   
   n_val = round(kz_mpc_orig / kz_mpc_delta)
@@ -1638,89 +1624,112 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
   kz_mpc = kz_mpc_orig[where(n_val ge 0)]
   n_kz = n_elements(kz_mpc)
   
+  
+  ;; these an and bn calculations don't match the standard
+  ;; convention (they ares down by a factor of 2) but they make more sense
+  ;; and remove factors of 2 we'd otherwise have in the power
+  ;; and variance calculations
+  ;; note that the 0th mode will have higher noise because there's half as many measurements going into it
+  a1_0 = data_sum_ft[*,*,where(n_val eq 0)]
+  a1_n = (data_sum_ft[*,*, where(n_val gt 0)] + data_sum_ft[*,*, reverse(where(n_val lt 0))])/2.
+  b1_n = complex(0,1) * (data_sum_ft[*,*, where(n_val gt 0)] - data_sum_ft[*,*, reverse(where(n_val lt 0))])/2.
+  undefine, data_sum_ft
+  
+  a3_0 = sim_noise_sum_ft[*,*,where(n_val eq 0)]
+  a3_n = (sim_noise_sum_ft[*,*, where(n_val gt 0)] + sim_noise_sum_ft[*,*, reverse(where(n_val lt 0))])/2.
+  b3_n = complex(0,1) * (sim_noise_sum_ft[*,*, where(n_val gt 0)] - sim_noise_sum_ft[*,*, reverse(where(n_val lt 0))])/2.
+  undefine, sim_noise_sum_ft
+  
+  if nfiles gt 1 then begin
+    a2_0 = data_diff_ft[*,*,where(n_val eq 0)]
+    a2_n = (data_diff_ft[*,*, where(n_val gt 0)] + data_diff_ft[*,*, reverse(where(n_val lt 0))])/2.
+    b2_n = complex(0,1) * (data_diff_ft[*,*, where(n_val gt 0)] - data_diff_ft[*,*, reverse(where(n_val lt 0))])/2.
+    undefine, data_diff_ft
+    
+    a4_0 = sim_noise_diff_ft[*,*,where(n_val eq 0)]
+    a4_n = (sim_noise_diff_ft[*,*, where(n_val gt 0)] + sim_noise_diff_ft[*,*, reverse(where(n_val lt 0))])/2.
+    b4_n = complex(0,1) * (sim_noise_diff_ft[*,*, where(n_val gt 0)] - sim_noise_diff_ft[*,*, reverse(where(n_val lt 0))])/2.
+    undefine, sim_noise_diff_ft
+  endif
+  
+  
   if keyword_set(std_power) then begin
     ;; comov_dist_los goes from large to small z
     z_relative = dindgen(n_freq)*z_mpc_delta
     freq_kz_arr = rebin(reform(kz_mpc_orig, 1, n_elements(kz_mpc_orig)), n_freq, n_elements(kz_mpc_orig)) * rebin(z_relative, n_freq, n_elements(kz_mpc_orig))
     
-    ;kz_arr = rebin(reform(kz_mpc_orig, 1, n_elements(kz_mpc_orig)), n_elements(kz_mpc_orig), n_elements(kz_mpc_orig)) - $
-    ;  rebin(kz_mpc_orig, n_elements(kz_mpc_orig), n_elements(kz_mpc_orig))
-    ;full_freq_kz_arr = rebin(reform(kz_arr, 1, n_elements(kz_mpc_orig)^2), n_freq, n_elements(kz_mpc_orig)^2) * rebin(z_relative, n_freq, n_elements(kz_mpc_orig)^2)
+    ;; construct FT matrix, hit sigma2 with it from both sides
+    identity = diag_matrix([fltarr(n_freq)+1.])
+    ft_matrix = fft(identity, dimension=1)*n_freq*z_mpc_delta
     
-    ;; for standard power calc. just need ft of sigma2 (sigma has squared units relative to data, so use z_mpc_delta^2d)
-    ;; old ft convention
-    ;     sigma2_ft = matrix_multiply(reform(sum_sigma2, n_kx*n_ky, n_freq), exp(-1.*complex(0,1)*freq_kz_arr)*exp(1.*complex(0,1)*freq_kz_arr)) * (z_mpc_delta^2. / (2.*!pi))^2d
-    sigma2_ft = matrix_multiply(reform(sum_sigma2, n_kx*n_ky, n_freq), exp(-1.*complex(0,1)*freq_kz_arr)*exp(1.*complex(0,1)*freq_kz_arr)) * (z_mpc_delta^2.)^2d
-    sigma2_ft = reform(sigma2_ft, n_kx, n_ky, n_elements(kz_mpc_orig))
-    
-    ;; old ft convention
-    ;    sigma2_ft_cov = matrix_multiply(reform(sum_sigma2, n_kx*n_ky, n_freq), exp(-1.*complex(0,1)*freq_kz_arr)*exp(-1.*complex(0,1)*freq_kz_arr)) * (z_mpc_delta^2. / (2.*!pi))^2d
-    sigma2_ft_cov = matrix_multiply(reform(sum_sigma2, n_kx*n_ky, n_freq), exp(-1.*complex(0,1)*freq_kz_arr)*exp(-1.*complex(0,1)*freq_kz_arr)) * (z_mpc_delta^2.)^2d
-    sigma2_ft_cov = reform(sigma2_ft_cov, n_kx, n_ky, n_elements(kz_mpc_orig))
-    sigma2_ft_cov[*,*, where(n_val eq 0)] = 0
-    
-    ;sigma2_ft_full = matrix_multiply(reform(sum_sigma2, n_kx*n_ky, n_freq), exp(1.*complex(0,1)*full_freq_kz_arr)) * (z_mpc_delta^2. / (2.*!pi))^2d
-    ;sigma2_ft_full = reform(sigma2_ft_full, n_kx, n_ky, n_elements(kz_mpc_orig), n_elements(kz_mpc_orig))
+    sigma2_ft = fltarr(n_kx, n_ky, n_freq)
+    for i=0, n_kx-1 do begin
+      for j=0, n_ky-1 do begin
+        if max(abs(sum_sigma2[i,j,*])) eq 0 then continue
+        temp = diag_matrix(reform(sum_sigma2[i,j,*]))
+        temp2 = shift(matrix_multiply(ft_matrix, matrix_multiply(temp, conj(ft_matrix), /btranspose)), n_freq/2, n_freq/2)
+        
+        sigma2_ft[i,j,*] = abs(diag_matrix(temp2))
+      endfor
+    endfor
     undefine, sum_sigma2
     
-    ;; diagonalize to get rid of covariance
-    theta = atan(2*sigma2_ft_cov[*,*,where(n_val ge 0)], sigma2_ft[*,*,where(n_val ge 0)]-sigma2_ft[*,*,where(n_val le 0)])/2.
+    a5_0 = sigma2_ft[*,*,where(n_val eq 0)]
+    a5_n = (sigma2_ft[*,*, where(n_val gt 0)] + sigma2_ft[*,*, reverse(where(n_val lt 0))])/2.
+    b5_n = complex(0,1) * (sigma2_ft[*,*, where(n_val gt 0)] - sigma2_ft[*,*, reverse(where(n_val lt 0))])/2.
+    undefine, sigma2_ft
     
-    theta[where(sigma2_ft_cov[*,*,where(n_val ge 0)] eq 0)] = 0
+    data_sum_1 = complex(fltarr(n_kx, n_ky, n_kz))
+    data_sum_2 = complex(fltarr(n_kx, n_ky, n_kz))
+    data_sum_1[*, *, 0] = a1_0
+    data_sum_1[*, *, 1:n_kz-1] = a1_n
+    data_sum_2[*, *, 1:n_kz-1] = b1_n
     
-    cos_theta = cos(theta)
-    sin_theta = sin(theta)
-    undefine, theta
+    sim_noise_sum_1 = complex(fltarr(n_kx, n_ky, n_kz))
+    sim_noise_sum_2 = complex(fltarr(n_kx, n_ky, n_kz))
+    sim_noise_sum_1[*, *, 0] = a3_0
+    sim_noise_sum_1[*, *, 1:n_kz-1] = a3_n
+    sim_noise_sum_2[*, *, 1:n_kz-1] = b3_n
     
-    sigma2_1 = sigma2_ft[*,*,where(n_val ge 0)]*cos_theta^2. + 2.*sigma2_ft_cov[*,*,where(n_val ge 0)]*cos_theta*sin_theta + sigma2_ft[*,*,where(n_val le 0)]*sin_theta^2.
-    sigma2_2 = sigma2_ft[*,*,where(n_val ge 0)]*sin_theta^2. - 2.*sigma2_ft_cov[*,*,where(n_val ge 0)]*cos_theta*sin_theta + sigma2_ft[*,*,where(n_val le 0)]*cos_theta^2.
-    sigma2_2[*,*,0] = 0.
-    undefine, sigma2_ft, sigma2_ft_cov
-    
-    data_sum_1 = data_sum_ft[*,*,where(n_val ge 0)]*cos_theta + data_sum_ft[*,*,where(n_val le 0)]*sin_theta
-    data_sum_2 = (-1d)*data_sum_ft[*,*,where(n_val ge 0)]*sin_theta + data_sum_ft[*,*,where(n_val le 0)]*cos_theta
-    data_sum_2[*,*,0] = 0.
-    undefine, data_sum_ft
-    if nfiles eq 2 then begin
-      data_diff_1 = data_diff_ft[*,*,where(n_val ge 0)]*cos_theta + data_diff_ft[*,*,where(n_val le 0)]*sin_theta
-      data_diff_2 = (-1d)*data_diff_ft[*,*,where(n_val ge 0)]*sin_theta + data_diff_ft[*,*,where(n_val le 0)]*cos_theta
-      data_diff_2[*,*,0] = 0.
-      undefine, data_diff_ft
+    if nfiles gt 1 then begin
+      data_diff_1 = complex(fltarr(n_kx, n_ky, n_kz))
+      data_diff_2 = complex(fltarr(n_kx, n_ky, n_kz))
+      data_diff_1[*, *, 0] = a2_0
+      data_diff_1[*, *, 1:n_kz-1] = a2_n
+      data_diff_2[*, *, 1:n_kz-1] = b2_n
+      
+      sim_noise_diff_1 = complex(fltarr(n_kx, n_ky, n_kz))
+      sim_noise_diff_2 = complex(fltarr(n_kx, n_ky, n_kz))
+      sim_noise_diff_1[*, *, 0] = a4_0
+      sim_noise_diff_1[*, *, 1:n_kz-1] = a4_n
+      sim_noise_diff_2[*, *, 1:n_kz-1] = b4_n
     endif
+    
+    sigma2_1 = fltarr(n_kx, n_ky, n_kz)
+    sigma2_2 = fltarr(n_kx, n_ky, n_kz)
+    sigma2_1[*, *, 0] = a5_0
+    sigma2_1[*, *, 1:n_kz-1] = a5_n
+    sigma2_2[*, *, 1:n_kz-1] = b5_n
     
     git, repo_path = ps_repository_dir(), result=kcube_git_hash
     git_hashes = {uvf:uvf_git_hashes, uvf_wt:uvf_wt_git_hashes, beam:beam_git_hashes, kcube:kcube_git_hash}
     
     if n_elements(freq_flags) gt 0 then begin
-      save, file = file_struct.kcube_savefile, data_sum_1, data_sum_2, data_diff_1, data_diff_2, sigma2_1, sigma2_2, n_val, $
+      save, file = file_struct.kcube_savefile, data_sum_1, data_sum_2, data_diff_1, data_diff_2, $
+        sim_noise_sum_1, sim_sum_noise_2, sim_noise_diff_1, sim_diff_noise_2, sigma2_1, sigma2_2, n_val, $
         kx_mpc, ky_mpc, kz_mpc, kperp_lambda_conv, delay_params, hubble_param, n_freq_contrib, freq_mask, $
         vs_name, vs_mean, t_sys_meas, window_int, git_hashes, $
         wt_meas_ave, wt_meas_min, ave_weights, wt_ave_power_freq, ave_power_freq, wt_ave_power_uvf, ave_power_uvf
     endif else begin
-      save, file = file_struct.kcube_savefile, data_sum_1, data_sum_2, data_diff_1, data_diff_2, sigma2_1, sigma2_2, n_val, $
+      save, file = file_struct.kcube_savefile, data_sum_1, data_sum_2, data_diff_1, data_diff_2, $
+        sim_noise_sum_1, sim_sum_noise_2, sim_noise_diff_1, sim_diff_noise_2, sigma2_1, sigma2_2, n_val, $
         kx_mpc, ky_mpc, kz_mpc, kperp_lambda_conv, delay_params, hubble_param, n_freq_contrib, $
         vs_name, vs_mean, t_sys_meas, window_int, git_hashes, $
         wt_meas_ave, wt_meas_min, ave_weights, wt_ave_power_freq, ave_power_freq, wt_ave_power_uvf, ave_power_uvf
     endelse
     
   endif else begin
-    ;; these an and bn calculations don't match the standard
-    ;; convention (they down by a factor of 2) but they make more sense
-    ;; and remove factors of 2 we'd otherwise have in the power
-    ;; and variance calculations
-    ;; note that the 0th mode will have higher noise because there's half as many measurements going into it
-    a1_0 = data_sum_ft[*,*,where(n_val eq 0)]
-    a1_n = (data_sum_ft[*,*, where(n_val gt 0)] + data_sum_ft[*,*, reverse(where(n_val lt 0))])/2.
-    b1_n = complex(0,1) * (data_sum_ft[*,*, where(n_val gt 0)] - data_sum_ft[*,*, reverse(where(n_val lt 0))])/2.
-    undefine, data_sum_ft
-    
-    if nfiles gt 1 then begin
-      a2_0 = data_diff_ft[*,*,where(n_val eq 0)]
-      a2_n = (data_diff_ft[*,*, where(n_val gt 0)] + data_diff_ft[*,*, reverse(where(n_val lt 0))])/2.
-      b2_n = complex(0,1) * (data_diff_ft[*,*, where(n_val gt 0)] - data_diff_ft[*,*, reverse(where(n_val lt 0))])/2.
-      undefine, data_diff_ft
-    endif
-    
+  
     ;; drop pixels with less than 1/3 of the frequencies (set weights to 0)
     wh_fewfreq = where(n_freq_contrib lt ceil(n_freq/3d), count_fewfreq)
     if count_fewfreq gt 0 then begin
@@ -1731,10 +1740,18 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
       a1_0 = temporary(a1_0) * mask_fewfreq[*,*,0]
       a1_n = temporary(a1_n) * mask_fewfreq[*,*,1:*]
       b1_n = temporary(b1_n) * mask_fewfreq[*,*,1:*]
+      
+      a3_0 = temporary(a3_0) * mask_fewfreq[*,*,0]
+      a3_n = temporary(a3_n) * mask_fewfreq[*,*,1:*]
+      b3_n = temporary(b3_n) * mask_fewfreq[*,*,1:*]
       if nfiles gt 1 then begin
         a2_0 = temporary(a2_0) * mask_fewfreq[*,*,0]
         a2_n = temporary(a2_n) * mask_fewfreq[*,*,1:*]
         b2_n = temporary(b2_n) * mask_fewfreq[*,*,1:*]
+        
+        a4_0 = temporary(a4_0) * mask_fewfreq[*,*,0]
+        a4_n = temporary(a4_n) * mask_fewfreq[*,*,1:*]
+        b4_n = temporary(b4_n) * mask_fewfreq[*,*,1:*]
       endif
     endif
     
@@ -1743,12 +1760,25 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
     data_sum_cos[*, *, 0] = a1_0 ;/2. changed 3/12/14.
     data_sum_cos[*, *, 1:n_kz-1] = a1_n
     data_sum_sin[*, *, 1:n_kz-1] = b1_n
+    
+    sim_noise_sum_cos = complex(fltarr(n_kx, n_ky, n_kz))
+    sim_noise_sum_sin = complex(fltarr(n_kx, n_ky, n_kz))
+    sim_noise_sum_cos[*, *, 0] = a3_0 ;/2. changed 3/12/14.
+    sim_noise_sum_cos[*, *, 1:n_kz-1] = a3_n
+    sim_noise_sum_sin[*, *, 1:n_kz-1] = b3_n
+    
     if nfiles gt 1 then begin
       data_diff_cos = complex(fltarr(n_kx, n_ky, n_kz))
       data_diff_sin = complex(fltarr(n_kx, n_ky, n_kz))
       data_diff_cos[*, *, 0] = a2_0 ;/2. changed 3/12/14.
       data_diff_cos[*, *, 1:n_kz-1] = a2_n
       data_diff_sin[*, *, 1:n_kz-1] = b2_n
+      
+      sim_noise_diff_cos = complex(fltarr(n_kx, n_ky, n_kz))
+      sim_noise_diff_sin = complex(fltarr(n_kx, n_ky, n_kz))
+      sim_noise_diff_cos[*, *, 0] = a4_0 ;/2. changed 3/12/14.
+      sim_noise_diff_cos[*, *, 1:n_kz-1] = a4_n
+      sim_noise_diff_sin[*, *, 1:n_kz-1] = b4_n
     endif
     
     
@@ -1826,31 +1856,33 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
     data_sum_1 = data_sum_cos*cos_theta + data_sum_sin*sin_theta
     data_sum_2 = (-1d)*data_sum_cos*sin_theta + data_sum_sin*cos_theta
     undefine, data_sum_cos, data_sum_sin
+    
+    sim_noise_sum_1 = sim_noise_sum_cos*cos_theta + sim_noise_sum_sin*sin_theta
+    sim_noise_sum_2 = (-1d)*sim_noise_sum_cos*sin_theta + sim_noise_sum_sin*cos_theta
+    undefine, sim_noise_sum_cos, sim_noise_sum_sin
+    
     if nfiles eq 2 then begin
       data_diff_1 = data_diff_cos*cos_theta + data_diff_sin*sin_theta
       data_diff_2 = (-1d)*data_diff_cos*sin_theta + data_diff_sin*cos_theta
       undefine, data_diff_cos, data_diff_sin
+      
+      sim_noise_diff_1 = sim_noise_diff_cos*cos_theta + sim_noise_diff_sin*sin_theta
+      sim_noise_diff_2 = (-1d)*sim_noise_diff_cos*sin_theta + sim_noise_diff_sin*cos_theta
+      undefine, sim_noise_diff_cos, sim_noise_diff_sin
     endif
-    
-    ;    data_sum_1 = data_sum_cos
-    ;    data_sum_2 = data_sum_sin
-    ;    undefine, data_sum_cos, data_sum_sin
-    ;    if nfiles eq 2 then begin
-    ;      data_diff_1 = data_diff_cos
-    ;      data_diff_2 = data_diff_sin
-    ;      undefine, data_diff_cos, data_diff_sin
-    ;    endif
     
     git, repo_path = ps_repository_dir(), result=kcube_git_hash
     git_hashes = {uvf:uvf_git_hashes, uvf_wt:uvf_wt_git_hashes, beam:beam_git_hashes, kcube:kcube_git_hash}
     
     if n_elements(freq_flags) gt 0 then begin
       save, file = file_struct.kcube_savefile, data_sum_1, data_sum_2, data_diff_1, data_diff_2, sigma2_1, sigma2_2, $
+        sim_noise_sum_1, sim_noise_sum_2, sim_noise_diff_1, sim_noise_diff_2, $
         kx_mpc, ky_mpc, kz_mpc, kperp_lambda_conv, delay_params, hubble_param, n_freq_contrib, freq_mask, $
         vs_name, vs_mean, t_sys_meas, window_int, git_hashes, $
         wt_meas_ave, wt_meas_min, ave_weights, wt_ave_power_freq, ave_power_freq, wt_ave_power_uvf, ave_power_uvf
     endif else begin
       save, file = file_struct.kcube_savefile, data_sum_1, data_sum_2, data_diff_1, data_diff_2, sigma2_1, sigma2_2, $
+        sim_noise_sum_1, sim_noise_sum_2, sim_noise_diff_1, sim_noise_diff_2, $
         kx_mpc, ky_mpc, kz_mpc, kperp_lambda_conv, delay_params, hubble_param, n_freq_contrib, $
         vs_name, vs_mean, t_sys_meas, window_int, git_hashes, $
         wt_meas_ave, wt_meas_min, ave_weights, wt_ave_power_freq, ave_power_freq, wt_ave_power_uvf, ave_power_uvf

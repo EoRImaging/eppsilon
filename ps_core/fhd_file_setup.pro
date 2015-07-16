@@ -752,10 +752,12 @@ function fhd_file_setup, filename, weightfile = weightfile, variancefile = varia
   if n_elements(uv_img_clip) ne 0 then uv_tag = uv_tag + '_uvimgclip' + number_formatter(uv_img_clip)
   uvf_tag = uv_tag + fch_tag
   
-  if keyword_set(std_power) then power_tag = power_tag + '_stdp' else power_tag = ''
-  if keyword_set(inverse_covar_weight) then power_tag = power_tag + '_invcovar'
+  if keyword_set(std_power) then kcube_tag = '_stdp' else kcube_tag = ''
+  if keyword_set(inverse_covar_weight) then kcube_tag = kcube_tag + '_invcovar'
+  kcube_tag = kcube_tag + sw_tag
+  
+  power_tag = kcube_tag
   if keyword_set(no_wtd_avg) then power_tag = power_tag + '_nowtavg'
-  power_tag = power_tag + sw_tag
   
   if keyword_set(dft_ian) then dft_label = '_ian' else dft_label = ''
   
@@ -822,7 +824,7 @@ function fhd_file_setup, filename, weightfile = weightfile, variancefile = varia
   
   beam_savefile = uvf_froot + uvf_savefilebase + '_beam2.idlsave'
   
-  kcube_savefile = froot + savefilebase + power_tag + '_kcube.idlsave'
+  kcube_savefile = froot + savefilebase + kcube_tag + '_kcube.idlsave'
   power_savefile = froot + savefilebase + power_tag + '_power.idlsave'
   fits_power_savefile = froot + savefilebase + power_tag + '_power.fits'
   
@@ -913,7 +915,7 @@ function fhd_file_setup, filename, weightfile = weightfile, variancefile = varia
         weight_savefilebase:reform(weight_savefilebase[pol_i, *]), $
         res_uvf_inputfiles:res_uvf_inputfiles, res_uvf_varname:res_uvf_varname, $
         file_label:file_label[pol_i,type_i], uvf_label:reform(uvf_label[pol_i,*,type_i]), wt_file_label:wt_file_label[pol_i], $
-        uvf_tag:uvf_tag, power_tag:power_tag, type_pol_str:metadata_struct.type_pol_str[pol_i,type_i], $
+        uvf_tag:uvf_tag, kcube_tag:kcube_tag, power_tag:power_tag, type_pol_str:metadata_struct.type_pol_str[pol_i,type_i], $
         pol_index:pol_i, type_index:type_i, pol:metadata_struct.pol_inc[pol_i], type:metadata_struct.type_inc[type_i], nfiles:nfiles}
         
       if healpix or not keyword_set(uvf_input) then file_struct = create_struct(file_struct, 'uvf_savefile', reform(uvf_savefile[pol_i,*,type_i]), $

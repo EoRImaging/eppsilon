@@ -77,8 +77,9 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, wei
     kperp_edges = kperp_edges, kpar_edges = kpar_edges, kperp_bin = kperp_bin, kpar_bin = kpar_bin, $
     kperp_lambda_conv = kperp_lambda_conv, delay_params = delay_params, hubble_param = hubble_param, $
     multi_pos = multi_pos, start_multi_params = start_multi_params, window_num = window_num, $
-    plot_weights = plot_weights, plot_noise = plot_noise, plot_sigma = plot_sigma, plot_exp_noise = plot_exp_noise, $
-    snr = snr, nnr = nnr, pwr_ratio = pwr_ratio, $
+    plot_weights = plot_weights, plot_noise = plot_noise, plot_sim_noise = plot_sim_noise, plot_simnoise_diff = plot_simnoise_diff, $
+    plot_sigma = plot_sigma, plot_exp_noise = plot_exp_noise, $
+    snr = snr, nnr = nnr, sim_nnr = sim_nnr, sim_snr = sim_snr, pwr_ratio = pwr_ratio, $
     plot_mask = plot_mask, mask_savefile = mask_savefile, mask_contour = mask_contour, contour_levels = contour_levels, $
     plot_1d_noisefrac = plot_1d_noisefrac, $
     kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, data_range = data_range, data_min_abs = data_min_abs, $
@@ -151,9 +152,11 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, wei
   endif
   
   
-  if total([keyword_set(plot_weights), keyword_set(plot_sigma), keyword_set(plot_exp_noise), $
-    keyword_set(plot_noise), keyword_set(snr), keyword_set(nnr), keyword_set(pwr_ratio)]) gt 1 then $
-    message, 'only one of [plot_noise, plot_sigma, plot_exp_noise, plot_weights, snr, nnr] keywords can be set'
+  if total([keyword_set(plot_weights), keyword_set(plot_sigma), keyword_set(plot_exp_noise), keyword_set(plot_noise), $
+    keyword_set(snr), keyword_set(nnr), keyword_set(pwr_ratio), $
+    keyword_set(plot_sim_noise), keyword_set(plot_simnoise_diff), keyword_set(sim_nnr), keyword_set(sim_snr)]) gt 1 then $
+    message, 'only one of [plot_noise, plot_sim_noise, plot_simnoise_diff, plot_sigma, plot_exp_noise, plot_weights,' + $
+    ' snr, nnr, sim_nnr, sim_snr] keywords can be set'
     
   if keyword_set(pwr_ratio) then begin
     if n_elements(power_savefile) gt 2 or n_elements(power_savefile) eq 1 then message, $
@@ -183,9 +186,9 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, wei
       power1 = getvar_savefile(power_savefile[0], 'power')
       power2 = getvar_savefile(power_savefile[1], 'power')
       
-      power = power1 / power2
+      power_use = power1 / power2
       wh0 = where(power2 eq 0, count0)
-      if count0 gt 0 then power[wh0] = 0
+      if count0 gt 0 then power_use[wh0] = 0
     endif
     
     plot_type = 'power_ratio'
@@ -193,55 +196,91 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, wei
   endif else if n_elements(power_savefile) gt 0 then restore, power_savefile
   
   if keyword_set(snr) then begin
-    power = power * sqrt(weights)
+    power_use = power * sqrt(weights)
     wh_err0 = where(noise_expval eq 0, count_err0)
-    if count_err0 gt 0 then power[wh_err0] = 0
+    if count_err0 gt 0 then power_use[wh_err0] = 0
     
     plot_type = 'snr'
   endif
   
   if keyword_set(plot_weights) then begin
-    power = weights
+    power_use = weights
     plot_type = 'weight'
   endif
   
   if keyword_set(plot_sigma) then begin
-    power = 1/sqrt(weights)
+    power_use = 1/sqrt(weights)
     wh_wt0 = where(weights eq 0, count_wt0)
-    if count_wt0 gt 0 then power[wh_wt0 ] = 0
+    if count_wt0 gt 0 then power_use[wh_wt0 ] = 0
     plot_type = 'sigma'
   endif
   
   if keyword_set(plot_exp_noise) then begin
-    power = noise_expval
+    power_use = noise_expval
     plot_type = 'exp_noise'
   endif
   
   if keyword_set(plot_noise) then begin
     if n_elements(noise) eq 0 then message, 'noise is undefined in this file'
-    power = noise
+    power_use = noise
     plot_type = 'noise'
   endif
   
+  if keyword_set(plot_sim_noise) then begin
+    if n_elements(sim_noise) eq 0 then message, 'sim_noise is undefined in this file'
+    power_use = sim_noise
+    plot_type = 'sim_noise'
+  endif
+  
+  if keyword_set(plot_simnoise_diff) then begin
+    if n_elements(sim_noise_diff) eq 0 then message, 'sim_noise_diff is undefined in this file'
+    power_use = sim_noise_diff
+    plot_type = 'sim_noise_diff'
+  endif
+  
   if keyword_set(nnr) then begin
-    power = noise / noise_expval
+    if n_elements(noise) eq 0 then message, 'noise is undefined in this file'
+    power_use = noise / noise_expval
     wh_err0 = where(noise_expval eq 0, count_err0)
-    if count_err0 gt 0 then power[wh_err0] = 0
+    if count_err0 gt 0 then power_use[wh_err0] = 0
     
     plot_type = 'nnr'
   endif
   
+  if keyword_set(sim_snr) then begin
+    if n_elements(sim_noise) eq 0 then message, 'sim_noise is undefined in this file'
+    power_use = sim_noise * sqrt(weights)
+    plot_type = 'sim_snr'
+  endif
+  
+  if keyword_set(sim_nnr) then begin
+    if n_elements(sim_noise_diff) eq 0 then message, 'sim_noise_diff is undefined in this file'
+    power_use = sim_noise_diff / noise_expval
+    wh_err0 = where(noise_expval eq 0, count_err0)
+    if count_err0 gt 0 then power_use[wh_err0] = 0
+    
+    plot_type = 'sim_nnr'
+  endif
+  
   if keyword_set(plot_mask) then begin
-    power = mask_1to2d_ave
+    power_use = mask_1to2d_ave
     plot_type = 'mask'
   endif
   
   if keyword_set(plot_1d_noisefrac) then begin
-    power = noise_frac_1to2d
+    power_use = noise_frac_1to2d
     plot_type = 'noise_frac'
   endif
   
-  if n_elements(plot_type) eq 0 then plot_type = 'power'
+  if n_elements(plot_type) eq 0 then begin
+    plot_type = 'power'
+    power_use = power
+  endif
+  
+  if max(abs(imaginary(power_use))) gt 0 then begin
+    print, 'data is complex, showing real part'
+    power_use = real_part(power_use)
+  endif
   
   
   if keyword_set(mask_contour) then begin
@@ -278,8 +317,6 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, wei
     kperp_edges_use = kperp_edges_use / hubble_param
     kpar_edges_use = kpar_edges_use / hubble_param
     kpar_bin_use = kpar_bin_use / hubble_param
-    if plot_type eq 'power' or plot_type eq 'noise' or plot_type eq 'sigma' or plot_type eq 'exp_noise' then $
-      power = power * (hubble_param)^3d
   endif
   
   if n_elements(kperp_plot_range) eq 0 then kperp_plot_range = minmax(kperp_edges_use)
@@ -288,8 +325,10 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, wei
   units_str = ''
   case plot_type of
     'power': begin
-      if keyword_set(hinv) then units_str = textoidl(' (mK^2 h^{-3} Mpc^3)', font = font) $
-      else units_str = textoidl(' (mK^2 Mpc^3)', font = font)
+      if keyword_set(hinv) then begin
+        power_use = power_use * (hubble_param)^3d
+        units_str = textoidl(' (mK^2 h^{-3} Mpc^3)', font = font)
+      endif else units_str = textoidl(' (mK^2 Mpc^3)', font = font)
       
       color_type = 'log'
       plot_title = textoidl('P_k', font = font)
@@ -302,16 +341,20 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, wei
       if pub then plotfile_add = '_2dweight' + plot_exten
     end
     'sigma': begin
-      if keyword_set(hinv) then units_str = textoidl(' (mK^2 h^{-3} Mpc^3)', font = font) $
-      else units_str = textoidl(' (mK^2 Mpc^3)', font = font)
+      if keyword_set(hinv) then begin
+        power_use = power_use * (hubble_param)^3d
+        units_str = textoidl(' (mK^2 h^{-3} Mpc^3)', font = font)
+      endif else units_str = textoidl(' (mK^2 Mpc^3)', font = font)
       
       color_type = 'log'
       plot_title = 'Error (sigma)'
       if pub then plotfile_add = '_2dsigma' + plot_exten
     end
     'exp_noise': begin
-      if keyword_set(hinv) then units_str = textoidl(' (mK^2 h^{-3} Mpc^3)', font = font) $
-      else units_str = textoidl(' (mK^2 Mpc^3)', font = font)
+      if keyword_set(hinv) then begin
+        power_use = power_use * (hubble_param)^3d
+        units_str = textoidl(' (mK^2 h^{-3} Mpc^3)', font = font)
+      endif else units_str = textoidl(' (mK^2 Mpc^3)', font = font)
       
       color_type = 'log'
       plot_title = 'Expected Noise'
@@ -324,18 +367,54 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, wei
       if pub then plotfile_add = '_2dsnr' + plot_exten
     end
     'noise': begin
-      if keyword_set(hinv) then units_str = textoidl(' (mK^2 h^{-3} Mpc^3)', font = font) $
-      else units_str = textoidl(' (mK^2 Mpc^3)', font = font)
+      if keyword_set(hinv) then begin
+        power_use = power_use * (hubble_param)^3d
+        units_str = textoidl(' (mK^2 h^{-3} Mpc^3)', font = font)
+      endif else units_str = textoidl(' (mK^2 Mpc^3)', font = font)
       
       color_type = 'log'
       plot_title = 'Observed Noise'
       if pub then plotfile_add = '_2dnoise' + plot_exten
+    end
+    'sim_noise': begin
+      if keyword_set(hinv) then begin
+        power_use = power_use * (hubble_param)^3d
+        units_str = textoidl(' (mK^2 h^{-3} Mpc^3)', font = font)
+      endif else units_str = textoidl(' (mK^2 Mpc^3)', font = font)
+      
+      color_type = 'log'
+      color_profile = 'abs'
+      plot_title = '|Simulated Noise (cross)|'
+      if pub then plotfile_add = '_2dsimnoise' + plot_exten
+    end
+    'sim_noise_diff': begin
+      if keyword_set(hinv) then begin
+        power_use = power_use * (hubble_param)^3d
+        units_str = textoidl(' (mK^2 h^{-3} Mpc^3)', font = font)
+      endif else units_str = textoidl(' (mK^2 Mpc^3)', font = font)
+      
+      color_type = 'log'
+      plot_title = 'Simulated Noise Diff'
+      if pub then plotfile_add = '_2dsimnoisediff' + plot_exten
     end
     'nnr': begin
       units_str = ''
       color_type = 'log'
       plot_title = 'Noise Ratio (' + textoidl('N_O/N_E', font = font) + ')'
       if pub then plotfile_add = '_2dnnr' + plot_exten
+    end
+    'sim_snr': begin
+      units_str = ''
+      color_type = 'log'
+      color_profile = 'abs'
+      plot_title = '|Sim Noise SNR| (|' + textoidl('Sim Noise/\sigma', font = font) + '|)'
+      if pub then plotfile_add = '_2dsimsnr' + plot_exten
+    end
+    'sim_nnr': begin
+      units_str = ''
+      color_type = 'log'
+      plot_title = 'Sim Noise diff Ratio (' + textoidl('N_{sim}/N_E', font = font) + ')'
+      if pub then plotfile_add = '_2dsimnnr' + plot_exten
     end
     'power_ratio': begin
       units_str = ''
@@ -370,7 +449,7 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, wei
   if n_kperp_plot eq 0 or n_kpar_plot eq 0 then message, 'No data in plot k range'
   
   if n_kperp_plot ne n_kperp then begin
-    power = power[wh_kperp_inrange, *]
+    power_use = power_use[wh_kperp_inrange, *]
     if keyword_set(mask_contour) then mask = mask[wh_kperp_inrange, *]
     temp = [wh_kperp_inrange, wh_kperp_inrange[n_kperp_plot-1]+1]
     kperp_edges_use =kperp_edges_use[temp]
@@ -386,7 +465,7 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, wei
   log_delay_edges = 10^(log_delay_kpar_slope * alog10(kpar_edges_use) + log_delay_kpar_intercept)
   ;stop
   if n_kpar_plot ne n_kpar then begin
-    power = power[*, wh_kpar_inrange]
+    power_use = power_use[*, wh_kpar_inrange]
     if keyword_set(mask_contour) then mask = mask[*, wh_kpar_inrange]
     
     temp = [wh_kpar_inrange, wh_kpar_inrange[n_kpar_plot-1]+1]
@@ -399,7 +478,7 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, wei
     n_kpar = n_kpar_plot
   endif
   
-  if max(abs(power)) eq 0 then begin
+  if max(abs(power_use)) eq 0 then begin
     print, 'power is entirely zero.'
     no_plot = 1
   endif
@@ -420,8 +499,8 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, wei
   if total(abs(kpar_diffs - kpar_diffs[0])) gt n_kpar*1e-7 then log_bins[1] = 1
   
   if keyword_set(norm_2d) then begin
-    if n_elements(norm_factor) eq 0 then norm_factor = 1/max(power)
-    power = power * norm_factor
+    if n_elements(norm_factor) eq 0 then norm_factor = 1/max(power_use)
+    power_use = power_use * norm_factor
   endif
   
   
@@ -526,7 +605,7 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, wei
     endelse
     
     kperp_inds = rebin(kperp_inds, nkperp_image, nkpar_image)
-    power_plot = power[kperp_inds, kpar_inds]
+    power_plot = power_use[kperp_inds, kpar_inds]
     if keyword_set(mask_contour) then begin
       mask_plot = mask[kperp_inds, kpar_inds]
       if log_axes[0] eq 0 then mask_kperp = findgen(nkperp_image)*(max(kperp_edges_use) - min(kperp_edges_use))/nkperp_image + min(kperp_edges_use) $
@@ -553,7 +632,7 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, wei
   endif else begin
     ;; axes & binning agree for both directions
     ;; expand image array to prevent interpolation in postscript
-    power_plot = congrid(power, n_kperp*10, n_kpar*10)
+    power_plot = congrid(power_use, n_kperp*10, n_kpar*10)
     if log_axes[0] eq 1 then kperp_log_edges = alog10(kperp_edges_use)
     if log_axes[1] eq 1 then begin
       kpar_log_edges = alog10(kpar_edges_use)
@@ -971,7 +1050,7 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, wei
   if log_axes[1] eq 1 then ytickformat = 'exponent'
   
   if keyword_set(no_plot) then return
-  
+
   axkeywords = {xlog: log_axes[0], ylog: log_axes[1], xstyle: 5, ystyle: 5, thick: thick, charthick: charthick, xthick: xthick, $
     ythick: ythick, charsize: charsize, font: font}
   cgimage, power_log_norm, /nointerp, xrange = minmax(plot_kperp), yrange = minmax(plot_kpar), $
