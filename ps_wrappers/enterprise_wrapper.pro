@@ -7,7 +7,7 @@ pro enterprise_wrapper, folder_name, obs_name, data_subdirs=data_subdirs, rts = 
     kperp_range_1dave = kperp_range_1dave, kperp_range_lambda_1dave = kperp_range_lambda_1dave, $
     kpar_range_1dave = kpar_range_1dave, use_weight_cutoff = use_weight_cutoff, fix_sim_input = fix_sim_input, $
     plot_kpar_power = plot_kpar_power, plot_kperp_power = plot_kperp_power, $
-    plot_k0_power = plot_k0_power, plot_noise_1d = plot_noise_1d, $
+    plot_k0_power = plot_k0_power, plot_noise_1d = plot_noise_1d, range_1d = range_1d, $
     coarse_harm_width = coarse_harm_width, kperp_plot_range = kperp_plot_range, $
     kperp_lambda_plot_range = kperp_lambda_plot_range, kpar_plot_range = kpar_plot_range, $
     png = png, eps = eps, pdf = pdf, plot_stdset = plot_stdset, $
