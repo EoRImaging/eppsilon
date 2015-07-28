@@ -123,7 +123,7 @@ function kspace_rebinning_2d, power_3d, kx_mpc, ky_mpc, kz_mpc, kperp_edges_mpc,
     
     wh = where(ky_mpc ge min(ky_lims) and ky_mpc le max(ky_lims), count)
     if count eq 0 then message, 'No data between ky_lims' else begin
-      weighted_power = weighted_power
+      weighted_power = weighted_power[*, wh , *]
       weighted_noise_expval = weighted_noise_expval[*, wh , *]
       weights_use = weights_use[*, wh, *]
       ky_mpc_use = ky_mpc[wh]

@@ -2,7 +2,8 @@ pro mit_diff_wrapper, folder_names, obs_names_in, cube_types = cube_types, pols 
     spec_window_types = spec_window_types, all_type_pol = all_type_pol, freq_ch_range = freq_ch_range, $
     png = png, eps = eps, pdf = pdf, data_range = data_range, data_min_abs = data_min_abs, $
     kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, sim = sim, $
-    plot_1d = plot_1d, axis_type_1d=axis_type_1d, window_num = window_num, diff_save_path = diff_save_path, exact_obsnames = exact_obsnames
+    plot_1d = plot_1d, axis_type_1d=axis_type_1d, wt_cutoffs = wt_cutoffs, wt_measures = wt_measures, $
+    window_num = window_num, diff_save_path = diff_save_path, exact_obsnames = exact_obsnames
     
     
   if n_elements(folder_names) gt 2 then message, 'only 1 or 2 folder_names allowed'
@@ -79,6 +80,7 @@ pro mit_diff_wrapper, folder_names, obs_names_in, cube_types = cube_types, pols 
     savefilebase = savefilebase, $
     note = note, kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, $
     plot_1d = plot_1d, axis_type_1d=axis_type_1d, $
+    wt_cutoffs = wt_cutoffs, wt_measures = wt_measures, $
     data_range = data_range, data_min_abs = data_min_abs, $
     quiet = quiet, png = png, eps = eps, pdf = pdf, window_num = window_num
     
