@@ -113,6 +113,7 @@ function ps_filenames, folder_names, obs_names_in, rts = rts, sim = sim, uvf_inp
       
       ;; then look for original fits files
       fits_file_list = file_search(folder_names[i] + '/' + data_subdirs[i] + obs_names[i] + '*_image*MHz*.fits', count = n_fitsfiles)
+      if n_fitsfiles eq 0 then fits_file_list = file_search(folder_names[i] + '/' + data_subdirs[i] + obs_names[i] + '*_image*.fits', count = n_fitsfiles)
       wh_cube = where(stregex(fits_file_list, 'cube', /boolean), count_cube, complement = wh_orig, ncomplement = count_orig)
       if count_cube gt 0 then begin
         if count_orig gt 0 then begin
@@ -125,7 +126,8 @@ function ps_filenames, folder_names, obs_names_in, rts = rts, sim = sim, uvf_inp
       endif
       if n_fitsfiles gt 0 then begin
         if obs_names[i] eq '' then begin
-          obs_name_arr = stregex(file_basename(fits_file_list), '[0-9]+.[0-9]+_', /extract)
+          ;obs_name_arr = stregex(file_basename(fits_file_list), '[0-9]+.[0-9]+_', /extract)
+          obs_name_arr = strmid(file_basename(fits_file_list), 0, reform(strpos(file_basename(fits_file_list), '_image'), 1, n_fitsfiles))
           wh_first = where(obs_name_arr eq obs_name_arr[0], count_first)
           if count_first lt n_fitsfiles then $
             print, 'More than one obs_name found, using first obs_name (' + obs_name_arr[0] + ', ' + number_formatter(count_first) + ' files)'
@@ -146,10 +148,12 @@ function ps_filenames, folder_names, obs_names_in, rts = rts, sim = sim, uvf_inp
       endif else begin
         ;; now get weights & variance files
         weightfile_list = file_search(folder_names[i] + '/' + data_subdirs[i] + obs_names[i] + '*_weights*MHz*.fits', count = n_wtfiles)
+        if n_wtfiles eq 0 then weightfile_list = file_search(folder_names[i] + '/' + data_subdirs[i] + obs_names[i] + '*_weights*.fits', count = n_wtfiles)
         if not keyword_set(no_wtvar_rts) then if n_wtfiles ne n_elements(fits_files) and info_files[i] eq '' $
           then message, 'number of weight files does not match number of datafiles'
           
         variancefile_list = file_search(folder_names[i] + '/' + data_subdirs[i] + obs_names[i] + '*_variance*MHz*.fits', count = n_varfiles)
+        if n_varfiles eq 0 then variancefile_list = file_search(folder_names[i] + '/' + data_subdirs[i] + obs_names[i] + '*_variance*.fits', count = n_varfiles)
         if not keyword_set(no_wtvar_rts) then if n_varfiles ne n_elements(fits_files) and info_files[i] eq '' $
           then message, 'number of variance files does not match number of datafiles'
       endelse
