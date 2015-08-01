@@ -11,8 +11,9 @@ pro mit_wrapper, folder_name, obs_name, data_subdirs=data_subdirs, exact_obsname
     kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, cable_length_axis = cable_length_axis, $
     kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
     wedge_angles = wedge_angles, coarse_harm_width = coarse_harm_width, $
-    set_data_ranges = set_data_ranges, range_1d = range_1d, plot_1d_delta = plot_1d_delta, plot_1d_error_bars = plot_1d_error_bars, $
-    data_range = data_range, wt_cutoffs = wt_cutoffs 
+    set_data_ranges = set_data_ranges, range_1d = range_1d, plot_1d_delta = plot_1d_delta, $
+    plot_1d_error_bars = plot_1d_error_bars, plot_1d_nsigma = plot_1d_nsigma, $
+    data_range = data_range, wt_cutoffs = wt_cutoffs
     
   ;; The only required input is the datafile name (including the full path)
     
@@ -118,19 +119,19 @@ pro mit_wrapper, folder_name, obs_name, data_subdirs=data_subdirs, exact_obsname
       plot_eor_1d=1
       if n_elements(range_1d) eq 0 then range_1d = [1e0, 1e7]
     endif
-
+    
     if n_elements(set_data_ranges) eq 0 and not keyword_set(sim) then set_data_ranges = 1
     
     if keyword_set(set_data_ranges) then begin
       if n_elements(range_1d) eq 0 then if keyword_set(plot_1d_delta) then range_1d = [1e0, 1e10] else range_1d = [1e4, 1e15]
       
-      if keyword_set(obs_info.integrated[0]) then begin
+      if obs_info.integrated[0] gt 0 then begin
         sigma_range = [2e5, 2e9]
         nev_range = [2e6, 2e10]
-        ;sigma_range = nev_range
+      ;sigma_range = nev_range
       endif else begin
-        sigma_range = [1e4, 2e6]
-        nev_range = [5e4, 2e7]
+        sigma_range = [1e7, 2e11]
+        nev_range = [2e8, 2e12]
       endelse
       
       if n_elements(data_range) eq 0 then data_range = [1e3, 1e15]
@@ -211,7 +212,7 @@ pro mit_wrapper, folder_name, obs_name, data_subdirs=data_subdirs, exact_obsname
     log_kpar = log_kpar, log_kperp = log_kperp, kpar_bin = kpar_bin, kperp_bin = kperp_bin, log_k1d = log_k1d, $
     k1d_bin = k1d_bin, kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, $
     kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, no_kzero = no_kzero, $
-    plot_1d_delta = plot_1d_delta, plot_1d_error_bars = plot_1d_error_bars, $
+    plot_1d_delta = plot_1d_delta, plot_1d_error_bars = plot_1d_error_bars, plot_1d_nsigma = plot_1d_nsigma, $
     kperp_range_1dave = kperp_range_1dave, kperp_range_lambda_1dave = kperp_range_lambda_1dave, kpar_range_1dave = kpar_range_1dave, $
     wt_cutoffs = wt_cutoffs, wt_measures = wt_measures, plot_sim_noise = plot_sim_noise, $
     plot_slices = plot_slices, slice_type = slice_type, uvf_plot_type = uvf_plot_type, plot_stdset = plot_stdset, plot_1to2d = plot_1to2d, $

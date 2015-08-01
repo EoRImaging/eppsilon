@@ -1446,8 +1446,12 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
     sim_noise_diff = (sum_weights1 * sim_noise1 - sum_weights2 * sim_noise2)/sum_weights_net
     undefine, data_cube1, data_cube2, sim_noise1, sim_noise2
     
-    if count_wt0 ne 0 then data_sum[wh_wt0] = 0
-    if count_wt0 ne 0 then data_diff[wh_wt0] = 0
+    if count_wt0 ne 0 then begin
+      data_sum[wh_wt0] = 0
+      data_diff[wh_wt0] = 0
+      sim_noise_sum[wh_wt0] = 0
+      sim_noise_diff[wh_wt0] = 0
+    endif
     undefine, sum_weights1, sum_weights2
     
     sum_sigma2 = 1./temporary(sum_weights_net)

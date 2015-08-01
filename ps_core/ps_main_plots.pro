@@ -13,7 +13,7 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
     data_range = data_range, sigma_range = sigma_range, nev_range = nev_range, slice_range = slice_range, plot_sim_noise = plot_sim_noise, $
     snr_range = snr_range, noise_range = noise_range, nnr_range = nnr_range, range_1d = range_1d, $
     log_kpar = log_kpar, log_kperp = log_kperp, kpar_bin = kpar_bin, kperp_bin = kperp_bin, $
-    log_k1d = log_k1d, k1d_bin = k1d_bin, plot_1d_delta = plot_1d_delta, plot_1d_error_bars = plot_1d_error_bars, $
+    log_k1d = log_k1d, k1d_bin = k1d_bin, plot_1d_delta = plot_1d_delta, plot_1d_error_bars = plot_1d_error_bars, plot_1d_nsigma = plot_1d_nsigma, $
     kperp_range_1dave = kperp_range_1dave, kperp_range_lambda_1dave = kperp_range_lambda_1dave, kpar_range_1dave = kpar_range_1dave, $
     wt_cutoffs = wt_cutoffs, wt_measures = wt_measures, fix_sim_input = fix_sim_input, $
     kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, kperp_plot_range = kperp_plot_range, $
@@ -931,7 +931,7 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
           
           kpower_2d_plots, savefiles_2d[i], /plot_sim_noise, multi_pos = pos_use, start_multi_params = start_multi_params, png = png, eps = eps, pdf = pdf, $
             plotfile = plotfiles_2d_sim_noise, $
-            kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, data_range = noise_range, $
+            kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, data_range = sigma_range, $
             title_prefix = titles[i], note = note_use, $
             plot_wedge_line = plot_wedge_line, wedge_amp = wedge_amp, hinv = hinv, $
             baseline_axis = baseline_axis, delay_axis = delay_axis, cable_length_axis = cable_length_axis, $
@@ -956,7 +956,7 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
           
           kpower_2d_plots, savefiles_2d[i], /sim_snr, multi_pos = pos_use, start_multi_params = start_multi_params, $
             png = png, eps = eps, pdf = pdf, plotfile = plotfiles_2d_sim_snr, $
-            kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, data_range = sim_snr_range, $
+            kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, data_range = nnr_range, $
             title_prefix = titles[i], note = note_use, $
             plot_wedge_line = plot_wedge_line, wedge_amp = wedge_amp, hinv = hinv, $
             baseline_axis = baseline_axis, delay_axis = delay_axis, cable_length_axis = cable_length_axis, $
@@ -1360,7 +1360,7 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
         window_num = window_num+1
         kpower_1d_plots, file_arr, window_num = window_num, names = titles_use, delta = plot_1d_delta, hinv = hinv, $
           png = png, eps = eps, pdf = pdf, plotfile = plotfile_noise_use, k_range = k_range, title = note_use + ' Ob. Noise', note = note_1d, $
-          plot_error_bars = plot_1d_error_bars, data_range = range_1d, /plot_noise
+          plot_error_bars = plot_1d_error_bars, plot_nsigma = plot_1d_nsigma, plot_sim_noise = plot_sim_noise, data_range = range_1d, /plot_noise
       endif
       
       if keyword_set(plot_eor_1d) then begin
@@ -1374,7 +1374,7 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
       window_num = window_num+1
       kpower_1d_plots, file_arr, window_num = window_num, colors = colors, names = titles_use, psyms = psyms, delta = plot_1d_delta, hinv = hinv, $
         png = png, eps = eps, pdf = pdf, plotfile = plotfile_use, k_range = k_range, title = note_use, note = note_1d, data_range = range_1d, $
-        plot_error_bars = plot_1d_error_bars
+        plot_error_bars = plot_1d_error_bars, plot_nsigma = plot_1d_nsigma, plot_sim_noise = plot_sim_noise
         
     endfor
   endif
@@ -1399,7 +1399,8 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
     window_num = window_num+1
     kpower_1d_plots, file_arr, window_num = window_num, colors = colors, names = titles_use, psyms = psyms, delta = plot_1d_delta, hinv = hinv, $
       png = png, eps = eps, pdf = pdf, plotfile = plotfile_kpar_power, k_range = k_range, title = note + ' kpar', note = note_1d, $
-      plot_error_bars = plot_1d_error_bars, data_range = range_1d, /kpar_power, delay_axis = delay_axis, cable_length_axis = cable_length_axis
+      plot_error_bars = plot_1d_error_bars, plot_nsigma = plot_1d_nsigma, plot_sim_noise = plot_sim_noise, $
+      data_range = range_1d, /kpar_power, delay_axis = delay_axis, cable_length_axis = cable_length_axis
       
   endif
   
@@ -1424,7 +1425,8 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
     window_num = window_num+1
     kpower_1d_plots, file_arr, window_num = window_num, colors = colors, names = titles_use, psyms = psyms, delta = plot_1d_delta, hinv = hinv, $
       png = png, eps = eps, pdf = pdf, plotfile = plotfile_kperp_power, k_range = k_range, title = note + ' kperp', note = note_1d, $
-      plot_error_bars = plot_1d_error_bars, data_range = range_1d, /kperp_power, baseline_axis = baseline_axis
+      plot_error_bars = plot_1d_error_bars, plot_nsigma = plot_1d_nsigma, plot_sim_noise = plot_sim_noise, $
+      data_range = range_1d, /kperp_power, baseline_axis = baseline_axis
       
   endif
   
@@ -1441,7 +1443,8 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
     window_num = window_num+1
     kpower_1d_plots, file_arr, window_num = window_num, colors = colors, names = titles_use, delta = plot_1d_delta, hinv = hinv, $
       png = png, eps = eps, pdf = pdf, plotfile = plotfile_k0_power, k_range = k_range, title = note + ' kpar=0', note = note_1d, $
-      plot_error_bars = plot_1d_error_bars, data_range = range_1d, /kperp_power, baseline_axis = baseline_axis
+      plot_error_bars = plot_1d_error_bars, plot_nsigma = plot_1d_nsigma, plot_sim_noise = plot_sim_noise, $
+      data_range = range_1d, /kperp_power, baseline_axis = baseline_axis
       
   endif
   

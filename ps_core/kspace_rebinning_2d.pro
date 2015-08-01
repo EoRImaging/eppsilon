@@ -27,6 +27,7 @@
 
 function kspace_rebinning_2d, power_3d, kx_mpc, ky_mpc, kz_mpc, kperp_edges_mpc, kpar_edges_mpc, weights = weights, $
     binned_weights = weights_2d, noise_expval = noise_expval, binned_noise_expval = noise_expval_2d, $
+    var_power_2d = var_power_2d, mean_var_2d = mean_var_2d, $
     nbins_2d = nvox_2d, edge_on_grid = edge_on_grid, match_datta = match_datta, $
     fill_holes = fill_holes, kx_lims = kx_lims, ky_lims = ky_lims, $
     log_kpar = log_kpar, log_kperp = log_kperp, kperp_bin = kperp_bin, kpar_bin = kpar_bin, $
@@ -76,24 +77,25 @@ function kspace_rebinning_2d, power_3d, kx_mpc, ky_mpc, kz_mpc, kperp_edges_mpc,
   
   if n_elements(weights) ne 0 then begin
     if total(abs(size(weights, /dimensions) - dims)) ne 0 then $
-      message, 'If weights array is provided, it must have the same dimensionality as the power' $
-    else weighted_power = weights * power_3d
+      message, 'If weights array is provided, it must have the same dimensionality as the power'
+      
+    power_use = power_3d
+    weights_use = weights
   endif else begin
-    weights = dblarr(dims) + 1d
-    weighted_power = power_3d
+    weights_use = dblarr(dims) + 1d
+    power_use = power_3d
   endelse
   
   if n_elements(noise_expval) ne 0 then begin
     if total(abs(size(noise_expval, /dimensions) - dims)) ne 0 then $
       message, 'If noise_expval array is provided, it must have the same dimensionality as the power' $
-    else weighted_noise_expval = weights * noise_expval
+    else noise_expval_use = noise_expval
   endif else begin
-    noise_expval = 1/sqrt(weights)
-    wh_wt0 = where(weights eq 0, count_wt0)
-    if count_wt0 gt 0 then noise_expval[wh_wt0] = 0
-    weighted_noise_expval = sqrt(weights)
+    noise_expval_use = 1/sqrt(weights_use)
+    wh_wt0 = where(weights_use eq 0, count_wt0)
+    if count_wt0 gt 0 then noise_expval_use[wh_wt0] = 0
   endelse
-  
+    
   ;; apply any pre-binning cuts
   if n_elements(kx_lims) gt 0 then begin
     if n_elements(kx_lims) gt 2 then message, 'kx_lims has too many elements' $
@@ -102,9 +104,9 @@ function kspace_rebinning_2d, power_3d, kx_mpc, ky_mpc, kz_mpc, kperp_edges_mpc,
     wh = where(kx_mpc ge min(kx_lims) and kx_mpc le max(kx_lims), count)
     
     if count eq 0 then message, 'No data between kx_lims' else begin
-      weighted_power = weighted_power[wh, *, *]
-      weighted_noise_expval = weighted_noise_expval[wh, *, *]
-      weights_use = weights[wh, *, *]
+      power_use = power_use[wh, *, *]
+      noise_expval_use = noise_expval_use[wh, *, *]
+      weights_use = weights_use[wh, *, *]
       kx_mpc_use = kx_mpc[wh]
       n_kx = count
       if n_elements(kperp_density_measure) gt 0 and n_elements(kperp_density_cutoff) gt 0 $
@@ -112,7 +114,7 @@ function kspace_rebinning_2d, power_3d, kx_mpc, ky_mpc, kz_mpc, kperp_edges_mpc,
     endelse
   endif else begin
     kx_mpc_use = kx_mpc
-    weights_use = weights
+    
     if n_elements(kperp_density_measure) gt 0 and n_elements(kperp_density_cutoff) gt 0 $
       then kperp_density_measure_use = kperp_density_measure
   endelse
@@ -123,26 +125,35 @@ function kspace_rebinning_2d, power_3d, kx_mpc, ky_mpc, kz_mpc, kperp_edges_mpc,
     
     wh = where(ky_mpc ge min(ky_lims) and ky_mpc le max(ky_lims), count)
     if count eq 0 then message, 'No data between ky_lims' else begin
-      weighted_power = weighted_power[*, wh , *]
-      weighted_noise_expval = weighted_noise_expval[*, wh , *]
+      power_use = power_use[*, wh , *]
+      noise_expval_use = noise_expval_use[*, wh , *]
       weights_use = weights_use[*, wh, *]
       ky_mpc_use = ky_mpc[wh]
       n_ky = count
       if n_elements(kperp_density_measure_use) gt 0 and n_elements(kperp_density_cutoff) gt 0 $
-          then kperp_density_measure_use = kperp_density_measure_use[*, wh]
+        then kperp_density_measure_use = kperp_density_measure_use[*, wh]
     endelse
   endif else ky_mpc_use = ky_mpc
   
   ;; apply density corrections if desired
   if n_elements(kperp_density_measure) gt 0 and n_elements(kperp_density_cutoff) gt 0 then begin
-    wh_kperp_dense = where(kperp_density_measure_use gt kperp_density_cutoff, count_kperp_dense)
-    
-    if count_kperp_dense gt 0 then begin
-      temp = reform(weighted_power, n_kx*n_ky, n_kz)
-      temp[wh_kperp_dense, *] /= 0.5
-      weighted_power = reform(temp, n_kx, n_ky, n_kz)
-    endif else print, 'no kperp values exceed kperp_density_cutoff'
-        
+    wh_kperp_dense = where(kperp_density_measure_use gt kperp_density_cutoff, count_kperp_dense, $
+      complement = wh_kperp_nd, ncomplement=count_kperp_nd)
+      
+      if count_kperp_dense gt 0 then begin
+        temp = reform(power_use, n_kx*n_ky, n_kz)
+        temp[wh_kperp_dense, *] /= 0.5
+        power_use = reform(temp, n_kx, n_ky, n_kz)
+  
+        temp = reform(weights_use, n_kx*n_ky, n_kz)
+        temp[wh_kperp_dense, *] *= 0.5^2.
+        weights_use = reform(temp, n_kx, n_ky, n_kz)
+  
+        temp = reform(noise_expval_use, n_kx*n_ky, n_kz)
+        temp[wh_kperp_dense, *] /= 0.5
+        noise_expval_use = reform(temp, n_kx, n_ky, n_kz)
+      endif else print, 'no kperp values exceed kperp_density_cutoff'
+       
   endif
   
   if not keyword_set(log_kperp) then begin
@@ -201,10 +212,14 @@ function kspace_rebinning_2d, power_3d, kx_mpc, ky_mpc, kz_mpc, kperp_edges_mpc,
   weighted_nev_mid = make_array(n_kperp, n_kz, type=input_type)
   weights_mid = dblarr(n_kperp, n_kz)
   nvox_mid = lonarr(n_kperp, n_kz)
+  var_power_mid = make_array(n_kperp, n_kz, type=input_type)
+  mean_var_mid = make_array(n_kperp, n_kz, type=input_type)
   
-  reformed_wtpower = reform(temporary(weighted_power), n_kx*n_ky, n_kz)
-  reformed_wtnev = reform(temporary(weighted_noise_expval), n_kx*n_ky, n_kz)
+  reformed_power = reform(temporary(power_use), n_kx*n_ky, n_kz)
+  reformed_nev = reform(temporary(noise_expval_use), n_kx*n_ky, n_kz)
   reformed_weights = reform(temporary(weights_use), n_kx*n_ky, n_kz)
+  reformed_wtpower = reformed_power * reformed_weights
+  reformed_wtnev = reformed_nev * reformed_weights
   for i=0, n_kperp-1 do begin
     if kperp_hist[i] gt 0 then begin
       weighted_power_mid[i, *] = total(reform(reformed_wtpower[kperp_ri[kperp_ri[i] : kperp_ri[i+1]-1], *], kperp_hist[i], n_kz), 1)
@@ -213,19 +228,38 @@ function kspace_rebinning_2d, power_3d, kx_mpc, ky_mpc, kz_mpc, kperp_edges_mpc,
       temp = reformed_weights[kperp_ri[kperp_ri[i] : kperp_ri[i+1]-1], *]
       weights_mid[i, *] = total(reform(temp, kperp_hist[i], n_kz), 1)
       
+      temp_sigma = 1./temp
+      temp_sigma[where(temp eq 0)] = 0
+      temp_power = reformed_power[kperp_ri[kperp_ri[i] : kperp_ri[i+1]-1], *]
+      
       if min(temp) le 0 then begin
         for j=0, n_kz -1 do begin
           wh_n0 = where(temp[*,j] gt 0, count_n0)
           nvox_mid[i, j] = count_n0
+          
+          if count_n0 gt 0 then begin
+            ;; calculate variance for an (assumed) zero mean signal
+            ;; IDL variance function is unbiased sample variance for the case where the mean is unknown
+            var_power_mid[i, j] = total(temp_power[wh_n0, j]^2.)/count_n0
+            ;if count_n0 gt 1 then var_power_mid[i,j] = variance(temp_power[wh_n0, j])
+            mean_var_mid[i, j] = mean(temp_sigma[wh_n0, j])
+          endif
         endfor
-      endif else nvox_mid[i, *] = kperp_hist[i]
-      
+      endif else begin
+        nvox_mid[i, *] = kperp_hist[i]
+        
+        for j=0, n_kz -1 do begin
+          ;; calculate variance for an (assumed) zero mean signal
+          ;; IDL variance function is unbiased sample variance for the case where the mean is unknown
+          var_power_mid[i, j] = total(temp_power[*, j]^2.)/kperp_hist[i]
+          ;if kperp_hist[i] gt 1 then var_power_mid[i, j] = variance(temp_power[*, j])
+          mean_var_mid[i, j] = mean(temp_sigma[*, j])
+        endfor
+      endelse
     endif
   endfor
   
-  undefine, reformed_wtpower
-  undefine, reformed_wtnev
-  undefine, reformed_weights
+  undefine, reformed_power, reformed_nev, reformed_wtpower, reformed_wtnev, reformed_weights
   
   if keyword_set(fill_holes) then begin
     wh = where(weights_mid eq 0, n0)
@@ -236,6 +270,8 @@ function kspace_rebinning_2d, power_3d, kx_mpc, ky_mpc, kz_mpc, kperp_edges_mpc,
         weighted_power_mid[perp_ind, z_ind] = weighted_power_mid[perp_ind-1, z_ind]
         weighted_nev_mid[perp_ind, z_ind] = weighted_nev_mid[perp_ind-1, z_ind]
         weights_mid[perp_ind, z_ind] = weights_mid[perp_ind-1, z_ind]
+        var_power_mid[perp_ind, z_ind] = var_power_mid[perp_ind-1, z_ind]
+        mean_var_mid[perp_ind, z_ind] = mean_var_mid[perp_ind-1, z_ind]
       endif
     endfor
   endif
@@ -292,6 +328,8 @@ function kspace_rebinning_2d, power_3d, kx_mpc, ky_mpc, kz_mpc, kperp_edges_mpc,
   weighted_nev_2d = make_array(n_kperp, n_kpar, type=input_type)
   weights_2d = dblarr(n_kperp, n_kpar)
   nvox_2d = lonarr(n_kperp, n_kpar)
+  var_power_2d = make_array(n_kperp, n_kpar, type=input_type)
+  mean_var_2d = make_array(n_kperp, n_kpar, type=input_type)
   
   for j=0, n_kpar-1 do begin
     if kpar_hist[j] ne 0 then begin
@@ -301,6 +339,16 @@ function kspace_rebinning_2d, power_3d, kx_mpc, ky_mpc, kz_mpc, kperp_edges_mpc,
       temp = reform(weights_mid[*, kpar_ri[kpar_ri[j] : kpar_ri[j+1]-1]], n_kperp, kpar_hist[j])
       weights_2d[*, j] = total(temp, 2)
       
+      ;; var_power_2d is a weighted average of var_power_mid with nvox_mid as weights
+      var_power_2d[*, j] = total(reform(var_power_mid[*, kpar_ri[kpar_ri[j] : kpar_ri[j+1]-1]] * $
+        nvox_mid[*, kpar_ri[kpar_ri[j] : kpar_ri[j+1]-1]], n_kperp, kpar_hist[j]),2) $
+        / total(reform(nvox_mid[*, kpar_ri[kpar_ri[j] : kpar_ri[j+1]-1]], n_kperp, kpar_hist[j]),2)
+        
+      ;; mean_var_2d is a weighted average of mean_var_mid with nvox_mid as weights
+      mean_var_2d[*,j] = total(reform(mean_var_mid[*, kpar_ri[kpar_ri[j] : kpar_ri[j+1]-1]] * $
+        nvox_mid[*, kpar_ri[kpar_ri[j] : kpar_ri[j+1]-1]], n_kperp, kpar_hist[j]),2) $
+        / total(reform(nvox_mid[*, kpar_ri[kpar_ri[j] : kpar_ri[j+1]-1]], n_kperp, kpar_hist[j]),2)
+        
       if min(temp) le 0 then begin
         wh_n0 = where(temp gt 0, count_n0)
         mask = intarr(n_kperp, kpar_hist[j])
@@ -311,10 +359,7 @@ function kspace_rebinning_2d, power_3d, kx_mpc, ky_mpc, kz_mpc, kperp_edges_mpc,
     endif
   endfor
   
-  undefine, weighted_power_mid
-  undefine, weighted_nev_mid
-  undefine, weights_mid
-  undefine, nvox_mid
+  undefine, weighted_power_mid, weighted_nev_mid, weights_mid, nvox_mid, var_power_mid, mean_var_mid
   
   if keyword_set(fill_holes) then begin
     wh = where(weights_2d eq 0, n0)
@@ -325,6 +370,8 @@ function kspace_rebinning_2d, power_3d, kx_mpc, ky_mpc, kz_mpc, kperp_edges_mpc,
         weighted_power_2d[perp_ind, par_ind] = weighted_power_2d[perp_ind, par_ind-1]
         weighted_nev_2d[perp_ind, par_ind] = weighted_nev_2d[perp_ind, par_ind-1]
         weights_2d[perp_ind, par_ind] = weights_2d[perp_ind, par_ind-1]
+        var_power_2d[perp_ind, par_ind] = var_power_2d[perp_ind, par_ind-1]
+        mean_var_2d[perp_ind, par_ind] = mean_var_2d[perp_ind, par_ind-1]
       endif
     endfor
   endif

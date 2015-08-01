@@ -2,7 +2,7 @@ pro kpower_1d_plots, power_savefile, multi_pos = multi_pos, start_multi_params =
     plot_weights = plot_weights, plot_noise = plot_noise, data_range = data_range, k_range = k_range, $
     png = png, eps = eps, pdf = pdf, plotfile = plotfile, window_num = window_num, colors = colors, names = names, psyms = psyms, $
     save_text = save_text, delta = delta, hinv = hinv, note = note, title = title, kpar_power = kpar_power, kperp_power = kperp_power, $
-    yaxis_type = yaxis_type, plot_error_bars = plot_error_bars, $
+    yaxis_type = yaxis_type, plot_error_bars = plot_error_bars, plot_sim_noise = plot_sim_noise, plot_nsigma = plot_nsigma, $
     delay_params = delay_params, delay_axis = delay_axis, cable_length_axis = cable_length_axis, baseline_axis = baseline_axis
     
   if n_elements(yaxis_type) eq 0 then yaxis_type = 'clipped_log'
@@ -63,6 +63,8 @@ pro kpower_1d_plots, power_savefile, multi_pos = multi_pos, start_multi_params =
   endif
   
   if n_elements(window_num) eq 0 then window_num = 2
+  
+  if n_elements(plot_nsigma) eq 0 then plot_nsigma = 1 else if n_elements(plot_nsigma) gt 1 then message, 'plot_nsigma should be a scalar'
   
   if n_elements(start_multi_params) gt 0 and n_elements(multi_pos) gt 0 then message, 'If start_multi_params are passed, ' + $
     'multi_pos cannot be passed because then it is used as an output to pass back the positions for future plots.'
@@ -285,11 +287,15 @@ pro kpower_1d_plots, power_savefile, multi_pos = multi_pos, start_multi_params =
     wh_wt0 = where(weights eq 0, count_wt0)
     if count_wt0 gt 0 then sigma_val[wh_wt0] = 0
     
+    ;; set sigma level to plot
+    sigma_val = sigma_val * plot_nsigma
+    
     if keyword_set(hinv) then begin
       if n_elements(k_edges) ne 0 then k_edges = k_edges / hubble_param
       if n_elements(k_centers) ne 0 then k_centers = k_centers / hubble_param
       if not keyword_set(plot_weights) then power = power * (hubble_param)^3d
       sigma_val = sigma_val * (hubble_param)^3d
+      if n_elements(sim_noise) gt 0 and keyword_set(plot_sim_noise) then sim_noise = sim_noise * (hubble_param)^3d
     endif
     
     if keyword_set(kpar_power) then begin
@@ -337,6 +343,7 @@ pro kpower_1d_plots, power_savefile, multi_pos = multi_pos, start_multi_params =
       if n_k_plot ne n_k then begin
         power = power[wh_k_inrange]
         sigma_val = sigma_val[wh_k_inrange]
+        if n_elements(sim_noise) gt 0 and keyword_set(plot_sim_noise) then sim_noise = sim_noise[wh_k_inrange]
         k_mid = k_mid[wh_k_inrange]
         temp = [wh_k_inrange, wh_k_inrange[n_k_plot-1]+1]
         k_edges = k_edges[temp]
@@ -348,6 +355,7 @@ pro kpower_1d_plots, power_savefile, multi_pos = multi_pos, start_multi_params =
     
     theory_delta2 = power * k_mid^3d / (2d*!pi^2d)
     theory_delta2_sigma = sigma_val * k_mid^3d / (2d*!pi^2d)
+    if n_elements(sim_noise) gt 0 and keyword_set(plot_sim_noise) then theory_delta2_sim_noise = sim_noise * k_mid^3d / (2d*!pi^2d)
     
     if keyword_set(save_text) then begin
       if keyword_set(hinv) then printf, lun,  text_labels[i]+ ' k (h Mpc^-1)' $
@@ -368,6 +376,7 @@ pro kpower_1d_plots, power_savefile, multi_pos = multi_pos, start_multi_params =
     if keyword_set(delta) then begin
       power = theory_delta2
       sigma_val = theory_delta2_sigma
+      if n_elements(sim_noise) gt 0 and keyword_set(plot_sim_noise) then sim_noise = theory_delta2_sim_noise
     endif
     
     wh_zero = where(power eq 0d, count_zero, complement = wh_non0, ncomplement = count_non0)
@@ -378,6 +387,7 @@ pro kpower_1d_plots, power_savefile, multi_pos = multi_pos, start_multi_params =
       
       power = power[wh_keep]
       sigma_val = sigma_val[wh_keep]
+      if n_elements(sim_noise) gt 0 and keyword_set(plot_sim_noise) then sim_noise = sim_noise[wh_keep]
       k_mid = k_mid[wh_keep]
       k_edges = k_edges[[wh_keep, max(wh_keep)+1]]
       if keyword_set(kpar_power) then delay_edges = delay_edges[temp]
@@ -391,6 +401,7 @@ pro kpower_1d_plots, power_savefile, multi_pos = multi_pos, start_multi_params =
       else k_mid = [10^(alog10(k_mid[0])-k_log_diffs[0]), k_mid, max(k_edges)]
       power = [power[0], power, power[n_elements(power)-1]]
       sigma_val = [sigma_val[0], sigma_val, sigma_val[n_elements(sigma_val)-1]]
+      if n_elements(sim_noise) gt 0 and keyword_set(plot_sim_noise) then sim_noise = [sim_noise[0], sim_noise, sim_noise[n_elements(sim_noise)-1]]
     endif
     
     wh_neg = where(power lt 0d, count_neg)
@@ -420,6 +431,7 @@ pro kpower_1d_plots, power_savefile, multi_pos = multi_pos, start_multi_params =
       
       power_plot = create_struct(tag, power)
       sigma_plot = create_struct(tag, sigma_val)
+      if n_elements(sim_noise) gt 0 and keyword_set(plot_sim_noise) then sim_noise_plot = create_struct(tag, abs(sim_noise))
       k_plot = create_struct(tag, k_mid)
       
       if yaxis_type ne 'clipped_log' then begin
@@ -447,6 +459,7 @@ pro kpower_1d_plots, power_savefile, multi_pos = multi_pos, start_multi_params =
       
       power_plot = create_struct(tag, power, power_plot)
       sigma_plot = create_struct(tag, sigma_val, sigma_plot)
+      if n_elements(sim_noise) gt 0 and keyword_set(plot_sim_noise) then sim_noise_plot = create_struct(tag, abs(sim_noise), sim_noise_plot)
       k_plot = create_struct(tag, k_mid, k_plot)
       
       if yaxis_type ne 'clipped_log' then begin
@@ -635,22 +648,33 @@ pro kpower_1d_plots, power_savefile, multi_pos = multi_pos, start_multi_params =
       for i=0, nfiles - 1 do begin
         if keyword_set(plot_error_bars) then begin
           err_high = sigma_plot.(plot_order[i])
-          err_low = sigma_plot.(plot_order[i]) < power_plot.(plot_order[i])*.999
+          err_low = sigma_plot.(plot_order[i]) < power_plot.(plot_order[i])*.99999
           
           cgplot, /overplot, k_plot.(plot_order[i]), power_plot.(plot_order[i]), psym=psyms[i], color = colors[i], $
             thick = thick, err_yhigh = err_high, err_ylow = err_low, err_thick = thick, err_width=0, /err_clip
             
+          if n_elements(sim_noise_plot) gt 0 and keyword_set(plot_sim_noise) then begin
+            err_high = sigma_plot.(plot_order[i])
+            err_low = sigma_plot.(plot_order[i]) < sim_noise_plot.(plot_order[i])*.99999
+            
+            cgplot, /overplot, k_plot.(plot_order[i]), sim_noise_plot.(plot_order[i]), $
+              psym=psyms[i], color = colors[i], thick = thick, linestyle=1, $
+              err_yhigh = err_high, err_ylow = err_low, err_thick = thick, err_width=0, /err_clip, err_style = 1
+          endif
         endif else begin
           cgplot, /overplot, k_plot.(plot_order[i]), power_plot.(plot_order[i]), psym=psyms[i], color = colors[i], $
             thick = thick
           cgplot, /overplot, k_plot.(plot_order[i]), sigma_plot.(plot_order[i]), psym=psyms[i], color = colors[i], $
             thick = thick, linestyle=2
+          if n_elements(sim_noise_plot) gt 0 and keyword_set(plot_sim_noise) then cgplot, /overplot, k_plot.(plot_order[i]), sim_noise_plot.(plot_order[i]), $
+            psym=psyms[i], color = colors[i], thick = thick, linestyle=1
         endelse
       endfor
       
       if log_bins gt 0 then bottom = 1 else bottom = 0
       if n_elements(names) ne 0 then $
-        al_legend, names, textcolor = colors, box = 0, /right, bottom = bottom, charsize = legend_charsize, charthick = charthick
+        al_legend, [names, 'with ' + number_formatter(plot_nsigma) + ' sigma thermal noise'], textcolor = [colors, 'black'], $
+        box = 0, /right, bottom = bottom, charsize = legend_charsize, charthick = charthick
         
     end
   endcase

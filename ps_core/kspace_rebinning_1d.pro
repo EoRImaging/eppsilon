@@ -3,6 +3,7 @@
 function kspace_rebinning_1d, power, k1_mpc, k2_mpc, k3_mpc, k_edges_mpc, k_bin = k_bin, log_k = log_k, $
     noise_expval = noise_expval, binned_noise_expval = noise_expval_1d, weights = weights, $
     binned_weights = weights_1d, kperp_range = kperp_range, kpar_range = kpar_range, wedge_amp = wedge_amp, $
+    var_power_1d = var_power_1d, mean_var_1d = mean_var_1d, $
     coarse_harm0 = coarse_harm0, coarse_width = coarse_width, bin_mask_3d = bin_mask_3d, noise_frac_3d = noise_frac_3d, $
     edge_on_grid = edge_on_grid, match_datta = match_datta, kpar_power = kpar_power, kperp_power = kperp_power, $
     kperp_density_measure = kperp_density_measure, kperp_density_cutoff = kperp_density_cutoff
@@ -40,19 +41,20 @@ function kspace_rebinning_1d, power, k1_mpc, k2_mpc, k3_mpc, k_edges_mpc, k_bin 
     if total(abs(size(weights, /dimensions) - power_size)) ne 0 then $
       message, 'If weights array is provided, it must have the same dimensionality as the power'
     weights_use = weights
-    weighted_power = weights_use * power
+    power_use = power
   endif else begin
-    ;weights_use = dblarr(power_size) + 1d
-    weighted_power = power
+    weights_use = dblarr(power_size) + 1d
+    power_use = power
   endelse
   
   if n_elements(noise_expval) ne 0 then begin
     if total(abs(size(noise_expval, /dimensions) - power_size)) ne 0 then $
       message, 'If noise_expval array is provided, it must have the same dimensionality as the power'
-    weighted_noise_expval = weights_use * noise_expval
+    noise_expval_use = noise_expval
   endif else begin
-  ;noise_expval = 1/sqrt(weights_use)
-  ;weighted_noise_expval = sqrt(weights_use)
+    noise_expval_use = 1/sqrt(weights_use)
+    wh_wt0 = where(weights_use eq 0, count_wt0)
+    if count_wt0 gt 0 then noise_expval_use[wh_wt0] = 0
   endelse
   
   if power_dim eq 3 then begin
@@ -80,10 +82,10 @@ function kspace_rebinning_1d, power, k1_mpc, k2_mpc, k3_mpc, k_edges_mpc, k_bin 
       if count_good eq 0 then message, 'No kz values within kpar_range'
       
       if count_bad gt 0 then begin
-        weighted_power = weighted_power[*,*,wh_good]
+        power_use = power_use[*,*,wh_good]
         full_ind_arr = full_ind_arr[*,*,wh_good]
         if n_elements(weights_use) gt 0 then weights_use = weights_use[*,*,wh_good]
-        if n_elements(weighted_noise_expval) gt 0 then weighted_noise_expval = weighted_noise_expval[*,*,wh_good]
+        if n_elements(noise_expval_use) gt 0 then noise_expval_use = noise_expval_use[*,*,wh_good]
         kz_mpc = kz_mpc[wh_good]
         n_kz = n_elements(kz_mpc)
       endif
@@ -106,9 +108,9 @@ function kspace_rebinning_1d, power, k1_mpc, k2_mpc, k3_mpc, k_edges_mpc, k_bin 
     temp = reform(temp, n_kx*n_ky, n_kz)
     temp_kperp = reform(temp_kperp, n_kx*n_ky, n_kz)
     temp_kpar = reform(temp_kpar, n_kx*n_ky, n_kz)
-    weighted_power = reform(weighted_power, n_kx*n_ky, n_kz)
+    power_use = reform(power_use, n_kx*n_ky, n_kz)
     full_ind_arr = reform(full_ind_arr, n_kx*n_ky, n_kz)
-    if n_elements(weighted_noise_expval) gt 0 then weighted_noise_expval = reform(weighted_noise_expval, n_kx*n_ky, n_kz)
+    if n_elements(noise_expval_use) gt 0 then noise_expval_use = reform(noise_expval_use, n_kx*n_ky, n_kz)
     if n_elements(weights_use) gt 0 then weights_use = reform(weights_use, n_kx*n_ky, n_kz)
     if n_elements(kperp_density_measure) gt 0 and n_elements(kperp_density_cutoff) gt 0 $
       then kperp_density_measure_use = reform(kperp_density_measure, n_kx*n_ky)
@@ -125,17 +127,17 @@ function kspace_rebinning_1d, power, k1_mpc, k2_mpc, k3_mpc, k_edges_mpc, k_bin 
         temp = temp[wh_good,*]
         temp_kperp = temp_kperp[wh_good,*]
         temp_kpar = temp_kpar[wh_good,*]
-        weighted_power = weighted_power[wh_good,*]
+        power_use = power_use[wh_good,*]
         full_ind_arr = full_ind_arr[wh_good, *]
         if n_elements(weights_use) gt 0 then weights_use = weights_use[wh_good,*]
-        if n_elements(weighted_noise_expval) gt 0 then weighted_noise_expval = weighted_noise_expval[wh_good,*]
+        if n_elements(noise_expval_use) gt 0 then noise_expval_use = noise_expval_use[wh_good,*]
         if n_elements(kperp_density_measure_use) gt 0 and n_elements(kperp_density_cutoff) gt 0 $
           then kperp_density_measure_use = kperp_density_measure_use[wh_good]
       endif
       
     endif else kperp_range = minmax(abs([kx_mpc, ky_mpc]))
     
-    
+    ;; apply density correction
     if n_elements(kperp_density_measure_use) gt 0 and n_elements(kperp_density_cutoff) gt 0 then begin
       wh_kperp_dense = where(kperp_density_measure_use gt kperp_density_cutoff, count_kperp_dense)
       
@@ -143,10 +145,10 @@ function kspace_rebinning_1d, power, k1_mpc, k2_mpc, k3_mpc, k_edges_mpc, k_bin 
         temp = temp[wh_kperp_dense, *]
         temp_kperp = temp_kperp[wh_kperp_dense, *]
         temp_kpar = temp_kpar[wh_kperp_dense, *]
-        weighted_power = weighted_power[wh_kperp_dense, *]/0.5
+        power_use = power_use[wh_kperp_dense, *]/0.5
         full_ind_arr = full_ind_arr[wh_kperp_dense, *]
-        if n_elements(weighted_noise_expval) gt 0 then weighted_noise_expval = weighted_noise_expval[wh_kperp_dense, *]
-        if n_elements(weights_use) gt 0 then weights_use = weights_use[wh_kperp_dense, *]
+        if n_elements(noise_expval_use) gt 0 then noise_expval_use = noise_expval_use[wh_kperp_dense, *]/0.5
+        if n_elements(weights_use) gt 0 then weights_use = weights_use[wh_kperp_dense, *]*0.5^2.
       endif else print, 'no kperp values exceed kperp_density_cutoff, using full volume'
       
     endif
@@ -166,9 +168,9 @@ function kspace_rebinning_1d, power, k1_mpc, k2_mpc, k3_mpc, k_edges_mpc, k_bin 
       
       if count_above_wedge gt 0 then begin
         temp = temp[wh_above_wedge]
-        weighted_power = weighted_power[wh_above_wedge]
+        power_use = power_use[wh_above_wedge]
         full_ind_arr = full_ind_arr[wh_above_wedge]
-        if n_elements(weighted_noise_expval) gt 0 then weighted_noise_expval = weighted_noise_expval[wh_above_wedge]
+        if n_elements(noise_expval_use) gt 0 then noise_expval_use = noise_expval_use[wh_above_wedge]
         if n_elements(weights_use) gt 0 then weights_use = weights_use[wh_above_wedge]
       endif else print, 'no pixels above wedge, using full volume'
       
@@ -231,27 +233,44 @@ function kspace_rebinning_1d, power, k1_mpc, k2_mpc, k3_mpc, k_edges_mpc, k_bin 
     
     n_k = n_elements(k_hist)
     power_1d = dblarr(n_k)
-    if n_elements(weighted_noise_expval) gt 0 then nev_1d = dblarr(n_k)
+    if n_elements(noise_expval_use) gt 0 then nev_1d = dblarr(n_k)
     weights_1d = dblarr(n_k)
     norm = dblarr(n_k)
+    var_power_1d = dblarr(n_k)
+    mean_var_1d = dblarr(n_k)
     
     for i=0, n_k-1 do begin
       if k_hist[i] ne 0 then begin
         inds =  k_ri[k_ri[i] : k_ri[i+1]-1]
-        power_1d[i] = total(weighted_power[inds])
-        if n_elements(weighted_noise_expval) gt 0 then nev_1d[i] = total(weighted_noise_expval[inds])
+        power_1d[i] = total(power_use[inds] * weights_use[inds])
+        if n_elements(noise_expval_use) gt 0 then nev_1d[i] = total(noise_expval_use[inds] * weights_use[inds])
         if n_elements(weights_use) gt 0 then weights_1d[i] = total(weights_use[inds]) $
         else weights_1d[i] = k_hist[i]
         norm[i] = k_hist[i]
         
+        temp = weights_use[inds]
+        temp_sigma = 1./temp
+        temp_sigma[where(temp eq 0)] = 0
+        
+        if min(weights_use[inds]) eq 0 then begin
+          wt_n0 = where(weights_use[inds] gt 0, count_n0)
+          if count_n0 gt 0 then begin
+            var_power_1d[i] = total(power_use[inds[wt_n0]]^2.)/count_n0
+            mean_var_1d[i] = mean(temp_sigma[wt_n0])
+          endif
+        endif else begin
+          var_power_1d[i] = total(power_use[inds]^2.)/k_hist[i]
+          mean_var_1d[i] = mean(temp_sigma)
+        endelse
+
         full_inds = full_ind_arr[inds]
         bin_mask_3d[full_inds] = i+1
         
-        where_noise = where(weighted_power[inds]/weights_use[inds] le 1/sqrt(weights_use[inds]) and weights_use[inds] gt 0, count_noise)
+        where_noise = where(power_use[inds]/weights_use[inds] le 1/sqrt(weights_use[inds]) and weights_use[inds] gt 0, count_noise)
         ;if count_noise / float(k_hist[i]) gt 0.5 then stop
         noise_frac_3d[full_inds] = count_noise / float(k_hist[i])
       endif
-    endfor    
+    endfor
     k_ri=0
     
   endif else begin
@@ -273,9 +292,9 @@ function kspace_rebinning_1d, power, k1_mpc, k2_mpc, k3_mpc, k_edges_mpc, k_bin 
       if count_good eq 0 then message, 'No kperp values within kperp_range'
       
       if count_bad gt 0 then begin
-        weighted_power = weighted_power[wh_good,*]
+        power_use = power_use[wh_good,*]
         if n_elements(weights_use) gt 0 then weights_use = weights_use[wh_good,*]
-        if n_elements(weighted_noise_expval) gt 0 then weighted_noise_expval = weighted_noise_expval[wh_good,*]
+        if n_elements(noise_expval_use) gt 0 then noise_expval_use = noise_expval_use[wh_good,*]
         kperp_mpc = kperp_mpc[wh_good]
         n_kperp = n_elements(kperp_mpc)
       endif
@@ -288,9 +307,9 @@ function kspace_rebinning_1d, power, k1_mpc, k2_mpc, k3_mpc, k_edges_mpc, k_bin 
       if count_good eq 0 then message, 'No kpar values within kpar_range'
       
       if count_bad gt 0 then begin
-        weighted_power = weighted_power[*,wh_good]
+        power_use = power_use[*,wh_good]
         if n_elements(weights_use) gt 0 then weights_use = weights_use[*,wh_good]
-        if n_elements(weighted_noise_expval) gt 0 then weighted_noise_expval = weighted_noise_expval[*,wh_good]
+        if n_elements(noise_expval_use) gt 0 then noise_expval_use = noise_expval_use[*,wh_good]
         kpar_mpc = kpar_mpc[wh_good]
         n_kz = n_elements(kpar_mpc)
       endif
@@ -315,9 +334,9 @@ function kspace_rebinning_1d, power, k1_mpc, k2_mpc, k3_mpc, k_edges_mpc, k_bin 
         temp = temp[wh_kperp_good, *]
         temp_kperp = temp_kperp[wh_kperp_good, *]
         temp_kpar = temp_kpar[wh_kperp_good, *]
-        weighted_power = weighted_power[wh_good,*]/0.5
-        if n_elements(weights_use) gt 0 then weights_use = weights_use[wh_good,*]
-        if n_elements(weighted_noise_expval) gt 0 then weighted_noise_expval = weighted_noise_expval[wh_good,*]
+        power_use = power_use[wh_good,*]/0.5
+        if n_elements(weights_use) gt 0 then weights_use = weights_use[wh_good,*]*0.5^2.
+        if n_elements(noise_expval_use) gt 0 then noise_expval_use = noise_expval_use[wh_good,*]/0.5
       endif else print, 'no kperp values exceed kperp_density_cutoff, using full volume'
       
     endif
@@ -326,9 +345,9 @@ function kspace_rebinning_1d, power, k1_mpc, k2_mpc, k3_mpc, k_edges_mpc, k_bin 
       wh_above_wedge = where(temp_kpar gt temp_kperp*max(wedge_amp), count_above_wedge)
       if count_above_wedge gt 0 then begin
         temp = temp[wh_above_wedge]
-        weighted_power = weighted_power[wh_above_wedge]
+        power_use = power_use[wh_above_wedge]
         if n_elements(weights_use) gt 0 then weights_use = weights_use[wh_above_wedge]
-        if n_elements(weighted_noise_expval) gt 0 then weighted_noise_expval = weighted_noise_expval[wh_above_wedge]
+        if n_elements(noise_expval_use) gt 0 then noise_expval_use = noise_expval_use[wh_above_wedge]
       endif else print, 'no pixels above wedge, using full volume'
     endif
     
@@ -373,25 +392,43 @@ function kspace_rebinning_1d, power, k1_mpc, k2_mpc, k3_mpc, k_edges_mpc, k_bin 
     endelse
     
     if n_elements(wedge_amp) gt 0 then if count_above_wedge gt 0 then begin
-      weighted_power = weighted_power[wh_above_wedge]
-      if n_elements(weighted_noise_expval) gt 0 then weighted_noise_expval = weighted_noise_expval[wh_above_wedge]
+      power_use = power_use[wh_above_wedge]
+      if n_elements(noise_expval_use) gt 0 then noise_expval_use = noise_expval_use[wh_above_wedge]
       if n_elements(weights_use) gt 0 then weights_use = weights_use[wh_above_wedge]
     endif
     
     n_k = n_elements(k_hist)
     power_1d = dblarr(n_k)
-    if n_elements(weighted_noise_expval) gt 0 then nev_1d = dblarr(n_k)
+    if n_elements(noise_expval_use) gt 0 then nev_1d = dblarr(n_k)
     weights_1d = dblarr(n_k)
     norm = dblarr(n_k)
+    var_power_1d = dblarr(n_k)
+    mean_var_1d = dblarr(n_k)
     
     for i=0, n_k-1 do begin
       if k_hist[i] ne 0 then begin
         inds = k_ri[k_ri[i] : k_ri[i+1]-1]
-        power_1d[i] = total(weighted_power[inds])
-        if n_elements(weighted_noise_expval) gt 0 then nev_1d[i] = total(weighted_noise_expval[inds])
+        power_1d[i] = total(power_use[inds] * weights_use[inds])
+        if n_elements(noise_expval_use) gt 0 then nev_1d[i] = total(noise_expval_use[inds] * weights_use[inds])
         if n_elements(weights_use) gt 0 then weights_1d[i] = total(weights_use[inds]) $
         else weights_1d[i] = k_hist[i]
         norm[i] = k_hist[i]
+        
+        temp = weights_use[inds]
+        temp_sigma = 1./temp
+        temp_sigma[where(temp eq 0)] = 0
+        
+        if min(weights_use[inds]) eq 0 then begin
+          wt_n0 = where(weights_use[inds] gt 0, count_n0)
+          if count_n0 gt 0 then begin
+            var_power_1d[i] = total(power_use[inds[wt_n0]]^2.)/count_n0
+            mean_var_1d[i] = mean(temp_sigma[wh_n0])
+          endif
+        endif else begin
+          var_power_1d[i] = total(power_use[inds]^2.)/k_hist[i]
+          mean_var_1d[i] = mean(temp_sigma)
+        endelse
+        
       endif
     endfor
     k_ri=0

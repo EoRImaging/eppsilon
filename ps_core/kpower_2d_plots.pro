@@ -253,7 +253,7 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, wei
   if keyword_set(sim_snr) then begin
     if n_elements(sim_noise) eq 0 then message, 'sim_noise is undefined in this file'
     if n_elements(weights) eq 0 then message, 'weights is undefined'
-    power_use = sim_noise * sqrt(weights)
+    power_use = abs(sim_noise) * sqrt(weights)
     plot_type = 'sim_snr'
   endif
   
@@ -411,7 +411,7 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, wei
     'sim_snr': begin
       units_str = ''
       color_type = 'log'
-      color_profile = 'abs'
+      ;color_profile = 'abs'
       plot_title = '|Sim Noise SNR| (|' + textoidl('Sim Noise/\sigma', font = font) + '|)'
       if pub then plotfile_add = '_2dsimsnr' + plot_exten
     end
