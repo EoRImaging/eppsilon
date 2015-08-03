@@ -1,10 +1,14 @@
 pro save_1D_text, textfile, k_edges, power, weights, noise_expval, hubble_param, noise, $
-    nfiles = nfiles
-      
+    sim_noise_power = sim_noise_power, sim_noise_diff = sim_noise_diff, nfiles = nfiles, hinv = hinv
+    
   nrows = n_elements(k_edges)
-  if nfiles eq 2 then ncol = 5 else ncol = 4
+  if nfiles eq 2 then begin
+    if n_elements(sim_noise_power) gt 0 then ncol = 7 else ncol = 5
+  endif else begin
+    if n_elements(sim_noise_power) gt 0 then ncol = 5 else ncol = 4
+  endelse
   data = fltarr(ncol, nrows)
-  
+    
   sigma_vals = sqrt(1./weights)
   wh_wt0 = where(weights eq 0, count_wh_wt0)
   if count_wh_wt0 gt 0 then sigma_vals[wh_wt0]= !values.f_infinity
@@ -18,7 +22,19 @@ pro save_1D_text, textfile, k_edges, power, weights, noise_expval, hubble_param,
     if nfiles eq 2 then begin
       data[4,*] = [0, noise]
       header = [header, 'observed noise (mK^2 Mpc^3)']
-    endif
+      if n_elements(sim_noise_power) gt 0 then begin
+        data[5,*] = [0, sim_noise_power]
+        header = [header, 'sim noise power (mK^2 Mpc^3)']
+        
+        data[6,*] = [0, sim_noise_diff]
+        header = [header, 'sim noise diff (mK^2 Mpc^3)']
+      endif
+    endif else begin
+      if n_elements(sim_noise_power) gt 0 then begin
+        data[4,*] = [0, sim_noise_power]
+        header = [header, 'sim noise power (mK^2 Mpc^3)']
+      endif
+    endelse
   endif else begin
     data[0, *] = k_edges / hubble_param
     data[1, *] = [0, power] * (hubble_param)^3d
@@ -28,7 +44,19 @@ pro save_1D_text, textfile, k_edges, power, weights, noise_expval, hubble_param,
     if nfiles eq 2 then begin
       data[4,*] = [0, noise] * (hubble_param)^3d
       header = [header, 'observed noise (mK^2 h^-3 Mpc^3)']
-    endif
+      if n_elements(sim_noise_power) gt 0 then begin
+        data[5,*] = [0, sim_noise_power] * (hubble_param)^3d
+        header = [header, 'sim noise power (mK^2 h^-3 Mpc^3)']
+        
+        data[6,*] = [0, sim_noise_diff] * (hubble_param)^3d
+        header = [header, 'sim noise diff (mK^2 h^-3 Mpc^3)']
+      endif
+    endif else begin
+      if n_elements(sim_noise_power) gt 0 then begin
+        data[4,*] = [0, sim_noise_power] * (hubble_param)^3d
+        header = [header, 'sim noise power (mK^2 h^-3 Mpc^3)']
+      endif
+    endelse
   endelse
   
   ;; add hash to indicate header line for Danny

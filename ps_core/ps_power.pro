@@ -12,7 +12,8 @@ pro ps_power, file_struct, refresh = refresh, kcube_refresh = kcube_refresh, dft
     kperp_range_1dave = kperp_range_1dave, kperp_range_lambda_1dave = kperp_range_lambda_1dave, kpar_range_1dave = kpar_range_1dave, $
     wt_measures = wt_measures, wt_cutoffs = wt_cutoffs, fix_sim_input = fix_sim_input, $
     wedge_amp = wedge_amp, coarse_harm0 = coarse_harm0, coarse_width = coarse_width, $
-    input_units = input_units, fill_holes = fill_holes, quiet = quiet, no_dft_progress = no_dft_progress
+    input_units = input_units, fill_holes = fill_holes, no_dft_progress = no_dft_progress, $
+    plot_binning_hist = plot_binning_hist, plotfile_binning_hist = plotfile_binning_hist, png = png, eps = eps, pdf = pdf
     
   if tag_exist(file_struct, 'nside') ne 0 then healpix = 1 else healpix = 0
   ;refresh=1
@@ -418,13 +419,6 @@ pro ps_power, file_struct, refresh = refresh, kcube_refresh = kcube_refresh, dft
         wt_ave_power, ave_power, ave_weights, wt_ave_power_freq, ave_power_freq, wt_ave_power_uvf, ave_power_uvf, uv_pix_area, uv_area
     endelse
     
-    if not keyword_set(quiet) then begin
-      kpower_2d_plots, savefile_2d[j], kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
-        data_range = data_range
-      kpower_2d_plots, savefile_2d[j], /plot_weights, kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
-        window_num = 2, title = 'Weights'
-    endif
-    
     ;; save just k0 line for plotting purposes
     if not keyword_set(no_kzero) then begin
       power = power[*,0]
@@ -440,7 +434,7 @@ pro ps_power, file_struct, refresh = refresh, kcube_refresh = kcube_refresh, dft
       textfile = strmid(savefile_k0[j], 0, stregex(savefile_k0[j], '.idlsave')) + '.txt'
       print, 'saving kpar=0 power to ' + textfile
       save_1D_text, textfile, k_edges, power, weights, noise_expval, hubble_param, noise, $
-        nfiles = nfiles
+        sim_noise_power = sim_noise, sim_noise_diff = sim_noise_diff, nfiles = nfiles
         
       if n_elements(freq_flags) ne 0 then begin
         save, file = savefile_k0[j], power, noise, sim_noise, sim_noise_diff, weights, noise_expval, k_edges, k_bin, $
@@ -581,7 +575,7 @@ pro ps_power, file_struct, refresh = refresh, kcube_refresh = kcube_refresh, dft
       textfile = strmid(savefile_1d[j,i], 0, stregex(savefile_1d[j,i], '.idlsave')) + '.txt'
       print, 'saving 1d power to ' + textfile
       save_1D_text, textfile, k_edges, power, weights, noise_expval, hubble_param, noise, $
-        nfiles = nfiles
+        sim_noise_power = sim_noise, sim_noise_diff = sim_noise_diff,  nfiles = nfiles
         
       mask_weights = long(bin_mask_3d gt 0)
       
@@ -591,6 +585,18 @@ pro ps_power, file_struct, refresh = refresh, kcube_refresh = kcube_refresh, dft
       mask_1to2d = kspace_rebinning_2d(bin_mask_3d, kx_mpc, ky_mpc, kz_mpc, kperp_edges_mpc, kpar_edges_mpc, log_kpar = log_kpar, $
         log_kperp = log_kperp, kperp_bin = kperp_bin, kpar_bin = kpar_bin, weights = mask_weights, fill_holes = fill_holes)
         
+        
+      if keyword_set(plot_binning_hist) then begin
+        if n_elements(plotfile_binning_hist) gt 0 then begin
+          plotfilebase_use1 = plotfile_binning_hist[j,i] + '_3to1d'
+          plotfilebase_use2 = plotfile_binning_hist[j,i] + '_2to1d'
+        endif
+        binning_hist_plots, power_3d, sim_noise_3d, weights_3d, bin_mask_3d, power_1d, weights_1d, window_start = 1, $
+          plotfilebase = plotfilebase_use1, png = png, eps = eps, pdf = pdf
+        binning_hist_plots, power_rebin, sim_noise_rebin, binned_weights, mask_1to2d, power_1d, weights_1d, window_start = !d.window+1, $
+          plotfilebase = plotfilebase_use2, png = png, eps = eps, pdf = pdf
+      endif
+      
       noise_frac_1to2d = kspace_rebinning_2d(noise_frac_3d, kx_mpc, ky_mpc, kz_mpc, kperp_edges_mpc, kpar_edges_mpc, log_kpar = log_kpar, $
         log_kperp = log_kperp, kperp_bin = kperp_bin, kpar_bin = kpar_bin, weights = mask_weights, fill_holes = fill_holes)
         
@@ -606,10 +612,6 @@ pro ps_power, file_struct, refresh = refresh, kcube_refresh = kcube_refresh, dft
       
     endfor
   endfor
-  
-  if not keyword_set(quiet) then begin
-    kpower_1d_plots, savefile_1d, window_num = 5
-  endif
   
   ;; bin just in kpar for diagnostic plot
   

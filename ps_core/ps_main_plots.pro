@@ -20,12 +20,14 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
     kperp_lambda_plot_range = kperp_lambda_plot_range, kpar_plot_range = kpar_plot_range, $
     baseline_axis = baseline_axis, delay_axis = delay_axis, cable_length_axis = cable_length_axis, hinv = hinv, $
     plot_wedge_line = plot_wedge_line, wedge_angles = wedge_angles, coarse_harm_width = coarse_harm_width, $
-    plot_eor_1d = plot_eor_1d, individual_plots = individual_plots, cube_power_info = cube_power_info, no_dft_progress = no_dft_progress
+    plot_eor_1d = plot_eor_1d, individual_plots = individual_plots, plot_binning_hist = plot_binning_hist, $
+    cube_power_info = cube_power_info, no_dft_progress = no_dft_progress
     
     
   if keyword_set(refresh_dft) then refresh_beam = 1
   if keyword_set(refresh_beam) then refresh_ps = 1
   if keyword_set(refresh_ps) then refresh_binning = 1
+  if keyword_set(plot_binning_hist) then refresh_binning = 1
   
   ;; default to making standard plot set if plot_slices isn't set
   if not keyword_set(plot_slices) then if n_elements(plot_stdset) eq 0 then plot_stdset = 1
@@ -92,6 +94,11 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
   endelse
   time1 = systime(1)
   print, 'file setup time: ' + number_formatter(time1-time0)
+  
+  if pub then begin
+    if n_elements(plot_path) ne 0 then plotfile_path = plot_path $
+    else if n_elements(save_path) ne 0 then plotfile_path = save_path else plotfile_path = file_struct_arr.savefile_froot
+  endif
   
   if not tag_exist(file_struct_arr, 'beam_int') and keyword_set(refresh_ps) then refresh_beam = 1
   
@@ -335,6 +342,29 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
     dft_fchunk = n_freq
   endif
   
+  if keyword_set(plot_binning_hist) and pub eq 1 then begin
+    if n_elements(plot_filebase) eq 0 then begin
+      plotfile_binning_hist = strarr(n_cubes, n_elements(kperp_density_names), n_elements(wedge_1dbin_names))
+      
+      for i=0, n_elements(wedge_1dbin_names)-1 do begin
+        for j=0, n_elements(kperp_density_names)-1 do begin
+          plotfile_binning_hist[*,j,i] = plotfile_path + file_struct_arr.savefilebase + power_tag + $
+            kperp_density_names[j] + wedge_1dbin_names[i] + fadd_1dbin
+        endfor
+      endfor
+    endif else begin
+      plotfile_binning_hist = strarr(n_cubes, n_elements(kperp_density_names), n_elements(wedge_1dbin_names))
+      
+      for i=0, n_elements(wedge_1dbin_names)-1 do begin
+        for j=0, n_elements(kperp_density_names)-1 do begin
+          plotfile_binning_hist[*,j,i] = plotfile_path + plot_filebase + uvf_tag + file_struct_arr.file_label + power_tag + $
+            kperp_density_names[j] + wedge_1dbin_names[i] + fadd_1dbin
+        endfor
+      endfor
+    endelse
+    plotfile_binning_hist = plotfile_binning_hist + '_binning_hist'
+  endif
+  
   for i=0, n_cubes-1 do begin
   
     savefile_2d_use = reform(savefiles_2d[i,*], n_elements(kperp_density_names))
@@ -477,7 +507,9 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
     if keyword_set(plot_k0_power) then test = test * test_k0
     
     if test eq 0 then begin
-    
+      if n_elements(plotfile_binning_hist) gt 0 then $
+        plotfile_binning_hist_use = reform(plotfile_binning_hist[i,*,*], n_elements(kperp_density_names), n_elements(wedge_1dbin_names))
+        
       if healpix or not keyword_set(uvf_input) then begin
         weight_refresh = intarr(n_cubes)
         if keyword_set(refresh_dft) then begin
@@ -495,7 +527,8 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
           log_k1d = log_k1d, k1d_bin = k1d_bin, log_kpar = log_kpar, log_kperp = log_kperp, kpar_bin = kpar_bin, kperp_bin = kperp_bin, $
           kperp_range_1dave = kperp_range_1d_use, kperp_range_lambda_1dave = kperp_range_lambda_1dave, kpar_range_1dave = kpar_range_1d_use, $
           wt_measures = wt_measures, wt_cutoffs = wt_cutoffs, fix_sim_input = fix_sim_input, $
-          wedge_amp = wedge_amp, coarse_harm0 = coarse_harm0, coarse_width = coarse_harm_width, /quiet, no_dft_progress = no_dft_progress
+          wedge_amp = wedge_amp, coarse_harm0 = coarse_harm0, coarse_width = coarse_harm_width, no_dft_progress = no_dft_progress, $
+          plot_binning_hist = plot_binning_hist, plotfile_binning_hist = plotfile_binning_hist_use, png = png, eps = eps, pdf = pdf
       endif else $
         ps_power, file_struct_arr[i], kcube_refresh = refresh_ps, refresh_beam = refresh_beam, freq_ch_range = freq_ch_range, $
         freq_flags = freq_flags, spec_window_type = spec_window_type, $
@@ -506,7 +539,8 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
         log_k1d = log_k1d, k1d_bin = k1d_bin, log_kpar = log_kpar, log_kperp = log_kperp, kpar_bin = kpar_bin, kperp_bin = kperp_bin, $
         kperp_range_1dave = kperp_range_1d_use, kperp_range_lambda_1dave = kperp_range_lambda_1dave, kpar_range_1dave = kpar_range_1d_use, $
         wt_measures = wt_measures, wt_cutoffs = wt_cutoffs, fix_sim_input = fix_sim_input, $
-        wedge_amp = wedge_amp, coarse_harm0 = coarse_harm0, coarse_width = coarse_harm_width, /quiet, no_dft_progress = no_dft_progress
+        wedge_amp = wedge_amp, coarse_harm0 = coarse_harm0, coarse_width = coarse_harm_width, no_dft_progress = no_dft_progress, $
+        plot_binning_hist = plot_binning_hist, plotfile_binning_hist = plotfile_binning_hist_use, png = png, eps = eps, pdf = pdf
     endif
   endfor
   
@@ -598,6 +632,7 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
     plotfile_kperp_power = plotfile_1d_base + power_tag + fadd_1dbin + '_kperp_power' + plot_exten
     plotfile_kperp_weights = plotfile_1d_base + power_tag + fadd_1dbin + '_kperp_weights' + plot_exten
     plotfile_k0_power = plotfile_1d_base + power_tag + fadd_2dbin + '_k0power' + plot_exten
+    
   endif
   
   if keyword_set(plot_1to2d) then begin
