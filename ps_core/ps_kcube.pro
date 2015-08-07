@@ -22,9 +22,9 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
   
   datavar = strupcase(file_struct.datavar)
   if datavar eq '' then begin
-    ;; working with a 'derived' cube (ie residual cube) that is constructed from uvf_savefiles
-    input_uvf_files = reform(file_struct.res_uvf_inputfiles, nfiles, 2)
-    input_uvf_varname = reform(file_struct.res_uvf_varname, nfiles, 2)
+    ;; working with a 'derived' cube that is constructed from uvf_savefiles
+    input_uvf_files = reform(file_struct.derived_uvf_inputfiles, nfiles, 2)
+    input_uvf_varname = reform(file_struct.derived_uvf_varname, nfiles, 2)
     
     if healpix or not keyword_set(uvf_input) then begin
       input_uvf_wtfiles = file_struct.uvf_weight_savefile

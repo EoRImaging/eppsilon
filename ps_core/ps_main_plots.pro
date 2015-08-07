@@ -527,7 +527,7 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
           log_k1d = log_k1d, k1d_bin = k1d_bin, log_kpar = log_kpar, log_kperp = log_kperp, kpar_bin = kpar_bin, kperp_bin = kperp_bin, $
           kperp_range_1dave = kperp_range_1d_use, kperp_range_lambda_1dave = kperp_range_lambda_1dave, kpar_range_1dave = kpar_range_1d_use, $
           wt_measures = wt_measures, wt_cutoffs = wt_cutoffs, fix_sim_input = fix_sim_input, $
-          wedge_amp = wedge_amp, coarse_harm0 = coarse_harm0, coarse_width = coarse_harm_width, no_dft_progress = no_dft_progress, $
+          wedge_amps = wedge_amps, coarse_harm0 = coarse_harm0, coarse_width = coarse_harm_width, no_dft_progress = no_dft_progress, $
           plot_binning_hist = plot_binning_hist, plotfile_binning_hist = plotfile_binning_hist_use, png = png, eps = eps, pdf = pdf
       endif else $
         ps_power, file_struct_arr[i], kcube_refresh = refresh_ps, refresh_beam = refresh_beam, freq_ch_range = freq_ch_range, $
@@ -539,7 +539,7 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
         log_k1d = log_k1d, k1d_bin = k1d_bin, log_kpar = log_kpar, log_kperp = log_kperp, kpar_bin = kpar_bin, kperp_bin = kperp_bin, $
         kperp_range_1dave = kperp_range_1d_use, kperp_range_lambda_1dave = kperp_range_lambda_1dave, kpar_range_1dave = kpar_range_1d_use, $
         wt_measures = wt_measures, wt_cutoffs = wt_cutoffs, fix_sim_input = fix_sim_input, $
-        wedge_amp = wedge_amp, coarse_harm0 = coarse_harm0, coarse_width = coarse_harm_width, no_dft_progress = no_dft_progress, $
+        wedge_amps = wedge_amps, coarse_harm0 = coarse_harm0, coarse_width = coarse_harm_width, no_dft_progress = no_dft_progress, $
         plot_binning_hist = plot_binning_hist, plotfile_binning_hist = plotfile_binning_hist_use, png = png, eps = eps, pdf = pdf
     endif
   endfor
@@ -841,7 +841,14 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
           kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis
       endif
     endif else begin
-    
+      if ntype gt 1 then begin
+      plot_type_order = sort(file_struct_arr[*,0].type)
+      cube_inds = indgen(ntype,npol)
+      plot_cube_order = intarr(ntype,npol)
+      for pol_i=0, npol-1 do plot_cube_order[*,pol_i] = cube_inds[plot_type_order,pol_i]
+      endif else plot_cube_order = indgen(npol)
+      
+      
       if keyword_set(kperp_linear_axis) then begin
         ;; aspect ratio doesn't work out for kperp_linear with multiple rows
         ncol = ntype*npol
@@ -855,13 +862,14 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
         
         window_num = window_num+1
         for i=0, n_cubes-1 do begin
+          cube_i = plot_cube_order[i]         
           if i gt 0 then  pos_use = positions[*,i]
           if i eq n_cubes-1 and n_elements(note) gt 0 then note_use = note + ', ' + kperp_density_names[j] else undefine, note_use
           if keyword_set(pub) then plotfile_use = plotfiles_2d[j] else undefine, plotfile_use
           
-          kpower_2d_plots, savefiles_2d[i,j], multi_pos = pos_use, start_multi_params = start_multi_params, png = png, eps = eps, pdf = pdf, $
+          kpower_2d_plots, savefiles_2d[cube_i,j], multi_pos = pos_use, start_multi_params = start_multi_params, png = png, eps = eps, pdf = pdf, $
             plotfile = plotfile_use, kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
-            data_range = data_range, title_prefix = titles[i], note = note_use, $
+            data_range = data_range, title_prefix = titles[cube_i], note = note_use, $
             plot_wedge_line = plot_wedge_line, hinv = hinv, $
             wedge_amp = wedge_amp, baseline_axis = baseline_axis, delay_axis = delay_axis, cable_length_axis = cable_length_axis, $
             kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, window_num = window_num
@@ -933,13 +941,14 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
         window_num = window_num+1
         ;;snr_range = [1e0, 1e6]
         for i=0, n_cubes-1 do begin
+          cube_i = plot_cube_order[i]         
           if i gt 0 then  pos_use = positions[*,i]
           if i eq n_cubes-1 and n_elements(note) gt 0 then note_use = note + ', ' + kperp_density_names[j] else undefine, note_use
           if keyword_set(pub) then plotfile_use = plotfiles_2d_snr[j] else undefine, plotfile_use
           
-          kpower_2d_plots, savefiles_2d[i,j], /snr, multi_pos = pos_use, start_multi_params = start_multi_params, png = png, eps = eps, pdf = pdf, $
+          kpower_2d_plots, savefiles_2d[cube_i,j], /snr, multi_pos = pos_use, start_multi_params = start_multi_params, png = png, eps = eps, pdf = pdf, $
             plotfile = plotfile_use, kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
-            data_range = snr_range, title_prefix = titles[i], note = note_use, $
+            data_range = snr_range, title_prefix = titles[cube_i], note = note_use, $
             plot_wedge_line = plot_wedge_line, wedge_amp = wedge_amp, $
             hinv = hinv, baseline_axis = baseline_axis, delay_axis = delay_axis, cable_length_axis = cable_length_axis, $
             kperp_linear_axis = kperp_linear_axis, $
@@ -961,13 +970,14 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
         undefine, pos_use
         
         for i=0, n_cubes-1 do begin
+          cube_i = plot_cube_order[i]         
           if i gt 0 then  pos_use = positions[*,i]
           if i eq n_cubes-1 and n_elements(note) gt 0 then note_use = note + ' ' + vs_note else undefine, note_use
           
-          kpower_2d_plots, savefiles_2d[i], /plot_sim_noise, multi_pos = pos_use, start_multi_params = start_multi_params, png = png, eps = eps, pdf = pdf, $
+          kpower_2d_plots, savefiles_2d[cube_i,0], /plot_sim_noise, multi_pos = pos_use, start_multi_params = start_multi_params, png = png, eps = eps, pdf = pdf, $
             plotfile = plotfiles_2d_sim_noise, $
             kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, data_range = sigma_range, $
-            title_prefix = titles[i], note = note_use, $
+            title_prefix = titles[cube_i], note = note_use, $
             plot_wedge_line = plot_wedge_line, wedge_amp = wedge_amp, hinv = hinv, $
             baseline_axis = baseline_axis, delay_axis = delay_axis, cable_length_axis = cable_length_axis, $
             kperp_linear_axis = kperp_linear_axis, $
@@ -986,13 +996,14 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
         undefine, pos_use
         
         for i=0, n_cubes-1 do begin
+         cube_i = plot_cube_order[i]         
           if i gt 0 then  pos_use = positions[*,i]
           if i eq n_cubes-1 and n_elements(note) gt 0 then note_use = note + ' ' + vs_note else undefine, note_use
           
-          kpower_2d_plots, savefiles_2d[i], /sim_snr, multi_pos = pos_use, start_multi_params = start_multi_params, $
+          kpower_2d_plots, savefiles_2d[cube_i,0], /sim_snr, multi_pos = pos_use, start_multi_params = start_multi_params, $
             png = png, eps = eps, pdf = pdf, plotfile = plotfiles_2d_sim_snr, $
             kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, data_range = nnr_range, $
-            title_prefix = titles[i], note = note_use, $
+            title_prefix = titles[cube_i], note = note_use, $
             plot_wedge_line = plot_wedge_line, wedge_amp = wedge_amp, hinv = hinv, $
             baseline_axis = baseline_axis, delay_axis = delay_axis, cable_length_axis = cable_length_axis, $
             kperp_linear_axis = kperp_linear_axis, $
@@ -1014,13 +1025,14 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
         undefine, pos_use
         
         for i=0, n_cubes-1 do begin
+        cube_i = plot_cube_order[i]         
           if i gt 0 then  pos_use = positions[*,i]
           if i eq n_cubes-1 and n_elements(note) gt 0 then note_use = note + ' ' + vs_note else undefine, note_use
           
-          kpower_2d_plots, savefiles_2d[i], /plot_noise, multi_pos = pos_use, start_multi_params = start_multi_params, png = png, eps = eps, pdf = pdf, $
+          kpower_2d_plots, savefiles_2d[cube_i,0], /plot_noise, multi_pos = pos_use, start_multi_params = start_multi_params, png = png, eps = eps, pdf = pdf, $
             plotfile = plotfiles_2d_noise, $
             kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, data_range = noise_range, $
-            title_prefix = titles[i], note = note_use, $
+            title_prefix = titles[cube_i], note = note_use, $
             plot_wedge_line = plot_wedge_line, wedge_amp = wedge_amp, hinv = hinv, $
             baseline_axis = baseline_axis, delay_axis = delay_axis, cable_length_axis = cable_length_axis, $
             kperp_linear_axis = kperp_linear_axis, $
@@ -1040,13 +1052,14 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
           undefine, pos_use
           
           for i=0, n_cubes-1 do begin
+        cube_i = plot_cube_order[i]         
             if i gt 0 then  pos_use = positions[*,i]
             if i eq n_cubes-1 and n_elements(note) gt 0 then note_use = note + ' ' + vs_note else undefine, note_use
             
-            kpower_2d_plots, savefiles_2d[i], /plot_simnoise_diff, multi_pos = pos_use, start_multi_params = start_multi_params, png = png, eps = eps, pdf = pdf, $
+            kpower_2d_plots, savefiles_2d[cube_i,0], /plot_simnoise_diff, multi_pos = pos_use, start_multi_params = start_multi_params, png = png, eps = eps, pdf = pdf, $
               plotfile = plotfiles_2d_sim_noise_diff, $
               kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, data_range = noise_range, $
-              title_prefix = titles[i], note = note_use, $
+              title_prefix = titles[cube_i], note = note_use, $
               plot_wedge_line = plot_wedge_line, wedge_amp = wedge_amp, hinv = hinv, $
               baseline_axis = baseline_axis, delay_axis = delay_axis, cable_length_axis = cable_length_axis, $
               kperp_linear_axis = kperp_linear_axis, $
@@ -1066,13 +1079,14 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
         undefine, pos_use
         
         for i=0, n_cubes-1 do begin
+        cube_i = plot_cube_order[i]         
           if i gt 0 then  pos_use = positions[*,i]
           if i eq n_cubes-1 and n_elements(note) gt 0 then note_use = note + ' ' + vs_note else undefine, note_use
           
-          kpower_2d_plots, savefiles_2d[i], /nnr, multi_pos = pos_use, start_multi_params = start_multi_params, png = png, eps = eps, pdf = pdf, $
+          kpower_2d_plots, savefiles_2d[cube_i,0], /nnr, multi_pos = pos_use, start_multi_params = start_multi_params, png = png, eps = eps, pdf = pdf, $
             plotfile = plotfiles_2d_nnr, $
             kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, data_range = nnr_range, $
-            title_prefix = titles[i], note = note_use, $
+            title_prefix = titles[cube_i,0], note = note_use, $
             plot_wedge_line = plot_wedge_line, wedge_amp = wedge_amp, hinv = hinv, $
             baseline_axis = baseline_axis, delay_axis = delay_axis, cable_length_axis = cable_length_axis, $
             kperp_linear_axis = kperp_linear_axis, $
@@ -1092,13 +1106,14 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
         
         if keyword_set(plot_sim_noise) then begin
           for i=0, n_cubes-1 do begin
+       cube_i = plot_cube_order[i]         
             if i gt 0 then  pos_use = positions[*,i]
             if i eq n_cubes-1 and n_elements(note) gt 0 then note_use = note + ' ' + vs_note else undefine, note_use
             
-            kpower_2d_plots, savefiles_2d[i], /sim_nnr, multi_pos = pos_use, start_multi_params = start_multi_params, png = png, eps = eps, pdf = pdf, $
+            kpower_2d_plots, savefiles_2d[cube_i,0], /sim_nnr, multi_pos = pos_use, start_multi_params = start_multi_params, png = png, eps = eps, pdf = pdf, $
               plotfile = plotfiles_2d_sim_nnr, $
               kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, data_range = nnr_range, $
-              title_prefix = titles[i], note = note_use, $
+              title_prefix = titles[cube_i], note = note_use, $
               plot_wedge_line = plot_wedge_line, wedge_amp = wedge_amp, hinv = hinv, $
               baseline_axis = baseline_axis, delay_axis = delay_axis, cable_length_axis = cable_length_axis, $
               kperp_linear_axis = kperp_linear_axis, $

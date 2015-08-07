@@ -1,4 +1,5 @@
-function ps_filenames, folder_names, obs_names_in, rts = rts, sim = sim, uvf_input = uvf_input, casa = casa, $
+function ps_filenames, folder_names, obs_names_in, dirty_folder = dirty_folder, dirty_obsname = dirty_obsname, $
+    rts = rts, sim = sim, uvf_input = uvf_input, casa = casa, $
     data_subdirs = data_subdirs, plot_paths = plot_paths, save_paths = save_paths, refresh_info = refresh_info, $
     exact_obsnames = exact_obsnames, no_wtvar_rts = no_wtvar_rts
     
@@ -9,9 +10,24 @@ function ps_filenames, folder_names, obs_names_in, rts = rts, sim = sim, uvf_inp
     for i=0, n_elements(data_subdirs)-1 do if data_subdirs[i] ne '' then data_subdirs[i] = strjoin(strsplit(data_subdirs[i], path_sep(), /extract), path_sep()) + path_sep()
   endelse
   
+  if n_elements(dirty_folder) gt 0 then if n_elements(dirty_folder) ne n_elements(folder_names) then $
+    message, 'If dirty_folder is provided it must contain the same number of elements as folder_names'
+    
+  if n_elements(dirty_obsname) gt 0 then begin
+    if n_elements(obs_names_in) ne n_elements(dirty_obsname) then $
+      message, 'If dirty_obsname is provided it must contain the same number of elements as obs_names_in'
+      
+    if n_elements(dirty_folder) eq 0 then dirty_folder = folder_names
+  endif
+  
+  if n_elements(dirty_folder) gt 0 and n_elements(dirty_obsname) eq 0 then dirty_obsname = ''
+  
   if n_filesets gt 1 then begin
     if n_elements(folder_names) eq 1 then folder_names = replicate(folder_names, n_filesets)
     if n_elements(folder_names) ne n_filesets then message, 'If both folder_names and obs_names_in are arrays, the number of elements must match'
+    
+    if n_elements(dirty_folder) eq 1 then dirty_folder = replicate(folder_names, n_filesets)
+    if n_elements(dirty_obsname) eq 1 then dirty_obsname = replicate(dirty_obsname, n_filesets)
     
     if n_elements(obs_names_in) eq 1 then obs_names_in = replicate(obs_names_in, n_filesets)
     if n_elements(obs_names_in) gt 0 and n_elements(obs_names_in) ne n_filesets then message, 'If both folder_names and obs_names_in are arrays, the number of elements must match'
@@ -73,7 +89,8 @@ function ps_filenames, folder_names, obs_names_in, rts = rts, sim = sim, uvf_inp
         if n_infofile gt 0 then begin
           if obs_names[i] eq '' then begin
             info_files[i] = info_file[0]
-            obs_names[i] = stregex(file_basename(info_files[i]), '[0-9]+.[0-9]+_', /extract)
+            ;obs_names[i] = stregex(file_basename(info_files[i]), '[0-9]+.[0-9]+_', /extract)
+            obs_names[i] = strmid(file_basename(info_files[i]), 0, reform(strpos(file_basename(info_files[i]), '_image')))
             if n_infofile gt 1 then begin
               print, 'More than 1 info files found, using first one'
               rts_types[i] = rts_types[i] + '_' + obs_names[i]
@@ -87,12 +104,13 @@ function ps_filenames, folder_names, obs_names_in, rts = rts, sim = sim, uvf_inp
           
         endif
       endif
-      
+
       ;; then look for combined cube files in folder + data_subdir
       cube_file_list = file_search(folder_names[i] + '/' + data_subdirs[i] + obs_names[i] + '*_cube.idlsave', count = n_cubefiles)
       if n_cubefiles gt 0 then begin
         if obs_names[i] eq '' then begin
-          obs_name_arr = stregex(file_basename(cube_file_list), '[0-9]+.[0-9]+_', /extract)
+          ;obs_name_arr = stregex(file_basename(cube_file_list), '[0-9]+.[0-9]+_', /extract)
+          obs_name_arr = strmid(file_basename(cube_file_list), 0, reform(strpos(file_basename(cube_file_list), '_image'), 1, n_cubefiles))
           wh_first = where(obs_name_arr eq obs_name_arr[0], count_first)
           cube_files = cube_file_list[wh_first]
           obs_names[i] = obs_name_arr[0]
@@ -145,7 +163,31 @@ function ps_filenames, folder_names, obs_names_in, rts = rts, sim = sim, uvf_inp
         fits_file_list = ''
         weightfile_list = ''
         variancefile_list = ''
+        if n_elements(dirty_folder) gt 0 then dirtyfile_list = ''
       endif else begin
+      
+        if n_elements(dirty_folder) gt 0 then begin
+          dirtyfile_list = file_search(dirty_folder[i] + '/' + data_subdirs[i] + dirty_obsname[i] + '*_image*MHz*.fits', count = n_dirtyfiles)
+          if n_dirtyfiles eq 0 then dirtyfile_list = file_search(dirty_folder[i] + '/' + data_subdirs[i] + dirty_obsname[i] + '*_image*.fits', count = n_dirtyfiles)
+          
+          if n_dirtyfiles gt 0 then begin
+            if dirty_obsname[i] eq '' then begin
+              dirty_obsname_arr = strmid(file_basename(dirtyfile_list), 0, reform(strpos(file_basename(dirtyfile_list), '_image'), 1, n_dirtyfiles))
+              wh_first = where(dirty_obsname_arr eq dirty_obsname_arr[0], count_first)
+              if count_first lt n_dirtyfiles then $
+                print, 'More than one dirty_obsname found, using first obs_name (' + dirty_obsname_arr[0] + ', ' + number_formatter(count_first) + ' files)'
+                
+              dirty_files = dirtyfile_list[wh_first]
+              dirty_obsname[i] = dirty_obsname_arr[0]
+            endif else begin
+              dirty_files = dirtyfile_list
+            endelse
+          endif
+          if n_elements(dirty_files) ne n_elements(fits_files) and info_files[i] eq '' $
+            then message, 'number of dirty files does not match number of datafiles'
+          
+        endif
+        
         ;; now get weights & variance files
         weightfile_list = file_search(folder_names[i] + '/' + data_subdirs[i] + obs_names[i] + '*_weights*MHz*.fits', count = n_wtfiles)
         if n_wtfiles eq 0 then weightfile_list = file_search(folder_names[i] + '/' + data_subdirs[i] + obs_names[i] + '*_weights*.fits', count = n_wtfiles)
@@ -164,20 +206,24 @@ function ps_filenames, folder_names, obs_names_in, rts = rts, sim = sim, uvf_inp
         if n_fitsfiles gt 0 then datafiles = create_struct(tag, fits_files) else datafiles = create_struct(tag, '')
         weightfiles = create_struct(tag, weightfile_list)
         variancefiles = create_struct(tag, variancefile_list)
+        if n_elements(dirty_folder) gt 0 then dirtyfiles = create_struct(tag, dirty_files)
       endif else begin
         tag = 'fs' + number_formatter(i)
         if n_cubefiles gt 0 then cubefiles = create_struct(cubefiles, tag, cube_files) else cubefiles = create_struct(cubefiles, tag, '')
         if n_fitsfiles gt 0 then datafiles = create_struct(datafiles, tag, fits_files) else datafiles = create_struct(datafiles, tag, '')
         weightfiles = create_struct(weightfiles, tag, weightfile_list)
         variancefiles = create_struct(variancefiles, tag, variancefile_list)
+        if n_elements(dirty_folder) gt 0 then dirtyfiles = create_struct(dirtyfiles, tag, dirty_files)
       endelse
-      undefine, fits_files, weightfile_list, variancefile_list, cube_files
+      undefine, fits_files, weightfile_list, variancefile_list, cube_files, dirty_files, dirtyfile_list
       
     endfor
     
     obs_info = {folder_names:folder_names, folder_basenames:folder_basenames, obs_names:obs_names, info_files:info_files, cube_files:cubefiles, $
       datafiles:datafiles, weightfiles:weightfiles, variancefiles:variancefiles, rts_types:rts_types, plot_paths:plot_paths, save_paths:save_paths}
       
+    if n_elements(dirty_folder) then obs_info = create_struct(obs_info, 'dirtyfiles', dirtyfiles)
+    
   endif else if keyword_set(casa) then begin
     obs_names = strarr(n_filesets)
     casa_types = strarr(n_filesets)

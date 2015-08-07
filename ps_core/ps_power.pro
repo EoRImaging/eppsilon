@@ -11,7 +11,7 @@ pro ps_power, file_struct, refresh = refresh, kcube_refresh = kcube_refresh, dft
     log_kperp = log_kperp, kperp_bin = kperp_bin, kpar_bin = kpar_bin, log_k1d = log_k1d, k1d_bin = k1d_bin, $
     kperp_range_1dave = kperp_range_1dave, kperp_range_lambda_1dave = kperp_range_lambda_1dave, kpar_range_1dave = kpar_range_1dave, $
     wt_measures = wt_measures, wt_cutoffs = wt_cutoffs, fix_sim_input = fix_sim_input, $
-    wedge_amp = wedge_amp, coarse_harm0 = coarse_harm0, coarse_width = coarse_width, $
+    wedge_amps = wedge_amps, coarse_harm0 = coarse_harm0, coarse_width = coarse_width, $
     input_units = input_units, fill_holes = fill_holes, no_dft_progress = no_dft_progress, $
     plot_binning_hist = plot_binning_hist, plotfile_binning_hist = plotfile_binning_hist, png = png, eps = eps, pdf = pdf
     
@@ -490,13 +490,13 @@ pro ps_power, file_struct, refresh = refresh, kcube_refresh = kcube_refresh, dft
   if keyword_set(kperp_range_1dave) then kperp_range_use = kperp_range_1dave
   if keyword_set(kpar_range_1dave) then kpar_range_use = kpar_range_1dave
   
-  if n_elements(savefile_1d) ne (n_elements(wedge_amp)+1)*(n_wt_cuts) then $
+  if n_elements(savefile_1d) ne (n_elements(wedge_amps)+1)*(n_wt_cuts) then $
     message, 'number of elements in savefile_1d is wrong'
     
-  for i=0, n_elements(wedge_amp) do begin
+  for i=0, n_elements(wedge_amps) do begin
     for j=0, n_wt_cuts-1 do begin
       if i gt 0 then begin
-        wedge_amp_use = wedge_amp[i-1]
+        wedge_amp_use = wedge_amps[i-1]
         if n_elements(coarse_harm0) gt 0 then begin
           coarse_harm0_use = coarse_harm0
           coarse_width_use = coarse_width
@@ -561,13 +561,16 @@ pro ps_power, file_struct, refresh = refresh, kcube_refresh = kcube_refresh, dft
       kperp_range = kperp_range_use
       kperp_range_lambda = kperp_range_use * kperp_lambda_conv
       kpar_range = kpar_range_use
+      wedge_amp = wedge_amp_use
       
       if n_elements(freq_flags) ne 0 then begin
-        save, file = savefile_1d[j,i], power, noise, sim_noise, sim_noise_diff, weights, noise_expval, k_edges, k_bin, kperp_lambda_conv, delay_params, hubble_param, freq_mask, $
+        save, file = savefile_1d[j,i], power, noise, sim_noise, sim_noise_diff, weights, noise_expval, $
+          k_edges, k_bin, kperp_lambda_conv, delay_params, hubble_param, freq_mask, wedge_amp, $
           kperp_range, kperp_range_lambda, kpar_range, window_int, git_hashes, $
           wt_ave_power, ave_power, ave_weights, wt_ave_power_freq, ave_power_freq, wt_ave_power_uvf, ave_power_uvf, uv_pix_area, uv_area
       endif else begin
-        save, file = savefile_1d[j,i], power, noise, sim_noise, sim_noise_diff, weights, noise_expval, k_edges, k_bin, kperp_lambda_conv, delay_params, hubble_param, $
+        save, file = savefile_1d[j,i], power, noise, sim_noise, sim_noise_diff, weights, noise_expval, $
+          k_edges, k_bin, kperp_lambda_conv, delay_params, hubble_param, wedge_amp, $
           kperp_range, kperp_range_lambda, kpar_range, window_int, git_hashes, $
           wt_ave_power, ave_power, ave_weights, wt_ave_power_freq, ave_power_freq, wt_ave_power_uvf, ave_power_uvf, uv_pix_area, uv_area
       endelse
