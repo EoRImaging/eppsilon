@@ -13,7 +13,7 @@ pro mit_wrapper, folder_name, obs_name, data_subdirs=data_subdirs, exact_obsname
     wedge_angles = wedge_angles, coarse_harm_width = coarse_harm_width, $
     set_data_ranges = set_data_ranges, range_1d = range_1d, plot_1d_delta = plot_1d_delta, $
     plot_1d_error_bars = plot_1d_error_bars, plot_1d_nsigma = plot_1d_nsigma, plot_binning_hist = plot_binning_hist, $
-    data_range = data_range, wt_cutoffs = wt_cutoffs
+    data_range = data_range, wt_cutoffs = wt_cutoffs, hinv=hinv
     
   ;; The only required input is the datafile name (including the full path)
     
