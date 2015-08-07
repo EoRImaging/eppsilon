@@ -3,7 +3,7 @@ function rts_file_setup, filename, save_path = save_path, refresh_info = refresh
     uvf_savefilebase = uvf_savefilebase_in, savefilebase = savefilebase_in, $
     spec_window_type = spec_window_type, delta_uv_lambda = delta_uv_lambda, max_uv_lambda = max_uv_lambda, $
     std_power = std_power, inverse_covar_weight = inverse_covar_weight, use_fhd_norm = use_fhd_norm
-      
+    
   ;; check to see if filename is an info file
   wh_info = strpos(filename, '_info.idlsave')
   if max(wh_info) gt -1 then begin
@@ -292,13 +292,66 @@ function rts_file_setup, filename, save_path = save_path, refresh_info = refresh
     
     void = getvar_savefile(datafile[0], names = varnames)
     
-    type_inc = ['res']
+    ;; check for the existence of dirty, model, residual cubes
+    
+    wh_dirty = where(strmatch(varnames, '*dirty*',/fold_case) gt 0, count_dirty)
+    if count_dirty gt 0 then begin
+      dirty_varname = strarr(npol)
+      for pol_i=0, npol-1 do begin
+        wh_pol = where(strmatch(varnames[wh_dirty], '*'+pol_inc[pol_i]+'*',/fold_case) gt 0, count_pol)
+        if count_pol gt 0 then dirty_varname[pol_i] = varnames[wh_dirty[wh_pol]] else $
+          message, 'a dirty variable does not exist for pol ' + pol_inc[pol_i]
+      endfor
+      
+      type_inc = ['dirty']
+      if npol gt 1 then cube_varname = transpose(dirty_varname) else cube_varname = dirty_varname
+    endif
+    
+    wh_res = where(strmatch(varnames, '*data*',/fold_case) gt 0, count_res)
+    if count_res gt 0 then begin
+      residual_varname = strarr(npol)
+      for pol_i=0, npol-1 do begin
+        wh_pol = where(strmatch(varnames[wh_res], '*'+pol_inc[pol_i]+'*',/fold_case) gt 0, count_pol)
+        if count_pol gt 0 then residual_varname[pol_i] = varnames[wh_res[wh_pol]] else $
+          message, 'a res variable does not exist for pol ' + pol_inc[pol_i]
+      endfor
+      
+      if n_elements(type_inc) eq 0 then begin
+        type_inc = ['res']
+        if npol gt 1 then cube_varname = transpose(residual_varname) else cube_varname = residual_varname
+      endif else begin
+        type_inc = [type_inc, 'res']
+        if npol gt 1 then cube_varname = [cube_varname,transpose(residual_varname)] else cube_varname = [cube_varname, residual_varname]
+      endelse
+    endif
+    
+    wh_model = where(strmatch(varnames, '*model*',/fold_case) gt 0, count_model)
+    if count_model gt 0 then begin
+      model_varname = strarr(npol)
+      for pol_i=0, npol-1 do begin
+        wh_pol = where(strmatch(varnames[wh_model], '*'+pol_inc[pol_i]+'*',/fold_case) gt 0, count_pol)
+        if count_pol gt 0 then model_varname[pol_i] = varnames[wh_model[wh_pol]] else $
+          message, 'a model variable does not exist for pol ' + pol_inc[pol_i]
+      endfor
+      
+      if n_elements(type_inc) eq 0 then begin
+        type_inc = ['model']
+        if npol gt 1 then cube_varname = transpose(model_varname) else cube_varname = model_varname
+      endif else begin
+        type_inc = [type_inc, 'model']
+        if npol gt 1 then cube_varname = [cube_varname,transpose(model_varname)] else cube_varname = [cube_varname, model_varname]
+      endelse
+    endif else if (Max(type_inc EQ 'dirty')<Max(type_inc EQ 'res')) then begin
+      ;; model can be constructed from dirty-residual
+      type_inc = [type_inc, 'model']
+      if npol gt 1 then cube_varname = [cube_varname,transpose(strarr(npol))] else cube_varname = [cube_varname, '']
+    endif
+        
     ntypes = n_elements(type_inc)
     ncubes = npol * ntypes
     type_pol_str = strarr(npol, ntypes)
     for i=0, npol-1 do type_pol_str[i, *] = type_inc + '_' + pol_inc[i]
     
-    data_varname = pol_inc + '_data'
     weight_varname = pol_inc + '_weights'
     variance_varname = pol_inc + '_variances'
     
@@ -353,13 +406,17 @@ function rts_file_setup, filename, save_path = save_path, refresh_info = refresh
       file_i = j / npol
       void = getvar_savefile(datafile[pol_i, file_i], names = varnames)
       
-      wh = where(strlowcase(varnames) eq strlowcase(data_varname[pol_i]), count)
-      if count eq 0 then message, data_varname[pol_i] + ' is not present in datafile (datafile=' + datafile[pol_i, file_i] + ')'
-      
-      data_size = getvar_savefile(datafile[pol_i, file_i], data_varname[pol_i], /return_size)
-      if data_size[0] gt 0 then this_data_dims = data_size[1:data_size[0]]
-      
-      if j eq 0 then data_dims = this_data_dims else if total(abs(this_data_dims - data_dims)) ne 0 then message, 'data dimensions in files do not match'
+      for type_i=0, ntypes-1 do begin
+        if cube_varname[type_i, pol_i] ne '' then begin
+          wh = where(strlowcase(varnames) eq strlowcase(cube_varname[type_i, pol_i]), count)
+          if count eq 0 then message, cube_varname[type_i, pol_i] + ' is not present in datafile (datafile=' + datafile[pol_i, file_i] + ')'
+          
+          data_size = getvar_savefile(datafile[pol_i, file_i], cube_varname[type_i, pol_i], /return_size)
+          if data_size[0] gt 0 then this_data_dims = data_size[1:data_size[0]]
+          
+          if type_i eq 0 and j eq 0 then data_dims = this_data_dims else if total(abs(this_data_dims - data_dims)) ne 0 then message, 'data dimensions in files do not match'
+        endif
+      endfor
       
       wh = where(strlowcase(varnames) eq strlowcase(weight_varname[pol_i]), count)
       
@@ -469,7 +526,7 @@ function rts_file_setup, filename, save_path = save_path, refresh_info = refresh
     n_vis = total(n_vis_freq, 3)
     
     metadata_struct = {datafile:datafile, weightfile: datafile, variancefile:datafile, $
-      cube_varname:data_varname, weight_varname:weight_varname, variance_varname:variance_varname, $
+      cube_varname:cube_varname, weight_varname:weight_varname, variance_varname:variance_varname, $
       frequencies:frequencies, freq_resolution:freq_resolution, time_resolution:time_resolution, $
       n_vis:n_vis, n_vis_freq:n_vis_freq, max_baseline_lambda:max_baseline_lambda, max_theta:max_theta, degpix:degpix, kpix:kpix, kspan:kspan, $
       general_filebase:general_filebase, type_pol_str:type_pol_str, infile_label:infile_label, $
@@ -665,12 +722,19 @@ function rts_file_setup, filename, save_path = save_path, refresh_info = refresh
   for pol_i=0, npol-1 do begin
     for type_i=0, ntypes-1 do begin
     
-      res_uvf_inputfiles = strarr(nfiles, 2)
-      res_uvf_varname = strarr(nfiles, 2)
+      if ntypes gt 1 then data_varname = metadata_struct.cube_varname[type_i, pol_i] else data_varname = metadata_struct.cube_varname[pol_i]
+      if data_varname ne '' then begin
+        derived_uvf_inputfiles = strarr(nfiles,2)
+        derived_uvf_varname = strarr(nfiles,2)
+      endif else begin
+
+        derived_uvf_inputfiles = uvf_savefile[pol_i, *, (indgen(ntypes))[where(indgen(ntypes) ne type_i)]]
+        derived_uvf_varname = strarr(nfiles, 2) + 'data_cube'
+      endelse
       
       file_struct = {datafile:reform(metadata_struct.datafile[pol_i,*]), weightfile:reform(metadata_struct.weightfile[pol_i,*]), $
         variancefile:reform(metadata_struct.variancefile[pol_i,*]), $;; beamfile:reform(metadata_struct.beamfile[pol_i,*]), $
-        datavar:metadata_struct.cube_varname[pol_i], weightvar:metadata_struct.weight_varname[pol_i], $
+        datavar:data_varname, weightvar:metadata_struct.weight_varname[pol_i], $
         variancevar:metadata_struct.variance_varname[pol_i], $;; beamvar:metadata_struct.beam_varname[pol_i], $
         frequencies:metadata_struct.frequencies, freq_resolution:metadata_struct.freq_resolution, time_resolution:metadata_struct.time_resolution, $
         n_obs:reform(metadata_struct.n_obs[pol_i,*]), n_vis:reform(metadata_struct.n_vis[pol_i,*]), n_vis_freq:reform(metadata_struct.n_vis_freq[pol_i,*,*]), $
@@ -688,7 +752,7 @@ function rts_file_setup, filename, save_path = save_path, refresh_info = refresh
         kcube_savefile:kcube_savefile[pol_i,type_i], power_savefile:power_savefile[pol_i,type_i], fits_power_savefile:fits_power_savefile[pol_i,type_i],$
         savefile_froot:froot, savefilebase:savefilebase[pol_i,type_i], general_filebase:general_filebase, $
         weight_savefilebase:reform(weight_savefilebase[pol_i, *]), $
-        res_uvf_inputfiles:res_uvf_inputfiles, res_uvf_varname:res_uvf_varname, $
+        derived_uvf_inputfiles:derived_uvf_inputfiles, derived_uvf_varname:derived_uvf_varname, $
         file_label:file_label[pol_i,type_i], uvf_label:reform(uvf_label[pol_i,*,type_i]), wt_file_label:wt_file_label[pol_i], $
         uvf_tag:uvf_tag, power_tag:power_tag, type_pol_str:metadata_struct.type_pol_str[pol_i,type_i], $
         pol_index:pol_i, type_index:type_i, pol:metadata_struct.pol_inc[pol_i], type:metadata_struct.type_inc[type_i], nfiles:nfiles}

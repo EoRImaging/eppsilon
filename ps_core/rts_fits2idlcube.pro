@@ -1,10 +1,14 @@
-function rts_fits2idlcube, datafiles, weightfiles, variancefiles, pol_inc, $
+function rts_fits2idlcube, datafiles, weightfiles, variancefiles, dirtyfiles = dirtyfiles, pol_inc = pol_inc, $
     save_path = save_path, refresh = refresh, no_wtvar = no_wtvar
     
   if n_elements(datafiles) eq 0 then message, 'datafiles must be passed in'
-  if not keyword_set(no_wtvar) then if n_elements(weightfiles) ne n_elements(datafiles) then message, 'different number of weightfiles and datafiles'
-  if not keyword_set(no_wtvar) then if n_elements(variancefiles) ne n_elements(datafiles) then message, 'different number of variancefiles and datafiles'
-  
+  if not keyword_set(no_wtvar) then if n_elements(weightfiles) ne n_elements(datafiles) then $
+    message, 'different number of weightfiles and datafiles'
+  if not keyword_set(no_wtvar) then if n_elements(variancefiles) ne n_elements(datafiles) then $
+    message, 'different number of variancefiles and datafiles'
+  if n_elements(dirtyfiles) gt 0 then if n_elements(dirtyfiles) ne n_elements(datafiles) then $
+    message, 'different number of dirtyfiles and datafiles'
+    
   ;; check for even/odd files, separate them if present
   even_mask = stregex(datafiles, 'even', /boolean)
   n_even = total(even_mask)
@@ -18,6 +22,7 @@ function rts_fits2idlcube, datafiles, weightfiles, variancefiles, pol_inc, $
     datafile_arr = datafiles
     weightfile_arr = weightfiles
     variancefile_arr = variancefiles
+    if n_elements(dirtyfiles) gt 0 then dirtyfile_arr = dirtyfiles
   endif else begin
     nfiles = 2
     n_freq = n_even
@@ -34,8 +39,8 @@ function rts_fits2idlcube, datafiles, weightfiles, variancefiles, pol_inc, $
       if wt_n_even ne n_even or wt_n_odd ne n_odd then message, 'number of even and odd weight files do not match datafiles'
       
       weightfile_arr = strarr(n_freq, nfiles)
-      weightfile_arr[*,0] = weightfiles[where(even_mask gt 0)]
-      weightfile_arr[*,1] = weightfiles[where(odd_mask gt 0)]
+      weightfile_arr[*,0] = weightfiles[where(wt_even_mask gt 0)]
+      weightfile_arr[*,1] = weightfiles[where(wt_odd_mask gt 0)]
       
       var_even_mask = stregex(variancefiles, 'even', /boolean)
       var_n_even = total(var_even_mask)
@@ -44,16 +49,29 @@ function rts_fits2idlcube, datafiles, weightfiles, variancefiles, pol_inc, $
       if var_n_even ne n_even or var_n_odd ne n_odd then message, 'number of even and odd variance files do not match datafiles'
       
       variancefile_arr = strarr(n_freq, nfiles)
-      variancefile_arr[*,0] = variancefiles[where(even_mask gt 0)]
-      variancefile_arr[*,1] = variancefiles[where(odd_mask gt 0)]
+      variancefile_arr[*,0] = variancefiles[where(var_even_mask gt 0)]
+      variancefile_arr[*,1] = variancefiles[where(var_odd_mask gt 0)]
     endif
+    
+    if n_elements(dirtyfiles) gt 0 then begin
+      dirty_even_mask = stregex(dirtyfiles, 'even', /boolean)
+      dirty_n_even = total(dirty_even_mask)
+      dirty_odd_mask = stregex(dirtyfiles, 'odd', /boolean)
+      dirty_n_odd = total(dirty_odd_mask)
+      if dirty_n_even ne n_even or dirty_n_odd ne n_odd then message, 'number of even and odd dirty files do not match datafiles'
+      
+      dirtyfile_arr = strarr(n_freq, nfiles)
+      dirtyfile_arr[*,0] = dirtyfiles[where(dirty_even_mask gt 0)]
+      dirtyfile_arr[*,1] = dirtyfiles[where(dirty_odd_mask gt 0)]
+    endif
+    
   endelse
   
   
   pol_inc = ['xx', 'yy']
   npol = n_elements(pol_inc)
   
-  type_inc = ['res']
+  if n_elements(dirtyfiles) gt 0 then type_inc = ['dirty', 'res'] else type_inc = ['res']
   ntypes = n_elements(type_inc)
   ncubes = npol * ntypes
   type_pol_str = strarr(ncubes)
@@ -191,7 +209,7 @@ function rts_fits2idlcube, datafiles, weightfiles, variancefiles, pol_inc, $
           
       endfor
       
-      if not keyword_set(no_wtvar) then begin
+      if not keyword_set(no_wtvdirty) then begin
         for i=0, n_freq-1 do begin
           ;        temp = strsplit(weightfile_arr[i, file_i], '_',/extract)
           ;        freq_loc = where(strpos(strlowcase(strsplit(weightfile_arr[i, file_i], '_',/extract)), 'mhz') gt -1, count)
@@ -374,10 +392,104 @@ function rts_fits2idlcube, datafiles, weightfiles, variancefiles, pol_inc, $
         endfor
       endif
       
+      if n_elements(dirtyfiles) gt 0 then begin
+        for i=0, n_freq-1 do begin
+        
+          data = mrdfits(dirtyfile_arr[i, file_i], 1, hdr, /silent)
+          
+          this_nside = fxpar(hdr, 'nside')
+          if this_nside ne nside then message, 'dirty nside value does not agree with datafiles'
+          this_dims = fxpar(hdr, 'naxis*')
+          if total(abs(this_dims-dims)) ne 0 then print, 'dirty dimensions do not agree with datafiles'
+          
+          col_types = fxpar(hdr, 'ttype*')
+          
+          pix_col = where(strpos(strlowcase(col_types), 'pix') gt -1, count)
+          if count ne 1 then stop else pix_col = pix_col[0]
+          ordering = strtrim(fxpar(hdr, 'tunit' + number_formatter(pix_col+1)))
+          
+          pixels = data.(pix_col)
+          if n_elements(pixels) ne n_elements(pixel_nums) then begin
+            match2, pixels, pixel_nums, sub1, sub2
+            wh_match = where(sub1 ne -1, count_match)
+            if count_match ne n_elements(pixel_nums) then message, 'dirtyfiles do not contain all of the pixels in datafiles'
+            
+            pixels = pixels[wh_match]
+          endif else if total(abs(pixel_nums-pixels)) ne 0 then message, 'dirty pixel nums do not agree with datafiles'
+          
+          xx_col = where(strpos(strlowcase(col_types), 'weighted pp') gt -1, count)
+          if count ne 1 then stop else xx_col = xx_col[0]
+          
+          if i eq 0 then xx_dirty = fltarr(npix, n_freq)
+          
+          if n_elements(wh_match) gt 0 then xx_dirty[*,i] = (data.(xx_col))[wh_match] else xx_dirty[*,i] = data.(xx_col)
+          
+          yy_col = where(strpos(strlowcase(col_types), 'weighted qq') gt -1, count)
+          if count ne 1 then stop else yy_col = yy_col[0]
+          
+          if i eq 0 then yy_dirty = fltarr(npix, n_freq)
+          if n_elements(wh_match) gt 0 then yy_dirty[*,i] = (data.(yy_col))[wh_match] else yy_dirty[*,i] = data.(yy_col)
+          
+          undefine, data
+          
+          data2 = mrdfits(dirtyfile_arr[i, file_i], 'MWA_SUBINT_TABLE', hdr2, /silent)
+          col_types2 = fxpar(hdr2, 'ttype*')
+          
+          ;        freq_col = where(strpos(strlowcase(col_types2), 'freq') gt -1, count)
+          ;        if count ne 1 then stop else freq_col = freq_col[0]
+          ;        freq_arr = data.(freq_col)
+          ;        if max(abs(freq_arr - freq_arr[0])) gt 0 then print, 'frequencies in file ' + dirtyfile_arr[i, file_i] + ' vary by ' + number_formatter(max(abs(freq_arr - freq_arr[0])))
+          ;        if abs(frequencies2[i] - freq_arr[0]) gt 1e-3 then message, 'frequencies are not the same in dirty and data files.'
+          
+          time_col = where(strpos(strlowcase(col_types2), 'fracmjd') gt -1, count)
+          if count ne 1 then stop else time_col = time_col[0]
+          time_arr = data2.(time_col)
+          time_diffs = ((time_arr - shift(time_arr, 1))[1:*])*3600*24 ;fractional days to seconds
+          time_diffs = round(time_diffs*2.)/2. ;round to nearest 1/2 second
+          if total(abs(time_diffs - time_diffs[0])) gt 0 then print, 'inconsistent time resolutions in file ' + dirtyfile_arr[i, file_i] + ' using the smallest value.'
+          if abs(time_resolution - min(time_diffs)) ne 0 then print, 'time resolutions are not the same in dirty and data files'
+          
+          obs_ra_col = where(strpos(strlowcase(col_types2), 'ha_pt') gt -1, count)
+          if count ne 1 then stop else obs_ra_col = obs_ra_col[0]
+          obs_ra_arr = data2.(obs_ra_col)
+          if total(abs(obs_ra_arr - obs_ra_arr[0])) gt 0 then message, 'inconsistent obs_ra in file ' + dirtyfile_arr[i, file_i]
+          if abs(obs_ra - obs_ra_arr[0]) ne 0 then print, 'obs_ra is not the same in dirty and data files'
+          
+          obs_dec_col = where(strpos(strlowcase(col_types2), 'dec_pt') gt -1, count)
+          if count ne 1 then stop else obs_dec_col = obs_dec_col[0]
+          obs_dec_arr = data2.(obs_dec_col)
+          if total(abs(obs_dec_arr - obs_dec_arr[0])) gt 0 then message, 'inconsistent obs_dec in file ' + dirtyfile_arr[i, file_i]
+          if abs(obs_dec - obs_dec_arr[0]) ne 0 then print, 'obs_dec is not the same in dirty and data files'
+          
+          zen_ra_col = where(strpos(strlowcase(col_types2), 'ra_ph') gt -1, count)
+          if count ne 1 then stop else zen_ra_col = zen_ra_col[0]
+          zen_ra_arr = data2.(zen_ra_col)
+          if total(abs(zen_ra_arr - zen_ra_arr[0])) gt 0 then message, 'inconsistent zen_ra in file ' + dirtyfile_arr[i, file_i]
+          if abs(zen_ra - zen_ra_arr[0]) ne 0 then print, 'zen_ra is not the same in dirty and data files'
+          
+          zen_dec_col = where(strpos(strlowcase(col_types2), 'dec_ph') gt -1, count)
+          if count ne 1 then stop else zen_dec_col = zen_dec_col[0]
+          zen_dec_arr = data2.(zen_dec_col)
+          if total(abs(zen_dec_arr - zen_dec_arr[0])) gt 0 then message, 'inconsistent zen_dec in file ' + dirtyfile_arr[i, file_i]
+          if abs(zen_dec - zen_dec_arr[0]) ne 0 then print, 'zen_dec is not the same in dirty and data files'
+          
+          undefine, data2
+          
+          data3 = mrdfits(dirtyfile_arr[i, file_i], 'UWPS Header', hdr3, /silent)
+          if fxpar(hdr3, 'freq') ne frequencies[i] then message, 'data and dirty frequencies do not match'
+          if fxpar(hdr3, 'n_bsnl') ne n_vis_arr[i] then print, 'data and dirty n_vis do not match for dirtyfile: ' + dirtyfile_arr[i, file_i]
+          if fxpar(hdr3, 'uv_pixsz') ne kpix_arr[i] then  message, 'data and dirty uv pixel sizes do not match'
+          if fxpar(hdr3, 'uv_span') ne kspan_arr[i] then print, 'data and dirty uv spans do not match'
+          if (time_integration-fxpar(hdr3, 'time_int')) ne 0 then print, 'data and dirty time integrations do not match'
+          if (max_baseline-fxpar(hdr3, 'max_bsnl')) ne 0 then print, 'data and dirty max baseline do not match'
+                
+        endfor
+      endif
+      
       save, file = idl_cube_savefile[file_i], nside, frequencies, time_resolution, $
         n_vis_arr, kpix_arr, kspan_arr, time_integration, max_baseline, $
         obs_ra, obs_dec, zen_ra, zen_dec, $
-        pixel_nums, xx_data, yy_data, xx_weights, yy_weights, xx_variances, yy_variances
+        pixel_nums, xx_data, yy_data, xx_dirty, yy_dirty, xx_weights, yy_weights, xx_variances, yy_variances
         
     endif
   endfor
@@ -406,10 +518,14 @@ function rts_fits2idlcube, datafiles, weightfiles, variancefiles, pol_inc, $
           yy_weights = yy_weights[pix_use, *]
           xx_variances = xx_variances[pix_use, *]
           yy_variances = yy_variances[pix_use, *]
+          if n_elements(dirtyfiles) gt 0 then begin
+            xx_dirty = xx_dirty[pix_use, *]
+            yy_dirty = yy_dirty[pix_use, *]
+          endif
           
           save, file = idl_cube_savefile[file_i], nside, frequencies, time_resolution, n_vis_arr, kpix_arr, kspan_arr, time_integration, max_baseline, $
             obs_ra, obs_dec, zen_ra, zen_dec, $
-            pixel_nums, xx_data, yy_data, xx_weights, yy_weights, xx_variances, yy_variances
+            pixel_nums, xx_data, yy_data, xx_dirty, yy_dirty, xx_weights, yy_weights, xx_variances, yy_variances
             
         endif
       endfor

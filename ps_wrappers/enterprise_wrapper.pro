@@ -1,4 +1,5 @@
-pro enterprise_wrapper, folder_name, obs_name, data_subdirs=data_subdirs, rts = rts, no_wtvar_rts = no_wtvar_rts, $
+pro enterprise_wrapper, folder_name, obs_name, data_subdirs=data_subdirs, dirty_folder = dirty_folder, $
+    rts = rts, no_wtvar_rts = no_wtvar_rts, type_inc = type_inc, $
     refresh_dft = refresh_dft, refresh_ps = refresh_ps, refresh_info = refresh_info, $
     refresh_rtscube = refresh_rtscube, refresh_binning = refresh_binning, refresh_beam = refresh_beam, $
     pol_inc = pol_inc, no_spec_window = no_spec_window, $
@@ -7,7 +8,7 @@ pro enterprise_wrapper, folder_name, obs_name, data_subdirs=data_subdirs, rts = 
     kperp_range_1dave = kperp_range_1dave, kperp_range_lambda_1dave = kperp_range_lambda_1dave, $
     kpar_range_1dave = kpar_range_1dave, use_weight_cutoff = use_weight_cutoff, fix_sim_input = fix_sim_input, $
     plot_kpar_power = plot_kpar_power, plot_kperp_power = plot_kperp_power, $
-    plot_k0_power = plot_k0_power, plot_noise_1d = plot_noise_1d, range_1d = range_1d, $
+    plot_k0_power = plot_k0_power, plot_noise_1d = plot_noise_1d, plot_sim_noise = plot_sim_noise, range_1d = range_1d, $
     coarse_harm_width = coarse_harm_width, kperp_plot_range = kperp_plot_range, $
     kperp_lambda_plot_range = kperp_lambda_plot_range, kpar_plot_range = kpar_plot_range, $
     png = png, eps = eps, pdf = pdf, plot_stdset = plot_stdset, $
@@ -58,19 +59,46 @@ pro enterprise_wrapper, folder_name, obs_name, data_subdirs=data_subdirs, rts = 
     
     if folder_test eq 0 then message, 'folder not found'
     
+    if n_elements(dirty_folder) gt 0 then begin
+      ;; check for folder existence, otherwise look for common folder names to figure out full path.
+      ;; If none found, try '/data3/MWA/bpindor/RTS/'
+      start_path = '/data3/MWA/bpindor/RTS/'
+      folder_test = file_test(dirty_folder, /directory)
+      if folder_test eq 0 then begin
+        pos_RTS = strpos(dirty_folder, 'RTS')
+        if pos_RTS gt -1 then begin
+          test_name = start_path + strmid(dirty_folder, pos_RTS)
+          folder_test = file_test(test_name, /directory)
+          if folder_test eq 1 then dirty_folder = test_name
+        endif
+      endif
+      if folder_test eq 0 then begin
+        test_name = start_path + dirty_folder
+        folder_test = file_test(test_name, /directory)
+        if folder_test eq 1 then dirty_folder = test_name
+      endif
+      
+      if folder_test eq 0 then message, 'dirty_folder not found'
+      
+    endif
+    
     if n_elements(ps_foldername) eq 0 then ps_foldername = 'ps/'
     save_path = folder_name + '/' + ps_foldername
-    obs_info = ps_filenames(folder_name, obs_name, rts = rts, sim = sim, casa = casa, $
+    obs_info = ps_filenames(folder_name, obs_name, dirty_folder = dirty_folder, rts = rts, sim = sim, casa = casa, $
       save_paths = save_path, plot_path = save_path, refresh_info = refresh_info, no_wtvar_rts = no_wtvar_rts)
       
+    if tag_exist(obs_info, 'dirtyfiles') then dirtyfiles = obs_info.dirtyfiles.(0)
+    
     if obs_info.info_files[0] ne '' then datafile = obs_info.info_files[0] else $
       if obs_info.cube_files.(0)[0] ne '' then datafile = obs_info.cube_files.(0) else $
       datafile = rts_fits2idlcube(obs_info.datafiles.(0), obs_info.weightfiles.(0), obs_info.variancefiles.(0), $
-      pol_inc, save_path = obs_info.folder_names[0]+path_sep(), refresh = refresh_dft, no_wtvar = no_wtvar_rts)
+      dirtyfiles = dirtyfiles, pol_inc = pol_inc, save_path = obs_info.folder_names[0]+path_sep(), $
+      refresh = refresh_dft, no_wtvar = no_wtvar_rts)
       
     if keyword_set(refresh_rtscube) then $
       datafile = rts_fits2idlcube(obs_info.datafiles.(0), obs_info.weightfiles.(0), obs_info.variancefiles.(0), $
-      pol_inc, save_path = obs_info.folder_names[0]+path_sep(), /refresh, no_wtvar = no_wtvar_rts)
+      dirtyfiles = dirtyfiles, pol_inc = pol_inc, save_path = obs_info.folder_names[0]+path_sep(), $
+      /refresh, no_wtvar = no_wtvar_rts)
       
     if keyword_set(no_wtvar_rts) then return
     
@@ -81,6 +109,25 @@ pro enterprise_wrapper, folder_name, obs_name, data_subdirs=data_subdirs, rts = 
     
     plot_path = save_path + 'plots/'
     if not file_test(plot_path, /directory) then file_mkdir, plot_path
+    
+    if keyword_set(set_data_ranges) then begin
+      if n_elements(range_1d) eq 0 then range_1d = [1e4, 1e15]
+      
+      ;if obs_info.integrated[0] gt 0 then begin
+      sigma_range = [2e5, 2e9]
+      nev_range = [2e6, 2e10]
+      ;sigma_range = nev_range
+      ;      endif else begin
+      ;        sigma_range = [1e7, 2e11]
+      ;        nev_range = [2e8, 2e12]
+      ;      endelse
+      
+      data_range = [1e3, 1e15]
+      nnr_range = [1e-1, 1e1]
+      snr_range = [1e-5, 1e7]
+      
+      noise_range = nev_range
+    endif
     
   endif else begin
   
@@ -151,12 +198,18 @@ pro enterprise_wrapper, folder_name, obs_name, data_subdirs=data_subdirs, rts = 
     if keyword_set(set_data_ranges) then begin
       if n_elements(range_1d) eq 0 then range_1d = [1e4, 1e15]
       
-      if keyword_set(obs_info.integrated[0]) then sigma_range = [2e0, 2e2] else sigma_range = [1e2, 2e4]
-      if keyword_set(obs_info.integrated[0]) then nev_range = [5e0, 2e3] else nev_range = [5e2, 2e5]
+      if obs_info.integrated[0] gt 0 then begin
+        sigma_range = [2e5, 2e9]
+        nev_range = [2e6, 2e10]
+      ;sigma_range = nev_range
+      endif else begin
+        sigma_range = [1e7, 2e11]
+        nev_range = [2e8, 2e12]
+      endelse
       
-      data_range = [1e-2, 1e8]
+      data_range = [1e3, 1e15]
       nnr_range = [1e-1, 1e1]
-      snr_range = [1e-4, 1e6]
+      snr_range = [1e-5, 1e7]
       
       noise_range = nev_range
     endif
@@ -249,7 +302,7 @@ pro enterprise_wrapper, folder_name, obs_name, data_subdirs=data_subdirs, rts = 
     kperp_lambda_plot_range = kperp_lambda_plot_range, kpar_plot_range = kpar_plot_range, $
     plot_slices = plot_slices, slice_type = slice_type, uvf_plot_type = uvf_plot_type, plot_stdset = plot_stdset, $
     plot_kpar_power = plot_kpar_power, plot_kperp_power = plot_kperp_power, plot_k0_power = plot_k0_power, $
-    plot_noise_1d = plot_noise_1d, $
+    plot_noise_1d = plot_noise_1d, plot_sim_noise = plot_sim_noise, $
     data_range = data_range, sigma_range = sigma_range, nev_range = nev_range, snr_range = snr_range, $
     noise_range = noise_range, nnr_range = nnr_range, $
     range_1d = range_1d, slice_range = slice_range, $
@@ -257,7 +310,7 @@ pro enterprise_wrapper, folder_name, obs_name, data_subdirs=data_subdirs, rts = 
     plot_wedge_line = plot_wedge_line, wedge_angles = wedge_angles, coarse_harm_width = coarse_harm_width, plot_eor_1d = plot_eor_1d, $
     individual_plots = individual_plots, note = note, png = png, eps = eps, pdf = pdf, $
     cube_power_info = cube_power_info, $
-    norm_rts_with_fhd = norm_rts_with_fhd
+    norm_rts_with_fhd = norm_rts_with_fhd, type_inc = type_inc
     
     
   if not keyword_set(set_data_ranges)and keyword_set(plot_stdset) then begin
