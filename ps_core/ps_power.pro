@@ -561,7 +561,7 @@ pro ps_power, file_struct, refresh = refresh, kcube_refresh = kcube_refresh, dft
       kperp_range = kperp_range_use
       kperp_range_lambda = kperp_range_use * kperp_lambda_conv
       kpar_range = kpar_range_use
-      wedge_amp = wedge_amp_use
+      if i gt 0 then wedge_amp = wedge_amp_use
       
       if n_elements(freq_flags) ne 0 then begin
         save, file = savefile_1d[j,i], power, noise, sim_noise, sim_noise_diff, weights, noise_expval, $
