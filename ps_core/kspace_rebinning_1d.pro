@@ -180,8 +180,7 @@ function kspace_rebinning_1d, power, k1_mpc, k2_mpc, k3_mpc, k_edges_mpc, k_bin 
     
     if not keyword_set(log_k) then begin
     
-      if keyword_set(edge_on_grid) then k_min = floor(min(temp) / k_bin) * k_bin $
-      else k_min = floor((min(temp) + k_bin/2d) / k_bin) * k_bin - k_bin/2d
+      if keyword_set(edge_on_grid) then k_min = floor(min(temp) / k_bin) * k_bin
       
       ;; Use histogram with reverse indicies to bin in k
       k_hist = histogram(temp, binsize = k_bin, min = k_min, omax = k_max, locations = lin_k_locs, $
