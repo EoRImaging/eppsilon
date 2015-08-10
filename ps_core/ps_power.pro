@@ -434,7 +434,7 @@ pro ps_power, file_struct, refresh = refresh, kcube_refresh = kcube_refresh, dft
       textfile = strmid(savefile_k0[j], 0, stregex(savefile_k0[j], '.idlsave')) + '.txt'
       print, 'saving kpar=0 power to ' + textfile
       save_1D_text, textfile, k_edges, power, weights, noise_expval, hubble_param, noise, $
-        sim_noise_power = sim_noise, sim_noise_diff = sim_noise_diff, nfiles = nfiles
+        sim_noise_power = sim_noise, sim_noise_diff = sim_noise_diff, nfiles = nfiles, hinv = hinv
         
       if n_elements(freq_flags) ne 0 then begin
         save, file = savefile_k0[j], power, noise, sim_noise, sim_noise_diff, weights, noise_expval, k_edges, k_bin, $
@@ -575,7 +575,7 @@ pro ps_power, file_struct, refresh = refresh, kcube_refresh = kcube_refresh, dft
       textfile = strmid(savefile_1d[j,i], 0, stregex(savefile_1d[j,i], '.idlsave')) + '.txt'
       print, 'saving 1d power to ' + textfile
       save_1D_text, textfile, k_edges, power, weights, noise_expval, hubble_param, noise, $
-        sim_noise_power = sim_noise, sim_noise_diff = sim_noise_diff,  nfiles = nfiles
+        sim_noise_power = sim_noise, sim_noise_diff = sim_noise_diff,  nfiles = nfiles, hinv = hinv
         
       mask_weights = long(bin_mask_3d gt 0)
       
@@ -591,10 +591,10 @@ pro ps_power, file_struct, refresh = refresh, kcube_refresh = kcube_refresh, dft
           plotfilebase_use1 = plotfile_binning_hist[j,i] + '_3to1d'
           plotfilebase_use2 = plotfile_binning_hist[j,i] + '_2to1d'
         endif
-        binning_hist_plots, power_3d, sim_noise_3d, weights_3d, bin_mask_3d, power_1d, weights_1d, window_start = 1, $
+        binning_hist_plots, power_3d, sim_noise_3d, weights_3d, bin_mask_3d, power_1d, weights_1d, sim_noise_1d, window_start = 1, $
           plotfilebase = plotfilebase_use1, png = png, eps = eps, pdf = pdf
-        binning_hist_plots, power_rebin, sim_noise_rebin, binned_weights, mask_1to2d, power_1d, weights_1d, window_start = !d.window+1, $
-          plotfilebase = plotfilebase_use2, png = png, eps = eps, pdf = pdf
+        binning_hist_plots, power_rebin, sim_noise_rebin, binned_weights, mask_1to2d, power_1d, weights_1d, sim_noise_1d, $
+          window_start = !d.window+1, plotfilebase = plotfilebase_use2, png = png, eps = eps, pdf = pdf
       endif
       
       noise_frac_1to2d = kspace_rebinning_2d(noise_frac_3d, kx_mpc, ky_mpc, kz_mpc, kperp_edges_mpc, kpar_edges_mpc, log_kpar = log_kpar, $

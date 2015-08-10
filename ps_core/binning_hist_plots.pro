@@ -1,4 +1,4 @@
-pro binning_hist_plots, power, sim_noise, weights, mask_1dbin, power_1d, weights_1d, $
+pro binning_hist_plots, power, sim_noise, weights, mask_1dbin, power_1d, weights_1d, sim_noise_1d, $
     plot_log = plot_log, window_start = window_start, plotfilebase = plotfilebase, png = png, eps = eps, pdf = pdf
     
   if n_elements(plot_log) eq 0 then plot_log = 1
@@ -82,6 +82,7 @@ pro binning_hist_plots, power, sim_noise, weights, mask_1dbin, power_1d, weights
     thick = 3
     xthick = 3
     ythick = 3
+    symsize = 1
     
     temp = [sizes.xsize/ncol, sizes.ysize/nrow]
     charsize = 0.5d * mean(temp)
@@ -106,6 +107,7 @@ pro binning_hist_plots, power, sim_noise, weights, mask_1dbin, power_1d, weights
     font = -1
     charsize = 2
     legend_charsize = charsize/2.
+    symsize = 1
   endelse
   
   !p.multi=[0,ncol,nrow]
@@ -136,10 +138,15 @@ pro binning_hist_plots, power, sim_noise, weights, mask_1dbin, power_1d, weights
     quick_histplot, power_ratio[wh_bin], binsize=binsize, range=range, /over, color='red', loghist = plot_log, thick = thick
     quick_histplot, ref_dist, binsize=binsize, range=range, /over, color='dark grey',loghist = plot_log, thick = thick/2.
     
-    if keyword_set(plot_log) then value_yloc = 10^(!y.crange[1]*0.5) else value_yloc = !y.crange[1]*0.5
+    if keyword_set(plot_log) then value_yloc = 10^(!y.crange[1]*0.6) else value_yloc = !y.crange[1]*0.6
     
+    if sim_noise_1d[k-1]*sqrt(weights_1d[k-1]) gt !x.crange[0] and sim_noise_1d[k-1]*sqrt(weights_1d[k-1]) lt !x.crange[1] then $
+      cgplot, sim_noise_1d[k-1]*sqrt(weights_1d[k-1]), value_yloc, err_xhigh = 1, err_xlow = 1, psym=6, color='black', /over, $
+      thick = thick/2., err_thick=thick/2., symsize = symsize/2. $
+    else cgarrow, !x.crange[1]-1, value_yloc, !x.crange[1], value_yloc, /data, color='black', /solid, hsize = !d.x_size/200, thick = thick/2.
     if power_1d[k-1]*sqrt(weights_1d[k-1]) gt !x.crange[0] and power_1d[k-1]*sqrt(weights_1d[k-1]) lt !x.crange[1] then $
-      cgplot, power_1d[k-1]*sqrt(weights_1d[k-1]), value_yloc, err_xhigh = 1, err_xlow = 1, psym=5, color='blue', /over, thick = thick $
+      cgplot, power_1d[k-1]*sqrt(weights_1d[k-1]), value_yloc, err_xhigh = 1, err_xlow = 1, psym=5, color='blue', /over, $
+      thick = thick, err_thick=thick, symsize = symsize $
     else cgarrow, !x.crange[1]-1, value_yloc, !x.crange[1], value_yloc, /data, color='blue', /solid, hsize = !d.x_size/200, thick = thick
     al_legend, ['sim_noise/sigma', 'power/sigma', 'gaussian dist', '1d power/sigma'], textcolor=['black', 'red', 'dark grey', 'blue'], box=0, /right, $
       charthick = charthick, charsize = legend_charsize
@@ -179,7 +186,7 @@ pro binning_hist_plots, power, sim_noise, weights, mask_1dbin, power_1d, weights
     
     if power_1d[k-1]*sqrt(weights_1d[k-1]) gt !x.crange[0] and power_1d[k-1]*sqrt(weights_1d[k-1]) lt !x.crange[1] then $
       cgplot, power_1d[k-1]*sqrt(weights_1d[k-1]), value_yloc, err_xhigh = sqrt(weights_1d[k-1]), $
-      err_xlow = sqrt(weights_1d[k-1]), psym=5, color='blue', /over, thick = thick $
+      err_xlow = sqrt(weights_1d[k-1]), psym=5, color='blue', /over, thick = thick, err_thick = thick, symsize = symsize $
     else cgarrow, !x.crange[1]-sqrt(weights_1d[k-1]), value_yloc, !x.crange[1], value_yloc, /data, color='blue', /solid, hsize = !d.x_size/200, thick = thick
     al_legend, ['sim_noise', 'power', 'gaussian dist', '1d power'], textcolor=['black', 'red', 'dark grey', 'blue'], box=0, /right, $
       charthick = charthick, charsize = legend_charsize

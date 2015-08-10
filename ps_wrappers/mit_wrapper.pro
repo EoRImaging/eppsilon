@@ -43,12 +43,17 @@ pro mit_wrapper, folder_name, obs_name, data_subdirs=data_subdirs, exact_obsname
     
     ;; check for folder existence, otherwise look for common folder names to figure out full path. If none found, try '/nfs/mwa-09/r1/djc/EoR2013/Aug23/'
     start_path = '/nfs/mwa-09/r1/djc/'
+    start_path2 = '/nfs/mwa-03/r1/'
     folder_test = file_test(folder_name, /directory)
     if folder_test eq 0 then begin
       pos_eor2013 = strpos(folder_name, 'EoR2013')
       if pos_eor2013 gt -1 then begin
         test_name = start_path + strmid(folder_name, pos_eor2013)
         folder_test = file_test(test_name, /directory)
+        if folder_test eq 0 then begin
+          test_name = start_path2 + strmid(folder_name, pos_eor2013)
+          folder_test = file_test(test_name, /directory)
+        endif
         if folder_test eq 1 then folder_name = test_name
       endif
     endif
@@ -65,6 +70,10 @@ pro mit_wrapper, folder_name, obs_name, data_subdirs=data_subdirs, exact_obsname
       if pos_aug26 gt -1 then begin
         test_name = start_path + 'EoR2013/' + strmid(folder_name, pos_aug26)
         folder_test = file_test(test_name, /directory)
+        if folder_test eq 0 then begin
+          test_name = start_path2 + 'EoR2013/' + strmid(folder_name, pos_aug26)
+          folder_test = file_test(test_name, /directory)
+        endif
         if folder_test eq 1 then folder_name = test_name
       endif
     endif
@@ -73,22 +82,47 @@ pro mit_wrapper, folder_name, obs_name, data_subdirs=data_subdirs, exact_obsname
       if pos_week1 gt -1 then begin
         test_name = start_path + 'EoR2013/' + strmid(folder_name, pos_week1)
         folder_test = file_test(test_name, /directory)
+        if folder_test eq 0 then begin
+          test_name = start_path2 + 'EoR2013/' + strmid(folder_name, pos_week1)
+          folder_test = file_test(test_name, /directory)
+        endif
         if folder_test eq 1 then folder_name = test_name
       endif
     endif
     if folder_test eq 0 then begin
       test_name = start_path + 'EoR2013/Aug23/' + folder_name
       folder_test = file_test(test_name, /directory)
+      if folder_test eq 0 then begin
+        test_name = start_path2 + 'EoR2013/Aug23/' + folder_name
+        folder_test = file_test(test_name, /directory)
+      endif
       if folder_test eq 1 then folder_name = test_name
     endif
     if folder_test eq 0 then begin
       test_name = start_path + 'EoR2013/Aug26/' + folder_name
       folder_test = file_test(test_name, /directory)
+      if folder_test eq 0 then begin
+        test_name = start_path2 + 'EoR2013/Aug26/' + folder_name
+        folder_test = file_test(test_name, /directory)
+      endif
       if folder_test eq 1 then folder_name = test_name
     endif
     if folder_test eq 0 then begin
       test_name = start_path + 'EoR2013/week1/' + folder_name
       folder_test = file_test(test_name, /directory)
+      if folder_test eq 0 then begin
+        test_name = start_path2 + 'EoR2013/week1/' + folder_name
+        folder_test = file_test(test_name, /directory)
+      endif
+      if folder_test eq 1 then folder_name = test_name
+    endif
+    if folder_test eq 0 then begin
+      test_name = start_path + 'EoR2013/' + folder_name
+      folder_test = file_test(test_name, /directory)
+      if folder_test eq 0 then begin
+        test_name = start_path2 + 'EoR2013/' + folder_name
+        folder_test = file_test(test_name, /directory)
+      endif
       if folder_test eq 1 then folder_name = test_name
     endif
     
