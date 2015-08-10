@@ -877,18 +877,18 @@ function fhd_file_setup, filename, weightfile = weightfile, variancefile = varia
     
       if ntypes gt 1 then data_varname = metadata_struct.cube_varname[type_i, pol_i] else data_varname = metadata_struct.cube_varname[pol_i]
       if data_varname ne '' then begin
-        res_uvf_inputfiles = strarr(nfiles,2)
-        res_uvf_varname = strarr(nfiles,2)
+        derived_uvf_inputfiles = strarr(nfiles,2)
+        derived_uvf_varname = strarr(nfiles,2)
       endif else begin
         if healpix or not keyword_set(uvf_input) then begin
-          res_uvf_inputfiles = uvf_savefile[pol_i, *, 0:1]
-          res_uvf_varname = strarr(nfiles, 2) + 'data_cube'
+          derived_uvf_inputfiles = uvf_savefile[pol_i, *, 0:1]
+          derived_uvf_varname = strarr(nfiles, 2) + 'data_cube'
         endif else begin
-          res_uvf_inputfiles = strarr(nfiles,2)
-          res_uvf_varname = strarr(nfiles,2)
+          derived_uvf_inputfiles = strarr(nfiles,2)
+          derived_uvf_varname = strarr(nfiles,2)
           for j=0, nfiles-1 do begin
-            res_uvf_inputfiles[j,*] = datafile[pol_i, j]
-            res_uvf_varname[j,*] = [metadata_struct.cube_varname[0, pol_i], metadata_struct.cube_varname[1, pol_i]]
+            derived_uvf_inputfiles[j,*] = datafile[pol_i, j]
+            derived_uvf_varname[j,*] = [metadata_struct.cube_varname[0, pol_i], metadata_struct.cube_varname[1, pol_i]]
           endfor
         endelse
       endelse
@@ -913,7 +913,7 @@ function fhd_file_setup, filename, weightfile = weightfile, variancefile = varia
         kcube_savefile:kcube_savefile[pol_i,type_i], power_savefile:power_savefile[pol_i,type_i], fits_power_savefile:fits_power_savefile[pol_i,type_i],$
         savefile_froot:froot, savefilebase:savefilebase[pol_i,type_i], general_filebase:general_filebase, $
         weight_savefilebase:reform(weight_savefilebase[pol_i, *]), $
-        res_uvf_inputfiles:res_uvf_inputfiles, res_uvf_varname:res_uvf_varname, $
+        derived_uvf_inputfiles:derived_uvf_inputfiles, derived_uvf_varname:derived_uvf_varname, $
         file_label:file_label[pol_i,type_i], uvf_label:reform(uvf_label[pol_i,*,type_i]), wt_file_label:wt_file_label[pol_i], $
         uvf_tag:uvf_tag, kcube_tag:kcube_tag, power_tag:power_tag, type_pol_str:metadata_struct.type_pol_str[pol_i,type_i], $
         pol_index:pol_i, type_index:type_i, pol:metadata_struct.pol_inc[pol_i], type:metadata_struct.type_inc[type_i], nfiles:nfiles}
