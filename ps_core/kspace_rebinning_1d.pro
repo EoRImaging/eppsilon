@@ -3,7 +3,7 @@
 function kspace_rebinning_1d, power, k1_mpc, k2_mpc, k3_mpc, k_edges_mpc, k_bin = k_bin, log_k = log_k, $
     noise_expval = noise_expval, binned_noise_expval = noise_expval_1d, weights = weights, $
     binned_weights = weights_1d, kperp_range = kperp_range, kpar_range = kpar_range, wedge_amp = wedge_amp, $
-    var_power_1d = var_power_1d, mean_var_1d = mean_var_1d, $
+    nbins_1d = norm, var_power_1d = var_power_1d, mean_var_1d = mean_var_1d, $
     coarse_harm0 = coarse_harm0, coarse_width = coarse_width, bin_mask_3d = bin_mask_3d, noise_frac_3d = noise_frac_3d, $
     edge_on_grid = edge_on_grid, match_datta = match_datta, kpar_power = kpar_power, kperp_power = kperp_power, $
     kperp_density_measure = kperp_density_measure, kperp_density_cutoff = kperp_density_cutoff
