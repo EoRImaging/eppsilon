@@ -189,7 +189,7 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, wei
       power_use = power1 / power2
       wh0 = where(power2 eq 0, count0)
       if count0 gt 0 then power_use[wh0] = 0
-    endif
+    endif else power_use = power
     
     plot_type = 'power_ratio'
     
