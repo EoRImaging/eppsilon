@@ -229,7 +229,8 @@ function kspace_rebinning_2d, power_3d, kx_mpc, ky_mpc, kz_mpc, kperp_edges_mpc,
       weights_mid[i, *] = total(reform(temp, kperp_hist[i], n_kz), 1)
       
       temp_sigma = 1./temp
-      temp_sigma[where(temp eq 0)] = 0
+      wh_temp0 = where(temp eq 0, count_temp0)
+      if count_temp0 gt 0 then temp_sigma[wh_temp0] = 0
       temp_power = reformed_power[kperp_ri[kperp_ri[i] : kperp_ri[i+1]-1], *]
       
       if min(temp) le 0 then begin
