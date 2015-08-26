@@ -95,7 +95,7 @@ function kspace_rebinning_2d, power_3d, kx_mpc, ky_mpc, kz_mpc, kperp_edges_mpc,
     wh_wt0 = where(weights_use eq 0, count_wt0)
     if count_wt0 gt 0 then noise_expval_use[wh_wt0] = 0
   endelse
-    
+  
   ;; apply any pre-binning cuts
   if n_elements(kx_lims) gt 0 then begin
     if n_elements(kx_lims) gt 2 then message, 'kx_lims has too many elements' $
@@ -140,20 +140,20 @@ function kspace_rebinning_2d, power_3d, kx_mpc, ky_mpc, kz_mpc, kperp_edges_mpc,
     wh_kperp_dense = where(kperp_density_measure_use gt kperp_density_cutoff, count_kperp_dense, $
       complement = wh_kperp_nd, ncomplement=count_kperp_nd)
       
-      if count_kperp_dense gt 0 then begin
-        temp = reform(power_use, n_kx*n_ky, n_kz)
-        temp[wh_kperp_dense, *] /= 0.5
-        power_use = reform(temp, n_kx, n_ky, n_kz)
-  
-        temp = reform(weights_use, n_kx*n_ky, n_kz)
-        temp[wh_kperp_dense, *] *= 0.5^2.
-        weights_use = reform(temp, n_kx, n_ky, n_kz)
-  
-        temp = reform(noise_expval_use, n_kx*n_ky, n_kz)
-        temp[wh_kperp_dense, *] /= 0.5
-        noise_expval_use = reform(temp, n_kx, n_ky, n_kz)
-      endif else print, 'no kperp values exceed kperp_density_cutoff'
-       
+    if count_kperp_dense gt 0 then begin
+      temp = reform(power_use, n_kx*n_ky, n_kz)
+      temp[wh_kperp_dense, *] /= 0.5
+      power_use = reform(temp, n_kx, n_ky, n_kz)
+      
+      temp = reform(weights_use, n_kx*n_ky, n_kz)
+      temp[wh_kperp_dense, *] *= 0.5^2.
+      weights_use = reform(temp, n_kx, n_ky, n_kz)
+      
+      temp = reform(noise_expval_use, n_kx*n_ky, n_kz)
+      temp[wh_kperp_dense, *] /= 0.5
+      noise_expval_use = reform(temp, n_kx, n_ky, n_kz)
+    endif else print, 'no kperp values exceed kperp_density_cutoff'
+    
   endif
   
   if not keyword_set(log_kperp) then begin
@@ -186,6 +186,7 @@ function kspace_rebinning_2d, power_3d, kx_mpc, ky_mpc, kz_mpc, kperp_edges_mpc,
       kperp_array = alog10(temp)
     endif else begin
       ;; Add an extra bin to put the k=0 mode into.
+      if max(temp) eq 0 then message, 'kperps are all zero'
       if keyword_set(edge_on_grid) then $
         kperp_min = floor((alog10(min(temp[where(temp gt 0)]))) / kperp_log_binsize - 1) * kperp_log_binsize $
       else kperp_min = alog10(min(temp[where(temp gt 0)]))-3d*kperp_log_binsize/2d
@@ -310,6 +311,7 @@ function kspace_rebinning_2d, power_3d, kx_mpc, ky_mpc, kz_mpc, kperp_edges_mpc,
         
       kpar_arr = alog10(kz_mpc)
     endif else begin
+      if max(kz_mpc) eq 0 then message, 'kz_mpc is all zero'
       if keyword_set(edge_on_grid) then $
         kpar_min = floor((alog10(min(kz_mpc[where(kz_mpc gt 0)]))) / kpar_log_binsize - 1) * kpar_log_binsize $
       else kpar_min = alog10(min(kz_mpc[where(kz_mpc gt 0)]))-3d*kpar_log_binsize/2d
