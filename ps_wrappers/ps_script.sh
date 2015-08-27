@@ -27,7 +27,7 @@ while getopts ":d:f:p:w:n:m:o:l:h:" option
 do
    case $option in
         d) FHDdir="$OPTARG";;			#file path to fhd directory with cubes
-        f) integrate_list="$OPTARG";;		#txt file of obs ids or subcubes
+        f) integrate_list="$OPTARG";;		#txt file of obs ids or subcubes or a single obsid
         p) priority=$OPTARG;;           	#priority level for grid engine qsub
         w) wallclock_time=$OPTARG;;     	#Time for execution in grid engine
         n) nslots=$OPTARG;;             	#Number of slots for grid engine
@@ -35,7 +35,7 @@ do
 	o) ps_only=$OPTARG;;			#Flag for skipping integration to make PS only
         l) legacy=$OPTARG;;                     #Use legacy directory structure. hacky solution to a silly problem.
         h) hold=$OPTARG;;                       #Hold for a job to finish before running. Useful when running immediately after firstpass
-        \?) echo "Unknown option: Accepted flags are -d (file path to fhd directory with cubes), -f (obs list or subcube path), "
+        \?) echo "Unknown option: Accepted flags are -d (file path to fhd directory with cubes), -f (obs list or subcube path or single obsid), "
 	    echo "-p (priority for grid engine), -w (wallclock time), -n (number of slots), -m (memory allocation), "
 	    echo "-o (make ps only without integration), and -l (legacy flag for old file structure)"
             exit 1;;
@@ -71,11 +71,21 @@ then
     exit 1
 fi
 
-#Error if integrate list filename does not exist
+#Warning if integrate list filename does not exist
 if [ ! -e "$integrate_list" ]
 then
-    echo "Integrate list file does not exist."
-    exit 1
+    echo "Integrate list is either not a file or the file does not exist!"
+    echo "Assuming the integrate list is a single observation id."
+
+    if [ -z ${ps_only} ]
+    then
+        echo "ps_only flag must be set if integrate list is a single observation id. Set -o 1 if desired function"
+        exit 1
+    fi 
+    version=$integrate_list  #Currently assuming that the integrate list is a single obsid
+else
+    version=$(basename $integrate_list) # get filename
+    version="${version%.*}" # strip extension
 fi
 
 #Default priority if not set.
@@ -102,11 +112,16 @@ if [ -z ${hold} ]; then hold_str=""; else hold_str="-hold_jid ${hold}"; fi
 ### NOTE this only works if idlstartup doesn't have any print statements (e.g. healpix check)
 PSpath=$(idl -e 'print,rootdir("ps")')
 
-version=$(basename $integrate_list) # get filename
-version="${version%.*}" # strip extension
+#Versions made during integrate list logic check above
 echo Version is $version
 
-first_line=$(head -n 1 $integrate_list)
+if [ ! -e "$integrate_list" ]
+then
+    first_line=$integrate_list
+else
+    first_line=$(head -n 1 $integrate_list)
+fi
+
 first_line_len=$(echo ${#first_line})
 
 rm -f ${FHDdir}/Healpix/${version}_int_chunk*.txt # remove any old chunk files lying around
