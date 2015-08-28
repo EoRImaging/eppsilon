@@ -249,7 +249,8 @@ function kspace_rebinning_1d, power, k1_mpc, k2_mpc, k3_mpc, k_edges_mpc, k_bin 
         
         temp = weights_use[inds]
         temp_sigma = 1./temp
-        temp_sigma[where(temp eq 0)] = 0
+        zero_i=where(temp eq 0,n_zero)
+        IF n_zero GT 0 THEN temp_sigma[zero_i] = 0
         
         if min(weights_use[inds]) eq 0 then begin
           wt_n0 = where(weights_use[inds] gt 0, count_n0)

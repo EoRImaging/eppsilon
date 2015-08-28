@@ -106,9 +106,9 @@ pro test_matrix_weighting, save_filebase = save_filebase, covar_use = covar_use,
     ;signal_eta = randomn(seed, n_freq[i])*sqrt(signal_power) + complex(0,1)*randomn(seed, n_freq[i])*sqrt(signal_power)
     ;signal = fft(shift(signal_eta, n_freq[i]/2), /inverse)*delta_eta[i]
     
-    signal_in_ft = fltarr(n_freq[i])
+    signal_in_ft = fltarr(n_freq[i]) ;; in eta space
     signal_in_ft[mode_use] = 5e6 ;/ n_elements(mode_use)
-    signal = fft(signal_in_ft,/inverse)*delta_eta[i]
+    signal = fft(signal_in_ft,/inverse)*delta_eta[i] ;; in frequency space
     if keyword_set(use_test_signal) then signal = test_signal
     if max(abs(imaginary(signal))) eq 0 then signal = real_part(signal)
     
@@ -144,9 +144,9 @@ pro test_matrix_weighting, save_filebase = save_filebase, covar_use = covar_use,
       vec_wt = fltarr(n_freq[i]) + 1.
     endelse
     
-    signal_ft = shift(fft(signal), n_freq[i]/2)*n_freq[i]*delta_f[i]
-    wt_signal_vec_ft = shift(fft(wt_signal_vec), n_freq[i]/2)*n_freq[i]*delta_f[i]
-    signal_nobp_ft = shift(fft(signal_nobp), n_freq[i]/2)*n_freq[i]*delta_f[i]
+    signal_ft = shift(fft(signal), n_freq[i]/2)*n_freq[i]*delta_f[i] ;; signal (with noise) in eta
+    wt_signal_vec_ft = shift(fft(wt_signal_vec), n_freq[i]/2)*n_freq[i]*delta_f[i] ;; variance weighted signal in eta
+    signal_nobp_ft = shift(fft(signal_nobp), n_freq[i]/2)*n_freq[i]*delta_f[i] ;; signal w/o bandpass edges in eta
     
     case covar_use of
       'instrument': covar_f = covar_f_inst
@@ -177,27 +177,29 @@ pro test_matrix_weighting, save_filebase = save_filebase, covar_use = covar_use,
     temp_signal = signal
     wh_sig_inf = where(finite(signal) ne 1, count_sig_inf)
     if count_sig_inf gt 0 then if max(abs(inv_covar_f[wh_sig_inf, *])) eq 0 then temp_signal[wh_sig_inf] = 0 else stop
-    wt_signal = matrix_multiply(inv_covar_f, temp_signal) * delta_f[i]
+    wt_signal = matrix_multiply(inv_covar_f, temp_signal) * delta_f[i] ;; covariance weighted signal in frequency
     
-    wt_signal_ft = shift(fft(wt_signal), n_freq[i]/2)*n_freq[i]*delta_f[i]
+    wt_signal_ft = shift(fft(wt_signal), n_freq[i]/2)*n_freq[i]*delta_f[i] ;; covariance weighted signal in eta
     
-    norm = total(abs(inv_covar_eta)^2.,2)*delta_eta[i]
+    norm = total(abs(inv_covar_eta)^2.,2)*delta_eta[i]  ;; standard covariance normalization
     temp = shift(abs(fft(total(abs(inv_covar_f)^2.,2))), n_freq[i]/2)*n_freq[i]*delta_f[i]
     
-    wt_power = abs(wt_signal_ft)^2./norm
-    power = abs(wt_signal_vec_ft)^2./(n_freq[i]*delta_f[i])
-    power_norm = abs(wt_signal_vec_ft)^2./(total(vec_wt^2.)*delta_f[i])
-    power_nobp = abs(signal_nobp_ft)^2./(n_freq[i]*delta_f[i])
+    wt_power = abs(wt_signal_ft)^2./norm ;; standard covariance weighted power
+    power = abs(wt_signal_vec_ft)^2./(n_freq[i]*delta_f[i]) ;; wrong normalization variance weighted power
+    power_norm = abs(wt_signal_vec_ft)^2./(total(vec_wt^2.)*delta_f[i]) ;; correct normalization variance weighted power
+    power_nobp = abs(signal_nobp_ft)^2./(n_freq[i]*delta_f[i]) ;; power of signal w/o bandpass edges
     
     wh_peak = where(power_nobp eq max(power_nobp), count_npeak)
     wh_peak = wh_peak[0]
     
+    ;; peak power for signal w/o bandpass, var weighted correct norm, covar weighted
     peak_power[i,*] = [power_nobp[wh_peak], power_norm[wh_peak], wt_power[wh_peak]]
     vec_wt_sum[i,*] = [total(vec_wt), total(vec_wt^2.)]
     
+    ;; empirical additional normalization that returns correct covariance power
     norm2 = total(vec_wt)^2./(n_freq[i]*total(vec_wt^2.))
     ;norm2 = power_norm[wh_peak]/power_nobp[wh_peak]
-    wt_power2 = wt_power/norm2
+    wt_power2 = wt_power/norm2 ;; correctly normalized covar power
     
     ratio_names = ['flag/no flag', 'flag norm/no flag',  'weight/flag', 'weight/no flag', 'weight norm2/no flag']
     
