@@ -547,7 +547,10 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
   
   restore, savefiles_2d[0]
   if n_elements(window_int) gt 0 then print, 'window integral: ', window_int
-  if n_elements(vs_name) ne 0 then vs_note = vs_name + ': ~' + number_formatter(vs_mean, format = '(f10.2)')
+  if n_elements(vs_name) ne 0 then begin
+    vs_note = vs_name + ': ~' + number_formatter(vs_mean, format = '(f10.2)')
+    print, vs_note
+  endif
   if n_elements(t_sys_meas) ne 0 then print, 'Tsys range: ', number_formatter(minmax(t_sys_meas))
   
   if n_elements(git_hashes) ne 0 then print, 'kcube hash: ' + git_hashes.kcube
@@ -850,7 +853,7 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
           plot_type_order = sort(file_struct_arr[wh_pol].type)
           plot_cube_order[*,pol_i] = cube_inds[plot_type_order,pol_i]
         endfor
-      endif else plot_cube_order = indgen(npol)      
+      endif else plot_cube_order = indgen(npol)
       
       if keyword_set(kperp_linear_axis) then begin
         ;; aspect ratio doesn't work out for kperp_linear with multiple rows
