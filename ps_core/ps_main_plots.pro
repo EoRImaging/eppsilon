@@ -552,6 +552,7 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
     print, vs_note
   endif
   if n_elements(t_sys_meas) ne 0 then print, 'Tsys range: ', number_formatter(minmax(t_sys_meas))
+  if n_elements(t_sys_meas) ne 0 then print, 'Tsys mean: ', number_formatter(mean(t_sys_meas))
   
   if n_elements(git_hashes) ne 0 then print, 'kcube hash: ' + git_hashes.kcube
   
