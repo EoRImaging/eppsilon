@@ -4,8 +4,10 @@ pro kpower_slice_plot, slice_savefile, multi_pos = multi_pos, start_multi_params
     plot_yrange = plot_yrange, data_range = data_range, png = png, eps = eps, pdf = pdf, plotfile = plotfile, $
     color_profile = color_profile, log_cut_val = log_cut_val, window_num = window_num, title = title, title_prefix = title_prefix, $
     plot_wedge_line = plot_wedge_line, wedge_amp = wedge_amp, linear_axes = linear_axes, $
-    baseline_axis = baseline_axis, delay_axis = delay_axis, hinv = hinv, note = note
+    baseline_axis = baseline_axis, delay_axis = delay_axis, cable_length_axis = cable_length_axis, hinv = hinv, note = note
     
+  if keyword_set(delay_axis) and keyword_set(cable_length_axis) then message, 'Only one of delay_axis and cable_length_axis can be set'
+  
   if n_elements(plotfile) gt 0 or keyword_set(png) or keyword_set(eps) or keyword_set(pdf) then pub = 1 else pub = 0
   if pub eq 1 then begin
     if not (keyword_set(png) or keyword_set(eps) or keyword_set(pdf)) then begin
@@ -66,6 +68,7 @@ pro kpower_slice_plot, slice_savefile, multi_pos = multi_pos, start_multi_params
   if keyword_set(hinv) then begin
     xarr = xarr / hubble_param
     yarr = yarr / hubble_param
+    
     power = power * (hubble_param)^3d
   endif
   
@@ -74,6 +77,8 @@ pro kpower_slice_plot, slice_savefile, multi_pos = multi_pos, start_multi_params
   
   xarr_edges = [xarr - xdelta/2, max(xarr) + xdelta/2]
   yarr_edges = [yarr - ydelta/2, max(yarr) + ydelta/2]
+  
+  if slice_axis lt 2 then kpar_bin_use = ydelta
   
   if n_elements(plot_xrange) eq 0 then begin
     temp = where(total(power_slice,2) gt 0)
@@ -109,6 +114,12 @@ pro kpower_slice_plot, slice_savefile, multi_pos = multi_pos, start_multi_params
   xarr_edges = [xarr - xdelta/2, max(xarr) + xdelta/2]
   yarr_edges = [yarr - ydelta/2, max(yarr) + ydelta/2]
   
+  if slice_axis lt 2 then begin
+    lin_delay_kpar_slope = (delay_params[1] - delay_params[0])/(max(yarr_edges) - kpar_bin_use)
+    lin_delay_kpar_intercept = delay_params[0] / (lin_delay_kpar_slope * kpar_bin_use)
+    linear_delay_edges = lin_delay_kpar_slope * yarr_edges + lin_delay_kpar_intercept
+  endif
+  
   if max(abs(power_slice)) eq 0 then all_zero = 1
   
   if n_elements(data_range) eq 0 then if not keyword_set(all_zero) then data_range = minmax(power_slice) else data_range = [1e-1, 1e0]
@@ -122,46 +133,49 @@ pro kpower_slice_plot, slice_savefile, multi_pos = multi_pos, start_multi_params
     
   endif else begin
     ;; make a new image array to allow log axes
-    wh_x0 = where(xarr eq 0, count_x0, complement = wh_x_good)
+    wh_x0 = where(xarr_edges le 0, count_x0, complement = wh_x_good)
     if count_x0 gt 1 then stop
-    if count_x0 eq 1 then log_x = alog10(xarr[wh_x_good]) else log_x = alog10(xarr)
-    log_x_diffs = log_x - shift(log_x, 1)
-    log_x_diffs = log_x_diffs[1:*]
+    
+    x_log_edges = alog10(xarr_edges)
     if count_x0 eq 1 then begin
-      log_x = alog10(xarr)
-      log_x[wh_x0] = log_x[wh_x0+1] - max(log_x_diffs)
-      log_x_diffs = log_x - shift(log_x, 1)
-      log_x_diffs = log_x_diffs[1:*]
-    endif
-    log_x_edges = [log_x - [log_x_diffs, min(log_x_diffs)]/2d, max(log_x) + min(log_x_diffs)]
-    image_x_delta = min(log_x_diffs)/1d
+      x_log_diffs = (x_log_edges[1:*] - shift(x_log_edges[1:*], 1))[1:*]
+      x_log_diffs = [x_log_diffs[0], x_log_diffs]
+      x_log_edges[wh_x0] = x_log_edges[wh_x0+1] - kperp_log_diffs[wh_x0]
+    endif else x_log_diffs = (x_log_edges - shift(x_log_edges, 1))[1:*]
     
-    wh_y0 = where(yarr eq 0, count_y0, complement = wh_y_good)
+    image_x_delta = min(x_log_diffs)
+    x_bin_widths = round(x_log_diffs / image_x_delta)
+    
+    
+    wh_y0 = where(yarr_edges le 0, count_y0, complement = wh_y_good)
     if count_y0 gt 1 then stop
-    if count_y0 eq 1 then log_y = alog10(yarr[wh_y_good]) else log_y = alog10(yarr)
-    log_y_diffs = log_y - shift(log_y, 1)
-    log_y_diffs = log_y_diffs[1:*]
+    
+    y_log_edges = alog10(yarr_edges)
+    if slice_axis lt 2 then delay_log_edges = alog10(linear_delay_edges)
     if count_y0 eq 1 then begin
-      log_y = alog10(yarr)
-      log_y[wh_y0] = log_y[wh_y0+1] - max(log_y_diffs)
-      log_y_diffs = log_y - shift(log_y, 1)
-      log_y_diffs = log_y_diffs[1:*]
-    endif
-    log_y_edges = [log_y - [log_y_diffs, min(log_y_diffs)]/2d, max(log_y) + min(log_y_diffs)]
-    image_y_delta = min(log_y_diffs)/1d
+      y_log_diffs = (y_log_edges[1:*] - shift(y_log_edges[1:*], 1))[1:*]
+      y_log_diffs = [y_log_diffs[0], y_log_diffs]
+      y_log_edges[wh_y0] = y_log_edges[wh_y0+1] - y_log_diffs[wh_y0]
+      
+      if slice_axis lt 2 then begin
+        delay_log_diffs = (delay_log_edges[1:*] - shift(delay_log_edges[1:*], 1))[1:*]
+        delay_log_diffs = [delay_log_diffs[0], delay_log_diffs]
+        delay_log_edges[wh_y0] = delay_log_edges[wh_y0+1] - delay_log_diffs[wh_y0]
+      endif
+    endif else y_log_diffs = (y_log_edges - shift(y_log_edges, 1))[1:*]
     
-    ;; now get width for each input bin in image array
-    image_delta = min(image_x_delta, image_y_delta)
-    xbin_widths = round([log_x_diffs, min(log_x_diffs)] / image_delta)
-    nx_image = total(xbin_widths)
-    ybin_widths = round([log_y_diffs, min(log_y_diffs)] / image_delta)
-    ny_image = total(ybin_widths)
+    image_y_delta = min(y_log_diffs)/2d
+    y_bin_widths = round(y_log_diffs / image_y_delta)
     
-    hx = histogram(total(xbin_widths,/cumulative)-1,binsize=1, min=0, reverse_indices=rix)
+    
+    nx_image = total(x_bin_widths)
+    ny_image = total(y_bin_widths)
+    
+    hx = histogram(total(x_bin_widths,/cumulative)-1,binsize=1, min=0, reverse_indices=rix)
     hx=0
     xinds = rebin(rix[0:nx_image-1]-rix[0], nx_image, ny_image)
     
-    hy = histogram(total(ybin_widths,/cumulative)-1,binsize=1, min=0, reverse_indices=riy)
+    hy = histogram(total(y_bin_widths,/cumulative)-1,binsize=1, min=0, reverse_indices=riy)
     hy=0
     yinds = rebin(reform(riy[0:ny_image-1]-riy[0], 1, ny_image), nx_image, ny_image)
     
@@ -200,7 +214,7 @@ pro kpower_slice_plot, slice_savefile, multi_pos = multi_pos, start_multi_params
   cb_size = 0.025
   margin = [0.2, 0.15, 0.02, 0.1]
   if keyword_set(baseline_axis) and not keyword_set(no_title) then margin[3] = 0.15
-  if keyword_set(delay_axis) then margin[2] = 0.07
+  if keyword_set(delay_axis) or keyword_set(cable_length_axis) then margin[2] = 0.07
   cb_margin = [0.2, 0.02]
   
   if keyword_set(baseline_axis) and slice_axis eq 2 then margin[2] = 0.08
@@ -217,8 +231,8 @@ pro kpower_slice_plot, slice_savefile, multi_pos = multi_pos, start_multi_params
     plot_xlength = max(xarr_edges) - min(xarr_edges)
     plot_ylength = (max(yarr_edges) - min(yarr_edges))
   endif else begin
-    plot_xlength = max(log_x_edges) - min(log_x_edges)
-    plot_ylength = max(log_y_edges) - min(log_y_edges)
+    plot_xlength = max(x_log_edges) - min(x_log_edges)
+    plot_ylength = max(y_log_edges) - min(y_log_edges)
   endelse
   
   data_aspect = float(plot_ylength / plot_xlength)
@@ -302,6 +316,8 @@ pro kpower_slice_plot, slice_savefile, multi_pos = multi_pos, start_multi_params
       
       multi_pos_use = multi_pos[*,0]
     endif else multi_pos_use = multi_pos
+    
+    base_size_use = mean(round([!d.x_size*multi_xlen/x_factor, !d.y_size*multi_ylen/y_factor]))
     
     multi_aspect = multi_size[1]/float(multi_size[0])
     
@@ -432,12 +448,20 @@ pro kpower_slice_plot, slice_savefile, multi_pos = multi_pos, start_multi_params
   else plot_ytitle = textoidl('k_' + plot_yname + ' (Mpc^{-1})', font = font)
   
   if keyword_set(linear_axes) then begin
-    plot_xarr = xarr_edges
+    plot_xarr = xarr_edgesd
     plot_yarr = yarr_edges
+    if slice_axis lt 2 then plot_delay = linear_delay_edges
   endif else begin
-    plot_xarr = 10^(log_x_edges)
-    plot_yarr = 10^(log_y_edges)
+    plot_xarr = 10^(x_log_edges)
+    plot_yarr = 10^(y_log_edges)
+    if slice_axis lt 2 then plot_delay = 10^delay_log_edges
   endelse
+  
+  if slice_axis lt 2 then begin
+    cable_index_ref = 0.81
+    ;; delay is in ns, factor of 2 to account for reflection bounce
+    plot_cable_length = plot_delay * cable_index_ref * 0.3/2.
+  endif
   
   axkeywords = {xlog: xlog, ylog: ylog, xstyle: 5, ystyle: 5, thick: thick, charthick: charthick, xthick: xthick, ythick: ythick, $
     charsize: charsize, font: font}
@@ -489,15 +513,20 @@ pro kpower_slice_plot, slice_savefile, multi_pos = multi_pos, start_multi_params
     cgtext, xloc2_lambda, yloc2_lambda, textoidl('(\lambda)', font = font), /normal, alignment=0.5, charsize=charsize, $
       color = annotate_color, font = font
   endif else begin
-    if keyword_set(delay_axis) then begin
-      ;; in analogy with min kperp/par with 0 bins
-      if ylog eq 1 then min_delay_plot = 2d*alog10(delay_params[0]) - alog10(delay_params[0]*2) $
-      else min_delay_plot = 0
+    if keyword_set(delay_axis) or keyword_set(cable_length_axis) then begin
+    
+      if keyword_set(delay_axis) then begin
+        yrange_use = minmax(plot_delay)
+        units_text = '(ns)'
+      endif else begin
+        yrange_use = minmax(plot_cable_length)
+        units_text = '(cbl m)'
+      endelse
       
-      cgaxis, yaxis=1, yrange = [min_delay_plot, delay_params[1]], ytickformat = 'exponent', charthick = charthick, $
-        xthick = xthick, ythick = ythick, charsize = charsize, font = font, ystyle = 1, color = annotate_color
+      cgaxis, yaxis=1, yrange = yrange_use, ytickformat = 'exponent', charthick = charthick, xthick = xthick, $
+        ythick = ythick, charsize = charsize, font = font, ystyle = 1, color = annotate_color
         
-      cgtext, xloc2_lambda, yloc2_lambda, '(ns)', /normal, alignment=0.5, charsize=charsize*0.9, $
+      cgtext, xloc2_lambda, yloc2_lambda, units_text, /normal, alignment=0.5, charsize=charsize*0.9, $
         color = annotate_color, font = font
         
     endif else cgaxis, yaxis=1, yrange = minmax(plot_yarr), ytickv = yticks, ytickname = replicate(' ', n_elements(yticks)), $

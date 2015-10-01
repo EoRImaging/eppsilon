@@ -54,6 +54,7 @@
 ;;  Plot axes and lines keywords
 ;;   baseline_axis: if set, plot a baseline axis at the top of the plot. Requires kperp_lambda_conv to be present
 ;;   delay_axis: if set, plot a delay axis on right hand side of the plot. Requires delay_params to be present
+;;   cable_length_axis: if set, plot a cable-length reflection axis on right hand side of the plot. Requires delay_params to be present
 ;;   kperp_linear_axis: if set, use a linear axis for kperp. Either log or linear axes can be used with log or linearly binned data
 ;;   kpar_linear_axis: if set, use a linear axis for kpar. Either log or linear axes can be used with log or linearly binned data
 ;;   plot_wedge_line: if set, plot line to indicate wedge & EoR window
@@ -468,7 +469,7 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, wei
   log_delay_kpar_slope = (alog10(delay_params[1]) - alog10(delay_params[0]))/(alog10(max(kpar_edges_use)) - alog10(kpar_bin_use))
   log_delay_kpar_intercept = alog10(delay_params[0]) / (log_delay_kpar_slope * alog10(kpar_bin_use))
   log_delay_edges = 10^(log_delay_kpar_slope * alog10(kpar_edges_use) + log_delay_kpar_intercept)
-  ;stop
+
   if n_kpar_plot ne n_kpar then begin
     power_use = power_use[*, wh_kpar_inrange]
     if keyword_set(mask_contour) then mask = mask[*, wh_kpar_inrange]
