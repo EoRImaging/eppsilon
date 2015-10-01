@@ -42,15 +42,15 @@ pro cube_images, folder_names, obs_info, nvis_norm = nvis_norm, pols = pols, cub
   if obs_info.info_files[0] ne '' then begin
     if keyword_set(rts) then file_struct_arr1 = rts_file_setup(obs_info.info_files[0]) $
     else $
-      if keyword_set(casa) then file_struct_arr1 = casa_file_setup(obs_info.info_files[0], pols[0]) $
-    else file_struct_arr1 = fhd_file_setup(obs_info.info_files[0], pols[0])
+      if keyword_set(casa) then file_struct_arr1 = casa_file_setup(obs_info.info_files[0]) $
+    else file_struct_arr1 = fhd_file_setup(obs_info.info_files[0])
   endif
   
   if n_elements(obs_info.info_files) eq 2 then if obs_info.info_files[1] ne '' then begin
-    if keyword_set(rts) then file_struct_arr2 = rts_file_setup(obs_info.info_files[1], pols[max_pol]) $
+    if keyword_set(rts) then file_struct_arr2 = rts_file_setup(obs_info.info_files[1]) $
     else $
-      if keyword_set(casa) then file_struct_arr2 = casa_file_setup(obs_info.info_files[1], pols[max_pol]) $
-    else file_struct_arr1 = fhd_file_setup(obs_info.info_files[1], pols[max_pol])
+      if keyword_set(casa) then file_struct_arr2 = casa_file_setup(obs_info.info_files[1]) $
+    else file_struct_arr1 = fhd_file_setup(obs_info.info_files[1])
   endif
   type_pol_str1 = file_struct_arr1.type_pol_str
   if n_elements(file_struct_arr2) gt 0 then type_pol_str2 = file_struct_arr2.type_pol_str
