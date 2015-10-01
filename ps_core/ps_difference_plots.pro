@@ -148,8 +148,6 @@ pro ps_difference_plots, folder_names, obs_info, cube_types, pols, all_type_pol 
   type_pol_str2 = file_struct_arr2.type_pol_str
   
   if keyword_set(all_type_pol) then begin
-    type_pol_str1 = file_struct_arr1.type_pol_str
-    type_pol_str2 = file_struct_arr2.type_pol_str
     
     if n_elements(type_pol_str1) ne n_elements(type_pol_str2) then message, 'all_type_pol cannot be used with these folders, they contain different number of types & pols'
     n_cubes = n_elements(type_pol_str1)
