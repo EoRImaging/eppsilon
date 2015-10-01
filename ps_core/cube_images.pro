@@ -4,7 +4,7 @@ pro cube_images, folder_names, obs_info, nvis_norm = nvis_norm, pols = pols, cub
     log = log, data_range = data_range, color_profile = color_profile, sym_color = sym_color, $
     window_num = window_num, plot_as_map = plot_as_map, plotfile = plotfile_out
     
-  filenames = strarr(max([n_elements(obs_info.obs_names), n_elements(evenodd)]))
+  if n_elements(obs_info.info_files) gt 2 then message, 'Only 1 or 2 info_files can be used'
   
   if n_elements(cube_types) eq 0 then cube_types = 'dirty'
   if n_elements(cube_types) gt 2 then message, 'No more than 2 cube_types can be supplied'
@@ -16,8 +16,9 @@ pro cube_images, folder_names, obs_info, nvis_norm = nvis_norm, pols = pols, cub
     if max(sr2) eq max(slice_range) and min(sr2) eq min(slice_range) then n_slice_range = 1 else n_slice_range = 2
   endif else n_slice_range = 1
   
-  n_cubes = max([n_elements(filenames), n_elements(cube_types), n_elements(pols), n_slice_range])
-  
+  n_cubes = max([n_elements(obs_info.info_files), n_elements(evenodd), n_elements(cube_types), $
+    n_elements(pols), n_slice_range])
+    
   if keyword_set(ratio) and keyword_set(diff_ratio) then message, 'only one of ratio & diff_ratio keywords can be set'
   
   if keyword_set(diff_ratio) and n_cubes eq 1 then begin
@@ -33,35 +34,137 @@ pro cube_images, folder_names, obs_info, nvis_norm = nvis_norm, pols = pols, cub
   if n_cubes eq 2 and n_elements(data_range) eq 0 and n_elements(sym_color) eq 0 and not keyword_set(ratio) then sym_color=1
   if keyword_set(sym_color) and keyword_set(log) then color_profile = 'sym_log'
   
+  max_file = max([n_elements(obs_info.info_files)-1, n_elements(evenodd)-1])
+  max_type = n_elements(cube_types)-1
+  max_pol = n_elements(pols)-1
+  max_eo = n_elements(evenodd)-1
   
-  for i=0, n_elements(folder_names)-1 do begin
+  if obs_info.info_files[0] ne '' then begin
+    if keyword_set(rts) then file_struct_arr1 = rts_file_setup(obs_info.info_files[0]) $
+    else $
+      if keyword_set(casa) then file_struct_arr1 = casa_file_setup(obs_info.info_files[0], pols[0]) $
+    else file_struct_arr1 = fhd_file_setup(obs_info.info_files[0], pols[0])
+  endif
   
-    if n_elements(filenames) eq 1 then begin
-      ;; only 1 folder name & 1 evenodd
-      evenodd_mask = stregex(obs_info.cube_files.(i), evenodd, /boolean)
-      if total(evenodd_mask) gt 0 then filenames = obs_info.cube_files.(i)[(where(evenodd_mask eq 1))[0]] else message, 'requested file does not exist'
-    endif else begin
-      ;; 2 of folder name and/or evenodd
-      if n_elements(evenodd) eq 1 then begin
-        ;; 2 folder names, 1 evenodd
-        evenodd_mask = stregex(obs_info.cube_files.(i), evenodd, /boolean)
-        if total(evenodd_mask) gt 0 then filenames[i] = obs_info.cube_files.(i)[(where(evenodd_mask eq 1))[0]] else message, 'requested file does not exist'
-      endif else begin
-        if n_elements(folder_names) gt 1 then begin
-          ;; 2 of each folder name & evenodd
-          evenodd_mask = stregex(obs_info.cube_files.(i), evenodd[i], /boolean)
-          if total(evenodd_mask) gt 0 then filenames[i] = obs_info.cube_files.(i)[(where(evenodd_mask eq 1))[0]] else message, 'requested file does not exist'
-        endif else begin
-          ;; 1 foldername, 2 evenodd
-          for j=0, n_elements(evenodd)-1 do begin
-            evenodd_mask = stregex(obs_info.cube_files.(i), evenodd[j], /boolean)
-            if total(evenodd_mask) gt 0 then filenames[j] = obs_info.cube_files.(i)[(where(evenodd_mask eq 1))[0]] else message, 'requested file does not exist'
-          endfor
-        endelse
-      endelse
-    endelse
+  if n_elements(obs_info.info_files) eq 2 then if obs_info.info_files[1] ne '' then begin
+    if keyword_set(rts) then file_struct_arr2 = rts_file_setup(obs_info.info_files[1], pols[max_pol]) $
+    else $
+      if keyword_set(casa) then file_struct_arr2 = casa_file_setup(obs_info.info_files[1], pols[max_pol]) $
+    else file_struct_arr1 = fhd_file_setup(obs_info.info_files[1], pols[max_pol])
+  endif
+  type_pol_str1 = file_struct_arr1.type_pol_str
+  if n_elements(file_struct_arr2) gt 0 then type_pol_str2 = file_struct_arr2.type_pol_str
+  
+  type_pol_str = [cube_types[0] + '_' + pols[0], cube_types[max_type] + '_' + pols[max_pol]]
+  
+  if cube_types[0] eq 'weights' or cube_types[0] eq 'variances' then begin
+    cube_ind = where(file_struct_arr1.pol eq pols[0], count_pol)
+    if count_pol eq 0 then message, 'Specified pol is not available'
+    if count_pol gt 0 then cube_ind = cube_ind[0]
     
-  endfor
+    evenodd_mask = stregex(file_struct_arr1[cube_ind].weightfile, evenodd[0], /boolean)
+    evenodd_ind = where(evenodd_mask eq 1, count_evenodd)
+    if count_evenodd eq 0 then message, 'specified evenodd value is not available'
+    if count_evenodd gt 1 then message, 'More than one matching evenodd value'
+    
+    filenames = file_struct_arr1[cube_ind].weightfile[evenodd_ind]
+    if cube_types[0] eq 'weights' then cube_varnames = file_struct_arr1[cube_ind].weightvar $
+    else cube_varnames = file_struct_arr1[cube_ind].variancevar
+  endif else begin
+    cube_ind = where(type_pol_str1 eq type_pol_str[0], count_typepol)
+    if count_typepol eq 0 then message, 'Specified cube type and pol are not available.'
+    if count_typepol gt 1 then message, 'More than one matching type and pol'
+    
+    evenodd_mask = stregex(file_struct_arr1[cube_ind].datafile, evenodd[0], /boolean)
+    evenodd_ind = where(evenodd_mask eq 1, count_evenodd)
+    if count_evenodd eq 0 then message, 'specified evenodd value is not available'
+    if count_evenodd gt 1 then message, 'More than one matching evenodd value'
+    
+    filenames = file_struct_arr1[cube_ind].datafile[evenodd_ind]
+    cube_varnames = file_struct_arr1[cube_ind].datavar
+    
+  endelse
+  
+  if n_cubes eq 2 then begin
+  
+    if cube_types[max_type] eq 'weights' or cube_types[max_type] eq 'variances' then begin
+      if n_elements(file_struct_arr2) gt 0 then cube_ind2 = where(file_struct_arr2.pol eq pols[0], count_pol) $
+      else cube_ind2 = where(file_struct_arr1.pol eq pols[0], count_pol)
+      if count_pol eq 0 then message, 'Specified pol is not available'
+      if count_pol gt 0 then cube_ind2 = cube_ind2[0]
+      
+      if n_elements(file_struct_arr2) gt 0 then $
+        evenodd_mask = stregex(file_struct_arr2[cube_ind2].weightfile, evenodd[max_eo], /boolean) $
+      else evenodd_mask = stregex(file_struct_arr1[cube_ind2].weightfile, evenodd[max_eo], /boolean)
+      evenodd_ind2 = where(evenodd_mask eq 1, count_evenodd)
+      if count_evenodd eq 0 then message, 'specified evenodd value is not available'
+      if count_evenodd gt 1 then message, 'More than one matching evenodd value'
+      
+      if n_elements(file_struct_arr2) gt 0 then begin
+        filenames = [filenames, file_struct_arr2[cube_ind2].weightfile[evenodd_ind2]]
+        if cube_types[0] eq 'weights' then cube_varnames = [cube_varnames, file_struct_arr2[cube_ind2].weightvar] $
+        else cube_varnames = [cube_varnames, file_struct_arr2[cube_ind2].variancevar]
+      endif else begin
+        filenames = [filenames, file_struct_arr1[cube_ind2].weightfile[evenodd_ind2]]
+        if cube_types[0] eq 'weights' then cube_varnames = [cube_varnames, file_struct_arr1[cube_ind2].weightvar] $
+        else cube_varnames = [cube_varnames, file_struct_arr1[cube_ind2].variancevar]
+      endelse
+    endif else begin
+      if n_elements(file_struct_arr2) gt 0 then cube_ind2 = where(type_pol_str1 eq type_pol_str[1], count_typepol) $
+      else cube_ind2 = where(type_pol_str1 eq type_pol_str[1], count_typepol)
+      if count_typepol eq 0 then message, 'Specified cube type and pol are not available.'
+      if count_typepol gt 1 then message, 'More than one matching type and pol'
+      
+      if n_elements(file_struct_arr2) gt 0 then $
+        evenodd_mask = stregex(file_struct_arr2[cube_ind2].datafile, evenodd[max_eo], /boolean) $
+      else evenodd_mask = stregex(file_struct_arr1[cube_ind2].datafile, evenodd[max_eo], /boolean)
+      evenodd_ind2 = where(evenodd_mask eq 1, count_evenodd)
+      if count_evenodd eq 0 then message, 'specified evenodd value is not available'
+      if count_evenodd gt 1 then message, 'More than one matching evenodd value'
+      
+      if n_elements(file_struct_arr2) gt 0 then begin
+        filenames = [filenames, file_struct_arr2[cube_ind2].datafile[evenodd_ind2]]
+        cube_varnames = [cube_varnames, file_struct_arr2[cube_ind2].datavar]
+      endif else begin
+        filenames = [filenames, file_struct_arr1[cube_ind2].datafile[evenodd_ind2]]
+        cube_varnames = [cube_varnames, file_struct_arr1[cube_ind2].datavar]
+      endelse
+      
+    endelse
+  endif
+  
+  wh_novarname = where(cube_varnames eq '', count_novarname)
+  if count_novarname gt 0 then begin
+    input_inds = intarr(n_cubes, 2)
+    input_cube_varnames = strarr(n_cubes, 2)
+    
+    for i=0, n_cubes-1 do begin
+    
+      if cube_varnames[i] eq '' then begin
+        if cube_types[0] eq 'res' then input_types = ['dirty', 'model'] else $
+          if cube_types[0] eq 'model' then input_types = ['dirty', 'res'] else $
+          message, 'No varname for this cube type and it cannot be constructed from other cubes'
+          
+        input_cubes_typepol = input_types + '_' + pols[0]
+        for j=0, 1 do begin
+          if i eq 0 or n_elements(type_pol_str2) eq 0 then typepol_use = type_pol_str1 else typepol_use = type_pol_str2
+          if i eq 0 then pol_use = pols[0] else pol_use = pols[max_pol]
+          wh_input = where(typepol_use eq input_types[j]+'_'+pol_use, count_input)
+          if count_input eq 0 then message, 'No varname for this cube type and it cannot be constructed from other cubes'
+          if count_input eq 1 then begin
+            input_inds[i,j] = wh_input
+            if i eq 0 or n_elements(file_struct_arr2) eq 0 then $
+              input_cube_varnames[i,j] = file_struct_arr1[input_inds[i,j]].datavar $
+            else input_cube_varnames[i,j] = file_struct_arr2[input_inds[i,j]].datavar
+            
+          endif else message, 'No varname for this cube type and it cannot be constructed from other cubes'
+        endfor
+        
+      endif
+      
+    endfor
+  endif
+  
   
   if n_elements(obs_info.folder_names) eq 2 then begin
     save_path = obs_info.diff_save_path
@@ -76,56 +179,11 @@ pro cube_images, folder_names, obs_info, nvis_norm = nvis_norm, pols = pols, cub
   
   if file_test(save_path) eq 0 then file_mkdir, save_path
   
-  max_file = n_elements(filenames)-1
-  max_type = n_elements(cube_types)-1
-  max_pol = n_elements(pols)-1
-  max_eo = n_elements(evenodd)-1
   
   if keyword_set(rts) then pixel_varnames = strarr(n_elements(filenames)) + 'pixel_nums' $
   else pixel_varnames = strarr(n_elements(filenames)) + 'hpx_inds'
   
   pol_exist = stregex(filenames, '[xy][xy]', /boolean, /fold_case)
-  
-  if keyword_set(rts) then begin
-    cube_varnames = pols[0] + '_data'
-    if n_cubes gt 1 then cube_varnames = [cube_varnames, pols[max_pol] + '_data']
-  endif else begin
-    if pol_exist[0] then cube_varnames = cube_types[0] + '_cube' else cube_varnames = cube_types[0] + '_' + pols[0] + '_cube'
-    if n_cubes gt 1 then if pol_exist[max_file] then cube_varnames = [cube_varnames, cube_types[max_type] + '_cube'] $
-    else cube_varnames = [cube_varnames, cube_types[max_type] + '_' + pols[max_pol] + '_cube']
-  endelse
-  
-  if obs_info.info_files[0] ne '' then begin
-    if keyword_set(rts) then file_struct_arr1 = rts_file_setup(obs_info.info_files[0], pols[0]) $
-    else $
-      if keyword_set(casa) then file_struct_arr1 = casa_file_setup(obs_info.info_files[0], pols[0]) $
-    else file_struct_arr1 = fhd_file_setup(obs_info.info_files[0], pols[0])
-  endif
-  
-  if n_elements(obs_info.info_files) eq 2 then if obs_info.info_files[1] ne '' then begin
-    if keyword_set(rts) then file_struct_arr1 = rts_file_setup(obs_info.info_files[1], pols[max_pol]) $
-    else $
-      if keyword_set(casa) then file_struct_arr1 = casa_file_setup(obs_info.info_files[1], pols[max_pol]) $
-    else file_struct_arr1 = fhd_file_setup(obs_info.info_files[1], pols[max_pol])
-  endif
-  
-  if n_elements(file_struct_arr1) ne 0 then begin
-    if cube_types[0] eq 'weights' or cube_types[0] eq 'variance' then wh_match = where(file_struct_arr1.pol eq pols[0], count_match) $
-    else wh_match = where(file_struct_arr1.pol eq pols[0] and file_struct_arr1.type eq cube_types[0], count_match)
-    if count_match gt 0 then begin
-      wh_eo = where(stregex(file_struct_arr1[wh_match[0]].uvf_label, evenodd[max_eo], /boolean) eq 1, count_eo)
-      if count_eo gt 0 then nvis1 = file_struct_arr1[wh_match[0]].n_vis[wh_eo[0]]
-    endif
-  endif
-  
-  if n_elements(filenames) eq 2 and n_elements(file_struct_arr2) ne 0 then begin
-    if cube_types[0] eq 'weights' or cube_types[0] eq 'variance' then wh_match = where(file_struct_arr2.pol eq pols[max_pol], count_match) $
-    else wh_match = where(file_struct_arr2.pol eq pols[max_pol] and file_struct_arr2.type eq cube_types[max_type], count_match)
-    if count_match gt 0 then begin
-      wh_eo = where(stregex(file_struct_arr2[wh_match[0]].uvf_label, evenodd[max_eo], /boolean) eq 1, count_eo)
-      if count_eo gt 0 then nvis2 = file_struct_arr2[wh_match[0]].n_vis[wh_eo[0]]
-    endif
-  endif
   
   if keyword_set(png) or keyword_set(eps) or keyword_set(pdf) then pub = 1 else pub = 0
   if pub then begin
@@ -139,7 +197,7 @@ pro cube_images, folder_names, obs_info, nvis_norm = nvis_norm, pols = pols, cub
           plot_filebase = obs_info.folder_basenames[0] + '_' + obs_info.obs_names[0] + '_' + evenodd[0] + '_' + cube_types[0] + '_' + pols[0] + $
             '_minus_' + obs_info.obs_names[0] + '_' + evenodd[max_eo] + '_' + cube_types[max_type] + '_' + pols[max_pol]
         endif else begin
-          if obs_info.integrated[0] eq 0 then plot_start = obs_info.folder_basenames[0] + '_' + obs_info.obs_names[0] else plot_start = obs_info.fhd_types[0]
+          plot_start = obs_info.folder_basenames[0] + '_' + obs_info.obs_names[0]
           
           plot_filebase = plot_start + '_' + evenodd[0] + '_' + cube_types[0] + '_' + pols[0] + $
             '_minus_' + evenodd[max_eo] + '_' + cube_types[max_type] + '_' + pols[max_pol]
@@ -147,14 +205,14 @@ pro cube_images, folder_names, obs_info, nvis_norm = nvis_norm, pols = pols, cub
       endif else plot_filebase = obs_info.fhdtype_same_parts + '__' + strjoin([obs_info.fhdtype_diff_parts[0], evenodd[0], cube_types[0], pols[0]], '_')  + $
         '_minus_' + strjoin([obs_info.fhdtype_diff_parts[1], evenodd[max_eo], cube_types[max_type], pols[max_pol]], '_')
     endif else begin
-      if obs_info.integrated[0] eq 0 then plot_start = obs_info.folder_basenames[0] + '_' + obs_info.obs_names[0] else plot_start = obs_info.fhd_types[0]
+      plot_start = obs_info.folder_basenames[0] + '_' + obs_info.obs_names[0]
       
       plot_filebase = plot_start + '_' + evenodd[0] + '_' + cube_types[0] + '_' + pols[0]
     endelse
     
     if keyword_set(diff_ratio) then plotfile = plot_path + plot_filebase + '_imagenormdiff' $
     else if keyword_set(ratio) then plotfile = plot_path + plot_filebase + '_imageratio' else plotfile = plot_path + plot_filebase + '_image'
-
+    
     if n_elements(slice_range) gt 0 then begin
       plotfile = plotfile + '_ch' + number_formatter(min(slice_range))
       if n_elements(slice_range) eq 2 then plotfile = plotfile + '-' + number_formatter(max(slice_range))
@@ -181,7 +239,13 @@ pro cube_images, folder_names, obs_info, nvis_norm = nvis_norm, pols = pols, cub
     endif
   endif else if n_elements(nvis1) gt 0 then print, 'nvis: ' + number_formatter(nvis1)
   
-  cube1 = getvar_savefile(filenames[0], cube_varnames[0])
+  if cube_varnames[0] eq '' then begin
+  
+    input_cube1 = getvar_savefile(filenames[0], input_cube_varnames[0, 0])
+    input_cube2 = getvar_savefile(filenames[0], input_cube_varnames[0, 1])
+    
+    cube1 = temporary(input_cube1) - temporary(input_cube2)
+  endif else cube1 = getvar_savefile(filenames[0], cube_varnames[0])
   n_freq1 = (size(cube1,/dimension))[1]
   if keyword_set(nvis_norm) then begin
     if obs_info.integrated[0] eq 1 then obs_varname = 'obs_arr' else obs_varname = 'obs'
@@ -204,7 +268,12 @@ pro cube_images, folder_names, obs_info, nvis_norm = nvis_norm, pols = pols, cub
     cube1 = cube1 / rebin(reform(n_vis_freq_avg, 1, n_freq1), n_elements(hpx_inds1), n_freq1)
   endif
   if n_cubes gt 1 then begin
-    cube2 = getvar_savefile(filenames[max_file], cube_varnames[1])
+    if cube_varnames[1] eq '' then begin
+      input_cube1 = getvar_savefile(filenames[1], input_cube_varnames[1, 0])
+      input_cube2 = getvar_savefile(filenames[1], input_cube_varnames[1, 1])
+      
+      cube2 = temporary(input_cube1) - temporary(input_cube2)
+    endif else cube2 = getvar_savefile(filenames[max_file], cube_varnames[1])
     n_freq2 = (size(cube2,/dimension))[1]
     if n_freq1 ne n_freq2 then message, 'number of frequencies do not match between the 2 files'
     if keyword_set(nvis_norm) then begin

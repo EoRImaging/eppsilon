@@ -10,47 +10,29 @@ pro enterprise_cube_images, folder_names, obs_names_in, data_subdirs=data_subdir
   if n_elements(obs_names_in) gt 2 then message, 'No more than 2 obs_names can be supplied'
   
   if keyword_set(rts) then begin
-    ;    froot = '/data3/MWA/bpindor/RTS/dec_11/'
-    ;
-    ;    ;     data_dir = froot + 'BdaggerV/'
-    ;    data_dir = froot + ['PSF0_0/','PSF0_1/']
-    ;
-    ;    ;     weights_dir = froot + 'Bdagger1/'
-    ;    weights_dir = froot + ['PSF1_0/','PSF1_1/']
-    ;
-    ;    ;     variance_dir = froot + 'BdaggerB/'
-    ;    variance_dir = froot + ['PSF2_0/','PSF2_1/']
-    ;
-    ;    datafiles = [[file_search(data_dir[0] + '*.fits')],[file_search(data_dir[1] + '*.fits')]]
-    ;    weightfiles = [[file_search(weights_dir[0] + '*.fits')],[file_search(weights_dir[1] + '*.fits')]]
-    ;    variancefiles = [[file_search(variance_dir[0] + '*.fits')],[file_search(variance_dir[1] + '*.fits')]]
   
-  
-  
-    if n_elements(folder_name) eq 0 then folder_name = '/data3/MWA/bpindor/RTS/feb_9/'
-    
     ;; check for folder existence, otherwise look for common folder names to figure out full path. If none found, try '/data3/MWA/bpindor/RTS/'
     start_path = '/data3/MWA/bpindor/RTS/'
-    folder_test = file_test(folder_name, /directory)
+    folder_test = file_test(folder_names, /directory)
     if folder_test eq 0 then begin
-      pos_RTS = strpos(folder_name, 'RTS')
+      pos_RTS = strpos(folder_names, 'RTS')
       if pos_RTS gt -1 then begin
-        test_name = start_path + strmid(folder_name, pos_RTS)
+        test_name = start_path + strmid(folder_names, pos_RTS)
         folder_test = file_test(test_name, /directory)
-        if folder_test eq 1 then folder_name = test_name
+        if folder_test eq 1 then folder_names = test_name
       endif
     endif
     if folder_test eq 0 then begin
-      test_name = start_path + folder_name
+      test_name = start_path + folder_names
       folder_test = file_test(test_name, /directory)
-      if folder_test eq 1 then folder_name = test_name
+      if folder_test eq 1 then folder_names = test_name
     endif
     
     if folder_test eq 0 then message, 'folder not found'
     
     if n_elements(ps_foldername) eq 0 then ps_foldername = 'ps/'
-    save_path = folder_name + '/' + ps_foldername
-    obs_info = ps_filenames(folder_name, obs_name, rts = rts, sim = sim, casa = casa, $
+    save_path = folder_names + '/' + ps_foldername
+    obs_info = ps_filenames(folder_names, obs_name, rts = rts, sim = sim, casa = casa, $
       save_paths = save_path, plot_path = save_path, refresh_info = refresh_info, no_wtvar_rts = no_wtvar_rts)
       
     if obs_info.info_files[0] ne '' then datafile = obs_info.info_files[0] else $
