@@ -3,7 +3,8 @@ pro kpower_1d_plots, power_savefile, multi_pos = multi_pos, start_multi_params =
     png = png, eps = eps, pdf = pdf, plotfile = plotfile, window_num = window_num, colors = colors, names = names, psyms = psyms, $
     save_text = save_text, delta = delta, hinv = hinv, note = note, title = title, kpar_power = kpar_power, kperp_power = kperp_power, $
     yaxis_type = yaxis_type, plot_error_bars = plot_error_bars, plot_sim_noise = plot_sim_noise, plot_nsigma = plot_nsigma, $
-    delay_params = delay_params, delay_axis = delay_axis, cable_length_axis = cable_length_axis, baseline_axis = baseline_axis
+    delay_params = delay_params, delay_axis = delay_axis, cable_length_axis = cable_length_axis, baseline_axis = baseline_axis, $
+    no_text = no_text
     
   if n_elements(yaxis_type) eq 0 then yaxis_type = 'clipped_log'
   yaxis_type_list = ['clipped_log', 'sym_log', 'folded_log']
@@ -85,7 +86,7 @@ pro kpower_1d_plots, power_savefile, multi_pos = multi_pos, start_multi_params =
   endif else psyms = intarr(nfiles) + 10
   
   margin = [0.15, 0.2, 0.05, 0.1]
-  if keyword_set(baseline_axis) or keyword_set(delay_axis) or keyword_set(cable_length_axis) then begin
+  if keyword_set(baseline_axis) or keyword_set(delay_axis) or keyword_set(cable_length_axis) or keyword_set(no_text) then begin
     margin[3] = 0.15
     initial_title = ''
   endif else initial_title = title
@@ -672,18 +673,18 @@ pro kpower_1d_plots, power_savefile, multi_pos = multi_pos, start_multi_params =
       endfor
       
       if log_bins gt 0 then bottom = 1 else bottom = 0
-      if n_elements(names) ne 0 then $
+      if n_elements(names) ne 0 and not keyword_set(no_text) then $
         al_legend, [names, 'with ' + number_formatter(plot_nsigma) + ' sigma thermal noise'], textcolor = [colors, 'black'], $
         box = 0, /right, bottom = bottom, charsize = legend_charsize, charthick = charthick
         
     end
   endcase
-  if n_elements(note) ne 0 then begin
+  if n_elements(note) ne 0 and not keyword_set(no_text) then begin
     if keyword_set(pub) then char_factor = 0.75 else char_factor = 1
     cgtext, xloc_note, yloc_note, note, /normal, alignment=1, charsize = char_factor*charsize, font = font
   endif
   
-  if keyword_set(baseline_axis) or keyword_set(delay_axis) or keyword_set(cable_length_axis) then begin
+  if (keyword_set(baseline_axis) or keyword_set(delay_axis) or keyword_set(cable_length_axis)) and not keyword_set(no_text) then begin
     xloc_title = (plot_pos[2] - plot_pos[0])/2. + plot_pos[0]
     yloc_title = plot_pos[3] + 0.6* (1-plot_pos[3])
     
