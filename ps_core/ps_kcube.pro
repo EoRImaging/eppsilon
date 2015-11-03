@@ -720,7 +720,7 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
           endif
         endelse
       endif else begin
-        stop
+        
         if keyword_set(dft_ian) then begin
           u_lambda_vals = getvar_savefile(file_struct.uvf_savefile[0], 'u_lambda_vals')
           v_lambda_vals = getvar_savefile(file_struct.uvf_savefile[0], 'v_lambda_vals')
