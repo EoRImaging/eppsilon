@@ -578,7 +578,7 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
             ky_rad_vals = kx_rad_vals[n_kperp/2:n_kperp-1]
             
           endelse
-          stop
+          
           ;; get beam if needed
           if (test_beam eq 0 or keyword_set(refresh_beam)) and tag_exist(file_struct, 'beam_savefile') then begin
             arr = getvar_savefile(file_struct.beamfile[i], file_struct.beamvar)
