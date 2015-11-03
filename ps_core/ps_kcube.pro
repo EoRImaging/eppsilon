@@ -229,9 +229,9 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
           undefine, data_cube
           
           test_uvf = 1
-        endif
+        endif ;; endifif full uvf exists
         
-      endif
+      endif ;; endif limited freq range & no matching uvf
       
       if test_wt_uvf eq 0 and not keyword_set(dft_refresh_weight) and (n_elements(freq_ch_range) ne 0 or n_elements(freq_flags) ne 0) then begin
         ;; if this is a limited freq. range cube, check for the full cube to avoid redoing the DFT
@@ -239,6 +239,7 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
         if n_elements(freq_ch_range) ne 0 then full_uvf_wt_file = strjoin(strsplit(full_uvf_wt_file, '_ch[0-9]+-[0-9]+', /regex, /extract))
         if n_elements(freq_flags) ne 0 then full_uvf_wt_file = strjoin(strsplit(full_uvf_wt_file, '_flag[a-z0-9]+', /regex, /extract))
         test_full_wt_uvf = file_test(full_uvf_wt_file) *  (1 - file_test(full_uvf_wt_file, /zero_length))
+        
         if test_full_wt_uvf eq 1 then begin
           restore, full_uvf_wt_file
           
@@ -265,14 +266,54 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
           undefine, weights_cube, variance_cube
           
           test_wt_uvf = 1
-        endif
+        endif ;; endif full wt_uvf exists
         
-      endif
+      endif ;; endif limited freq range & no matching wt_uvf
       
       if test_uvf eq 0 or test_wt_uvf eq 0 or test_beam eq 0 or keyword_set(dft_refresh_data) or keyword_set(dft_refresh_weight) or keyword_set(refresh_beam) then begin
+      
         if datavar eq '' then begin
           ;; working with a 'derived' cube (ie residual cube) that is constructed from uvf_savefiles
         
+          test_input_uvf = intarr(2)
+          test_input_uvf [0] =  file_test(input_uvf_files[i,0]) *  (1 - file_test(input_uvf_files[i,0], /zero_length))
+          test_input_uvf [1] =  file_test(input_uvf_files[i,1]) *  (1 - file_test(input_uvf_files[i,1], /zero_length))
+          
+          if min(test_input_uvf) eq 0 and (n_elements(freq_ch_range) ne 0 or n_elements(freq_flags) ne 0) then begin
+          
+            for j=0, 1 do begin
+              if test_input_uvf[j] eq 0 then begin
+                ;; this is a limited freq. range cube, check for the full cube to avoid redoing the DFT
+                full_uvf_file = input_uvf_files[i,j]
+                if n_elements(freq_ch_range) ne 0 then full_uvf_file = strjoin(strsplit(full_uvf_file, '_ch[0-9]+-[0-9]+', /regex, /extract))
+                if n_elements(freq_flags) ne 0 then full_uvf_file = strjoin(strsplit(full_uvf_file, '_flag[a-z0-9]+', /regex, /extract))
+                test_full_uvf = file_test(full_uvf_file) *  (1 - file_test(full_uvf_file, /zero_length))
+                
+                if test_full_uvf eq 1 then begin
+                  restore, full_uvf_file
+                  
+                  if n_elements(freq_flags) ne 0 then data_cube = data_cube * rebin(reform(freq_mask, 1, 1, n_elements(file_struct.frequencies)), size(data_cube, /dimension), /sample)
+                  if n_elements(freq_ch_range) ne 0 then data_cube = data_cube[*, *, min(freq_ch_range):max(freq_ch_range)]
+                  
+                  if n_elements(freq_flags) gt 0 then begin
+                    if keyword_set(dft_ian) then save, file = input_uvf_files[i,j], u_lambda_vals, v_lambda_vals, data_cube, $
+                      freq_mask, uvf_git_hash $
+                    else save, file = input_uvf_files[i,j], kx_rad_vals, ky_rad_vals, data_cube, freq_mask, uvf_git_hash
+                  endif else begin
+                    if keyword_set(dft_ian) then save, file = input_uvf_files[i,j], u_lambda_vals, v_lambda_vals, data_cube, $
+                      uvf_git_hash $
+                    else save, file = input_uvf_files[i,j], kx_rad_vals, ky_rad_vals, data_cube, uvf_git_hash
+                  endelse
+                  undefine, data_cube
+                  
+                  test_uvf = 1
+                  
+                endif
+              endif
+            endfor
+            
+          endif else message, 'derived cube but input_uvf cube files do not exist'
+          
           dirty_cube = getvar_savefile(input_uvf_files[i,0], input_uvf_varname[i,0])
           kx_dirty = getvar_savefile(input_uvf_files[i,0], 'kx_rad_vals')
           ky_dirty = getvar_savefile(input_uvf_files[i,0], 'ky_rad_vals')
@@ -306,7 +347,8 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
             else save, file = file_struct.uvf_savefile[i], kx_rad_vals, ky_rad_vals, data_cube, uvf_git_hash
           endelse
           undefine, data_cube
-        endif else begin
+          
+        endif else begin ;; endif derived cube
         
           if healpix then begin
             pixel_nums1 = getvar_savefile(file_struct.pixelfile[0], file_struct.pixelvar[0])
@@ -536,7 +578,7 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
             ky_rad_vals = kx_rad_vals[n_kperp/2:n_kperp-1]
             
           endelse
-          
+          stop
           ;; get beam if needed
           if (test_beam eq 0 or keyword_set(refresh_beam)) and tag_exist(file_struct, 'beam_savefile') then begin
             arr = getvar_savefile(file_struct.beamfile[i], file_struct.beamvar)
@@ -678,6 +720,7 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
           endif
         endelse
       endif else begin
+        stop
         if keyword_set(dft_ian) then begin
           u_lambda_vals = getvar_savefile(file_struct.uvf_savefile[0], 'u_lambda_vals')
           v_lambda_vals = getvar_savefile(file_struct.uvf_savefile[0], 'v_lambda_vals')
