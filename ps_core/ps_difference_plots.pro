@@ -81,11 +81,11 @@ pro ps_difference_plots, folder_names, obs_info, cube_types, pols, all_type_pol 
   if n_elements(folder_names) eq 2 then begin
     if n_elements(save_path) eq 0 then save_path = obs_info.diff_save_path
     note = obs_info.diff_note
-    if tag_exist(obs_info, 'diff_plot_path') then plot_path = obs_info.diff_plot_path else plot_path = save_path
+    if n_elements(plot_path) eq 0 then if tag_exist(obs_info, 'diff_plot_path') then plot_path = obs_info.diff_plot_path else plot_path = save_path
   endif else begin
     if n_elements(save_path) eq 0 then save_path = obs_info.save_paths[0]
     note = obs_info.fhd_types[0]
-    plot_path = obs_info.plot_paths[0]
+    if n_elements(plot_path) eq 0 then plot_path = obs_info.plot_paths[0]
   endelse
   
   if n_elements(spec_window_types) eq 2 then note = note + ' ' + spec_window_types[0] + ' minus ' + spec_window_types[1]
@@ -232,11 +232,7 @@ pro ps_difference_plots, folder_names, obs_info, cube_types, pols, all_type_pol 
       type_pol2 = type_pol_str[1]
       titles[i] = type_pol_str[0] + '-' + type_pol_str[1]
     endelse
-    
-    ;; if not save_path specified, save in folder of first info file
-    if n_elements(save_path) eq 0 then save_path = file_dirname(obs_info.info_files[0], /mark_directory)
-    if n_elements(plot_path) eq 0 then plot_path = save_path
-    
+        
     if n_elements(obs_info.info_files) eq 2 then begin
       fileparts_1 = strsplit(file_struct_arr1[0].general_filebase, '_', /extract)
       fileparts_2 = strsplit(file_struct_arr2[0].general_filebase, '_', /extract)

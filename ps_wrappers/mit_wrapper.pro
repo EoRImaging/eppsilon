@@ -11,7 +11,7 @@ pro mit_wrapper, folder_name, obs_name, data_subdirs=data_subdirs, exact_obsname
     kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, cable_length_axis = cable_length_axis, $
     kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
     wedge_angles = wedge_angles, coarse_harm_width = coarse_harm_width, $
-    set_data_ranges = set_data_ranges, range_1d = range_1d, plot_1d_delta = plot_1d_delta, $
+    set_data_ranges = set_data_ranges, range_1d = range_1d, plot_1d_delta = plot_1d_delta, plot_eor_1d = plot_eor_1d, $
     plot_1d_error_bars = plot_1d_error_bars, plot_1d_nsigma = plot_1d_nsigma, plot_binning_hist = plot_binning_hist, $
     data_range = data_range, wt_cutoffs = wt_cutoffs, hinv=hinv
     
@@ -126,13 +126,28 @@ pro mit_wrapper, folder_name, obs_name, data_subdirs=data_subdirs, exact_obsname
       if folder_test eq 1 then folder_name = test_name
     endif
     
+    start_path2 = '/nfs/mwa-03/r1/'
+    if folder_test eq 0 then begin
+      pos_eor2013 = strpos(folder_name, 'EoR2013')
+      if pos_eor2013 gt -1 then begin
+        test_name = start_path2 + strmid(folder_name, pos_eor2013)
+        folder_test = file_test(test_name, /directory)
+        if folder_test eq 1 then folder_name = test_name
+      endif
+    endif
+    if folder_test eq 0 then begin
+      test_name = start_path2 + 'EoR2013/' + folder_name
+      folder_test = file_test(test_name, /directory)
+      if folder_test eq 1 then folder_name = test_name
+    endif
+    
     if folder_test eq 0 then message, 'folder not found'
     
     save_path = folder_name + '/ps/'
     if n_elements(data_subdirs) eq 0 then data_subdirs = 'Healpix/'
     
     obs_info = ps_filenames(folder_name, obs_name, exact_obsnames = exact_obsnames, rts = rts, sim = sim, casa = casa, $
-      data_subdirs = data_subdirs, save_paths = save_path, plot_paths = save_path, refresh_info = refresh_info)
+      data_subdirs = data_subdirs, save_paths = save_path, plot_paths = save_path + 'plots/', refresh_info = refresh_info)
       
     if obs_info.info_files[0] ne '' then datafile = obs_info.info_files[0] else datafile = obs_info.cube_files.(0)
     

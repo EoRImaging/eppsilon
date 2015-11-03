@@ -10,7 +10,6 @@ pro ps_ratio_plots, folder_names, obs_info, cube_types, pols, all_pol_diff_ratio
     
   if n_elements(obs_info.info_files) gt 2 then message, 'Only 1 or 2 info_files can be used'
   
-  
   ;; default to blackman-harris spectral window
   if n_elements(spec_window_types) eq 0 then spec_window_types = 'Blackman-Harris'
   
@@ -119,8 +118,7 @@ pro ps_ratio_plots, folder_names, obs_info, cube_types, pols, all_pol_diff_ratio
   
   ;; default to hinv
   if n_elements(hinv) eq 0 then hinv = 1
-  
-  
+    
   if n_elements(folder_names) eq 2 then begin
     if n_elements(save_path) eq 0 then save_path = obs_info.diff_save_path
     note = obs_info.diff_note
@@ -301,9 +299,17 @@ pro ps_ratio_plots, folder_names, obs_info, cube_types, pols, all_pol_diff_ratio
     endif else kperp_density_use = kperp_density_names[0]
     savefiles_2d = savefiles_2d + fadd_2dbin + kperp_density_use + '_2dkpower.idlsave'
     
-  endif else savefiles_2d = [file_struct_arr1[type_pol_locs[0]].savefile_froot + file_struct_arr1[type_pol_locs[0]].savefilebase + file_struct_arr1[0].power_tag, $
-    file_struct_arr2[type_pol_locs[1]].savefile_froot + file_struct_arr2[type_pol_locs[1]].savefilebase + file_struct_arr2[0].power_tag] + $
-    fadd_2dbin + kperp_density_names + '_2dkpower.idlsave'
+  endif else begin
+    savefiles_2d = [file_struct_arr1[type_pol_locs[0]].savefile_froot + file_struct_arr1[type_pol_locs[0]].savefilebase + file_struct_arr1[0].power_tag, $
+      file_struct_arr2[type_pol_locs[1]].savefile_froot + file_struct_arr2[type_pol_locs[1]].savefilebase + file_struct_arr2[0].power_tag]
+      
+    if n_elements(kperp_density_names) gt 1 then begin
+      kperp_density_use = strarr(n_sets, 2)
+      for i=0, 1 do kperp_density_use[*,i] = kperp_density_names[i]
+    endif else kperp_density_use = kperp_density_names[0]
+    savefiles_2d = savefiles_2d + fadd_2dbin + kperp_density_use + '_2dkpower.idlsave'
+    
+  endelse
   
   test_save_2d = file_test(savefiles_2d) *  (1 - file_test(savefiles_2d, /zero_length))
   

@@ -3,6 +3,10 @@ function ps_filenames, folder_names, obs_names_in, dirty_folder = dirty_folder, 
     data_subdirs = data_subdirs, plot_paths = plot_paths, save_paths = save_paths, refresh_info = refresh_info, $
     exact_obsnames = exact_obsnames, no_wtvar_rts = no_wtvar_rts
     
+  if n_elements(folder_names) eq 2 then if folder_names[0] eq folder_names[1] then folder_names = folder_names[0]
+  
+  if n_elements(obs_names_in) eq 2 then if obs_names_in[0] eq obs_names_in[1] then obs_names_in = obs_names_in[0]
+  
   n_filesets = max([n_elements(folder_names), n_elements(obs_names_in)])
   
   if n_elements(data_subdirs) eq 0 then data_subdirs = '' else begin
@@ -38,15 +42,16 @@ function ps_filenames, folder_names, obs_names_in, dirty_folder = dirty_folder, 
     if n_elements(save_paths) gt 0 then begin
       if n_elements(save_paths) eq 1 then save_paths = replicate(save_paths, n_filesets)
       if n_elements(save_paths) ne n_filesets then message, 'If save_paths is an array, the number of elements must match the max of folder_names & obs_names_in'
-    endif else save_paths = folder_names + data_subdirs
+    endif else save_paths = folder_names + '/' + data_subdirs
     
     if n_elements(plot_paths) gt 0 then begin
       if n_elements(plot_paths) eq 1 then plot_paths = replicate(plot_paths, n_filesets)
       if n_elements(plot_paths) ne n_filesets then message, 'If plot_paths is an array, the number of elements must match the max of folder_names & obs_names_in'
-    endif else plot_paths = folder_names + data_subdirs
+    endif else plot_paths = folder_names + '/' + data_subdirs
   endif else begin
-    if n_elements(save_paths) eq 0 then save_paths = folder_names + data_subdirs
-    if n_elements(plot_paths) eq 0 then plot_paths = folder_names + data_subdirs
+
+    if n_elements(save_paths) eq 0 then save_paths = folder_names + '/' + data_subdirs
+    if n_elements(plot_paths) eq 0 then plot_paths = folder_names + '/' + data_subdirs
   endelse
   
   ;; make sure save & plot paths end in path_sep()
@@ -104,7 +109,7 @@ function ps_filenames, folder_names, obs_names_in, dirty_folder = dirty_folder, 
           
         endif
       endif
-
+      
       ;; then look for combined cube files in folder + data_subdir
       cube_file_list = file_search(folder_names[i] + '/' + data_subdirs[i] + obs_names[i] + '*_cube.idlsave', count = n_cubefiles)
       if n_cubefiles gt 0 then begin
@@ -185,7 +190,7 @@ function ps_filenames, folder_names, obs_names_in, dirty_folder = dirty_folder, 
           endif
           if n_elements(dirty_files) ne n_elements(fits_files) and info_files[i] eq '' $
             then message, 'number of dirty files does not match number of datafiles'
-          
+            
         endif
         
         ;; now get weights & variance files

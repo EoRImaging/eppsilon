@@ -64,19 +64,38 @@ pro mit_diff_wrapper, folder_names, obs_names_in, cube_types = cube_types, pols 
       if folder_test eq 1 then folder_names[i] = test_name
     endif
     
+    
+    start_path2 = '/nfs/mwa-03/r1/'
+    if folder_test eq 0 then begin
+      pos_eor2013 = strpos(folder_names[i], 'EoR2013')
+      if pos_eor2013 gt -1 then begin
+        test_name = start_path2 + strmid(folder_names[i], pos_eor2013)
+        folder_test = file_test(test_name, /directory)
+        if folder_test eq 1 then folder_names[i] = test_name
+      endif
+    endif
+    if folder_test eq 0 then begin
+      test_name = start_path2 + 'EoR2013/' + folder_names[i]
+      folder_test = file_test(test_name, /directory)
+      if folder_test eq 1 then folder_names[i] = test_name
+    endif
+    
+    
     if folder_test eq 0 then message, 'folder not found'
   endfor
   
   save_paths = folder_names + '/ps/'
   obs_info = ps_filenames(folder_names, obs_names_in, exact_obsnames = exact_obsnames, rts = rts, sim = sim, casa = casa, $
-    data_subdirs = 'Healpix/', save_paths = save_paths, plot_paths = save_path)
+    data_subdirs = 'Healpix/', save_paths = save_paths, plot_paths = save_paths + 'plots/')
     
+  if n_elements(diff_save_path) gt 0 then diff_plot_path = diff_save_path + '/plots/'
+  
   wh_noinfo = where(obs_info.info_files eq '', count_noinfo)
   if count_noinfo gt 0 then message, 'Info files are not all present'
   
   ps_difference_plots, folder_names, obs_info, cube_types, pols, spec_window_types = spec_window_types, $
     all_type_pol = all_type_pol, refresh_diff = refresh_diff, freq_ch_range = freq_ch_range, $
-    plot_path = plot_path, plot_filebase = plot_filebase, save_path = diff_save_path, $
+    plot_path = diff_plot_path, plot_filebase = plot_filebase, save_path = diff_save_path, $
     savefilebase = savefilebase, $
     note = note, kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, $
     plot_1d = plot_1d, axis_type_1d=axis_type_1d, $

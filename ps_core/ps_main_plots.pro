@@ -20,7 +20,7 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
     kperp_lambda_plot_range = kperp_lambda_plot_range, kpar_plot_range = kpar_plot_range, $
     baseline_axis = baseline_axis, delay_axis = delay_axis, cable_length_axis = cable_length_axis, hinv = hinv, $
     plot_wedge_line = plot_wedge_line, wedge_angles = wedge_angles, coarse_harm_width = coarse_harm_width, $
-    plot_eor_1d = plot_eor_1d, individual_plots = individual_plots, plot_binning_hist = plot_binning_hist, $
+    plot_eor_1d = plot_eor_1d, plot_flat_1d = plot_flat_1d, individual_plots = individual_plots, plot_binning_hist = plot_binning_hist, $
     cube_power_info = cube_power_info, no_dft_progress = no_dft_progress
     
     
@@ -1372,7 +1372,7 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
     ave_power_freq:ave_power_freq_vals, wt_ave_power_uvf:wt_ave_power_uvf_vals, ave_power_uvf:ave_power_uvf_vals, $
     nbsl_lambda2:nbsl_lambda2, nbsl_lambda2_freq:nbsl_lambda2_freq}
     
-  if keyword_set(plot_eor_1d) then begin
+  if keyword_set(plot_eor_1d) or keyword_set(plot_flat_1d) then begin
     case strlowcase(!version.os_family) OF
       'windows': split_delim = ';'
       'unix':    split_delim = ':'
@@ -1422,9 +1422,16 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
       
       if keyword_set(plot_eor_1d) then begin
         if count_catalog gt 0 then begin
-          psyms = [intarr(n_elements(file_arr))+10, -3, -3]
-          file_arr = [file_arr, eor_file_1d, flat_file_1d]
-          titles_use = [titles_use, 'EoR signal', 'input flat power']
+          psyms = [intarr(n_elements(file_arr))+10, -3]
+          file_arr = [file_arr, eor_file_1d]
+          titles_use = [titles_use, 'EoR signal']
+        endif
+      endif
+      if keyword_set(plot_flat_1d) then begin
+        if count_catalog gt 0 then begin
+          psyms = [intarr(n_elements(file_arr))+10, -3]
+          file_arr = [file_arr, flat_file_1d]
+          titles_use = [titles_use, 'input flat power']
         endif
       endif
       
@@ -1445,9 +1452,16 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
     titles_use = reform(titles_use, n_cubes*n_elements(kperp_density_names))
     if keyword_set(plot_eor_1d) then begin
       if count_catalog gt 0 then begin
-        psyms = [intarr(n_elements(file_arr))+10, -3, -3]
-        file_arr = [file_arr, eor_file_1d, flat_file_1d]
-        titles_use = [titles_use, 'EoR signal', 'input flat power']
+        psyms = [intarr(n_elements(file_arr))+10, -3]
+        file_arr = [file_arr, eor_file_1d]
+        titles_use = [titles_use, 'EoR signal']
+      endif
+    endif
+    if keyword_set(plot_flat_1d) then begin
+      if count_catalog gt 0 then begin
+        psyms = [intarr(n_elements(file_arr))+10, -3]
+        file_arr = [file_arr, flat_file_1d]
+        titles_use = [titles_use, 'input flat power']
       endif
     endif
     
@@ -1471,9 +1485,16 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
     
     if keyword_set(plot_eor_1d) then begin
       if count_catalog gt 0 then begin
-        psyms = [intarr(n_elements(file_arr))+10, -3, -3]
-        file_arr = [file_arr, eor_file_1d, flat_file_1d]
-        titles_use = [titles_use, 'EoR signal', 'input flat power']
+        psyms = [intarr(n_elements(file_arr))+10, -3]
+        file_arr = [file_arr, eor_file_1d]
+        titles_use = [titles_use, 'EoR signal']
+      endif else print, 'Could not locate catalog_data directory in !path variable'
+    endif
+    if keyword_set(plot_flat_1d) then begin
+      if count_catalog gt 0 then begin
+        psyms = [intarr(n_elements(file_arr))+10, -3]
+        file_arr = [file_arr, flat_file_1d]
+        titles_use = [titles_use, 'input flat power']
       endif else print, 'Could not locate catalog_data directory in !path variable'
     endif
     
