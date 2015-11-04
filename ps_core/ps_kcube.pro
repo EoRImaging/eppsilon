@@ -279,7 +279,7 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
           test_input_uvf [0] =  file_test(input_uvf_files[i,0]) *  (1 - file_test(input_uvf_files[i,0], /zero_length))
           test_input_uvf [1] =  file_test(input_uvf_files[i,1]) *  (1 - file_test(input_uvf_files[i,1], /zero_length))
           
-          if min(test_input_uvf) eq 0 and (n_elements(freq_ch_range) ne 0 or n_elements(freq_flags) ne 0) then begin
+          if min(test_input_uvf) eq 1 and (n_elements(freq_ch_range) ne 0 or n_elements(freq_flags) ne 0) then begin
           
             for j=0, 1 do begin
               if test_input_uvf[j] eq 0 then begin
