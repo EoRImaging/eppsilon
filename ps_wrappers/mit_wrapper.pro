@@ -1,5 +1,5 @@
 pro mit_wrapper, folder_name, obs_name, data_subdirs=data_subdirs, exact_obsnames = exact_obsnames, n_obs=n_obs, rts = rts, $
-    refresh_dft = refresh_dft, refresh_info = refresh_info, refresh_ps = refresh_ps, refresh_beam = refresh_beam, $
+    refresh_dft = refresh_dft, refresh_info = refresh_info, refresh_ps = refresh_ps, refresh_beam = refresh_beam, uvf_input = uvf_input, $
     refresh_binning = refresh_binning, pol_inc = pol_inc, type_inc = type_inc, no_spec_window = no_spec_window, $
     spec_window_type = spec_window_type, sim = sim, freq_ch_range = freq_ch_range, std_power = std_power, no_wtd_avg = no_wtd_avg, $
     individual_plots = individual_plots, png = png, eps = eps, $
@@ -254,7 +254,7 @@ pro mit_wrapper, folder_name, obs_name, data_subdirs=data_subdirs, exact_obsname
   ;; pub is a flag to make save plots as eps files rather than displaying to the screen
   
   ps_main_plots, datafile, dft_fchunk=dft_fchunk, plot_path = plot_path, plot_filebase = plot_filebase, save_path = save_path, savefilebase = savefilebase, $
-    pol_inc = pol_inc, type_inc = type_inc, rts = rts, $
+    pol_inc = pol_inc, type_inc = type_inc, rts = rts, uvf_input = uvf_input, $
     refresh_dft = refresh_dft, refresh_ps = refresh_ps, refresh_binning = refresh_binning, refresh_info = refresh_info, refresh_beam = refresh_beam, $
     freq_ch_range = freq_ch_range, no_spec_window = no_spec_window, spec_window_type = spec_window_type, std_power = std_power, no_wtd_avg = no_wtd_avg, $
     sim = sim, cut_image = cut_image, delta_uv_lambda = delta_uv_lambda, $
