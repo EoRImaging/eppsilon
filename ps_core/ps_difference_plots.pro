@@ -3,7 +3,7 @@ pro ps_difference_plots, folder_names, obs_info, cube_types, pols, all_type_pol 
     plot_path = plot_path, plot_filebase = plot_filebase, save_path = save_path, savefilebase = savefilebase, $
     note = note, spec_window_types = spec_window_types, data_range = data_range, data_min_abs = data_min_abs, $
     kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, plot_1d = plot_1d, axis_type_1d=axis_type_1d, $
-    wt_cutoffs = wt_cutoffs, wt_measures = wt_measures, $
+    wt_cutoffs = wt_cutoffs, wt_measures = wt_measures, diff_ratio = diff_ratio, $
     plot_wedge_line = plot_wedge_line, quiet = quiet, png = png, eps = eps, pdf = pdf, window_num = window_num
     
   if n_elements(obs_info.info_files) gt 2 then message, 'Only 1 or 2 info_files can be used'
@@ -148,7 +148,7 @@ pro ps_difference_plots, folder_names, obs_info, cube_types, pols, all_type_pol 
   type_pol_str2 = file_struct_arr2.type_pol_str
   
   if keyword_set(all_type_pol) then begin
-    
+  
     if n_elements(type_pol_str1) ne n_elements(type_pol_str2) then message, 'all_type_pol cannot be used with these folders, they contain different number of types & pols'
     n_cubes = n_elements(type_pol_str1)
     
@@ -232,7 +232,7 @@ pro ps_difference_plots, folder_names, obs_info, cube_types, pols, all_type_pol 
       type_pol2 = type_pol_str[1]
       titles[i] = type_pol_str[0] + '-' + type_pol_str[1]
     endelse
-        
+    
     if n_elements(obs_info.info_files) eq 2 then begin
       fileparts_1 = strsplit(file_struct_arr1[0].general_filebase, '_', /extract)
       fileparts_2 = strsplit(file_struct_arr2[0].general_filebase, '_', /extract)
@@ -265,7 +265,8 @@ pro ps_difference_plots, folder_names, obs_info, cube_types, pols, all_type_pol 
     if n_elements(plot_filebase) eq 0 then plot_filebase = savefilebase_use
     
     savefile = save_path + savefilebase_use + '_power.idlsave'
-    savefile_2d = save_path + savefilebase_use + kperp_density_names + '_2dkpower.idlsave'
+    if keyword_set(diff_ratio) then savefile_2d = save_path + savefilebase_use + kperp_density_names + '_2dkpower_ratio.idlsave' $
+    else savefile_2d = save_path + savefilebase_use + kperp_density_names + '_2dkpower.idlsave'
     
     for wedge_i=0, n_elements(wedge_1dbin_names)-1 do begin
       savefiles_1d[i, wedge_i] = save_path + savefilebase_use + kperp_density_names + wedge_1dbin_names[wedge_i] + '_1dkpower.idlsave'
@@ -364,6 +365,34 @@ pro ps_difference_plots, folder_names, obs_info, cube_types, pols, all_type_pol 
       kpar_edges = kpar_edges_mpc
       weights = binned_weights
       
+      if keyword_set(diff_ratio) then begin
+        if n_elements(cube_ind1) eq 0 then  cube_ind1 = where(type_pol_str1 eq type_pol1, count_typepol)
+        if n_elements(power_file1) eq 0 then power_file1 = file_struct_arr1[cube_ind1].power_savefile
+        if n_elements(power1) eq 0 then power1 = getvar_savefile(power_file1, 'power_3d')
+        if n_elements(weights1) eq 0 then weights1 = getvar_savefile(power_file1, 'weights_3d')
+        
+        power_rebin_1 = kspace_rebinning_2d(power1, kx_mpc, ky_mpc, kz_mpc, kperp_edges_mpc, kpar_edges_mpc, log_kpar = log_kpar, $
+          log_kperp = log_kperp, kperp_bin = kperp_bin, kpar_bin = kpar_bin, weights = weights1, $
+          binned_weights = binned_weights1, $
+          kperp_density_measure = wt_meas_use, kperp_density_cutoff = wt_cutoffs)
+          
+        if n_elements(cube_ind2) eq 0 then  cube_ind2 = where(type_pol_str2 eq type_pol2, count_typepol)
+        if n_elements(power_file2) eq 0 then power_file2 = file_struct_arr2[cube_ind2].power_savefile
+        if n_elements(power2) eq 0 then power2 = getvar_savefile(power_file2, 'power_3d')
+        if n_elements(weights2) eq 0 then weights2 = getvar_savefile(power_file2, 'weights_3d')
+        
+        power_rebin_2 = kspace_rebinning_2d(power2, kx_mpc, ky_mpc, kz_mpc, kperp_edges_mpc, kpar_edges_mpc, log_kpar = log_kpar, $
+          log_kperp = log_kperp, kperp_bin = kperp_bin, kpar_bin = kpar_bin, weights = weights2, $
+          binned_weights = binned_weights2, $
+          kperp_density_measure = wt_meas_use, kperp_density_cutoff = wt_cutoffs)
+          
+        power_denom = power_rebin_2
+        weights_denom = binned_weights2        
+        
+        power = power/power_denom
+        weights = weights/weights_denom
+      endif
+      
       save, file = savefile_2d, power, weights, kperp_edges, kpar_edges, kperp_bin, kpar_bin, $
         kperp_lambda_conv, delay_params, hubble_param
     endif else restore, savefile_2d
@@ -395,6 +424,9 @@ pro ps_difference_plots, folder_names, obs_info, cube_types, pols, all_type_pol 
     
     if pub then begin
       plotfile_2d = plot_path + plot_filebase + kperp_density_names + '_2dkpower' + plot_exten
+      if keyword_set(diff_ratio) then plotfile_2d = plot_path + plot_filebase + kperp_density_names + '_2dkpower_ratio' + plot_exten $
+      else plotfile_2d = plot_path + plot_filebase + kperp_density_names + '_2dkpower' + plot_exten
+      
       if i eq 0 then plotfiles_1d = plot_path + plot_filebase + ['', wedge_1dbin_names] + kperp_density_names + '_1dkpower' + plot_exten
     endif else plot_exten = ''
     
@@ -437,12 +469,14 @@ pro ps_difference_plots, folder_names, obs_info, cube_types, pols, all_type_pol 
     
     if i eq n_cubes-1 and n_elements(note) gt 0 then note_use = note + ', ' + kperp_density_names else undefine, note_use
     
+    if keyword_set(diff_ratio) then no_units=1
+    
     kpower_2d_plots, savefile_2d, multi_pos = pos_use, start_multi_params = start_multi_params, $
       kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, note = note_use, $
       data_range = data_range, data_min_abs = data_min_abs, png = png, eps = eps, pdf = pdf, plotfile = plotfile_2d, full_title=titles[i], $
       window_num = window_num, color_profile = 'sym_log', $
       kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, baseline_axis = baseline_axis, delay_axis = delay_axis, $
-      wedge_amp = wedge_amp, plot_wedge_line = plot_wedge_line, hinv = hinv
+      wedge_amp = wedge_amp, plot_wedge_line = plot_wedge_line, hinv = hinv, no_units=no_units
       
     if n_cubes gt 1 and i eq 0 then begin
       positions = pos_use

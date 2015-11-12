@@ -118,7 +118,7 @@ pro ps_ratio_plots, folder_names, obs_info, cube_types, pols, all_pol_diff_ratio
   
   ;; default to hinv
   if n_elements(hinv) eq 0 then hinv = 1
-    
+  
   if n_elements(folder_names) eq 2 then begin
     if n_elements(save_path) eq 0 then save_path = obs_info.diff_save_path
     note = obs_info.diff_note
@@ -323,17 +323,29 @@ pro ps_ratio_plots, folder_names, obs_info, cube_types, pols, all_pol_diff_ratio
   
     for i=0, n_sets/2-1 do begin
       kperp_edges = getvar_savefile(savefiles_2d[2*i,0], 'kperp_edges')
-      if total(abs(kperp_edges - getvar_savefile(savefiles_2d[2*i+1,0], 'kperp_edges'))) ne 0 then message, 'kperp_edges do not match in savefiles'
+      kperp_edges2 = getvar_savefile(savefiles_2d[2*i+1,0], 'kperp_edges')
+      if n_elements(kperp_edges) ne n_elements(kperp_edges2) or max(abs(kperp_edges - kperp_edges2)) gt 1.05e-3 then $
+        message, 'kperp_edges does not match in savefiles'
       kpar_edges = getvar_savefile(savefiles_2d[2*i,0], 'kpar_edges')
-      if total(abs(kpar_edges - getvar_savefile(savefiles_2d[2*i+1,0], 'kpar_edges'))) ne 0 then message, 'kpar_edges do not match in savefiles'
+      kpar_edges2 = getvar_savefile(savefiles_2d[2*i+1,0], 'kpar_edges')
+      if n_elements(kpar_edges) ne n_elements(kpar_edges2) or max(abs(kpar_edges - kpar_edges2)) gt 1.05e-3 then $
+        message, 'kpar_edges does not match in savefiles'
+        
       kperp_bin = getvar_savefile(savefiles_2d[2*i,0], 'kperp_bin')
-      if total(abs(kperp_bin - getvar_savefile(savefiles_2d[2*i+1,0], 'kperp_bin'))) ne 0 then message, 'kperp_bin do not match in savefiles'
+      kperp_bin2 = getvar_savefile(savefiles_2d[2*i+1,0], 'kperp_bin')
+      if abs(kperp_bin - kperp_bin2) gt 1.05e-3 then $
+        message, 'kperp_bin does not match in savefiles'
       kpar_bin = getvar_savefile(savefiles_2d[2*i,0], 'kpar_bin')
-      if total(abs(kpar_bin - getvar_savefile(savefiles_2d[2*i+1,0], 'kpar_bin'))) ne 0 then message, 'kpar_bin do not match in savefiles'
+      kpar_bin2 = getvar_savefile(savefiles_2d[2*i+1,0], 'kpar_bin')
+      if abs(kpar_bin - kpar_bin2) gt 1.05e-3 then $
+        message, 'kpar_edges does not match in savefiles'
+        
       kperp_lambda_conv = getvar_savefile(savefiles_2d[2*i,0], 'kperp_lambda_conv')
-      if total(abs(kperp_lambda_conv - getvar_savefile(savefiles_2d[2*i+1,0], 'kperp_lambda_conv'))) ne 0 then message, 'kperp_lambda_conv do not match in savefiles'
+      kperp_lambda_conv2 = getvar_savefile(savefiles_2d[2*i+1,0], 'kperp_lambda_conv')
+      if abs(kperp_lambda_conv - kperp_lambda_conv2)/kperp_lambda_conv gt 1.05e-3  then message, 'kperp_lambda_conv do not match in savefiles'
       delay_params = getvar_savefile(savefiles_2d[2*i,0], 'delay_params')
-      if total(abs(delay_params - getvar_savefile(savefiles_2d[2*i+1,0], 'delay_params'))) ne 0 then message, 'delay_params do not match in savefiles'
+      delay_params2 = getvar_savefile(savefiles_2d[2*i+1,0], 'delay_params')
+      if max(abs(delay_params - delay_params2)) gt 1.05e-3  then message, 'delay_params do not match in savefiles'
       hubble_param = getvar_savefile(savefiles_2d[2*i,0], 'hubble_param')
       if total(abs(hubble_param - getvar_savefile(savefiles_2d[2*i+1,0], 'hubble_param'))) ne 0 then message, 'hubble_param do not match in savefiles'
       
@@ -411,17 +423,29 @@ pro ps_ratio_plots, folder_names, obs_info, cube_types, pols, all_pol_diff_ratio
   endif else begin
   
     kperp_edges = getvar_savefile(savefiles_2d[0], 'kperp_edges')
-    if total(abs(kperp_edges - getvar_savefile(savefiles_2d[1], 'kperp_edges'))) ne 0 then message, 'kperp_edges do not match in savefiles'
+    kperp_edges2 = getvar_savefile(savefiles_2d[1], 'kperp_edges')
+    if n_elements(kperp_edges) ne n_elements(kperp_edges2) or max(abs(kperp_edges - kperp_edges2)) gt 1.05e-3 then $
+      message, 'kperp_edges does not match in savefiles'
     kpar_edges = getvar_savefile(savefiles_2d[0], 'kpar_edges')
-    if total(abs(kpar_edges - getvar_savefile(savefiles_2d[1], 'kpar_edges'))) ne 0 then message, 'kpar_edges do not match in savefiles'
+    kpar_edges2 = getvar_savefile(savefiles_2d[1], 'kpar_edges')
+    if n_elements(kpar_edges) ne n_elements(kpar_edges2) or max(abs(kpar_edges - kpar_edges2)) gt 1.05e-3 then $
+      message, 'kpar_edges does not match in savefiles'
+      
     kperp_bin = getvar_savefile(savefiles_2d[0], 'kperp_bin')
-    if total(abs(kperp_bin - getvar_savefile(savefiles_2d[1], 'kperp_bin'))) ne 0 then message, 'kperp_bin do not match in savefiles'
+    kperp_bin2 = getvar_savefile(savefiles_2d[1], 'kperp_bin')
+    if abs(kperp_bin - kperp_bin2) gt 1.05e-3 then $
+      message, 'kperp_bin does not match in savefiles'
     kpar_bin = getvar_savefile(savefiles_2d[0], 'kpar_bin')
-    if total(abs(kpar_bin - getvar_savefile(savefiles_2d[1], 'kpar_bin'))) ne 0 then message, 'kpar_bin do not match in savefiles'
+    kpar_bin2 = getvar_savefile(savefiles_2d[1], 'kpar_bin')
+    if abs(kpar_bin - kpar_bin2) gt 1.05e-3 then $
+      message, 'kpar_edges does not match in savefiles'
+      
     kperp_lambda_conv = getvar_savefile(savefiles_2d[0], 'kperp_lambda_conv')
-    if total(abs(kperp_lambda_conv - getvar_savefile(savefiles_2d[1], 'kperp_lambda_conv'))) ne 0 then message, 'kperp_lambda_conv do not match in savefiles'
+    kperp_lambda_conv2 = getvar_savefile(savefiles_2d[1], 'kperp_lambda_conv')
+    if abs(kperp_lambda_conv - kperp_lambda_conv2)/kperp_lambda_conv gt 1.05e-3  then message, 'kperp_lambda_conv do not match in savefiles'
     delay_params = getvar_savefile(savefiles_2d[0], 'delay_params')
-    if total(abs(delay_params - getvar_savefile(savefiles_2d[1], 'delay_params'))) ne 0 then message, 'delay_params do not match in savefiles'
+    delay_params2 = getvar_savefile(savefiles_2d[1], 'delay_params')
+    if max(abs(delay_params - delay_params2)) gt 1.05e-3  then message, 'delay_params do not match in savefiles'
     hubble_param = getvar_savefile(savefiles_2d[0], 'hubble_param')
     if total(abs(hubble_param - getvar_savefile(savefiles_2d[1], 'hubble_param'))) ne 0 then message, 'hubble_param do not match in savefiles'
     

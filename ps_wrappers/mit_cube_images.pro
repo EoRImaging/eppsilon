@@ -61,6 +61,21 @@ pro mit_cube_images, folder_names, obs_names_in, exact_obsnames = exact_obsnames
       if folder_test eq 1 then folder_names[i] = test_name
     endif
     
+    start_path2 = '/nfs/mwa-03/r1/'
+    if folder_test eq 0 then begin
+      pos_eor2013 = strpos(folder_names[i], 'EoR2013')
+      if pos_eor2013 gt -1 then begin
+        test_name = start_path2 + strmid(folder_names[i], pos_eor2013)
+        folder_test = file_test(test_name, /directory)
+        if folder_test eq 1 then folder_names[i] = test_name
+      endif
+    endif
+    if folder_test eq 0 then begin
+      test_name = start_path2 + 'EoR2013/' + folder_names[i]
+      folder_test = file_test(test_name, /directory)
+      if folder_test eq 1 then folder_names[i] = test_name
+    endif
+    
     if folder_test eq 0 then message, 'folder not found'
   endfor
   
