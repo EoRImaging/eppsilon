@@ -12,7 +12,7 @@ pro enterprise_wrapper, folder_name, obs_name, data_subdirs=data_subdirs, dirty_
     coarse_harm_width = coarse_harm_width, kperp_plot_range = kperp_plot_range, $
     kperp_lambda_plot_range = kperp_lambda_plot_range, kpar_plot_range = kpar_plot_range, $
     png = png, eps = eps, pdf = pdf, plot_stdset = plot_stdset, $
-    plot_slices = plot_slices, slice_type = slice_type, max_uv_lambda = max_uv_lambda, $
+    plot_slices = plot_slices, slice_type = slice_type, uvf_plot_type = uvf_plot_type, max_uv_lambda = max_uv_lambda, $
     kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, set_data_ranges = set_data_ranges,$
     cube_power_info = cube_power_info, ps_foldername = ps_foldername, data_range = data_range, $
     norm_rts_with_fhd = norm_rts_with_fhd, wedge_angles = wedge_angles
