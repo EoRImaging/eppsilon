@@ -1197,8 +1197,18 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, pol_
         nrow = 1
         if slice_type eq 'kspace' then ncol = ntype*npol else ncol = ntype*nfiles*npol
       endif else begin
-        ncol=ntype
-        if slice_type eq 'kspace' then nrow = npol else nrow = npol*nfiles
+        if slice_type eq 'kspace' then begin
+          ncol=ntype
+          nrow = npol
+        endif else begin
+          if ntype gt 1 then begin
+            ncol=ntype
+            nrow = npol*nfiles
+          endif else begin
+            ncol=ntype*nfiles
+            nrow = npol          
+          endelse
+        endelse
       endelse
       
       if slice_type eq 'raw' or slice_type eq 'divided' then begin
