@@ -308,11 +308,11 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
                   
                   test_uvf = 1
                   
-                endif
-              endif
-            endfor
+                endif ;; endif test_full_uvf eq 1
+              endif;; endif test_input_uvf[j] eq 1
+            endfor;; end loop over 2 derived cubes
             
-          endif else message, 'derived cube but input_uvf cube files do not exist'
+          endif else if min(test_input_uvf) eq 0 then message, 'derived cube but input_uvf cube files do not exist'
           
           dirty_cube = getvar_savefile(input_uvf_files[i,0], input_uvf_varname[i,0])
           kx_dirty = getvar_savefile(input_uvf_files[i,0], 'kx_rad_vals')
