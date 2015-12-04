@@ -1199,11 +1199,11 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
         data_cube2 = temporary(dirty_cube2) - temporary(model_cube2)
       endif
       
-      void = getvar_savefile(file_struct.input_uvf_files[0,0], names = uvf_varnames)
+      void = getvar_savefile(input_uvf_files[0,0], names = uvf_varnames)
       wh_hash = where(uvf_varnames eq 'uvf_git_hash', count_hash)
       if count_hash gt 0 then begin
-        uvf_git_hashes = getvar_savefile(file_struct.input_uvf_files[0,0], 'uvf_git_hash')
-        if nfiles eq 2 then uvf_git_hashes = [uvf_git_hashes, getvar_savefile(file_struct.input_uvf_files[0,1], 'uvf_git_hash')]
+        uvf_git_hashes = getvar_savefile(input_uvf_files[0,0], 'uvf_git_hash')
+        if nfiles eq 2 then uvf_git_hashes = [uvf_git_hashes, getvar_savefile(input_uvf_files[0,1], 'uvf_git_hash')]
       endif else uvf_git_hashes = strarr(nfiles)
       
       
