@@ -422,11 +422,9 @@ pro uvf_slice_plot, slice_savefile, multi_pos = multi_pos, start_multi_params = 
     ythick = 3
     if n_elements(charsize_in) eq 0 then begin
       if n_elements(multi_pos) gt 0 then begin
-        ;charsize = 0.8d * (multi_size[0]/float(base_size_use))
-        charsize = base_size_use / 250.
+        charsize = 1.2d * (mean(multi_size)/10000.)
       endif else charsize = 2
     endif else charsize = charsize_in
-    
     font = 1
     
     if n_elements(multi_pos) eq 0 then begin
