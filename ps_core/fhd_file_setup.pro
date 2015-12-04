@@ -614,12 +614,16 @@ function fhd_file_setup, filename, weightfile = weightfile, variancefile = varia
           vis_noise_arr = fltarr([n_obs[pol_i, file_i], n_freq])
           
           noise_dims = size(*obs_arr[0].vis_noise, /dimension)
-          if noise_dims[0] ne npol or noise_dims[1] ne n_freq then begin
+          
+          if noise_dims[0] lt npol or noise_dims[1] ne n_freq then begin
             if min(pol_exist) eq 1 and n_elements(*obs_arr[0].vis_noise) eq n_freq then begin
               for i=0, n_obs[pol_i, file_i]-1 do vis_noise_arr[i, *] = (*obs_arr[i].vis_noise)
             endif else message, 'vis_noise dimensions do not match npol, n_freq'
-          endif else for i=0, n_obs[pol_i, file_i]-1 do vis_noise_arr[i, *] = (*obs_arr[i].vis_noise)[pol_i,*]
-          
+          endif else begin
+            wh_pol = where(strmatch(obs_arr[0].pol_names, pol_inc[pol_i], /fold_case), count)
+            if count ne 1 then message, 'pol can not be uniquely identified in obs_arr.pol_names'
+            for i=0, n_obs[pol_i, file_i]-1 do vis_noise_arr[i, *] = (*obs_arr[i].vis_noise)[wh_pol,*]
+          endelse
           
           if j eq 0 then vis_noise = fltarr(npol, nfiles, n_freq)
           vis_noise[pol_i, file_i, *] = sqrt(total(vis_noise_arr^2.*n_vis_freq_arr, 1)/total(n_vis_freq_arr, 1))
