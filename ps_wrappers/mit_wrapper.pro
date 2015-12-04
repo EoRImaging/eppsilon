@@ -144,19 +144,24 @@ pro mit_wrapper, folder_name, obs_name, data_subdirs=data_subdirs, exact_obsname
     if folder_test eq 0 then message, 'folder not found'
     
     save_path = folder_name + '/ps/'
-    if n_elements(data_subdirs) eq 0 then data_subdirs = 'Healpix/'
-    
+    if keyword_set(uvf_input) then data_subdirs = '' else data_subdirs = 'Healpix/'
+      
     obs_info = ps_filenames(folder_name, obs_name, exact_obsnames = exact_obsnames, rts = rts, sim = sim, casa = casa, $
-      data_subdirs = data_subdirs, save_paths = save_path, plot_paths = save_path + 'plots/', refresh_info = refresh_info)
+      uvf_input = uvf_input, data_subdirs = data_subdirs, save_paths = save_path, plot_paths = save_path + 'plots/', $
+      refresh_info = refresh_info)
       
     if obs_info.info_files[0] ne '' then datafile = obs_info.info_files[0] else datafile = obs_info.cube_files.(0)
     
-    plot_filebase = obs_info.fhd_types[0]
+    if keyword_set(uvf_input) then plot_filebase = obs_info.fhd_types[0] + '_uvf'$
+    else  plot_filebase = obs_info.fhd_types[0]
     ;; check to see if obs_name is already in fhd_types. if so, don't add it again
     obsname_test = stregex(obs_info.fhd_types[0], obs_info.obs_names[0], /boolean)
     if obsname_test eq 0 then plot_filebase = plot_filebase + '_' + obs_info.obs_names[0]
     
     note = obs_info.fhd_types[0]
+    if keyword_set(uvf_input) then note = note + '_uvf'
+
+    if tag_exist(obs_info, 'beam_files') then beamfiles = obs_info.beam_files
     
     if not file_test(save_path, /directory) then file_mkdir, save_path
     plot_path = save_path + 'plots/'
@@ -253,7 +258,7 @@ pro mit_wrapper, folder_name, obs_name, data_subdirs=data_subdirs, exact_obsname
   ;; plot_wedge_line is a flag (defaulted to true) to plot a line marking the wedge (both horizon & FoV) (set to 0 to turn off)
   ;; pub is a flag to make save plots as eps files rather than displaying to the screen
   
-  ps_main_plots, datafile, dft_fchunk=dft_fchunk, plot_path = plot_path, plot_filebase = plot_filebase, save_path = save_path, savefilebase = savefilebase, $
+  ps_main_plots, datafile, beamfiles = beamfiles, dft_fchunk=dft_fchunk, plot_path = plot_path, plot_filebase = plot_filebase, save_path = save_path, savefilebase = savefilebase, $
     pol_inc = pol_inc, type_inc = type_inc, rts = rts, uvf_input = uvf_input, $
     refresh_dft = refresh_dft, refresh_ps = refresh_ps, refresh_binning = refresh_binning, refresh_info = refresh_info, refresh_beam = refresh_beam, $
     freq_ch_range = freq_ch_range, no_spec_window = no_spec_window, spec_window_type = spec_window_type, std_power = std_power, no_wtd_avg = no_wtd_avg, $

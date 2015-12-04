@@ -594,11 +594,20 @@ function fhd_file_setup, filename, weightfile = weightfile, variancefile = varia
         if tag_exist(obs_arr, 'beam_integral') then begin
           if j eq 0 then beam_int = fltarr(npol, nfiles, n_freq)
           beam_int_arr = fltarr([n_obs[pol_i, file_i], n_freq])
-          for i=0, n_obs[pol_i, file_i]-1 do beam_int_arr[i, *] = *(obs_arr[i].beam_integral(pol_i))
-          
-          wh_freq_all_0 = where(total(n_vis_freq_arr, 1) eq 0, count_freq_all_0)
-          beam_int[pol_i, file_i, *] = total(beam_int_arr * n_vis_freq_arr, 1)/total(n_vis_freq_arr, 1)
-          if count_freq_all_0 gt 0 then beam_int[pol_i, file_i, wh_freq_all_0]=0
+          for i=0, n_obs[pol_i, file_i]-1 do begin
+            if obs_arr[i].beam_integral(pol_i) eq !Null then beam_int_arr[i, *] = 0 else $
+              beam_int_arr[i, *] = *(obs_arr[i].beam_integral(pol_i))
+          endfor
+          if max(beam_int_arr) eq 0 then begin
+            ;; all the pointers were null -- treat as if it doesn't exist in obs structure
+            undefine, beam_int_arr
+          endif else begin
+            if min(beam_int_arr) eq 0 then message, 'some beam_integrals are null, others are not.'
+            
+            wh_freq_all_0 = where(total(n_vis_freq_arr, 1) eq 0, count_freq_all_0)
+            beam_int[pol_i, file_i, *] = total(beam_int_arr * n_vis_freq_arr, 1)/total(n_vis_freq_arr, 1)
+            if count_freq_all_0 gt 0 then beam_int[pol_i, file_i, wh_freq_all_0]=0
+          endelse
         endif
         
         if tag_exist(obs_arr[0], 'vis_noise') then begin

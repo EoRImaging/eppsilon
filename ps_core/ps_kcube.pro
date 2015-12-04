@@ -720,7 +720,7 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
           endif
         endelse
       endif else begin
-        
+      
         if keyword_set(dft_ian) then begin
           u_lambda_vals = getvar_savefile(file_struct.uvf_savefile[0], 'u_lambda_vals')
           v_lambda_vals = getvar_savefile(file_struct.uvf_savefile[0], 'v_lambda_vals')
@@ -1150,19 +1150,51 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
     endif
     
   endif else begin
+    ;; uvf_input
     if datavar eq '' then begin
       ;; working with a 'derived' cube (ie residual cube) that is constructed from other cubes
       ;; need to cut uvf cubes in half because image is real -- we'll cut negative ky
       dirty_cube1 = getvar_savefile(input_uvf_files[0,0], input_uvf_varname[0,0])
-      dirty_cube1 = dirty_cube1[*, n_ky/2:n_ky-1,*]
       model_cube1 = getvar_savefile(input_uvf_files[0,1], input_uvf_varname[0,1])
+      if nfiles eq 2 then begin
+        dirty_cube2 = getvar_savefile(input_uvf_files[1,0], input_uvf_varname[1,0])
+        model_cube2 = getvar_savefile(input_uvf_files[1,1], input_uvf_varname[1,1])
+      endif
+      
+      dirty_size = size(dirty_cube1)
+      if dirty_size[n_elements(dirty_size)-2] eq 10 then begin
+        ;; dirty cube is a pointer
+        dims2 = size(*dirty_cube1[0], /dimension)
+        temp = complex(fltarr([dims2, n_freq]))
+        temp_m = complex(fltarr([dims2, n_freq]))
+        if nfiles eq 2 then begin
+          temp2 = complex(fltarr([dims2, n_freq]))
+          temp_m2 = complex(fltarr([dims2, n_freq]))
+        endif
+        for i = 0, n_freq-1 do begin
+          temp[*,*,i] = *dirty_cube1[file_struct.pol_index, i]
+          temp_m[*,*,i] = *model_cube1[file_struct.pol_index, i]
+          if nfiles eq 2 then begin
+            temp2[*,*,i] = *dirty_cube2[file_struct.pol_index, i]
+            temp_m2[*,*,i] = *model_cube2[file_struct.pol_index, i]
+          endif
+        endfor
+        undefine_fhd, dirty_cube1, model_cube1, dirty_cube2, model_cube2
+        
+        dirty_cube1 = temporary(temp)
+        model_cube1 = temporary(temp_m)
+        if nfiles eq 2 then begin
+          dirty_cube2 = temporary(temp2)
+          model_cube2 = temporary(temp_m2)
+        endif
+      endif
+      
+      dirty_cube1 = dirty_cube1[*, n_ky/2:n_ky-1,*]
       model_cube1 = model_cube1[*, n_ky/2:n_ky-1,*]
       data_cube1 = temporary(dirty_cube1) - temporary(model_cube1)
       
       if nfiles eq 2 then begin
-        dirty_cube2 = getvar_savefile(input_uvf_files[1,0], input_uvf_varname[1,0])
         dirty_cube2 = dirty_cube2[*, n_ky/2:n_ky-1,*]
-        model_cube2 = getvar_savefile(input_uvf_files[1,1], input_uvf_varname[1,1])
         model_cube2 = model_cube2[*, n_ky/2:n_ky-1,*]
         data_cube2 = temporary(dirty_cube2) - temporary(model_cube2)
       endif
@@ -1186,7 +1218,6 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
       endif
       
     endif else begin
-      ;; uvf_input
       data_cube1 = getvar_savefile(file_struct.datafile[0], file_struct.datavar)
       if nfiles eq 2 then data_cube2 = getvar_savefile(file_struct.datafile[1], file_struct.datavar)
       
