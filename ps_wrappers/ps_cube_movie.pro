@@ -1,4 +1,4 @@
-; Wrapper to make movies for FHD output image cubes.
+; Wrapper to make movies for image cubes.
 ; Movies can run over frequencies, obsids or a set of supplied files.
 ; This wrapper also supports making movies over differenced or ratioed images
 ;    (anything supported by ps_core/cube_images)
@@ -17,16 +17,13 @@
 ;   otherwise a default choice is made and the filename used is reported
 ;
 ;
-pro mit_cube_movie, folder_names, obs_names_in, exact_obsnames = exact_obsnames, data_subdirs=data_subdirs, $
+pro ps_cube_movie, folder_names, obs_names_in, exact_obsnames = exact_obsnames, data_subdirs=data_subdirs, $
     movie_axis = movie_axis, cube_types = cube_types, pols = pols, evenodd = evenodd, $
     rts = rts, sim = sim, casa = casa, png = png, slice_range = slice_range, sr2 = sr2, $
     nvis_norm = nvis_norm, ratio = ratio, diff_ratio = diff_ratio, diff_frac = diff_frac, $
     log = log, data_range = data_range, color_profile = color_profile, sym_color = sym_color, $
     window_num = window_num, plot_as_map = plot_as_map, $
     delete_images = delete_images, n_freq_frames = n_freq_frames, movie_file = movie_file
-    
-  message, 'Error: This wrapper is depricated and will not continue to be supported. Please call ps_cube_movie instead. ' + $
-    'This line can be commented out to allow the deprecacated code to run.'
     
   if n_elements(evenodd) eq 0 then evenodd = 'even'
   
@@ -52,12 +49,22 @@ pro mit_cube_movie, folder_names, obs_names_in, exact_obsnames = exact_obsnames,
     if n_elements(evenodd) gt 2 then message, 'No more than 2 evenodd values can be supplied'
   endif
   
-  folder_names = mit_folder_locs(folder_names, rts = rts)
+  spawn, 'hostname', hostname
+  if stregex(hostname, 'mit.edu', /boolean) eq 1 then loc_name = 'mit'
+  if stregex(hostname, 'asu.edu', /boolean) eq 1 then loc_name = 'enterprise'
+  case loc_name of
+    'mit':  folder_names = mit_folder_locs(folder_names, rts = rts)
+    'enterprise': folder_names = enterprise_folder_locs(folder_names, rts = rts)
+    else: begin
+      folder_test = file_test(folder_names, /directory)
+      if min(folder_test) eq 0 then message, 'machine not recognized and folder not found'
+    endelse
+  endcase
   
   if movie_axis eq 'obsid' and n_elements(obs_names_in) eq 0 then begin
     for i=0, n_elements(folder_names)-1 do begin
       ;; look for single obs cube files to get all single obs names
-      cube_file_list = file_search(folder_names[i] + '/' + data_subdirs + '*_cube*.sav', count = n_cubefiles)
+      cube_file_list = file_search(folder_names[i] + path_sep() + data_subdirs + '*_cube*.sav', count = n_cubefiles)
       if n_cubefiles gt 0 then begin
         ;;first find single obs
         cube_basename = file_basename(cube_file_list)

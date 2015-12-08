@@ -17,84 +17,32 @@ pro enterprise_wrapper, folder_name, obs_name, data_subdirs=data_subdirs, dirty_
     cube_power_info = cube_power_info, ps_foldername = ps_foldername, data_range = data_range, $
     norm_rts_with_fhd = norm_rts_with_fhd, wedge_angles = wedge_angles
     
-  ;; The only required input is the datafile name (including the full path)
+  message, 'Error: This wrapper is depricated and will not continue to be supported. Please call ps_wrapper instead. ' + $
+    'This line can be commented out to allow the deprecacated code to run.'
+  
+  folder_name = enterprise_folder_locs(folder_name, rts = rts)
+  
+  if keyword_set(rts) and n_elements(dirty_folder) gt 0 then begin
+    dirty_folder = enterprise_folder_locs(dirty_folder, rts = rts)
+  endif
+  
+  obs_info = ps_filenames(folder_name, obs_name, dirty_folder = dirty_folder, exact_obsnames = exact_obsnames, rts = rts, sim = sim, $
+    uvf_input = uvf_input, casa = casa, data_subdirs = data_subdirs, $
+    ps_foldernames = ps_foldername, save_paths = save_path, plot_paths = plot_path, refresh_info = refresh_info, no_wtvar_rts = no_wtvar_rts)
     
   if keyword_set(rts) then begin
-    ;    froot = '/data3/MWA/bpindor/RTS/dec_11/'
-    ;
-    ;    ;     data_dir = froot + 'BdaggerV/'
-    ;    data_dir = froot + ['PSF0_0/','PSF0_1/']
-    ;
-    ;    ;     weights_dir = froot + 'Bdagger1/'
-    ;    weights_dir = froot + ['PSF1_0/','PSF1_1/']
-    ;
-    ;    ;     variance_dir = froot + 'BdaggerB/'
-    ;    variance_dir = froot + ['PSF2_0/','PSF2_1/']
-    ;
-    ;    datafiles = [[file_search(data_dir[0] + '*.fits')],[file_search(data_dir[1] + '*.fits')]]
-    ;    weightfiles = [[file_search(weights_dir[0] + '*.fits')],[file_search(weights_dir[1] + '*.fits')]]
-    ;    variancefiles = [[file_search(variance_dir[0] + '*.fits')],[file_search(variance_dir[1] + '*.fits')]]
   
-  
-  
-    if n_elements(folder_name) eq 0 then folder_name = '/data3/MWA/bpindor/RTS/feb_9/'
-    
-    ;; check for folder existence, otherwise look for common folder names to figure out full path.
-    ;; If none found, try '/data3/MWA/bpindor/RTS/'
-    start_path = '/data3/MWA/bpindor/RTS/'
-    folder_test = file_test(folder_name, /directory)
-    if folder_test eq 0 then begin
-      pos_RTS = strpos(folder_name, 'RTS')
-      if pos_RTS gt -1 then begin
-        test_name = start_path + strmid(folder_name, pos_RTS)
-        folder_test = file_test(test_name, /directory)
-        if folder_test eq 1 then folder_name = test_name
-      endif
-    endif
-    if folder_test eq 0 then begin
-      test_name = start_path + folder_name
-      folder_test = file_test(test_name, /directory)
-      if folder_test eq 1 then folder_name = test_name
-    endif
-    
-    if folder_test eq 0 then message, 'folder not found'
-    
-    if n_elements(dirty_folder) gt 0 then begin
-      ;; check for folder existence, otherwise look for common folder names to figure out full path.
-      ;; If none found, try '/data3/MWA/bpindor/RTS/'
-      start_path = '/data3/MWA/bpindor/RTS/'
-      folder_test = file_test(dirty_folder, /directory)
-      if folder_test eq 0 then begin
-        pos_RTS = strpos(dirty_folder, 'RTS')
-        if pos_RTS gt -1 then begin
-          test_name = start_path + strmid(dirty_folder, pos_RTS)
-          folder_test = file_test(test_name, /directory)
-          if folder_test eq 1 then dirty_folder = test_name
-        endif
-      endif
-      if folder_test eq 0 then begin
-        test_name = start_path + dirty_folder
-        folder_test = file_test(test_name, /directory)
-        if folder_test eq 1 then dirty_folder = test_name
-      endif
-      
-      if folder_test eq 0 then message, 'dirty_folder not found'
-      
-    endif
-    
-    if n_elements(ps_foldername) eq 0 then ps_foldername = 'ps/'
-    save_path = folder_name + '/' + ps_foldername
-    obs_info = ps_filenames(folder_name, obs_name, dirty_folder = dirty_folder, rts = rts, sim = sim, casa = casa, $
-      save_paths = save_path, plot_path = save_path, refresh_info = refresh_info, no_wtvar_rts = no_wtvar_rts)
-      
     if tag_exist(obs_info, 'dirtyfiles') then dirtyfiles = obs_info.dirtyfiles.(0)
     
-    if obs_info.info_files[0] ne '' then datafile = obs_info.info_files[0] else $
-      if obs_info.cube_files.(0)[0] ne '' then datafile = obs_info.cube_files.(0) else $
-      datafile = rts_fits2idlcube(obs_info.datafiles.(0), obs_info.weightfiles.(0), obs_info.variancefiles.(0), $
-      dirtyfiles = dirtyfiles, pol_inc = pol_inc, save_path = obs_info.folder_names[0]+path_sep(), $
-      refresh = refresh_dft, no_wtvar = no_wtvar_rts)
-      
+    if obs_info.info_files[0] ne '' then datafile = obs_info.info_files[0] else begin
+    
+      if obs_info.cube_files.(0)[0] ne '' then datafile = obs_info.cube_files.(0) else begin
+        datafile = rts_fits2idlcube(obs_info.datafiles.(0), obs_info.weightfiles.(0), obs_info.variancefiles.(0), $
+          dirtyfiles = dirtyfiles, pol_inc = pol_inc, save_path = obs_info.folder_names[0]+path_sep(), $
+          refresh = refresh_dft, no_wtvar = no_wtvar_rts)
+      endelse
+    endelse
+    
     if keyword_set(refresh_rtscube) then $
       datafile = rts_fits2idlcube(obs_info.datafiles.(0), obs_info.weightfiles.(0), obs_info.variancefiles.(0), $
       dirtyfiles = dirtyfiles, pol_inc = pol_inc, save_path = obs_info.folder_names[0]+path_sep(), $
@@ -106,8 +54,6 @@ pro enterprise_wrapper, folder_name, obs_name, data_subdirs=data_subdirs, dirty_
     
     note = obs_info.rts_types
     if not file_test(save_path, /directory) then file_mkdir, save_path
-    
-    plot_path = save_path + 'plots/'
     if not file_test(plot_path, /directory) then file_mkdir, plot_path
     
     if keyword_set(set_data_ranges) then begin
@@ -131,32 +77,7 @@ pro enterprise_wrapper, folder_name, obs_name, data_subdirs=data_subdirs, dirty_
     
   endif else begin
   
-    ;; check for folder existence, otherwise look for common folder names to figure out full path.
-    start_path = '/data4/MWA/'
-    folder_test = file_test(folder_name, /directory)
-    if folder_test eq 0 then begin
-      pos_aug23 = strpos(folder_name, 'FHD_Aug23')
-      if pos_aug23 gt -1 then begin
-        test_name = start_path + strmid(folder_name, pos_aug23)
-        folder_test = file_test(test_name, /directory)
-        if folder_test eq 1 then folder_name = test_name
-      endif
-    endif
-    if folder_test eq 0 then begin
-      test_name = start_path + 'FHD_Aug23/' + folder_name
-      folder_test = file_test(test_name, /directory)
-      if folder_test eq 1 then folder_name = test_name
-    endif
-    
-    if folder_test eq 0 then message, 'folder not found'
-    
-    if n_elements(ps_foldername) eq 0 then ps_foldername = 'ps/'
-    save_path = folder_name + '/' + ps_foldername
-    if keyword_set(uvf_input) then data_subdirs = '' else data_subdirs = 'Healpix/'
-    obs_info = ps_filenames(folder_name, obs_name, exact_obsnames = exact_obsnames, rts = rts, sim = sim, $
-      uvf_input = uvf_input, casa = casa, data_subdirs = data_subdirs, $
-      save_paths = save_path, plot_path = save_path, refresh_info = refresh_info)
-      
+  
     if obs_info.info_files[0] ne '' then datafile = obs_info.info_files[0] else datafile = obs_info.cube_files.(0)
     if keyword_set(uvf_input) then plot_filebase = obs_info.fhd_types[0] + '_uvf'$
     else  plot_filebase = obs_info.fhd_types[0]
@@ -169,8 +90,6 @@ pro enterprise_wrapper, folder_name, obs_name, data_subdirs=data_subdirs, dirty_
     if tag_exist(obs_info, 'beam_files') then beamfiles = obs_info.beam_files
     
     if not file_test(save_path, /directory) then file_mkdir, save_path
-    
-    plot_path = save_path + 'plots/'
     if not file_test(plot_path, /directory) then file_mkdir, plot_path
     
     if keyword_set(sim) then begin

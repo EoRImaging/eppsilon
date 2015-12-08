@@ -1,7 +1,7 @@
 function ps_filenames, folder_names, obs_names_in, dirty_folder = dirty_folder, dirty_obsname = dirty_obsname, $
     rts = rts, sim = sim, uvf_input = uvf_input, casa = casa, $
-    data_subdirs = data_subdirs, plot_paths = plot_paths, save_paths = save_paths, refresh_info = refresh_info, $
-    exact_obsnames = exact_obsnames, no_wtvar_rts = no_wtvar_rts
+    data_subdirs = data_subdirs, ps_foldernames = ps_foldernames, plot_paths = plot_paths, save_paths = save_paths, $
+    refresh_info = refresh_info, exact_obsnames = exact_obsnames, no_wtvar_rts = no_wtvar_rts
     
   if n_elements(folder_names) eq 2 then if folder_names[0] eq folder_names[1] then folder_names = folder_names[0]
   
@@ -9,7 +9,7 @@ function ps_filenames, folder_names, obs_names_in, dirty_folder = dirty_folder, 
   
   n_filesets = max([n_elements(folder_names), n_elements(obs_names_in)])
   
-  if n_elements(data_subdirs) eq 0 then data_subdirs = '' else begin
+  if n_elements(data_subdirs) eq 0 then data_subdirs = 'Healpix' + path_sep() else begin
     ;; make sure there is no path separator at beginning and there is one at the end
     for i=0, n_elements(data_subdirs)-1 do if data_subdirs[i] ne '' then data_subdirs[i] = strjoin(strsplit(data_subdirs[i], path_sep(), /extract), path_sep()) + path_sep()
   endelse
@@ -25,6 +25,14 @@ function ps_filenames, folder_names, obs_names_in, dirty_folder = dirty_folder, 
   endif
   
   if n_elements(dirty_folder) gt 0 and n_elements(dirty_obsname) eq 0 then dirty_obsname = ''
+  
+  if not keyword_set(rts) and n_elements(data_subdirs) eq 0 then begin
+    if keyword_set(uvf_input) then data_subdirs = '' else data_subdirs = 'Healpix' + path_sep()
+  endif
+  
+  if n_elements(ps_foldernames) eq 0 then ps_foldernames = 'ps' + path_sep()
+  if n_elements(save_paths) eq 0 then save_paths = folder_names + path_sep() + ps_foldernames
+  if n_elements(plot_paths) eq 0 then plot_paths = save_paths + path_sep() + 'plots' + path_sep()
   
   if n_filesets gt 1 then begin
     if n_elements(folder_names) eq 1 then folder_names = replicate(folder_names, n_filesets)
@@ -49,7 +57,7 @@ function ps_filenames, folder_names, obs_names_in, dirty_folder = dirty_folder, 
       if n_elements(plot_paths) ne n_filesets then message, 'If plot_paths is an array, the number of elements must match the max of folder_names & obs_names_in'
     endif else plot_paths = folder_names + '/' + data_subdirs
   endif else begin
-
+  
     if n_elements(save_paths) eq 0 then save_paths = folder_names + '/' + data_subdirs
     if n_elements(plot_paths) eq 0 then plot_paths = folder_names + '/' + data_subdirs
   endelse
@@ -903,8 +911,9 @@ function ps_filenames, folder_names, obs_names_in, dirty_folder = dirty_folder, 
       
     endif
     
+    if n_elements(diff_save_path) gt 0 then diff_plot_path = diff_save_path + path_sep() + 'plots' + path_sep()
     if n_elements(diff_note) gt 0 then obs_info = create_struct(obs_info, 'diff_note', diff_note, 'diff_save_path', $
-      diff_save_path)
+      diff_save_path, 'diff_plot_path', diff_plot_path)
       
     if n_elements(name_same_parts) gt 0 then obs_info = create_struct(obs_info, 'name_same_parts', name_same_parts, 'name_diff_parts',name_diff_parts)
     

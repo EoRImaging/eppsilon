@@ -81,7 +81,8 @@ pro ps_difference_plots, folder_names, obs_info, cube_types, pols, all_type_pol 
   if n_elements(folder_names) eq 2 then begin
     if n_elements(save_path) eq 0 then save_path = obs_info.diff_save_path
     note = obs_info.diff_note
-    if n_elements(plot_path) eq 0 then if tag_exist(obs_info, 'diff_plot_path') then plot_path = obs_info.diff_plot_path else plot_path = save_path
+    if n_elements(plot_path) eq 0 then if tag_exist(obs_info, 'diff_plot_path') then $
+      plot_path = obs_info.diff_plot_path else plot_path = save_path + path_sep() + 'plots' + path_sep()
   endif else begin
     if n_elements(save_path) eq 0 then save_path = obs_info.save_paths[0]
     note = obs_info.fhd_types[0]
@@ -387,7 +388,7 @@ pro ps_difference_plots, folder_names, obs_info, cube_types, pols, all_type_pol 
           kperp_density_measure = wt_meas_use, kperp_density_cutoff = wt_cutoffs)
           
         power_denom = power_rebin_2
-        weights_denom = binned_weights2        
+        weights_denom = binned_weights2
         
         power = power/power_denom
         weights = weights/weights_denom

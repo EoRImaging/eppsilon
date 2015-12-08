@@ -1,7 +1,9 @@
-pro mit_wrapper, folder_name, obs_name, data_subdirs=data_subdirs, exact_obsnames = exact_obsnames, n_obs=n_obs, rts = rts, $
-    refresh_dft = refresh_dft, refresh_info = refresh_info, refresh_ps = refresh_ps, refresh_beam = refresh_beam, uvf_input = uvf_input, $
-    refresh_binning = refresh_binning, pol_inc = pol_inc, type_inc = type_inc, no_spec_window = no_spec_window, $
-    spec_window_type = spec_window_type, sim = sim, freq_ch_range = freq_ch_range, std_power = std_power, no_wtd_avg = no_wtd_avg, $
+pro mit_wrapper, folder_name, obs_name, data_subdirs=data_subdirs, exact_obsnames = exact_obsnames, $
+    refresh_dft = refresh_dft, refresh_info = refresh_info, refresh_ps = refresh_ps, refresh_beam = refresh_beam, $
+    refresh_binning = refresh_binning, uvf_input = uvf_input, rts = rts, sim = sim, $
+    pol_inc = pol_inc, type_inc = type_inc, freq_ch_range = freq_ch_range, $
+    no_spec_window = no_spec_window, spec_window_type = spec_window_type, $
+    std_power = std_power, no_wtd_avg = no_wtd_avg, $
     individual_plots = individual_plots, png = png, eps = eps, $
     plot_slices = plot_slices, slice_type = slice_type, uvf_plot_type = uvf_plot_type, plot_stdset = plot_stdset, plot_1to2d = plot_1to2d, $
     delta_uv_lambda = delta_uv_lambda, cut_image = cut_image, $
@@ -13,190 +15,61 @@ pro mit_wrapper, folder_name, obs_name, data_subdirs=data_subdirs, exact_obsname
     wedge_angles = wedge_angles, coarse_harm_width = coarse_harm_width, $
     set_data_ranges = set_data_ranges, range_1d = range_1d, plot_1d_delta = plot_1d_delta, plot_eor_1d = plot_eor_1d, no_text_1d = no_text_1d, $
     plot_1d_error_bars = plot_1d_error_bars, plot_1d_nsigma = plot_1d_nsigma, plot_binning_hist = plot_binning_hist, $
-    data_range = data_range, wt_cutoffs = wt_cutoffs, hinv=hinv
+    data_range = data_range, wt_cutoffs = wt_cutoffs, hinv=hinv, ps_foldername = ps_foldername
     
-  ;; The only required input is the datafile name (including the full path)
+  message, 'Error: This wrapper is depricated and will not continue to be supported. Please call ps_wrapper instead. ' + $
+    'This line can be commented out to allow the deprecacated code to run.'
     
-  if n_elements(n_obs) gt 0 then print,'n_obs='+number_formatter(n_obs) else print,'n_obs not defined!'
+  if n_elements(folder_name) ne 1 then message, 'one folder_name must be supplied.'
+  folder_name = mit_folder_locs(folder_name, rts = rts)
   
-  if keyword_set(rts) then begin
-    if n_elements(folder_name) eq 0 then folder_name = '/data3/MWA/bpindor/RTS/dec_11/'
+  obs_info = ps_filenames(folder_name, obs_name, exact_obsnames = exact_obsnames, rts = rts, sim = sim, $
+    uvf_input = uvf_input, data_subdirs = data_subdirs, ps_foldernames = ps_foldername, save_paths = save_path, plot_paths = plot_path, $
+    refresh_info = refresh_info)
     
-    ;     data_dir = folder_name + 'BdaggerV/'
-    data_dir = folder_name + ['PSF0_0/','PSF0_1/']
-    
-    ;     weights_dir = folder_name + 'Bdagger1/'
-    weights_dir = folder_name + ['PSF1_0/','PSF1_1/']
-    
-    ;     variance_dir = folder_name + 'BdaggerB/'
-    variance_dir = folder_name + ['PSF2_0/','PSF2_1/']
-    
-    datafiles = [[file_search(data_dir[0] + '*.fits')],[file_search(data_dir[1] + '*.fits')]]
-    weightfiles = [[file_search(weights_dir[0] + '*.fits')],[file_search(weights_dir[1] + '*.fits')]]
-    variancefiles = [[file_search(variance_dir[0] + '*.fits')],[file_search(variance_dir[1] + '*.fits')]]
-    
-    datafile =  rts_fits2idlcube(datafiles, weightfiles, variancefiles, pol_inc, save_path = folder_name)
-    
-  endif else begin
+  if obs_info.info_files[0] ne '' then datafile = obs_info.info_files[0] else datafile = obs_info.cube_files.(0)
   
-    if n_elements(folder_name) eq 0 then folder_name = '/nfs/mwa-09/r1/djc/EoR2013/Aug23/fhd_apb_pipeline_paper_deep_1/Healpix/'
+  if keyword_set(uvf_input) then plot_filebase = obs_info.fhd_types[0] + '_uvf'$
+  else  plot_filebase = obs_info.fhd_types[0]
+  ;; check to see if obs_name is already in fhd_types. if so, don't add it again
+  obsname_test = stregex(obs_info.fhd_types[0], obs_info.obs_names[0], /boolean)
+  if obsname_test eq 0 then plot_filebase = plot_filebase + '_' + obs_info.obs_names[0]
+  
+  note = obs_info.fhd_types[0]
+  if keyword_set(uvf_input) then note = note + '_uvf'
+  
+  if tag_exist(obs_info, 'beam_files') then beamfiles = obs_info.beam_files
+  
+  if not file_test(save_path, /directory) then file_mkdir, save_path
+  if not file_test(plot_path, /directory) then file_mkdir, plot_path
+  
+  print,'datafile = '+datafile
+  
+  if keyword_set(sim) then begin
+    plot_eor_1d=1
+    if n_elements(range_1d) eq 0 then range_1d = [1e0, 1e7]
+  endif
+  
+  if n_elements(set_data_ranges) eq 0 and not keyword_set(sim) then set_data_ranges = 1
+  
+  if keyword_set(set_data_ranges) then begin
+    if n_elements(range_1d) eq 0 then if keyword_set(plot_1d_delta) then range_1d = [1e0, 1e10] else range_1d = [1e4, 1e15]
     
-    ;; check for folder existence, otherwise look for common folder names to figure out full path. If none found, try '/nfs/mwa-09/r1/djc/EoR2013/Aug23/'
-    start_path = '/nfs/mwa-09/r1/djc/'
-    start_path2 = '/nfs/mwa-03/r1/'
-    folder_test = file_test(folder_name, /directory)
-    if folder_test eq 0 then begin
-      pos_eor2013 = strpos(folder_name, 'EoR2013')
-      if pos_eor2013 gt -1 then begin
-        test_name = start_path + strmid(folder_name, pos_eor2013)
-        folder_test = file_test(test_name, /directory)
-        if folder_test eq 0 then begin
-          test_name = start_path2 + strmid(folder_name, pos_eor2013)
-          folder_test = file_test(test_name, /directory)
-        endif
-        if folder_test eq 1 then folder_name = test_name
-      endif
-    endif
-    if folder_test eq 0 then begin
-      pos_aug23 = strpos(folder_name, 'Aug23')
-      if pos_aug23 gt -1 then begin
-        test_name = start_path + 'EoR2013/' + strmid(folder_name, pos_aug23)
-        folder_test = file_test(test_name, /directory)
-        if folder_test eq 1 then folder_name = test_name
-      endif
-    endif
-    if folder_test eq 0 then begin
-      pos_aug26 = strpos(folder_name, 'Aug26')
-      if pos_aug26 gt -1 then begin
-        test_name = start_path + 'EoR2013/' + strmid(folder_name, pos_aug26)
-        folder_test = file_test(test_name, /directory)
-        if folder_test eq 0 then begin
-          test_name = start_path2 + 'EoR2013/' + strmid(folder_name, pos_aug26)
-          folder_test = file_test(test_name, /directory)
-        endif
-        if folder_test eq 1 then folder_name = test_name
-      endif
-    endif
-    if folder_test eq 0 then begin
-      pos_week1 = strpos(folder_name, 'week1')
-      if pos_week1 gt -1 then begin
-        test_name = start_path + 'EoR2013/' + strmid(folder_name, pos_week1)
-        folder_test = file_test(test_name, /directory)
-        if folder_test eq 0 then begin
-          test_name = start_path2 + 'EoR2013/' + strmid(folder_name, pos_week1)
-          folder_test = file_test(test_name, /directory)
-        endif
-        if folder_test eq 1 then folder_name = test_name
-      endif
-    endif
-    if folder_test eq 0 then begin
-      test_name = start_path + 'EoR2013/Aug23/' + folder_name
-      folder_test = file_test(test_name, /directory)
-      if folder_test eq 0 then begin
-        test_name = start_path2 + 'EoR2013/Aug23/' + folder_name
-        folder_test = file_test(test_name, /directory)
-      endif
-      if folder_test eq 1 then folder_name = test_name
-    endif
-    if folder_test eq 0 then begin
-      test_name = start_path + 'EoR2013/Aug26/' + folder_name
-      folder_test = file_test(test_name, /directory)
-      if folder_test eq 0 then begin
-        test_name = start_path2 + 'EoR2013/Aug26/' + folder_name
-        folder_test = file_test(test_name, /directory)
-      endif
-      if folder_test eq 1 then folder_name = test_name
-    endif
-    if folder_test eq 0 then begin
-      test_name = start_path + 'EoR2013/week1/' + folder_name
-      folder_test = file_test(test_name, /directory)
-      if folder_test eq 0 then begin
-        test_name = start_path2 + 'EoR2013/week1/' + folder_name
-        folder_test = file_test(test_name, /directory)
-      endif
-      if folder_test eq 1 then folder_name = test_name
-    endif
-    if folder_test eq 0 then begin
-      test_name = start_path + 'EoR2013/' + folder_name
-      folder_test = file_test(test_name, /directory)
-      if folder_test eq 0 then begin
-        test_name = start_path2 + 'EoR2013/' + folder_name
-        folder_test = file_test(test_name, /directory)
-      endif
-      if folder_test eq 1 then folder_name = test_name
-    endif
+    if obs_info.integrated[0] gt 0 then begin
+      sigma_range = [2e5, 2e9]
+      nev_range = [2e6, 2e10]
+    ;sigma_range = nev_range
+    endif else begin
+      sigma_range = [1e7, 2e11]
+      nev_range = [2e8, 2e12]
+    endelse
     
-    start_path2 = '/nfs/mwa-03/r1/'
-    if folder_test eq 0 then begin
-      pos_eor2013 = strpos(folder_name, 'EoR2013')
-      if pos_eor2013 gt -1 then begin
-        test_name = start_path2 + strmid(folder_name, pos_eor2013)
-        folder_test = file_test(test_name, /directory)
-        if folder_test eq 1 then folder_name = test_name
-      endif
-    endif
-    if folder_test eq 0 then begin
-      test_name = start_path2 + 'EoR2013/' + folder_name
-      folder_test = file_test(test_name, /directory)
-      if folder_test eq 1 then folder_name = test_name
-    endif
+    if n_elements(data_range) eq 0 then data_range = [1e3, 1e15]
+    if n_elements(nnr_range) eq 0 then nnr_range = [1e-1, 1e1]
+    if n_elements(snr_range) eq 0 then snr_range = [1e-5, 1e7]
     
-    if folder_test eq 0 then message, 'folder not found'
-    
-    save_path = folder_name + '/ps/'
-    if keyword_set(uvf_input) then data_subdirs = '' else data_subdirs = 'Healpix/'
-      
-    obs_info = ps_filenames(folder_name, obs_name, exact_obsnames = exact_obsnames, rts = rts, sim = sim, casa = casa, $
-      uvf_input = uvf_input, data_subdirs = data_subdirs, save_paths = save_path, plot_paths = save_path + 'plots/', $
-      refresh_info = refresh_info)
-      
-    if obs_info.info_files[0] ne '' then datafile = obs_info.info_files[0] else datafile = obs_info.cube_files.(0)
-    
-    if keyword_set(uvf_input) then plot_filebase = obs_info.fhd_types[0] + '_uvf'$
-    else  plot_filebase = obs_info.fhd_types[0]
-    ;; check to see if obs_name is already in fhd_types. if so, don't add it again
-    obsname_test = stregex(obs_info.fhd_types[0], obs_info.obs_names[0], /boolean)
-    if obsname_test eq 0 then plot_filebase = plot_filebase + '_' + obs_info.obs_names[0]
-    
-    note = obs_info.fhd_types[0]
-    if keyword_set(uvf_input) then note = note + '_uvf'
-
-    if tag_exist(obs_info, 'beam_files') then beamfiles = obs_info.beam_files
-    
-    if not file_test(save_path, /directory) then file_mkdir, save_path
-    plot_path = save_path + 'plots/'
-    if not file_test(plot_path, /directory) then file_mkdir, plot_path
-    
-    print,'datafile = '+datafile
-    
-    if keyword_set(sim) then begin
-      plot_eor_1d=1
-      if n_elements(range_1d) eq 0 then range_1d = [1e0, 1e7]
-    endif
-    
-    if n_elements(set_data_ranges) eq 0 and not keyword_set(sim) then set_data_ranges = 1
-    
-    if keyword_set(set_data_ranges) then begin
-      if n_elements(range_1d) eq 0 then if keyword_set(plot_1d_delta) then range_1d = [1e0, 1e10] else range_1d = [1e4, 1e15]
-      
-      if obs_info.integrated[0] gt 0 then begin
-        sigma_range = [2e5, 2e9]
-        nev_range = [2e6, 2e10]
-      ;sigma_range = nev_range
-      endif else begin
-        sigma_range = [1e7, 2e11]
-        nev_range = [2e8, 2e12]
-      endelse
-      
-      if n_elements(data_range) eq 0 then data_range = [1e3, 1e15]
-      if n_elements(nnr_range) eq 0 then nnr_range = [1e-1, 1e1]
-      if n_elements(snr_range) eq 0 then snr_range = [1e-5, 1e7]
-      
-      noise_range = nev_range
-    endif
-    
-    
-  endelse
+    noise_range = nev_range
+  endif
   
   ;; dft_fchunk applies only to Healpix datasets (it's ignored otherwise) and it specifies how many frequencies to process
   ;;   through the dft at once. This keyword allows for trade-offs between memory use and speed.

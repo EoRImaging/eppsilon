@@ -2,7 +2,7 @@ pro cube_images, folder_names, obs_info, nvis_norm = nvis_norm, pols = pols, cub
     rts = rts, png = png, eps = eps, pdf = pdf, slice_range = slice_range, sr2 = sr2, $
     ratio = ratio, diff_ratio = diff_ratio, diff_frac = diff_frac, $
     log = log, data_range = data_range, color_profile = color_profile, sym_color = sym_color, $
-    window_num = window_num, plot_as_map = plot_as_map, plotfile = plotfile_out
+    window_num = window_num, plot_as_map = plot_as_map, plot_path = plot_path, plotfile = plotfile_out
     
   if n_elements(obs_info.info_files) gt 2 then message, 'Only 1 or 2 info_files can be used'
   
@@ -167,18 +167,17 @@ pro cube_images, folder_names, obs_info, nvis_norm = nvis_norm, pols = pols, cub
   
   
   if n_elements(obs_info.folder_names) eq 2 then begin
-    save_path = obs_info.diff_save_path
     note = obs_info.diff_note
     if keyword_set(ratio) then note = strjoin(strsplit(note, '-', /extract), '/')
-    if tag_exist(obs_info, 'diff_plot_path') then plot_path = obs_info.diff_plot_path else plot_path = save_path
+    
+    if n_elements(plot_path) eq 0 then if tag_exist(obs_info, 'diff_plot_path') then plot_path = obs_info.diff_plot_path else $
+      plot_path = obs_info.diff_save_path + path_sep() + 'plots' + path_sep()
+      
   endif else begin
-    save_path = obs_info.folder_names[0] + path_sep()
     if keyword_set(rts) then note = obs_info.rts_types[0] else note = obs_info.fhd_types[0]
-    plot_path = obs_info.plot_paths[0]
+    
+    if n_elements(plot_path) eq 0 then plot_path = obs_info.plot_paths[0]
   endelse
-  
-  if file_test(save_path) eq 0 then file_mkdir, save_path
-  
   
   if keyword_set(rts) then pixel_varnames = strarr(n_elements(filenames)) + 'pixel_nums' $
   else pixel_varnames = strarr(n_elements(filenames)) + 'hpx_inds'
