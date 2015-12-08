@@ -30,7 +30,7 @@ pro ps_wrapper, folder_name, obs_name, data_subdirs=data_subdirs, exact_obsnames
   
   spawn, 'hostname', hostname
   if stregex(hostname, 'mit.edu', /boolean) eq 1 then loc_name = 'mit'
-  if stregex(hostname, 'asu.edu', /boolean) eq 1 then loc_name = 'enterprise'
+  if stregex(hostname, 'enterprise', /boolean) eq 1 then loc_name = 'enterprise'
   case loc_name of
     'mit':  folder_name = mit_folder_locs(folder_name, rts = rts)
     'enterprise': folder_name = enterprise_folder_locs(folder_name, rts = rts)
@@ -162,12 +162,12 @@ pro ps_wrapper, folder_name, obs_name, data_subdirs=data_subdirs, exact_obsnames
     note = note, png = png, eps = eps, pdf = pdf, cube_power_info = cube_power_info, no_dft_progress = no_dft_progress
     
   if not keyword_set(set_data_ranges) then begin
-    print, 'data_range used: ', number_formatter(data_range, format = '(e7.1)')
-    print, 'sigma_range used: ', number_formatter(sigma_range, format = '(e7.1)')
-    print, 'nev_range used: ', number_formatter(nev_range, format = '(e7.1)')
-    print, 'nnr_range used: ', number_formatter(nnr_range, format = '(e7.1)')
-    print, 'snr_range used: ', number_formatter(snr_range, format = '(e7.1)')
-    print, 'noise_range used: ', number_formatter(noise_range, format = '(e7.1)')
+    if n_elements(data_range) ne 0 then print, 'data_range used: ', number_formatter(data_range, format = '(e7.1)')
+    if n_elements(sigma_range) ne 0 then print, 'sigma_range used: ', number_formatter(sigma_range, format = '(e7.1)')
+    if n_elements(nev_range) ne 0 then print, 'nev_range used: ', number_formatter(nev_range, format = '(e7.1)')
+    if n_elements(nnr_range) ne 0 then print, 'nnr_range used: ', number_formatter(nnr_range, format = '(e7.1)')
+    if n_elements(snr_range) ne 0 then print, 'snr_range used: ', number_formatter(snr_range, format = '(e7.1)')
+    if n_elements(noise_range) ne 0 then print, 'noise_range used: ', number_formatter(noise_range, format = '(e7.1)')
   endif
   
 end

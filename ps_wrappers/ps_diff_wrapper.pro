@@ -13,7 +13,7 @@ pro ps_diff_wrapper, folder_names, obs_names_in, cube_types = cube_types, pols =
   
   spawn, 'hostname', hostname
   if stregex(hostname, 'mit.edu', /boolean) eq 1 then loc_name = 'mit'
-  if stregex(hostname, 'asu.edu', /boolean) eq 1 then loc_name = 'enterprise'
+  if stregex(hostname, 'enterprise', /boolean) eq 1 then loc_name = 'enterprise'
   case loc_name of
     'mit':  folder_names = mit_folder_locs(folder_names, rts = rts)
     'enterprise': folder_names = enterprise_folder_locs(folder_names, rts = rts)
