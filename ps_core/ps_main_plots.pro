@@ -653,12 +653,10 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, sim 
     if keyword_set(individual_plots) then begin
       if n_elements(plot_filebase) eq 0 then begin
         plotfile_base = plotfile_path + file_struct_arr.savefilebase + power_tag
-        plotfile_base_wt = plotfile_path + general_filebase + wt_file_labels[uniq(weight_ind, sort(weight_ind))] + power_tag
-        plotfiles_2d_wt = plotfile_base_wt + fadd_2dbin + '_2d' + plot_fadd + plot_exten
+        plotfile_base_wt = plotfile_path + general_filebase + '_' + file_struct_arr[uniq(weight_ind, sort(weight_ind))].pol + power_tag
       endif else begin
         plotfile_base = plotfile_path + plot_filebase + uvf_tag + file_struct_arr.file_label + power_tag
-        plotfile_base_wt = plotfile_path + plot_filebase + uvf_tag + wt_file_labels[uniq(weight_ind, sort(weight_ind))] + power_tag
-        plotfiles_2d_wt = plotfile_base_wt + fadd_2dbin + '_2d' + plot_fadd + plot_exten
+        plotfile_base_wt = plotfile_path + plot_filebase + uvf_tag + '_' + file_struct_arr[uniq(weight_ind, sort(weight_ind))].pol + power_tag
       endelse
     endif else if n_elements(plot_filebase) eq 0 then plotfile_base = plotfile_path + general_filebase + power_tag $
     else plotfile_base = plotfile_path + plot_filebase + uvf_tag + power_tag
@@ -668,9 +666,9 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, sim 
       plotfiles_2d[*,j] = plotfile_base + fadd_2dbin + kperp_density_names[j] + '_2dkpower' + plot_fadd + plot_exten
     endfor
     ;plotfiles_2d = plotfile_base + fadd_2dbin + '_2dkpower' + plot_fadd + plot_exten
-    plotfiles_2d_error = plotfile_base + fadd_2dbin + '_2derror' + plot_fadd + plot_exten
+    plotfiles_2d_error = plotfile_base_wt + fadd_2dbin + '_2derror' + plot_fadd + plot_exten
     if keyword_set(pub) and keyword_set(individual_plots) then $
-      plotfiles_2d_noise_expval = plotfile_base + fadd_2dbin + '_2dnoise_expval' + plot_fadd + plot_exten
+      plotfiles_2d_noise_expval = plotfile_base_wt + fadd_2dbin + '_2dnoise_expval' + plot_fadd + plot_exten
     plotfiles_2d_noise = plotfile_base + fadd_2dbin + '_2dnoise' + plot_fadd + plot_exten
     plotfiles_2d_sim_noise = plotfile_base + fadd_2dbin + '_2dsimnoise' + plot_fadd + plot_exten
     plotfiles_2d_sim_noise_diff = plotfile_base + fadd_2dbin + '_2dsimnoisediff' + plot_fadd + plot_exten

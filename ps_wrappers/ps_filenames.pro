@@ -32,7 +32,7 @@ function ps_filenames, folder_names, obs_names_in, dirty_folder = dirty_folder, 
   
   if n_elements(ps_foldernames) eq 0 then ps_foldernames = 'ps' + path_sep()
   if n_elements(save_paths) eq 0 then save_paths = folder_names + path_sep() + ps_foldernames
-  if n_elements(plot_paths) eq 0 then plot_paths = save_paths + path_sep() + 'plots' + path_sep()
+  if n_elements(plot_paths) eq 0 then plot_paths = save_paths + 'plots' + path_sep()
   
   if n_filesets gt 1 then begin
     if n_elements(folder_names) eq 1 then folder_names = replicate(folder_names, n_filesets)
