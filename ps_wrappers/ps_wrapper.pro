@@ -119,16 +119,16 @@ pro ps_wrapper, folder_name, obs_name, data_subdirs=data_subdirs, exact_obsnames
     if tag_exist(obs_info, 'integrated') then integrated = obs_info.integrated[0] else integrated = 1
     
     if integrated gt 0 then begin
-      sigma_range = [2e5, 2e9]
-      nev_range = [2e6, 2e10]
+      if n_elements(sigma_range) eq 0 then sigma_range = [2e5, 2e9]
+      if n_elements(nev_range) eq 0 then nev_range = [2e6, 2e10]
     endif else begin
-      sigma_range = [1e7, 2e11]
-      nev_range = [2e8, 2e12]
+      if n_elements(sigma_range) eq 0 then sigma_range = [1e7, 2e11]
+      if n_elements(nev_range) eq 0 then nev_range = [2e8, 2e12]
     endelse
     
-    data_range = [1e3, 1e15]
-    nnr_range = [1e-1, 1e1]
-    snr_range = [1e-5, 1e7]
+    if n_elements(data_range) eq 0 then data_range = [1e3, 1e15]
+    if n_elements(nnr_range) eq 0 then nnr_range = [1e-1, 1e1]
+    if n_elements(snr_range) eq 0 then snr_range = [1e-5, 1e7]
     
     noise_range = nev_range
   endif
