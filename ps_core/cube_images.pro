@@ -50,8 +50,9 @@ pro cube_images, folder_names, obs_info, nvis_norm = nvis_norm, pols = pols, cub
     if keyword_set(rts) then file_struct_arr2 = rts_file_setup(obs_info.info_files[1]) $
     else $
       if keyword_set(casa) then file_struct_arr2 = casa_file_setup(obs_info.info_files[1]) $
-    else file_struct_arr1 = fhd_file_setup(obs_info.info_files[1])
+    else file_struct_arr2 = fhd_file_setup(obs_info.info_files[1])
   endif
+
   type_pol_str1 = file_struct_arr1.type_pol_str
   if n_elements(file_struct_arr2) gt 0 then type_pol_str2 = file_struct_arr2.type_pol_str
   
@@ -352,9 +353,7 @@ pro cube_images, folder_names, obs_info, nvis_norm = nvis_norm, pols = pols, cub
       
     if n_elements(title_range) eq 1 then diff_title = diff_title + ' ' + title_range
     
-  endif else diff_title = evenodd[0] + '_' + cube_types[0] + '_' + pols[0] + ' ' + title_range
-  
-  
+  endif else diff_title = evenodd[0] + '_' + cube_types[0] + '_' + pols[0] + ' ' + title_range  
   
   if keyword_set(png) or keyword_set(eps) or keyword_set(pdf) then pub = 1 else pub = 0
   
