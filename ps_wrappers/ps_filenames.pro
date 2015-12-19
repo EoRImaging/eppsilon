@@ -9,7 +9,7 @@ function ps_filenames, folder_names, obs_names_in, dirty_folder = dirty_folder, 
   
   n_filesets = max([n_elements(folder_names), n_elements(obs_names_in)])
   
-  if n_elements(data_subdirs) eq 0 then data_subdirs = 'Healpix' + path_sep() else begin
+  if n_elements(data_subdirs) eq 0 and not keyword_set(uvf_input) then data_subdirs = 'Healpix' + path_sep() else begin
     ;; make sure there is no path separator at beginning and there is one at the end
     for i=0, n_elements(data_subdirs)-1 do if data_subdirs[i] ne '' then data_subdirs[i] = strjoin(strsplit(data_subdirs[i], path_sep(), /extract), path_sep()) + path_sep()
   endelse
