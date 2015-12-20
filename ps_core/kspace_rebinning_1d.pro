@@ -156,9 +156,9 @@ function kspace_rebinning_1d, power, k1_mpc, k2_mpc, k3_mpc, k_edges_mpc, k_bin 
     if n_elements(wedge_amp) gt 0 then begin
     
       if n_elements(coarse_harm0) gt 0 then begin
-        n_harm = floor(n_kz/coarse_harm0)-1
+        n_harm = floor(n_kz/float(coarse_harm0))+1
         n_width = coarse_width*2-1
-        kpar_ch_bad = rebin(coarse_harm0 * (findgen(n_harm)+1), n_harm, n_width) + $
+        kpar_ch_bad = rebin(coarse_harm0 * (findgen(n_harm)+1), n_harm, n_width)-coarse_harm0/2. + $
           rebin(reform(findgen(n_width)-(coarse_width-1), 1, n_width), n_harm, n_width)
           
         temp_kpar[*,kpar_ch_bad] = 0
