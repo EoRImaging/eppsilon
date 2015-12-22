@@ -793,11 +793,21 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
     if wt_size[n_elements(wt_size)-2] eq 10 then begin
       ;; weights cube is a pointer
       dims2 = size(*weights_cube1[0], /dimension)
+      iter=1
+      while min(dims2) eq 0 and iter lt wt_size[2] do begin
+        print, 'warning: some frequency slices have null pointers'
+        dims2 = size(*weights_cube1[iter], /dimension)
+        iter = iter+1
+      endwhile
+      
       temp = complex(fltarr([dims2, n_freq]))
       if nfiles eq 2 then temp2 = complex(fltarr([dims2, n_freq]))
       for i = 0, n_freq-1 do begin
-        temp[*,*,i] = *weights_cube1[file_struct.pol_index, i]
-        if nfiles eq 2 then temp2[*,*,i] = *weights_cube2[file_struct.pol_index, i]
+        foo = *weights_cube1[file_struct.pol_index, i]
+        if foo ne !null then begin
+          temp[*,*,i] = temporary(foo)
+          if nfiles eq 2 then temp2[*,*,i] = *weights_cube2[file_struct.pol_index, i]
+        endif
       endfor
       undefine_fhd, weights_cube1, weights_cube2
       
@@ -1007,11 +1017,20 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
       if var_size[n_elements(var_size)-2] eq 10 then begin
         ;; variance cube is a pointer
         dims2 = size(*variance_cube1[0], /dimension)
+        iter=1
+        while min(dims2) eq 0 and iter lt var_size[2] do begin
+          print, 'warning: some frequency slices have null pointers'
+          dims2 = size(*variance_cube1[iter], /dimension)
+          iter = iter+1
+        endwhile
         temp = complex(fltarr([dims2, n_freq]))
         if nfiles eq 2 then temp2 = complex(fltarr([dims2, n_freq]))
         for i = 0, n_freq-1 do begin
-          temp[*,*,i] = *variance_cube1[file_struct.pol_index, i]
-          if nfiles eq 2 then temp2[*,*,i] = *variance_cube2[file_struct.pol_index, i]
+          foo = *variance_cube1[file_struct.pol_index, i]
+          if foo ne !null then begin
+            temp[*,*,i] = foo
+            if nfiles eq 2 then temp2[*,*,i] = *variance_cube2[file_struct.pol_index, i]
+          endif
         endfor
         undefine_fhd, variance_cube1, variance_cube2
         
@@ -1225,13 +1244,23 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
       
       data_size = size(data_cube1)
       if data_size[n_elements(data_size)-2] eq 10 then begin
-        ;; weights cube is a pointer
+        ;; data cube is a pointer
         dims2 = size(*data_cube1[0], /dimension)
+        iter=1
+        while min(dims2) eq 0 and iter lt data_size[2] do begin
+          print, 'warning: some frequency slices have null pointers'
+          dims2 = size(*data_cube1[iter], /dimension)
+          iter = iter+1
+        endwhile
+        
         temp = complex(fltarr([dims2, n_freq]))
         if nfiles eq 2 then temp2 = complex(fltarr([dims2, n_freq]))
         for i = 0, n_freq-1 do begin
-          temp[*,*,i] = *data_cube1[file_struct.pol_index, i]
-          if nfiles eq 2 then temp2[*,*,i] = *data_cube2[file_struct.pol_index, i]
+          foo = *data_cube1[file_struct.pol_index, i]
+          if foo ne !null then begin
+            temp[*,*,i] = foo
+            if nfiles eq 2 then temp2[*,*,i] = *data_cube2[file_struct.pol_index, i]
+          endif
         endfor
         undefine_fhd, data_cube1, data_cube2
         

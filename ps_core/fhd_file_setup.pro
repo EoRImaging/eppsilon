@@ -419,6 +419,12 @@ function fhd_file_setup, filename, weightfile = weightfile, variancefile = varia
               if data_size[1] ne npol then message, 'Data are in a pointer array, format unknown'
               data = getvar_savefile(datafile[pol_i, file_i], cube_varname[type_i, pol_i])
               dims2 = size(*data[0], /dimension)
+              iter=1
+              while min(dims2) eq 0 and iter lt data_size[2] do begin
+                print, 'warning: some frequency slices have null pointers'
+                dims2 = size(*data[iter], /dimension)
+                iter = iter+1
+              endwhile
               if min(dims2) eq 0 then  message, 'data cube is empty (file: ' + datafile[pol_i, file_i] + $
                 ', cube name: ' + cube_varname[type_i, pol_i] + ')'
               this_data_dims = [dims2, data_size[2], data_size[1]]
@@ -448,6 +454,12 @@ function fhd_file_setup, filename, weightfile = weightfile, variancefile = varia
           if wt_size[1] ne npol then message, 'Weights are in a pointer array, format unknown'
           weights = getvar_savefile(weightfile[pol_i, file_i], weight_varname[pol_i])
           dims2 = size(*weights[0], /dimension)
+          iter=1
+          while min(dims2) eq 0 and iter lt data_size[2] do begin
+            print, 'warning: some frequency slices have null pointers'
+            dims2 = size(*weights[iter], /dimension)
+            iter = iter+1
+          endwhile
           wt_dims = [dims2, wt_size[2], wt_size[1]]
           undefine_fhd, weights
         endif else message, 'Weights are in a pointer array, format unknown'
@@ -472,6 +484,12 @@ function fhd_file_setup, filename, weightfile = weightfile, variancefile = varia
             if var_size[1] ne npol then message, 'Variance are in a pointer array, format unknown'
             variance = getvar_savefile(variancefile[pol_i, file_i], variance_varname[pol_i])
             dims2 = size(*variance[0], /dimension)
+            iter=1
+            while min(dims2) eq 0 and iter lt data_size[2] do begin
+              print, 'warning: some frequency slices have null pointers'
+              dims2 = size(*variance[iter], /dimension)
+              iter = iter+1
+            endwhile
             var_dims = [dims2, var_size[2], var_size[1]]
             undefine_fhd, variance
           endif else message, 'Variance is in a pointer array, format unknown'
