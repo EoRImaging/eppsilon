@@ -28,7 +28,7 @@ pro ps_wrapper, folder_name, obs_name, data_subdirs=data_subdirs, exact_obsnames
     
   if n_elements(folder_name) ne 1 then message, 'one folder_name must be supplied.'
   
-  if n_element(loc_name) eq 0 then begin
+  if n_elements(loc_name) eq 0 then begin
     spawn, 'hostname', hostname
     if stregex(hostname, 'mit.edu', /boolean) eq 1 then loc_name = 'mit'
     if stregex(hostname, 'enterprise', /boolean) eq 1 then loc_name = 'enterprise'
