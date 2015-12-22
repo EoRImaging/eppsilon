@@ -24,13 +24,15 @@ pro ps_wrapper, folder_name, obs_name, data_subdirs=data_subdirs, exact_obsnames
     plot_eor_1d = plot_eor_1d, plot_flat_1d = plot_flat_1d, no_text_1d = no_text_1d, $
     save_path = save_path, savefilebase = savefilebase, plot_path = plot_path, plot_filebase = plot_filebase, $
     individual_plots = individual_plots, plot_binning_hist = plot_binning_hist, $
-    note = note, png = png, eps = eps, pdf = pdf, cube_power_info = cube_power_info, no_dft_progress = no_dft_progress
+    note = note, png = png, eps = eps, pdf = pdf, cube_power_info = cube_power_info, no_dft_progress = no_dft_progress, loc_name = loc_name
     
   if n_elements(folder_name) ne 1 then message, 'one folder_name must be supplied.'
   
-  spawn, 'hostname', hostname
-  if stregex(hostname, 'mit.edu', /boolean) eq 1 then loc_name = 'mit'
-  if stregex(hostname, 'enterprise', /boolean) eq 1 then loc_name = 'enterprise'
+  if n_element(loc_name) eq 0 then begin
+    spawn, 'hostname', hostname
+    if stregex(hostname, 'mit.edu', /boolean) eq 1 then loc_name = 'mit'
+    if stregex(hostname, 'enterprise', /boolean) eq 1 then loc_name = 'enterprise'
+  endif
   case loc_name of
     'mit':  folder_name = mit_folder_locs(folder_name, rts = rts)
     'enterprise': folder_name = enterprise_folder_locs(folder_name, rts = rts)
