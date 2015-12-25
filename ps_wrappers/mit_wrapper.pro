@@ -17,8 +17,8 @@ pro mit_wrapper, folder_name, obs_name, data_subdirs=data_subdirs, exact_obsname
     plot_1d_error_bars = plot_1d_error_bars, plot_1d_nsigma = plot_1d_nsigma, plot_binning_hist = plot_binning_hist, $
     data_range = data_range, wt_cutoffs = wt_cutoffs, hinv=hinv, ps_foldername = ps_foldername
     
-  message, 'Error: This wrapper is depricated and will not continue to be supported. Please call ps_wrapper instead. ' + $
-    'This line can be commented out to allow the deprecacated code to run.'
+  ;message, 'Error: This wrapper is depricated and will not continue to be supported. Please call ps_wrapper instead. ' + $
+  ;  'This line can be commented out to allow the deprecacated code to run.'
     
   if n_elements(folder_name) ne 1 then message, 'one folder_name must be supplied.'
   folder_name = mit_folder_locs(folder_name, rts = rts)

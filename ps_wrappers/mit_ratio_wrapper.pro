@@ -5,8 +5,8 @@ pro mit_ratio_wrapper, folder_names, obs_names_in, exact_obsnames = exact_obsnam
     kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, sim = sim, window_num = window_num, $
     diff_save_path = diff_save_path
     
-  message, 'Error: This wrapper is depricated and will not continue to be supported. Please call ps_ratio_wrapper instead. ' + $
-    'This line can be commented out to allow the deprecacated code to run.'
+  ;message, 'Error: This wrapper is depricated and will not continue to be supported. Please call ps_ratio_wrapper instead. ' + $
+  ;  'This line can be commented out to allow the deprecacated code to run.'
     
   if n_elements(folder_names) gt 2 then message, 'only 1 or 2 folder_names allowed'
   if n_elements(folder_names) eq 0 then message, 'at least 1 folder name must be specified'
