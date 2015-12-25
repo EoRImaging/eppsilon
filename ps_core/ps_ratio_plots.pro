@@ -169,9 +169,6 @@ pro ps_ratio_plots, folder_names, obs_info, cube_types, pols, all_pol_diff_ratio
   endelse
   plot_filebase = plot_filebase + fch_tag
   
-  if keyword_set(pub) and not file_test(plot_path, /directory) then file_mkdir, plot_path
-  
-  
   file_struct_arr1 = fhd_file_setup(obs_info.info_files[0], $
     spec_window_type = spec_window_types[0], freq_ch_range = freq_ch_range)
   if n_elements(obs_info.info_files) eq 2 then file_struct_arr2 = fhd_file_setup(obs_info.info_files[1], $
@@ -248,6 +245,8 @@ pro ps_ratio_plots, folder_names, obs_info, cube_types, pols, all_pol_diff_ratio
       delete_ps = 0
     endif
   endif
+  
+  if keyword_set(pub) and not file_test(plot_path, /directory) then file_mkdir, plot_path
   
   if keyword_set(plot_wedge_line) then begin
     z0_freq = 1420.40 ;; MHz
