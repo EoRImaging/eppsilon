@@ -317,7 +317,21 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, wei
   
   kperp_edges_use = kperp_edges
   kpar_edges_use = kpar_edges
-  kpar_bin_use = kpar_bin
+  
+  ;; Check whether binning is log or not
+  log_bins = [0, 0]
+  kperp_diffs = (kperp_edges_use - shift(kperp_edges_use, 1))[1:*]
+  if kperp_edges_use[0] eq 0 then kperp_diffs = kperp_diffs[1:*] ;; lowest bin may have lower edge set to zero
+  if total(abs(kperp_diffs - kperp_diffs[0])) gt n_kperp*1e-7 then log_bins[0] = 1
+  kpar_diffs = (kpar_edges_use - shift(kpar_edges_use, 1))[1:*]
+  if kpar_edges_use[0] eq 0 then kpar_diffs = kpar_diffs[1:*] ;; lowest bin may have lower edge set to zero
+  if total(abs(kpar_diffs - kpar_diffs[0])) gt n_kpar*1e-7 then log_bins[1] = 1
+  
+  if n_elements(kpar_bin) gt 0 then kpar_bin_use = kpar_bin else begin
+    ;; calculate kpar_bin from kpar_edges, don't use lowest bin because it might have lower edge set to zero
+    if log_bins[1] eq 0 then kpar_bin = kpar_edges_use[2] - kpar_edges_use[1] $
+    else kpar_bin = alog10(kpar_edges_use[2]) - alog10(kpar_edges_use[1])
+  endelse
   
   if keyword_set(hinv) then begin
     kperp_edges_use = kperp_edges_use / hubble_param
@@ -469,7 +483,7 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, wei
   log_delay_kpar_slope = (alog10(delay_params[1]) - alog10(delay_params[0]))/(alog10(max(kpar_edges_use)) - alog10(kpar_bin_use))
   log_delay_kpar_intercept = alog10(delay_params[0]) / (log_delay_kpar_slope * alog10(kpar_bin_use))
   log_delay_edges = 10^(log_delay_kpar_slope * alog10(kpar_edges_use) + log_delay_kpar_intercept)
-
+  
   if n_kpar_plot ne n_kpar then begin
     power_use = power_use[*, wh_kpar_inrange]
     if keyword_set(mask_contour) then mask = mask[*, wh_kpar_inrange]
@@ -488,21 +502,6 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, wei
     print, 'power is entirely zero.'
     no_plot = 1
   endif
-  
-  ;; Check whether binning is log or not
-  ;  log_bins = [1, 1]
-  ;  kperp_log_diffs = (alog10(kperp_edges_use) - shift(alog10(kperp_edges_use), 1))[2:*]
-  ;  if total(abs(kperp_log_diffs - kperp_log_diffs[0])) gt n_kperp*1e-15 then log_bins[0] = 0
-  ;  kpar_log_diffs = (alog10(kpar_edges_use) - shift(alog10(kpar_edges_use), 1))[2:*]
-  ;  if total(abs(kpar_log_diffs - kpar_log_diffs[0])) gt n_kpar*1e-15 then log_bins[1] = 0
-  
-  log_bins = [0, 0]
-  kperp_diffs = (kperp_edges_use - shift(kperp_edges_use, 1))[1:*]
-  if kperp_edges_use[0] eq 0 then kperp_diffs = kperp_diffs[1:*] ;; lowest bin may have lower edge set to zero
-  if total(abs(kperp_diffs - kperp_diffs[0])) gt n_kperp*1e-7 then log_bins[0] = 1
-  kpar_diffs = (kpar_edges_use - shift(kpar_edges_use, 1))[1:*]
-  if kpar_edges_use[0] eq 0 then kpar_diffs = kpar_diffs[1:*] ;; lowest bin may have lower edge set to zero
-  if total(abs(kpar_diffs - kpar_diffs[0])) gt n_kpar*1e-7 then log_bins[1] = 1
   
   if keyword_set(norm_2d) then begin
     if n_elements(norm_factor) eq 0 then norm_factor = 1/max(power_use)
@@ -1056,7 +1055,7 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, wei
   if log_axes[1] eq 1 then ytickformat = 'exponent'
   
   if keyword_set(no_plot) then return
-
+  
   axkeywords = {xlog: log_axes[0], ylog: log_axes[1], xstyle: 5, ystyle: 5, thick: thick, charthick: charthick, xthick: xthick, $
     ythick: ythick, charsize: charsize, font: font}
   cgimage, power_log_norm, /nointerp, xrange = minmax(plot_kperp), yrange = minmax(plot_kpar), $
