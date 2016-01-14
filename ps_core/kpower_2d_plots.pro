@@ -84,14 +84,15 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, wei
     plot_mask = plot_mask, mask_savefile = mask_savefile, mask_contour = mask_contour, contour_levels = contour_levels, $
     plot_1d_noisefrac = plot_1d_noisefrac, $
     kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, data_range = data_range, data_min_abs = data_min_abs, $
-    color_profile = color_profile, log_cut_val = log_cut_val, plotfile = plotfile, png = png, eps = eps, pdf = pdf, $
+    color_profile = color_profile, log_cut_val = log_cut_val, invert_colorbar = invert_colorbar, $
+    plotfile = plotfile, png = png, eps = eps, pdf = pdf, $
     no_title = no_title, full_title = full_title, title_prefix = title_prefix, note = note, $
     norm_2d = norm_2d, norm_factor = norm_factor, $
     wedge_amp = wedge_amp, plot_wedge_line = plot_wedge_line, $
     baseline_axis = baseline_axis, delay_axis = delay_axis, cable_length_axis = cable_length_axis, kperp_linear_axis = kperp_linear_axis, $
     kpar_linear_axis = kpar_linear_axis, no_units = no_units, hinv = hinv, charsize = charsize_in, $
     cb_size = cb_size_in, margin=margin_in, cb_margin = cb_margin_in
-    
+  
   if keyword_set(delay_axis) and keyword_set(cable_length_axis) then message, 'Only one of delay_axis and cable_length_axis can be set'
   
   if n_elements(plotfile) gt 0 or keyword_set(png) or keyword_set(eps) or keyword_set(pdf) then pub = 1 else pub = 0
@@ -682,10 +683,12 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, wei
           cb_ticks = [cb_ticks, color_range[1]+1]
         endif
         
-        cgloadct, 25, /brewer, /reverse, BOTTOM = 0, NCOLORS = n_colors, clip = [0, 235]
+        if not keyword_set(invert_colorbar) then cgloadct, 25, /brewer, /reverse, BOTTOM = 0, NCOLORS = n_colors, clip = [0, 235] $
+        else cgloadct, 25, /brewer, BOTTOM = 0, NCOLORS = n_colors, clip = [20, 255]
+        
       end
       'log': log_color_calc, power_plot, power_log_norm, cb_ticks, cb_ticknames, color_range, n_colors, data_range = data_range, $
-        color_profile = color_profile, log_cut_val = log_cut_val, min_abs = data_min_abs, oob_low = oob_low
+        color_profile = color_profile, log_cut_val = log_cut_val, min_abs = data_min_abs, oob_low = oob_low, invert_colorbar = invert_colorbar
       'linear': begin
         if n_elements(data_range) eq 0 then data_range = minmax(power_plot)
         color_range = [0, 255]
@@ -708,7 +711,8 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, wei
           cb_ticks = [cb_ticks, color_range[1]]
         endif
         
-        cgloadct, 25, /brewer, /reverse, BOTTOM = 0, NCOLORS = n_colors, clip = [0, 235]
+        if not keyword_set(invert_colorbar) then cgloadct, 25, /brewer, /reverse, BOTTOM = 0, NCOLORS = n_colors, clip = [0, 235] $
+        else cgloadct, 25, /brewer, BOTTOM = 0, NCOLORS = n_colors, clip = [20, 255]
         
       end
     endcase
