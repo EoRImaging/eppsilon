@@ -142,8 +142,8 @@ pro cube_images, folder_names, obs_info, nvis_norm = nvis_norm, pols = pols, cub
     for i=0, n_cubes-1 do begin
     
       if cube_varnames[i] eq '' then begin
-        if cube_types[0] eq 'res' then input_types = ['dirty', 'model'] else $
-          if cube_types[0] eq 'model' then input_types = ['dirty', 'res'] else $
+        if cube_types[i] eq 'res' then input_types = ['dirty', 'model'] else $
+          if cube_types[i] eq 'model' then input_types = ['dirty', 'res'] else $
           message, 'No varname for this cube type and it cannot be constructed from other cubes'
           
         input_cubes_typepol = input_types + '_' + pols[0]
