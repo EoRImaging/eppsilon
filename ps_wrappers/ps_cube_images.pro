@@ -2,7 +2,7 @@ pro ps_cube_images, folder_names, obs_names_in, exact_obsnames = exact_obsnames,
     pols = pols, evenodd = evenodd, $
     rts = rts, sim = sim, casa = casa, png = png, eps = eps, pdf = pdf, slice_range = slice_range, sr2 = sr2, $
     nvis_norm = nvis_norm, ratio = ratio, diff_ratio = diff_ratio, diff_frac = diff_frac, $
-    log = log, data_range = data_range, color_profile = color_profile, sym_color = sym_color, $
+    log = log, data_range = data_range, data_min_abs = data_min_abs, color_profile = color_profile, sym_color = sym_color, $
     window_num = window_num, plot_as_map = plot_as_map, plot_path = plot_path
     
   if n_elements(folder_names) gt 2 then message, 'No more than 2 folder_names can be supplied'
@@ -46,7 +46,7 @@ pro ps_cube_images, folder_names, obs_names_in, exact_obsnames = exact_obsnames,
   cube_images, folder_names, obs_info, nvis_norm = nvis_norm, pols = pols, cube_types = cube_types, evenodd = evenodd, rts = rts, $
     png = png, eps = eps, pdf = pdf, slice_range = slice_range, sr2 = sr2, $
     ratio = ratio, diff_ratio = diff_ratio, diff_frac = diff_frac, $
-    log = log, data_range = data_range, color_profile = color_profile, sym_color = sym_color, $
+    log = log, data_range = data_range, data_min_abs = data_min_abs, color_profile = color_profile, sym_color = sym_color, $
     window_num = window_num, plot_as_map = plot_as_map, plot_path = plot_pat
     
 end
