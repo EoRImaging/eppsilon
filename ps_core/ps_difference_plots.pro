@@ -3,7 +3,7 @@ pro ps_difference_plots, folder_names, obs_info, cube_types, pols, all_type_pol 
     plot_path = plot_path, plot_filebase = plot_filebase, save_path = save_path, savefilebase = savefilebase, $
     note = note, spec_window_types = spec_window_types, data_range = data_range, data_min_abs = data_min_abs, $
     kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, plot_1d = plot_1d, axis_type_1d=axis_type_1d, $
-    wt_cutoffs = wt_cutoffs, wt_measures = wt_measures, diff_ratio = diff_ratio, $
+    wt_cutoffs = wt_cutoffs, wt_measures = wt_measures, diff_ratio = diff_ratio, invert_colorbar = invert_colorbar, $
     plot_wedge_line = plot_wedge_line, quiet = quiet, png = png, eps = eps, pdf = pdf, window_num = window_num
     
   if n_elements(obs_info.info_files) gt 2 then message, 'Only 1 or 2 info_files can be used'
@@ -475,7 +475,7 @@ pro ps_difference_plots, folder_names, obs_info, cube_types, pols, all_type_pol 
     kpower_2d_plots, savefile_2d, multi_pos = pos_use, start_multi_params = start_multi_params, $
       kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, note = note_use, $
       data_range = data_range, data_min_abs = data_min_abs, png = png, eps = eps, pdf = pdf, plotfile = plotfile_2d, full_title=titles[i], $
-      window_num = window_num, color_profile = 'sym_log', $
+      window_num = window_num, color_profile = 'sym_log', invert_colorbar = invert_colorbar, $
       kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, baseline_axis = baseline_axis, delay_axis = delay_axis, $
       wedge_amp = wedge_amp, plot_wedge_line = plot_wedge_line, hinv = hinv, no_units=no_units
       

@@ -3,7 +3,7 @@ pro ps_diff_wrapper, folder_names, obs_names_in, cube_types = cube_types, pols =
     png = png, eps = eps, pdf = pdf, data_range = data_range, data_min_abs = data_min_abs, $
     kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, sim = sim, $
     plot_1d = plot_1d, axis_type_1d=axis_type_1d, wt_cutoffs = wt_cutoffs, wt_measures = wt_measures, $
-    window_num = window_num, ps_foldernames = ps_foldernames, $
+    window_num = window_num, ps_foldernames = ps_foldernames, invert_colorbar = invert_colorbar, $
     diff_save_path = diff_save_path, exact_obsnames = exact_obsnames, diff_ratio = diff_ratio
     
   if n_elements(folder_names) gt 2 then message, 'only 1 or 2 folder_names allowed'
@@ -38,7 +38,7 @@ pro ps_diff_wrapper, folder_names, obs_names_in, cube_types = cube_types, pols =
     savefilebase = savefilebase, $
     note = note, kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, $
     plot_1d = plot_1d, axis_type_1d=axis_type_1d, $
-    wt_cutoffs = wt_cutoffs, wt_measures = wt_measures, $
+    wt_cutoffs = wt_cutoffs, wt_measures = wt_measures, invert_colorbar = invert_colorbar, $
     data_range = data_range, data_min_abs = data_min_abs, diff_ratio = diff_ratio, $
     quiet = quiet, png = png, eps = eps, pdf = pdf, window_num = window_num
         

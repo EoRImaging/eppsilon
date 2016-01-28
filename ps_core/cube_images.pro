@@ -1,7 +1,7 @@
 pro cube_images, folder_names, obs_info, nvis_norm = nvis_norm, pols = pols, cube_types = cube_types, evenodd = evenodd, $
     rts = rts, png = png, eps = eps, pdf = pdf, slice_range = slice_range, sr2 = sr2, $
     ratio = ratio, diff_ratio = diff_ratio, diff_frac = diff_frac, $
-    log = log, data_range = data_range, color_profile = color_profile, sym_color = sym_color, $
+    log = log, data_range = data_range, data_min_abs = data_min_abs, color_profile = color_profile, sym_color = sym_color, $
     window_num = window_num, plot_as_map = plot_as_map, plot_path = plot_path, plotfile = plotfile_out
     
   if n_elements(obs_info.info_files) gt 2 then message, 'Only 1 or 2 info_files can be used'
@@ -33,6 +33,10 @@ pro cube_images, folder_names, obs_info, nvis_norm = nvis_norm, pols = pols, cub
   
   if n_cubes eq 2 and n_elements(data_range) eq 0 and n_elements(sym_color) eq 0 and not keyword_set(ratio) then sym_color=1
   if keyword_set(sym_color) and keyword_set(log) then color_profile = 'sym_log'
+  if n_elements(color_profile) gt 0 then if color_profile eq 'sym_log' then begin
+    log=1
+    sym_color=1
+  endif
   
   max_file = max([n_elements(obs_info.info_files)-1, n_elements(evenodd)-1])
   max_type = n_elements(cube_types)-1
@@ -52,7 +56,7 @@ pro cube_images, folder_names, obs_info, nvis_norm = nvis_norm, pols = pols, cub
       if keyword_set(casa) then file_struct_arr2 = casa_file_setup(obs_info.info_files[1]) $
     else file_struct_arr2 = fhd_file_setup(obs_info.info_files[1])
   endif
-
+  
   type_pol_str1 = file_struct_arr1.type_pol_str
   if n_elements(file_struct_arr2) gt 0 then type_pol_str2 = file_struct_arr2.type_pol_str
   
@@ -142,8 +146,8 @@ pro cube_images, folder_names, obs_info, nvis_norm = nvis_norm, pols = pols, cub
     for i=0, n_cubes-1 do begin
     
       if cube_varnames[i] eq '' then begin
-        if cube_types[0] eq 'res' then input_types = ['dirty', 'model'] else $
-          if cube_types[0] eq 'model' then input_types = ['dirty', 'res'] else $
+        if cube_types[i] eq 'res' then input_types = ['dirty', 'model'] else $
+          if cube_types[i] eq 'model' then input_types = ['dirty', 'res'] else $
           message, 'No varname for this cube type and it cannot be constructed from other cubes'
           
         input_cubes_typepol = input_types + '_' + pols[0]
@@ -353,7 +357,7 @@ pro cube_images, folder_names, obs_info, nvis_norm = nvis_norm, pols = pols, cub
       
     if n_elements(title_range) eq 1 then diff_title = diff_title + ' ' + title_range
     
-  endif else diff_title = evenodd[0] + '_' + cube_types[0] + '_' + pols[0] + ' ' + title_range  
+  endif else diff_title = evenodd[0] + '_' + cube_types[0] + '_' + pols[0] + ' ' + title_range
   
   if keyword_set(png) or keyword_set(eps) or keyword_set(pdf) then pub = 1 else pub = 0
   
@@ -387,6 +391,7 @@ pro cube_images, folder_names, obs_info, nvis_norm = nvis_norm, pols = pols, cub
   if keyword_set(diff_ratio) then title = diff_title + ', peak norm., ' else title = diff_title
   
   healpix_quickimage, temp, hpx_inds1, nside1, title = title, savefile = plotfile, note=note, slice_ind = slice_ind, $
-    log = log, color_profile = color_profile, data_range = data_range, window_num = window_num, plot_as_map = plot_as_map, png = png, eps = eps, pdf = pdf
+    log = log, color_profile = color_profile, data_range = data_range, data_min_abs = data_min_abs,$
+    window_num = window_num, plot_as_map = plot_as_map, png = png, eps = eps, pdf = pdf
     
 end

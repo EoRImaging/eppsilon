@@ -84,14 +84,15 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, wei
     plot_mask = plot_mask, mask_savefile = mask_savefile, mask_contour = mask_contour, contour_levels = contour_levels, $
     plot_1d_noisefrac = plot_1d_noisefrac, $
     kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, data_range = data_range, data_min_abs = data_min_abs, $
-    color_profile = color_profile, log_cut_val = log_cut_val, plotfile = plotfile, png = png, eps = eps, pdf = pdf, $
+    color_profile = color_profile, log_cut_val = log_cut_val, invert_colorbar = invert_colorbar, $
+    plotfile = plotfile, png = png, eps = eps, pdf = pdf, $
     no_title = no_title, full_title = full_title, title_prefix = title_prefix, note = note, $
     norm_2d = norm_2d, norm_factor = norm_factor, $
     wedge_amp = wedge_amp, plot_wedge_line = plot_wedge_line, $
     baseline_axis = baseline_axis, delay_axis = delay_axis, cable_length_axis = cable_length_axis, kperp_linear_axis = kperp_linear_axis, $
     kpar_linear_axis = kpar_linear_axis, no_units = no_units, hinv = hinv, charsize = charsize_in, $
     cb_size = cb_size_in, margin=margin_in, cb_margin = cb_margin_in
-    
+  
   if keyword_set(delay_axis) and keyword_set(cable_length_axis) then message, 'Only one of delay_axis and cable_length_axis can be set'
   
   if n_elements(plotfile) gt 0 or keyword_set(png) or keyword_set(eps) or keyword_set(pdf) then pub = 1 else pub = 0
@@ -317,7 +318,21 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, wei
   
   kperp_edges_use = kperp_edges
   kpar_edges_use = kpar_edges
-  kpar_bin_use = kpar_bin
+  
+  ;; Check whether binning is log or not
+  log_bins = [0, 0]
+  kperp_diffs = (kperp_edges_use - shift(kperp_edges_use, 1))[1:*]
+  if kperp_edges_use[0] eq 0 then kperp_diffs = kperp_diffs[1:*] ;; lowest bin may have lower edge set to zero
+  if total(abs(kperp_diffs - kperp_diffs[0])) gt n_kperp*1e-7 then log_bins[0] = 1
+  kpar_diffs = (kpar_edges_use - shift(kpar_edges_use, 1))[1:*]
+  if kpar_edges_use[0] eq 0 then kpar_diffs = kpar_diffs[1:*] ;; lowest bin may have lower edge set to zero
+  if total(abs(kpar_diffs - kpar_diffs[0])) gt n_kpar*1e-7 then log_bins[1] = 1
+  
+  if n_elements(kpar_bin) gt 0 then kpar_bin_use = kpar_bin else begin
+    ;; calculate kpar_bin from kpar_edges, don't use lowest bin because it might have lower edge set to zero
+    if log_bins[1] eq 0 then kpar_bin = kpar_edges_use[2] - kpar_edges_use[1] $
+    else kpar_bin = alog10(kpar_edges_use[2]) - alog10(kpar_edges_use[1])
+  endelse
   
   if keyword_set(hinv) then begin
     kperp_edges_use = kperp_edges_use / hubble_param
@@ -469,7 +484,7 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, wei
   log_delay_kpar_slope = (alog10(delay_params[1]) - alog10(delay_params[0]))/(alog10(max(kpar_edges_use)) - alog10(kpar_bin_use))
   log_delay_kpar_intercept = alog10(delay_params[0]) / (log_delay_kpar_slope * alog10(kpar_bin_use))
   log_delay_edges = 10^(log_delay_kpar_slope * alog10(kpar_edges_use) + log_delay_kpar_intercept)
-
+  
   if n_kpar_plot ne n_kpar then begin
     power_use = power_use[*, wh_kpar_inrange]
     if keyword_set(mask_contour) then mask = mask[*, wh_kpar_inrange]
@@ -488,21 +503,6 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, wei
     print, 'power is entirely zero.'
     no_plot = 1
   endif
-  
-  ;; Check whether binning is log or not
-  ;  log_bins = [1, 1]
-  ;  kperp_log_diffs = (alog10(kperp_edges_use) - shift(alog10(kperp_edges_use), 1))[2:*]
-  ;  if total(abs(kperp_log_diffs - kperp_log_diffs[0])) gt n_kperp*1e-15 then log_bins[0] = 0
-  ;  kpar_log_diffs = (alog10(kpar_edges_use) - shift(alog10(kpar_edges_use), 1))[2:*]
-  ;  if total(abs(kpar_log_diffs - kpar_log_diffs[0])) gt n_kpar*1e-15 then log_bins[1] = 0
-  
-  log_bins = [0, 0]
-  kperp_diffs = (kperp_edges_use - shift(kperp_edges_use, 1))[1:*]
-  if kperp_edges_use[0] eq 0 then kperp_diffs = kperp_diffs[1:*] ;; lowest bin may have lower edge set to zero
-  if total(abs(kperp_diffs - kperp_diffs[0])) gt n_kperp*1e-7 then log_bins[0] = 1
-  kpar_diffs = (kpar_edges_use - shift(kpar_edges_use, 1))[1:*]
-  if kpar_edges_use[0] eq 0 then kpar_diffs = kpar_diffs[1:*] ;; lowest bin may have lower edge set to zero
-  if total(abs(kpar_diffs - kpar_diffs[0])) gt n_kpar*1e-7 then log_bins[1] = 1
   
   if keyword_set(norm_2d) then begin
     if n_elements(norm_factor) eq 0 then norm_factor = 1/max(power_use)
@@ -683,10 +683,12 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, wei
           cb_ticks = [cb_ticks, color_range[1]+1]
         endif
         
-        cgloadct, 25, /brewer, /reverse, BOTTOM = 0, NCOLORS = n_colors, clip = [0, 235]
+        if not keyword_set(invert_colorbar) then cgloadct, 25, /brewer, /reverse, BOTTOM = 0, NCOLORS = n_colors, clip = [0, 235] $
+        else cgloadct, 25, /brewer, BOTTOM = 0, NCOLORS = n_colors, clip = [20, 255]
+        
       end
       'log': log_color_calc, power_plot, power_log_norm, cb_ticks, cb_ticknames, color_range, n_colors, data_range = data_range, $
-        color_profile = color_profile, log_cut_val = log_cut_val, min_abs = data_min_abs, oob_low = oob_low
+        color_profile = color_profile, log_cut_val = log_cut_val, min_abs = data_min_abs, oob_low = oob_low, invert_colorbar = invert_colorbar
       'linear': begin
         if n_elements(data_range) eq 0 then data_range = minmax(power_plot)
         color_range = [0, 255]
@@ -709,7 +711,8 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, wei
           cb_ticks = [cb_ticks, color_range[1]]
         endif
         
-        cgloadct, 25, /brewer, /reverse, BOTTOM = 0, NCOLORS = n_colors, clip = [0, 235]
+        if not keyword_set(invert_colorbar) then cgloadct, 25, /brewer, /reverse, BOTTOM = 0, NCOLORS = n_colors, clip = [0, 235] $
+        else cgloadct, 25, /brewer, BOTTOM = 0, NCOLORS = n_colors, clip = [20, 255]
         
       end
     endcase
@@ -1056,7 +1059,7 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, wei
   if log_axes[1] eq 1 then ytickformat = 'exponent'
   
   if keyword_set(no_plot) then return
-
+  
   axkeywords = {xlog: log_axes[0], ylog: log_axes[1], xstyle: 5, ystyle: 5, thick: thick, charthick: charthick, xthick: xthick, $
     ythick: ythick, charsize: charsize, font: font}
   cgimage, power_log_norm, /nointerp, xrange = minmax(plot_kperp), yrange = minmax(plot_kpar), $
