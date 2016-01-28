@@ -11,9 +11,9 @@ pro mit_ps_job
 
   if (nargs eq 3) then begin
      n_obs=args[2]
-     ps_wrapper,folder_name,obs_range,n_obs=n_obs,/plot_kpar_power,/plot_kperp_power,/png,/plot_k0_power,/exact_obsnames
+     ps_wrapper,folder_name,obs_range,n_obs=n_obs,/plot_kpar_power,/plot_kperp_power,/png,/plot_k0_power,/exact_obsnames,loc_name='mit'
   endif else begin
-     ps_wrapper,folder_name,obs_range,/plot_kpar_power,/plot_kperp_power,/png,/plot_k0_power,/exact_obsnames
+     ps_wrapper,folder_name,obs_range,/plot_kpar_power,/plot_kperp_power,/png,/plot_k0_power,/exact_obsnames,loc_name='mit'
   endelse
   
 end
