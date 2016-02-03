@@ -66,13 +66,17 @@
       std_power = std_power, inverse_covar_weight = inverse_covar_weight, no_wtd_avg = no_wtd_avg, norm_rts_with_fhd = norm_rts_with_fhd, $
       wt_cutoffs = wt_cutoffs, wt_measures = wt_measures, fix_sim_input = fix_sim_input, $
       no_spec_window = no_spec_window, spec_window_type = spec_window_type, $
-      no_kzero = no_kzero, plot_slices = plot_slices, slice_type = slice_type, uvf_plot_type = uvf_plot_type, plot_stdset = plot_stdset, plot_1to2d = plot_1to2d, $
-      plot_kpar_power = plot_kpar_power, plot_kperp_power = plot_kperp_power, plot_k0_power = plot_k0_power, plot_noise_1d = plot_noise_1d, $
-      data_range = data_range, sigma_range = sigma_range, nev_range = nev_range, slice_range = slice_range, plot_sim_noise = plot_sim_noise, $
+      no_kzero = no_kzero, plot_slices = plot_slices, slice_type = slice_type, $
+      uvf_plot_type = uvf_plot_type, plot_stdset = plot_stdset, plot_1to2d = plot_1to2d, $
+      plot_kpar_power = plot_kpar_power, plot_kperp_power = plot_kperp_power, plot_k0_power = plot_k0_power, $
+      plot_noise_1d = plot_noise_1d, plot_sim_noise = plot_sim_noise, $
+      data_range = data_range, sigma_range = sigma_range, nev_range = nev_range, slice_range = slice_range, $
       snr_range = snr_range, noise_range = noise_range, nnr_range = nnr_range, range_1d = range_1d, $
       log_kpar = log_kpar, log_kperp = log_kperp, kpar_bin = kpar_bin, kperp_bin = kperp_bin, $
-      log_k1d = log_k1d, k1d_bin = k1d_bin, plot_1d_delta = plot_1d_delta, plot_1d_error_bars = plot_1d_error_bars, plot_1d_nsigma = plot_1d_nsigma, $
+      log_k1d = log_k1d, k1d_bin = k1d_bin, plot_1d_delta = plot_1d_delta, $
+      plot_1d_error_bars = plot_1d_error_bars, plot_1d_nsigma = plot_1d_nsigma, $
       kperp_range_1dave = kperp_range_1dave, kperp_range_lambda_1dave = kperp_range_lambda_1dave, kpar_range_1dave = kpar_range_1dave, $
+      kperp_range_lambda_kparpower = kperp_range_lambda_kparpower, kpar_range_kperppower = kpar_range_kperppower, $
       kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, kperp_plot_range = kperp_plot_range, $
       kperp_lambda_plot_range = kperp_lambda_plot_range, kpar_plot_range = kpar_plot_range, $
       baseline_axis = baseline_axis, delay_axis = delay_axis, cable_length_axis = cable_length_axis, hinv = hinv, $
@@ -273,6 +277,9 @@
     if n_elements(kperp_range_1dave) gt 1 and n_elements(kperp_range_lambda_1dave) gt 1 then $
       message, 'both kperp_range_1dave and kperp_range_lambda_1dave cannot be set'
       
+    fadd_kpar_1d = fadd_1dbin
+    fadd_kperp_1d = fadd_1dbin
+    
     if n_elements(kperp_range_1dave) gt 1 then begin
       fadd_1dbin = fadd_1dbin + '_kperp' + number_formatter(kperp_range_1dave[0]) + '-' + $
         number_formatter(kperp_range_1dave[1])
@@ -296,6 +303,18 @@
       endelse
     endelse
     
+    if n_elements(kperp_range_lambda_kparpower) gt 0 then begin
+      fadd_kpar_1d = fadd_kpar_1d + '_kperplambda' + number_formatter(kperp_range_lambda_kparpower[0]) + '-' + $
+        number_formatter(kperp_range_lambda_kparpower[1])
+      note_kpar_1d = 'kperp: [' + number_formatter(kperp_range_lambda_kparpower[0]) + ',' + $
+        number_formatter(kperp_range_lambda_kparpower[1]) + ']'
+    endif else begin
+      fadd_kpar_1d = fadd_1dbin
+      note_kpar_1d = note_1d
+      
+      if n_elements(kperp_range_lambda_1dave) gt 1 then kperp_range_lambda_kparpower = kperp_range_lambda_1dave
+    endelse
+    
     if n_elements(kpar_range_1dave) gt 1 then begin
       fadd_1dbin = fadd_1dbin + '_kpar' + number_formatter(kpar_range_1dave[0]) + '-' + $
         number_formatter(kpar_range_1dave[1])
@@ -307,6 +326,21 @@
       if keyword_set(hinv) then kpar_range_1d_use = kpar_range_1dave * hubble_param else kpar_range_1d_use = kpar_range_1dave
       
     endif else if n_elements(kpar_range_1dave) gt 0 then print, '2 values must be specified for kpar_range_1dave, defaulting to full range'
+    
+    if n_elements(kpar_range_kperppower) eq 0 and n_elements(kpar_range_1dave) gt 1 then $
+      kpar_range_kperppower = kpar_range_1dave
+      
+    if n_elements(kpar_range_kperppower) gt 0 then begin
+      fadd_kperp_1d = fadd_kperp_1d + '_kpar' + number_formatter(kpar_range_kperppower[0]) + '-' + $
+        number_formatter(kpar_range_kperppower[1])
+      note_kperp_1d = 'kpar: [' + number_formatter(kpar_range_kperppower[0]) + ',' + $
+        number_formatter(kpar_range_kperppower[1]) + ']'
+        
+      ;; if we're plotting in [k]=h/Mpc then assume these numbers are in h/Mpc. Convert to 1/Mpc for internal code usage
+      if keyword_set(hinv) then kpar_range_kperppower_use = kpar_range_kperppower * hubble_param else $
+        kpar_range_kperppower_use = kpar_range_kperppower
+    endif
+    
     
     if keyword_set(plot_wedge_line) then begin
       if keyword_set(coarse_harm_width) then cb_width_name = '_cbw' + number_formatter(coarse_harm_width) else cb_width_name = ''
@@ -361,14 +395,14 @@
     savefiles_kpar_1d = strarr(n_cubes, n_elements(kperp_density_names))
     for j=0, n_elements(kperp_density_names)-1 do begin
       savefiles_kpar_1d[*,j] = file_struct_arr.savefile_froot + file_struct_arr.savefilebase + power_tag + $
-        kperp_density_names[j] + fadd_1dbin + '_kpar_power.idlsave'
+        kperp_density_names[j] + fadd_kpar_1d + '_kpar_power.idlsave'
     endfor
     if keyword_set(plot_kpar_power) then test_save_kpar = file_test(savefiles_kpar_1d) *  (1 - file_test(savefiles_kpar_1d, /zero_length))
     
     savefiles_kperp_1d = strarr(n_cubes, n_elements(kperp_density_names))
     for j=0, n_elements(kperp_density_names)-1 do begin
       savefiles_kperp_1d[*,j] = file_struct_arr.savefile_froot + file_struct_arr.savefilebase + power_tag + $
-        kperp_density_names[j] + fadd_1dbin + '_kperp_power.idlsave'
+        kperp_density_names[j] + fadd_kperp_1d + '_kperp_power.idlsave'
     endfor
     if keyword_set(plot_kperp_power) then test_save_kperp = file_test(savefiles_kperp_1d) *  (1 - file_test(savefiles_kperp_1d, /zero_length))
     
@@ -537,21 +571,17 @@
       endif
       
       if keyword_set(plot_kpar_power) then begin
-        if test_kpar gt 0 and (n_elements(kperp_range_1d_use) gt 0 or n_elements(kperp_range_lambda_1dave) gt 0 $
-          or n_elements(kpar_range_1d_use) gt 0) then begin
+        if test_kpar gt 0 and (n_elements(kperp_range_1d_use) gt 0 or n_elements(kperp_range_lambda_kparpower) gt 0) then begin
           ;; check that 1d binning was over correct ranges
           kperp_range_used = getvar_savefile(savefile_kpar_use, 'kperp_range')
           kperp_range_lambda_used = getvar_savefile(savefile_kpar_use, 'kperp_range_lambda')
-          kpar_range_used = getvar_savefile(savefile_kpar_use, 'kpar_range')
           if n_elements(kperp_range_1d_use) gt 0 then if max(abs(1.-kperp_range_used/kperp_range_1d_use)) gt 1e-6 then test_kpar = 0
-          if n_elements(kperp_range_lambda_1dave) gt 0 then if max(abs(1.-kperp_range_lambda_used/rebin(kperp_range_lambda_1dave,2,n_elements(savefile_1d_use)))) gt 1e-6 then test_kpar = 0
-          if n_elements(kpar_range_1d_use) gt 0 then if max(abs(1.-kpar_range_used/kpar_range_1d_use)) gt 1e-6 then test_kpar = 0
+          if n_elements(kperp_range_lambda_kparpower) gt 0 then if max(abs(1.-kperp_range_lambda_kparpower/rebin(kperp_range_lambda_kparpower,2,n_elements(savefile_1d_use)))) gt 1e-6 then test_kpar = 0
         endif
       endif
       
       if keyword_set(plot_kperp_power) then begin
-        if test_kperp gt 0 and (n_elements(kperp_range_1d_use) gt 0 or n_elements(kperp_range_lambda_1dave) gt 0 $
-          or n_elements(kpar_range_1d_use) gt 0) then begin
+        if test_kperp gt 0 and n_elements(kpar_range_) gt 0 then begin
           ;; check that 1d binning was over correct ranges
           kperp_range_used = getvar_savefile(savefile_kperp_use, 'kperp_range')
           kperp_range_lambda_used = getvar_savefile(savefile_kperp_use, 'kperp_range_lambda')
@@ -587,6 +617,7 @@
             std_power = std_power, inverse_covar_weight = inverse_covar_weight, no_wtd_avg = no_wtd_avg, no_kzero = no_kzero, sim=sim, $
             log_k1d = log_k1d, k1d_bin = k1d_bin, log_kpar = log_kpar, log_kperp = log_kperp, kpar_bin = kpar_bin, kperp_bin = kperp_bin, $
             kperp_range_1dave = kperp_range_1d_use, kperp_range_lambda_1dave = kperp_range_lambda_1dave, kpar_range_1dave = kpar_range_1d_use, $
+            kperp_range_lambda_kparpower = kperp_range_lambda_kparpower, kpar_range_kperppower = kpar_range_kperppower_use, $
             wt_measures = wt_measures, wt_cutoffs = wt_cutoffs, fix_sim_input = fix_sim_input, $
             wedge_amps = wedge_amp, coarse_harm0 = coarse_harm0, coarse_width = coarse_harm_width, no_dft_progress = no_dft_progress, $
             plot_binning_hist = plot_binning_hist, plotfile_binning_hist = plotfile_binning_hist_use, png = png, eps = eps, pdf = pdf
@@ -599,6 +630,7 @@
           uvf_input = uvf_input, uv_avg = uv_avg, uv_img_clip = uv_img_clip, sim=sim, $
           log_k1d = log_k1d, k1d_bin = k1d_bin, log_kpar = log_kpar, log_kperp = log_kperp, kpar_bin = kpar_bin, kperp_bin = kperp_bin, $
           kperp_range_1dave = kperp_range_1d_use, kperp_range_lambda_1dave = kperp_range_lambda_1dave, kpar_range_1dave = kpar_range_1d_use, $
+          kperp_range_lambda_kparpower = kperp_range_lambda_kparpower, kpar_range_kperppower = kpar_range_kperppower_use, $
           wt_measures = wt_measures, wt_cutoffs = wt_cutoffs, fix_sim_input = fix_sim_input, $
           wedge_amps = wedge_amp, coarse_harm0 = coarse_harm0, coarse_width = coarse_harm_width, no_dft_progress = no_dft_progress, $
           plot_binning_hist = plot_binning_hist, plotfile_binning_hist = plotfile_binning_hist_use, png = png, eps = eps, pdf = pdf
@@ -694,9 +726,8 @@
       plotfile_1d_noise = plotfile_1d_base + power_tag + wedge_1dbin_names + fadd_1dbin + '_1dnoise' + plot_exten
       plotfile_1d_sim_noise_diff = plotfile_1d_base + power_tag + wedge_1dbin_names + fadd_1dbin + '_1dsimnoisediff' + plot_exten
       plotfile_1d_sim_noise = plotfile_1d_base + power_tag + wedge_1dbin_names + fadd_1dbin + '_1dsimnoise' + plot_exten
-      plotfile_kpar_power = plotfile_1d_base + power_tag + fadd_1dbin + '_kpar_power' + plot_exten
-      plotfile_kperp_power = plotfile_1d_base + power_tag + fadd_1dbin + '_kperp_power' + plot_exten
-      plotfile_kperp_weights = plotfile_1d_base + power_tag + fadd_1dbin + '_kperp_weights' + plot_exten
+      plotfile_kpar_power = plotfile_1d_base + power_tag + fadd_kpar_1d + '_kpar_power' + plot_exten
+      plotfile_kperp_power = plotfile_1d_base + power_tag + fadd_kperp_1d + '_kperp_power' + plot_exten
       plotfile_k0_power = plotfile_1d_base + power_tag + fadd_2dbin + '_k0power' + plot_exten
       
     endif
@@ -1543,7 +1574,7 @@
       
       window_num = window_num+1
       kpower_1d_plots, file_arr, window_num = window_num, colors = colors, names = titles_use, psyms = psyms, delta = plot_1d_delta, hinv = hinv, $
-        png = png, eps = eps, pdf = pdf, plotfile = plotfile_kpar_power, k_range = k_range, title = note + ' kpar', note = note_1d, $
+        png = png, eps = eps, pdf = pdf, plotfile = plotfile_kpar_power, k_range = k_range, title = note + ' kpar', note = note_kpar_1d, $
         no_text = no_text_1d, plot_error_bars = plot_1d_error_bars, plot_nsigma = plot_1d_nsigma, plot_sim_noise = plot_sim_noise, $
         data_range = range_1d, /kpar_power, delay_axis = delay_axis, cable_length_axis = cable_length_axis
         
@@ -1577,7 +1608,7 @@
       window_num = window_num+1
       kpower_1d_plots, file_arr, window_num = window_num, colors = colors, names = titles_use, psyms = psyms, delta = plot_1d_delta, $
         hinv = hinv, png = png, eps = eps, pdf = pdf, plotfile = plotfile_kperp_power, k_range = k_range, title = note + ' kperp', $
-        note = note_1d, no_text = no_text_1d, $
+        note = note_kperp_1d, no_text = no_text_1d, $
         plot_error_bars = plot_1d_error_bars, plot_nsigma = plot_1d_nsigma, plot_sim_noise = plot_sim_noise, $
         data_range = range_1d, /kperp_power, baseline_axis = baseline_axis
         
