@@ -310,7 +310,7 @@
         number_formatter(kperp_range_lambda_kparpower[1]) + ']'
     endif else begin
       fadd_kpar_1d = fadd_1dbin
-      note_kpar_1d = note_1d
+      if n_elements(note_1d) gt 0 then note_kpar_1d = note_1d
       
       if n_elements(kperp_range_lambda_1dave) gt 1 then kperp_range_lambda_kparpower = kperp_range_lambda_1dave
     endelse

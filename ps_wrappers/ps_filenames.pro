@@ -704,6 +704,7 @@ function ps_filenames, folder_names, obs_names_in, dirty_folder = dirty_folder, 
             datafile = cube_file_list
           endelse
           integrated[i]=1
+          print, 'Only found uvf_input cubes, switching to uvf_input.'
           uvf_input=1
           
           ;; look for beam files
@@ -793,6 +794,7 @@ function ps_filenames, folder_names, obs_names_in, dirty_folder = dirty_folder, 
               datafile = cube_file_list
             endelse
           endif
+          print, 'Only found uvf_input cubes, switching to uvf_input.'
           uvf_input=1
           
           ;; look for beam files
