@@ -10,6 +10,7 @@ pro ps_power, file_struct, refresh = refresh, kcube_refresh = kcube_refresh, dft
     no_kzero = no_kzero, log_kpar = log_kpar, $
     log_kperp = log_kperp, kperp_bin = kperp_bin, kpar_bin = kpar_bin, log_k1d = log_k1d, k1d_bin = k1d_bin, $
     kperp_range_1dave = kperp_range_1dave, kperp_range_lambda_1dave = kperp_range_lambda_1dave, kpar_range_1dave = kpar_range_1dave, $
+    kperp_range_lambda_kparpower = kperp_range_lambda_kparpower, kpar_range_kperppower = kpar_range_kperppower, $
     wt_measures = wt_measures, wt_cutoffs = wt_cutoffs, fix_sim_input = fix_sim_input, $
     wedge_amps = wedge_amps, coarse_harm0 = coarse_harm0, coarse_width = coarse_width, $
     input_units = input_units, fill_holes = fill_holes, no_dft_progress = no_dft_progress, $
@@ -617,7 +618,8 @@ pro ps_power, file_struct, refresh = refresh, kcube_refresh = kcube_refresh, dft
   endfor
   
   ;; bin just in kpar for diagnostic plot
-  
+  if keyword_set(kperp_range_lambda_kparpower) then kperp_range_use = kperp_range_lambda_kparpower / kperp_lambda_conv
+  undefine, kpar_range_use
   for j=0, n_wt_cuts-1 do begin
     if wt_cutoffs[j] gt 0 then begin
       case wt_measures[j] of
@@ -681,6 +683,10 @@ pro ps_power, file_struct, refresh = refresh, kcube_refresh = kcube_refresh, dft
   endfor
   
   ;; bin just in kperp for diagnostic plot
+  if keyword_set(kperp_range_lambda_1dave) then kperp_range_use = kperp_range_lambda_1dave / kperp_lambda_conv
+  if keyword_set(kperp_range_1dave) then kperp_range_use = kperp_range_1dave
+  if keyword_set(kpar_range_1dave) then kpar_range_use = kpar_range_1dave
+  if keyword_set(kpar_range_kperppower) then kpar_range_use = kpar_range_kperppower
   
   for j=0, n_wt_cuts-1 do begin
     if wt_cutoffs[j] gt 0 then begin
