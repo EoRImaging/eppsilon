@@ -1168,6 +1168,9 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
       n_ky = n_elements(ky_mpc)
     endif
     
+    if max(abs(data_cube1)) eq 0 then message, 'data cube is entirely zero.'
+    if nfiles eq 2 then if max(abs(data_cube2)) eq 0 then message, 'data cube is entirely zero.'
+    
   endif else begin
     ;; uvf_input
     if datavar eq '' then begin
@@ -1218,6 +1221,9 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
         data_cube2 = temporary(dirty_cube2) - temporary(model_cube2)
       endif
       
+      if max(abs(data_cube1)) eq 0 then message, 'data cube is entirely zero.'
+      if nfiles eq 2 then if max(abs(data_cube2)) eq 0 then message, 'data cube is entirely zero.'
+      
       void = getvar_savefile(input_uvf_files[0,0], names = uvf_varnames)
       wh_hash = where(uvf_varnames eq 'uvf_git_hash', count_hash)
       if count_hash gt 0 then begin
@@ -1239,6 +1245,9 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
     endif else begin
       data_cube1 = getvar_savefile(file_struct.datafile[0], file_struct.datavar)
       if nfiles eq 2 then data_cube2 = getvar_savefile(file_struct.datafile[1], file_struct.datavar)
+      
+      if max(abs(data_cube1)) eq 0 then message, 'data cube is entirely zero.'
+      if nfiles eq 2 then if max(abs(data_cube2)) eq 0 then message, 'data cube is entirely zero.'
       
       uvf_git_hashes = strarr(nfiles)
       
