@@ -790,9 +790,6 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
     weights_cube1 = getvar_savefile(file_struct.weightfile[0], file_struct.weightvar)
     if nfiles eq 2 then weights_cube2 = getvar_savefile(file_struct.weightfile[1], file_struct.weightvar)
     
-    if max(abs(weights_cube1)) eq 0 then message, 'weights cube is entirely zero.'
-    if nfiles eq 2 then if max(abs(weights_cube2)) eq 0 then message, 'weights cube is entirely zero.'
-    
     uvf_wt_git_hashes = strarr(nfiles)
     
     wt_size = size(weights_cube1)
@@ -820,10 +817,10 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
       weights_cube1 = temporary(temp)
       if nfiles eq 2 then weights_cube2 = temporary(temp2)
       
-      if max(abs(weights_cube1)) eq 0 then message, 'weights cube is entirely zero.'
-      if nfiles eq 2 then if max(abs(weights_cube2)) eq 0 then message, 'weights cube is entirely zero.'
-      
     endif else dims2 = size(weights_cube1, /dimension)
+    
+    if max(abs(weights_cube1)) eq 0 then message, 'weights cube is entirely zero.'
+    if nfiles eq 2 then if max(abs(weights_cube2)) eq 0 then message, 'weights cube is entirely zero.'
     
     n_kx = dims2[0]
     if abs(file_struct.kpix-1/(n_kx[0] * (abs(file_struct.degpix) * !pi / 180d)))/file_struct.kpix gt 1e-4 then $
@@ -1038,9 +1035,6 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
       variance_cube1 = getvar_savefile(file_struct.variancefile[0], file_struct.variancevar)
       if nfiles eq 2 then variance_cube2 = getvar_savefile(file_struct.variancefile[1], file_struct.variancevar)
       
-      if max(abs(variance_cube1)) eq 0 then message, 'variance cube is entirely zero.'
-      if nfiles eq 2 then if max(abs(variance_cube2)) eq 0 then message, 'variance cube is entirely zero.'
-      
       var_size = size(variance_cube1)
       if var_size[n_elements(var_size)-2] eq 10 then begin
         ;; variance cube is a pointer
@@ -1064,10 +1058,10 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
         
         variance_cube1 = temporary(temp)
         if nfiles eq 2 then variance_cube2 = temporary(temp2)
-        
-        if max(abs(variance_cube1)) eq 0 then message, 'variance cube is entirely zero.'
-        if nfiles eq 2 then if max(abs(variance_cube2)) eq 0 then message, 'variance cube is entirely zero.'
       endif
+      
+      if max(abs(variance_cube1)) eq 0 then message, 'variance cube is entirely zero.'
+      if nfiles eq 2 then if max(abs(variance_cube2)) eq 0 then message, 'variance cube is entirely zero.'
       
       if keyword_set(uv_avg) then begin
         temp = complex(fltarr(nkx_new, dims2[1], n_freq))
@@ -1286,9 +1280,6 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
       data_cube1 = getvar_savefile(file_struct.datafile[0], file_struct.datavar)
       if nfiles eq 2 then data_cube2 = getvar_savefile(file_struct.datafile[1], file_struct.datavar)
       
-      if max(abs(data_cube1)) eq 0 then message, 'data cube is entirely zero.'
-      if nfiles eq 2 then if max(abs(data_cube2)) eq 0 then message, 'data cube is entirely zero.'
-      
       uvf_git_hashes = strarr(nfiles)
       
       data_size = size(data_cube1)
@@ -1315,11 +1306,10 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
         
         data_cube1 = temporary(temp)
         if nfiles eq 2 then data_cube2 = temporary(temp2)
-        
-        if max(abs(data_cube1)) eq 0 then message, 'data cube is entirely zero.'
-        if nfiles eq 2 then if max(abs(data_cube2)) eq 0 then message, 'data cube is entirely zero.'
-        
       endif
+      
+      if max(abs(data_cube1)) eq 0 then message, 'data cube is entirely zero.'
+      if nfiles eq 2 then if max(abs(data_cube2)) eq 0 then message, 'data cube is entirely zero.'
       
       if keyword_set(uv_avg) then begin
         temp = complex(fltarr(nkx_new, dims2[1], n_freq))
