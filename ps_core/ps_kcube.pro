@@ -767,6 +767,9 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
     weights_cube1 = getvar_savefile(file_struct.uvf_weight_savefile[0], 'weights_cube')
     if nfiles eq 2 then weights_cube2 = getvar_savefile(file_struct.uvf_weight_savefile[1], 'weights_cube')
     
+    if max(abs(weights_cube1)) eq 0 then message, 'weights cube is entirely zero.'
+    if nfiles eq 2 then if max(abs(weights_cube2)) eq 0 then message, 'weights cube is entirely zero.'
+    
     void = getvar_savefile(file_struct.uvf_weight_savefile[0], names = uvf_varnames)
     wh_hash = where(uvf_varnames eq 'uvf_wt_git_hash', count_hash)
     if count_hash gt 0 then begin
@@ -786,6 +789,9 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
   
     weights_cube1 = getvar_savefile(file_struct.weightfile[0], file_struct.weightvar)
     if nfiles eq 2 then weights_cube2 = getvar_savefile(file_struct.weightfile[1], file_struct.weightvar)
+    
+    if max(abs(weights_cube1)) eq 0 then message, 'weights cube is entirely zero.'
+    if nfiles eq 2 then if max(abs(weights_cube2)) eq 0 then message, 'weights cube is entirely zero.'
     
     uvf_wt_git_hashes = strarr(nfiles)
     
@@ -813,6 +819,10 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
       
       weights_cube1 = temporary(temp)
       if nfiles eq 2 then weights_cube2 = temporary(temp2)
+      
+      if max(abs(weights_cube1)) eq 0 then message, 'weights cube is entirely zero.'
+      if nfiles eq 2 then if max(abs(weights_cube2)) eq 0 then message, 'weights cube is entirely zero.'
+      
     endif else dims2 = size(weights_cube1, /dimension)
     
     n_kx = dims2[0]
@@ -894,6 +904,10 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
       
       weights_cube1 = temporary(temp3)
       if nfiles eq 2 then weights_cube2 = temporary(temp4)
+      
+      if max(abs(weights_cube1)) eq 0 then message, 'weights cube is entirely zero.'
+      if nfiles eq 2 then if max(abs(weights_cube2)) eq 0 then message, 'weights cube is entirely zero.'
+      
       kx_mpc = temporary(temp_kx)
       ky_mpc = temporary(temp_ky)
       n_kx = nkx_new
@@ -924,6 +938,9 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
       
       weights_cube1 = temp
       if nfiles eq 2 then weights_cube2 = temp2
+      
+      if max(abs(weights_cube1)) eq 0 then message, 'weights cube is entirely zero.'
+      if nfiles eq 2 then if max(abs(weights_cube2)) eq 0 then message, 'weights cube is entirely zero.'
     endif
     
     if n_elements(freq_ch_range) ne 0 then begin
@@ -945,11 +962,16 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
   weights_cube1[0:n_kx/2-1, 0, *] = 0
   if nfiles eq 2 then weights_cube2[0:n_kx/2-1, 0, *] = 0
   
+  if max(abs(weights_cube1)) eq 0 then message, 'weights cube is entirely zero.'
+  if nfiles eq 2 then if max(abs(weights_cube2)) eq 0 then message, 'weights cube is entirely zero.'
   
   if not no_var then begin
     if healpix or not keyword_set(uvf_input) then begin
       variance_cube1 = getvar_savefile(file_struct.uvf_weight_savefile[0], 'variance_cube')
       if nfiles eq 2 then variance_cube2 = getvar_savefile(file_struct.uvf_weight_savefile[1], 'variance_cube')
+      
+      if max(abs(variance_cube1)) eq 0 then message, 'variance cube is entirely zero.'
+      if nfiles eq 2 then if max(abs(variance_cube2)) eq 0 then message, 'variance cube is entirely zero.'
       
       if min(ky_mpc) lt 0 then begin
         ;; calculate integral of window function before cut for comparison
@@ -961,6 +983,9 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
         ;; need to cut uvf cubes in half because image is real -- we'll cut negative ky
         variance_cube1 = variance_cube1[*, n_ky/2:n_ky-1,*]
         if nfiles eq 2 then variance_cube2 = variance_cube2[*, n_ky/2:n_ky-1,*]
+        
+        if max(abs(variance_cube1)) eq 0 then message, 'variance cube is entirely zero.'
+        if nfiles eq 2 then if max(abs(variance_cube2)) eq 0 then message, 'variance cube is entirely zero.'
       endif
       
       ;; Also need to drop 1/2 of ky=0 line -- drop ky=0, kx<0
@@ -1013,6 +1038,9 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
       variance_cube1 = getvar_savefile(file_struct.variancefile[0], file_struct.variancevar)
       if nfiles eq 2 then variance_cube2 = getvar_savefile(file_struct.variancefile[1], file_struct.variancevar)
       
+      if max(abs(variance_cube1)) eq 0 then message, 'variance cube is entirely zero.'
+      if nfiles eq 2 then if max(abs(variance_cube2)) eq 0 then message, 'variance cube is entirely zero.'
+      
       var_size = size(variance_cube1)
       if var_size[n_elements(var_size)-2] eq 10 then begin
         ;; variance cube is a pointer
@@ -1036,6 +1064,9 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
         
         variance_cube1 = temporary(temp)
         if nfiles eq 2 then variance_cube2 = temporary(temp2)
+        
+        if max(abs(variance_cube1)) eq 0 then message, 'variance cube is entirely zero.'
+        if nfiles eq 2 then if max(abs(variance_cube2)) eq 0 then message, 'variance cube is entirely zero.'
       endif
       
       if keyword_set(uv_avg) then begin
@@ -1056,6 +1087,9 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
         
         variance_cube1 = temporary(temp3)
         if nfiles eq 2 then variance_cube2 = temporary(temp4)
+        
+        if max(abs(variance_cube1)) eq 0 then message, 'variance cube is entirely zero.'
+        if nfiles eq 2 then if max(abs(variance_cube2)) eq 0 then message, 'variance cube is entirely zero.'
       endif
       
       if keyword_set(uv_img_clip) then begin
@@ -1072,6 +1106,9 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
         
         variance_cube1 = temp
         if nfiles eq 2 then variance_cube2 = temp2
+        
+        if max(abs(variance_cube1)) eq 0 then message, 'variance cube is entirely zero.'
+        if nfiles eq 2 then if max(abs(variance_cube2)) eq 0 then message, 'variance cube is entirely zero.'
       endif
       
       if max(abs(imaginary(variance_cube1))) gt 0 then begin
@@ -1100,6 +1137,9 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
       ;; Also need to drop 1/2 of ky=0 line -- drop ky=0, kx<0
       variance_cube1[0:n_kx/2-1, 0, *] = 0
       if nfiles eq 2 then variance_cube2[0:n_kx/2-1, 0, *] = 0
+      
+      if max(abs(variance_cube1)) eq 0 then message, 'variance cube is entirely zero.'
+      if nfiles eq 2 then if max(abs(variance_cube2)) eq 0 then message, 'variance cube is entirely zero.'
       
       ;; calculate integral of window function
       ;; already cut out negative ky, so multiply by 2
@@ -1275,6 +1315,10 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
         
         data_cube1 = temporary(temp)
         if nfiles eq 2 then data_cube2 = temporary(temp2)
+        
+        if max(abs(data_cube1)) eq 0 then message, 'data cube is entirely zero.'
+        if nfiles eq 2 then if max(abs(data_cube2)) eq 0 then message, 'data cube is entirely zero.'
+        
       endif
       
       if keyword_set(uv_avg) then begin
@@ -1295,6 +1339,9 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
         
         data_cube1 = temporary(temp3)
         if nfiles eq 2 then data_cube2 = temporary(temp4)
+        
+        if max(abs(data_cube1)) eq 0 then message, 'data cube is entirely zero.'
+        if nfiles eq 2 then if max(abs(data_cube2)) eq 0 then message, 'data cube is entirely zero.'
       endif
       
       if keyword_set(uv_img_clip) then begin
@@ -1311,6 +1358,9 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
         
         data_cube1 = temp
         if nfiles eq 2 then data_cube2 = temp2
+        
+        if max(abs(data_cube1)) eq 0 then message, 'data cube is entirely zero.'
+        if nfiles eq 2 then if max(abs(data_cube2)) eq 0 then message, 'data cube is entirely zero.'
       endif
       
       ;; need to cut uvf cubes in half because image is real -- we'll cut negative ky
@@ -1343,6 +1393,8 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
     if nfiles eq 2 then data_cube2 = data_cube2 * 2.
   endif
   
+  if max(abs(data_cube1)) eq 0 then message, 'data cube is entirely zero.'
+  if nfiles eq 2 then if max(abs(data_cube2)) eq 0 then message, 'data cube is entirely zero.'
   
   ;; save some slices of the raw data cube (before dividing by weights) & weights
   for i=0, nfiles-1 do begin
