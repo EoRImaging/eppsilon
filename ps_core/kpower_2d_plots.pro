@@ -91,7 +91,7 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, wei
     wedge_amp = wedge_amp, plot_wedge_line = plot_wedge_line, $
     baseline_axis = baseline_axis, delay_axis = delay_axis, cable_length_axis = cable_length_axis, kperp_linear_axis = kperp_linear_axis, $
     kpar_linear_axis = kpar_linear_axis, no_units = no_units, hinv = hinv, charsize = charsize_in, $
-    cb_size = cb_size_in, margin=margin_in, cb_margin = cb_margin_in
+    cb_size = cb_size_in, margin=margin_in, cb_margin = cb_margin_in, label_lt_0_oncb = label_lt_0_oncb
   
   if keyword_set(delay_axis) and keyword_set(cable_length_axis) then message, 'Only one of delay_axis and cable_length_axis can be set'
   
@@ -688,7 +688,7 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, wei
         
       end
       'log': log_color_calc, power_plot, power_log_norm, cb_ticks, cb_ticknames, color_range, n_colors, data_range = data_range, $
-        color_profile = color_profile, log_cut_val = log_cut_val, min_abs = data_min_abs, oob_low = oob_low, invert_colorbar = invert_colorbar
+        color_profile = color_profile, log_cut_val = log_cut_val, min_abs = data_min_abs, oob_low = oob_low, label_lt_0 = label_lt_0_oncb, invert_colorbar = invert_colorbar
       'linear': begin
         if n_elements(data_range) eq 0 then data_range = minmax(power_plot)
         color_range = [0, 255]
@@ -1141,7 +1141,10 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, wei
   ;; cgcolorbar, color = annotate_color, /vertical, position = cb_pos, bottom = color_range[0]+1, ncolors = n_colors, /ylog, $
   ;;             range = 10d^log_data_range, format = 'exponent', minor=minor, charsize = charsize, font = font, $
   ;;             divisions = 0
-    
+  
+  if n_elements(oob_low) gt 0 and not keyword_set(label_lt_0_oncb) then $
+        cgtext, cb_pos[2], yloc_delay, '<0', /normal, alignment=1, charsize = charsize, color = annotate_color, font = font
+  
   if keyword_set(pub) and n_elements(multi_pos) eq 0 then begin
     cgps_close, png = png, pdf = pdf, delete_ps = delete_ps, density=600
   endif
