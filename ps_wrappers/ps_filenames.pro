@@ -350,17 +350,22 @@ function ps_filenames, folder_names, obs_names_in, dirty_folder = dirty_folder, 
         obs_name_single = ''
       endelse
       
-      if keyword_set(uvf_input) then uvf_info_tag = 'uvf' else uvf_info_tag = ''
-      
+      if keyword_set(uvf_input) then begin
+        uvf_info_tag = '_uvf'
+        endobsname_tag = '_gridded'
+      endif else begin
+        uvf_info_tag = ''
+        endobsname_tag = '_cube'
+      endelse
       ;; first look for integrated info files in save_paths with names like Combined_obs_...
-      if keyword_set(exact_obsnames) then info_file = file_search(save_paths[i] +  'Combined_obs_' + obs_names[i] + '_cube*' + uvf_info_tag + '*info*', count = n_infofile) $
-      else info_file = file_search(save_paths[i] +  'Combined_obs_' + obs_names[i] + '*_cube*' + uvf_info_tag + '*info*', count = n_infofile)
+      if keyword_set(exact_obsnames) then info_file = file_search(save_paths[i] +  'Combined_obs_' + obs_names[i] + endobsname_tag + '*' + uvf_info_tag + '*info*', count = n_infofile) $
+      else info_file = file_search(save_paths[i] +  'Combined_obs_' + obs_names[i] + '*' + endobsname_tag + '*' + uvf_info_tag + '*info*', count = n_infofile)
       if n_infofile gt 0 then begin
         if obs_names[i] eq '' then begin
           info_files[i] = info_file[0]
           if stregex(info_files[i], '[0-9]+-[0-9]+', /boolean) then obs_names[i] = stregex(info_files[i], '[0-9]+-[0-9]+', /extract) else begin
             start_pos = strpos(info_files[i], 'Combined_obs_') + strlen('Combined_obs_')
-            end_pos = strpos(strmid(info_files[i], start_pos), '_cube')
+            end_pos = strpos(strmid(info_files[i], start_pos), endobsname_tag)
             obs_names[i] = strmid(info_files[i], start_pos, end_pos)
           endelse
           if n_infofile gt 1 then begin
@@ -370,7 +375,7 @@ function ps_filenames, folder_names, obs_names_in, dirty_folder = dirty_folder, 
         endif else begin
           if n_infofile gt 1 then begin
             ;; try just using the exact obs_name
-            new_info_file = file_search(save_paths[i] +  'Combined_obs_' + obs_names[i] + '_cube*' + uvf_info_tag + '*info*', count = n_new_infofile)
+            new_info_file = file_search(save_paths[i] +  'Combined_obs_' + obs_names[i] + endobsname_tag + '*' + uvf_info_tag + '*info*', count = n_new_infofile)
             if n_new_infofile eq 1 then begin
               exact_obsnames=1
               info_file = new_info_file
@@ -380,24 +385,24 @@ function ps_filenames, folder_names, obs_names_in, dirty_folder = dirty_folder, 
           info_files[i] = info_file
           if stregex(info_files[i], '[0-9]+-[0-9]+', /boolean) then obs_names[i] = stregex(info_files[i], '[0-9]+-[0-9]+', /extract) else begin
             start_pos = strpos(info_files[i], 'Combined_obs_') + strlen('Combined_obs_')
-            end_pos = strpos(strmid(info_files[i], start_pos), '_cube')
+            end_pos = strpos(strmid(info_files[i], start_pos), endobsname_tag)
             obs_names[i] = strmid(info_files[i], start_pos, end_pos)
           endelse
-          test_other_obsnames = file_search(save_paths[i] +  'Combined_obs_' + '*_cube*' + uvf_info_tag + '*info*', count = n_all_infofile)
+          test_other_obsnames = file_search(save_paths[i] +  'Combined_obs_' + '*' + endobsname_tag + '*' + uvf_info_tag + '*info*', count = n_all_infofile)
           if n_all_infofile gt n_infofile then fhd_types[i] = fhd_types[i] + '_' + obs_names[i]
         endelse
         integrated[i]=1
         
       endif else begin
         ;; then look for single obs info files
-        if keyword_set(exact_obsnames) then info_file = file_search(save_paths[i] + obs_name_single + '_cube' + uvf_info_tag + '*info*', count = n_infofile) $
-        else info_file = file_search(save_paths[i] + obs_name_single + '*_cube' + uvf_info_tag + '*info*', count = n_infofile)
+        if keyword_set(exact_obsnames) then info_file = file_search(save_paths[i] + obs_name_single + endobsname_tag + '*' + uvf_info_tag + '*info*', count = n_infofile) $
+        else info_file = file_search(save_paths[i] + obs_name_single + '*' + endobsname_tag + '*' + uvf_info_tag + '*info*', count = n_infofile)
         if n_infofile gt 0 then begin
           info_basename = file_basename(info_file)
           if obs_names[i] eq '' then begin
             info_files[i] = info_file[0]
             if stregex(info_basename[0], '[0-9]+', /boolean) then obs_names[i] = stregex(info_basename[0], '[0-9]+', /extract) else begin
-              end_pos = strpos(info_basename[0], '_cube')
+              end_pos = strpos(info_basename[0], endobsname_tag)
               obs_names[i] = strmid(info_basename[0], 0, end_pos)
             endelse
             if n_infofile gt 1 then begin
@@ -408,10 +413,10 @@ function ps_filenames, folder_names, obs_names_in, dirty_folder = dirty_folder, 
             if n_infofile gt 1 then message, 'More than one info file found with given obs_name'
             info_files[i] = info_file
             if stregex(info_basename[0], '[0-9]+', /boolean) then obs_names[i] = stregex(info_basename[0], '[0-9]+', /extract) else begin
-              end_pos = strpos(info_basename[0], '_cube')
+              end_pos = strpos(info_basename[0], endobsname_tag)
               obs_names[i] = strmid(info_basename[0], 0, end_pos)
             endelse
-            test_other_obsnames = file_search(save_paths[i] + '*_cube' + uvf_info_tag + '*info*', count = n_all_infofile)
+            test_other_obsnames = file_search(save_paths[i] + '*' + endobsname_tag + '*' + uvf_info_tag + '*info*', count = n_all_infofile)
             if n_all_infofile gt n_infofile then fhd_types[i] = fhd_types[i] + '_' + obs_names[i]
           endelse
           integrated[i]=0
@@ -810,7 +815,7 @@ function ps_filenames, folder_names, obs_names_in, dirty_folder = dirty_folder, 
           endelse
         endif
       endif
-
+      
       if n_elements(datafile) eq 0 and info_files[i] eq '' then message, 'No cube or info files found in folder ' + folder_names[i]
       
       if n_elements(datafile) eq 0 then datafile = ''
