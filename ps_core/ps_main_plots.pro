@@ -1484,6 +1484,10 @@
       
       fhd_catalog_loc = strpos(path_dirs, 'catalog_data')
       wh_catalog = where(fhd_catalog_loc gt 0, count_catalog)
+      if count_catalog gt 1 then begin
+        void = min(strlen(path_dirs[wh_catalog]), min_loc)
+        wh_catalog = wh_catalog[min_loc]
+      endif
       if count_catalog gt 0 then begin
         file_path = path_dirs[wh_catalog[0]]
         ;; make sure file_path has a path separator at the end
