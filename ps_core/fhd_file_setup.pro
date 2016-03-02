@@ -5,7 +5,7 @@ function fhd_file_setup, filename, weightfile = weightfile, variancefile = varia
     uvf_savefilebase = uvf_savefilebase_in, savefilebase = savefilebase_in, $
     freq_ch_range = freq_ch_range, freq_flags = freq_flags, freq_flag_name = freq_flag_name, $
     spec_window_type = spec_window_type, delta_uv_lambda = delta_uv_lambda, max_uv_lambda = max_uv_lambda, $
-    sim = sim, std_power = std_power, inverse_covar_weight = inverse_covar_weight, no_wtd_avg = no_wtd_avg, $
+    sim = sim, std_power = std_power, inverse_covar_weight = inverse_covar_weight, ave_removal = ave_removal, no_wtd_avg = no_wtd_avg, $
     refresh_info = refresh_info
     
   ;; check to see if filename is an info file
@@ -217,7 +217,7 @@ function fhd_file_setup, filename, weightfile = weightfile, variancefile = varia
             uvf_input = uvf_input, uv_avg = uv_avg, uv_img_clip = uv_img_clip, dft_ian = dft_ian, $
             freq_ch_range = freq_ch_range, freq_flags = freq_flags, freq_flag_name = freq_flag_name, $
             spec_window_type = spec_window_type, delta_uv_lambda = delta_uv_lambda, max_uv_lambda = max_uv_lambda, $
-            std_power = std_power, inverse_covar_weight = inverse_covar_weight, no_wtd_avg = no_wtd_avg)
+            std_power = std_power, inverse_covar_weight = inverse_covar_weight, ave_removal = ave_removal, no_wtd_avg = no_wtd_avg)
             
           return, file_struct_arr
         endif
@@ -785,6 +785,7 @@ function fhd_file_setup, filename, weightfile = weightfile, variancefile = varia
   
   if keyword_set(std_power) then kcube_tag = '_stdp' else kcube_tag = ''
   if keyword_set(inverse_covar_weight) then kcube_tag = kcube_tag + '_invcovar'
+  if keyword_set(ave_removal) then kcube_tag = kcube_tag + '_averemove'
   kcube_tag = kcube_tag + sw_tag
   
   power_tag = kcube_tag

@@ -1,7 +1,7 @@
 pro ps_ratio_plots, folder_names, obs_info, cube_types, pols, all_pol_diff_ratio = all_pol_diff_ratio, $
     freq_ch_range = freq_ch_range, plot_path = plot_path, plot_filebase = plot_filebase, $
     save_path = save_path, savefilebase = savefilebase, $
-    note = note, spec_window_types = spec_window_types, data_range = data_range, $
+    note = note, spec_window_types = spec_window_types, ave_removal = ave_removal, data_range = data_range, $
     kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, $
     diff_ratio = diff_ratio, diff_range = diff_range, diff_min_abs = diff_min_abs, $
     wt_cutoffs = wt_cutoffs, wt_measures = wt_measures, invert_colorbar = invert_colorbar, $
@@ -59,24 +59,26 @@ pro ps_ratio_plots, folder_names, obs_info, cube_types, pols, all_pol_diff_ratio
     fch_tag = '_ch' + number_formatter(min(freq_ch_range)) + '-' + number_formatter(max(freq_ch_range))
   endif else fch_tag = ''
   
+  if n_elements(ave_removal) eq 2 then if ave_removal[1] eq ave_removal[0] then ave_removal = ave_removal[0]
+  if n_elements(ave_removal) eq 0 then ave_removal = 0
   
-  if (n_elements(obs_info.info_files) eq 2 or n_elements(spec_window_types) eq 2 or n_elements(wt_cutoffs) eq 2) $
+  if (n_elements(obs_info.info_files) eq 2 or n_elements(spec_window_types) eq 2 or n_elements(ave_removal) eq 2 or n_elements(wt_cutoffs) eq 2) $
     and n_elements(cube_types) eq 0 and n_elements(pols) eq 0 $
     and n_elements(all_pol_diff_ratio) eq 0 and n_elements(diff_ratio) eq 0 then all_pol_diff_ratio = 1
     
   if keyword_set(diff_ratio) or keyword_set(all_pol_diff_ratio) then begin
   
     if keyword_set(all_pol_diff_ratio) then begin
-      if  n_elements(obs_info.info_files) ne 2 and n_elements(spec_window_types) lt 2 then $
-        message, 'all_pol_diff_ratio requires 2 folder names and/or 2 obs names and/or 2 spec windows'
+      if  n_elements(obs_info.info_files) ne 2 and n_elements(spec_window_types) lt 2 and n_elements(ave_removal) lt 2 then $
+        message, 'all_pol_diff_ratio requires 2 folder names and/or 2 obs names and/or 2 spec windows and/or 2 ave_removal values'
         
       pols = ['xx', 'yy']
       
       n_sets=4
     endif else begin
       if n_elements(obs_info.info_files) ne 2 and n_elements(spec_window_types) lt 2 $
-        and n_elements(pols) lt 2 and n_elements(wt_cutoffs) lt 2 then $
-        message, 'diff_ratio requires 2 folder names and/or 2 obs names and/or 2 spec windows and/or 2 wt_cutoffs and/or 2 pols'
+        and n_elements(pols) lt 2 and n_elements(wt_cutoffs) lt 2 and n_elements(ave_removal) lt 2 then $
+        message, 'diff_ratio requires 2 folder names and/or 2 obs names and/or 2 spec windows and/or 2 wt_cutoffs and/or 2 pols and/or 2 ave_removal values'
         
       if n_elements(pols) eq 0 then pols = 'xx'
       
@@ -87,17 +89,17 @@ pro ps_ratio_plots, folder_names, obs_info, cube_types, pols, all_pol_diff_ratio
     
   endif else begin
     n_diffs = max([n_elements(obs_info.info_files), n_elements(cube_types), n_elements(pols), $
-      n_elements(spec_window_types), n_elements(wt_cutoffs)])
-    if n_diffs gt 2 then message, 'only 1 or 2 of [folder_names, obs_names, cube_types, pols, spec_window_types, wt_cutoffs] allowed'
+      n_elements(spec_window_types), n_elements(wt_cutoffs), n_elements(ave_removal)])
+    if n_diffs gt 2 then message, 'only 1 or 2 of [folder_names, obs_names, cube_types, pols, spec_window_types, wt_cutoffs, ave_removal] allowed'
     
     if n_elements(cube_types) eq 0 then if n_diffs eq 1 then cube_types = ['res', 'dirty'] else cube_types = 'res'
     n_diffs = max([n_elements(obs_info.info_files), n_elements(cube_types), n_elements(pols), $
-      n_elements(spec_window_types), n_elements(wt_cutoffs)])
+      n_elements(spec_window_types), n_elements(wt_cutoffs), n_elements(ave_removal)])
     if n_elements(pols) eq 0 then if n_diffs eq 1 then pols=['xx', 'yy'] else pols = 'xx'
     n_diffs = max([n_elements(obs_info.info_files), n_elements(cube_types), n_elements(pols), $
-      n_elements(spec_window_types), n_elements(wt_cutoffs)])
+      n_elements(spec_window_types), n_elements(wt_cutoffs), n_elements(ave_removal)])
       
-    if n_diffs eq 1 then message, 'at least one of info_files, cube_types, pols, spec_window_types, wt_cutoffs must be a 2 element vector'
+    if n_diffs eq 1 then message, 'at least one of info_files, cube_types, pols, spec_window_types, wt_cutoffs, ave_removal must be a 2 element vector'
     
     n_sets=1
   endelse
@@ -108,6 +110,8 @@ pro ps_ratio_plots, folder_names, obs_info, cube_types, pols, all_pol_diff_ratio
   max_sw = n_elements(spec_window_types)-1
   if max_sw lt 0 then max_sw=0
   max_wtcut = n_elements(wt_cutoffs)
+  max_ar = n_elements(ave_removal)-1
+  if max_ar lt 0 then max_ar=0
   
   ;; default to including baseline axis & delay axis
   if n_elements(baseline_axis) eq 0 then baseline_axis = 1
@@ -132,47 +136,53 @@ pro ps_ratio_plots, folder_names, obs_info, cube_types, pols, all_pol_diff_ratio
   endelse
   
   if n_elements(spec_window_types) eq 2 then note = note + ' ' + spec_window_types[0] + ' over ' + spec_window_types[1]
+  if n_elements(ave_removal) eq 2 then begin
+    ave_removal_str = ['no_ave_removal', 'ave_removal']
+    note = note + ' ' + ave_removal_str[ave_removal[0]] + ' minus ' + ave_removal_str[ave_removal[1]]
+    ar_tag_list = ['', '_averemoval']
+    ar_tags = [ar_tag_list[ave_removal[0]], ar_tag_list[ave_removal[1]]]
+  endif else ar_tags = ''
   
   if keyword_set(diff_ratio) or keyword_set(all_pol_diff_ratio) then begin
   
     if keyword_set(all_pol_diff_ratio) then begin
-      if n_elements(folder_names) eq 2 and folder_names[0] ne folder_names[1] then begin
-        plot_filebase = obs_info.name_same_parts + '__' + obs_info.name_diff_parts[0] + '_' + obs_info.obs_names[0] + sw_tags[0] + $
-          '_diffratio_' + obs_info.name_diff_parts[1]  + '_' + obs_info.obs_names[1] + sw_tags[max_sw]
+      if n_elements(folder_names) eq 2 and folder_names[0] ne folder_names[n_elements(folder_names)-1] then begin
+        plot_filebase = obs_info.name_same_parts + '__' + obs_info.name_diff_parts[0] + '_' + obs_info.obs_names[0] + sw_tags[0] + ar_tags[0] + $
+          '_diffratio_' + obs_info.name_diff_parts[1]  + '_' + obs_info.obs_names[1] + sw_tags[max_sw] + ar_tags[max_ar]
       endif else if n_elements(obs_info.info_files) eq 2 then $
-        plot_filebase = obs_info.folder_basenames[0] + '__' + obs_info.obs_names[0] + sw_tags[0] + '_diffratio_' + $
-        obs_info.obs_names[1] + sw_tags[max_sw] $
-      else plot_filebase = obs_info.fhd_types[0] + sw_tags[0] + '_diffratio_' + sw_tags[max_sw]
+        plot_filebase = obs_info.folder_basenames[0] + '__' + obs_info.obs_names[0] + sw_tags[0] + ar_tags[0] + '_diffratio_' + $
+        obs_info.obs_names[1] + sw_tags[max_sw] + ar_tags[max_ar] $
+      else plot_filebase = obs_info.fhd_types[0] + sw_tags[0] + ar_tags[0] + '_diffratio_' + sw_tags[max_sw] + ar_tags[max_ar]
     endif else begin
       if n_elements(folder_names) eq 2 and folder_names[0] ne folder_names[1] then begin
-        plot_filebase = obs_info.name_same_parts + '__' + obs_info.name_diff_parts[0] + '_' + obs_info.obs_names[0] + pols[0] + sw_tags[0] + $
-          '_diffratio_' + obs_info.name_diff_parts[1]  + '_' + obs_info.obs_names[1] + pols[max_pol] + sw_tags[max_sw]
+        plot_filebase = obs_info.name_same_parts + '__' + obs_info.name_diff_parts[0] + '_' + obs_info.obs_names[0] + pols[0] + sw_tags[0] + ar_tags[0] + $
+          '_diffratio_' + obs_info.name_diff_parts[1]  + '_' + obs_info.obs_names[1] + pols[max_pol] + sw_tags[max_sw] + ar_tags[max_ar]
       endif else if n_elements(obs_info.info_files) eq 2 then $
-        plot_filebase = obs_info.folder_basenames[0] + '__' + obs_info.obs_names[0] + pols[0] + sw_tags[0] + '_diffratio_' + $
-        obs_info.obs_names[1] + pols[max_pol] + sw_tags[max_sw] $
-      else plot_filebase = obs_info.fhd_types[0] + pols[0] + sw_tags[0] + '_diffratio_' + pols[max_pol] + sw_tags[max_sw]
+        plot_filebase = obs_info.folder_basenames[0] + '__' + obs_info.obs_names[0] + pols[0] + sw_tags[0] + ar_tags[0] + '_diffratio_' + $
+        obs_info.obs_names[1] + pols[max_pol] + sw_tags[max_sw] + ar_tags[max_ar] $
+      else plot_filebase = obs_info.fhd_types[0] + pols[0] + sw_tags[0] + ar_tags[0] + '_diffratio_' + pols[max_pol] + sw_tags[max_sw] + ar_tags[max_ar]
     endelse
   endif else begin
   
     if n_elements(folder_names) eq 1 then begin
       if n_elements(obs_info.obs_names) gt 1 then begin
-        plot_filebase = obs_info.folder_basenames[0] + '_' + obs_info.obs_names[0] + '_' + cube_types[0] + '_' + pols[0] + sw_tags[0] + $
-          '_over_' + obs_info.obs_names[0] + '_' + cube_types[max_type] + '_' + pols[max_pol] + sw_tags[max_sw]
+        plot_filebase = obs_info.folder_basenames[0] + '_' + obs_info.obs_names[0] + '_' + cube_types[0] + '_' + pols[0] + sw_tags[0] + ar_tags[0] + $
+          '_over_' + obs_info.obs_names[0] + '_' + cube_types[max_type] + '_' + pols[max_pol] + sw_tags[max_sw] + ar_tags[max_ar]
       endif else begin
         if obs_info.integrated[0] eq 0 then plot_start = obs_info.folder_basenames[0] + '_' + obs_info.obs_names[0] else plot_start = obs_info.fhd_types[0]
         
-        plot_filebase = plot_start + '_' + cube_types[0] + '_' + pols[0] + sw_tags[0] + $
-          '_over_' + cube_types[max_type] + '_' + pols[max_pol] + sw_tags[max_sw]
+        plot_filebase = plot_start + '_' + cube_types[0] + '_' + pols[0] + sw_tags[0] + ar_tags[0] + $
+          '_over_' + cube_types[max_type] + '_' + pols[max_pol] + sw_tags[max_sw] + ar_tags[max_ar]
       endelse
-    endif else plot_filebase = obs_info.name_same_parts + '__' + strjoin([obs_info.name_diff_parts[0], cube_types[0], pols[0]], '_') + sw_tags[0] + $
-      '_over_' + strjoin([obs_info.name_diff_parts[1], cube_types[max_type], pols[max_pol]], '_') + sw_tags[max_sw]
+    endif else plot_filebase = obs_info.name_same_parts + '__' + strjoin([obs_info.name_diff_parts[0], cube_types[0], pols[0]], '_') + sw_tags[0] + ar_tags[0] + $
+      '_over_' + strjoin([obs_info.name_diff_parts[1], cube_types[max_type], pols[max_pol]], '_') + sw_tags[max_sw] + ar_tags[max_ar]
   endelse
   plot_filebase = plot_filebase + fch_tag
   
   file_struct_arr1 = fhd_file_setup(obs_info.info_files[0], $
-    spec_window_type = spec_window_types[0], freq_ch_range = freq_ch_range)
-  if n_elements(obs_info.info_files) eq 2 then file_struct_arr2 = fhd_file_setup(obs_info.info_files[1], $
-    spec_window_type = spec_window_types[max_sw], freq_ch_range = freq_ch_range) $
+    spec_window_type = spec_window_types[0], freq_ch_range = freq_ch_range, ave_removal = ave_removal[0])
+  if n_elements(obs_info.info_files) eq 2  eq 2 or max_sw eq 1 or max_ar eq 1 then file_struct_arr2 = fhd_file_setup(obs_info.info_files[max_file], $
+    spec_window_type = spec_window_types[max_sw], freq_ch_range = freq_ch_range, ave_removal = ave_removal[max_ar]) $
   else file_struct_arr2 = file_struct_arr1
   
   if keyword_set(diff_ratio) or keyword_set(all_pol_diff_ratio) then begin
@@ -199,10 +209,10 @@ pro ps_ratio_plots, folder_names, obs_info, cube_types, pols, all_pol_diff_ratio
     
     if keyword_set(all_pol_diff_ratio) then begin
       titles = strarr(2,3)
-      for i=0, 1 do titles[i,*] = [obs_info.fhd_types[0] + ' ' + type_pol_str[2*i,0] + '/' + type_pol_str[2*i,1], $
-        obs_info.fhd_types[1] + ' ' + type_pol_str[2*i+1,0] + '/' + type_pol_str[2*i+1,1], 'Ratio Difference']
-    endif else titles = [obs_info.fhd_types[0] + ' ' + type_pol_str[0,0] + '/' + type_pol_str[0,1], $
-      obs_info.fhd_types[1] + ' ' + type_pol_str[1,0] + '/' + type_pol_str[1,1], 'Ratio Difference']
+      for i=0, 1 do titles[i,*] = [type_pol_str[2*i,0] + '/' + type_pol_str[2*i,1], $
+        type_pol_str[2*i+1,0] + '/' + type_pol_str[2*i+1,1], 'Ratio Difference']
+    endif else titles = [type_pol_str[0,0] + '/' + type_pol_str[0,1], $
+      type_pol_str[1,0] + '/' + type_pol_str[1,1], 'Ratio Difference']
       
   endif else begin
     type_pol_str = [cube_types[0] + '_' + pols[0], cube_types[max_type] + '_' + pols[max_pol]]

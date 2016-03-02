@@ -5,7 +5,8 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
     delta_uv_lambda = delta_uv_lambda, max_uv_lambda = max_uv_lambda, $
     std_power = std_power, inverse_covar_weight = inverse_covar_weight, $
     input_units = input_units, uvf_input = uvf_input, $
-    uv_avg = uv_avg, uv_img_clip = uv_img_clip, no_dft_progress = no_dft_progress
+    uv_avg = uv_avg, uv_img_clip = uv_img_clip, no_dft_progress = no_dft_progress, $
+    ave_removal = ave_removal
     
   if tag_exist(file_struct, 'nside') ne 0 then healpix = 1 else healpix = 0
   if keyword_set(uvf_input) or tag_exist(file_struct, 'uvf_savefile') eq 0 then uvf_input = 1 else uvf_input = 0
@@ -1665,6 +1666,26 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
   undefine, uv_slice
   
   
+  if keyword_set(ave_removal) then begin
+  
+    data_sum_mean = mean(data_sum, dimension=3)
+    data_sum = data_sum - (rebin(real_part(data_sum_mean), n_kx, n_ky, n_freq, /sample) + $
+      complex(0,1)*rebin(imaginary(data_sum_mean), n_kx, n_ky, n_freq, /sample))
+      
+    sim_noise_sum_mean = mean(sim_noise_sum, dimension=3)
+    sim_noise_sum = sim_noise_sum - (rebin(real_part(sim_noise_sum_mean), n_kx, n_ky, n_freq, /sample) + $
+      complex(0,1)*rebin(imaginary(sim_noise_sum_mean), n_kx, n_ky, n_freq, /sample))
+    if nfiles eq 2 then begin
+      data_diff_mean = mean(data_diff, dimension=3)
+      data_diff = data_diff - (rebin(real_part(data_diff_mean), n_kx, n_ky, n_freq, /sample) + $
+        complex(0,1)*rebin(imaginary(data_diff_mean), n_kx, n_ky, n_freq, /sample))
+        
+      sim_noise_diff_mean = mean(sim_noise_diff, dimension=3)
+      sim_noise_diff = sim_noise_diff - (rebin(real_part(sim_noise_diff_mean), n_kx, n_ky, n_freq, /sample) + $
+        complex(0,1)*rebin(imaginary(sim_noise_diff_mean), n_kx, n_ky, n_freq, /sample))
+    endif
+  endif
+  
   ;; apply spectral windowing function if desired
   if n_elements(spec_window_type) ne 0 then begin
     window = spectral_window(n_freq, type = spec_window_type, /periodic)
@@ -1940,6 +1961,16 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
       sim_noise_diff_sin[*, *, 1:n_kz-1] = b4_n
     endif
     
+    if keyword_set(ave_removal) then begin
+    
+      data_sum_cos[*,*,0] = data_sum_cos[*,*,0] + data_sum_mean * n_freq * z_mpc_delta
+      sim_noise_sum_cos[*,*,0] = sim_noise_sum_cos[*,*,0] + sim_noise_sum_mean * n_freq * z_mpc_delta
+      
+      if nfiles eq 2 then begin
+        data_diff_cos[*,*,0] = data_diff_cos[*,*,0] + data_diff_mean * n_freq * z_mpc_delta
+        sim_noise_diff_cos[*,*,0] = sim_noise_diff_cos[*,*,0] + sim_noise_diff_mean * n_freq * z_mpc_delta
+      endif
+    endif
     
     ;; for new power calc, need cos2, sin2, cos*sin transforms
     ;; have to do this in a for loop for memory's sake
