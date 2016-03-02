@@ -7,7 +7,8 @@ pro ps_wrapper, folder_name, obs_name, data_subdirs=data_subdirs, exact_obsnames
     pol_inc = pol_inc, type_inc = type_inc, $
     freq_ch_range = freq_ch_range, freq_flags = freq_flags, freq_flag_name = freq_flag_name, $
     uvf_input = uvf_input, uv_avg = uv_avg, uv_img_clip = uv_img_clip, $
-    std_power = std_power, inverse_covar_weight = inverse_covar_weight, no_wtd_avg = no_wtd_avg, norm_rts_with_fhd = norm_rts_with_fhd, $
+    std_power = std_power, inverse_covar_weight = inverse_covar_weight, ave_removal = ave_removal, $
+    no_wtd_avg = no_wtd_avg, norm_rts_with_fhd = norm_rts_with_fhd, $
     wt_cutoffs = wt_cutoffs, wt_measures = wt_measures, fix_sim_input = fix_sim_input, $
     no_spec_window = no_spec_window, spec_window_type = spec_window_type, $
     no_kzero = no_kzero, plot_slices = plot_slices, slice_type = slice_type, uvf_plot_type = uvf_plot_type, $
@@ -160,7 +161,8 @@ pro ps_wrapper, folder_name, obs_name, data_subdirs=data_subdirs, exact_obsnames
     pol_inc = pol_inc, type_inc = type_inc, $
     freq_ch_range = freq_ch_range, freq_flags = freq_flags, freq_flag_name = freq_flag_name, $
     uvf_input = uvf_input, uv_avg = uv_avg, uv_img_clip = uv_img_clip, $
-    std_power = std_power, inverse_covar_weight = inverse_covar_weight, no_wtd_avg = no_wtd_avg, norm_rts_with_fhd = norm_rts_with_fhd, $
+    std_power = std_power, inverse_covar_weight = inverse_covar_weight, ave_removal = ave_removal, $
+    no_wtd_avg = no_wtd_avg, norm_rts_with_fhd = norm_rts_with_fhd, $
     wt_cutoffs = wt_cutoffs, wt_measures = wt_measures, fix_sim_input = fix_sim_input, $
     no_spec_window = no_spec_window, spec_window_type = spec_window_type, $
     no_kzero = no_kzero, plot_slices = plot_slices, slice_type = slice_type, uvf_plot_type = uvf_plot_type, plot_stdset = plot_stdset, plot_1to2d = plot_1to2d, $

@@ -1,5 +1,5 @@
 pro ps_diff_wrapper, folder_names, obs_names_in, cube_types = cube_types, pols = pols, refresh_diff = refresh_diff, $
-    spec_window_types = spec_window_types, all_type_pol = all_type_pol, freq_ch_range = freq_ch_range, $
+    spec_window_types = spec_window_types, ave_removal = ave_removal, all_type_pol = all_type_pol, freq_ch_range = freq_ch_range, $
     png = png, eps = eps, pdf = pdf, data_range = data_range, data_min_abs = data_min_abs, $
     kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, sim = sim, $
     plot_1d = plot_1d, axis_type_1d=axis_type_1d, wt_cutoffs = wt_cutoffs, wt_measures = wt_measures, $
@@ -11,6 +11,7 @@ pro ps_diff_wrapper, folder_names, obs_names_in, cube_types = cube_types, pols =
   if n_elements(folder_names) eq 0 then message, 'at least 1 folder name must be specified'
   if n_elements(obs_names_in) gt 2 then message, 'only 1 or 2 obs_names_in allowed'
   if n_elements(spec_window_types) gt 2 then message, 'only 1 or 2 spec_window_types allowed'
+  if n_elements(ave_removal) gt 2 then message, 'only 1 or 2 ave_removal values allowed'
   
   spawn, 'hostname', hostname
   if stregex(hostname, 'mit.edu', /boolean) eq 1 then loc_name = 'mit'
@@ -33,7 +34,7 @@ pro ps_diff_wrapper, folder_names, obs_names_in, cube_types = cube_types, pols =
   wh_noinfo = where(obs_info.info_files eq '', count_noinfo)
   if count_noinfo gt 0 then message, 'Info files are not all present'
   
-  ps_difference_plots, folder_names, obs_info, cube_types, pols, spec_window_types = spec_window_types, $
+  ps_difference_plots, folder_names, obs_info, cube_types, pols, spec_window_types = spec_window_types, ave_removal = ave_removal, $
     all_type_pol = all_type_pol, refresh_diff = refresh_diff, freq_ch_range = freq_ch_range, $
     plot_path = diff_plot_path, plot_filebase = plot_filebase, save_path = diff_save_path, $
     savefilebase = savefilebase, $
