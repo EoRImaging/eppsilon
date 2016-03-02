@@ -4,7 +4,8 @@ pro ps_diff_wrapper, folder_names, obs_names_in, cube_types = cube_types, pols =
     kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, sim = sim, $
     plot_1d = plot_1d, axis_type_1d=axis_type_1d, wt_cutoffs = wt_cutoffs, wt_measures = wt_measures, $
     window_num = window_num, ps_foldernames = ps_foldernames, invert_colorbar = invert_colorbar, $
-    diff_save_path = diff_save_path, exact_obsnames = exact_obsnames, diff_ratio = diff_ratio
+    diff_save_path = diff_save_path, exact_obsnames = exact_obsnames, diff_ratio = diff_ratio, $
+    uvf_input = uvf_input
     
   if n_elements(folder_names) gt 2 then message, 'only 1 or 2 folder_names allowed'
   if n_elements(folder_names) eq 0 then message, 'at least 1 folder name must be specified'
