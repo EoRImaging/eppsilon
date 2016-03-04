@@ -1575,7 +1575,7 @@
         endif
       endif
       
-      k_range = minmax([kperp_plot_range, kpar_bin, kpar_plot_range[1]])
+      if n_elements(kpar_plot_range) gt 0 then k_range = minmax([kperp_plot_range, kpar_bin, kpar_plot_range[1]])
       
       window_num = window_num+1
       kpower_1d_plots, file_arr, window_num = window_num, colors = colors, names = titles_use, psyms = psyms, delta = plot_1d_delta, hinv = hinv, $
@@ -1608,7 +1608,8 @@
         endif else print, 'Could not locate catalog_data directory in !path variable'
       endif
       
-      k_range = minmax([kperp_plot_range, kpar_bin, kpar_plot_range[1]])
+      if n_elements(kpar_plot_range) gt 0 then k_range = minmax([kperp_plot_range, kpar_bin, kpar_plot_range[1]]) $
+      else k_range = minmax([kperp_plot_range, kpar_bin])
       
       window_num = window_num+1
       kpower_1d_plots, file_arr, window_num = window_num, colors = colors, names = titles_use, psyms = psyms, delta = plot_1d_delta, $
