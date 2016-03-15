@@ -119,35 +119,6 @@ pro ps_difference_plots, folder_names, obs_info, cube_types, pols, all_type_pol 
   
   if count_std gt 0 then kperp_density_names[wh_std] = '_dencorr'
   
-  
-  if keyword_set(all_type_pol) then begin
-  
-    if n_elements(folder_names) eq 2 and folder_names[0] ne folder_names[n_elements(folder_names)-1] then begin
-      plot_filebase = obs_info.name_same_parts + '__' + obs_info.name_diff_parts[0] + '_' + obs_info.obs_names[0] + sw_tags[0] + ar_tags[0] + $
-        '_minus_' + obs_info.name_diff_parts[1]  + '_' + obs_info.obs_names[1] + sw_tags[max_sw] + ar_tags[max_ar]
-    endif else plot_filebase = obs_info.folder_basenames[0] + '__' + obs_info.obs_names[0] + sw_tags[0] + ar_tags[0] + '_minus_' + $
-      obs_info.obs_names[max_file] + sw_tags[max_sw] + ar_tags[max_ar]
-      
-  endif else begin
-  
-    if n_elements(folder_names) eq 1 then begin
-      if n_elements(obs_info.obs_names) gt 1 then begin
-        plot_filebase = obs_info.folder_basenames[0] + '_' + obs_info.obs_names[0] + '_' + cube_types[0] + '_' + pols[0] + sw_tags[0] + ar_tags[0] + $
-          '_minus_' + obs_info.obs_names[0] + '_' + cube_types[max_type] + '_' + pols[max_pol] + sw_tags[max_sw] + ar_tags[max_ar]
-      endif else begin
-        if obs_info.integrated[0] eq 0 then plot_start = obs_info.folder_basenames[0] + '_' + obs_info.obs_names[0] else plot_start = obs_info.fhd_types[0]
-        
-        plot_filebase = plot_start + '_' + cube_types[0] + '_' + pols[0] + sw_tags[0] + ar_tags[0] + $
-          '_minus_' + cube_types[max_type] + '_' + pols[max_pol] + sw_tags[max_sw] + ar_tags[max_ar]
-      endelse
-    endif else plot_filebase = obs_info.name_same_parts + '__' + strjoin([obs_info.name_diff_parts[0], cube_types[0], pols[0]], '_') + sw_tags[0] + ar_tags[0] + $
-      '_minus_' + strjoin([obs_info.name_diff_parts[1], cube_types[max_type], pols[max_pol]], '_') + sw_tags[max_sw] + ar_tags[max_ar]
-  endelse
-  plot_filebase = plot_filebase + fch_tag
-  
-  if not file_test(plot_path, /directory) then file_mkdir, plot_path
-  if not file_test(save_path, /directory) then file_mkdir, save_path
-  
   file_struct_arr1 = fhd_file_setup(obs_info.info_files[0], $
     spec_window_type = spec_window_types[0], freq_ch_range = freq_ch_range, ave_removal = ave_removal[0])
   if n_elements(obs_info.info_files) eq 2 or max_sw eq 1 or max_ar eq 1 then file_struct_arr2 = fhd_file_setup(obs_info.info_files[max_file], $
@@ -155,6 +126,49 @@ pro ps_difference_plots, folder_names, obs_info, cube_types, pols, all_type_pol 
   else file_struct_arr2 = file_struct_arr1
   type_pol_str1 = file_struct_arr1.type_pol_str
   type_pol_str2 = file_struct_arr2.type_pol_str
+  
+  ;; get same parts of power_tag to add to plot file name
+  if n_elements(file_struct_arr2) eq 0 then same_power_tag = file_struct_arr1[0].power_tag else begin
+    if file_struct_arr1[0].power_tag eq file_struct_arr2[0].power_tag then same_power_tag = file_struct_arr1[0].power_tag else begin
+      tag_arr1 = strsplit(file_struct_arr1[0].power_tag, '_',/extract)
+      tag_arr2 = strsplit(file_struct_arr2[0].power_tag, '_',/extract)
+      for i=0, n_elements(tag_arr1) do begin
+        wh_in2 = where(tag_arr2 eq tag_arr1[i], count_in2)
+        if count_in2 gt 0 then begin
+          if n_elements(same_arr) eq 0 then same_arr = tag_arr1[i] else same_arr = [same_arr, tag_arr1[i]]
+        endif
+      endfor
+      if n_elements(same_arr) gt 0 then same_power_tag = '_' + strjoin(same_arr, '_')
+    endelse
+  endelse
+  
+  if keyword_set(all_type_pol) then begin
+  
+    if n_elements(folder_names) eq 2 and folder_names[0] ne folder_names[n_elements(folder_names)-1] then begin
+      plot_filebase = obs_info.name_same_parts + same_power_tag + '__' + obs_info.name_diff_parts[0] + '_' + obs_info.obs_names[0] + sw_tags[0] + ar_tags[0] + $
+        '_minus_' + obs_info.name_diff_parts[1]  + '_' + obs_info.obs_names[1] + sw_tags[max_sw] + ar_tags[max_ar]
+    endif else plot_filebase = obs_info.folder_basenames[0] + same_power_tag + '__' + obs_info.obs_names[0] + sw_tags[0] + ar_tags[0] + '_minus_' + $
+      obs_info.obs_names[max_file] + sw_tags[max_sw] + ar_tags[max_ar]
+      
+  endif else begin
+  
+    if n_elements(folder_names) eq 1 then begin
+      if n_elements(obs_info.obs_names) gt 1 then begin
+        plot_filebase = obs_info.folder_basenames[0] + same_power_tag + '_' + obs_info.obs_names[0] + '_' + cube_types[0] + '_' + pols[0] + sw_tags[0] + ar_tags[0] + $
+          '_minus_' + obs_info.obs_names[0] + '_' + cube_types[max_type] + '_' + pols[max_pol] + sw_tags[max_sw] + ar_tags[max_ar]
+      endif else begin
+        if obs_info.integrated[0] eq 0 then plot_start = obs_info.folder_basenames[0] + '_' + obs_info.obs_names[0] else plot_start = obs_info.fhd_types[0]
+        
+        plot_filebase = plot_start + same_power_tag + '_' + cube_types[0] + '_' + pols[0] + sw_tags[0] + ar_tags[0] + $
+          '_minus_' + cube_types[max_type] + '_' + pols[max_pol] + sw_tags[max_sw] + ar_tags[max_ar]
+      endelse
+    endif else plot_filebase = obs_info.name_same_parts + same_power_tag + '__' + strjoin([obs_info.name_diff_parts[0], cube_types[0], pols[0]], '_') + sw_tags[0] + ar_tags[0] + $
+      '_minus_' + strjoin([obs_info.name_diff_parts[1], cube_types[max_type], pols[max_pol]], '_') + sw_tags[max_sw] + ar_tags[max_ar]
+  endelse
+  plot_filebase = plot_filebase + fch_tag
+  
+  if not file_test(plot_path, /directory) then file_mkdir, plot_path
+  if not file_test(save_path, /directory) then file_mkdir, save_path
   
   if keyword_set(all_type_pol) then begin
   
