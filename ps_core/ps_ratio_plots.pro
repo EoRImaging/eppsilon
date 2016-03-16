@@ -181,7 +181,7 @@ pro ps_ratio_plots, folder_names, obs_info, cube_types, pols, all_pol_diff_ratio
   
   file_struct_arr1 = fhd_file_setup(obs_info.info_files[0], $
     spec_window_type = spec_window_types[0], freq_ch_range = freq_ch_range, ave_removal = ave_removal[0])
-  if n_elements(obs_info.info_files) eq 2  eq 2 or max_sw eq 1 or max_ar eq 1 then file_struct_arr2 = fhd_file_setup(obs_info.info_files[max_file], $
+  if n_elements(obs_info.info_files) eq 2 or max_sw eq 1 or max_ar eq 1 then file_struct_arr2 = fhd_file_setup(obs_info.info_files[max_file], $
     spec_window_type = spec_window_types[max_sw], freq_ch_range = freq_ch_range, ave_removal = ave_removal[max_ar]) $
   else file_struct_arr2 = file_struct_arr1
   
