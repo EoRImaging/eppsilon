@@ -1,10 +1,13 @@
 
 
-pro kpower_slice_plot, slice_savefile, multi_pos = multi_pos, start_multi_params = start_multi_params, plot_xrange = plot_xrange, $
-    plot_yrange = plot_yrange, data_range = data_range, png = png, eps = eps, pdf = pdf, plotfile = plotfile, $
-    color_profile = color_profile, log_cut_val = log_cut_val, window_num = window_num, title = title, title_prefix = title_prefix, $
+pro kpower_slice_plot, slice_savefile, multi_pos = multi_pos, start_multi_params = start_multi_params, $
+    plot_xrange = plot_xrange, plot_yrange = plot_yrange, data_range = data_range, data_min_abs = data_min_abs, $
+    png = png, eps = eps, pdf = pdf, plotfile = plotfile, $
+    color_profile = color_profile, log_cut_val = log_cut_val, window_num = window_num, $
+    full_title = full_title, title_prefix = title_prefix, $
     plot_wedge_line = plot_wedge_line, wedge_amp = wedge_amp, linear_axes = linear_axes, $
-    baseline_axis = baseline_axis, delay_axis = delay_axis, cable_length_axis = cable_length_axis, hinv = hinv, note = note
+    baseline_axis = baseline_axis, delay_axis = delay_axis, cable_length_axis = cable_length_axis, $
+    hinv = hinv, note = note, invert_colorbar = invert_colorbar
     
   if keyword_set(delay_axis) and keyword_set(cable_length_axis) then message, 'Only one of delay_axis and cable_length_axis can be set'
   
@@ -191,7 +194,7 @@ pro kpower_slice_plot, slice_savefile, multi_pos = multi_pos, start_multi_params
   annotate_color = 'black'
   
   log_color_calc, power_plot, power_log_norm, cb_ticks, cb_ticknames, color_range, n_colors, data_range = data_range, $
-    color_profile = color_profile, log_cut_val = log_cut_val, oob_low = oob_low
+    color_profile = color_profile, log_cut_val = log_cut_val, min_abs = data_min_abs, oob_low = oob_low, invert_colorbar = invert_colorbar
     
   if keyword_set(all_zero) then power_log_norm = power_log_norm * 0 + annotate_color
   
@@ -435,7 +438,7 @@ pro kpower_slice_plot, slice_savefile, multi_pos = multi_pos, start_multi_params
   if keyword_set(hinv) then units_str = textoidl(' (mK^2 h^{-1} Mpc^3)', font = font) $
   else units_str = textoidl(' (mK^2 Mpc^3)', font = font)
   
-  if n_elements(title) ne 0 then plot_title = title + units_str $
+  if n_elements(full_title) ne 0 then plot_title = full_title $
   else plot_title = plane_name + ' plane' + units_str
   if keyword_set(title_prefix) then plot_title = title_prefix + ' ' + plot_title
   

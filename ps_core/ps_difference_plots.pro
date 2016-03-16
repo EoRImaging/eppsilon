@@ -1,5 +1,6 @@
 pro ps_difference_plots, folder_names, obs_info, cube_types, pols, all_type_pol = all_type_pol, $
     refresh_diff = refresh_diff, freq_ch_range = freq_ch_range, $
+    plot_slices = plot_slices, slice_type = slice_type, $
     plot_path = plot_path, plot_filebase = plot_filebase, save_path = save_path, savefilebase = savefilebase, $
     note = note, spec_window_types = spec_window_types, ave_removal = ave_removal, $
     data_range = data_range, data_min_abs = data_min_abs, $
@@ -127,6 +128,22 @@ pro ps_difference_plots, folder_names, obs_info, cube_types, pols, all_type_pol 
   type_pol_str1 = file_struct_arr1.type_pol_str
   type_pol_str2 = file_struct_arr2.type_pol_str
   
+  if keyword_set(plot_slices) then begin
+    if n_elements(slice_type) eq 0 then slice_type = 'kspace'
+    slice_type_enum = ['raw', 'divided', 'kspace', 'sumdiff', 'weights']
+    
+    wh_slice_type = where(slice_type_enum eq slice_type, count_slice_type)
+    if count_slice_type eq 0 then begin
+      print, 'slice_type not recognized, using default'
+      slice_type = 'kspace'
+    endif
+    
+    if slice_type ne 'kspace' then message, 'only kspace slice difference plots are currently supported'
+    
+    slice_tags = ['xz', 'yz', 'xy']
+    n_slices = n_elements(slice_tags)
+  endif else n_slices = 1
+  
   ;; get same parts of power_tag to add to plot file name
   if n_elements(file_struct_arr2) eq 0 then same_power_tag = file_struct_arr1[0].power_tag else begin
     if file_struct_arr1[0].power_tag eq file_struct_arr2[0].power_tag then same_power_tag = file_struct_arr1[0].power_tag else begin
@@ -244,279 +261,214 @@ pro ps_difference_plots, folder_names, obs_info, cube_types, pols, all_type_pol 
   
   savefiles_1d = strarr(n_cubes, n_elements(wedge_1dbin_names))
   titles = strarr(n_cubes)
-  for i=0, n_cubes-1 do begin
-  
-    if n_cubes gt 1 then begin
-      type_pol1 = type_pol_str[i]
-      type_pol2 = type_pol_str[i]
-      titles[i] = type_pol_str[i]
-    endif else begin
-      type_pol1 = type_pol_str[0]
-      type_pol2 = type_pol_str[1]
-      titles[i] = type_pol_str[0] + '-' + type_pol_str[1]
-    endelse
+  for slice_i=0, n_slices-1 do begin
+    for cube_i=0, n_cubes-1 do begin
     
-    if n_elements(obs_info.info_files) eq 2 then begin
-      fileparts_1 = strsplit(file_struct_arr1[0].general_filebase, '_', /extract)
-      fileparts_2 = strsplit(file_struct_arr2[0].general_filebase, '_', /extract)
-      match_test = strcmp(fileparts_1, fileparts_2)
-      wh_diff = where(match_test eq 0, count_diff, complement = wh_same, ncomplement = count_same)
-    endif
-    
-    if n_elements(savefilebase) eq 0 then begin
-      if n_elements(obs_info.info_files) eq 1 then begin
-        savefilebase_use = file_struct_arr1[0].general_filebase + '_' + type_pol1 + '_minus_' + type_pol2
+      if n_cubes gt 1 then begin
+        type_pol1 = type_pol_str[cube_i]
+        type_pol2 = type_pol_str[cube_i]
+        titles[cube_i] = type_pol_str[cube_i]
       endif else begin
-        if count_diff eq 0 then begin
-          savefilebase_use = file_struct_arr1[0].general_filebase + '_' + type_pol1
-          if type_pol1 ne type_pol2 then savefilebase_use = savefilebase_use + '_' + type_pol1 + '_minus_' + type_pol2
+        type_pol1 = type_pol_str[0]
+        type_pol2 = type_pol_str[1]
+        titles[cube_i] = type_pol_str[0] + '-' + type_pol_str[1]
+      endelse
+      
+      if n_elements(obs_info.info_files) eq 2 then begin
+        fileparts_1 = strsplit(file_struct_arr1[0].general_filebase, '_', /extract)
+        fileparts_2 = strsplit(file_struct_arr2[0].general_filebase, '_', /extract)
+        match_test = strcmp(fileparts_1, fileparts_2)
+        wh_diff = where(match_test eq 0, count_diff, complement = wh_same, ncomplement = count_same)
+      endif
+      
+      if n_elements(savefilebase) eq 0 then begin
+        if n_elements(obs_info.info_files) eq 1 then begin
+          savefilebase_use = file_struct_arr1[0].general_filebase + '_' + type_pol1 + '_minus_' + type_pol2
         endif else begin
-          if count_same gt 0 then begin
-            if type_pol1 ne type_pol2 then savefilebase_use = strjoin(fileparts_1[wh_same], '_') + '__' + $
-              strjoin(fileparts_1[wh_diff]) + '_' + type_pol1 + '_minus_' + strjoin(fileparts_2[wh_diff]) + '_' + type_pol2 $
-            else savefilebase_use = strjoin(fileparts_1[wh_same], '_') + '__' + strjoin(fileparts_1[wh_diff]) + '_minus_' + strjoin(fileparts_2[wh_diff]) + '__' + type_pol1
+          if count_diff eq 0 then begin
+            savefilebase_use = file_struct_arr1[0].general_filebase + '_' + type_pol1
+            if type_pol1 ne type_pol2 then savefilebase_use = savefilebase_use + '_' + type_pol1 + '_minus_' + type_pol2
           endif else begin
-            if type_pol1 ne type_pol2 then savefilebase_use = file_struct_arr1[0].general_filebase + '_' + type_pol_str[0] + $
-              '_minus_' + file_struct_arr2[0].general_filebase + '_' + type_pol_str[1] $
-            else savefilebase_use = file_struct_arr1[0].general_filebase + '_minus_' + file_struct_arr2[0].general_filebase + '__' + type_pol1
+            if count_same gt 0 then begin
+              if type_pol1 ne type_pol2 then savefilebase_use = strjoin(fileparts_1[wh_same], '_') + '__' + $
+                strjoin(fileparts_1[wh_diff]) + '_' + type_pol1 + '_minus_' + strjoin(fileparts_2[wh_diff]) + '_' + type_pol2 $
+              else savefilebase_use = strjoin(fileparts_1[wh_same], '_') + '__' + strjoin(fileparts_1[wh_diff]) + '_minus_' + strjoin(fileparts_2[wh_diff]) + '__' + type_pol1
+            endif else begin
+              if type_pol1 ne type_pol2 then savefilebase_use = file_struct_arr1[0].general_filebase + '_' + type_pol_str[0] + $
+                '_minus_' + file_struct_arr2[0].general_filebase + '_' + type_pol_str[1] $
+              else savefilebase_use = file_struct_arr1[0].general_filebase + '_minus_' + file_struct_arr2[0].general_filebase + '__' + type_pol1
+            endelse
           endelse
         endelse
+      endif else begin
+        if type_pol1 eq type_pol2 then savefilebase_use = savefilebase + '_' + type_pol1 else savefilebase_use = savefilebase + '_' + type_pol1 + '_minus_' + type_pol2
       endelse
-    endif else begin
-      if type_pol1 eq type_pol2 then savefilebase_use = savefilebase + '_' + type_pol1 else savefilebase_use = savefilebase + '_' + type_pol1 + '_minus_' + type_pol2
-    endelse
-    if n_elements(plot_filebase) eq 0 then plot_filebase = savefilebase_use
-    
-    savefile = save_path + savefilebase_use + '_power.idlsave'
-    if keyword_set(diff_ratio) then savefile_2d = save_path + savefilebase_use + kperp_density_names + '_2dkpower_ratio.idlsave' $
-    else savefile_2d = save_path + savefilebase_use + kperp_density_names + '_2dkpower.idlsave'
-    
-    for wedge_i=0, n_elements(wedge_1dbin_names)-1 do begin
-      savefiles_1d[i, wedge_i] = save_path + savefilebase_use + kperp_density_names + wedge_1dbin_names[wedge_i] + '_1dkpower.idlsave'
-    endfor
-    
-    test_save = file_test(savefile) *  (1 - file_test(savefile, /zero_length))
-    test_save_2d = file_test(savefile_2d) *  (1 - file_test(savefile_2d, /zero_length))
-    test_save_1d = file_test(reform(savefiles_1d[i,*])) *  (1 - file_test(reform(savefiles_1d[i,*]) , /zero_length))
-    
-    
-    if test_save eq 0 or keyword_set(refresh_diff) then begin
-      cube_ind1 = where(type_pol_str1 eq type_pol1, count_typepol)
-      if count_typepol eq 0 then message, 'type/pol ' + type_pol1 + ' not included in info_file: ' + obs_info.info_files[0]
+      if n_elements(plot_filebase) eq 0 then plot_filebase = savefilebase_use
       
-      power_file1 = file_struct_arr1[cube_ind1].power_savefile
-      if file_test(power_file1) eq 0 then message, 'No power file for ' + type_pol1 + ' and info_file: ' + obs_info.info_files[0]
-      
-      cube_ind2 = where(file_struct_arr2.type_pol_str eq type_pol2, count_typepol)
-      if count_typepol eq 0 then message, 'type/pol ' + type_pol2 + ' not included in info_file: ' + obs_info.info_files[n_elements(obs_info.info_files)-1]
-      
-      power_file2 = file_struct_arr2[cube_ind2].power_savefile
-      if file_test(power_file2) eq 0 then message, 'No power file for ' + type_pol2 + ' and info_file: ' + obs_info.info_files[n_elements(obs_info.info_files)-1]
-      
-      kx_mpc = getvar_savefile(power_file1, 'kx_mpc')
-      kx_mpc2 = getvar_savefile(power_file2, 'kx_mpc')
-      if n_elements(kx_mpc) ne n_elements(kx_mpc2) or max(abs(kx_mpc - kx_mpc2)) gt 1.05e-3 then message, 'kx_mpc does not match between cubes'
-      ky_mpc = getvar_savefile(power_file1, 'ky_mpc')
-      ky_mpc2 = getvar_savefile(power_file2, 'ky_mpc')
-      if n_elements(ky_mpc) ne n_elements(ky_mpc2) or max(abs(ky_mpc - ky_mpc2)) gt 1.05e-3 then message, 'ky_mpc does not match between cubes'
-      kz_mpc = getvar_savefile(power_file1, 'kz_mpc')
-      kz_mpc2 = getvar_savefile(power_file2, 'kz_mpc')
-      if n_elements(kz_mpc) ne n_elements(kz_mpc2) or max(abs(kz_mpc - kz_mpc)) gt 1.05e-3 then message, 'kz_mpc does not match between cubes'
-      
-      ;; if kx, ky, and kz are all the same these should be too
-      kperp_lambda_conv = getvar_savefile(power_file1, 'kperp_lambda_conv')
-      delay_params = getvar_savefile(power_file1, 'delay_params')
-      hubble_param = getvar_savefile(power_file1, 'hubble_param')
-      
-      power1 = getvar_savefile(power_file1, 'power_3d')
-      power2 = getvar_savefile(power_file2, 'power_3d')
-      power_diff = power1 - power2
-      if max(abs(power_diff)) eq 0 then begin
-        print, 'The cubes are identical -- power difference is zero everywhere'
-      ;continue
-      endif
-      undefine, power1, power2
-      
-      weights1 = getvar_savefile(power_file1, 'weights_3d')
-      weights2 = getvar_savefile(power_file2, 'weights_3d')
-      
-      ;; variance_3d = 1/weights_3d
-      var1 = 1./weights1
-      wh_wt1_0 = where(weights1 eq 0, count_wt1_0)
-      if count_wt1_0 gt 0 then var1[wh_wt1_0] = 0
-      var2 = 1./weights2
-      wh_wt2_0 = where(weights2 eq 0, count_wt2_0)
-      if count_wt2_0 gt 0 then var2[wh_wt2_0] = 0
-      undefine, weights1, weights2
-      
-      var_diff = var1 + var2
-      weight_diff = 1/var_diff
-      if count_wt1_0 gt 0 then weight_diff[wh_wt1_0] = 0
-      if count_wt2_0 gt 0 then weight_diff[wh_wt2_0] = 0
-      undefine, var1, var2, var_diff
-      
-      
-      wt_meas_ave1 = getvar_savefile(power_file1, 'wt_meas_ave')
-      wt_meas_ave2 = getvar_savefile(power_file2, 'wt_meas_ave')
-      wt_meas_ave = wt_meas_ave1 < wt_meas_ave2
-      
-      wt_meas_min1 = getvar_savefile(power_file1, 'wt_meas_min')
-      wt_meas_min2 = getvar_savefile(power_file2, 'wt_meas_min')
-      wt_meas_min = wt_meas_min1 < wt_meas_min2
-      
-      save, file = savefile, power_diff, weight_diff, wt_meas_ave, wt_meas_min, $
-        kx_mpc, ky_mpc, kz_mpc, kperp_lambda_conv, delay_params, hubble_param
+      if keyword_set(plot_slices) then begin
+        slice_savefile = save_path + savefilebase_use + kperp_density_names + '_power_' + slice_tags[slice_i] + '_plane.idlsave'
         
-    endif else if min([test_save_1d, test_save_2d]) eq 0 then restore, savefile
-    
-    if test_save_2d eq 0 or keyword_set(refresh_diff) then begin
-    
-      if wt_cutoffs gt 0 then begin
-        case wt_measures of
-          'ave': wt_meas_use = wt_meas_ave
-          'min': wt_meas_use = wt_meas_min
-        endcase
-      endif
-      
-      power_rebin = kspace_rebinning_2d(power_diff, kx_mpc, ky_mpc, kz_mpc, kperp_edges_mpc, kpar_edges_mpc, log_kpar = log_kpar, $
-        log_kperp = log_kperp, kperp_bin = kperp_bin, kpar_bin = kpar_bin, weights = weight_diff, $
-        binned_weights = binned_weights, $
-        kperp_density_measure = wt_meas_use, kperp_density_cutoff = wt_cutoffs)
+        test_save = file_test(slice_savefile) *  (1 - file_test(slice_savefile, /zero_length))
         
-      power = power_rebin
-      kperp_edges = kperp_edges_mpc
-      kpar_edges = kpar_edges_mpc
-      weights = binned_weights
-      
-      if keyword_set(diff_ratio) then begin
-        if n_elements(cube_ind1) eq 0 then  cube_ind1 = where(type_pol_str1 eq type_pol1, count_typepol)
-        if n_elements(power_file1) eq 0 then power_file1 = file_struct_arr1[cube_ind1].power_savefile
-        if n_elements(power1) eq 0 then power1 = getvar_savefile(power_file1, 'power_3d')
-        if n_elements(weights1) eq 0 then weights1 = getvar_savefile(power_file1, 'weights_3d')
-        
-        power_rebin_1 = kspace_rebinning_2d(power1, kx_mpc, ky_mpc, kz_mpc, kperp_edges_mpc, kpar_edges_mpc, log_kpar = log_kpar, $
-          log_kperp = log_kperp, kperp_bin = kperp_bin, kpar_bin = kpar_bin, weights = weights1, $
-          binned_weights = binned_weights1, $
-          kperp_density_measure = wt_meas_use, kperp_density_cutoff = wt_cutoffs)
+        if test_save eq 0 or keyword_set(refresh_diff) then begin
+          cube_ind1 = where(type_pol_str1 eq type_pol1, count_typepol)
+          if count_typepol eq 0 then message, 'type/pol ' + type_pol1 + ' not included in info_file: ' + obs_info.info_files[0]
           
-        if n_elements(cube_ind2) eq 0 then  cube_ind2 = where(type_pol_str2 eq type_pol2, count_typepol)
-        if n_elements(power_file2) eq 0 then power_file2 = file_struct_arr2[cube_ind2].power_savefile
-        if n_elements(power2) eq 0 then power2 = getvar_savefile(power_file2, 'power_3d')
-        if n_elements(weights2) eq 0 then weights2 = getvar_savefile(power_file2, 'weights_3d')
-        
-        power_rebin_2 = kspace_rebinning_2d(power2, kx_mpc, ky_mpc, kz_mpc, kperp_edges_mpc, kpar_edges_mpc, log_kpar = log_kpar, $
-          log_kperp = log_kperp, kperp_bin = kperp_bin, kpar_bin = kpar_bin, weights = weights2, $
-          binned_weights = binned_weights2, $
-          kperp_density_measure = wt_meas_use, kperp_density_cutoff = wt_cutoffs)
+          cube_ind2 = where(file_struct_arr2.type_pol_str eq type_pol2, count_typepol)
+          if count_typepol eq 0 then message, 'type/pol ' + type_pol2 + ' not included in info_file: ' + obs_info.info_files[n_elements(obs_info.info_files)-1]
           
-        power_denom = power_rebin_2
-        weights_denom = binned_weights2
-        
-        power = power/power_denom
-        weights = weights/weights_denom
-      endif
-      
-      save, file = savefile_2d, power, weights, kperp_edges, kpar_edges, kperp_bin, kpar_bin, $
-        kperp_lambda_conv, delay_params, hubble_param
-    endif else restore, savefile_2d
-    
-    if min(test_save_1d) eq 0 or keyword_set(refresh_diff) then begin
-    
-      for wedge_i=0, n_elements(wedge_amp) do begin
-        if wedge_i gt 0 then wedge_amp_use = wedge_amp[wedge_i-1]
-        
-        if wt_cutoffs gt 0 then begin
-          case wt_measures of
-            'ave': wt_meas_use = wt_meas_ave
-            'min': wt_meas_use = wt_meas_min
-          endcase
+          slice_filebase1 = file_struct_arr1[cube_ind1].savefile_froot + file_struct_arr1[cube_ind1].savefilebase + file_struct_arr1[cube_ind1].power_tag
+          slice_file1 = slice_filebase1 + '_' + slice_tags[slice_i] + '_plane.idlsave'
+          
+          slice_filebase2 = file_struct_arr2[cube_ind2].savefile_froot + file_struct_arr2[cube_ind2].savefilebase + file_struct_arr2[cube_ind2].power_tag
+          slice_file2 = slice_filebase2 + '_' + slice_tags[slice_i] + '_plane.idlsave'
+          
+          ps_slice_differences, slice_file1, slice_file2, savefile_diff = slice_savefile
+          
         endif
-        
-        power_rebin = kspace_rebinning_1d(power_diff, kx_mpc, ky_mpc, kz_mpc, k_edges_mpc, k_bin = k_bin, log_k = log_k, $
-          weights = weight_diff, binned_weights = binned_weights, wedge_amp = wedge_amp_use, $
-          kperp_density_measure = wt_meas_use, kperp_density_cutoff = wt_cutoffs)
-          
-        power = power_rebin
-        k_edges = k_edges_mpc
-        weights = binned_weights
-        
-        save, file = savefiles_1d[i, wedge_i], power, weights, k_edges, k_bin, kperp_lambda_conv, delay_params, hubble_param
-      endfor
-    endif
-    
-    
-    if pub then begin
-      plotfile_2d = plot_path + plot_filebase + kperp_density_names + '_2dkpower' + plot_exten
-      if keyword_set(diff_ratio) then plotfile_2d = plot_path + plot_filebase + kperp_density_names + '_2dkpower_ratio' + plot_exten $
-      else plotfile_2d = plot_path + plot_filebase + kperp_density_names + '_2dkpower' + plot_exten
-      
-      if i eq 0 then plotfiles_1d = plot_path + plot_filebase + ['', wedge_1dbin_names] + kperp_density_names + '_1dkpower' + plot_exten
-    endif else plot_exten = ''
-    
-    
-    kperp_plot_range = [5./kperp_lambda_conv, min([file_struct_arr1.kspan/2.,file_struct_arr1.max_baseline_lambda])/kperp_lambda_conv]
-    if keyword_set(hinv) then kperp_plot_range = kperp_plot_range / hubble_param
-    
-    
-    if keyword_set(pub) then font = 1 else font = -1
-    
-    if n_cubes gt 1 then begin
-      if i eq 0 then begin
-        if n_cubes eq 6 then begin
-          if keyword_set(kperp_linear_axis) then begin
-            ;; aspect ratio doesn't work out for kperp_linear with multiple rows
-            ncol = 6
-            nrow = 1
-          endif else begin
-            ncol = 3
-            nrow = 2
-          endelse
-        endif else begin
-          if keyword_set(kperp_linear_axis) then begin
-            ;; aspect ratio doesn't work out for kperp_linear with multiple rows
-            ncol = n_cubes
-            nrow = 1
-          endif else begin
-            nrow = 2
-            ncol = ceil(n_cubes/nrow)
-          endelse
-        endelse
-        start_multi_params = {ncol:ncol, nrow:nrow, ordering:'row'}
-        
-        if n_elements(window_num) eq 0 then window_num = 1
       endif else begin
-        pos_use = positions[*,i]
+        savefile = save_path + savefilebase_use + '_power.idlsave'
+        if keyword_set(diff_ratio) then savefile_2d = save_path + savefilebase_use + kperp_density_names + '_2dkpower_ratio.idlsave' $
+        else savefile_2d = save_path + savefilebase_use + kperp_density_names + '_2dkpower.idlsave'
         
+        for wedge_i=0, n_elements(wedge_1dbin_names)-1 do begin
+          savefiles_1d[cube_i, wedge_i] = save_path + savefilebase_use + kperp_density_names + wedge_1dbin_names[wedge_i] + '_1dkpower.idlsave'
+        endfor
+        
+        test_save = file_test(savefile) *  (1 - file_test(savefile, /zero_length))
+        test_save_2d = file_test(savefile_2d) *  (1 - file_test(savefile_2d, /zero_length))
+        test_save_1d = file_test(reform(savefiles_1d[cube_i,*])) *  (1 - file_test(reform(savefiles_1d[cube_i,*]) , /zero_length))
+        
+        if test_save eq 0 or test_save_2d eq 0 or min(test_save_1d) eq 0 or keyword_set(refresh_diff) then begin
+          cube_ind1 = where(type_pol_str1 eq type_pol1, count_typepol)
+          if count_typepol eq 0 then message, 'type/pol ' + type_pol1 + ' not included in info_file: ' + obs_info.info_files[0]
+          
+          power_file1 = file_struct_arr1[cube_ind1].power_savefile
+          if file_test(power_file1) eq 0 then message, 'No power file for ' + type_pol1 + ' and info_file: ' + obs_info.info_files[0]
+          
+          cube_ind2 = where(file_struct_arr2.type_pol_str eq type_pol2, count_typepol)
+          if count_typepol eq 0 then message, 'type/pol ' + type_pol2 + ' not included in info_file: ' + obs_info.info_files[n_elements(obs_info.info_files)-1]
+          
+          power_file2 = file_struct_arr2[cube_ind2].power_savefile
+          if file_test(power_file2) eq 0 then message, 'No power file for ' + type_pol2 + ' and info_file: ' + obs_info.info_files[n_elements(obs_info.info_files)-1]
+          
+          ps_differences, power_file1, power_file2, refresh = refresh_diff, $
+            savefile_3d = savefile, savefile_2d = savefile_2d, savefiles_1d = savefiles_1d[i,*], $
+            diff_ratio = diff_ratio, wedge_amp = wedge_amp, wt_cutoffs = wt_cutoffs, wt_measures = wt_measures
+            
+        endif
       endelse
-    endif
-    
-    if i eq n_cubes-1 and n_elements(note) gt 0 then note_use = note + ', ' + kperp_density_names else undefine, note_use
-    
-    if keyword_set(diff_ratio) then no_units=1
-    
-    kpower_2d_plots, savefile_2d, multi_pos = pos_use, start_multi_params = start_multi_params, $
-      kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, note = note_use, $
-      data_range = data_range, data_min_abs = data_min_abs, png = png, eps = eps, pdf = pdf, plotfile = plotfile_2d, full_title=titles[i], $
-      window_num = window_num, color_profile = 'sym_log', invert_colorbar = invert_colorbar, $
-      kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, baseline_axis = baseline_axis, delay_axis = delay_axis, $
-      wedge_amp = wedge_amp, plot_wedge_line = plot_wedge_line, hinv = hinv, no_units=no_units
       
-    if n_cubes gt 1 and i eq 0 then begin
-      positions = pos_use
-      undefine, start_multi_params
-    endif
+      if pub then begin
+        if keyword_set(plot_slices) then begin
+          slice_plotfile = plot_path + plot_filebase + kperp_density_names + '_power_' + slice_tags[slice_i] + '_plane' + plot_exten
+        endif else begin
+        
+          plotfile_2d = plot_path + plot_filebase + kperp_density_names + '_2dkpower' + plot_exten
+          if keyword_set(diff_ratio) then plotfile_2d = plot_path + plot_filebase + kperp_density_names + '_2dkpower_ratio' + plot_exten $
+          else plotfile_2d = plot_path + plot_filebase + kperp_density_names + '_2dkpower' + plot_exten
+          
+          if i eq 0 then plotfiles_1d = plot_path + plot_filebase + ['', wedge_1dbin_names] + kperp_density_names + '_1dkpower' + plot_exten
+        endelse
+      endif else plot_exten = ''
+      
+      if keyword_set(plot_slices) then begin
+        kperp_lambda_conv = getvar_savefile(slice_savefile, 'kperp_lambda_conv')
+        hubble_param = getvar_savefile(slice_savefile, 'hubble_param')
+        kperp_plot_range = [5./kperp_lambda_conv, min([file_struct_arr1.kspan/2.,file_struct_arr1.max_baseline_lambda])/kperp_lambda_conv]
+      endif else begin
+        kperp_lambda_conv = getvar_savefile(savefile_2d, 'kperp_lambda_conv')
+        hubble_param = getvar_savefile(savefile_2d, 'hubble_param')
+        kperp_plot_range = [5./kperp_lambda_conv, min([file_struct_arr1.kspan/2.,file_struct_arr1.max_baseline_lambda])/kperp_lambda_conv]
+      endelse
+      if keyword_set(hinv) then kperp_plot_range = kperp_plot_range / hubble_param
+      
+      if keyword_set(pub) then font = 1 else font = -1
+      
+      if n_cubes gt 1 then begin
+        if cube_i eq 0 then begin
+          if n_cubes eq 6 then begin
+            if keyword_set(kperp_linear_axis) then begin
+              ;; aspect ratio doesn't work out for kperp_linear with multiple rows
+              ncol = 6
+              nrow = 1
+            endif else begin
+              ncol = 3
+              nrow = 2
+            endelse
+          endif else begin
+            if keyword_set(kperp_linear_axis) then begin
+              ;; aspect ratio doesn't work out for kperp_linear with multiple rows
+              ncol = n_cubes
+              nrow = 1
+            endif else begin
+              nrow = 2
+              ncol = ceil(n_cubes/nrow)
+            endelse
+          endelse
+          start_multi_params = {ncol:ncol, nrow:nrow, ordering:'row'}
+          
+          if n_elements(window_num) eq 0 then window_num = 1
+        endif else begin
+          pos_use = positions[*,cube_i]
+          
+        endelse
+      endif
+      
+      if cube_i eq n_cubes-1 and n_elements(note) gt 0 then note_use = note + ', ' + kperp_density_names else undefine, note_use
+      
+      if keyword_set(diff_ratio) then no_units=1
+      
+      if keyword_set(plot_slices) then begin
+        case slice_tags[slice_i] of
+          'xz': begin
+            plot_xrange = kperp_plot_range
+            if n_elements(kpar_plot_range) gt 0 then plot_yrange = kpar_plot_range
+          end
+          'yz': begin
+            plot_xrange = kperp_plot_range
+            if n_elements(kpar_plot_range) gt 0 then plot_yrange = kpar_plot_range
+          end
+          'xy': begin
+            plot_xrange = kperp_plot_range
+            plot_yrange = kperp_plot_range
+          end
+        endcase
+        if keyword_set(kperp_linear_axis) or keyword_set(kpar_linear_axis) then linear_axes = 1
+        
+        kpower_slice_plot, slice_savefile, multi_pos = pos_use, start_multi_params = start_multi_params, $
+          plot_xrange = plot_xrange, plot_yrange = plot_yrange, note = note_use, $
+          data_range = data_range, data_min_abs = data_min_abs, png = png, eps = eps, pdf = pdf, plotfile = slice_plotfile, full_title=titles[cube_i], $
+          window_num = window_num, color_profile = 'sym_log', invert_colorbar = invert_colorbar, $
+          linear_axes = linear_axes, baseline_axis = baseline_axis, delay_axis = delay_axis, $
+          wedge_amp = wedge_amp, plot_wedge_line = plot_wedge_line, hinv = hinv
+      endif else begin
+        kpower_2d_plots, savefile_2d, multi_pos = pos_use, start_multi_params = start_multi_params, $
+          kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, note = note_use, $
+          data_range = data_range, data_min_abs = data_min_abs, png = png, eps = eps, pdf = pdf, plotfile = plotfile_2d, full_title=titles[cube_i], $
+          window_num = window_num, color_profile = 'sym_log', invert_colorbar = invert_colorbar, $
+          kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, baseline_axis = baseline_axis, delay_axis = delay_axis, $
+          wedge_amp = wedge_amp, plot_wedge_line = plot_wedge_line, hinv = hinv, no_units=no_units
+      endelse
+      
+      if n_cubes gt 1 and cube_i eq 0 then begin
+        positions = pos_use
+        undefine, start_multi_params
+      endif
+      
+    endfor
+    undefine, positions, pos_use
     
+    if keyword_set(pub) and n_cubes gt 1 then begin
+      cgps_close, png = png, pdf = pdf, delete_ps = delete_ps, density=600
+    endif
+    window_num += 1
   endfor
-  undefine, positions, pos_use
   
-  if keyword_set(pub) and n_cubes gt 1 then begin
-    cgps_close, png = png, pdf = pdf, delete_ps = delete_ps, density=600
-  endif
-  
-  if keyword_set(plot_1d) then begin
+  if keyword_set(plot_1d) and not keyword_set(plot_slices) then begin
     for i=0, n_elements(wedge_amp) do begin
     
-      if keyword_set(pub) then plotfiles_use = plotfiles_1d[i]
+      if keyword_set(pub) then plotfiles_use = plotfiles_1d[cube_i]
       
       for j=0, n_cubes-1 do begin
       
