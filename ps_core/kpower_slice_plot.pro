@@ -7,7 +7,7 @@ pro kpower_slice_plot, slice_savefile, multi_pos = multi_pos, start_multi_params
     full_title = full_title, title_prefix = title_prefix, $
     plot_wedge_line = plot_wedge_line, wedge_amp = wedge_amp, linear_axes = linear_axes, $
     baseline_axis = baseline_axis, delay_axis = delay_axis, cable_length_axis = cable_length_axis, $
-    hinv = hinv, note = note, invert_colorbar = invert_colorbar
+    hinv = hinv, note = note, invert_colorbar = invert_colorbar, no_units = no_units
     
   if keyword_set(delay_axis) and keyword_set(cable_length_axis) then message, 'Only one of delay_axis and cable_length_axis can be set'
   
@@ -437,6 +437,8 @@ pro kpower_slice_plot, slice_savefile, multi_pos = multi_pos, start_multi_params
   
   if keyword_set(hinv) then units_str = textoidl(' (mK^2 h^{-1} Mpc^3)', font = font) $
   else units_str = textoidl(' (mK^2 Mpc^3)', font = font)
+  
+  if keyword_set(no_units) then units_str=''
   
   if n_elements(full_title) ne 0 then plot_title = full_title $
   else plot_title = plane_name + ' plane' + units_str
