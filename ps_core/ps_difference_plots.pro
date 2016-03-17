@@ -149,7 +149,7 @@ pro ps_difference_plots, folder_names, obs_info, cube_types, pols, all_type_pol 
     if file_struct_arr1[0].power_tag eq file_struct_arr2[0].power_tag then same_power_tag = file_struct_arr1[0].power_tag else begin
       tag_arr1 = strsplit(file_struct_arr1[0].power_tag, '_',/extract)
       tag_arr2 = strsplit(file_struct_arr2[0].power_tag, '_',/extract)
-      for i=0, n_elements(tag_arr1) do begin
+      for i=0, n_elements(tag_arr1)-1 do begin
         wh_in2 = where(tag_arr2 eq tag_arr1[i], count_in2)
         if count_in2 gt 0 then begin
           if n_elements(same_arr) eq 0 then same_arr = tag_arr1[i] else same_arr = [same_arr, tag_arr1[i]]
