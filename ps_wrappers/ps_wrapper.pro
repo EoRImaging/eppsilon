@@ -145,7 +145,7 @@ pro ps_wrapper, folder_name, obs_name, data_subdirs=data_subdirs, exact_obsnames
   if keyword_set(set_krange_1dave) then begin
   
     ;; set some default kperp & kpar ranges for 1d averaging
-    kperp_range_lambda_1dave = [10,50]
+    if n_elements(kperp_range_lambda_1dave) eq 0 then kperp_range_lambda_1dave = [10,50]
     ;; This is the kpar range used for Danny's paper -- generally good for EoR limits but not 
     ;; for evaluating wedges physics. Commented out for now.
     ;; kpar_range_1dave = [0.2,10]
