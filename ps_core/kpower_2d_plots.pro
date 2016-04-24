@@ -1078,7 +1078,7 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, wei
     if n_lines gt 1 then linestyles = [0, 2, 1] else linestyles=2
     
     for i=0, n_lines-1 do cgplot, /overplot, plot_kperp, plot_kperp * sorted_amp[i], color = annotate_color, thick = thick+1, $
-      psym=-0, linestyle = linestyles[i]
+      psym=-0, linestyle = linestyles[i mod n_elements(linestyles)]
   endif
   
   cgaxis, xaxis=0, xtick_get = xticks, xtickv = xticks_in, xticks = x_nticks, xminor=n_minor, xrange = minmax(plot_kperp), $
