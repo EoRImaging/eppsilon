@@ -182,8 +182,8 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
   n_vis = reform(file_struct.n_vis)
   n_vis_freq = reform(file_struct.n_vis_freq)
   if n_elements(freq_ch_range) ne 0 then begin
-    n_vis_freq = n_vis_freq[*, min(freq_ch_range):max(freq_ch_range)]
     n_vis = total(n_vis_freq[*, min(freq_ch_range):max(freq_ch_range)], 2)
+    n_vis_freq = n_vis_freq[*, min(freq_ch_range):max(freq_ch_range)]
   endif
   
   if healpix or not uvf_input then begin
