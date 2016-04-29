@@ -4,6 +4,11 @@ pro make_plots_for_adams_sem1_paper
   ; cluster management.
   ; Note that I moved the ps data into ps_jan2016, thus the ps_foldername option
 
+  ; Directory to put all the plots;
+  outdir = '/nfs/eor-00/h1/beards/temp/plots_for_paper/'
+  if not file_test(outdir,/directory) then file_mkdir,outdir
+  perp_char = '!9' + string(94B) + '!X'
+
 
   ; Diffuse model
   diffuse_file=filepath('EoR0_diffuse_model_94.sav',root=rootdir('FHD'),subdir='catalog_data')
@@ -26,15 +31,18 @@ pro make_plots_for_adams_sem1_paper
   dec_ind=where((dec_axis le dec_range[1]) and (dec_axis ge dec_range[0]))
   im=im[ra_ind,*]
   im=im[*,dec_ind]
-  quick_image,im,xtitle='ra (degrees)', ytitle='dec (degrees)',xrange=ra_range,yrange=dec_range,savefile='/nfs/eor-00/h1/beards/temp/diffuse',/pdf,data_range=[-1e4,1e4]
+  outfile=outdir+'diffuse_sky'
+  quick_image,im,xtitle='ra (degrees)', ytitle='dec (degrees)',xrange=ra_range,yrange=dec_range,savefile=outfile,/pdf,data_range=[-1e4,1e4]
   
 
   ; ###################
   ; Intermediate PS
   ; ###################
   
-
-
+  ; Diffuse diff
+  obs_name=['golden','golden']
+  dir=['/nfs/mwa-09/r1/djc/EoR2013/Aug23/fhd_apb_jan2016_no_diffuse/','/nfs/mwa-09/r1/djc/EoR2013/Aug23/fhd_apb_after_diffuse/']
+  ps_diff_wrapper,dir,obs_name,/exact_obsnames,/pdf
 
 
   ; ###################
@@ -45,18 +53,67 @@ pro make_plots_for_adams_sem1_paper
   low=[0,95]
   mid=[96-48,191-48]
   hi=[96,191]
+  
+  ; Few plotting options that should be uniform
+  linethick=5
+  charsize=2.5
 
   ; Make a narrow kpar power plot
   ps_wrapper,dir,obs_name,/pdf,/exact_obsnames,$
-    freq_ch_range=low,kperp_range_lambda_1dave=[15,20],$
+    freq_ch_range=mid,kperp_range_lambda_1dave=[15,20],$
     kpar_range_1dave=[0,200],ps_foldername='ps_jan2016',$
-    /plot_1to2d,/plot_kpar_power,type_inc='res',pol_inc='xx'
+    /plot_1to2d,/plot_kpar_power,type_inc=['dirty','res'],pol_inc='xx'
+  ;restore,dir+'/ps_jan2016/Combined_obs_wedge_cut_plus_res_cut_cubeXX__even_odd_joint_ch48-143_dirty_xx_bh_dencorr_kperplambda15-20_kpar_power.idlsave'
+  ;dirty_power_out=translate_1d_power(k_edges,k_bin,hubble_param,power,k_out=k_out)
+  restore,dir+'/ps_jan2016/Combined_obs_wedge_cut_plus_res_cut_cubeXX__even_odd_joint_ch48-143_res_xx_bh_dencorr_kperplambda15-20_kpar_power.idlsave'
+  res_power_out=translate_1d_power(k_edges,k_bin,hubble_param,power,k_out=k_out)
+  noise_out=translate_1d_power(k_edges,k_bin,hubble_param,1./sqrt(weights),k_out=k_out)
+  lin_delay_kpar_slope = (delay_params[1] - delay_params[0])/(max(k_edges)/hubble_param - k_bin)
+  lin_delay_kpar_intercept = delay_params[0] / (lin_delay_kpar_slope * k_bin)
+  ;delay_edges = lin_delay_kpar_slope * k_edges + lin_delay_kpar_intercept
+  ; plot it
+  outfile=outdir+'kpar.ps'
+  cgPS_Open,File=outfile
+  xrange=[.02,2]
+  yrange=[1e5,1e13]
+  axis_range = xrange*lin_delay_kpar_slope + lin_delay_kpar_intercept
+  axis_title = 'delay (ns)'
+  xtitle=textoidl('k_{||} (h Mpc^{-1})', font = 1)
+  ytitle=textoidl('P_k (mK^2 h^{-3} Mpc^3)', font = 1)
+  cgplot,k_out,res_power_out,/ylog,/xlog,font=1,xtickformat='exponent',ytickformat='exponent',$
+    psym=10,xrange=xrange,xstyle=9,yrange=yrange,/ystyle,thick=linethick,color='blue',$
+    xtitle=xtitle,ytitle=ytitle,charsize=charsize
+  cgaxis, xaxis=1, xrange = axis_range,  xtitle = axis_title, font = 1, xstyle = 1,charsize=charsize
+  cgplot,/overplot,k_out,noise_out,psym=10,linestyle=2,thick=linethick,color='red'
+  cgPS_Close,/PDF,/Delete_PS
+  
+    
   ; Narrow kperp power plot
   ps_wrapper,dir,obs_name,/pdf,/exact_obsnames,$
-    freq_ch_range=low,kperp_range_lambda_1dave=[0,200],$
+    freq_ch_range=mid,kperp_range_lambda_1dave=[0,200],$
     kpar_range_1dave=[0.6,.7],ps_foldername='ps_jan2016',$
-    /plot_1to2d,/plot_kperp_power,type_inc=['dirty','res'],pol_inc='xx',$
-    range_1d=[1.e5,1.e11]
+    /plot_1to2d,/plot_kperp_power,type_inc=['dirty','res'],pol_inc='xx'
+  restore,dir+'/ps_jan2016/Combined_obs_wedge_cut_plus_res_cut_cubeXX__even_odd_joint_ch48-143_res_xx_bh_dencorr_kpar0.6-0.7_kperp_power.idlsave'
+  res_power_out=translate_1d_power(k_edges,k_bin,hubble_param,power,k_out=k_out)
+  noise_out=translate_1d_power(k_edges,k_bin,hubble_param,1./sqrt(weights),k_out=k_out)
+  ; plot it
+  outfile=outdir+'kperp.ps'
+  cgPS_Open,File=outfile
+  xrange=[.003,.3]
+  yrange=[1e6,1e10]
+  axis_range = minmax(xrange * hubble_param * kperp_lambda_conv)
+  axis_title = 'baseline length ' + textoidl('(\lambda)', font = 1)
+  xtitle=textoidl('k_{perp} (h Mpc^{-1})', font = 1)
+  xtitle = repstr(xtitle, 'perp', perp_char)
+  ytitle=textoidl('P_k (mK^2 h^{-3} Mpc^3)', font = 1)
+  cgplot,k_out,res_power_out,/ylog,/xlog,font=1,xtickformat='exponent',ytickformat='exponent',$
+    psym=10,xrange=xrange,xstyle=9,yrange=yrange,/ystyle,thick=linethick,color='blue',$
+    xtitle=xtitle,ytitle=ytitle,charsize=charsize
+  cgaxis, xaxis=1, xrange = axis_range,  xtitle = axis_title, font = 1, xstyle = 1,charsize=charsize
+  cgplot,/overplot,k_out,noise_out,psym=10,linestyle=2,thick=linethick,color='red'
+  cgPS_Close,/PDF,/Delete_PS
+    
+
 
   ; Run the final cut
   ; Low band
@@ -75,4 +132,13 @@ pro make_plots_for_adams_sem1_paper
     kpar_range_1dave=[0.15,200],ps_foldername='ps_jan2016',$
     /plot_1to2d,coarse_harm_width=3,/refresh_ps,wedge_angles=[120d]
 
+end
+
+function translate_1d_power,k_edges,k_bin,hubble_param,power,k_out=k_out
+  kscale = k_edges[1:*]/hubble_param
+  k_mid = kscale[1:*] - k_bin/2.
+  k_out = [min(kscale), k_mid, max(kscale)]
+  power_out = hubble_param^3. * [power[1],power[1:-2],power[-2]]  
+  
+  return,power_out
 end
