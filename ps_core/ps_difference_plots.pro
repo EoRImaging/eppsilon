@@ -353,7 +353,7 @@ pro ps_difference_plots, folder_names, obs_info, cube_types, pols, all_type_pol 
           if file_test(power_file2) eq 0 then message, 'No power file for ' + type_pol2 + ' and info_file: ' + obs_info.info_files[n_elements(obs_info.info_files)-1]
           
           ps_differences, power_file1, power_file2, refresh = refresh_diff, $
-            savefile_3d = savefile, savefile_2d = savefile_2d, savefiles_1d = savefiles_1d[i,*], $
+            savefile_3d = savefile, savefile_2d = savefile_2d, savefiles_1d = savefiles_1d[cube_i,*], $
             diff_ratio = diff_ratio, wedge_amp = wedge_amp, wt_cutoffs = wt_cutoffs, wt_measures = wt_measures
             
         endif

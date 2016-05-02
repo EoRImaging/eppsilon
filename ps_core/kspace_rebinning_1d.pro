@@ -62,6 +62,7 @@ function kspace_rebinning_1d, power, k1_mpc, k2_mpc, k3_mpc, k_edges_mpc, k_bin 
     kx_mpc = k1_mpc
     ky_mpc = k2_mpc
     kz_mpc = k3_mpc
+    kpar_ind_map = indgen(n_elements(k3_mpc))
     
     n_kx = power_size[0]
     n_ky = power_size[1]
@@ -87,6 +88,7 @@ function kspace_rebinning_1d, power, k1_mpc, k2_mpc, k3_mpc, k_edges_mpc, k_bin 
         if n_elements(weights_use) gt 0 then weights_use = weights_use[*,*,wh_good]
         if n_elements(noise_expval_use) gt 0 then noise_expval_use = noise_expval_use[*,*,wh_good]
         kz_mpc = kz_mpc[wh_good]
+        kpar_ind_map = kpar_ind_map[wh_good]
         n_kz = n_elements(kz_mpc)
       endif
     endif else kpar_range = minmax(kz_mpc)
@@ -158,10 +160,12 @@ function kspace_rebinning_1d, power, k1_mpc, k2_mpc, k3_mpc, k_edges_mpc, k_bin 
       if n_elements(coarse_harm0) gt 0 then begin
         n_harm = floor(n_kz/float(coarse_harm0))+1
         n_width = coarse_width*2-1
-        kpar_ch_bad = rebin(coarse_harm0 * (findgen(n_harm)+1), n_harm, n_width)-coarse_harm0/2. + $
+        ;kpar_ch_bad = rebin(coarse_harm0 * (findgen(n_harm)+1), n_harm, n_width)-coarse_harm0/2. + $
+        kpar_ch_bad = rebin(coarse_harm0 * (findgen(n_harm)+1), n_harm, n_width) + $
           rebin(reform(findgen(n_width)-(coarse_width-1), 1, n_width), n_harm, n_width)
-          
-        temp_kpar[*,kpar_ch_bad] = 0
+
+        match,kpar_ind_map,kpar_ch_bad[*],suba,subb
+        temp_kpar[*,suba] = 0
       endif
       
       wh_above_wedge = where(temp_kpar gt temp_kperp*max(wedge_amp), count_above_wedge, ncomplement = count_below_wedge)
