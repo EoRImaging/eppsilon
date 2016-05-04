@@ -113,8 +113,7 @@ pro ps_difference_plots, folder_names, obs_info, cube_types, pols, all_type_pol 
             plot_yrange = compare_files.kperp_plot_range
           end
         endcase
-        if keyword_set(kperp_linear_axis) or keyword_set(kpar_linear_axis) then linear_axes = 1
-        
+        if keyword_set(kperp_linear_axis) or keyword_set(kpar_linear_axis) then linear_axes = 1        
         
         kpower_slice_plot, compare_files.mid_savefile_2d[slice_i, cube_i], multi_pos = pos_use, start_multi_params = start_multi_params, $
           plot_xrange = plot_xrange, plot_yrange = plot_yrange, note = note_use, $
@@ -123,6 +122,9 @@ pro ps_difference_plots, folder_names, obs_info, cube_types, pols, all_type_pol 
           window_num = window_num, color_profile = 'sym_log', invert_colorbar = invert_colorbar, $
           linear_axes = linear_axes, baseline_axis = baseline_axis, delay_axis = delay_axis, $
           wedge_amp = compare_files.wedge_amp, plot_wedge_line = plot_wedge_line, hinv = hinv
+
+          if compare_files.slice_tags[slice_i] eq 'xz' or compare_files.slice_tags[slice_i] eq 'yz' $
+            and n_elements(kpar_plot_range) eq 0 then kpar_plot_range = plot_yrange
       endif else begin
         kpower_2d_plots, compare_files.mid_savefile_2d[slice_i, cube_i], multi_pos = pos_use, start_multi_params = start_multi_params, $
           kperp_plot_range = compare_files.kperp_plot_range, kpar_plot_range = kpar_plot_range, note = note_use, $
