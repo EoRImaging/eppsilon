@@ -283,9 +283,9 @@ pro ps_ratio_plots, folder_names, obs_info, cube_types, pols, all_pol_diff_ratio
     endif else begin
       if keyword_set(pub) then plotfiles_2d = compare_files.plotfiles_2d
       
-      slice_axis = getvar_savefile(compare_files.input_savefile1[slice_i], 'slice_axis')
       if keyword_set(plot_slices) then begin
-        if slice_axis eq 1 or slice_axis eq 2 then begin
+        slice_axis = getvar_savefile(compare_files.input_savefile1[slice_i], 'slice_axis')
+        if slice_axis eq 0 or slice_axis eq 1 then begin
           plot_xrange = compare_files.kperp_plot_range
           if n_elements(kpar_plot_range) gt 0 then plot_yrange = kpar_plot_range
         endif else begin
