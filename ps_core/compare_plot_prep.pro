@@ -214,7 +214,7 @@ pro compare_plot_prep, folder_names, obs_info, cube_types, pols, comp_type, comp
     if file_struct_arr1[0].power_tag eq file_struct_arr2[0].power_tag then same_power_tag = file_struct_arr1[0].power_tag else begin
       tag_arr1 = strsplit(file_struct_arr1[0].power_tag, '_',/extract)
       tag_arr2 = strsplit(file_struct_arr2[0].power_tag, '_',/extract)
-      for i=0, n_elements(tag_arr1) do begin
+      for i=0, n_elements(tag_arr1)-1 do begin
         wh_in2 = where(tag_arr2 eq tag_arr1[i], count_in2)
         if count_in2 gt 0 then begin
           if n_elements(same_arr) eq 0 then same_arr = tag_arr1[i] else same_arr = [same_arr, tag_arr1[i]]
@@ -277,14 +277,14 @@ pro compare_plot_prep, folder_names, obs_info, cube_types, pols, comp_type, comp
       end
       'diff_ratio': begin
         type_pol_str = strarr(n_sets, 2)
-        type_pol_str[0, *] = cube_types + '_' + pols[0]
-        type_pol_str[1, *] = cube_types + '_' + pols[0]
-        type_pol_str[2, *] = cube_types + '_' + pols[max_pol]
-        type_pol_str[3, *] = cube_types + '_' + pols[max_pol]
+        type_pol_str[0, *] = cube_types[0] + '_' + pols[0]
+        type_pol_str[1, *] = cube_types[1] + '_' + pols[0]
+        type_pol_str[2, *] = cube_types[0] + '_' + pols[max_pol]
+        type_pol_str[3, *] = cube_types[1] + '_' + pols[max_pol]
         
         titles = strarr(2,3)
-        for i=0, 1 do titles[i,*] = [type_pol_str[2*i,0] + '/' + type_pol_str[2*i,1], $
-          type_pol_str[2*i+1,0] + '/' + type_pol_str[2*i+1,1], 'Ratio Difference']
+        for i=0, 1 do titles[i,*] = [type_pol_str[2*i,0] + '/' + type_pol_str[2*i+1,0], $
+          type_pol_str[2*i,1] + '/' + type_pol_str[2*i+1,1], 'Ratio Difference']
       end
     endcase
   endif else begin
@@ -439,19 +439,13 @@ pro compare_plot_prep, folder_names, obs_info, cube_types, pols, comp_type, comp
           
           input_savefile2[slice_i, cube_i] = file_struct_arr2[type_pol_locs[cube_i, 1]].power_savefile
           if file_test(input_savefile2[slice_i, cube_i]) eq 0 then message, 'No power file for ' + type_pol2 + ' and info_file: ' + obs_info.info_files[n_elements(obs_info.info_files)-1]
+
         endif else begin
-          if cube_i mod 2 eq 0 then begin
-            fs_use = file_struct_arr1
-            kperp_density_use = kperp_density_names[0]
-          endif else begin
-            fs_use = file_struct_arr2
-            kperp_density_use = kperp_density_names[max_wtcut]
-          endelse
-          
-          input_savefile1[slice_i, cube_i] = fs_use[type_pol_locs[cube_i, 0]].savefile_froot + fs_use[type_pol_locs[cube_i, 0]].savefilebase + $
-            fs_use[type_pol_locs[cube_i, 0]].power_tag + fadd_2dbin + kperp_density_use + '_2dkpower.idlsave'
-          input_savefile2[slice_i, cube_i] = fs_use[type_pol_locs[cube_i, 1]].savefile_froot + fs_use[type_pol_locs[cube_i, 1]].savefilebase + $
-            fs_use[type_pol_locs[cube_i, 1]].power_tag + fadd_2dbin + kperp_density_use + '_2dkpower.idlsave'
+           
+          input_savefile1[slice_i, cube_i] = file_struct_arr1[type_pol_locs[cube_i, 0]].savefile_froot + file_struct_arr1[type_pol_locs[cube_i, 0]].savefilebase + $
+            file_struct_arr1[type_pol_locs[cube_i, 0]].power_tag + fadd_2dbin + kperp_density_names[0] + '_2dkpower.idlsave'
+          input_savefile2[slice_i, cube_i] = file_struct_arr2[type_pol_locs[cube_i, 1]].savefile_froot + file_struct_arr2[type_pol_locs[cube_i, 1]].savefilebase + $
+            file_struct_arr2[type_pol_locs[cube_i, 1]].power_tag + fadd_2dbin + kperp_density_names[max_wtcut] + '_2dkpower.idlsave'
             
         endelse
       endelse
@@ -477,9 +471,12 @@ pro compare_plot_prep, folder_names, obs_info, cube_types, pols, comp_type, comp
   endfor
   
   compare_files = {input_savefile1:input_savefile1, input_savefile2:input_savefile2, $
-    titles:titles, n_cubes:n_cubes, n_slices:n_slices, $
+    titles:titles, n_slices:n_slices, $
     wedge_amp:wedge_amp, kperp_density_names:kperp_density_names, kperp_plot_range:kperp_plot_range}
-  stop
+  
+  if n_elements(n_cubes) gt 0 then compare_files = create_struct(compare_files, 'n_cubes', n_cubes)
+  if n_elements(n_sets) gt 0 then compare_files = create_struct(compare_files, 'n_sets', n_sets)
+    
   if keyword_set(pub) then compare_files = create_struct(compare_files, 'plotfiles_2d', plotfiles_2d)
   if n_elements(mid_savefile_2d) gt 0 then compare_files = create_struct(compare_files, 'mid_savefile_2d', mid_savefile_2d)
   if n_elements(mid_savefile_3d) gt 0 then compare_files = create_struct(compare_files, 'mid_savefile_3d', mid_savefile_3d)

@@ -257,7 +257,7 @@ pro ps_ratio_plots, folder_names, obs_info, cube_types, pols, all_pol_diff_ratio
             kperp_lambda_conv = kperp_lambda_conv, delay_params = delay_params, hubble_param = hubble_param, $
             png = png, eps = eps, pdf = pdf, plotfile = plotfile_2d, window_num = window_num, color_profile = 'sym_log', $, $
             plot_xrange = plot_xrange, plot_yrange = plot_yrange, $
-            data_range = data_range, data_min_abs = diff_min_abs, full_title = title_use, $
+            data_range = diff_range, data_min_abs = diff_min_abs, full_title = title_use, $
             plot_wedge_line = plot_wedge_line, hinv = hinv, /pwr_ratio, $
             wedge_amp = compare_files.wedge_amp, baseline_axis = baseline_axis, delay_axis = delay_axis, $
             linear_axes = max([keyword_set(kperp_linear_axis), keyword_set(kpar_linear_axis)])
