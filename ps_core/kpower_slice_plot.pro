@@ -1,9 +1,3 @@
-;power, noise, noise_expval, weights, kperp_lambda_conv, delay_params, hubble_param, $
-;           slice_axis, slice_inds, xarr, yarr, slice_name, plane_name, plot_xname, plot_yname
-
-
-
-
 pro kpower_slice_plot, slice_savefile, power = power, noise = noise, noise_expval = noise_expval, weights = weights, $
     xarr = xarr, yarr = yarr, slice_axis = slice_axis, slice_inds = slice_inds, $
     kperp_lambda_conv = kperp_lambda_conv, delay_params = delay_params, hubble_param = hubble_param, $
