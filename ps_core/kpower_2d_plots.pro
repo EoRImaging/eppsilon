@@ -351,7 +351,7 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, wei
     'power': begin
       if keyword_set(hinv) then begin
         power_use = power_use * (hubble_param)^3d
-        units_str = textoidl(' (mK^2 h^{-3} Mpc^3)', font = font)
+        units_str = textoidl(' (mK^2 !8h!X^{-3} Mpc^3)', font = font)
       endif else units_str = textoidl(' (mK^2 Mpc^3)', font = font)
 
       color_type = 'log'
@@ -367,7 +367,7 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, wei
     'sigma': begin
       if keyword_set(hinv) then begin
         power_use = power_use * (hubble_param)^3d
-        units_str = textoidl(' (mK^2 h^{-3} Mpc^3)', font = font)
+        units_str = textoidl(' (mK^2 !8h!X^{-3} Mpc^3)', font = font)
       endif else units_str = textoidl(' (mK^2 Mpc^3)', font = font)
 
       color_type = 'log'
@@ -377,7 +377,7 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, wei
     'exp_noise': begin
       if keyword_set(hinv) then begin
         power_use = power_use * (hubble_param)^3d
-        units_str = textoidl(' (mK^2 h^{-3} Mpc^3)', font = font)
+        units_str = textoidl(' (mK^2 !8h!X^{-3} Mpc^3)', font = font)
       endif else units_str = textoidl(' (mK^2 Mpc^3)', font = font)
 
       color_type = 'log'
@@ -393,7 +393,7 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, wei
     'noise': begin
       if keyword_set(hinv) then begin
         power_use = power_use * (hubble_param)^3d
-        units_str = textoidl(' (mK^2 h^{-3} Mpc^3)', font = font)
+        units_str = textoidl(' (mK^2 !8h!X^{-3} Mpc^3)', font = font)
       endif else units_str = textoidl(' (mK^2 Mpc^3)', font = font)
 
       color_type = 'log'
@@ -403,7 +403,7 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, wei
     'sim_noise': begin
       if keyword_set(hinv) then begin
         power_use = power_use * (hubble_param)^3d
-        units_str = textoidl(' (mK^2 h^{-3} Mpc^3)', font = font)
+        units_str = textoidl(' (mK^2 !8h!X^{-3} Mpc^3)', font = font)
       endif else units_str = textoidl(' (mK^2 Mpc^3)', font = font)
 
       color_type = 'log'
@@ -414,7 +414,7 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, wei
     'sim_noise_diff': begin
       if keyword_set(hinv) then begin
         power_use = power_use * (hubble_param)^3d
-        units_str = textoidl(' (mK^2 h^{-3} Mpc^3)', font = font)
+        units_str = textoidl(' (mK^2 !8h!X^{-3} Mpc^3)', font = font)
       endif else units_str = textoidl(' (mK^2 Mpc^3)', font = font)
 
       color_type = 'log'
@@ -1087,10 +1087,10 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, wei
   if n_elements(full_title) ne 0 then plot_title = full_title
   if keyword_set(no_title) then undefine, plot_title
 
-  if keyword_set (hinv) then xtitle = textoidl('k_{perp} (h Mpc^{-1})', font = font) $
+  if keyword_set (hinv) then xtitle = textoidl('k_{perp} (!8h!X Mpc^{-1})', font = font) $
   else xtitle = textoidl('k_{perp} (Mpc^{-1})', font = font)
   xtitle = repstr(xtitle, 'perp', perp_char)
-  if keyword_set (hinv) then ytitle = textoidl('k_{||} (h Mpc^{-1})', font = font) $
+  if keyword_set (hinv) then ytitle = textoidl('k_{||} (!8h!X Mpc^{-1})', font = font) $
   else ytitle = textoidl('k_{||} (Mpc^{-1})', font = font)
 
   if keyword_set(no_title) or keyword_set(baseline_axis) then initial_title = '' else initial_title = plot_title
