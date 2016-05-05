@@ -734,16 +734,22 @@
     endif
     
     if keyword_set(plot_1to2d) then begin
-      if keyword_set(pub) then begin
-        plotfile_1to2d_heatmap = plotfile_base + fadd_2dbin + fadd_1dbin + '_1dheatmap' + plot_exten
-        plotfile_1to2d_contours = plotfile_base + fadd_2dbin + fadd_1dbin + '_1dcontours' + plot_exten
-        plotfile_1to2d_noisefrac = plotfile_base + fadd_2dbin + fadd_1dbin + '_1dnoisefrac' + plot_exten
-        plotfile_1to2d_contour_zoom = plotfile_base + fadd_2dbin + fadd_1dbin + '_1dcontour_zoom' + plot_exten
-      endif
-      type_1to2d_use = 'res'
-      pol_1to2d_use = 'xx'
+
+      if keyword_set(pol_inc) then begin
+        if n_elements(pol_inc) eq 1 then pol_1to2d_use = pol_inc else pol_1to2d_use = pol_inc[0]
+      endif else pol_1to2d_use='xx'
+      if keyword_set(type_inc) then begin
+        if keyword_set(type_inc) eq 1 then type_1to2d_use = type_inc else type_1to2d_use = type_inc[0]
+      endif else type_1to2d_use='res'
       wh_2d_use = where(file_struct_arr.type eq type_1to2d_use and file_struct_arr.pol eq pol_1to2d_use, count_type_pol)
       if count_type_pol eq 0 then wh_2d_use = 0
+      
+      if keyword_set(pub) then begin
+        plotfile_1to2d_heatmap = plotfile_base + fadd_2dbin + fadd_1dbin + '_' + type_1to2d_use + '_' + pol_1to2d_use + '_1dheatmap' + plot_exten
+        plotfile_1to2d_contours = plotfile_base + fadd_2dbin + fadd_1dbin + '_' + type_1to2d_use + '_' + pol_1to2d_use + '_1dcontours' + plot_exten
+        plotfile_1to2d_noisefrac = plotfile_base + fadd_2dbin + fadd_1dbin + '_' + type_1to2d_use + '_' + pol_1to2d_use + '_1dnoisefrac' + plot_exten
+        plotfile_1to2d_contour_zoom = plotfile_base + fadd_2dbin + fadd_1dbin + '_' + type_1to2d_use + '_' + pol_1to2d_use + '_1dcontour_zoom' + plot_exten
+      endif
     endif
     
     if keyword_set(plot_slices) then begin
