@@ -156,10 +156,10 @@ pro make_plots_for_adams_sem1_paper,diffuse_sky=diffuse_sky,reflection_diff=refl
     bands=[[low],[mid],[hi]]
     pols=['xx','yy']
     
-    for bandi=0,2 do $
+    for bandi=0,2 do begin
       for poli=0,1 do begin
         ps_wrapper,dir,obs_name,/pdf,/exact_obsnames,$
-          freq_ch_range=bands[*,bandi],kperp_range_lambda_1dave=kperp_range_lambda_1dave,$
+          freq_ch_range=bands[*,bandi],kperp_range_lambda_1dave=kperp_range_lambda,$
           kpar_range_1dave=kpar_range_1dave,ps_foldername=ps_foldername,$
           /plot_1to2d,coarse_harm_width=coarse_harm_width,/refresh_ps,$
           wedge_angles=wedge_angles,type_inc='res',pol_inc=pols[poli]
@@ -167,10 +167,11 @@ pro make_plots_for_adams_sem1_paper,diffuse_sky=diffuse_sky,reflection_diff=refl
           '_ch'+strtrim(bands[0,bandi],2)+'-'+strtrim(bands[1,bandi],2)+$
           '_bh_kperplambda'+strtrim(kperp_range_lambda[0],2)+'-'+strtrim(kperp_range_lambda[1],2)+$
           '_kpar'+string(kpar_range_1dave[0],format='(f4.2)')+'-'+strtrim(fix(kpar_range_1dave[1]),2)+$
-          '_1dcontours.pdf'
+          '_res_'+pols[poli]+'_1dcontours.pdf'
         outfile=outdir+'deep_2d_ch'+strtrim(bands[0,bandi],2)+'-'+strtrim(bands[1,bandi],2)+pols[poli]+'.pdf'
         file_copy,file,outfile,/overwrite
       endfor
+    endfor
 
       
   endif
