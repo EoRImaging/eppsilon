@@ -1,6 +1,6 @@
 pro ps_ratio_plots, folder_names, obs_info, cube_types, pols, all_pol_diff_ratio = all_pol_diff_ratio, $
+    plot_slices = plot_slices, slice_type = slice_type, $
     freq_ch_range = freq_ch_range, plot_path = plot_path, plot_filebase = plot_filebase, $
-    save_path = save_path, savefilebase = savefilebase, $
     note = note, spec_window_types = spec_window_types, ave_removal = ave_removal, data_range = data_range, $
     kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, $
     diff_ratio = diff_ratio, diff_range = diff_range, diff_min_abs = diff_min_abs, $
@@ -8,235 +8,6 @@ pro ps_ratio_plots, folder_names, obs_info, cube_types, pols, all_pol_diff_ratio
     plot_wedge_line = plot_wedge_line, quiet = quiet, png = png, eps = eps, pdf = pdf, $
     window_num = window_num
     
-  if n_elements(obs_info.info_files) gt 2 then message, 'Only 1 or 2 info_files can be used'
-  
-  ;; default to blackman-harris spectral window
-  if n_elements(spec_window_types) eq 0 then spec_window_types = 'Blackman-Harris'
-  
-  if n_elements(spec_window_types) eq 2 then begin
-    if spec_window_types[0] eq spec_window_types[1] then spec_window_types = spec_window_types[0] else begin
-    
-      type_list = ['Hann', 'Hamming', 'Blackman', 'Nutall', 'Blackman-Nutall', 'Blackman-Harris', 'None']
-      sw_tag_list = ['hann', 'ham', 'blm', 'ntl', 'bn', 'bh', '']
-      sw_tags = strarr(2)
-      for i=0, 1 do begin
-        wh_type = where(strlowcase(type_list) eq strlowcase(spec_window_types[i]), count_type)
-        if count_type eq 0 then wh_type = where(strlowcase(sw_tag_list) eq strlowcase(spec_window_types[i]), count_type)
-        if count_type eq 0 then message, 'Spectral window type not recognized.' else begin
-          spec_window_types[i] = type_list[wh_type[0]]
-          if spec_window_types[i] eq 'None' then sw_tags[i] = '_nosw' else sw_tags[i] = '_' + sw_tag_list[wh_type[0]]
-        endelse
-      endfor
-      
-    endelse
-  endif else sw_tags = ''
-  
-  ;; density correction defaults & file naming for 2D & 1D files
-  if n_elements(wt_cutoffs) eq 0 then begin
-    ;; default to wt_cutoffs = 1, wt_measures = 'min'
-    wt_cutoffs = 1
-    wt_measures = 'min'
-  endif else begin
-    if n_elements(wt_cutoffs) gt 2 then message, 'Only 2 wt_cutoffs values can be used.'
-    if n_elements(wt_measures) eq 0 then begin
-      print, 'wt_cutoffs is specified but wt_measures is not. Defaulting wt_measures to "min".'
-      wt_measures = strarr(n_elements(wt_cutoffs)) + 'min'
-    endif
-  endelse
-  
-  kperp_density_names = strarr(n_elements(wt_cutoffs))
-  wh_cutoff0 = where(wt_cutoffs eq 0, count_cutoff0, complement = wh_cutoff_n0, ncomplement = count_cutoff_n0)
-  wh_std = where(wt_cutoffs eq 1 and wt_measures eq 'min', count_std)
-  
-  if count_cutoff0 gt 0 then kperp_density_names[wh_cutoff0] = '_nodensitycorr'
-  if count_cutoff_n0 gt 0 then kperp_density_names[wh_cutoff_n0] = '_kperp_density_' + wt_measures[wh_cutoff_n0] + '_gt' + number_formatter(wt_cutoffs[wh_cutoff_n0])
-  
-  if count_std gt 0 then kperp_density_names[wh_std] = '_dencorr'
-  
-  
-  if n_elements(freq_ch_range) ne 0 then begin
-    if min(freq_ch_range) lt 0 or max(freq_ch_range) - min(freq_ch_range) lt 3 then message, 'invalid freq_ch_range'
-    fch_tag = '_ch' + number_formatter(min(freq_ch_range)) + '-' + number_formatter(max(freq_ch_range))
-  endif else fch_tag = ''
-  
-  if n_elements(ave_removal) eq 2 then if ave_removal[1] eq ave_removal[0] then ave_removal = ave_removal[0]
-  if n_elements(ave_removal) eq 0 then ave_removal = 0
-  
-  if (n_elements(obs_info.info_files) eq 2 or n_elements(spec_window_types) eq 2 or n_elements(ave_removal) eq 2 or n_elements(wt_cutoffs) eq 2) $
-    and n_elements(cube_types) eq 0 and n_elements(pols) eq 0 $
-    and n_elements(all_pol_diff_ratio) eq 0 and n_elements(diff_ratio) eq 0 then all_pol_diff_ratio = 1
-    
-  if keyword_set(diff_ratio) or keyword_set(all_pol_diff_ratio) then begin
-  
-    if keyword_set(all_pol_diff_ratio) then begin
-      if  n_elements(obs_info.info_files) ne 2 and n_elements(spec_window_types) lt 2 and n_elements(ave_removal) lt 2 then $
-        message, 'all_pol_diff_ratio requires 2 folder names and/or 2 obs names and/or 2 spec windows and/or 2 ave_removal values'
-        
-      pols = ['xx', 'yy']
-      
-      n_sets=4
-    endif else begin
-      if n_elements(obs_info.info_files) ne 2 and n_elements(spec_window_types) lt 2 $
-        and n_elements(pols) lt 2 and n_elements(wt_cutoffs) lt 2 and n_elements(ave_removal) lt 2 then $
-        message, 'diff_ratio requires 2 folder names and/or 2 obs names and/or 2 spec windows and/or 2 wt_cutoffs and/or 2 pols and/or 2 ave_removal values'
-        
-      if n_elements(pols) eq 0 then pols = 'xx'
-      
-      n_sets=2
-    endelse
-    
-    if n_elements(cube_types) ne 2 then cube_types = ['res', 'dirty']
-    
-  endif else begin
-    n_diffs = max([n_elements(obs_info.info_files), n_elements(cube_types), n_elements(pols), $
-      n_elements(spec_window_types), n_elements(wt_cutoffs), n_elements(ave_removal)])
-    if n_diffs gt 2 then message, 'only 1 or 2 of [folder_names, obs_names, cube_types, pols, spec_window_types, wt_cutoffs, ave_removal] allowed'
-    
-    if n_elements(cube_types) eq 0 then if n_diffs eq 1 then cube_types = ['res', 'dirty'] else cube_types = 'res'
-    n_diffs = max([n_elements(obs_info.info_files), n_elements(cube_types), n_elements(pols), $
-      n_elements(spec_window_types), n_elements(wt_cutoffs), n_elements(ave_removal)])
-    if n_elements(pols) eq 0 then if n_diffs eq 1 then pols=['xx', 'yy'] else pols = 'xx'
-    n_diffs = max([n_elements(obs_info.info_files), n_elements(cube_types), n_elements(pols), $
-      n_elements(spec_window_types), n_elements(wt_cutoffs), n_elements(ave_removal)])
-      
-    if n_diffs eq 1 then message, 'at least one of info_files, cube_types, pols, spec_window_types, wt_cutoffs, ave_removal must be a 2 element vector'
-    
-    n_sets=1
-  endelse
-  
-  max_file = n_elements(obs_info.info_files)-1
-  max_type = n_elements(cube_types)-1
-  max_pol = n_elements(pols)-1
-  max_sw = n_elements(spec_window_types)-1
-  if max_sw lt 0 then max_sw=0
-  max_wtcut = n_elements(wt_cutoffs)
-  max_ar = n_elements(ave_removal)-1
-  if max_ar lt 0 then max_ar=0
-  
-  ;; default to including baseline axis & delay axis
-  if n_elements(baseline_axis) eq 0 then baseline_axis = 1
-  if n_elements(delay_axis) eq 0 then delay_axis = 1
-  
-  ;; default to plot wedge line
-  if n_elements(plot_wedge_line) eq 0 then plot_wedge_line=1
-  
-  ;; default to hinv
-  if n_elements(hinv) eq 0 then hinv = 1
-  
-  if n_elements(folder_names) eq 2 then begin
-    if n_elements(save_path) eq 0 then save_path = obs_info.diff_save_path
-    note = obs_info.diff_note
-    if tag_exist(obs_info, 'diff_plot_path') then plot_path = obs_info.diff_plot_path else plot_path = save_path
-    
-    if not keyword_set(diff_ratio) and not keyword_set(all_pol_diff_ratio) then note = strjoin(strsplit(note, '-', /extract), '/')
-    
-  endif else begin
-    note = obs_info.fhd_types[0]
-    plot_path = obs_info.plot_paths[0]
-  endelse
-  
-  if n_elements(spec_window_types) eq 2 then note = note + ' ' + spec_window_types[0] + ' over ' + spec_window_types[1]
-  if n_elements(ave_removal) eq 2 then begin
-    ave_removal_str = ['no_ave_removal', 'ave_removal']
-    note = note + ' ' + ave_removal_str[ave_removal[0]] + ' minus ' + ave_removal_str[ave_removal[1]]
-    ar_tag_list = ['', '_averemoval']
-    ar_tags = [ar_tag_list[ave_removal[0]], ar_tag_list[ave_removal[1]]]
-  endif else ar_tags = ''
-  
-  if keyword_set(diff_ratio) or keyword_set(all_pol_diff_ratio) then begin
-  
-    if keyword_set(all_pol_diff_ratio) then begin
-      if n_elements(folder_names) eq 2 and folder_names[0] ne folder_names[n_elements(folder_names)-1] then begin
-        plot_filebase = obs_info.name_same_parts + '__' + obs_info.name_diff_parts[0] + '_' + obs_info.obs_names[0] + sw_tags[0] + ar_tags[0] + $
-          '_diffratio_' + obs_info.name_diff_parts[1]  + '_' + obs_info.obs_names[1] + sw_tags[max_sw] + ar_tags[max_ar]
-      endif else if n_elements(obs_info.info_files) eq 2 then $
-        plot_filebase = obs_info.folder_basenames[0] + '__' + obs_info.obs_names[0] + sw_tags[0] + ar_tags[0] + '_diffratio_' + $
-        obs_info.obs_names[1] + sw_tags[max_sw] + ar_tags[max_ar] $
-      else plot_filebase = obs_info.fhd_types[0] + sw_tags[0] + ar_tags[0] + '_diffratio_' + sw_tags[max_sw] + ar_tags[max_ar]
-    endif else begin
-      if n_elements(folder_names) eq 2 and folder_names[0] ne folder_names[1] then begin
-        plot_filebase = obs_info.name_same_parts + '__' + obs_info.name_diff_parts[0] + '_' + obs_info.obs_names[0] + pols[0] + sw_tags[0] + ar_tags[0] + $
-          '_diffratio_' + obs_info.name_diff_parts[1]  + '_' + obs_info.obs_names[1] + pols[max_pol] + sw_tags[max_sw] + ar_tags[max_ar]
-      endif else if n_elements(obs_info.info_files) eq 2 then $
-        plot_filebase = obs_info.folder_basenames[0] + '__' + obs_info.obs_names[0] + pols[0] + sw_tags[0] + ar_tags[0] + '_diffratio_' + $
-        obs_info.obs_names[1] + pols[max_pol] + sw_tags[max_sw] + ar_tags[max_ar] $
-      else plot_filebase = obs_info.fhd_types[0] + pols[0] + sw_tags[0] + ar_tags[0] + '_diffratio_' + pols[max_pol] + sw_tags[max_sw] + ar_tags[max_ar]
-    endelse
-  endif else begin
-  
-    if n_elements(folder_names) eq 1 then begin
-      if n_elements(obs_info.obs_names) gt 1 then begin
-        plot_filebase = obs_info.folder_basenames[0] + '_' + obs_info.obs_names[0] + '_' + cube_types[0] + '_' + pols[0] + sw_tags[0] + ar_tags[0] + $
-          '_over_' + obs_info.obs_names[0] + '_' + cube_types[max_type] + '_' + pols[max_pol] + sw_tags[max_sw] + ar_tags[max_ar]
-      endif else begin
-        if obs_info.integrated[0] eq 0 then plot_start = obs_info.folder_basenames[0] + '_' + obs_info.obs_names[0] else plot_start = obs_info.fhd_types[0]
-        
-        plot_filebase = plot_start + '_' + cube_types[0] + '_' + pols[0] + sw_tags[0] + ar_tags[0] + $
-          '_over_' + cube_types[max_type] + '_' + pols[max_pol] + sw_tags[max_sw] + ar_tags[max_ar]
-      endelse
-    endif else plot_filebase = obs_info.name_same_parts + '__' + strjoin([obs_info.name_diff_parts[0], cube_types[0], pols[0]], '_') + sw_tags[0] + ar_tags[0] + $
-      '_over_' + strjoin([obs_info.name_diff_parts[1], cube_types[max_type], pols[max_pol]], '_') + sw_tags[max_sw] + ar_tags[max_ar]
-  endelse
-  plot_filebase = plot_filebase + fch_tag
-  
-  file_struct_arr1 = fhd_file_setup(obs_info.info_files[0], $
-    spec_window_type = spec_window_types[0], freq_ch_range = freq_ch_range, ave_removal = ave_removal[0])
-  if n_elements(obs_info.info_files) eq 2 or max_sw eq 1 or max_ar eq 1 then file_struct_arr2 = fhd_file_setup(obs_info.info_files[max_file], $
-    spec_window_type = spec_window_types[max_sw], freq_ch_range = freq_ch_range, ave_removal = ave_removal[max_ar]) $
-  else file_struct_arr2 = file_struct_arr1
-  
-  if keyword_set(diff_ratio) or keyword_set(all_pol_diff_ratio) then begin
-    type_pol_str = strarr(n_sets, 2)
-    if keyword_set(all_pol_diff_ratio) then begin
-      type_pol_str[0, *] = cube_types + '_' + pols[0]
-      type_pol_str[1, *] = cube_types + '_' + pols[0]
-      type_pol_str[2, *] = cube_types + '_' + pols[max_pol]
-      type_pol_str[3, *] = cube_types + '_' + pols[max_pol]
-    endif else begin
-      type_pol_str[0, *] = cube_types + '_' + pols[0]
-      type_pol_str[1, *] = cube_types + '_' + pols[max_pol]
-    endelse
-    
-    type_pol_locs = intarr(n_sets, 2)
-    for i=0, n_sets-1 do begin
-      wh_type_pol1 = where(file_struct_arr1.type_pol_str eq type_pol_str[i,0], count_type_pol)
-      if count_type_pol eq 0 then $
-        message, 'requested type_pol not found: ' + type_pol_str[i,0] + ' not in ' + file_struct_arr1.power_savefile else type_pol_locs[i,0] = wh_type_pol1
-      wh_type_pol2 = where(file_struct_arr2.type_pol_str eq type_pol_str[i,1], count_type_pol)
-      if count_type_pol eq 0 then $
-        message, 'requested type_pol not found: ' + type_pol_str[i,1] + ' not in ' + file_struct_arr2.power_savefile else type_pol_locs[i,1] = wh_type_pol2
-    endfor
-    
-    if keyword_set(all_pol_diff_ratio) then begin
-      titles = strarr(2,3)
-      for i=0, 1 do titles[i,*] = [type_pol_str[2*i,0] + '/' + type_pol_str[2*i,1], $
-        type_pol_str[2*i+1,0] + '/' + type_pol_str[2*i+1,1], 'Ratio Difference']
-    endif else titles = [type_pol_str[0,0] + '/' + type_pol_str[0,1], $
-      type_pol_str[1,0] + '/' + type_pol_str[1,1], 'Ratio Difference']
-      
-  endif else begin
-    type_pol_str = [cube_types[0] + '_' + pols[0], cube_types[max_type] + '_' + pols[max_pol]]
-    
-    type_pol_locs = intarr(2)
-    wh_type_pol1 = where(file_struct_arr1.type_pol_str eq type_pol_str[0], count_type_pol)
-    if count_type_pol eq 0 then $
-      message, 'requested type_pol not found: ' + type_pol_str[0] + ' not in ' + file_struct_arr1.power_savefile else type_pol_locs[0] = wh_type_pol1
-    wh_type_pol2 = where(file_struct_arr2.type_pol_str eq type_pol_str[1], count_type_pol)
-    if count_type_pol eq 0 then $
-      message, 'requested type_pol not found: ' + type_pol_str[1] + ' not in ' + file_struct_arr2.power_savefile else type_pol_locs[1] = wh_type_pol2
-      
-    title = type_pol_str[0] + '/' + type_pol_str[1]
-    
-  endelse
-  
-  if tag_exist(file_struct_arr1, 'n_obs') then n_obs1 = file_struct_arr1[0].n_obs
-  if tag_exist(file_struct_arr2, 'n_obs') then n_obs2 = file_struct_arr2[0].n_obs
-  
-  if n_elements(n_obs1) gt 0 and n_elements(n_obs2) gt 0 then begin
-    if n_elements(note) eq 0 then note = '(' + number_formatter(round(mean(file_struct_arr1[0].n_obs))) + ',' + number_formatter(round(mean(file_struct_arr2[0].n_obs))) + ')' $
-    else note = note + ' (' + number_formatter(round(mean(file_struct_arr1[0].n_obs))) + ',' + number_formatter(round(mean(file_struct_arr2[0].n_obs))) + ')'
-  endif
-  
   if keyword_set(png) or keyword_set(eps) or keyword_set(pdf) then pub = 1 else pub = 0
   if pub then begin
     if keyword_set(png) and keyword_set(eps) and keyword_set(pdf) then begin
@@ -256,228 +27,290 @@ pro ps_ratio_plots, folder_names, obs_info, cube_types, pols, all_pol_diff_ratio
     endif
   endif
   
-  if keyword_set(pub) and not file_test(plot_path, /directory) then file_mkdir, plot_path
-  
-  if keyword_set(plot_wedge_line) then begin
-    z0_freq = 1420.40 ;; MHz
-    
-    freq_use = file_struct_arr1[0].frequencies
-    if n_elements(freq_ch_range) ne 0 then begin
-      if max(freq_ch_range) gt n_elements(freq_use)-1 then message, 'invalid freq_ch_range'
-      freq_use = freq_use[freq_ch_range[0]:freq_ch_range[1]]
-    endif
-    
-    redshifts = z0_freq/freq_use - 1 ;; frequencies will be identical if kx, ky, kz match
-    mean_redshift = mean(redshifts)
-    
-    cosmology_measures, mean_redshift, wedge_factor = wedge_factor
-    ;; assume 20 degrees from pointing center to first null
-    source_dist = 20d * !dpi / 180d
-    fov_amp = wedge_factor * source_dist
-    
-    ;; calculate angular distance to horizon
-    max_theta = max([file_struct_arr1[0].max_theta, file_struct_arr2[0].max_theta])
-    horizon_amp = wedge_factor * ((max_theta+90d) * !dpi / 180d)
-    
-    wedge_amp = [fov_amp, horizon_amp]
-    
-    wedge_1dbin_names = ['', '_no_fov_wedge', '_no_horizon_wedge']
-  endif else begin
-    wedge_amp = 0d
-    wedge_1dbin_names = ''
-  endelse
-  
   fadd_2dbin = ''
   ;;if keyword_set(fill_holes) then fadd_2dbin = fadd_2dbin + '_nohole'
   if keyword_set(no_kzero) then fadd_2dbin = fadd_2dbin + '_nok0'
   if keyword_set(log_kpar) then fadd_2dbin = fadd_2dbin + '_logkpar'
   if keyword_set(log_kperp) then fadd_2dbin = fadd_2dbin + '_logkperp'
   
-  if keyword_set(diff_ratio) or keyword_set(all_pol_diff_ratio) then begin
-    savefiles_2d = strarr(n_sets, 2)
-    for j=0, n_sets/2-1 do begin
-      for i=0, 1 do begin
-        savefiles_2d[2*j, i] = file_struct_arr1[type_pol_locs[2*j, i]].savefile_froot + file_struct_arr1[type_pol_locs[2*j, i]].savefilebase + file_struct_arr1[0].power_tag
-        savefiles_2d[2*j+1, i] =file_struct_arr2[type_pol_locs[2*j+1, i]].savefile_froot + file_struct_arr2[type_pol_locs[2*j+1, i]].savefilebase + file_struct_arr2[0].power_tag
+  
+  compare_plot_prep, folder_names, obs_info, cube_types, pols, 'ratio', compare_files, $
+    plot_slices = plot_slices, slice_type = slice_type, fadd_2dbin = fadd_2dbin, $
+    spec_window_types = spec_window_types, freq_ch_range = freq_ch_range, ave_removal = ave_removal, $
+    baseline_axis = baseline_axis, delay_axis = delay_axis, plot_wedge_line = plot_wedge_line, hinv = hinv, $
+    plot_path = plot_path, plot_filebase = plot_filebase, save_path = save_path, savefilebase = savefilebase, $
+    axis_type_1d = axis_type_1d, note = note, wt_cutoffs = wt_cutoffs, wt_measures = wt_measures, $
+    pub = pub, plot_exten = plot_exten, full_compare = all_pol_diff_ratio
+    
+  test_save1 = file_test(compare_files.input_savefile1) *  (1 - file_test(compare_files.input_savefile1, /zero_length))
+  test_save2 = file_test(compare_files.input_savefile2) *  (1 - file_test(compare_files.input_savefile2, /zero_length))
+  
+  if min(test_save1) eq 0 then message, '2D savefile not found: ' + strjoin(compare_files.input_savefile1[where(test_save1 eq 0)], ', ')
+  if min(test_save2) eq 0 then message, '2D savefile not found: ' + strjoin(compare_files.input_savefile2[where(test_save2 eq 0)], ', ')
+  
+  
+  for slice_i=0, compare_files.n_slices-1 do begin
+    if keyword_set(diff_ratio) or keyword_set(all_pol_diff_ratio) then begin
+    
+      for i=0, compare_files.n_sets/2-1 do begin
+      
+        if keyword_set(plot_slices) then begin
+          slice_axis = getvar_savefile(compare_files.input_savefile1[slice_i, 2*i], 'slice_axis')
+          slice_axis2 = getvar_savefile(compare_files.input_savefile1[slice_i, 2*i+1], 'slice_axis')
+          slice_axis3 = getvar_savefile(compare_files.input_savefile2[slice_i, 2*i], 'slice_axis')
+          slice_axis4 = getvar_savefile(compare_files.input_savefile2[slice_i, 2*i+1], 'slice_axis')
+          if slice_axis ne slice_axis2 or slice_axis ne slice_axis3 or slice_axis ne slice_axis4 then $
+            message, 'slice_axis does not match in savefiles'
+            
+          slice_inds = getvar_savefile(compare_files.input_savefile1[slice_i, 2*i], 'slice_inds')
+          slice_inds2 = getvar_savefile(compare_files.input_savefile1[slice_i, 2*i+1], 'slice_inds')
+          slice_inds3 = getvar_savefile(compare_files.input_savefile2[slice_i, 2*i], 'slice_inds')
+          slice_inds4 = getvar_savefile(compare_files.input_savefile2[slice_i, 2*i+1], 'slice_inds')
+          if slice_inds ne slice_inds2 or slice_inds ne slice_inds3 or slice_inds ne slice_inds4 then $
+            message, 'slice_inds does not match in savefiles'
+            
+          xarr = getvar_savefile(compare_files.input_savefile1[slice_i, 2*i], 'xarr')
+          xarr2 = getvar_savefile(compare_files.input_savefile1[slice_i, 2*i+1], 'xarr')
+          xarr3 = getvar_savefile(compare_files.input_savefile2[slice_i, 2*i], 'xarr')
+          xarr4 = getvar_savefile(compare_files.input_savefile2[slice_i, 2*i+1], 'xarr')
+          if n_elements(xarr) ne n_elements(xarr2) or max(abs(xarr - xarr2)) gt 1.05e-3 or $
+            n_elements(xarr) ne n_elements(xarr3) or max(abs(xarr - xarr3)) gt 1.05e-3 or $
+            n_elements(xarr) ne n_elements(xarr4) or max(abs(xarr - xarr4)) gt 1.05e-3 then $
+            message, 'xarr does not match in savefiles'
+          yarr = getvar_savefile(compare_files.input_savefile1[slice_i, 2*i], 'yarr')
+          yarr2 = getvar_savefile(compare_files.input_savefile1[slice_i, 2*i+1], 'yarr')
+          yarr3 = getvar_savefile(compare_files.input_savefile2[slice_i, 2*i], 'yarr')
+          yarr4 = getvar_savefile(compare_files.input_savefile2[slice_i, 2*i+1], 'yarr')
+          if n_elements(yarr) ne n_elements(yarr2) or max(abs(yarr - yarr2)) gt 1.05e-3 or $
+            n_elements(yarr) ne n_elements(yarr3) or max(abs(yarr - yarr3)) gt 1.05e-3 or $
+            n_elements(yarr) ne n_elements(yarr4) or max(abs(yarr - yarr4)) gt 1.05e-3 then $
+            message, 'yarr does not match in savefiles'
+            
+        endif else begin
+          kperp_edges = getvar_savefile(compare_files.input_savefile1[slice_i, 2*i], 'kperp_edges')
+          kperp_edges2 = getvar_savefile(compare_files.input_savefile1[slice_i, 2*i+1], 'kperp_edges')
+          kperp_edges3 = getvar_savefile(compare_files.input_savefile2[slice_i, 2*i], 'kperp_edges')
+          kperp_edges4 = getvar_savefile(compare_files.input_savefile2[slice_i, 2*i+1], 'kperp_edges')
+          if n_elements(kperp_edges) ne n_elements(kperp_edges2) or max(abs(kperp_edges - kperp_edges2)) gt 1.05e-3 or $
+            n_elements(kperp_edges) ne n_elements(kperp_edges3) or max(abs(kperp_edges - kperp_edges3)) gt 1.05e-3 or $
+            n_elements(kperp_edges) ne n_elements(kperp_edges4) or max(abs(kperp_edges - kperp_edges4)) gt 1.05e-3 then $
+            message, 'kperp_edges does not match in savefiles'
+          kpar_edges = getvar_savefile(compare_files.input_savefile1[slice_i, 2*i], 'kpar_edges')
+          kpar_edges2 = getvar_savefile(compare_files.input_savefile1[slice_i, 2*i+1], 'kpar_edges')
+          kpar_edges3 = getvar_savefile(compare_files.input_savefile2[slice_i, 2*i], 'kpar_edges')
+          kpar_edges4 = getvar_savefile(compare_files.input_savefile2[slice_i, 2*i+1], 'kpar_edges')
+          if n_elements(kpar_edges) ne n_elements(kpar_edges2) or max(abs(kpar_edges - kpar_edges2)) gt 1.05e-3 or $
+            n_elements(kpar_edges) ne n_elements(kpar_edges3) or max(abs(kpar_edges - kpar_edges3)) gt 1.05e-3 or $
+            n_elements(kpar_edges) ne n_elements(kpar_edges4) or max(abs(kpar_edges - kpar_edges4)) gt 1.05e-3 then $
+            message, 'kpar_edges does not match in savefiles'
+            
+          kperp_bin = getvar_savefile(compare_files.input_savefile1[slice_i, 2*i], 'kperp_bin')
+          kperp_bin2 = getvar_savefile(compare_files.input_savefile1[slice_i, 2*i+1], 'kperp_bin')
+          kperp_bin3 = getvar_savefile(compare_files.input_savefile2[slice_i, 2*i], 'kperp_bin')
+          kperp_bin4 = getvar_savefile(compare_files.input_savefile2[slice_i, 2*i+1], 'kperp_bin')
+          if abs(kperp_bin - kperp_bin2) gt 1.05e-3 or abs(kperp_bin - kperp_bin3) gt 1.05e-3 or $
+            abs(kperp_bin - kperp_bin4) gt 1.05e-3 then $
+            message, 'kperp_bin does not match in savefiles'
+          kpar_bin = getvar_savefile(compare_files.input_savefile1[slice_i, 2*i], 'kpar_bin')
+          kpar_bin2 = getvar_savefile(compare_files.input_savefile1[slice_i, 2*i+1], 'kpar_bin')
+          kpar_bin3 = getvar_savefile(compare_files.input_savefile2[slice_i, 2*i], 'kpar_bin')
+          kpar_bin4 = getvar_savefile(compare_files.input_savefile2[slice_i, 2*i+1], 'kpar_bin')
+          if abs(kpar_bin - kpar_bin2) gt 1.05e-3 or abs(kpar_bin - kpar_bin3) gt 1.05e-3 or $
+            abs(kpar_bin - kpar_bin4) gt 1.05e-3 then $
+            message, 'kpar_edges does not match in savefiles'
+        endelse
+        
+        kperp_lambda_conv = getvar_savefile(compare_files.input_savefile1[slice_i, 2*i], 'kperp_lambda_conv')
+        kperp_lambda_conv2 = getvar_savefile(compare_files.input_savefile1[slice_i, 2*i+1], 'kperp_lambda_conv')
+        kperp_lambda_conv3 = getvar_savefile(compare_files.input_savefile2[slice_i, 2*i], 'kperp_lambda_conv')
+        kperp_lambda_conv4 = getvar_savefile(compare_files.input_savefile2[slice_i, 2*i+1], 'kperp_lambda_conv')
+        if abs(kperp_lambda_conv - kperp_lambda_conv2)/kperp_lambda_conv gt 1.05e-3 or $
+          abs(kperp_lambda_conv - kperp_lambda_conv3)/kperp_lambda_conv gt 1.05e-3 or $
+          abs(kperp_lambda_conv - kperp_lambda_conv4)/kperp_lambda_conv gt 1.05e-3 then $
+          message, 'kperp_lambda_conv do not match in savefiles'
+        delay_params = getvar_savefile(compare_files.input_savefile1[slice_i, 2*i], 'delay_params')
+        delay_params2 = getvar_savefile(compare_files.input_savefile1[slice_i, 2*i+1], 'delay_params')
+        delay_params3 = getvar_savefile(compare_files.input_savefile2[slice_i, 2*i], 'delay_params')
+        delay_params4 = getvar_savefile(compare_files.input_savefile2[slice_i, 2*i+1], 'delay_params')
+        if max(abs(delay_params - delay_params2)) gt 1.05e-3 or $
+          max(abs(delay_params - delay_params3)) gt 1.05e-3 or $
+          max(abs(delay_params - delay_params4)) gt 1.05e-3 then $
+          message, 'delay_params do not match in savefiles'
+        hubble_param = getvar_savefile(compare_files.input_savefile1[slice_i, 2*i], 'hubble_param')
+        hubble_param2 = getvar_savefile(compare_files.input_savefile1[slice_i, 2*i+1], 'hubble_param')
+        hubble_param3 = getvar_savefile(compare_files.input_savefile2[slice_i, 2*i], 'hubble_param')
+        hubble_param4 = getvar_savefile(compare_files.input_savefile2[slice_i, 2*i+1], 'hubble_param')
+        if abs(hubble_param - hubble_param2) ne 0  or  abs(hubble_param - hubble_param4) ne 0 or $
+          abs(hubble_param - hubble_param4) ne 0 then message, 'hubble_param do not match in savefiles'
+          
+        power1a = getvar_savefile(compare_files.input_savefile1[slice_i, 2*i], 'power')
+        power2a = getvar_savefile(compare_files.input_savefile1[slice_i, 2*i+1], 'power')
+        
+        power_ratio1 = power1a / power2a
+        wh0 = where(power2a eq 0, count0)
+        if count0 gt 0 then power_ratio1[wh0] = 0
+        
+        power1b = getvar_savefile(compare_files.input_savefile2[slice_i, 2*i], 'power')
+        power2b = getvar_savefile(compare_files.input_savefile2[slice_i, 2*i+1], 'power')
+        
+        power_ratio2 = power1b / power2b
+        wh0 = where(power2b eq 0, count0)
+        if count0 gt 0 then power_ratio2[wh0] = 0
+        
+        power_diff_ratio = power_ratio1-power_ratio2
+        
+        if i eq 0 then begin
+          ncol=3
+          nrow=compare_files.n_sets/2
+          start_multi_params = {ncol:ncol, nrow:nrow, ordering:'row'}
+          undefine, pos_use
+          if keyword_set(pub) then plotfiles_2d = compare_files.plotfiles_2d
+        endif else pos_use = positions[*,3*i]
+        
+        if keyword_set(plot_slices) then begin
+          if slice_axis eq 0 or slice_axis eq 1 then begin
+            plot_xrange = compare_files.kperp_plot_range
+            if n_elements(kpar_plot_range) gt 0 then plot_yrange = kpar_plot_range
+          endif else begin
+            plot_xrange = compare_files.kperp_plot_range
+            plot_yrange = compare_files.kperp_plot_range
+          endelse
+          power_use = power_ratio1
+          title_use = compare_files.titles[i,0]
+          
+          kpower_slice_plot, power = power_use, multi_pos = pos_use, start_multi_params = start_multi_params, $
+            xarr = xarr, yarr = yarr, slice_axis = slice_axis, $
+            kperp_lambda_conv = kperp_lambda_conv, delay_params = delay_params, hubble_param = hubble_param, $
+            png = png, eps = eps, pdf = pdf, plotfile = plotfile_2d, window_num = window_num, $
+            plot_xrange = plot_xrange, plot_yrange = plot_yrange, $
+            data_range = data_range, full_title = title_use, $
+            plot_wedge_line = plot_wedge_line, hinv = hinv, /pwr_ratio, $
+            wedge_amp = compare_files.wedge_amp, baseline_axis = baseline_axis, delay_axis = delay_axis, $
+            linear_axes = max([keyword_set(kperp_linear_axis), keyword_set(kpar_linear_axis)])
+            
+          if slice_axis eq 1 or slice_axis eq 0 and n_elements(kpar_plot_range) eq 0 then kpar_plot_range = plot_yrange
+        endif else begin
+          kpower_2d_plots, power = power_ratio1, multi_pos = pos_use, start_multi_params = start_multi_params, $
+            kperp_edges = kperp_edges, kpar_edges = kpar_edges, kperp_bin = kperp_bin, kpar_bin = kpar_bin, $
+            kperp_lambda_conv = kperp_lambda_conv, delay_params = delay_params, hubble_param = hubble_param, $
+            png = png, eps = eps, pdf = pdf, plotfile = plotfile_2d, window_num = window_num, $
+            kperp_plot_range = compare_files.kperp_plot_range, kpar_plot_range = kpar_plot_range, $
+            data_range = data_range, full_title = compare_files.titles[i,0], $
+            plot_wedge_line = plot_wedge_line, hinv = hinv, /pwr_ratio, $
+            wedge_amp = compare_files.wedge_amp, baseline_axis = baseline_axis, delay_axis = delay_axis, $
+            kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis
+        endelse
+        
+        if i eq 0 then begin
+          positions = pos_use
+          undefine, start_multi_params
+        endif
+        pos_use = positions[*,3*i+1]
+        
+        if keyword_set(plot_slices) then begin
+          if slice_axis eq 0 or slice_axis eq 1 then begin
+            plot_xrange = compare_files.kperp_plot_range
+            if n_elements(kpar_plot_range) gt 0 then plot_yrange = kpar_plot_range
+          endif else begin
+            plot_xrange = compare_files.kperp_plot_range
+            plot_yrange = compare_files.kperp_plot_range
+          endelse
+          power_use = power_ratio2
+          title_use = compare_files.titles[i,1]
+          
+          kpower_slice_plot, power = power_use, multi_pos = pos_use, start_multi_params = start_multi_params, $
+            xarr = xarr, yarr = yarr, slice_axis = slice_axis, $
+            kperp_lambda_conv = kperp_lambda_conv, delay_params = delay_params, hubble_param = hubble_param, $
+            png = png, eps = eps, pdf = pdf, plotfile = plotfile_2d, window_num = window_num, $
+            plot_xrange = plot_xrange, plot_yrange = plot_yrange, $
+            data_range = data_range, full_title = title_use, $
+            plot_wedge_line = plot_wedge_line, hinv = hinv, /pwr_ratio, $
+            wedge_amp = compare_files.wedge_amp, baseline_axis = baseline_axis, delay_axis = delay_axis, $
+            linear_axes = max([keyword_set(kperp_linear_axis), keyword_set(kpar_linear_axis)])
+        endif else begin
+          kpower_2d_plots, power = power_ratio2, multi_pos = pos_use, start_multi_params = start_multi_params, $
+            kperp_edges = kperp_edges, kpar_edges = kpar_edges, kperp_bin = kperp_bin, kpar_bin = kpar_bin, $
+            kperp_lambda_conv = kperp_lambda_conv, delay_params = delay_params, hubble_param = hubble_param, $
+            png = png, eps = eps, pdf = pdf, plotfile = plotfile_2d, window_num = window_num, $
+            kperp_plot_range = compare_files.kperp_plot_range, kpar_plot_range = kpar_plot_range, $
+            data_range = data_range, full_title = compare_files.titles[i,1], $
+            plot_wedge_line = plot_wedge_line, hinv = hinv, /pwr_ratio, $
+            wedge_amp = compare_files.wedge_amp, baseline_axis = baseline_axis, delay_axis = delay_axis, $
+            kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis
+        endelse
+        
+        pos_use = positions[*,3*i+2]
+        
+        if keyword_set(plot_slices) then begin
+          if slice_axis eq 0 or slice_axis eq 1 then begin
+            plot_xrange = compare_files.kperp_plot_range
+            if n_elements(kpar_plot_range) gt 0 then plot_yrange = kpar_plot_range
+          endif else begin
+            plot_xrange = compare_files.kperp_plot_range
+            plot_yrange = compare_files.kperp_plot_range
+          endelse
+          power_use = power_diff_ratio
+          title_use = compare_files.titles[i,2]
+          
+          kpower_slice_plot, power = power_use, multi_pos = pos_use, start_multi_params = start_multi_params, $
+            xarr = xarr, yarr = yarr, slice_axis = slice_axis, $
+            kperp_lambda_conv = kperp_lambda_conv, delay_params = delay_params, hubble_param = hubble_param, $
+            png = png, eps = eps, pdf = pdf, plotfile = plotfile_2d, window_num = window_num, color_profile = 'sym_log', $, $
+            plot_xrange = plot_xrange, plot_yrange = plot_yrange, $
+            data_range = diff_range, data_min_abs = diff_min_abs, full_title = title_use, $
+            plot_wedge_line = plot_wedge_line, hinv = hinv, /pwr_ratio, $
+            wedge_amp = compare_files.wedge_amp, baseline_axis = baseline_axis, delay_axis = delay_axis, $
+            linear_axes = max([keyword_set(kperp_linear_axis), keyword_set(kpar_linear_axis)])
+        endif else begin
+          kpower_2d_plots, power = power_diff_ratio, multi_pos = pos_use, start_multi_params = start_multi_params, $
+            kperp_edges = kperp_edges, kpar_edges = kpar_edges, kperp_bin = kperp_bin, kpar_bin = kpar_bin, $
+            kperp_lambda_conv = kperp_lambda_conv, delay_params = delay_params, hubble_param = hubble_param, $
+            png = png, eps = eps, pdf = pdf, plotfile = plotfile_2d, window_num = window_num, color_profile = 'sym_log', $
+            kperp_plot_range = compare_files.kperp_plot_range, kpar_plot_range = kpar_plot_range, $
+            data_range = diff_range, data_min_abs = diff_min_abs, full_title = compare_files.titles[i,2], note = note + ', ' + compare_files.kperp_density_names, $
+            plot_wedge_line = plot_wedge_line, hinv = hinv, /pwr_ratio, $
+            wedge_amp = compare_files.wedge_amp, baseline_axis = baseline_axis, delay_axis = delay_axis, $
+            kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis
+        endelse
+        
       endfor
-    endfor
-    
-    if n_elements(kperp_density_names) gt 1 then begin
-      kperp_density_use = strarr(n_sets, 2)
-      for i=0, 1 do kperp_density_use[*,i] = kperp_density_names[i]
-    endif else kperp_density_use = kperp_density_names[0]
-    savefiles_2d = savefiles_2d + fadd_2dbin + kperp_density_use + '_2dkpower.idlsave'
-    
-  endif else begin
-    savefiles_2d = [file_struct_arr1[type_pol_locs[0]].savefile_froot + file_struct_arr1[type_pol_locs[0]].savefilebase + file_struct_arr1[0].power_tag, $
-      file_struct_arr2[type_pol_locs[1]].savefile_froot + file_struct_arr2[type_pol_locs[1]].savefilebase + file_struct_arr2[0].power_tag]
       
-    if n_elements(kperp_density_names) gt 1 then begin
-      kperp_density_use = strarr(n_sets, 2)
-      for i=0, 1 do kperp_density_use[*,i] = kperp_density_names[i]
-    endif else kperp_density_use = kperp_density_names[0]
-    savefiles_2d = savefiles_2d + fadd_2dbin + kperp_density_use + '_2dkpower.idlsave'
-    
-  endelse
-  
-  test_save_2d = file_test(savefiles_2d) *  (1 - file_test(savefiles_2d, /zero_length))
-  
-  if min(test_save_2d) eq 0 then message, '2D savefile not found: ' + strjoin(savefiles_2d[where(test_save_2d eq 0)], ', ')
-  
-  if pub then begin
-    plotfile_2d = plot_path + plot_filebase + '_2dkpower' + plot_exten
-  endif else plot_exten = ''
-  
-  if keyword_set(diff_ratio) or keyword_set(all_pol_diff_ratio) then begin
-  
-    for i=0, n_sets/2-1 do begin
-      kperp_edges = getvar_savefile(savefiles_2d[2*i,0], 'kperp_edges')
-      kperp_edges2 = getvar_savefile(savefiles_2d[2*i+1,0], 'kperp_edges')
-      if n_elements(kperp_edges) ne n_elements(kperp_edges2) or max(abs(kperp_edges - kperp_edges2)) gt 1.05e-3 then $
-        message, 'kperp_edges does not match in savefiles'
-      kpar_edges = getvar_savefile(savefiles_2d[2*i,0], 'kpar_edges')
-      kpar_edges2 = getvar_savefile(savefiles_2d[2*i+1,0], 'kpar_edges')
-      if n_elements(kpar_edges) ne n_elements(kpar_edges2) or max(abs(kpar_edges - kpar_edges2)) gt 1.05e-3 then $
-        message, 'kpar_edges does not match in savefiles'
-        
-      kperp_bin = getvar_savefile(savefiles_2d[2*i,0], 'kperp_bin')
-      kperp_bin2 = getvar_savefile(savefiles_2d[2*i+1,0], 'kperp_bin')
-      if abs(kperp_bin - kperp_bin2) gt 1.05e-3 then $
-        message, 'kperp_bin does not match in savefiles'
-      kpar_bin = getvar_savefile(savefiles_2d[2*i,0], 'kpar_bin')
-      kpar_bin2 = getvar_savefile(savefiles_2d[2*i+1,0], 'kpar_bin')
-      if abs(kpar_bin - kpar_bin2) gt 1.05e-3 then $
-        message, 'kpar_edges does not match in savefiles'
-        
-      kperp_lambda_conv = getvar_savefile(savefiles_2d[2*i,0], 'kperp_lambda_conv')
-      kperp_lambda_conv2 = getvar_savefile(savefiles_2d[2*i+1,0], 'kperp_lambda_conv')
-      if abs(kperp_lambda_conv - kperp_lambda_conv2)/kperp_lambda_conv gt 1.05e-3  then message, 'kperp_lambda_conv do not match in savefiles'
-      delay_params = getvar_savefile(savefiles_2d[2*i,0], 'delay_params')
-      delay_params2 = getvar_savefile(savefiles_2d[2*i+1,0], 'delay_params')
-      if max(abs(delay_params - delay_params2)) gt 1.05e-3  then message, 'delay_params do not match in savefiles'
-      hubble_param = getvar_savefile(savefiles_2d[2*i,0], 'hubble_param')
-      if total(abs(hubble_param - getvar_savefile(savefiles_2d[2*i+1,0], 'hubble_param'))) ne 0 then message, 'hubble_param do not match in savefiles'
-      
-      power1 = getvar_savefile(savefiles_2d[2*i,0], 'power')
-      power2 = getvar_savefile(savefiles_2d[2*i,1], 'power')
-      
-      power_ratio1 = power1 / power2
-      wh0 = where(power2 eq 0, count0)
-      if count0 gt 0 then power_ratio1[wh0] = 0
-      
-      power1 = getvar_savefile(savefiles_2d[2*i+1,0], 'power')
-      power2 = getvar_savefile(savefiles_2d[2*i+1,1], 'power')
-      
-      power_ratio2 = power1 / power2
-      wh0 = where(power2 eq 0, count0)
-      if count0 gt 0 then power_ratio2[wh0] = 0
-      
-      power_diff_ratio = power_ratio1-power_ratio2
-      
-      if i eq 0 then begin
-        kperp_plot_range = [5./kperp_lambda_conv, min([file_struct_arr1.kspan/2.,file_struct_arr1.max_baseline_lambda])/kperp_lambda_conv]
-        if keyword_set(hinv) then kperp_plot_range = kperp_plot_range / hubble_param
-        
-        
-        ncol=3
-        nrow=n_sets/2
-        start_multi_params = {ncol:ncol, nrow:nrow, ordering:'row'}
-      endif else pos_use = positions[*,3*i]
-      
-      kpower_2d_plots, power = power_ratio1, multi_pos = pos_use, start_multi_params = start_multi_params, $
-        kperp_edges = kperp_edges, kpar_edges = kpar_edges, kperp_bin = kperp_bin, kpar_bin = kpar_bin, $
-        kperp_lambda_conv = kperp_lambda_conv, delay_params = delay_params, hubble_param = hubble_param, $
-        png = png, eps = eps, pdf = pdf, plotfile = plotfile_2d, window_num = window_num, $
-        kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
-        data_range = data_range, full_title = titles[i,0], $
-        plot_wedge_line = plot_wedge_line, hinv = hinv, /pwr_ratio, $
-        wedge_amp = wedge_amp, baseline_axis = baseline_axis, delay_axis = delay_axis, $
-        kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis
-        
-      if i eq 0 then begin
-        positions = pos_use
-        undefine, start_multi_params
+      if keyword_set(pub) then begin
+        cgps_close, png = png, pdf = pdf, delete_ps = delete_ps, density=600
       endif
-      pos_use = positions[*,3*i+1]
       
-      kpower_2d_plots, power = power_ratio2, multi_pos = pos_use, start_multi_params = start_multi_params, $
-        kperp_edges = kperp_edges, kpar_edges = kpar_edges, kperp_bin = kperp_bin, kpar_bin = kpar_bin, $
-        kperp_lambda_conv = kperp_lambda_conv, delay_params = delay_params, hubble_param = hubble_param, $
-        png = png, eps = eps, pdf = pdf, plotfile = plotfile_2d, window_num = window_num, $
-        kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
-        data_range = data_range, full_title = titles[i,1], $
-        plot_wedge_line = plot_wedge_line, hinv = hinv, /pwr_ratio, $
-        wedge_amp = wedge_amp, baseline_axis = baseline_axis, delay_axis = delay_axis, $
-        kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis
+      
+    endif else begin
+      if keyword_set(pub) then plotfiles_2d = compare_files.plotfiles_2d
+      
+      if keyword_set(plot_slices) then begin
+        slice_axis = getvar_savefile(compare_files.input_savefile1[slice_i], 'slice_axis')
+        if slice_axis eq 0 or slice_axis eq 1 then begin
+          plot_xrange = compare_files.kperp_plot_range
+          if n_elements(kpar_plot_range) gt 0 then plot_yrange = kpar_plot_range
+        endif else begin
+          plot_xrange = compare_files.kperp_plot_range
+          plot_yrange = compare_files.kperp_plot_range
+        endelse
         
-      pos_use = positions[*,3*i+2]
+        kpower_slice_plot, [compare_files.input_savefile1[slice_i], compare_files.input_savefile2[slice_i]], $
+          png = png, eps = eps, pdf = pdf, plotfile = plotfile_2d, window_num = window_num, $
+          plot_xrange = plot_xrange, plot_yrange = plot_yrange, $
+          data_range = data_range, title_prefix = title, note = note + ', ' + compare_files.kperp_density_names, $
+          plot_wedge_line = plot_wedge_line, hinv = hinv, /pwr_ratio, $
+          wedge_amp = compare_files.wedge_amp, baseline_axis = baseline_axis, delay_axis = delay_axis, $
+          linear_axes = max([keyword_set(kperp_linear_axis), keyword_set(kpar_linear_axis)])
+      endif else begin
+        kpower_2d_plots, [compare_files.input_savefile1[slice_i], compare_files.input_savefile2[slice_i]], $
+          png = png, eps = eps, pdf = pdf, plotfile = plotfile_2d, window_num = window_num, $
+          kperp_plot_range = compare_files.kperp_plot_range, kpar_plot_range = kpar_plot_range, $
+          data_range = data_range, title_prefix = title, note = note + ', ' + compare_files.kperp_density_names, $
+          plot_wedge_line = plot_wedge_line, hinv = hinv, /pwr_ratio, $
+          wedge_amp = compare_files.wedge_amp, baseline_axis = baseline_axis, delay_axis = delay_axis, $
+          kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis
+      endelse
       
-      kpower_2d_plots, power = power_diff_ratio, multi_pos = pos_use, start_multi_params = start_multi_params, $
-        kperp_edges = kperp_edges, kpar_edges = kpar_edges, kperp_bin = kperp_bin, kpar_bin = kpar_bin, $
-        kperp_lambda_conv = kperp_lambda_conv, delay_params = delay_params, hubble_param = hubble_param, $
-        png = png, eps = eps, pdf = pdf, plotfile = plotfile_2d, window_num = window_num, color_profile = 'sym_log', $
-        kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
-        data_range = diff_range, data_min_abs = diff_min_abs, full_title = titles[i,2], note = note + ', ' + kperp_density_names, $
-        plot_wedge_line = plot_wedge_line, hinv = hinv, /pwr_ratio, $
-        wedge_amp = wedge_amp, baseline_axis = baseline_axis, delay_axis = delay_axis, $
-        kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis
-        
-    endfor
-    
-    if keyword_set(pub) then begin
-      cgps_close, png = png, pdf = pdf, delete_ps = delete_ps, density=600
-    endif
-    
-    
-  endif else begin
-  
-    kperp_edges = getvar_savefile(savefiles_2d[0], 'kperp_edges')
-    kperp_edges2 = getvar_savefile(savefiles_2d[1], 'kperp_edges')
-    if n_elements(kperp_edges) ne n_elements(kperp_edges2) or max(abs(kperp_edges - kperp_edges2)) gt 1.05e-3 then $
-      message, 'kperp_edges does not match in savefiles'
-    kpar_edges = getvar_savefile(savefiles_2d[0], 'kpar_edges')
-    kpar_edges2 = getvar_savefile(savefiles_2d[1], 'kpar_edges')
-    if n_elements(kpar_edges) ne n_elements(kpar_edges2) or max(abs(kpar_edges - kpar_edges2)) gt 1.05e-3 then $
-      message, 'kpar_edges does not match in savefiles'
-      
-    kperp_bin = getvar_savefile(savefiles_2d[0], 'kperp_bin')
-    kperp_bin2 = getvar_savefile(savefiles_2d[1], 'kperp_bin')
-    if abs(kperp_bin - kperp_bin2) gt 1.05e-3 then $
-      message, 'kperp_bin does not match in savefiles'
-    kpar_bin = getvar_savefile(savefiles_2d[0], 'kpar_bin')
-    kpar_bin2 = getvar_savefile(savefiles_2d[1], 'kpar_bin')
-    if abs(kpar_bin - kpar_bin2) gt 1.05e-3 then $
-      message, 'kpar_edges does not match in savefiles'
-      
-    kperp_lambda_conv = getvar_savefile(savefiles_2d[0], 'kperp_lambda_conv')
-    kperp_lambda_conv2 = getvar_savefile(savefiles_2d[1], 'kperp_lambda_conv')
-    if abs(kperp_lambda_conv - kperp_lambda_conv2)/kperp_lambda_conv gt 1.05e-3  then message, 'kperp_lambda_conv do not match in savefiles'
-    delay_params = getvar_savefile(savefiles_2d[0], 'delay_params')
-    delay_params2 = getvar_savefile(savefiles_2d[1], 'delay_params')
-    if max(abs(delay_params - delay_params2)) gt 1.05e-3  then message, 'delay_params do not match in savefiles'
-    hubble_param = getvar_savefile(savefiles_2d[0], 'hubble_param')
-    if total(abs(hubble_param - getvar_savefile(savefiles_2d[1], 'hubble_param'))) ne 0 then message, 'hubble_param do not match in savefiles'
-    
-    power1 = getvar_savefile(savefiles_2d[0], 'power')
-    power2 = getvar_savefile(savefiles_2d[1], 'power')
-    
-    power_ratio = power1 / power2
-    wh0 = where(power2 eq 0, count0)
-    if count0 gt 0 then power_ratio[wh0] = 0
-    
-    kperp_plot_range = [5./kperp_lambda_conv, min([file_struct_arr1.kspan/2.,file_struct_arr1.max_baseline_lambda])/kperp_lambda_conv]
-    if keyword_set(hinv) then kperp_plot_range = kperp_plot_range / hubble_param
-    
-    
-    kpower_2d_plots, power = power_ratio, kperp_edges = kperp_edges, kpar_edges = kpar_edges, kperp_bin = kperp_bin, kpar_bin = kpar_bin, $
-      kperp_lambda_conv = kperp_lambda_conv, delay_params = delay_params, hubble_param = hubble_param, $
-      png = png, eps = eps, pdf = pdf, plotfile = plotfile_2d, window_num = window_num, $
-      kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
-      data_range = data_range, title_prefix = title, note = note + ', ' + kperp_density_names, $
-      plot_wedge_line = plot_wedge_line, hinv = hinv, /pwr_ratio, $
-      wedge_amp = wedge_amp, baseline_axis = baseline_axis, delay_axis = delay_axis, $
-      kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis
-      
-  endelse
-  
+    endelse
+    window_num += 1
+  endfor
 end

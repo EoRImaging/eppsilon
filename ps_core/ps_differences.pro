@@ -1,6 +1,6 @@
 pro ps_differences, power_file1, power_file2, refresh = refresh, $
     savefile_3d = savefile_3d, savefile_2d = savefile_2d, savefiles_1d = savefiles_1d, $
-    diff_ratio = diff_ratio, wedge_amp = wedge_amp, wt_cutoffs = wt_cutoffs, wt_measures = wt_measures
+    wedge_amp = wedge_amp, wt_cutoffs = wt_cutoffs, wt_measures = wt_measures
     
   test_save = file_test(savefile_3d) *  (1 - file_test(savefile_3d, /zero_length))
   test_save_2d = file_test(savefile_2d) *  (1 - file_test(savefile_2d, /zero_length))
@@ -85,31 +85,7 @@ pro ps_differences, power_file1, power_file2, refresh = refresh, $
     kperp_edges = kperp_edges_mpc
     kpar_edges = kpar_edges_mpc
     weights = binned_weights
-    
-    if keyword_set(diff_ratio) then begin
-      if n_elements(power1) eq 0 then power1 = getvar_savefile(power_file1, 'power_3d')
-      if n_elements(weights1) eq 0 then weights1 = getvar_savefile(power_file1, 'weights_3d')
-      
-      power_rebin_1 = kspace_rebinning_2d(power1, kx_mpc, ky_mpc, kz_mpc, kperp_edges_mpc, kpar_edges_mpc, log_kpar = log_kpar, $
-        log_kperp = log_kperp, kperp_bin = kperp_bin, kpar_bin = kpar_bin, weights = weights1, $
-        binned_weights = binned_weights1, $
-        kperp_density_measure = wt_meas_use, kperp_density_cutoff = wt_cutoffs)
-        
-      if n_elements(power2) eq 0 then power2 = getvar_savefile(power_file2, 'power_3d')
-      if n_elements(weights2) eq 0 then weights2 = getvar_savefile(power_file2, 'weights_3d')
-      
-      power_rebin_2 = kspace_rebinning_2d(power2, kx_mpc, ky_mpc, kz_mpc, kperp_edges_mpc, kpar_edges_mpc, log_kpar = log_kpar, $
-        log_kperp = log_kperp, kperp_bin = kperp_bin, kpar_bin = kpar_bin, weights = weights2, $
-        binned_weights = binned_weights2, $
-        kperp_density_measure = wt_meas_use, kperp_density_cutoff = wt_cutoffs)
-        
-      power_denom = power_rebin_2
-      weights_denom = binned_weights2
-      
-      power = power/power_denom
-      weights = weights/weights_denom
-    endif
-    
+       
     save, file = savefile_2d, power, weights, kperp_edges, kpar_edges, kperp_bin, kpar_bin, $
       kperp_lambda_conv, delay_params, hubble_param
   endif
