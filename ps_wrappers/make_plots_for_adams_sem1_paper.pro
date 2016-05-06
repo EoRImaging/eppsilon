@@ -87,17 +87,19 @@ pro make_plots_for_adams_sem1_paper,diffuse_sky=diffuse_sky,reflection_diff=refl
   ; Few plotting options that should be uniform
   linethick=5
   charsize=2.5
+  
+  kperp_slice=[13,16]
+  kpar_slice=[1.05,1.15]
 
   if keyword_set(kpar_plot) or keyword_set(plot_all) then begin
     ; Make a narrow kpar power plot
         
     ps_wrapper,dir,obs_name,/pdf,/exact_obsnames,$
-      freq_ch_range=mid,kperp_range_lambda_1dave=[13,16],$
+      freq_ch_range=mid,kperp_range_lambda_1dave=kperp_slice,$
       kpar_range_1dave=[0,200],ps_foldername='ps_jan2016',$
       /plot_kpar_power,type_inc=['dirty','res'],pol_inc='xx'
-    ;restore,dir+'/ps_jan2016/Combined_obs_wedge_cut_plus_res_cut_cubeXX__even_odd_joint_ch48-143_dirty_xx_bh_dencorr_kperplambda15-20_kpar_power.idlsave'
-    ;dirty_power_out=translate_1d_power(k_edges,k_bin,hubble_param,power,k_out=k_out)
-    restore,dir+'/ps_jan2016/Combined_obs_wedge_cut_plus_res_cut_cubeXX__even_odd_joint_ch48-143_res_xx_bh_dencorr_kperplambda13-16_kpar_power.idlsave'
+    restore,dir+'/ps_jan2016/Combined_obs_wedge_cut_plus_res_cut_cubeXX__even_odd_joint_ch48-143_res_xx_bh_dencorr_kperplambda'+$
+          strtrim(kperp_slice[0],2)+'-'+strtrim(kperp_slice[1],2)+'_kpar_power.idlsave'
     coarse_harm_ranges=transpose([[.244,.372],[.552,.680],[.860,.988],[1.168,1.296]])/hubble_param ; These are really hard to get... had to dig into plotting code. These are specifically for mid-band, coarse_harm_width=3
     res_power_out=translate_1d_power(k_edges,k_bin,hubble_param,power,k_out=k_out)
     noise_out=translate_1d_power(k_edges,k_bin,hubble_param,1./sqrt(weights),k_out=k_out)
@@ -137,9 +139,15 @@ pro make_plots_for_adams_sem1_paper,diffuse_sky=diffuse_sky,reflection_diff=refl
     ; Narrow kperp power plot
     ps_wrapper,dir,obs_name,/pdf,/exact_obsnames,$
       freq_ch_range=mid,kperp_range_lambda_1dave=[0,200],$
-      kpar_range_1dave=[1.05,1.15],ps_foldername='ps_jan2016',$
+      kpar_range_1dave=kpar_slice,ps_foldername='ps_jan2016',$
       /plot_kperp_power,type_inc=['dirty','res'],pol_inc='xx'
-    restore,dir+'/ps_jan2016/Combined_obs_wedge_cut_plus_res_cut_cubeXX__even_odd_joint_ch48-143_res_xx_bh_dencorr_kpar1.05-1.15_kperp_power.idlsave'
+    restore,dir+'/ps_jan2016/Combined_obs_wedge_cut_plus_res_cut_cubeXX__even_odd_joint_ch48-143_res_xx_bh_dencorr_kpar'+$
+          string(kpar_slice[0],format='(f4.2)')+'-'+string(kpar_slice[1],format='(f4.2)')+'_kperp_power.idlsave'
+    deep_file = dir+'/ps_jan2016/Combined_obs_wedge_cut_plus_res_cut_cubeXX__even_odd_joint_ch48-143_res_xx_bh_dencorr_no_120deg_wedge_cbw3_'+$
+          'kperplambda'+strtrim(kperp_range_lambda_use[0],2)+'-'+strtrim(kperp_range_lambda_use[1],2)+$
+          '_kpar'+string(kpar_range_1dave_use[0],format='(f4.2)')+'-'+strtrim(fix(kpar_range_1dave_use[1]),2)+'_1dkpower.idlsave'
+    wedge_amp=getvar_savefile(deep_file,'wedge_amp')
+    wedge_line=mean(kpar_slice)/wedge_amp
     res_power_out=translate_1d_power(k_edges,k_bin,hubble_param,power,k_out=k_out)
     noise_out=translate_1d_power(k_edges,k_bin,hubble_param,1./sqrt(weights),k_out=k_out)
     ; plot it
@@ -164,10 +172,11 @@ pro make_plots_for_adams_sem1_paper,diffuse_sky=diffuse_sky,reflection_diff=refl
     ; Fix damage
     cgplot,k_out,res_power_out,/ylog,/xlog,font=1,xtickformat='exponent',ytickformat='exponent',$
       psym=10,xrange=xrange,xstyle=9,yrange=yrange,/ystyle,thick=linethick,color='blue',$
-      xtitle=xtitle,ytitle=ytitle,charsize=charsize,/noerase
+      xtitle=xtitle,ytitle=ytitle,charsize=charsize,/noerase      
     ; draw top axis
     cgaxis, xaxis=1, xrange = axis_range,  xtitle = axis_title, font = 1, xstyle = 1,charsize=charsize
     cgplot,/overplot,k_out,noise_out,psym=10,linestyle=2,thick=linethick,color='red'
+    cgoplot,[wedge_line,wedge_line],yrange,linestyle=2,thick=linethick,color='black'
     cgPS_Close,/PDF,/Delete_PS
   endif
 
