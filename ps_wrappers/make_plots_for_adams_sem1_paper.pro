@@ -97,7 +97,7 @@ pro make_plots_for_adams_sem1_paper,diffuse_sky=diffuse_sky,reflection_diff=refl
       /plot_kpar_power,type_inc=['dirty','res'],pol_inc='xx'
     ;restore,dir+'/ps_jan2016/Combined_obs_wedge_cut_plus_res_cut_cubeXX__even_odd_joint_ch48-143_dirty_xx_bh_dencorr_kperplambda15-20_kpar_power.idlsave'
     ;dirty_power_out=translate_1d_power(k_edges,k_bin,hubble_param,power,k_out=k_out)
-    restore,dir+'/ps_jan2016/Combined_obs_wedge_cut_plus_res_cut_cubeXX__even_odd_joint_ch48-143_res_xx_bh_dencorr_kperplambda15-20_kpar_power.idlsave'
+    restore,dir+'/ps_jan2016/Combined_obs_wedge_cut_plus_res_cut_cubeXX__even_odd_joint_ch48-143_res_xx_bh_dencorr_kperplambda13-16_kpar_power.idlsave'
     coarse_harm_ranges=transpose([[.244,.372],[.552,.680],[.860,.988],[1.168,1.296]])/hubble_param ; These are really hard to get... had to dig into plotting code. These are specifically for mid-band, coarse_harm_width=3
     res_power_out=translate_1d_power(k_edges,k_bin,hubble_param,power,k_out=k_out)
     noise_out=translate_1d_power(k_edges,k_bin,hubble_param,1./sqrt(weights),k_out=k_out)
