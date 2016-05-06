@@ -489,7 +489,7 @@ pro kpower_slice_plot, slice_savefile, power = power, noise = noise, noise_expva
     endif
   endelse
   
-  if keyword_set(hinv) then units_str = textoidl(' (mK^2 h^{-1} Mpc^3)', font = font) $
+  if keyword_set(hinv) then units_str = textoidl(' (mK^2 !8h!X^{-1} Mpc^3)', font = font) $
   else units_str = textoidl(' (mK^2 Mpc^3)', font = font)
   
   if keyword_set(no_units) then units_str=''
@@ -501,9 +501,9 @@ pro kpower_slice_plot, slice_savefile, power = power, noise = noise, noise_expva
   
   if keyword_set(baseline_axis) then initial_title = '' else initial_title = plot_title
   
-  if keyword_set (hinv) then plot_xtitle = textoidl('k_' + plot_xname + ' (h Mpc^{-1})', font = font) $
+  if keyword_set (hinv) then plot_xtitle = textoidl('k_' + plot_xname + ' (!8h!X Mpc^{-1})', font = font) $
   else plot_xtitle = textoidl('k_' + plot_xname + ' (Mpc^{-1})', font = font)
-  if keyword_set (hinv) then plot_ytitle = textoidl('k_' + plot_yname + ' (h Mpc^{-1})', font = font) $
+  if keyword_set (hinv) then plot_ytitle = textoidl('k_' + plot_yname + ' (!8h!X Mpc^{-1})', font = font) $
   else plot_ytitle = textoidl('k_' + plot_yname + ' (Mpc^{-1})', font = font)
   
   if keyword_set(linear_axes) then begin

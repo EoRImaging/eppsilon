@@ -492,21 +492,21 @@ pro uvf_slice_plot, slice_savefile, multi_pos = multi_pos, start_multi_params = 
   endif else begin
     case slice_axis of
       0: begin
-        if keyword_set (hinv) then plot_xtitle = textoidl('k_y (h Mpc^{-1})', font = font) $
+        if keyword_set (hinv) then plot_xtitle = textoidl('k_y (!8h!X Mpc^{-1})', font = font) $
         else plot_xtitle = textoidl('k_y (Mpc^{-1})', font = font)
         plot_ytitle = plot_yname + ' (MHz)'
         baseline_xtitle = plot_xname + textoidl(' (\lambda)', font = font)
       end
       1: begin
-        if keyword_set (hinv) then plot_xtitle = textoidl('k_x (h Mpc^{-1})', font = font) $
+        if keyword_set (hinv) then plot_xtitle = textoidl('k_x (!8h!X Mpc^{-1})', font = font) $
         else plot_xtitle = textoidl('k_x (Mpc^{-1})', font = font)
         plot_ytitle = plot_yname + ' (MHz)'
         baseline_xtitle = plot_xname + textoidl(' (\lambda)', font = font)
       end
       2: begin
-        if keyword_set (hinv) then plot_xtitle = textoidl('k_x (h Mpc^{-1})', font = font) $
+        if keyword_set (hinv) then plot_xtitle = textoidl('k_x (!8h!X Mpc^{-1})', font = font) $
         else plot_xtitle = textoidl('k_x (Mpc^{-1})', font = font)
-        if keyword_set (hinv) then plot_ytitle = textoidl('k_y (h Mpc^{-1})', font = font) $
+        if keyword_set (hinv) then plot_ytitle = textoidl('k_y (!8h!X Mpc^{-1})', font = font) $
         else plot_ytitle = textoidl('k_y (Mpc^{-1})', font = font)
         baseline_xtitle = plot_xname + textoidl(' (\lambda)', font = font)
         baseline_ytitle = plot_yname + textoidl(' (\lambda)', font = font)

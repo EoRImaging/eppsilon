@@ -513,19 +513,19 @@ pro kpower_1d_plots, power_savefile, multi_pos = multi_pos, start_multi_params =
     ytitle = 'Weights'
   endif else begin
     if keyword_set(delta) then ytitle = textoidl('\Delta^2 (k^3 P_k /(2\pi^2)) (mK^2)', font = font) else begin
-      if keyword_set(hinv) then ytitle = textoidl('P_k (mK^2 h^{-3} Mpc^3)', font = font) $
+      if keyword_set(hinv) then ytitle = textoidl('P_k (mK^2 !8h!X^{-3} Mpc^3)', font = font) $
       else ytitle = textoidl('P_k (mK^2 Mpc^3)', font = font)
     endelse
   endelse
   if keyword_set(kpar_power) then begin
-    if keyword_set(hinv) then xtitle = textoidl('k_{||} (h Mpc^{-1})', font = font) $
+    if keyword_set(hinv) then xtitle = textoidl('k_{||} (!8h!X Mpc^{-1})', font = font) $
     else xtitle = textoidl('k_{||} (Mpc^{-1})', font = font)
   endif else if keyword_set(kperp_power) then begin
-    if keyword_set (hinv) then xtitle = textoidl('k_{perp} (h Mpc^{-1})', font = font) $
+    if keyword_set (hinv) then xtitle = textoidl('k_{perp} (!8h!X Mpc^{-1})', font = font) $
     else xtitle = textoidl('k_{perp} (Mpc^{-1})', font = font)
     xtitle = repstr(xtitle, 'perp', perp_char)
   endif else begin
-    if keyword_set(hinv) then xtitle = textoidl('k (h Mpc^{-1})', font = font) $
+    if keyword_set(hinv) then xtitle = textoidl('k (!8h!X Mpc^{-1})', font = font) $
     else xtitle = textoidl('k (Mpc^{-1})', font = font)
   endelse
   
