@@ -81,19 +81,26 @@ pro make_plots_for_adams_sem1_paper,diffuse_sky=diffuse_sky,reflection_diff=refl
   mid=[96-48,191-48]
   hi=[96,191]
   
+  kperp_range_lambda_use=[10,70]
+  kpar_range_1dave_use=[0.15,200]
+  
   ; Few plotting options that should be uniform
   linethick=5
   charsize=2.5
+  
+  kperp_slice=[13,16]
+  kpar_slice=[1.05,1.15]
 
   if keyword_set(kpar_plot) or keyword_set(plot_all) then begin
     ; Make a narrow kpar power plot
+        
     ps_wrapper,dir,obs_name,/pdf,/exact_obsnames,$
-      freq_ch_range=mid,kperp_range_lambda_1dave=[15,20],$
+      freq_ch_range=mid,kperp_range_lambda_1dave=kperp_slice,$
       kpar_range_1dave=[0,200],ps_foldername='ps_jan2016',$
       /plot_kpar_power,type_inc=['dirty','res'],pol_inc='xx'
-    ;restore,dir+'/ps_jan2016/Combined_obs_wedge_cut_plus_res_cut_cubeXX__even_odd_joint_ch48-143_dirty_xx_bh_dencorr_kperplambda15-20_kpar_power.idlsave'
-    ;dirty_power_out=translate_1d_power(k_edges,k_bin,hubble_param,power,k_out=k_out)
-    restore,dir+'/ps_jan2016/Combined_obs_wedge_cut_plus_res_cut_cubeXX__even_odd_joint_ch48-143_res_xx_bh_dencorr_kperplambda15-20_kpar_power.idlsave'
+    restore,dir+'/ps_jan2016/Combined_obs_wedge_cut_plus_res_cut_cubeXX__even_odd_joint_ch48-143_res_xx_bh_dencorr_kperplambda'+$
+          strtrim(kperp_slice[0],2)+'-'+strtrim(kperp_slice[1],2)+'_kpar_power.idlsave'
+    coarse_harm_ranges=transpose([[.244,.372],[.552,.680],[.860,.988],[1.168,1.296]])/hubble_param ; These are really hard to get... had to dig into plotting code. These are specifically for mid-band, coarse_harm_width=3
     res_power_out=translate_1d_power(k_edges,k_bin,hubble_param,power,k_out=k_out)
     noise_out=translate_1d_power(k_edges,k_bin,hubble_param,1./sqrt(weights),k_out=k_out)
     lin_delay_kpar_slope = (delay_params[1] - delay_params[0])/(max(k_edges)/hubble_param - k_bin)
@@ -108,11 +115,23 @@ pro make_plots_for_adams_sem1_paper,diffuse_sky=diffuse_sky,reflection_diff=refl
     axis_title = 'delay (ns)'
     xtitle=textoidl('k_{||} (h Mpc^{-1})', font = 1)
     ytitle=textoidl('P_k (mK^2 h^{-3} Mpc^3)', font = 1)
+    
     cgplot,k_out,res_power_out,/ylog,/xlog,font=1,xtickformat='exponent',ytickformat='exponent',$
       psym=10,xrange=xrange,xstyle=9,yrange=yrange,/ystyle,thick=linethick,color='blue',$
       xtitle=xtitle,ytitle=ytitle,charsize=charsize
+    cgcolorfill,[xrange[0],kpar_range_1dave_use[0],kpar_range_1dave_use[0],xrange[0]],[yrange[0],yrange[0],yrange[1],yrange[1]],col=cgcolor("medium gray")
+    ;cgcolorfill,[kpar_range_1dave[1],xrange[1],xrange[1],kpar_range_1dave[1]],[yrange[0],yrange[0],yrange[1],yrange[1]],col=cgcolor("medium gray")
+    for i=0,3 do begin
+      cgcolorfill,[coarse_harm_ranges[i,0],coarse_harm_ranges[i,1],coarse_harm_ranges[i,1],coarse_harm_ranges[i,0]],[yrange[0],yrange[0],yrange[1],yrange[1]],col=cgcolor("medium gray")
+    endfor
+    ; replot to fix damage done by polyfill
+    cgplot,k_out,res_power_out,/ylog,/xlog,font=1,xtickformat='exponent',ytickformat='exponent',$
+      psym=10,xrange=xrange,xstyle=9,yrange=yrange,/ystyle,thick=linethick,color='blue',$
+      xtitle=xtitle,ytitle=ytitle,charsize=charsize,/noerase
+    ; draw top axis
     cgaxis, xaxis=1, xrange = axis_range,  xtitle = axis_title, font = 1, xstyle = 1,charsize=charsize
     cgplot,/overplot,k_out,noise_out,psym=10,linestyle=2,thick=linethick,color='red'
+    
     cgPS_Close,/PDF,/Delete_PS
   endif
   
@@ -120,9 +139,15 @@ pro make_plots_for_adams_sem1_paper,diffuse_sky=diffuse_sky,reflection_diff=refl
     ; Narrow kperp power plot
     ps_wrapper,dir,obs_name,/pdf,/exact_obsnames,$
       freq_ch_range=mid,kperp_range_lambda_1dave=[0,200],$
-      kpar_range_1dave=[0.6,.7],ps_foldername='ps_jan2016',$
+      kpar_range_1dave=kpar_slice,ps_foldername='ps_jan2016',$
       /plot_kperp_power,type_inc=['dirty','res'],pol_inc='xx'
-    restore,dir+'/ps_jan2016/Combined_obs_wedge_cut_plus_res_cut_cubeXX__even_odd_joint_ch48-143_res_xx_bh_dencorr_kpar0.6-0.7_kperp_power.idlsave'
+    restore,dir+'/ps_jan2016/Combined_obs_wedge_cut_plus_res_cut_cubeXX__even_odd_joint_ch48-143_res_xx_bh_dencorr_kpar'+$
+          string(kpar_slice[0],format='(f4.2)')+'-'+string(kpar_slice[1],format='(f4.2)')+'_kperp_power.idlsave'
+    deep_file = dir+'/ps_jan2016/Combined_obs_wedge_cut_plus_res_cut_cubeXX__even_odd_joint_ch48-143_res_xx_bh_dencorr_no_120deg_wedge_cbw3_'+$
+          'kperplambda'+strtrim(kperp_range_lambda_use[0],2)+'-'+strtrim(kperp_range_lambda_use[1],2)+$
+          '_kpar'+string(kpar_range_1dave_use[0],format='(f4.2)')+'-'+strtrim(fix(kpar_range_1dave_use[1]),2)+'_1dkpower.idlsave'
+    wedge_amp=getvar_savefile(deep_file,'wedge_amp')
+    wedge_line=mean(kpar_slice)/wedge_amp
     res_power_out=translate_1d_power(k_edges,k_bin,hubble_param,power,k_out=k_out)
     noise_out=translate_1d_power(k_edges,k_bin,hubble_param,1./sqrt(weights),k_out=k_out)
     ; plot it
@@ -139,8 +164,19 @@ pro make_plots_for_adams_sem1_paper,diffuse_sky=diffuse_sky,reflection_diff=refl
     cgplot,k_out,res_power_out,/ylog,/xlog,font=1,xtickformat='exponent',ytickformat='exponent',$
       psym=10,xrange=xrange,xstyle=9,yrange=yrange,/ystyle,thick=linethick,color='blue',$
       xtitle=xtitle,ytitle=ytitle,charsize=charsize
+    ; Plot exclusion regions
+    cgcolorfill,[xrange[0],kperp_range_lambda_use[0]/(hubble_param*kperp_lambda_conv),kperp_range_lambda_use[0]/(hubble_param*kperp_lambda_conv),xrange[0]],$
+          [yrange[0],yrange[0],yrange[1],yrange[1]],col=cgcolor("medium gray")
+    cgcolorfill,[xrange[1],kperp_range_lambda_use[1]/(hubble_param*kperp_lambda_conv),kperp_range_lambda_use[1]/(hubble_param*kperp_lambda_conv),xrange[1]],$
+          [yrange[0],yrange[0],yrange[1],yrange[1]],col=cgcolor("medium gray")    
+    ; Fix damage
+    cgplot,k_out,res_power_out,/ylog,/xlog,font=1,xtickformat='exponent',ytickformat='exponent',$
+      psym=10,xrange=xrange,xstyle=9,yrange=yrange,/ystyle,thick=linethick,color='blue',$
+      xtitle=xtitle,ytitle=ytitle,charsize=charsize,/noerase      
+    ; draw top axis
     cgaxis, xaxis=1, xrange = axis_range,  xtitle = axis_title, font = 1, xstyle = 1,charsize=charsize
     cgplot,/overplot,k_out,noise_out,psym=10,linestyle=2,thick=linethick,color='red'
+    cgoplot,[wedge_line,wedge_line],yrange,linestyle=2,thick=linethick,color='black'
     cgPS_Close,/PDF,/Delete_PS
   endif
 
@@ -148,8 +184,7 @@ pro make_plots_for_adams_sem1_paper,diffuse_sky=diffuse_sky,reflection_diff=refl
   if keyword_set(final_cut_2d) or keyword_set(plot_all) then begin
     ; Run the final cut
     ; Low band
-    kperp_range_lambda=[10,70]
-    kpar_range_1dave=[0.15,200]
+
     coarse_harm_width=3
     wedge_angles=120d
     ps_foldername='ps_jan2016'
@@ -159,17 +194,23 @@ pro make_plots_for_adams_sem1_paper,diffuse_sky=diffuse_sky,reflection_diff=refl
     for bandi=0,2 do begin
       for poli=0,1 do begin
         ps_wrapper,dir,obs_name,/pdf,/exact_obsnames,$
-          freq_ch_range=bands[*,bandi],kperp_range_lambda_1dave=kperp_range_lambda,$
-          kpar_range_1dave=kpar_range_1dave,ps_foldername=ps_foldername,$
+          freq_ch_range=bands[*,bandi],kperp_range_lambda_1dave=kperp_range_lambda_use,$
+          kpar_range_1dave=kpar_range_1dave_use,ps_foldername=ps_foldername,$
           /plot_1to2d,coarse_harm_width=coarse_harm_width,/refresh_ps,$
           wedge_angles=wedge_angles,type_inc='res',pol_inc=pols[poli]
         file=dir+'/'+ps_foldername+'/plots/fhd_apb_EoR0_high_sem1_1_'+obs_name+$
           '_ch'+strtrim(bands[0,bandi],2)+'-'+strtrim(bands[1,bandi],2)+$
-          '_bh_kperplambda'+strtrim(kperp_range_lambda[0],2)+'-'+strtrim(kperp_range_lambda[1],2)+$
-          '_kpar'+string(kpar_range_1dave[0],format='(f4.2)')+'-'+strtrim(fix(kpar_range_1dave[1]),2)+$
+          '_bh_kperplambda'+strtrim(kperp_range_lambda_use[0],2)+'-'+strtrim(kperp_range_lambda_use[1],2)+$
+          '_kpar'+string(kpar_range_1dave_use[0],format='(f4.2)')+'-'+strtrim(fix(kpar_range_1dave_use[1]),2)+$
           '_res_'+pols[poli]+'_1dcontours.pdf'
         outfile=outdir+'deep_2d_ch'+strtrim(bands[0,bandi],2)+'-'+strtrim(bands[1,bandi],2)+pols[poli]+'.pdf'
         file_copy,file,outfile,/overwrite
+        if (bandi eq 1) and (poli eq 0) then begin
+          file=dir+'/'+ps_foldername+'/plots/fhd_apb_EoR0_high_sem1_1_'+obs_name+$
+          '_ch'+strtrim(bands[0,bandi],2)+'-'+strtrim(bands[1,bandi],2)+$
+          '_bh_dencorr_2dkpower.pdf'
+          file_copy,file,outdir+'deep_2d_no_contours.pdf',/overwrite
+        endif
       endfor
     endfor
 
