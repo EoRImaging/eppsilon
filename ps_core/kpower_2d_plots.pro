@@ -837,10 +837,10 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, wei
 
   if log_axes[1] eq 0 then begin
     if keyword_set(force_kpar_axis_range) then kpar_length = max(force_kpar_axis_range) - min(force_kpar_axis_range) $
-    else kpar_length = max(kpar_log_edges) - min(kpar_log_edges)
+    else kpar_length = alog10(max(kpar_edges_use)) - alog10(min(kpar_edges_use[where(kpar_edges_use gt 0)]))
   endif else begin
     if keyword_set(force_kpar_axis_range) then kpar_length = max(log_kpar_axis) - min(log_kpar_axis) $
-    else kpar_length = alog10(max(kpar_edges_use)) - alog10(min(kpar_edges_use[where(kpar_edges_use gt 0)]))
+    else kpar_length = max(kpar_log_edges) - min(kpar_log_edges)
   endelse
 
   data_aspect = float(kpar_length / kperp_length)
