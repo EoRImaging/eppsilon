@@ -1,10 +1,14 @@
-
-
-pro kpower_slice_plot, slice_savefile, multi_pos = multi_pos, start_multi_params = start_multi_params, plot_xrange = plot_xrange, $
-    plot_yrange = plot_yrange, data_range = data_range, png = png, eps = eps, pdf = pdf, plotfile = plotfile, $
-    color_profile = color_profile, log_cut_val = log_cut_val, window_num = window_num, title = title, title_prefix = title_prefix, $
+pro kpower_slice_plot, slice_savefile, power = power, noise = noise, noise_expval = noise_expval, weights = weights, $
+    xarr = xarr, yarr = yarr, slice_axis = slice_axis, slice_inds = slice_inds, $
+    kperp_lambda_conv = kperp_lambda_conv, delay_params = delay_params, hubble_param = hubble_param, $
+    multi_pos = multi_pos, start_multi_params = start_multi_params, $
+    plot_xrange = plot_xrange, plot_yrange = plot_yrange, data_range = data_range, data_min_abs = data_min_abs, $
+    png = png, eps = eps, pdf = pdf, plotfile = plotfile, $
+    color_profile = color_profile, log_cut_val = log_cut_val, window_num = window_num, $
+    full_title = full_title, title_prefix = title_prefix, $
     plot_wedge_line = plot_wedge_line, wedge_amp = wedge_amp, linear_axes = linear_axes, $
-    baseline_axis = baseline_axis, delay_axis = delay_axis, cable_length_axis = cable_length_axis, hinv = hinv, note = note
+    baseline_axis = baseline_axis, delay_axis = delay_axis, cable_length_axis = cable_length_axis, $
+    hinv = hinv, note = note, invert_colorbar = invert_colorbar, no_units = no_units, pwr_ratio = pwr_ratio
     
   if keyword_set(delay_axis) and keyword_set(cable_length_axis) then message, 'Only one of delay_axis and cable_length_axis can be set'
   
@@ -60,23 +64,76 @@ pro kpower_slice_plot, slice_savefile, multi_pos = multi_pos, start_multi_params
       message, 'In multi_pos, x1 must be greater than x0 and y1 must be greater than y0 '
   endif
   
-  restore, slice_savefile
+  if keyword_set(pwr_ratio) then begin
+    if n_elements(power) eq 0 then begin
+      xarr = getvar_savefile(slice_savefile[0], 'xarr')
+      if total(abs(xarr - getvar_savefile(slice_savefile[1], 'xarr'))) ne 0 then message, 'xarr do not match in savefiles'
+      yarr = getvar_savefile(slice_savefile[0], 'yarr')
+      if total(abs(yarr - getvar_savefile(slice_savefile[1], 'yarr'))) ne 0 then message, 'yarr do not match in savefiles'
+      slice_axis = getvar_savefile(slice_savefile[0], 'slice_axis')
+      if total(abs(slice_axis - getvar_savefile(slice_savefile[1], 'slice_axis'))) ne 0 then message, 'slice_axis do not match in savefiles'
+      slice_inds = getvar_savefile(slice_savefile[0], 'slice_inds')
+      if total(abs(slice_inds - getvar_savefile(slice_savefile[1], 'slice_inds'))) ne 0 then message, 'slice_inds do not match in savefiles'
+      kperp_lambda_conv = getvar_savefile(slice_savefile[0], 'kperp_lambda_conv')
+      if total(abs(kperp_lambda_conv - getvar_savefile(slice_savefile[1], 'kperp_lambda_conv'))) ne 0 then message, 'kperp_lambda_conv do not match in savefiles'
+      delay_params = getvar_savefile(slice_savefile[0], 'delay_params')
+      if total(abs(delay_params - getvar_savefile(slice_savefile[1], 'delay_params'))) ne 0 then message, 'delay_params do not match in savefiles'
+      hubble_param = getvar_savefile(slice_savefile[0], 'hubble_param')
+      if total(abs(hubble_param - getvar_savefile(slice_savefile[1], 'hubble_param'))) ne 0 then message, 'hubble_param do not match in savefiles'
+      
+      power1 = getvar_savefile(slice_savefile[0], 'power')
+      power2 = getvar_savefile(slice_savefile[1], 'power')
+      
+      power = power1 / power2
+      wh0 = where(power2 eq 0, count0)
+      if count0 gt 0 then power[wh0] = 0
+    endif
+    
+    plot_type = 'power_ratio'
+    
+  endif else if n_elements(slice_savefile) gt 0 then restore, slice_savefile
+  
+  if n_elements(slice_name) eq 0 then begin
+    case slice_axis of
+      0: begin
+        slice_name = 'x'
+        plane_name = 'ky-kz'
+        plot_xname = 'y'
+        plot_yname = 'z'
+      end
+      1: begin
+        slice_name = 'y'
+        plane_name = 'kx-kz'
+        plot_xname = 'x'
+        plot_yname = 'z'
+      end
+      2: begin
+         slice_name = 'z'
+        plane_name = 'kx-ky'
+        plot_xname = 'x'
+        plot_yname = 'y'
+      end
+    endcase
+  endif
+  
+  xarr_use = xarr
+  yarr_use = yarr
   
   if n_elements(slice_inds) gt 1 then power_slice = total(power, slice_axis+1) / n_elements(slice_inds) $
   else power_slice = reform(power)
   
   if keyword_set(hinv) then begin
-    xarr = xarr / hubble_param
-    yarr = yarr / hubble_param
+    xarr_use = xarr_use / hubble_param
+    yarr_use = yarr_use / hubble_param
     
     power = power * (hubble_param)^3d
   endif
   
-  xdelta = xarr[1] - xarr[0]
-  ydelta = yarr[1] - yarr[0]
+  xdelta = xarr_use[1] - xarr_use[0]
+  ydelta = yarr_use[1] - yarr_use[0]
   
-  xarr_edges = [xarr - xdelta/2, max(xarr) + xdelta/2]
-  yarr_edges = [yarr - ydelta/2, max(yarr) + ydelta/2]
+  xarr_edges = [xarr_use - xdelta/2, max(xarr_use) + xdelta/2]
+  yarr_edges = [yarr_use - ydelta/2, max(yarr_use) + ydelta/2]
   
   if slice_axis lt 2 then kpar_bin_use = ydelta
   
@@ -88,12 +145,12 @@ pro kpower_slice_plot, slice_savefile, multi_pos = multi_pos, start_multi_params
   endif
   
   if n_elements(plot_yrange) eq 0 then begin
-    temp = where(total(power_slice,1) gt 0)
+    temp = where(total(abs(power_slice),1) gt 0)
     plot_yrange = minmax(yarr_edges[[temp, max(temp)+1]])
   endif
   
-  wh_x_inrange = where(xarr ge plot_xrange[0] and xarr + xdelta le plot_xrange[1], n_x_plot)
-  wh_y_inrange = where(yarr ge plot_yrange[0] and yarr + ydelta le plot_yrange[1], n_y_plot)
+  wh_x_inrange = where(xarr_use ge plot_xrange[0] and xarr_use + xdelta le plot_xrange[1], n_x_plot)
+  wh_y_inrange = where(yarr_use ge plot_yrange[0] and yarr_use + ydelta le plot_yrange[1], n_y_plot)
   
   if pub then begin
     if n_elements(plotfile) eq 0 then plotfile = strsplit(slice_savefile, '.idlsave', /regex, /extract) + plot_exten $
@@ -102,17 +159,17 @@ pro kpower_slice_plot, slice_savefile, multi_pos = multi_pos, start_multi_params
   
   if n_x_plot eq 0 or n_y_plot eq 0 then message, 'No data in plot k range'
   
-  if n_x_plot ne n_elements(xarr) then begin
+  if n_x_plot ne n_elements(xarr_use) then begin
     power_slice = power_slice[wh_x_inrange, *]
-    xarr = xarr[wh_x_inrange]
+    xarr_use = xarr_use[wh_x_inrange]
   endif
-  if n_y_plot ne n_elements(yarr) then begin
+  if n_y_plot ne n_elements(yarr_use) then begin
     power_slice = power_slice[*, wh_y_inrange]
-    yarr = yarr[wh_y_inrange]
+    yarr_use = yarr_use[wh_y_inrange]
   endif
   power_3d=0
-  xarr_edges = [xarr - xdelta/2, max(xarr) + xdelta/2]
-  yarr_edges = [yarr - ydelta/2, max(yarr) + ydelta/2]
+  xarr_edges = [xarr_use - xdelta/2, max(xarr_use) + xdelta/2]
+  yarr_edges = [yarr_use - ydelta/2, max(yarr_use) + ydelta/2]
   
   if slice_axis lt 2 then begin
     lin_delay_kpar_slope = (delay_params[1] - delay_params[0])/(max(yarr_edges) - kpar_bin_use)
@@ -140,7 +197,7 @@ pro kpower_slice_plot, slice_savefile, multi_pos = multi_pos, start_multi_params
     if count_x0 eq 1 then begin
       x_log_diffs = (x_log_edges[1:*] - shift(x_log_edges[1:*], 1))[1:*]
       x_log_diffs = [x_log_diffs[0], x_log_diffs]
-      x_log_edges[wh_x0] = x_log_edges[wh_x0+1] - kperp_log_diffs[wh_x0]
+      x_log_edges[wh_x0] = x_log_edges[wh_x0+1] - x_log_diffs[wh_x0]
     endif else x_log_diffs = (x_log_edges - shift(x_log_edges, 1))[1:*]
     
     image_x_delta = min(x_log_diffs)
@@ -191,7 +248,7 @@ pro kpower_slice_plot, slice_savefile, multi_pos = multi_pos, start_multi_params
   annotate_color = 'black'
   
   log_color_calc, power_plot, power_log_norm, cb_ticks, cb_ticknames, color_range, n_colors, data_range = data_range, $
-    color_profile = color_profile, log_cut_val = log_cut_val, oob_low = oob_low
+    color_profile = color_profile, log_cut_val = log_cut_val, min_abs = data_min_abs, oob_low = oob_low, invert_colorbar = invert_colorbar
     
   if keyword_set(all_zero) then power_log_norm = power_log_norm * 0 + annotate_color
   
@@ -432,23 +489,25 @@ pro kpower_slice_plot, slice_savefile, multi_pos = multi_pos, start_multi_params
     endif
   endelse
   
-  if keyword_set(hinv) then units_str = textoidl(' (mK^2 h^{-1} Mpc^3)', font = font) $
+  if keyword_set(hinv) then units_str = textoidl(' (mK^2 !8h!X^{-1} Mpc^3)', font = font) $
   else units_str = textoidl(' (mK^2 Mpc^3)', font = font)
   
-  if n_elements(title) ne 0 then plot_title = title + units_str $
+  if keyword_set(no_units) then units_str=''
+  
+  if n_elements(full_title) ne 0 then plot_title = full_title $
   else plot_title = plane_name + ' plane' + units_str
   if keyword_set(title_prefix) then plot_title = title_prefix + ' ' + plot_title
   
   
   if keyword_set(baseline_axis) then initial_title = '' else initial_title = plot_title
   
-  if keyword_set (hinv) then plot_xtitle = textoidl('k_' + plot_xname + ' (h Mpc^{-1})', font = font) $
+  if keyword_set (hinv) then plot_xtitle = textoidl('k_' + plot_xname + ' (!8h!X Mpc^{-1})', font = font) $
   else plot_xtitle = textoidl('k_' + plot_xname + ' (Mpc^{-1})', font = font)
-  if keyword_set (hinv) then plot_ytitle = textoidl('k_' + plot_yname + ' (h Mpc^{-1})', font = font) $
+  if keyword_set (hinv) then plot_ytitle = textoidl('k_' + plot_yname + ' (!8h!X Mpc^{-1})', font = font) $
   else plot_ytitle = textoidl('k_' + plot_yname + ' (Mpc^{-1})', font = font)
   
   if keyword_set(linear_axes) then begin
-    plot_xarr = xarr_edgesd
+    plot_xarr = xarr_edges
     plot_yarr = yarr_edges
     if slice_axis lt 2 then plot_delay = linear_delay_edges
   endif else begin

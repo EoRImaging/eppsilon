@@ -15,7 +15,7 @@ pro ps_power, file_struct, refresh = refresh, kcube_refresh = kcube_refresh, dft
     wedge_amps = wedge_amps, coarse_harm0 = coarse_harm0, coarse_width = coarse_width, $
     input_units = input_units, fill_holes = fill_holes, no_dft_progress = no_dft_progress, $
     plot_binning_hist = plot_binning_hist, plotfile_binning_hist = plotfile_binning_hist, png = png, eps = eps, pdf = pdf
-    
+   
   if tag_exist(file_struct, 'nside') ne 0 then healpix = 1 else healpix = 0
   ;refresh=1
   nfiles = n_elements(file_struct.datafile)
