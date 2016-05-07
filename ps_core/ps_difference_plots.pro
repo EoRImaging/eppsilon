@@ -55,7 +55,7 @@ pro ps_difference_plots, folder_names, obs_info, cube_types, pols, all_type_pol 
         endif else begin
         
           ps_differences, compare_files.input_savefile1[slice_i, cube_i], compare_files.input_savefile2[slice_i, cube_i], refresh = refresh_diff, $
-            savefile_3d = compare_files.mid_savefile_3d[slice_i, cube_i], savefile_2d = compare_files.mid_savefile_3d[slice_i, cube_i], $
+            savefile_3d = compare_files.mid_savefile_3d[slice_i, cube_i], savefile_2d = compare_files.mid_savefile_2d[slice_i, cube_i], $
             savefiles_1d = compare_files.savefiles_1d[cube_i,*], $
             wedge_amp = compare_files.wedge_amp, wt_cutoffs = wt_cutoffs, wt_measures = wt_measures
             

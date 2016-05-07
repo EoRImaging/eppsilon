@@ -65,7 +65,7 @@ pro ps_differences, power_file1, power_file2, refresh = refresh, $
     save, file = savefile_3d, power_diff, weight_diff, wt_meas_ave, wt_meas_min, $
       kx_mpc, ky_mpc, kz_mpc, kperp_lambda_conv, delay_params, hubble_param
       
-  endif else if min([test_save_1d, test_save_2d]) eq 0 then restore, savefile
+  endif else if min([test_save_1d, test_save_2d]) eq 0 then restore, savefile_3d
   
   if test_save_2d eq 0 or keyword_set(refresh) then begin
   
