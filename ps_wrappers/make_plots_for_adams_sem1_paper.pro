@@ -1,8 +1,9 @@
 function translate_1d_power,k_edges,k_bin,hubble_param,power,k_out=k_out
   kscale = k_edges[1:*]/hubble_param
-  k_mid = kscale[1:*] - k_bin/2.
-  k_out = [min(kscale), k_mid, max(kscale)]
-  power_out = hubble_param^3. * [power[1],power[1:-2],power[-2]]  
+  k_mid = kscale[1:*] - k_bin/hubble_param
+  ;k_out = [min(kscale), k_mid, max(kscale)]
+  k_out = [min(kscale)-k_bin/hubble_param/2, k_mid, max(kscale),max(kscale)+k_bin/hubble_param]
+  power_out = hubble_param^3. * [power[1],power[1:-1],power[-1]]  
   
   return,power_out
 end
@@ -81,7 +82,8 @@ pro make_plots_for_adams_sem1_paper,diffuse_sky=diffuse_sky,reflection_diff=refl
   mid=[96-48,191-48]
   hi=[96,191]
   
-  kperp_range_lambda_use=[10,70]
+  ;kperp_range_lambda_use=[10,70]
+  kperp_range_lambda_use=[10,60]
   kpar_range_1dave_use=[0.15,200]
   
   ; Few plotting options that should be uniform
@@ -109,7 +111,8 @@ pro make_plots_for_adams_sem1_paper,diffuse_sky=diffuse_sky,reflection_diff=refl
     ; plot it
     outfile=outdir+'kpar.ps'
     cgPS_Open,File=outfile
-    xrange=[.02,2]
+    device,xsize=10,ysize=4,/inches
+    xrange=[.01,max(coarse_harm_ranges)]
     yrange=[1e5,1e13]
     axis_range = xrange*lin_delay_kpar_slope + lin_delay_kpar_intercept
     axis_title = 'delay (ns)'
@@ -118,27 +121,51 @@ pro make_plots_for_adams_sem1_paper,diffuse_sky=diffuse_sky,reflection_diff=refl
     
     cgplot,k_out,res_power_out,/ylog,/xlog,font=1,xtickformat='exponent',ytickformat='exponent',$
       psym=10,xrange=xrange,xstyle=9,yrange=yrange,/ystyle,thick=linethick,color='blue',$
-      xtitle=xtitle,ytitle=ytitle,charsize=charsize
+      xtitle=xtitle,ytitle=ytitle,charsize=charsize,linestyle=2
     cgcolorfill,[xrange[0],kpar_range_1dave_use[0],kpar_range_1dave_use[0],xrange[0]],[yrange[0],yrange[0],yrange[1],yrange[1]],col=cgcolor("medium gray")
     ;cgcolorfill,[kpar_range_1dave[1],xrange[1],xrange[1],kpar_range_1dave[1]],[yrange[0],yrange[0],yrange[1],yrange[1]],col=cgcolor("medium gray")
     for i=0,3 do begin
       cgcolorfill,[coarse_harm_ranges[i,0],coarse_harm_ranges[i,1],coarse_harm_ranges[i,1],coarse_harm_ranges[i,0]],[yrange[0],yrange[0],yrange[1],yrange[1]],col=cgcolor("medium gray")
     endfor
     ; replot to fix damage done by polyfill
+    ;cgcolorfill,[kpar_slice[0],kpar_slice[1],kpar_slice[1],kpar_slice[0]],[yrange[0],yrange[0],yrange[1],yrange[1]],col=cgcolor("plum")
+    ;cgoplot,[mean(kpar_slice),mean(kpar_slice)],[yrange[0],yrange[1]],col='blue',thick=3*linethick
     cgplot,k_out,res_power_out,/ylog,/xlog,font=1,xtickformat='exponent',ytickformat='exponent',$
       psym=10,xrange=xrange,xstyle=9,yrange=yrange,/ystyle,thick=linethick,color='blue',$
-      xtitle=xtitle,ytitle=ytitle,charsize=charsize,/noerase
+      xtitle=xtitle,ytitle=ytitle,charsize=charsize,/noerase,linestyle=2
     ; draw top axis
     cgaxis, xaxis=1, xrange = axis_range,  xtitle = axis_title, font = 1, xstyle = 1,charsize=charsize
     cgplot,/overplot,k_out,noise_out,psym=10,linestyle=2,thick=linethick,color='red'
     
     cgPS_Close,/PDF,/Delete_PS
+    
+    ;;;; Comparison version
+    xrange=[.01,2*max(coarse_harm_ranges)]
+    ; Read in Caths data
+    textfast,chips_kpar,file_path=dir+'/chips_data/kpa',/read
+    ; NEED TO CONFIRM WITH CATH - I think these are edges, not centers
+    dkpar = chips_kpar[1]-chips_kpar[0]
+    chips_kpar = chips_kpar + dkpar/2
+    textfast,chips_ppar,file_path=dir+'/chips_data/power_vs_kpar',/read
+    outfile=outdir+'kpar_comparison.ps'
+    cgPS_Open,File=outfile
+    device,xsize=10,ysize=4,/inches
+    cgplot,k_out,res_power_out,/ylog,/xlog,font=1,xtickformat='exponent',ytickformat='exponent',$
+      psym=10,xrange=xrange,xstyle=9,yrange=yrange,/ystyle,thick=linethick,color='blue',$
+      xtitle=xtitle,ytitle=ytitle,charsize=charsize,linestyle=0
+    cgplot,/overplot,chips_kpar,chips_ppar,psym=10,thick=linethick,color='red',$
+      linestyle=2
+    cgaxis, xaxis=1, xrange = axis_range,  xtitle = axis_title, font = 1, xstyle = 1,charsize=charsize
+    
+    cgPS_Close,/PDF,/Delete_PS
+    
+    
   endif
   
   if keyword_set(kperp_plot) or keyword_set(plot_all) then begin
     ; Narrow kperp power plot
     ps_wrapper,dir,obs_name,/pdf,/exact_obsnames,$
-      freq_ch_range=mid,kperp_range_lambda_1dave=[0,200],$
+      freq_ch_range=mid,kperp_range_lambda_1dave=[0,2000],$
       kpar_range_1dave=kpar_slice,ps_foldername='ps_jan2016',$
       /plot_kperp_power,type_inc=['dirty','res'],pol_inc='xx'
     restore,dir+'/ps_jan2016/Combined_obs_wedge_cut_plus_res_cut_cubeXX__even_odd_joint_ch48-143_res_xx_bh_dencorr_kpar'+$
@@ -150,10 +177,16 @@ pro make_plots_for_adams_sem1_paper,diffuse_sky=diffuse_sky,reflection_diff=refl
     wedge_line=mean(kpar_slice)/wedge_amp
     res_power_out=translate_1d_power(k_edges,k_bin,hubble_param,power,k_out=k_out)
     noise_out=translate_1d_power(k_edges,k_bin,hubble_param,1./sqrt(weights),k_out=k_out)
+    ; Cut out power beyond kperp=0.3 to match 2D plots
+    ind = where(k_out lt 0.3)
+    k_out = k_out[ind]
+    res_power_out = [res_power_out[ind[0:-1]],res_power_out[ind[-1]]]
+    noise_out = [noise_out[ind[0:-1]],noise_out[ind[-1]]]
     ; plot it
     outfile=outdir+'kperp.ps'
     cgPS_Open,File=outfile
-    xrange=[.003,.3]
+    device,xsize=10,ysize=4,/inches
+    xrange=[.002,.5] 
     yrange=[1e6,1e10]
     axis_range = minmax(xrange * hubble_param * kperp_lambda_conv)
     axis_title = 'baseline length ' + textoidl('(\lambda)', font = 1)
@@ -169,6 +202,8 @@ pro make_plots_for_adams_sem1_paper,diffuse_sky=diffuse_sky,reflection_diff=refl
           [yrange[0],yrange[0],yrange[1],yrange[1]],col=cgcolor("medium gray")
     cgcolorfill,[xrange[1],kperp_range_lambda_use[1]/(hubble_param*kperp_lambda_conv),kperp_range_lambda_use[1]/(hubble_param*kperp_lambda_conv),xrange[1]],$
           [yrange[0],yrange[0],yrange[1],yrange[1]],col=cgcolor("medium gray")    
+    ;cgcolorfill,[kperp_slice[0],kperp_slice[1],kperp_slice[1],kperp_slice[0]]/(hubble_param*kperp_lambda_conv),[yrange[0],yrange[0],yrange[1],yrange[1]],col=cgcolor("plum")
+    ;cgoplot,[mean(kperp_slice),mean(kperp_slice)]/(hubble_param*kperp_lambda_conv),[yrange[0],yrange[1]],col='blue',thick=3*linethick,linestyle=2
     ; Fix damage
     cgplot,k_out,res_power_out,/ylog,/xlog,font=1,xtickformat='exponent',ytickformat='exponent',$
       psym=10,xrange=xrange,xstyle=9,yrange=yrange,/ystyle,thick=linethick,color='blue',$
@@ -177,6 +212,28 @@ pro make_plots_for_adams_sem1_paper,diffuse_sky=diffuse_sky,reflection_diff=refl
     cgaxis, xaxis=1, xrange = axis_range,  xtitle = axis_title, font = 1, xstyle = 1,charsize=charsize
     cgplot,/overplot,k_out,noise_out,psym=10,linestyle=2,thick=linethick,color='red'
     cgoplot,[wedge_line,wedge_line],yrange,linestyle=2,thick=linethick,color='black'
+    cgPS_Close,/PDF,/Delete_PS
+    
+    ;;;; Comparison version
+    ; Read in Caths data
+    textfast,chips_kperp,file_path=dir+'/chips_data/kperp',/read
+    ; NEED TO CONFIRM WITH CATH - I think these are edges, not centers
+    dkperp = chips_kperp[1]-chips_kperp[0]
+    chips_kperp = chips_kperp + dkperp/2
+    textfast,chips_pperp,file_path=dir+'/chips_data/power_vs_kperp',/read
+    ind=where(chips_pperp eq 0)
+    remove,ind,chips_kperp
+    remove,ind,chips_pperp
+    outfile=outdir+'kperp_comparison.ps'
+    cgPS_Open,File=outfile
+    device,xsize=10,ysize=4,/inches
+    cgplot,k_out,res_power_out,/ylog,/xlog,font=1,xtickformat='exponent',ytickformat='exponent',$
+      psym=10,xrange=xrange,xstyle=9,yrange=yrange,/ystyle,thick=linethick,color='blue',$
+      xtitle=xtitle,ytitle=ytitle,charsize=charsize,linestyle=0
+    cgplot,/overplot,chips_kperp,chips_pperp,psym=10,thick=linethick,color='red',$
+      linestyle=2
+    cgaxis, xaxis=1, xrange = axis_range,  xtitle = axis_title, font = 1, xstyle = 1,charsize=charsize
+    
     cgPS_Close,/PDF,/Delete_PS
   endif
 
