@@ -10,12 +10,13 @@ end
 
 pro make_plots_for_adams_sem1_paper,diffuse_sky=diffuse_sky,reflection_diff=reflection_diff,$
   diffuse_diff=diffuse_diff,kpar_plot=kpar_plot,kperp_plot=kperp_plot,final_cut_2d=final_cut_2d,$
-  plot_all=plot_all
+  plot_all=plot_all,include_comparison=include_comparison
   ; This is a script to generate plots for Adam's paper (and record how they were made).
   ; This is to be run _after_ one round of PS has already been run using the proper
   ; cluster management.
   ; Note that I moved the ps data into ps_jan2016, thus the ps_foldername option
-
+  
+  if n_elements(include_comparison) eq 0 then include_comparison=1 ; do it by default
     
   ; Directory to put all the plots;
   outdir = '/nfs/eor-00/h1/beards/temp/plots_for_paper/'
@@ -140,24 +141,38 @@ pro make_plots_for_adams_sem1_paper,diffuse_sky=diffuse_sky,reflection_diff=refl
     cgPS_Close,/PDF,/Delete_PS
     
     ;;;; Comparison version
-    xrange=[.01,2*max(coarse_harm_ranges)]
-    ; Read in Caths data
-    textfast,chips_kpar,file_path=dir+'/chips_data/kpa',/read
-    ; NEED TO CONFIRM WITH CATH - I think these are edges, not centers
-    dkpar = chips_kpar[1]-chips_kpar[0]
-    chips_kpar = chips_kpar + dkpar/2
-    textfast,chips_ppar,file_path=dir+'/chips_data/power_vs_kpar',/read
-    outfile=outdir+'kpar_comparison.ps'
-    cgPS_Open,File=outfile
-    device,xsize=10,ysize=4,/inches
-    cgplot,k_out,res_power_out,/ylog,/xlog,font=1,xtickformat='exponent',ytickformat='exponent',$
-      psym=10,xrange=xrange,xstyle=9,yrange=yrange,/ystyle,thick=linethick,color='blue',$
-      xtitle=xtitle,ytitle=ytitle,charsize=charsize,linestyle=0
-    cgplot,/overplot,chips_kpar,chips_ppar,psym=10,thick=linethick,color='red',$
-      linestyle=2
-    cgaxis, xaxis=1, xrange = axis_range,  xtitle = axis_title, font = 1, xstyle = 1,charsize=charsize
-    
-    cgPS_Close,/PDF,/Delete_PS
+    if keyword_set(include_comparison) then begin
+      ;xrange=[.01,2*max(coarse_harm_ranges)]
+      ; Read in Caths data
+      textfast,chips_kpar,file_path=dir+'/chips_data/kpa',/read
+      ; NEED TO CONFIRM WITH CATH - I think these are edges, not centers
+      dkpar = chips_kpar[1]-chips_kpar[0]
+      chips_kpar = chips_kpar + dkpar/2
+      textfast,chips_ppar,file_path=dir+'/chips_data/power_vs_kpar',/read
+      outfile=outdir+'kpar_comparison.ps'
+      cgPS_Open,File=outfile
+      device,xsize=10,ysize=4,/inches
+      cgplot,k_out,res_power_out,/ylog,/xlog,font=1,xtickformat='exponent',ytickformat='exponent',$
+        psym=10,xrange=xrange,xstyle=9,yrange=yrange,/ystyle,thick=linethick,color='blue',$
+        xtitle=xtitle,ytitle=ytitle,charsize=charsize,linestyle=2
+      cgcolorfill,[xrange[0],kpar_range_1dave_use[0],kpar_range_1dave_use[0],xrange[0]],[yrange[0],yrange[0],yrange[1],yrange[1]],col=cgcolor("medium gray")
+      for i=0,3 do begin
+        cgcolorfill,[coarse_harm_ranges[i,0],coarse_harm_ranges[i,1],coarse_harm_ranges[i,1],coarse_harm_ranges[i,0]],[yrange[0],yrange[0],yrange[1],yrange[1]],col=cgcolor("medium gray")
+      endfor
+      ; replot to fix damage done by polyfill
+      ;cgcolorfill,[kpar_slice[0],kpar_slice[1],kpar_slice[1],kpar_slice[0]],[yrange[0],yrange[0],yrange[1],yrange[1]],col=cgcolor("plum")
+      ;cgoplot,[mean(kpar_slice),mean(kpar_slice)],[yrange[0],yrange[1]],col='blue',thick=3*linethick
+      cgplot,k_out,res_power_out,/ylog,/xlog,font=1,xtickformat='exponent',ytickformat='exponent',$
+        psym=10,xrange=xrange,xstyle=9,yrange=yrange,/ystyle,thick=linethick,color='blue',$
+        xtitle=xtitle,ytitle=ytitle,charsize=charsize,/noerase,linestyle=2
+      cgplot,/overplot,chips_kpar,chips_ppar,psym=10,thick=linethick-2,color='black',$
+        linestyle=0
+      ; draw top axis
+      cgaxis, xaxis=1, xrange = axis_range,  xtitle = axis_title, font = 1, xstyle = 1,charsize=charsize
+      cgplot,/overplot,k_out,noise_out,psym=10,linestyle=2,thick=linethick,color='red'
+        
+      cgPS_Close,/PDF,/Delete_PS
+    endif
     
     
   endif
@@ -215,26 +230,41 @@ pro make_plots_for_adams_sem1_paper,diffuse_sky=diffuse_sky,reflection_diff=refl
     cgPS_Close,/PDF,/Delete_PS
     
     ;;;; Comparison version
-    ; Read in Caths data
-    textfast,chips_kperp,file_path=dir+'/chips_data/kperp',/read
-    ; NEED TO CONFIRM WITH CATH - I think these are edges, not centers
-    dkperp = chips_kperp[1]-chips_kperp[0]
-    chips_kperp = chips_kperp + dkperp/2
-    textfast,chips_pperp,file_path=dir+'/chips_data/power_vs_kperp',/read
-    ind=where(chips_pperp eq 0)
-    remove,ind,chips_kperp
-    remove,ind,chips_pperp
-    outfile=outdir+'kperp_comparison.ps'
-    cgPS_Open,File=outfile
-    device,xsize=10,ysize=4,/inches
-    cgplot,k_out,res_power_out,/ylog,/xlog,font=1,xtickformat='exponent',ytickformat='exponent',$
-      psym=10,xrange=xrange,xstyle=9,yrange=yrange,/ystyle,thick=linethick,color='blue',$
-      xtitle=xtitle,ytitle=ytitle,charsize=charsize,linestyle=0
-    cgplot,/overplot,chips_kperp,chips_pperp,psym=10,thick=linethick,color='red',$
-      linestyle=2
-    cgaxis, xaxis=1, xrange = axis_range,  xtitle = axis_title, font = 1, xstyle = 1,charsize=charsize
-    
-    cgPS_Close,/PDF,/Delete_PS
+    if keyword_set(include_comparison) then begin
+      ; Read in Caths data
+      textfast,chips_kperp,file_path=dir+'/chips_data/kperp',/read
+      ; NEED TO CONFIRM WITH CATH - I think these are edges, not centers
+      dkperp = chips_kperp[1]-chips_kperp[0]
+      chips_kperp = chips_kperp + dkperp/2
+      textfast,chips_pperp,file_path=dir+'/chips_data/power_vs_kperp',/read
+      ind=where(chips_pperp eq 0)
+      remove,ind,chips_kperp
+      remove,ind,chips_pperp
+      outfile=outdir+'kperp_comparison.ps'
+      cgPS_Open,File=outfile
+      device,xsize=10,ysize=4,/inches
+      cgplot,k_out,res_power_out,/ylog,/xlog,font=1,xtickformat='exponent',ytickformat='exponent',$
+        psym=10,xrange=xrange,xstyle=9,yrange=yrange,/ystyle,thick=linethick,color='blue',$
+        xtitle=xtitle,ytitle=ytitle,charsize=charsize,linestyle=0
+      cgcolorfill,[xrange[0],kperp_range_lambda_use[0]/(hubble_param*kperp_lambda_conv),kperp_range_lambda_use[0]/(hubble_param*kperp_lambda_conv),xrange[0]],$
+          [yrange[0],yrange[0],yrange[1],yrange[1]],col=cgcolor("medium gray")
+      cgcolorfill,[xrange[1],kperp_range_lambda_use[1]/(hubble_param*kperp_lambda_conv),kperp_range_lambda_use[1]/(hubble_param*kperp_lambda_conv),xrange[1]],$
+          [yrange[0],yrange[0],yrange[1],yrange[1]],col=cgcolor("medium gray")    
+      ; Fix damage
+      cgplot,k_out,res_power_out,/ylog,/xlog,font=1,xtickformat='exponent',ytickformat='exponent',$
+        psym=10,xrange=xrange,xstyle=9,yrange=yrange,/ystyle,thick=linethick,color='blue',$
+        xtitle=xtitle,ytitle=ytitle,charsize=charsize,/noerase      
+      ; draw top axis
+      cgaxis, xaxis=1, xrange = axis_range,  xtitle = axis_title, font = 1, xstyle = 1,charsize=charsize
+      cgplot,/overplot,k_out,noise_out,psym=10,linestyle=2,thick=linethick,color='red'
+      cgoplot,[wedge_line,wedge_line],yrange,linestyle=2,thick=linethick,color='black'
+      
+      cgplot,/overplot,chips_kperp,chips_pperp,psym=10,thick=linethick-2,color='black',$
+        linestyle=0
+      
+      
+      cgPS_Close,/PDF,/Delete_PS
+    endif
   endif
 
 
