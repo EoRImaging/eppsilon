@@ -685,7 +685,7 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
             if max(abs(imaginary(ra_img))) eq 0 then ra_img = real_part(ra_img)
             if max(abs(imaginary(dec_img))) eq 0 then dec_img = real_part(dec_img)
             
-            save, file = file_struct.radec_file, kx_rad_vals, ky_rad_vals, ra_k, dec_k, ra_img, dec_img, uvf_git_hash
+            save, file = file_struct.radec_file, kx_rad_vals, ky_rad_vals, ra_k, dec_k, ra_img, dec_img, pix_ra, pix_dec, uvf_git_hash
             
             ;          window, /free
             ;          cgplot, pix_ra, pix_dec, psym=3, title = 'Initial Healpix locations', xtitle = 'RA', ytitle = 'Dec'
