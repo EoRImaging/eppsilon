@@ -615,6 +615,86 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
           
           ;; do DFT.
           if test_uvf eq 0 or keyword_set(dft_refresh_data) then begin
+            git, repo_path = ps_repository_dir(), result=uvf_git_hash
+            
+            print, 'calculating DFT for ra/dec values'
+            
+            ;; get ra/dec values for pixels we're using
+            pix2vec_ring,nside,pixels,pix_coords
+            vec2ang,pix_coords,pix_dec,pix_ra,/astro
+            
+            ;; may need to wrap ra values so they are contiguous
+            pix_ra_hist = histogram(pix_ra, min=0, max = 359.999, binsize = 1, locations = locs, reverse_indices = pix_ra_ri)
+            wh_hist_zero = where(pix_ra_hist eq 0, count_hist_zero)
+            if count_hist_zero gt 0 then begin
+              ;; doesn't cover full phase range
+              ind_diffs = (wh_hist_zero-shift(wh_hist_zero,1))[1:*]
+              wh_non_contig = where(ind_diffs ne 1, count_non_contig)
+              if count_non_contig gt 0 then begin
+                ;; more than one contiguous region. get region lengths so we can take the longest one
+                region_lengths = intarr(count_non_contig+1)
+                for region_i=0, count_non_contig do begin
+                  case region_i of
+                    0: region_lengths[region_i] = wh_non_contig[region_i] + 1
+                    count_non_contig: region_lengths[region_i] = count_hist_zero - (max(wh_non_contig) + 1)
+                    else: region_lengths[region_i] = wh_non_contig[region_i] - wh_non_contig[region_i-1]
+                  endcase
+                endfor
+                max_region = (where(region_lengths eq max(region_lengths)))[0] ;; take the first longest one (in case 2 of same length)
+                if max_region eq 0 then region_start = 0 else region_start = wh_non_contig[max_region-1] + 1
+                if max_region eq count_non_contig then region_end = count_hist_zero - 1 else region_end = wh_non_contig[max_region]
+                
+                region_use = wh_hist_zero[region_start:region_end]
+              endif else region_use = wh_hist_zero ;; only one contiguous region, use the whole thing
+              
+              ;; check to see if the contiguous region is against one edge. if so, no wrapping required!
+              if min(region_use) ne 0 and max(region_use) ne 359 then begin
+                pix_to_wrap = where(pix_ra gt locs[max(region_use)-1], count_pix_to_wrap)
+                if count_pix_to_wrap eq 0 then message, 'something went wrong with figuring out which pixels to wrap'
+                pix_ra_wrap = pix_ra
+                pix_ra_wrap[pix_to_wrap] = pix_ra[pix_to_wrap] - 360.
+                
+                pix_ra = pix_ra_wrap
+              endif
+              
+            endif
+            
+            if keyword_set(dft_ian) then begin
+              transform_ra = discrete_ft_2D_fast(x_rot[wh_close], y_rot[wh_close], pix_ra, u_lambda_vals, v_lambda_vals, /exp2pi, $
+                timing = ft_time, fchunk = dft_fchunk, no_progress = no_dft_progress)
+                
+              transform_dec = discrete_ft_2D_fast(x_rot[wh_close], y_rot[wh_close], pix_dec, u_lambda_vals, v_lambda_vals, /exp2pi, $
+                timing = ft_time, fchunk = dft_fchunk, no_progress = no_dft_progress)
+            endif else begin
+              transform_ra = discrete_ft_2D_fast(x_rot[wh_close], y_rot[wh_close], pix_ra, kx_rad_vals, ky_rad_vals, $
+                timing = ft_time, fchunk = dft_fchunk, no_progress = no_dft_progress)
+                
+              transform_dec = discrete_ft_2D_fast(x_rot[wh_close], y_rot[wh_close], pix_dec, kx_rad_vals, ky_rad_vals, $
+                timing = ft_time, fchunk = dft_fchunk, no_progress = no_dft_progress)
+            endelse
+            
+            ang_resolution = sqrt(3./!pi) * 3600./file_struct.nside * (1./60.) * (!pi/180.)
+            pix_area_rad = ang_resolution^2. ;; by definition of ang. resolution in Healpix paper
+            ra_k = [[conj(reverse(reverse(transform_ra, 2)))], [transform_ra[*,1:*]]] * pix_area_rad
+            dec_k = [[conj(reverse(reverse(transform_dec, 2)))], [transform_dec[*,1:*]]] * pix_area_rad
+            
+            nshift = ceil(n_kperp/2.)
+            ra_img = shift(fft(shift(ra_k, [nshift,nshift])), [nshift,nshift]) * (delta_kperp_rad * n_kperp/(2.*!dpi))^2.
+            dec_img = shift(fft(shift(dec_k, [nshift,nshift])), [nshift,nshift]) * (delta_kperp_rad * n_kperp/(2.*!dpi))^2.
+            
+            if max(abs(imaginary(ra_img))) eq 0 then ra_img = real_part(ra_img)
+            if max(abs(imaginary(dec_img))) eq 0 then dec_img = real_part(dec_img)
+            
+            save, file = file_struct.radec_file, kx_rad_vals, ky_rad_vals, ra_k, dec_k, ra_img, dec_img, uvf_git_hash
+            
+            ;          window, /free
+            ;          cgplot, pix_ra, pix_dec, psym=3, title = 'Initial Healpix locations', xtitle = 'RA', ytitle = 'Dec'
+            ;
+            ;          window, /free
+            ;          cgplot, ra_img, dec_img, psym=3, title = 'Post DFT-FFT locations', xtitle = 'RA', ytitle = 'Dec'
+            ;
+            ;            stop
+            
             print, 'calculating DFT for ' + file_struct.datavar + ' in ' + file_struct.datafile[i]
             
             time0 = systime(1)
@@ -631,6 +711,8 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
             if n_elements(freq_ch_range) ne 0 then arr = arr[*, min(freq_ch_range):max(freq_ch_range)]
             if n_elements(freq_flags) ne 0 then arr = arr * rebin(reform(freq_mask, 1, n_elements(file_struct.frequencies)), size(arr, /dimension), /sample)
             
+            
+            
             if keyword_set(dft_ian) then begin
               transform = discrete_ft_2D_fast(x_rot[wh_close], y_rot[wh_close], arr, u_lambda_vals, v_lambda_vals, /exp2pi, $
                 timing = ft_time, fchunk = dft_fchunk, no_progress = no_dft_progress)
@@ -641,17 +723,18 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
             data_cube = temporary(transform)
             undefine, arr
             
-            git, repo_path = ps_repository_dir(), result=uvf_git_hash
-            
             if n_elements(freq_flags) then begin
-              if keyword_set(dft_ian) then save, file = file_struct.uvf_savefile[i], u_lambda_vals, v_lambda_vals, data_cube, freq_mask, uvf_git_hash $
+              if keyword_set(dft_ian) then $
+                save, file = file_struct.uvf_savefile[i], u_lambda_vals, v_lambda_vals, data_cube, freq_mask, uvf_git_hash $
               else save, file = file_struct.uvf_savefile[i], kx_rad_vals, ky_rad_vals, data_cube, freq_mask, uvf_git_hash
             endif else begin
-              if keyword_set(dft_ian) then save, file = file_struct.uvf_savefile[i], u_lambda_vals, v_lambda_vals, data_cube, uvf_git_hash $
+              if keyword_set(dft_ian) then $
+                save, file = file_struct.uvf_savefile[i], u_lambda_vals, v_lambda_vals, data_cube, uvf_git_hash $
               else save, file = file_struct.uvf_savefile[i], kx_rad_vals, ky_rad_vals, data_cube, uvf_git_hash
             endelse
             undefine, data_cube
           endif
+          
           
           if test_wt_uvf eq 0 or keyword_set(dft_refresh_weight) then begin
             print, 'calculating DFT for ' + file_struct.weightvar + ' in ' + file_struct.weightfile[i]

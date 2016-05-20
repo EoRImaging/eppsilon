@@ -837,6 +837,9 @@ function fhd_file_setup, filename, weightfile = weightfile, variancefile = varia
   ;; add sw tag to general_filebase so that plotfiles have uvf_tag in them
   general_filebase = metadata_struct.general_filebase + uvf_tag
   
+  ;; file for saving ra/decs of pixels
+  radec_file = froot + metadata_struct.general_filebase + dft_label + '_radec.idlsave'
+  
   uvf_savefile = uvf_froot + uvf_savefilebase + '_uvf.idlsave'
   uf_savefile = uvf_froot + uvf_savefilebase + '_uf_plane.idlsave'
   vf_savefile = uvf_froot + uvf_savefilebase + '_vf_plane.idlsave'
@@ -950,9 +953,13 @@ function fhd_file_setup, filename, weightfile = weightfile, variancefile = varia
         uvf_tag:uvf_tag, kcube_tag:kcube_tag, power_tag:power_tag, type_pol_str:metadata_struct.type_pol_str[pol_i,type_i], $
         pol_index:pol_i, type_index:type_i, pol:metadata_struct.pol_inc[pol_i], type:metadata_struct.type_inc[type_i], nfiles:nfiles}
         
-      if healpix or not keyword_set(uvf_input) then file_struct = create_struct(file_struct, 'uvf_savefile', reform(uvf_savefile[pol_i,*,type_i]), $
-        'uvf_weight_savefile', uvf_weight_savefile[pol_i,*])
-        
+      if healpix or not keyword_set(uvf_input) then begin
+        file_struct = create_struct(file_struct, 'radec_file', radec_file)
+ 
+        file_struct = create_struct(file_struct, 'uvf_savefile', reform(uvf_savefile[pol_i,*,type_i]), $
+          'uvf_weight_savefile', uvf_weight_savefile[pol_i,*])
+      endif
+      
       if healpix then file_struct = create_struct(file_struct, 'pixelfile', metadata_struct.pixelfile[pol_i,*], 'pixelvar', $
         metadata_struct.pixel_varname[pol_i,*], 'nside', metadata_struct.nside)
         
