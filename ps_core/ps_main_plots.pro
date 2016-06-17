@@ -1581,7 +1581,7 @@
         endif
       endif
       
-      if n_elements(kpar_plot_range) gt 0 then k_range = minmax([kperp_plot_range, kpar_bin, kpar_plot_range[1]])
+      if n_elements(kpar_plot_range) gt 0 then k_range = kpar_plot_range
       
       window_num = window_num+1
       kpower_1d_plots, file_arr, window_num = window_num, colors = colors, names = titles_use, psyms = psyms, delta = plot_1d_delta, hinv = hinv, $
