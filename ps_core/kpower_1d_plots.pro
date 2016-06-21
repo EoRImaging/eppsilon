@@ -398,8 +398,14 @@ pro kpower_1d_plots, power_savefile, multi_pos = multi_pos, start_multi_params =
     
     ;; extend arrays for plotting full histogram bins if plotting w/ psym=10
     if psyms[i] eq 10 then begin
-      if min(k_edges gt 0) then k_mid = [min(k_edges), k_mid, max(k_edges)] $
+      if min(k_edges) gt 0 then k_mid = [min(k_edges), k_mid, max(k_edges)] $
       else k_mid = [10^(alog10(k_mid[0])-k_log_diffs[0]), k_mid, max(k_edges)]
+      if keyword_set(kpar_power) then begin
+        if min(delay_edges) le 0 then begin
+          delay_log_diffs = (alog10(delay_edges) - shift(alog10(delay_edges), 1))[2:*]
+          delay_edges = [10^(alog10(delay_edges[1])-delay_log_diffs[0]), delay_edges[1:*]]
+        endif
+      endif
       power = [power[0], power, power[n_elements(power)-1]]
       sigma_val = [sigma_val[0], sigma_val, sigma_val[n_elements(sigma_val)-1]]
       if n_elements(sim_noise) gt 0 and keyword_set(plot_sim_noise) then sim_noise = [sim_noise[0], sim_noise, sim_noise[n_elements(sim_noise)-1]]
@@ -428,7 +434,9 @@ pro kpower_1d_plots, power_savefile, multi_pos = multi_pos, start_multi_params =
       endif else begin
         yrange = data_range
       endelse
-      if n_elements(k_range) eq 0 then xrange = minmax(k_mid) else xrange = k_range
+      if n_elements(k_range) eq 0 then xrange = minmax(k_mid) else begin
+        if min(k_range) le 0 then xrange = [min(k_mid), max(k_range)] else xrange = k_range
+      endelse
       
       power_plot = create_struct(tag, power)
       sigma_plot = create_struct(tag, sigma_val)

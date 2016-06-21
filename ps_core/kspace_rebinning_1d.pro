@@ -163,7 +163,7 @@ function kspace_rebinning_1d, power, k1_mpc, k2_mpc, k3_mpc, k_edges_mpc, k_bin 
         ;kpar_ch_bad = rebin(coarse_harm0 * (findgen(n_harm)+1), n_harm, n_width)-coarse_harm0/2. + $
         kpar_ch_bad = rebin(coarse_harm0 * (findgen(n_harm)+1), n_harm, n_width) + $
           rebin(reform(findgen(n_width)-(coarse_width-1), 1, n_width), n_harm, n_width)
-
+          
         match,kpar_ind_map,kpar_ch_bad[*],suba,subb
         temp_kpar[*,suba] = 0
       endif
@@ -184,7 +184,8 @@ function kspace_rebinning_1d, power, k1_mpc, k2_mpc, k3_mpc, k_edges_mpc, k_bin 
     
     if not keyword_set(log_k) then begin
     
-      if keyword_set(edge_on_grid) then k_min = floor(min(temp) / k_bin) * k_bin
+      if keyword_set(edge_on_grid) then k_min = floor(min(temp) / k_bin) * k_bin $
+      else k_min = floor((min(temp) + k_bin/2d) / k_bin) * k_bin - k_bin/2d
       
       ;; Use histogram with reverse indicies to bin in k
       k_hist = histogram(temp, binsize = k_bin, min = k_min, omax = k_max, locations = lin_k_locs, $
@@ -266,7 +267,7 @@ function kspace_rebinning_1d, power, k1_mpc, k2_mpc, k3_mpc, k_edges_mpc, k_bin 
           var_power_1d[i] = total(power_use[inds]^2.)/k_hist[i]
           mean_var_1d[i] = mean(temp_sigma)
         endelse
-
+        
         full_inds = full_ind_arr[inds]
         bin_mask_3d[full_inds] = i+1
         
