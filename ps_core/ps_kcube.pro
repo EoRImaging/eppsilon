@@ -1609,8 +1609,9 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
     if tag_exist(file_struct, 'beam_savefile') then print, 'window integral from beam cube: ' + number_formatter(window_int_beam[0], format='(e10.4)')
     if tag_exist(file_struct, 'beam_int') then print, 'window integral from obs.beam_integral: ' + number_formatter(window_int_beam_obs[0], format='(e10.4)')
     
-    if tag_exist(file_struct, 'beam_int') then window_int = window_int_beam_obs $
-    else if tag_exist(file_struct, 'beam_savefile') then window_int = window_int_beam else window_int = window_int_k
+    if tag_exist(file_struct, 'beam_int') then window_int = window_int_beam_obs
+    if (n_elements(window_int) eq 0 or min(window_int) eq 0) and tag_exist(file_struct, 'beam_savefile') then window_int = window_int_beam
+    if (n_elements(window_int) eq 0 or min(window_int) eq 0) then window_int = window_int_k
   ;if keyword_set(sim) then window_int = 2.39e9 + fltarr(nfiles)
   endif else begin
     window_int_k = window_int * (z_mpc_delta * n_freq) * (2.*!pi)^2. / (kx_mpc_delta * ky_mpc_delta)
@@ -1619,8 +1620,9 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
     if tag_exist(file_struct, 'beam_savefile') then print, 'window integral from beam cube: ' + number_formatter(window_int_beam[0], format='(e10.4)')
     if tag_exist(file_struct, 'beam_int') then print, 'window integral from obs.beam_integral: ' + number_formatter(window_int_beam_obs[0], format='(e10.4)')
     
-    if tag_exist(file_struct, 'beam_int') then window_int = window_int_beam_obs $
-    else if tag_exist(file_struct, 'beam_savefile') then window_int = window_int_beam else window_int = window_int_k
+    if tag_exist(file_struct, 'beam_int') then window_int = window_int_beam_obs
+    if (n_elements(window_int) eq 0 or min(window_int) eq 0) and tag_exist(file_struct, 'beam_savefile') then window_int = window_int_beam
+    if (n_elements(window_int) eq 0 or min(window_int) eq 0) then window_int = window_int_k
     
   endelse
   
