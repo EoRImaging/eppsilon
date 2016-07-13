@@ -619,6 +619,9 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
             
             print, 'calculating DFT for ra/dec values'
             
+            if n_elements(nside) eq 0 then nside = file_struct.nside
+            if n_elements(pixels) eq 0 then pixels = pixel_nums1[wh_close]
+            
             ;; get ra/dec values for pixels we're using
             pix2vec_ring,nside,pixels,pix_coords
             vec2ang,pix_coords,pix_dec,pix_ra,/astro
