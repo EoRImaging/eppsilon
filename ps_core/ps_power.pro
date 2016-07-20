@@ -103,7 +103,7 @@ pro ps_power, file_struct, refresh = refresh, kcube_refresh = kcube_refresh, dft
         undefine, data_sum_1, data_sum_2
         
         sim_noise_t1 = abs(sim_noise_sum_1)^2. * power_weights1
-        sim_noise_t1 = abs(sim_noise_sum_2)^2. * power_weights2
+        sim_noise_t2 = abs(sim_noise_sum_2)^2. * power_weights2
         undefine, data_sum_1, data_sum_2
         
         ;; Factor of 2 because we're adding the cosine & sine terms
@@ -174,7 +174,7 @@ pro ps_power, file_struct, refresh = refresh, kcube_refresh = kcube_refresh, dft
         undefine, data_sum_1, data_sum_2
         
         sim_noise_t1 = (abs(sim_noise_sum_1)^2. - abs(sim_noise_diff_1)^2.)
-        sim_noise_t1 = (abs(sim_noise_sum_2)^2. - abs(sim_noise_diff_2)^2.)
+        sim_noise_t2 = (abs(sim_noise_sum_2)^2. - abs(sim_noise_diff_2)^2.)
         undefine, data_sum_1, data_sum_2
         
         noise_t1 = abs(data_diff_1)^2.

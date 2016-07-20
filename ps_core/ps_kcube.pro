@@ -619,6 +619,9 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
             
             print, 'calculating DFT for ra/dec values'
             
+            if n_elements(nside) eq 0 then nside = file_struct.nside
+            if n_elements(pixels) eq 0 then pixels = pixel_nums1[wh_close]
+            
             ;; get ra/dec values for pixels we're using
             pix2vec_ring,nside,pixels,pix_coords
             vec2ang,pix_coords,pix_dec,pix_ra,/astro
@@ -1609,8 +1612,15 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
     if tag_exist(file_struct, 'beam_savefile') then print, 'window integral from beam cube: ' + number_formatter(window_int_beam[0], format='(e10.4)')
     if tag_exist(file_struct, 'beam_int') then print, 'window integral from obs.beam_integral: ' + number_formatter(window_int_beam_obs[0], format='(e10.4)')
     
-    if tag_exist(file_struct, 'beam_int') then window_int = window_int_beam_obs $
-    else if tag_exist(file_struct, 'beam_savefile') then window_int = window_int_beam else window_int = window_int_k
+    if tag_exist(file_struct, 'beam_int') then begin
+      window_int = window_int_beam_obs
+      if min(window_int) eq 0 then print, 'WARNING: beam integral in obs structure is zero, using a less good approximation'
+    endif
+    if (n_elements(window_int) eq 0 or min(window_int) eq 0) and tag_exist(file_struct, 'beam_savefile') then begin
+      window_int = window_int_beam
+      if min(window_int) eq 0 then print, 'WARNING: beam cube is zero, using a less good approximation'
+    endif
+    if (n_elements(window_int) eq 0 or min(window_int) eq 0) then window_int = window_int_k
   ;if keyword_set(sim) then window_int = 2.39e9 + fltarr(nfiles)
   endif else begin
     window_int_k = window_int * (z_mpc_delta * n_freq) * (2.*!pi)^2. / (kx_mpc_delta * ky_mpc_delta)
@@ -1619,8 +1629,15 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
     if tag_exist(file_struct, 'beam_savefile') then print, 'window integral from beam cube: ' + number_formatter(window_int_beam[0], format='(e10.4)')
     if tag_exist(file_struct, 'beam_int') then print, 'window integral from obs.beam_integral: ' + number_formatter(window_int_beam_obs[0], format='(e10.4)')
     
-    if tag_exist(file_struct, 'beam_int') then window_int = window_int_beam_obs $
-    else if tag_exist(file_struct, 'beam_savefile') then window_int = window_int_beam else window_int = window_int_k
+    if tag_exist(file_struct, 'beam_int') then begin
+      window_int = window_int_beam_obs
+      if min(window_int) eq 0 then print, 'WARNING: beam integral in obs structure is zero, using a less good approximation'
+    endif
+    if (n_elements(window_int) eq 0 or min(window_int) eq 0) and tag_exist(file_struct, 'beam_savefile') then begin
+      window_int = window_int_beam
+      if min(window_int) eq 0 then print, 'WARNING: beam cube is zero, using a less good approximation'
+    endif
+    if (n_elements(window_int) eq 0 or min(window_int) eq 0) then window_int = window_int_k
     
   endelse
   
