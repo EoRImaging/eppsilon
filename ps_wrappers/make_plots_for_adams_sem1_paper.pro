@@ -113,7 +113,7 @@ pro make_plots_for_adams_sem1_paper,diffuse_sky=diffuse_sky,reflection_diff=refl
     outfile=outdir+'kpar.ps'
     cgPS_Open,File=outfile
     device,xsize=10,ysize=4,/inches
-    xrange=[.01,max(coarse_harm_ranges)]
+    xrange=[.006,max(coarse_harm_ranges)]
     yrange=[1e5,1e13]
     axis_range = xrange*lin_delay_kpar_slope + lin_delay_kpar_intercept
     axis_title = 'delay (ns)'
@@ -153,7 +153,7 @@ pro make_plots_for_adams_sem1_paper,diffuse_sky=diffuse_sky,reflection_diff=refl
       cgPS_Open,File=outfile
       device,xsize=10,ysize=4,/inches
       cgplot,k_out,res_power_out,/ylog,/xlog,font=1,xtickformat='exponent',ytickformat='exponent',$
-        psym=10,xrange=xrange,xstyle=9,yrange=yrange,/ystyle,thick=2*linethick,color='blue',$
+        psym=10,xrange=xrange,xstyle=9,yrange=yrange,/ystyle,thick=1.5*linethick,color='blue',$
         xtitle=xtitle,ytitle=ytitle,charsize=charsize,linestyle=2
       cgcolorfill,[xrange[0],kpar_range_1dave_use[0],kpar_range_1dave_use[0],xrange[0]],[yrange[0],yrange[0],yrange[1],yrange[1]],col=cgcolor("medium gray")
       for i=0,3 do begin
@@ -163,9 +163,9 @@ pro make_plots_for_adams_sem1_paper,diffuse_sky=diffuse_sky,reflection_diff=refl
       ;cgcolorfill,[kpar_slice[0],kpar_slice[1],kpar_slice[1],kpar_slice[0]],[yrange[0],yrange[0],yrange[1],yrange[1]],col=cgcolor("plum")
       ;cgoplot,[mean(kpar_slice),mean(kpar_slice)],[yrange[0],yrange[1]],col='blue',thick=3*linethick
       cgplot,k_out,res_power_out,/ylog,/xlog,font=1,xtickformat='exponent',ytickformat='exponent',$
-        psym=10,xrange=xrange,xstyle=9,yrange=yrange,/ystyle,thick=2*linethick,color='blue',$
+        psym=10,xrange=xrange,xstyle=9,yrange=yrange,/ystyle,thick=1.5*linethick,color='blue',$
         xtitle=xtitle,ytitle=ytitle,charsize=charsize,/noerase,linestyle=2
-      cgplot,/overplot,chips_kpar,chips_ppar,psym=10,thick=linethick-2,color=cgcolor('dark gray'),$
+      cgplot,/overplot,chips_kpar,chips_ppar,psym=10,thick=linethick,color=cgcolor('dark gray'),$
         linestyle=0
       ; draw top axis
       cgaxis, xaxis=1, xrange = axis_range,  xtitle = axis_title, font = 1, xstyle = 1,charsize=charsize
@@ -201,8 +201,8 @@ pro make_plots_for_adams_sem1_paper,diffuse_sky=diffuse_sky,reflection_diff=refl
     outfile=outdir+'kperp.ps'
     cgPS_Open,File=outfile
     device,xsize=10,ysize=4,/inches
-    xrange=[.002,.5] 
-    yrange=[1e6,1e10]
+    xrange=[.008,.23] 
+    yrange=[1e6,1e9]
     axis_range = minmax(xrange * hubble_param * kperp_lambda_conv)
     axis_title = 'baseline length ' + textoidl('(\lambda)', font = 1)
     perp_char = '!9' + string(94B) + '!X'
@@ -244,7 +244,7 @@ pro make_plots_for_adams_sem1_paper,diffuse_sky=diffuse_sky,reflection_diff=refl
       cgPS_Open,File=outfile
       device,xsize=10,ysize=4,/inches
       cgplot,k_out,res_power_out,/ylog,/xlog,font=1,xtickformat='exponent',ytickformat='exponent',$
-        psym=10,xrange=xrange,xstyle=9,yrange=yrange,/ystyle,thick=2*linethick,color='blue',$
+        psym=10,xrange=xrange,xstyle=9,yrange=yrange,/ystyle,thick=1.5*linethick,color='blue',$
         xtitle=xtitle,ytitle=ytitle,charsize=charsize,linestyle=0
       cgcolorfill,[xrange[0],kperp_range_lambda_use[0]/(hubble_param*kperp_lambda_conv),kperp_range_lambda_use[0]/(hubble_param*kperp_lambda_conv),xrange[0]],$
           [yrange[0],yrange[0],yrange[1],yrange[1]],col=cgcolor("medium gray")
@@ -252,14 +252,14 @@ pro make_plots_for_adams_sem1_paper,diffuse_sky=diffuse_sky,reflection_diff=refl
           [yrange[0],yrange[0],yrange[1],yrange[1]],col=cgcolor("medium gray")    
       ; Fix damage
       cgplot,k_out,res_power_out,/ylog,/xlog,font=1,xtickformat='exponent',ytickformat='exponent',$
-        psym=10,xrange=xrange,xstyle=9,yrange=yrange,/ystyle,thick=2*linethick,color='blue',$
+        psym=10,xrange=xrange,xstyle=9,yrange=yrange,/ystyle,thick=1.5*linethick,color='blue',$
         xtitle=xtitle,ytitle=ytitle,charsize=charsize,/noerase      
       ; draw top axis
       cgaxis, xaxis=1, xrange = axis_range,  xtitle = axis_title, font = 1, xstyle = 1,charsize=charsize
       cgplot,/overplot,k_out,noise_out,psym=10,linestyle=0,thick=linethick,color='red'
       cgoplot,[wedge_line,wedge_line],yrange,linestyle=2,thick=linethick,color='black'
       
-      cgplot,/overplot,chips_kperp,chips_pperp,psym=10,thick=linethick-2,color=cgcolor('dark gray'),$
+      cgplot,/overplot,chips_kperp,chips_pperp,psym=10,thick=linethick,color=cgcolor('dark gray'),$
         linestyle=0
       
       
