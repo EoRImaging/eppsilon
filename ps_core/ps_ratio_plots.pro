@@ -164,7 +164,7 @@ pro ps_ratio_plots, folder_names, obs_info, cube_types, pols, all_pol_diff_ratio
           nrow=compare_files.n_sets/2
           start_multi_params = {ncol:ncol, nrow:nrow, ordering:'row'}
           undefine, pos_use
-          if keyword_set(pub) then plotfiles_2d = compare_files.plotfiles_2d
+          if keyword_set(pub) then plotfile_2d = compare_files.plotfiles_2d
         endif else pos_use = positions[*,3*i]
         
         if keyword_set(plot_slices) then begin
@@ -281,7 +281,7 @@ pro ps_ratio_plots, folder_names, obs_info, cube_types, pols, all_pol_diff_ratio
       
       
     endif else begin
-      if keyword_set(pub) then plotfiles_2d = compare_files.plotfiles_2d
+      if keyword_set(pub) then plotfile_2d = compare_files.plotfiles_2d
       
       if keyword_set(plot_slices) then begin
         slice_axis = getvar_savefile(compare_files.input_savefile1[slice_i], 'slice_axis')
