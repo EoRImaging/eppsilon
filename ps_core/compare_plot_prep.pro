@@ -1,6 +1,7 @@
 pro compare_plot_prep, folder_names, obs_info, cube_types, pols, comp_type, compare_files, $
     plot_slices = plot_slices, slice_type = slice_type, fadd_2dbin = fadd_2dbin, $
-    spec_window_types = spec_window_types, freq_ch_range = freq_ch_range, ave_removal = ave_removal, $
+    spec_window_types = spec_window_types, delta_uv_lambda = delta_uv_lambda, freq_ch_range = freq_ch_range, $
+    ave_removal = ave_removal, $
     baseline_axis = baseline_axis, delay_axis = delay_axis, plot_wedge_line = plot_wedge_line, hinv = hinv, $
     plot_path = plot_path, plot_filebase = plot_filebase, save_path = save_path, savefilebase = savefilebase, $
     axis_type_1d = axis_type_1d, note = note, wt_cutoffs = wt_cutoffs, wt_measures = wt_measures, $
@@ -14,6 +15,8 @@ pro compare_plot_prep, folder_names, obs_info, cube_types, pols, comp_type, comp
   
   
   if n_elements(obs_info.info_files) gt 2 then message, 'Only 1 or 2 info_files can be used'
+
+  if n_elements(delta_uv_lambda) gt 2 then message, 'only 1 delta_uv_lambda allowed'
   
   ;; default to blackman-harris spectral window
   if n_elements(spec_window_types) eq 0 then spec_window_types = 'Blackman-Harris'
@@ -185,10 +188,10 @@ pro compare_plot_prep, folder_names, obs_info, cube_types, pols, comp_type, comp
   
   
   file_struct_arr1 = fhd_file_setup(obs_info.info_files[0], $
-    spec_window_type = spec_window_types[0], freq_ch_range = freq_ch_range, ave_removal = ave_removal[0])
+    spec_window_type = spec_window_types[0], delta_uv_lambda = delta_uv_lambda, freq_ch_range = freq_ch_range, ave_removal = ave_removal[0])
   if n_elements(obs_info.info_files) eq 2 or max_sw eq 1 or max_wtcut eq 1 or max_ar eq 1 then $
     file_struct_arr2 = fhd_file_setup(obs_info.info_files[max_file], spec_window_type = spec_window_types[max_sw], $
-    freq_ch_range = freq_ch_range, ave_removal = ave_removal[max_ar]) $
+    delta_uv_lambda = delta_uv_lambda, freq_ch_range = freq_ch_range, ave_removal = ave_removal[max_ar]) $
   else file_struct_arr2 = file_struct_arr1
   type_pol_str1 = file_struct_arr1.type_pol_str
   type_pol_str2 = file_struct_arr2.type_pol_str

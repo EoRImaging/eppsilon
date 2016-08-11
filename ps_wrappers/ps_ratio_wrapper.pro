@@ -1,6 +1,7 @@
 pro ps_ratio_wrapper, folder_names, obs_names_in, exact_obsnames = exact_obsnames, cube_types = cube_types, $
-    pols = pols, all_pol_diff_ratio = all_pol_diff_ratio, freq_ch_range = freq_ch_range,$
-    spec_window_types = spec_window_types, ave_removal = ave_removal, diff_ratio = diff_ratio, diff_range = diff_range, $
+    pols = pols, all_pol_diff_ratio = all_pol_diff_ratio, freq_ch_range = freq_ch_range, $
+    spec_window_types = spec_window_types, delta_uv_lambda = delta_uv_lambda, ave_removal = ave_removal, $
+    diff_ratio = diff_ratio, diff_range = diff_range, $
     png = png, eps = eps, pdf = pdf, data_range = data_range, invert_colorbar = invert_colorbar, $
     kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, sim = sim, window_num = window_num, $
     uvf_input = uvf_input, diff_save_path = diff_save_path, plot_path = diff_plot_path
@@ -9,6 +10,7 @@ pro ps_ratio_wrapper, folder_names, obs_names_in, exact_obsnames = exact_obsname
   if n_elements(folder_names) eq 0 then message, 'at least 1 folder name must be specified'
   if n_elements(obs_names_in) gt 2 then message, 'only 1 or 2 obs_names_in allowed'
   if n_elements(spec_window_types) gt 2 then message, 'only 1 or 2 spec_window_types allowed'
+  if n_elements(delta_uv_lambda) gt 1 then message, 'only 1 delta_uv_lambda allowed'
   if n_elements(ave_removal) gt 2 then message, 'only 1 or 2 ave_removal values allowed'
   
   spawn, 'hostname', hostname
@@ -38,7 +40,8 @@ pro ps_ratio_wrapper, folder_names, obs_names_in, exact_obsnames = exact_obsname
   
   ps_ratio_plots, folder_names, obs_info, cube_types, pols, all_pol_diff_ratio = all_pol_diff_ratio, $
     freq_ch_range = freq_ch_range,plot_path = diff_plot_path, plot_filebase = plot_filebase, $
-    note = note, spec_window_types = spec_window_types, ave_removal = ave_removal, data_range = data_range, $
+    note = note, spec_window_types = spec_window_types, delta_uv_lambda = delta_uv_lambda, $
+    ave_removal = ave_removal, data_range = data_range, $
     kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, $
     diff_ratio = diff_ratio, diff_range = diff_range, invert_colorbar = invert_colorbar, $
     plot_wedge_line = plot_wedge_line, quiet = quiet, png = png, eps = eps, pdf = pdf, $

@@ -2,7 +2,7 @@ pro ps_difference_plots, folder_names, obs_info, cube_types, pols, all_type_pol 
     refresh_diff = refresh_diff, freq_ch_range = freq_ch_range, $
     plot_slices = plot_slices, slice_type = slice_type, $
     plot_path = plot_path, plot_filebase = plot_filebase, save_path = save_path, savefilebase = savefilebase, $
-    note = note, spec_window_types = spec_window_types, ave_removal = ave_removal, $
+    note = note, spec_window_types = spec_window_types, delta_uv_lambda = delta_uv_lambda, ave_removal = ave_removal, $
     data_range = data_range, data_min_abs = data_min_abs, $
     baseline_axis = baseline_axis, delay_axis = delay_axis, $
     kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, plot_1d = plot_1d, axis_type_1d=axis_type_1d, $
@@ -30,7 +30,8 @@ pro ps_difference_plots, folder_names, obs_info, cube_types, pols, all_type_pol 
   
   compare_plot_prep, folder_names, obs_info, cube_types, pols, 'diff', compare_files, $
     plot_slices = plot_slices, slice_type = slice_type, $
-    spec_window_types = spec_window_types, freq_ch_range = freq_ch_range, ave_removal = ave_removal, $
+    spec_window_types = spec_window_types, delta_uv_lambda = delta_uv_lambda, freq_ch_range = freq_ch_range, $
+    ave_removal = ave_removal, $
     baseline_axis = baseline_axis, delay_axis = delay_axis, plot_wedge_line = plot_wedge_line, hinv = hinv, $
     plot_path = plot_path, plot_filebase = plot_filebase, save_path = save_path, savefilebase = savefilebase, $
     axis_type_1d = axis_type_1d, note = note, wt_cutoffs = wt_cutoffs, wt_measures = wt_measures, $
