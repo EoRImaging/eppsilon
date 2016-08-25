@@ -6,7 +6,7 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
     std_power = std_power, inverse_covar_weight = inverse_covar_weight, $
     input_units = input_units, uvf_input = uvf_input, $
     uv_avg = uv_avg, uv_img_clip = uv_img_clip, no_dft_progress = no_dft_progress, $
-    ave_removal = ave_removal
+    ave_removal = ave_removal, filter_name=filter_name
     
   if tag_exist(file_struct, 'nside') ne 0 then healpix = 1 else healpix = 0
   if keyword_set(uvf_input) or tag_exist(file_struct, 'uvf_savefile') eq 0 then uvf_input = 1 else uvf_input = 0
@@ -613,6 +613,10 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
             
           endif
           
+          ;TEST CODE ***************************************
+          pix_mask = image_mask_eppsilon(x_rot, y_rot, wh_close, filter_name=filter_name)
+          
+          
           ;; do DFT.
           if test_uvf eq 0 or keyword_set(dft_refresh_data) then begin
             git, repo_path = ps_repository_dir(), result=uvf_git_hash
@@ -701,7 +705,7 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
             print, 'calculating DFT for ' + file_struct.datavar + ' in ' + file_struct.datafile[i]
             
             time0 = systime(1)
-            arr = getvar_savefile(file_struct.datafile[i], file_struct.datavar)
+            arr = getvar_savefile(file_struct.datafile[i], file_struct.datavar) 
             time1 = systime(1)
             
             if time1 - time0 gt 60 then print, 'Time to restore cube was ' + number_formatter((time1 - time0)/60.) + ' minutes'
@@ -710,7 +714,7 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
               if max(abs(imaginary(arr))) eq 0 then arr = real_part(arr) else message, 'Data in Healpix cubes is complex.'
             if not healpix then arr = reform(arr, dims[0]*dims[1], n_freq)
             
-            if count_far ne 0 then arr = arr[wh_close, *]
+            if count_far ne 0 then arr = arr[wh_close, *] * pix_mask
             if n_elements(freq_ch_range) ne 0 then arr = arr[*, min(freq_ch_range):max(freq_ch_range)]
             if n_elements(freq_flags) ne 0 then arr = arr * rebin(reform(freq_mask, 1, n_elements(file_struct.frequencies)), size(arr, /dimension), /sample)
             
@@ -743,7 +747,7 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
             print, 'calculating DFT for ' + file_struct.weightvar + ' in ' + file_struct.weightfile[i]
             
             time0 = systime(1)
-            arr = getvar_savefile(file_struct.weightfile[i], file_struct.weightvar)
+            arr = getvar_savefile(file_struct.weightfile[i], file_struct.weightvar) 
             time1 = systime(1)
             
             if time1 - time0 gt 60 then print, 'Time to restore cube was ' + number_formatter((time1 - time0)/60.) + ' minutes'
@@ -752,7 +756,7 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
               if max(abs(imaginary(arr))) eq 0 then arr = real_part(arr) else message, 'Weights in Healpix cubes is complex.'
             if not healpix then arr = reform(arr, dims[0]*dims[1], n_freq)
             
-            if count_far ne 0 then arr = arr[wh_close, *]
+            if count_far ne 0 then arr = arr[wh_close, *] * pix_mask
             if n_elements(freq_ch_range) ne 0 then arr = arr[*, min(freq_ch_range):max(freq_ch_range)]
             if n_elements(freq_flags) ne 0 then arr = arr * rebin(reform(freq_mask, 1, n_elements(file_struct.frequencies)), size(arr, /dimension), /sample)
             
@@ -770,7 +774,7 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
               print, 'calculating DFT for ' + file_struct.variancevar + ' in ' + file_struct.variancefile[i]
               
               time0 = systime(1)
-              arr = getvar_savefile(file_struct.variancefile[i], file_struct.variancevar)
+              arr = getvar_savefile(file_struct.variancefile[i], file_struct.variancevar) 
               time1 = systime(1)
               
               if time1 - time0 gt 60 then print, 'Time to restore cube was ' + number_formatter((time1 - time0)/60.) + ' minutes'
@@ -779,7 +783,7 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
                 if max(abs(imaginary(arr))) eq 0 then arr = real_part(arr) else  message, 'Variances in Healpix cubes is complex.'
               if not healpix then arr = reform(arr, dims[0]*dims[1], n_freq)
               
-              if count_far ne 0 then arr = arr[wh_close, *]
+              if count_far ne 0 then arr = arr[wh_close, *] * pix_mask^2.
               if n_elements(freq_ch_range) ne 0 then arr = arr[*, min(freq_ch_range):max(freq_ch_range)]
               if n_elements(freq_flags) ne 0 then arr = arr * rebin(reform(freq_mask, 1, n_elements(file_struct.frequencies)), size(arr, /dimension), /sample)
               

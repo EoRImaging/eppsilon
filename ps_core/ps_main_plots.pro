@@ -85,7 +85,7 @@
       plot_eor_1d = plot_eor_1d, plot_flat_1d = plot_flat_1d, no_text_1d = no_text_1d, $
       save_path = save_path, savefilebase = savefilebase, plot_path = plot_path, plot_filebase = plot_filebase, $
       individual_plots = individual_plots, plot_binning_hist = plot_binning_hist, $
-      note = note, png = png, eps = eps, pdf = pdf, cube_power_info = cube_power_info, no_dft_progress = no_dft_progress
+      note = note, png = png, eps = eps, pdf = pdf, cube_power_info = cube_power_info, no_dft_progress = no_dft_progress, filter_name=filter_name
       
       
     if keyword_set(refresh_dft) then refresh_beam = 1
@@ -624,7 +624,7 @@
             kperp_range_lambda_kparpower = kperp_range_lambda_kparpower, kpar_range_kperppower = kpar_range_kperppower_use, $
             wt_measures = wt_measures, wt_cutoffs = wt_cutoffs, fix_sim_input = fix_sim_input, $
             wedge_amps = wedge_amp, coarse_harm0 = coarse_harm0, coarse_width = coarse_harm_width, no_dft_progress = no_dft_progress, $
-            plot_binning_hist = plot_binning_hist, plotfile_binning_hist = plotfile_binning_hist_use, png = png, eps = eps, pdf = pdf
+            plot_binning_hist = plot_binning_hist, plotfile_binning_hist = plotfile_binning_hist_use, png = png, eps = eps, pdf = pdf, filter_name=filter_name
         endif else $
           ps_power, file_struct_arr[i], kcube_refresh = refresh_ps, refresh_beam = refresh_beam, freq_ch_range = freq_ch_range, $
           freq_flags = freq_flags, spec_window_type = spec_window_type, $
