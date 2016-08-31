@@ -117,6 +117,9 @@
     ;; default to cutting in image space (down to 30 degree diameter circle)
     if n_elements(cut_image) eq 0 then cut_image = 1
     
+    ;; default to ave_removal
+    if n_elements(ave_removal) eq 0 then ave_removal = 1
+    
     if keyword_set(no_kzero) and keyword_set(plot_k0_power) then message, 'plot_k0_power cannot be set if no_kzero keyword is set.'
     
     if keyword_set(png) or keyword_set(eps) or keyword_set(pdf) then pub = 1 else pub = 0
