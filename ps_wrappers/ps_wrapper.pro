@@ -40,6 +40,8 @@ pro ps_wrapper, folder_name, obs_name, data_subdirs=data_subdirs, exact_obsnames
     spawn, 'hostname', hostname
     if stregex(hostname, 'mit.edu', /boolean) eq 1 then loc_name = 'mit'
     if stregex(hostname, 'enterprise', /boolean) eq 1 then loc_name = 'enterprise'
+    if stregex(hostname, 'constellation', /boolean) eq 1 then loc_name = 'enterprise'
+    if stregex(hostname, 'defiant', /boolean) eq 1 then loc_name = 'enterprise'
   endif
   case loc_name of
     'mit':  folder_name = mit_folder_locs(folder_name, rts = rts)
