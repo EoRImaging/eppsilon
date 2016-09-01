@@ -15,12 +15,15 @@ pro compare_plot_prep, folder_names, obs_info, cube_types, pols, comp_type, comp
   
   
   if n_elements(obs_info.info_files) gt 2 then message, 'Only 1 or 2 info_files can be used'
-
+  
   if n_elements(delta_uv_lambda) gt 2 then message, 'only 1 delta_uv_lambda allowed'
   
   ;; default to blackman-harris spectral window
   if n_elements(spec_window_types) eq 0 then spec_window_types = 'Blackman-Harris'
   
+  ;; default to ave_removal
+  if n_elements(ave_removal) eq 0 then ave_removal = 1
+   
   if n_elements(spec_window_types) eq 2 then begin
     if spec_window_types[0] eq spec_window_types[1] then spec_window_types = spec_window_types[0] else begin
     
@@ -442,9 +445,9 @@ pro compare_plot_prep, folder_names, obs_info, cube_types, pols, comp_type, comp
           
           input_savefile2[slice_i, cube_i] = file_struct_arr2[type_pol_locs[cube_i, 1]].power_savefile
           if file_test(input_savefile2[slice_i, cube_i]) eq 0 then message, 'No power file for ' + type_pol2 + ' and info_file: ' + obs_info.info_files[n_elements(obs_info.info_files)-1]
-
+          
         endif else begin
-           
+        
           input_savefile1[slice_i, cube_i] = file_struct_arr1[type_pol_locs[cube_i, 0]].savefile_froot + file_struct_arr1[type_pol_locs[cube_i, 0]].savefilebase + $
             file_struct_arr1[type_pol_locs[cube_i, 0]].power_tag + fadd_2dbin + kperp_density_names[0] + '_2dkpower.idlsave'
           input_savefile2[slice_i, cube_i] = file_struct_arr2[type_pol_locs[cube_i, 1]].savefile_froot + file_struct_arr2[type_pol_locs[cube_i, 1]].savefilebase + $
@@ -476,10 +479,10 @@ pro compare_plot_prep, folder_names, obs_info, cube_types, pols, comp_type, comp
   compare_files = {input_savefile1:input_savefile1, input_savefile2:input_savefile2, $
     titles:titles, n_slices:n_slices, $
     wedge_amp:wedge_amp, kperp_density_names:kperp_density_names, kperp_plot_range:kperp_plot_range}
-  
+    
   if n_elements(n_cubes) gt 0 then compare_files = create_struct(compare_files, 'n_cubes', n_cubes)
   if n_elements(n_sets) gt 0 then compare_files = create_struct(compare_files, 'n_sets', n_sets)
-    
+  
   if keyword_set(pub) then compare_files = create_struct(compare_files, 'plotfiles_2d', plotfiles_2d)
   if n_elements(mid_savefile_2d) gt 0 then compare_files = create_struct(compare_files, 'mid_savefile_2d', mid_savefile_2d)
   if n_elements(mid_savefile_3d) gt 0 then compare_files = create_struct(compare_files, 'mid_savefile_3d', mid_savefile_3d)
