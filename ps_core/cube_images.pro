@@ -42,31 +42,23 @@ pro cube_images, folder_names, obs_info, nvis_norm = nvis_norm, pols = pols, cub
   max_type = n_elements(cube_types)-1
   max_pol = n_elements(pols)-1
   max_eo = n_elements(evenodd)-1
-  
+s
   if obs_info.info_files[0] ne '' then begin
     if keyword_set(rts) then file_struct_arr1 = rts_file_setup(obs_info.info_files[0]) $
     else $
       if keyword_set(casa) then file_struct_arr1 = casa_file_setup(obs_info.info_files[0]) $
     else file_struct_arr1 = fhd_file_setup(obs_info.info_files[0])
-  endif else begin
-     if keyword_set(rts) then file_struct_arr1 = rts_file_setup(obs_info.cube_files.(0)) $
-    else $
-      if keyword_set(casa) then file_struct_arr1 = casa_file_setup(obs_info.cube_files.(0)) $
-    else file_struct_arr1 = fhd_file_setup(obs_info.cube_files.(0))
-  endelse
- 
+  endif else message, 'No info file exists for folder: ' + folder_names[0] + $
+    ' and obs_name: ' + obs_info.obs_names[0]
+    
   if n_elements(obs_info.info_files) eq 2 then if obs_info.info_files[1] ne '' then begin
     if keyword_set(rts) then file_struct_arr2 = rts_file_setup(obs_info.info_files[1]) $
     else $
       if keyword_set(casa) then file_struct_arr2 = casa_file_setup(obs_info.info_files[1]) $
     else file_struct_arr2 = fhd_file_setup(obs_info.info_files[1])
-  endif else begin
-     if keyword_set(rts) then file_struct_arr1 = rts_file_setup(obs_info.cube_files.(1)) $
-    else $
-      if keyword_set(casa) then file_struct_arr1 = casa_file_setup(obs_info.cube_files.(1)) $
-    else file_struct_arr1 = fhd_file_setup(obs_info.cube_files.(1))
-  endelse
-  
+  endif else message, 'No info file exists for folder: ' + folder_names[n_elements(folder_names)-1] + $
+    ' and obs_name: ' + obs_info.obs_names[n_elements(obs_info.obs_names)-1]
+  s
   type_pol_str1 = file_struct_arr1.type_pol_str
   if n_elements(file_struct_arr2) gt 0 then type_pol_str2 = file_struct_arr2.type_pol_str
   
