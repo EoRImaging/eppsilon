@@ -4,7 +4,7 @@ pro ps_ratio_wrapper, folder_names, obs_names_in, exact_obsnames = exact_obsname
     diff_ratio = diff_ratio, diff_range = diff_range, $
     png = png, eps = eps, pdf = pdf, data_range = data_range, invert_colorbar = invert_colorbar, $
     kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, sim = sim, window_num = window_num, $
-    uvf_input = uvf_input, diff_save_path = diff_save_path, plot_path = diff_plot_path
+    uvf_input = uvf_input, diff_save_path = diff_save_path, plot_path = diff_plot_path, ps_foldernames=ps_foldernames
     
   if n_elements(folder_names) gt 2 then message, 'only 1 or 2 folder_names allowed'
   if n_elements(folder_names) eq 0 then message, 'at least 1 folder name must be specified'
