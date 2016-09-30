@@ -1,7 +1,6 @@
 pro log_color_calc, data, data_log_norm, cb_ticks, cb_ticknames, color_range, n_colors, data_range = data_range, $
     color_profile = color_profile, log_cut_val = log_cut_val, min_abs = min_abs, oob_low = oob_low, $
-    missing_value = missing_value, missing_color = missing_color
-    
+    missing_value = missing_value, missing_color = missing_color, invert_colorbar = invert_colorbar, label_lt_0 = label_lt_0
     
   color_profile_enum = ['log_cut', 'sym_log', 'abs']
   if n_elements(color_profile) eq 0 then color_profile = 'log_cut'
@@ -64,11 +63,14 @@ pro log_color_calc, data, data_log_norm, cb_ticks, cb_ticknames, color_range, n_
           zero_color=1
           zero_val = log_data_range[0]
           
-          if log_cut_val gt min_pos then log_data_range = [log_cut_val-2*data_n_colors/(log_data_range[1]-log_data_range[0]), alog10(data_range[1])]
+        ;; Don't want this to override specified data range. Removing 9/25/15 BJH
+        ;if log_cut_val gt alog10(min_pos) then log_data_range = [log_cut_val-2*data_n_colors/(log_data_range[1]-log_data_range[0]), alog10(data_range[1])]
           
         endif else begin
           min_pos_color = 1
-          if log_cut_val gt min_pos then log_data_range = [log_cut_val-data_n_colors/(log_data_range[1]-log_data_range[0]), alog10(data_range[1])]
+          
+        ;; Don't want this to override specified data range. Removing 9/25/15 BJH
+        ;if log_cut_val gt alog10(min_pos) then log_data_range = [log_cut_val-data_n_colors/(log_data_range[1]-log_data_range[0]), alog10(data_range[1])]
           
         endelse
         neg_color=0
@@ -84,17 +86,19 @@ pro log_color_calc, data, data_log_norm, cb_ticks, cb_ticknames, color_range, n_
         
         oob_low = 0
         
-        cgloadct, 25, /brewer, /reverse, BOTTOM = min_pos_color, NCOLORS = 256-min_pos_color, clip = [0, 235]
-        if count_zero gt 0 then begin
-          cgLoadCT, 25, /brewer, /reverse, CLIP=[255, 255], BOTTOM=0, NCOLORS=1
-          cgLoadCT, 25, /brewer, /reverse, CLIP=[245, 245], BOTTOM=zero_color, NCOLORS=1
-        endif else cgLoadCT, 25, /brewer, /reverse, CLIP=[255, 255], BOTTOM=0, NCOLORS=1
-        
-      ;        cgloadct, 27, /brewer, BOTTOM = min_pos_color, NCOLORS = 256-min_pos_color, clip = [40, 255]
-      ;        if count_zero gt 0 then begin
-      ;          cgLoadCT, 27, /brewer, CLIP=[0, 0], BOTTOM=0, NCOLORS=1
-      ;          cgLoadCT, 27, /brewer, CLIP=[1, 1], BOTTOM=zero_color, NCOLORS=1
-      ;        endif else cgLoadCT, 27, /brewer, CLIP=[0, 0], BOTTOM=0, NCOLORS=1
+        if not keyword_set(invert_colorbar) then begin
+          cgloadct, 25, /brewer, /reverse, BOTTOM = min_pos_color, NCOLORS = 256-min_pos_color, clip = [0, 235]
+          if count_zero gt 0 then begin
+            cgLoadCT, 25, /brewer, /reverse, CLIP=[255, 255], BOTTOM=0, NCOLORS=1
+            cgLoadCT, 25, /brewer, /reverse, CLIP=[245, 245], BOTTOM=zero_color, NCOLORS=1
+          endif else cgLoadCT, 25, /brewer, /reverse, CLIP=[255, 255], BOTTOM=0, NCOLORS=1
+        endif else begin
+          cgloadct, 25, /brewer, BOTTOM = min_pos_color, NCOLORS = 256-min_pos_color, clip = [20, 255]
+          if count_zero gt 0 then begin
+            cgLoadCT, 25, /brewer, CLIP=[0, 0], BOTTOM=0, NCOLORS=1
+            cgLoadCT, 25, /brewer, CLIP=[10, 10], BOTTOM=zero_color, NCOLORS=1
+          endif else cgLoadCT, 25, /brewer, CLIP=[0, 0], BOTTOM=0, NCOLORS=1
+        endelse
         
       endif else begin
       
@@ -115,7 +119,8 @@ pro log_color_calc, data, data_log_norm, cb_ticks, cb_ticknames, color_range, n_
         wh_over = where(data_log gt log_data_range[1], count_over)
         if count_over gt 0 then data_log[wh_over] = log_data_range[1]
         
-        cgloadct, 25, /brewer, /reverse, clip = [0, 235]
+        if not keyword_set(invert_colorbar) then cgloadct, 25, /brewer, /reverse, clip = [0, 235] $
+        else cgloadct, 25, /brewer, clip = [20, 255]
         
       endelse
       
@@ -147,13 +152,18 @@ pro log_color_calc, data, data_log_norm, cb_ticks, cb_ticknames, color_range, n_
         n_colors = n_colors - ndiff
         
         data_color_range[1] = data_color_range[1] - ndiff
-        color_range[1] = color_range[1] - ndiff       
+        color_range[1] = color_range[1] - ndiff
       endif
       
-      cgLoadCT, 16, /brewer, /reverse, clip=[20, 220], bottom=0, ncolors=n_pos_neg_colors
-      cgloadct, 0, clip = [255, 255], bottom = zero_color, ncolors = 1
-      cgLoadCT, 13, /brewer, clip=[20, 220], bottom=zero_color+1, ncolors=n_pos_neg_colors
-      
+      if keyword_set(invert_colorbar) then begin
+        cgLoadCT, 13, /brewer, /reverse, clip=[20, 220], bottom=0, ncolors=n_pos_neg_colors
+        cgloadct, 0, clip = [255, 255], bottom = zero_color, ncolors = 1
+        cgLoadCT, 16, /brewer, clip=[20, 220], bottom=zero_color+1, ncolors=n_pos_neg_colors
+      endif else begin
+        cgLoadCT, 16, /brewer, /reverse, clip=[20, 220], bottom=0, ncolors=n_pos_neg_colors
+        cgloadct, 0, clip = [255, 255], bottom = zero_color, ncolors = 1
+        cgLoadCT, 13, /brewer, clip=[20, 220], bottom=zero_color+1, ncolors=n_pos_neg_colors
+      endelse
       
       ;; construct 2 separate data logs (for negative & positive)
       pos_data_log = alog10(data)
@@ -170,9 +180,9 @@ pro log_color_calc, data, data_log_norm, cb_ticks, cb_ticknames, color_range, n_
       if count_neg gt 0 then begin
         data_log_norm[wh_neg] = (log_data_range[1] - neg_data_log[wh_neg])*(n_pos_neg_colors-1)/(log_data_range[1]-log_data_range[0]) + neg_color_range[0]
         wh_under = where(neg_data_log[wh_neg] lt log_data_range[0], count_under)
-        if count_under gt 0 then data_log_norm[wh_neg[wh_under]] = neg_color_range[0]
+        if count_under gt 0 then data_log_norm[wh_neg[wh_under]] = neg_color_range[1]
         wh_over = where(neg_data_log[wh_neg] gt log_data_range[1], count_over)
-        if count_over gt 0 then data_log_norm[wh_neg[wh_over]] = neg_color_range[1]
+        if count_over gt 0 then data_log_norm[wh_neg[wh_over]] = neg_color_range[0]
       endif
       if count_zero gt 0 then data_log_norm[wh_zero] = zero_color
       
@@ -203,7 +213,8 @@ pro log_color_calc, data, data_log_norm, cb_ticks, cb_ticknames, color_range, n_
       if count_over gt 0 then data_log[wh_over] = log_data_range[1]
       
       data_log_norm = (data_log-log_data_range[0])*(data_n_colors-min_pos_color-1)/(log_data_range[1]-log_data_range[0]) + data_color_range[0] + min_pos_color
-      cgloadct, 25, /brewer, /reverse, clip = [0, 235]
+      if not keyword_set(invert_colorbar) then cgloadct, 25, /brewer, /reverse, clip = [0, 235] $
+      else cgloadct, 25, /brewer, clip = [20, 255]
       
     end
   endcase
@@ -314,7 +325,7 @@ pro log_color_calc, data, data_log_norm, cb_ticks, cb_ticknames, color_range, n_
       tick_vals = 10^exp_vals
     endwhile
     
-    if min_pos_color gt 0 then begin
+    if min_pos_color gt 0 and keyword_set(lable_lt_0) then begin
       new_tick_vals = [10^log_data_range[0], tick_vals]
       
       min_tick_color = (alog10(min(tick_vals))-log_data_range[0])*n_colors/(log_data_range[1]-log_data_range[0]) + color_range[0]
@@ -334,16 +345,32 @@ pro log_color_calc, data, data_log_norm, cb_ticks, cb_ticknames, color_range, n_
       names = temp_names[order]
     endif
     
-    
-    if (alog10(tick_vals[0]) - log_data_range[0]) lt 10^(-3d) then begin
-      cb_ticknames = [' ', names]
-      cb_ticks = [color_range[0]-1, (alog10(tick_vals) - log_data_range[0]) * n_colors / $
-        (log_data_range[1] - log_data_range[0]) + color_range[0]] - color_range[0]
-        
+    if min_pos_color gt 0 then begin
+      ;; when the negative arrow is at the bottom of the colorbar, the color of the arrow 
+      ;; bleeds into the bottom of the colorbar. If the tick should be at the bottom of the
+      ;; color bar, an extra unnotated tick is added so it isn't in the part that's the
+      ;; color of the arrow.
+      if (alog10(tick_vals[0]) - log_data_range[0s]) lt 10^(-3d) then begin
+        cb_ticknames = [' ', names]
+        cb_ticks = [color_range[0]-1, (alog10(tick_vals) - log_data_range[0]) * n_colors / $
+          (log_data_range[1] - log_data_range[0]) + color_range[0]] - color_range[0]
+          
+      endif else begin
+        cb_ticknames = names
+        cb_ticks = ((alog10(tick_vals) - log_data_range[0]) * (n_colors+1) / $
+          (log_data_range[1] - log_data_range[0]) + color_range[0]) - color_range[0]
+      endelse
     endif else begin
-      cb_ticknames = names
-      cb_ticks = ((alog10(tick_vals) - log_data_range[0]) * (n_colors+1) / $
-        (log_data_range[1] - log_data_range[0]) + color_range[0]) - color_range[0]
+      if (alog10(tick_vals[0]) - log_data_range[0]) lt 10^(-3d) then begin
+        cb_ticknames = names
+        cb_ticks = [(alog10(tick_vals) - log_data_range[0]) * n_colors / $
+          (log_data_range[1] - log_data_range[0]) + color_range[0]] - color_range[0]
+          
+      endif else begin
+        cb_ticknames = names
+        cb_ticks = ((alog10(tick_vals) - log_data_range[0]) * (n_colors+1) / $
+          (log_data_range[1] - log_data_range[0]) + color_range[0]) - color_range[0]
+      endelse
     endelse
     
     if (log_data_range[1] - alog10(max(tick_vals))) gt 10^(-3d) then begin
