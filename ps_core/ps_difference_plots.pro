@@ -153,18 +153,18 @@ pro ps_difference_plots, folder_names, obs_info, cube_types, pols, all_type_pol 
   if keyword_set(plot_1d) and not keyword_set(plot_slices) then begin
     for i=0, n_elements(wedge_amp) do begin
     
-      if keyword_set(pub) then plotfiles_use = plotfiles_1d[cube_i]
+      if keyword_set(pub) then plotfiles_use = compare_files.plotfiles_1d[cube_i]
       
-      for j=0, n_cubes-1 do begin
+      for j=0, compare_files.n_cubes-1 do begin
       
-        if n_cubes gt 1 then begin
+        if compare_files.n_cubes gt 1 then begin
           if j eq 0 then begin
-            if n_cubes eq 6 then begin
+            if compare_files.n_cubes eq 6 then begin
               ncol = 3
               nrow = 2
             endif else begin
               nrow = 2
-              ncol = ceil(n_cubes/nrow)
+              ncol = ceil(compare_files.n_cubes/nrow)
             endelse
             start_multi_params = {ncol:ncol, nrow:nrow, ordering:'row'}
             undefine, positions, pos_use
@@ -176,10 +176,10 @@ pro ps_difference_plots, folder_names, obs_info, cube_types, pols, all_type_pol 
           endelse
         endif
         
-        if i eq n_cubes-1 and n_elements(note) gt 0 then note_use = note else undefine, note_use
-        
-        kpower_1d_plots, savefiles_1d[j,i], window_num=window_num, start_multi_params = start_multi_params, multi_pos = pos_use, $
-          names=titles[j], hinv = hinv, png = png, eps = eps, pdf = pdf, plotfile = plotfiles_use, note = note_use, yaxis_type = axis_type_1d
+        if i eq compare_files.n_cubes-1 and n_elements(note) gt 0 then note_use = note else undefine, note_use
+       
+        kpower_1d_plots, compare_files.savefiles_1d[j,i], window_num=window_num, start_multi_params = start_multi_params, multi_pos = pos_use, $
+          names=compare_files.titles[j], hinv = hinv, png = png, eps = eps, pdf = pdf, plotfile = plotfiles_use, title = note, yaxis_type = axis_type_1d
           
         if j eq 0 then begin
           positions = pos_use
