@@ -1232,7 +1232,7 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, wei
   ;;             divisions = 0
 
   if n_elements(oob_low) gt 0 and not keyword_set(label_lt_0_oncb) then $
-    cgtext, cb_pos[2], cb_pos[1]*.9, '<0', /normal, alignment=1, charsize = charsize, color = annotate_color, font = font
+    cgtext, cb_pos[2], cb_pos[1]-(cb_pos[3]-cb_pos[1])*.05, '<0', /normal, alignment=1, charsize = charsize, color = annotate_color, font = font
 
   if keyword_set(pub) and n_elements(multi_pos) eq 0 then begin
     cgps_close, png = png, pdf = pdf, delete_ps = delete_ps, density=600
