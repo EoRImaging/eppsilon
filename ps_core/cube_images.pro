@@ -42,7 +42,7 @@ pro cube_images, folder_names, obs_info, nvis_norm = nvis_norm, pols = pols, cub
   max_type = n_elements(cube_types)-1
   max_pol = n_elements(pols)-1
   max_eo = n_elements(evenodd)-1
-
+  
   if obs_info.info_files[0] ne '' then begin
     if keyword_set(rts) then file_struct_arr1 = rts_file_setup(obs_info.info_files[0]) $
     else $
@@ -55,8 +55,8 @@ pro cube_images, folder_names, obs_info, nvis_norm = nvis_norm, pols = pols, cub
     else $
       if keyword_set(casa) then file_struct_arr2 = casa_file_setup(obs_info.info_files[1]) $
     else file_struct_arr2 = fhd_file_setup(obs_info.info_files[1])
-  endif else file_struct_arr2 = fhd_file_setup(obs_info.cube_files.(1))  
- 
+  endif else file_struct_arr2 = fhd_file_setup(obs_info.cube_files.(1))
+  
   type_pol_str1 = file_struct_arr1.type_pol_str
   if n_elements(file_struct_arr2) gt 0 then type_pol_str2 = file_struct_arr2.type_pol_str
   
@@ -145,9 +145,10 @@ pro cube_images, folder_names, obs_info, nvis_norm = nvis_norm, pols = pols, cub
     
     for i=0, n_cubes-1 do begin
     
-      if cube_varnames[i] eq '' then begin
-        if cube_types[i] eq 'res' then input_types = ['dirty', 'model'] else $
-          if cube_types[i] eq 'model' then input_types = ['dirty', 'res'] else $
+      if i eq 0 then type_index=0 else type_index = max_type
+      if cube_varnames[type_index] eq '' then begin
+        if cube_types[type_index] eq 'res' then input_types = ['dirty', 'model'] else $
+          if cube_types[type_index] eq 'model' then input_types = ['dirty', 'res'] else $
           message, 'No varname for this cube type and it cannot be constructed from other cubes'
           
         input_cubes_typepol = input_types + '_' + pols[0]
