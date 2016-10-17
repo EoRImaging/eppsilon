@@ -299,8 +299,8 @@ pro cube_images, folder_names, obs_info, nvis_norm = nvis_norm, pols = pols, cub
           else n_vis_freq_avg[i] = total(nvis_freq[inds_use])
         endfor
       endif else n_vis_freq_avg = nvis_freq
-      if n_elements(filenames) eq 2 then cube2 = cube2 / rebin(reform(n_vis_freq_avg, 1, 1, n_freq2), n_elements(hpx_inds2), n_freq2) $
-      else cube2 = cube2 / rebin(reform(n_vis_freq_avg, 1, 1, n_freq2), n_elements(hpx_inds1), n_freq2)
+      if n_elements(filenames) eq 2 then cube2 = cube2 / rebin(reform(n_vis_freq_avg, 1, n_freq2), n_elements(hpx_inds2), n_freq2) $
+      else cube2 = cube2 / rebin(reform(n_vis_freq_avg, 1, n_freq2), n_elements(hpx_inds1), n_freq2)
     endif
   endif
   
