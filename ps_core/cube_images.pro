@@ -1,4 +1,5 @@
-pro cube_images, folder_names, obs_info, nvis_norm = nvis_norm, pols = pols, cube_types = cube_types, evenodd = evenodd, $
+pro cube_images, folder_names, obs_info, nvis_norm = nvis_norm, $
+    pols = pols, cube_types = cube_types, evenodd = evenodd, $
     rts = rts, png = png, eps = eps, pdf = pdf, slice_range = slice_range, sr2 = sr2, $
     ratio = ratio, diff_ratio = diff_ratio, diff_frac = diff_frac, $
     log = log, data_range = data_range, data_min_abs = data_min_abs, color_profile = color_profile, sym_color = sym_color, $
@@ -75,6 +76,7 @@ pro cube_images, folder_names, obs_info, nvis_norm = nvis_norm, pols = pols, cub
     filenames = file_struct_arr1[cube_ind].weightfile[evenodd_ind]
     if cube_types[0] eq 'weights' then cube_varnames = file_struct_arr1[cube_ind].weightvar $
     else cube_varnames = file_struct_arr1[cube_ind].variancevar
+    weight_varnames = file_struct_arr1[cube_ind].weightvar
   endif else begin
     cube_ind = where(type_pol_str1 eq type_pol_str[0], count_typepol)
     if count_typepol eq 0 then message, 'Specified cube type and pol are not available.'
@@ -87,7 +89,7 @@ pro cube_images, folder_names, obs_info, nvis_norm = nvis_norm, pols = pols, cub
     
     filenames = file_struct_arr1[cube_ind].datafile[evenodd_ind]
     cube_varnames = file_struct_arr1[cube_ind].datavar
-    
+    weight_varnames = file_struct_arr1[cube_ind].weightvar
   endelse
   
   if n_cubes eq 2 then begin
@@ -109,10 +111,12 @@ pro cube_images, folder_names, obs_info, nvis_norm = nvis_norm, pols = pols, cub
         filenames = [filenames, file_struct_arr2[cube_ind2].weightfile[evenodd_ind2]]
         if cube_types[0] eq 'weights' then cube_varnames = [cube_varnames, file_struct_arr2[cube_ind2].weightvar] $
         else cube_varnames = [cube_varnames, file_struct_arr2[cube_ind2].variancevar]
+        weight_varnames = [weight_varnames, file_struct_arr2[cube_ind2].weightvar]
       endif else begin
         filenames = [filenames, file_struct_arr1[cube_ind2].weightfile[evenodd_ind2]]
         if cube_types[0] eq 'weights' then cube_varnames = [cube_varnames, file_struct_arr1[cube_ind2].weightvar] $
         else cube_varnames = [cube_varnames, file_struct_arr1[cube_ind2].variancevar]
+        weight_varnames = [weight_varnames, file_struct_arr1[cube_ind2].weightvar]
       endelse
     endif else begin
       if n_elements(file_struct_arr2) gt 0 then cube_ind2 = where(type_pol_str1 eq type_pol_str[1], count_typepol) $
@@ -130,9 +134,11 @@ pro cube_images, folder_names, obs_info, nvis_norm = nvis_norm, pols = pols, cub
       if n_elements(file_struct_arr2) gt 0 then begin
         filenames = [filenames, file_struct_arr2[cube_ind2].datafile[evenodd_ind2]]
         cube_varnames = [cube_varnames, file_struct_arr2[cube_ind2].datavar]
+        weight_varnames = [weight_varnames, file_struct_arr2[cube_ind2].weightvar]
       endif else begin
         filenames = [filenames, file_struct_arr1[cube_ind2].datafile[evenodd_ind2]]
         cube_varnames = [cube_varnames, file_struct_arr1[cube_ind2].datavar]
+        weight_varnames = [weight_varnames, file_struct_arr1[cube_ind2].weightvar]
       endelse
       
     endelse
@@ -271,6 +277,14 @@ pro cube_images, folder_names, obs_info, nvis_norm = nvis_norm, pols = pols, cub
       endfor
     endif else n_vis_freq_avg = nvis_freq
     cube1 = cube1 / rebin(reform(n_vis_freq_avg, 1, n_freq1), n_elements(hpx_inds1), n_freq1)
+    if cube_types[0] ne 'weights' and cube_types[0] ne 'variances' and $
+      cube_types[max_type] ne 'weights' and cube_types[max_type] ne 'variances' then begin
+      weights1 = getvar_savefile(filenames[0], weight_varnames[0])
+      weights1 = weights1 / rebin(reform(n_vis_freq_avg, 1, n_freq1), n_elements(hpx_inds1), n_freq1)
+      
+      cube1 = cube1 / rebin(reform(max(weights1, dimension=1), 1, n_freq1), n_elements(hpx_inds1), n_freq1)
+      units_str = 'Jy/beam'
+    endif
   endif
   if n_cubes gt 1 then begin
     if cube_varnames[1] eq '' then begin
@@ -299,8 +313,18 @@ pro cube_images, folder_names, obs_info, nvis_norm = nvis_norm, pols = pols, cub
           else n_vis_freq_avg[i] = total(nvis_freq[inds_use])
         endfor
       endif else n_vis_freq_avg = nvis_freq
-      if n_elements(filenames) eq 2 then cube2 = cube2 / rebin(reform(n_vis_freq_avg, 1, n_freq2), n_elements(hpx_inds2), n_freq2) $
+      if n_elements(filenames) eq 2 then $
+        cube2 = cube2 / rebin(reform(n_vis_freq_avg, 1, n_freq2), n_elements(hpx_inds2), n_freq2) $
       else cube2 = cube2 / rebin(reform(n_vis_freq_avg, 1, n_freq2), n_elements(hpx_inds1), n_freq2)
+      if cube_types[0] ne 'weights' and cube_types[0] ne 'variances' and $
+        cube_types[max_type] ne 'weights' and cube_types[max_type] ne 'variances' then begin
+        
+        weights2 = getvar_savefile(filenames[max_file], weight_varnames[max_type])
+        weights2 = weights2 / rebin(reform(n_vis_freq_avg, 1, n_freq1), n_elements(hpx_inds1), n_freq1)
+        if n_elements(filenames) eq 2 then $
+          cube2 = cube2 / rebin(reform(max(weights2, dimension=1), 1, n_freq1), n_elements(hpx_inds2), n_freq2) $
+        else cube2 = cube2 / rebin(reform(max(weights2, dimension=1), 1, n_freq1), n_elements(hpx_inds1), n_freq2)
+      endif
     endif
   endif
   
@@ -391,7 +415,7 @@ pro cube_images, folder_names, obs_info, nvis_norm = nvis_norm, pols = pols, cub
   endif
   if keyword_set(diff_ratio) then title = diff_title + ', peak norm., ' else title = diff_title
   
-  healpix_quickimage, temp, hpx_inds1, nside1, title = title, savefile = plotfile, note=note, slice_ind = slice_ind, $
+  healpix_quickimage, temp, hpx_inds1, nside1, title = title, units_str = units_str, savefile = plotfile, note=note, slice_ind = slice_ind, $
     log = log, color_profile = color_profile, data_range = data_range, data_min_abs = data_min_abs,$
     window_num = window_num, plot_as_map = plot_as_map, png = png, eps = eps, pdf = pdf
     

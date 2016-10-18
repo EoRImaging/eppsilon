@@ -5,6 +5,9 @@ pro ps_cube_images, folder_names, obs_names_in, exact_obsnames = exact_obsnames,
     log = log, data_range = data_range, data_min_abs = data_min_abs, color_profile = color_profile, sym_color = sym_color, $
     window_num = window_num, plot_as_map = plot_as_map, plot_path = plot_path
     
+  ;; default to normalizing by nvis
+  if n_elements(nvis_norm) eq 0 then nvis_norm = 1
+    
   if n_elements(folder_names) gt 2 then message, 'No more than 2 folder_names can be supplied'
   if n_elements(evenodd) eq 0 then evenodd = 'even'
   if n_elements(evenodd) gt 2 then message, 'No more than 2 evenodd values can be supplied'
