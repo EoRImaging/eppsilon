@@ -31,10 +31,9 @@ pro ps_wrapper, folder_name, obs_name, data_subdirs=data_subdirs, exact_obsnames
     save_path = save_path, savefilebase = savefilebase, plot_path = plot_path, plot_filebase = plot_filebase, $
     individual_plots = individual_plots, plot_binning_hist = plot_binning_hist, $
     note = note, png = png, eps = eps, pdf = pdf, cube_power_info = cube_power_info, $
-    no_dft_progress = no_dft_progress, loc_name = loc_name, filter_name = filter_name
+    no_dft_progress = no_dft_progress, loc_name = loc_name, filter_name = filter_name, alpha = alpha
     
   if n_elements(folder_name) ne 1 then message, 'one folder_name must be supplied.'
-  ;pol_inc='yy'
 
   if n_elements(loc_name) eq 0 then begin
     spawn, 'hostname', hostname
@@ -183,7 +182,8 @@ pro ps_wrapper, folder_name, obs_name, data_subdirs=data_subdirs, exact_obsnames
     plot_eor_1d = plot_eor_1d, plot_flat_1d = plot_flat_1d, no_text_1d = no_text_1d, $
     save_path = save_path, savefilebase = savefilebase, plot_path = plot_path, plot_filebase = plot_filebase, $
     individual_plots = individual_plots, plot_binning_hist = plot_binning_hist, $
-    note = note, png = png, eps = eps, pdf = pdf, cube_power_info = cube_power_info, no_dft_progress = no_dft_progress, filter_name = filter_name
+    note = note, png = png, eps = eps, pdf = pdf, cube_power_info = cube_power_info, no_dft_progress = no_dft_progress, $
+    filter_name = filter_name, alpha = alpha
     
   if not keyword_set(set_data_ranges) then begin
     if n_elements(data_range) ne 0 then print, 'data_range used: ', number_formatter(data_range, format = '(e7.1)')
