@@ -14,7 +14,8 @@ pro ps_power, file_struct, refresh = refresh, kcube_refresh = kcube_refresh, dft
     wt_measures = wt_measures, wt_cutoffs = wt_cutoffs, fix_sim_input = fix_sim_input, $
     wedge_amps = wedge_amps, coarse_harm0 = coarse_harm0, coarse_width = coarse_width, $
     input_units = input_units, fill_holes = fill_holes, no_dft_progress = no_dft_progress, $
-    plot_binning_hist = plot_binning_hist, plotfile_binning_hist = plotfile_binning_hist, png = png, eps = eps, pdf = pdf, filter_name=filter_name
+    plot_binning_hist = plot_binning_hist, plotfile_binning_hist = plotfile_binning_hist, png = png, eps = eps, pdf = pdf, $
+    filter_name=filter_name, alpha=alpha
    
   if tag_exist(file_struct, 'nside') ne 0 then healpix = 1 else healpix = 0
   ;refresh=1
@@ -50,7 +51,7 @@ pro ps_power, file_struct, refresh = refresh, kcube_refresh = kcube_refresh, dft
       cut_image = cut_image, delta_uv_lambda = delta_uv_lambda, max_uv_lambda = max_uv_lambda, $
       uvf_input = uvf_input, uv_avg = uv_avg, uv_img_clip = uv_img_clip, sim=sim, fix_sim_input = fix_sim_input, $
       spec_window_type = spec_window_type, std_power = std_power, inverse_covar_weight = inverse_covar_weight, $
-      input_units = input_units, no_dft_progress = no_dft_progress, ave_removal = ave_removal, filter_name=filter_name
+      input_units = input_units, no_dft_progress = no_dft_progress, ave_removal = ave_removal, filter_name=filter_name,alpha=alpha
       
     if nfiles eq 1 then begin
       restore, file_struct.kcube_savefile

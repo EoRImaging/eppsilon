@@ -6,7 +6,7 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
     std_power = std_power, inverse_covar_weight = inverse_covar_weight, $
     input_units = input_units, uvf_input = uvf_input, $
     uv_avg = uv_avg, uv_img_clip = uv_img_clip, no_dft_progress = no_dft_progress, $
-    ave_removal = ave_removal, filter_name=filter_name
+    ave_removal = ave_removal, filter_name=filter_name, alpha=alpha
     
   if tag_exist(file_struct, 'nside') ne 0 then healpix = 1 else healpix = 0
   if keyword_set(uvf_input) or tag_exist(file_struct, 'uvf_savefile') eq 0 then uvf_input = 1 else uvf_input = 0
@@ -555,7 +555,7 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
             if n_elements(wh_close) eq 0 and count_far eq 0 then wh_close = lindgen(n_elements(x_rot))
             
             ;; for deciding on pixel sets:
-            ;            consv_delta_kperp_rad = 4.5* mean(frequencies*1e6) * z_mpc_mean / (3e8 * kperp_lambda_conv) ;use 4.5m to be conservative
+            ;            consv_delta_kperp_rad = 3.25* mean(frequencies*1e6) * z_mpc_mean / (3e8 * kperp_lambda_conv) ;use 4.5m to be conservative
             ;            consv_xy_len = 2*!pi/consv_delta_kperp_rad
             ;            radius = consv_xy_len/2.*sqrt(2)*1.1
             ;            query_disc, file_struct.nside, vec_mid, radius, listpix, nlist, /inc
@@ -566,11 +566,11 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
             ;            cgplot, x_list_rot, y_list_rot, psym=3
             ;            consv_lims = [-1*consv_xy_len/2., -1*consv_xy_len/2., consv_xy_len/2., consv_xy_len/2.]
             ;            cgpolygon, reform(rebin(consv_lims[[0,2]], 2,2),4), reform(rebin(reform(consv_lims[[1,3]],1,2), 2,2),4), color='aqua'
-            ;            wh_listpix_close = where(x_list_rot ge consv_lims[0] and x_list_rot le consv_lims[2] and $
-            ;              y_list_rot ge consv_lims[1] and y_list_rot le consv_lims[3], count_list_close)
-            ;            hpx_inds = listpix[wh_listpix_close]
-            ;            nside = file_struct.nside
-            ;            stop
+             ;           wh_listpix_close = where(x_list_rot ge consv_lims[0] and x_list_rot le consv_lims[2] and $
+             ;             y_list_rot ge consv_lims[1] and y_list_rot le consv_lims[3], count_list_close)
+             ;           hpx_inds = listpix[wh_listpix_close]
+             ;           nside = file_struct.nside
+             ;           stop
             ;            save, file='/Users/bryna/Documents/Physics/FHD/Observations/EoR1_low_healpix_inds.idlsave', nside, hpx_inds
             
             
@@ -614,7 +614,7 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
           endif
           
           ;TEST CODE ***************************************
-          pix_mask = image_mask_eppsilon(x_rot, y_rot, wh_close, filter_name=filter_name)
+          pix_mask = image_mask_eppsilon(x_rot, y_rot, wh_close,n_freq=n_freq,filter_name=filter_name,alpha=alpha)
           
           
           ;; do DFT.
