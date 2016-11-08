@@ -613,9 +613,8 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
             
           endif
           
-          ;TEST CODE ***************************************
+          ;; Create an image space filter to reduce thrown power via the FFT on hard clips
           pix_mask = image_mask_eppsilon(x_rot, y_rot, wh_close,n_freq=n_freq,filter_name=filter_name,alpha=alpha)
-          
           
           ;; do DFT.
           if test_uvf eq 0 or keyword_set(dft_refresh_data) then begin
