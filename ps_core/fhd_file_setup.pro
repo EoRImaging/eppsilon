@@ -4,7 +4,8 @@ function fhd_file_setup, filename, weightfile = weightfile, variancefile = varia
     weight_savefilebase = weight_savefilebase_in, $
     uvf_savefilebase = uvf_savefilebase_in, savefilebase = savefilebase_in, $
     freq_ch_range = freq_ch_range, freq_flags = freq_flags, freq_flag_name = freq_flag_name, $
-    spec_window_type = spec_window_type, delta_uv_lambda = delta_uv_lambda, max_uv_lambda = max_uv_lambda, $
+    spec_window_type = spec_window_type, image_window_name = image_window_name, image_window_frac_size = image_window_frac_size, $
+    delta_uv_lambda = delta_uv_lambda, max_uv_lambda = max_uv_lambda, $
     sim = sim, std_power = std_power, inverse_covar_weight = inverse_covar_weight, ave_removal = ave_removal, no_wtd_avg = no_wtd_avg, $
     refresh_info = refresh_info
     
@@ -755,6 +756,22 @@ function fhd_file_setup, filename, weightfile = weightfile, variancefile = varia
     endelse
   endif else sw_tag = ''
   
+  type_list = ['Tukey', 'None']
+  iw_tag_list = ['tk', '']
+  if n_elements(image_window_name) ne 0 then begin
+    wh_type = where(strlowcase(type_list) eq strlowcase(image_window_name), count_type)
+    if count_type eq 0 then wh_type = where(strlowcase(iw_tag_list) eq strlowcase(image_window_name), count_type)
+    if count_type eq 0 then message, 'Image window type not recognized.' else begin
+      image_window_name = type_list[wh_type[0]]
+      if n_elements(image_window_frac_size) ne 0  then begin
+        if image_window_frac_size gt 1 or image_window_frac_size lt 0 then $
+          message, 'image_window_frac_size must be a value between 0 and 1'
+        iw_size_tag = number_formatter(image_window_frac_size)
+      endif else iw_size_tag = ''
+      if image_window_name eq 'None' then iw_tag = '' else iw_tag = '_' + iw_tag_list[wh_type[0]] + iw_size_tag
+    endelse
+  endif else iw_tag = ''
+  
   if n_elements(freq_flags) ne 0 then begin
     freq_mask = intarr(n_elements(metadata_struct.frequencies)) + 1
     freq_mask[freq_flags] = 0
@@ -781,7 +798,7 @@ function fhd_file_setup, filename, weightfile = weightfile, variancefile = varia
   ;;if n_elements(max_uv_lambda) ne 0 then uv_tag = '_maxuv' + number_formatter(max_uv_lambda)
   if n_elements(uv_avg) ne 0 then uv_tag = uv_tag + '_uvavg' + number_formatter(uv_avg)
   if n_elements(uv_img_clip) ne 0 then uv_tag = uv_tag + '_uvimgclip' + number_formatter(uv_img_clip)
-  uvf_tag = uv_tag + fch_tag
+  uvf_tag = uv_tag + iw_tag + fch_tag
   
   if keyword_set(std_power) then kcube_tag = '_stdp' else kcube_tag = ''
   if keyword_set(inverse_covar_weight) then kcube_tag = kcube_tag + '_invcovar'
@@ -955,7 +972,7 @@ function fhd_file_setup, filename, weightfile = weightfile, variancefile = varia
         
       if healpix or not keyword_set(uvf_input) then begin
         file_struct = create_struct(file_struct, 'radec_file', radec_file)
- 
+        
         file_struct = create_struct(file_struct, 'uvf_savefile', reform(uvf_savefile[pol_i,*,type_i]), $
           'uvf_weight_savefile', uvf_weight_savefile[pol_i,*])
       endif

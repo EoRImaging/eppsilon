@@ -11,6 +11,7 @@ pro ps_wrapper, folder_name, obs_name, data_subdirs=data_subdirs, exact_obsnames
     no_wtd_avg = no_wtd_avg, norm_rts_with_fhd = norm_rts_with_fhd, $
     wt_cutoffs = wt_cutoffs, wt_measures = wt_measures, fix_sim_input = fix_sim_input, $
     no_spec_window = no_spec_window, spec_window_type = spec_window_type, $
+    image_window_name = image_window_name, image_window_frac_size = image_window_frac_size, $
     no_kzero = no_kzero, plot_slices = plot_slices, slice_type = slice_type, uvf_plot_type = uvf_plot_type, $
     plot_stdset = plot_stdset, plot_1to2d = plot_1to2d, $
     plot_kpar_power = plot_kpar_power, plot_kperp_power = plot_kperp_power, plot_k0_power = plot_k0_power, $
@@ -31,10 +32,10 @@ pro ps_wrapper, folder_name, obs_name, data_subdirs=data_subdirs, exact_obsnames
     save_path = save_path, savefilebase = savefilebase, plot_path = plot_path, plot_filebase = plot_filebase, $
     individual_plots = individual_plots, plot_binning_hist = plot_binning_hist, $
     note = note, png = png, eps = eps, pdf = pdf, cube_power_info = cube_power_info, $
-    no_dft_progress = no_dft_progress, loc_name = loc_name, filter_name = filter_name, alpha = alpha
+    no_dft_progress = no_dft_progress, loc_name = loc_name
     
   if n_elements(folder_name) ne 1 then message, 'one folder_name must be supplied.'
-
+  
   if n_elements(loc_name) eq 0 then begin
     spawn, 'hostname', hostname
     if stregex(hostname, 'mit.edu', /boolean) eq 1 then loc_name = 'mit'
@@ -148,9 +149,9 @@ pro ps_wrapper, folder_name, obs_name, data_subdirs=data_subdirs, exact_obsnames
   
     ;; set some default kperp & kpar ranges for 1d averaging
     if n_elements(kperp_range_lambda_1dave) eq 0 then kperp_range_lambda_1dave = [10,50]
-    ;; This is the kpar range used for Danny's paper -- generally good for EoR limits but not 
-    ;; for evaluating wedges physics. Commented out for now.
-    ;; kpar_range_1dave = [0.2,10]
+  ;; This is the kpar range used for Danny's paper -- generally good for EoR limits but not
+  ;; for evaluating wedges physics. Commented out for now.
+  ;; kpar_range_1dave = [0.2,10]
     
   endif
   
@@ -167,6 +168,7 @@ pro ps_wrapper, folder_name, obs_name, data_subdirs=data_subdirs, exact_obsnames
     no_wtd_avg = no_wtd_avg, norm_rts_with_fhd = norm_rts_with_fhd, $
     wt_cutoffs = wt_cutoffs, wt_measures = wt_measures, fix_sim_input = fix_sim_input, $
     no_spec_window = no_spec_window, spec_window_type = spec_window_type, $
+    image_window_name = image_window_name, image_window_frac_size = image_window_frac_size, $
     no_kzero = no_kzero, plot_slices = plot_slices, slice_type = slice_type, uvf_plot_type = uvf_plot_type, plot_stdset = plot_stdset, plot_1to2d = plot_1to2d, $
     plot_kpar_power = plot_kpar_power, plot_kperp_power = plot_kperp_power, plot_k0_power = plot_k0_power, plot_noise_1d = plot_noise_1d, $
     data_range = data_range, sigma_range = sigma_range, nev_range = nev_range, slice_range = slice_range, plot_sim_noise = plot_sim_noise, $
@@ -182,8 +184,7 @@ pro ps_wrapper, folder_name, obs_name, data_subdirs=data_subdirs, exact_obsnames
     plot_eor_1d = plot_eor_1d, plot_flat_1d = plot_flat_1d, no_text_1d = no_text_1d, $
     save_path = save_path, savefilebase = savefilebase, plot_path = plot_path, plot_filebase = plot_filebase, $
     individual_plots = individual_plots, plot_binning_hist = plot_binning_hist, $
-    note = note, png = png, eps = eps, pdf = pdf, cube_power_info = cube_power_info, no_dft_progress = no_dft_progress, $
-    filter_name = filter_name, alpha = alpha
+    note = note, png = png, eps = eps, pdf = pdf, cube_power_info = cube_power_info, no_dft_progress = no_dft_progress
     
   if not keyword_set(set_data_ranges) then begin
     if n_elements(data_range) ne 0 then print, 'data_range used: ', number_formatter(data_range, format = '(e7.1)')
