@@ -518,7 +518,6 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
               
               ;; image may be smaller than expected, may need to adjust delta_kperp_rad
               if image_len lt xy_len then begin
-                stop
                 print, 'Image FoV is smaller than expected, increasing delta kperp to match image FoV'
                 delta_kperp_rad = 2*!pi/image_len
                 
