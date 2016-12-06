@@ -1,6 +1,7 @@
 pro ps_diff_wrapper, folder_names, obs_names_in, cube_types = cube_types, pols = pols, $
     refresh_diff = refresh_diff, spec_window_types = spec_window_types, delta_uv_lambda = delta_uv_lambda, $
-    ave_removal = ave_removal, all_type_pol = all_type_pol, freq_ch_range = freq_ch_range, $
+    ave_removal = ave_removal, image_window_name = image_window_name, image_window_frac_size = image_window_frac_size, $
+    all_type_pol = all_type_pol, freq_ch_range = freq_ch_range, $
     plot_slices = plot_slices, slice_type = slice_type, $
     png = png, eps = eps, pdf = pdf, data_range = data_range, data_min_abs = data_min_abs, $
     kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, sim = sim, $
@@ -15,6 +16,8 @@ pro ps_diff_wrapper, folder_names, obs_names_in, cube_types = cube_types, pols =
   if n_elements(spec_window_types) gt 2 then message, 'only 1 or 2 spec_window_types allowed'
   if n_elements(delta_uv_lambda) gt 1 then message, 'only 1 delta_uv_lambda allowed'
   if n_elements(ave_removal) gt 2 then message, 'only 1 or 2 ave_removal values allowed'
+  if n_elements(image_window_name) gt 2 then message, 'only 1 or 2 image_window_names values allowed'
+  if n_elements(image_window_frac_size) gt 2 then message, 'only 1 or 2 image_window_frac_size values allowed'
   
   spawn, 'hostname', hostname
   if stregex(hostname, 'mit.edu', /boolean) eq 1 then loc_name = 'mit'
@@ -39,8 +42,9 @@ pro ps_diff_wrapper, folder_names, obs_names_in, cube_types = cube_types, pols =
   wh_noinfo = where(obs_info.info_files eq '', count_noinfo)
   if count_noinfo gt 0 then message, 'Info files are not all present'
   
-  ps_difference_plots, folder_names, obs_info, cube_types, pols, spec_window_types = spec_window_types, delta_uv_lambda = delta_uv_lambda, $
-    ave_removal = ave_removal, $
+  ps_difference_plots, folder_names, obs_info, ps_foldernames = ps_foldernames, cube_types, pols, $
+    spec_window_types = spec_window_types, delta_uv_lambda = delta_uv_lambda, $
+    ave_removal = ave_removal, image_window_name = image_window_name, image_window_frac_size = image_window_frac_size, $
     all_type_pol = all_type_pol, refresh_diff = refresh_diff, freq_ch_range = freq_ch_range, $
     plot_slices = plot_slices, slice_type = slice_type, $
     plot_path = diff_plot_path, plot_filebase = plot_filebase, save_path = diff_save_path, $

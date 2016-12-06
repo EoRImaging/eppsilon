@@ -763,10 +763,12 @@ function fhd_file_setup, filename, weightfile = weightfile, variancefile = varia
     if count_type eq 0 then wh_type = where(strlowcase(iw_tag_list) eq strlowcase(image_window_name), count_type)
     if count_type eq 0 then message, 'Image window type not recognized.' else begin
       image_window_name = type_list[wh_type[0]]
-      if n_elements(image_window_frac_size) ne 0  then begin
-        if image_window_frac_size gt 1 or image_window_frac_size lt 0 then $
-          message, 'image_window_frac_size must be a value between 0 and 1'
-        iw_size_tag = number_formatter(image_window_frac_size)
+      if type_list[wh_type] ne 'None' and n_elements(image_window_frac_size) ne 0 then begin
+        if image_window_frac_size gt 1 or image_window_frac_size lt 0 then begin
+          print, 'image_window_frac_size must be a value between 0 and 1, using default values.'
+          undefine, image_window_frac_size
+          iw_size_tag = ''
+        endif else iw_size_tag = number_formatter(image_window_frac_size)
       endif else iw_size_tag = ''
       if image_window_name eq 'None' then iw_tag = '' else iw_tag = '_' + iw_tag_list[wh_type[0]] + iw_size_tag
     endelse
