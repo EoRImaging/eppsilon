@@ -30,8 +30,7 @@ pro ps_difference_plots, folder_names, obs_info, ps_foldernames = ps_foldernames
     endif
   endif
   
-  compare_plot_prep, folder_names, obs_info, ps_foldernames = ps_foldernames, $
-    cube_types, pols, 'diff', compare_files, $
+  compare_plot_prep, folder_names, obs_info,  cube_types, pols, 'diff', compare_files, ps_foldernames = ps_foldernames, $
     plot_slices = plot_slices, slice_type = slice_type, $
     spec_window_types = spec_window_types, delta_uv_lambda = delta_uv_lambda, freq_ch_range = freq_ch_range, $
     ave_removal = ave_removal, image_window_name = image_window_name, image_window_frac_size = image_window_frac_size, $

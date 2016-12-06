@@ -1,8 +1,10 @@
-pro ps_ratio_plots, folder_names, obs_info, cube_types, pols, all_pol_diff_ratio = all_pol_diff_ratio, $
+pro ps_ratio_plots, folder_names, obs_info, cube_types, pols, ps_foldernames=ps_foldernames, $
+    all_pol_diff_ratio = all_pol_diff_ratio, $
     plot_slices = plot_slices, slice_type = slice_type, $
     freq_ch_range = freq_ch_range, plot_path = plot_path, plot_filebase = plot_filebase, $
     note = note, spec_window_types = spec_window_types, delta_uv_lambda = delta_uv_lambda, $
-    ave_removal = ave_removal, data_range = data_range, $
+    ave_removal = ave_removal, image_window_name = image_window_name, image_window_frac_size = image_window_frac_size, $
+    data_range = data_range, $
     kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, $
     diff_ratio = diff_ratio, diff_range = diff_range, diff_min_abs = diff_min_abs, $
     wt_cutoffs = wt_cutoffs, wt_measures = wt_measures, invert_colorbar = invert_colorbar, $
@@ -36,9 +38,10 @@ pro ps_ratio_plots, folder_names, obs_info, cube_types, pols, all_pol_diff_ratio
   
   
   compare_plot_prep, folder_names, obs_info, cube_types, pols, 'ratio', compare_files, $
+    ps_foldernames=ps_foldernames, $
     plot_slices = plot_slices, slice_type = slice_type, fadd_2dbin = fadd_2dbin, $
     spec_window_types = spec_window_types, delta_uv_lambda = delta_uv_lambda, freq_ch_range = freq_ch_range, $
-    ave_removal = ave_removal, $
+    ave_removal = ave_removal, image_window_name = image_window_name, image_window_frac_size = image_window_frac_size, $
     baseline_axis = baseline_axis, delay_axis = delay_axis, plot_wedge_line = plot_wedge_line, hinv = hinv, $
     plot_path = plot_path, plot_filebase = plot_filebase, save_path = save_path, savefilebase = savefilebase, $
     axis_type_1d = axis_type_1d, note = note, wt_cutoffs = wt_cutoffs, wt_measures = wt_measures, $

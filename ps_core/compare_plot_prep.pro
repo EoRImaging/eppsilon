@@ -48,7 +48,7 @@ pro compare_plot_prep, folder_names, obs_info, ps_foldernames = ps_foldernames, 
   
   if n_elements(image_window_name) eq 2 or (n_elements(image_window_name) eq 1 and n_elements(image_window_frac_size) eq 2) then begin
     if n_elements(image_window_name) eq 1 then image_window_name = [image_window_name, image_window_name]
-    if n_elements(image_window_frac_size) eq 1 then image_window_frac_size = [image_window_frac_size, image_window_frac_size]
+    if n_elements(image_window_frac_size) eq 2 then image_window_frac_size = [image_window_frac_size, image_window_frac_size]
     type_list = ['Tukey', 'None']
     iw_tag_list = ['tk', '']
     
@@ -59,21 +59,27 @@ pro compare_plot_prep, folder_names, obs_info, ps_foldernames = ps_foldernames, 
       if count_type eq 0 then wh_type = where(strlowcase(iw_tag_list) eq strlowcase(image_window_name[i]), count_type)
       if count_type eq 0 then message, 'Image window type not recognized.' else begin
         image_window_name[i] = type_list[wh_type[0]]
-        if n_elements(image_window_frac_size) ne 0 then begin
+        if type_list[wh_type] ne 'None' and n_elements(image_window_frac_size) ne 0 then begin
           if image_window_frac_size[i] gt 1 or image_window_frac_size[i] lt 0 then begin
             print, 'image_window_frac_size must be a value between 0 and 1, using default values.'
             iw_size_tag[i] = ''
           endif else iw_size_tag[i] = number_formatter(image_window_frac_size[i])
-        endif else iw_size_tag[i] = ''
+        endif else begin
+          iw_size_tag[i] = ''
+        endelse
         if image_window_name[i] eq 'None' then iw_tag[i] = '' else iw_tag[i] = '_' + iw_tag_list[wh_type[0]] + iw_size_tag[i]
       endelse
     endfor
   endif else begin
     iw_tag = ''
     iw_size_tag = ''
-    ;; default image_window_frac_size to silly value that will cause defaults to be used
-    image_window_frac_size = -1
   endelse
+  if n_elements(image_window_frac_size) eq 0 then begin
+    ;; set image_window_frac_size to a silly value to force default
+    image_window_frac_size = -1
+    
+  endif
+  
   
   if n_elements(image_window_name) eq 2 then $
     if image_window_name[1] eq image_window_name[0] then image_window_name = image_window_name[0]
