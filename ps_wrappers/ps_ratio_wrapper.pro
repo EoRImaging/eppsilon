@@ -1,10 +1,11 @@
-pro ps_ratio_wrapper, folder_names, obs_names_in, exact_obsnames = exact_obsnames, cube_types = cube_types, $
-    pols = pols, all_pol_diff_ratio = all_pol_diff_ratio, freq_ch_range = freq_ch_range, $
-    spec_window_types = spec_window_types, delta_uv_lambda = delta_uv_lambda, ave_removal = ave_removal, $
+pro ps_ratio_wrapper, folder_names, obs_names_in, ps_foldernames=ps_foldernames, exact_obsnames = exact_obsnames, $
+    cube_types = cube_types,  pols = pols, all_pol_diff_ratio = all_pol_diff_ratio, freq_ch_range = freq_ch_range, $
+    spec_window_types = spec_window_types, delta_uv_lambda = delta_uv_lambda, $
+    ave_removal = ave_removal, image_window_name = image_window_name, image_window_frac_size = image_window_frac_size, $
     diff_ratio = diff_ratio, diff_range = diff_range, $
     png = png, eps = eps, pdf = pdf, data_range = data_range, invert_colorbar = invert_colorbar, $
     kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, sim = sim, window_num = window_num, $
-    uvf_input = uvf_input, diff_save_path = diff_save_path, plot_path = diff_plot_path, ps_foldernames=ps_foldernames
+    uvf_input = uvf_input, diff_save_path = diff_save_path, plot_path = diff_plot_path
     
   if n_elements(folder_names) gt 2 then message, 'only 1 or 2 folder_names allowed'
   if n_elements(folder_names) eq 0 then message, 'at least 1 folder name must be specified'
@@ -38,10 +39,11 @@ pro ps_ratio_wrapper, folder_names, obs_names_in, exact_obsnames = exact_obsname
   
   if n_elements(data_range) eq 0 then data_range = [1e-3, 1e1]
   
-  ps_ratio_plots, folder_names, obs_info, cube_types, pols, all_pol_diff_ratio = all_pol_diff_ratio, $
-    freq_ch_range = freq_ch_range,plot_path = diff_plot_path, plot_filebase = plot_filebase, $
+  ps_ratio_plots, folder_names, obs_info, cube_types, ps_foldernames=ps_foldernames, pols, all_pol_diff_ratio = all_pol_diff_ratio, $
+    freq_ch_range = freq_ch_range, plot_path = diff_plot_path, plot_filebase = plot_filebase, $
     note = note, spec_window_types = spec_window_types, delta_uv_lambda = delta_uv_lambda, $
-    ave_removal = ave_removal, data_range = data_range, $
+    ave_removal = ave_removal, image_window_name = image_window_name, image_window_frac_size = image_window_frac_size, $
+    data_range = data_range, $
     kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, $
     diff_ratio = diff_ratio, diff_range = diff_range, invert_colorbar = invert_colorbar, $
     plot_wedge_line = plot_wedge_line, quiet = quiet, png = png, eps = eps, pdf = pdf, $

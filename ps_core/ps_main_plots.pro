@@ -67,6 +67,7 @@
       no_wtd_avg = no_wtd_avg, norm_rts_with_fhd = norm_rts_with_fhd, $
       wt_cutoffs = wt_cutoffs, wt_measures = wt_measures, fix_sim_input = fix_sim_input, $
       no_spec_window = no_spec_window, spec_window_type = spec_window_type, $
+      image_window_name = image_window_name, image_window_frac_size = image_window_frac_size, $
       no_kzero = no_kzero, plot_slices = plot_slices, slice_type = slice_type, $
       uvf_plot_type = uvf_plot_type, plot_stdset = plot_stdset, plot_1to2d = plot_1to2d, $
       plot_kpar_power = plot_kpar_power, plot_kperp_power = plot_kperp_power, plot_k0_power = plot_k0_power, $
@@ -148,15 +149,18 @@
     time0 = systime(1)
     if keyword_set(rts) then begin
       file_struct_arr = rts_file_setup(datafile, savefilebase = savefilebase, save_path = save_path, $
-        spec_window_type = spec_window_type, delta_uv_lambda = delta_uv_lambda, max_uv_lambda = max_uv_lambda, $
+        spec_window_type = spec_window_type, image_window_name = image_window_name, image_window_frac_size = image_window_frac_size, $
+        delta_uv_lambda = delta_uv_lambda, max_uv_lambda = max_uv_lambda, $
         use_fhd_norm = norm_rts_with_fhd, refresh_info = refresh_info)
     endif else if keyword_set(casa) then begin
       file_struct_arr = casa_file_setup(datafile, savefilebase = savefilebase, save_path = save_path, $
-        spec_window_type = spec_window_type, delta_uv_lambda = delta_uv_lambda, max_uv_lambda = max_uv_lambda, refresh_info = refresh_info)
+        spec_window_type = spec_window_type, image_window_name = image_window_name, image_window_frac_size = image_window_frac_size, $
+        delta_uv_lambda = delta_uv_lambda, max_uv_lambda = max_uv_lambda, refresh_info = refresh_info)
     endif else begin
       file_struct_arr = fhd_file_setup(datafile, beamfile = beamfiles, uvf_input = uvf_input, uv_avg = uv_avg, uv_img_clip = uv_img_clip, dft_ian = dft_ian, $
         savefilebase = savefilebase, save_path = save_path, freq_ch_range = freq_ch_range, freq_flags = freq_flags, freq_flag_name = freq_flag_name, $
-        spec_window_type = spec_window_type, delta_uv_lambda = delta_uv_lambda, max_uv_lambda = max_uv_lambda, sim = sim, $
+        spec_window_type = spec_window_type, image_window_name = image_window_name, image_window_frac_size = image_window_frac_size, $
+        delta_uv_lambda = delta_uv_lambda, max_uv_lambda = max_uv_lambda, sim = sim, $
         std_power = std_power, inverse_covar_weight = inverse_covar_weight, ave_removal = ave_removal, no_wtd_avg = no_wtd_avg, refresh_info = refresh_info)
     endelse
     time1 = systime(1)
@@ -600,7 +604,7 @@
       if keyword_set(plot_kpar_power) then test = test * test_kpar
       if keyword_set(plot_kperp_power) then test = test * test_kperp
       if keyword_set(plot_k0_power) then test = test * test_k0
-      
+ 
       if test eq 0 then begin
         if n_elements(plotfile_binning_hist) gt 0 then $
           plotfile_binning_hist_use = reform(plotfile_binning_hist[i,*,*], n_elements(kperp_density_names), n_elements(wedge_1dbin_names))
@@ -615,7 +619,8 @@
           ps_power, file_struct_arr[i], kcube_refresh = refresh_ps, dft_refresh_data = refresh_dft, $
             dft_refresh_weight = weight_refresh[i], refresh_beam = refresh_beam, $
             dft_ian = dft_ian, cut_image = cut_image, dft_fchunk = dft_fchunk, freq_ch_range = freq_ch_range, freq_flags = freq_flags, $
-            spec_window_type = spec_window_type, delta_uv_lambda = delta_uv_lambda, max_uv_lambda = max_uv_lambda, $
+            spec_window_type = spec_window_type, image_window_name = image_window_name, image_window_frac_size = image_window_frac_size, $
+            delta_uv_lambda = delta_uv_lambda, max_uv_lambda = max_uv_lambda, $
             savefile_2d = savefile_2d_use, savefile_1d = savefile_1d_use, savefile_1to2d_mask = savefiles_mask_use, hinv = hinv, $
             savefile_kpar_power = savefile_kpar_use, savefile_kperp_power = savefile_kperp_use, savefile_k0 = savefile_k0_use, $
             std_power = std_power, inverse_covar_weight = inverse_covar_weight, ave_removal = ave_removal, no_wtd_avg = no_wtd_avg, no_kzero = no_kzero, sim=sim, $
@@ -627,7 +632,7 @@
             plot_binning_hist = plot_binning_hist, plotfile_binning_hist = plotfile_binning_hist_use, png = png, eps = eps, pdf = pdf
         endif else $
           ps_power, file_struct_arr[i], kcube_refresh = refresh_ps, refresh_beam = refresh_beam, freq_ch_range = freq_ch_range, $
-          freq_flags = freq_flags, spec_window_type = spec_window_type, $
+          freq_flags = freq_flags, spec_window_type = spec_window_type, image_window_name = image_window_name, image_window_frac_size = image_window_frac_size, $
           savefile_2d = savefile_2d_use, savefile_1d = savefile_1d_use, savefile_1to2d_mask = savefiles_mask_use, hinv = hinv, $
           savefile_kpar_power = savefile_kpar_use, savefile_kperp_power = savefile_kperp_use, savefile_k0 = savefile_k0_use, $
           std_power = std_power, inverse_covar_weight = inverse_covar_weight, ave_removal = ave_removal, no_wtd_avg = no_wtd_avg, no_kzero = no_kzero, $
@@ -737,7 +742,7 @@
     endif
     
     if keyword_set(plot_1to2d) then begin
-
+    
       if keyword_set(pol_inc) then begin
         if n_elements(pol_inc) eq 1 then pol_1to2d_use = pol_inc else pol_1to2d_use = pol_inc[0]
       endif else pol_1to2d_use='xx'
