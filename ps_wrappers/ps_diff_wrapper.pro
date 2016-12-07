@@ -1,4 +1,5 @@
-pro ps_diff_wrapper, folder_names, obs_names_in, cube_types = cube_types, pols = pols, $
+pro ps_diff_wrapper, folder_names, obs_names_in, ps_foldernames = ps_foldernames, $
+    cube_types = cube_types, pols = pols, $
     refresh_diff = refresh_diff, spec_window_types = spec_window_types, delta_uv_lambda = delta_uv_lambda, $
     ave_removal = ave_removal, image_window_name = image_window_name, image_window_frac_size = image_window_frac_size, $
     all_type_pol = all_type_pol, freq_ch_range = freq_ch_range, $
@@ -6,7 +7,7 @@ pro ps_diff_wrapper, folder_names, obs_names_in, cube_types = cube_types, pols =
     png = png, eps = eps, pdf = pdf, data_range = data_range, data_min_abs = data_min_abs, $
     kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, sim = sim, $
     plot_1d = plot_1d, axis_type_1d=axis_type_1d, wt_cutoffs = wt_cutoffs, wt_measures = wt_measures, $
-    window_num = window_num, ps_foldernames = ps_foldernames, invert_colorbar = invert_colorbar, $
+    window_num = window_num, invert_colorbar = invert_colorbar, $
     diff_save_path = diff_save_path, exact_obsnames = exact_obsnames, $
     uvf_input = uvf_input, plot_path = diff_plot_path
     

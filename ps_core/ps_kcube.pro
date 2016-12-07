@@ -42,50 +42,9 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
   endif
   n_freq = n_elements(frequencies)
   
-  ;; check whether or not the frequencies are evenly spaced.
-  freq_diff = frequencies - shift(frequencies, 1)
-  freq_diff = freq_diff[1:*]
-  
-  z0_freq = 1420.40d ;; MHz
-  redshifts = z0_freq/frequencies - 1d
-  cosmology_measures, redshifts, comoving_dist_los = comov_dist_los, hubble_param = hubble_param
-  
-  comov_los_diff = comov_dist_los - shift(comov_dist_los, -1)
-  comov_los_diff = comov_los_diff[0:n_elements(comov_dist_los)-2]
-  
-  if max(freq_diff-freq_diff[0]) gt 1e-12 then begin
-    ;; frequencies are not evenly spaced, need to be careful about z_mpc_delta/mean
-    even_freq = 0
+  z_mpc_mean = z_mpc(frequencies, hubble_param = hubble_param, f_delta = f_delta, even_freq = even_freq, $
+    redshifts = redshifts, comov_dist_los = comov_dist_los, z_mpc_delta = z_mpc_delta)
     
-    freq_diff_hist = histogram(freq_diff, binsize = min(freq_diff)*.1, locations=locs, reverse_indices = ri)
-    if max(freq_diff_hist)/float(n_freq) lt .5 then begin
-      message, 'frequency channel width distribution is strange, nominal channel width is unclear.'
-    endif else begin
-      peak_bin = (where(freq_diff_hist eq max(freq_diff_hist), count_peak))[0]
-      if count_peak eq 1 then peak_diffs = freq_diff[ri[ri[peak_bin] : ri[peak_bin+1]-1]] $
-      else message, 'frequency channel width distribution is strange, nominal channel width is unclear.'
-      
-      f_delta = mean(peak_diffs)
-    endelse
-    
-    nominal_freqs = findgen(floor(((max(frequencies)-min(frequencies))/f_delta))+1)*f_delta + min(frequencies)
-    nominal_z = z0_freq/nominal_freqs - 1
-    cosmology_measures, nominal_z, comoving_dist_los = nominal_comov_dist_los
-    nominal_comov_diffs = nominal_comov_dist_los - shift(nominal_comov_dist_los, -1)
-    nominal_comov_diffs = nominal_comov_diffs[0:n_elements(nominal_comov_diffs)-2]
-    
-    z_mpc_delta = mean(nominal_comov_diffs)
-    z_mpc_mean = mean(nominal_comov_dist_los)
-    
-  endif else begin
-    even_freq = 1
-    
-    f_delta = freq_diff[0]
-    z_mpc_delta = float(mean(comov_los_diff))
-    z_mpc_mean = float(mean(comov_dist_los))
-    n_kz = n_freq
-    
-  endelse
   kperp_lambda_conv = z_mpc_mean / (2.*!pi)
   delay_delta = 1e9/(n_freq*f_delta*1e6) ;; equivilent delay bin size for kparallel
   delay_max = delay_delta * n_freq/2.    ;; factor of 2 b/c of neg/positive
@@ -476,7 +435,7 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
               ;; limit field of view to match calculated k-modes
               xy_len = 1/delta_u_lambda
               
-              ;; image may be smaller than expected, may need to adjust delta_kperp_rad              
+              ;; image may be smaller than expected, may need to adjust delta_kperp_rad
               if image_len lt xy_len then begin
                 print, 'Image FoV is smaller than expected, increasing delta kperp to match image FoV'
                 delta_kperp_rad = 1./image_len
@@ -531,26 +490,6 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
             endif else count_far = 0
             
             if n_elements(wh_close) eq 0 and count_far eq 0 then wh_close = lindgen(n_elements(x_rot))
-            
-            ;; for deciding on pixel sets:
-            ;            consv_delta_kperp_rad = 3.25* mean(frequencies*1e6) * z_mpc_mean / (3e8 * kperp_lambda_conv) ;use 4.5m to be conservative
-            ;            consv_xy_len = 2*!pi/consv_delta_kperp_rad
-            ;            radius = consv_xy_len/2.*sqrt(2)*1.1
-            ;            query_disc, file_struct.nside, vec_mid, radius, listpix, nlist, /inc
-            ;            pix2vec_ring, file_struct.nside, listpix, list_center_vec
-            ;            new_list_vec = rot_matrix ## list_center_vec
-            ;            x_list_rot = new_list_vec[*,0] * cos(pred_angle) - new_list_vec[*,1] * sin(pred_angle)
-            ;            y_list_rot = new_list_vec[*,0] * sin(pred_angle) + new_list_vec[*,1] * cos(pred_angle)
-            ;            cgplot, x_list_rot, y_list_rot, psym=3
-            ;            consv_lims = [-1*consv_xy_len/2., -1*consv_xy_len/2., consv_xy_len/2., consv_xy_len/2.]
-            ;            cgpolygon, reform(rebin(consv_lims[[0,2]], 2,2),4), reform(rebin(reform(consv_lims[[1,3]],1,2), 2,2),4), color='aqua'
-            ;           wh_listpix_close = where(x_list_rot ge consv_lims[0] and x_list_rot le consv_lims[2] and $
-            ;             y_list_rot ge consv_lims[1] and y_list_rot le consv_lims[3], count_list_close)
-            ;           hpx_inds = listpix[wh_listpix_close]
-            ;           nside = file_struct.nside
-            ;           stop
-            ;            save, file='/Users/bryna/Documents/Physics/FHD/Observations/EoR1_low_healpix_inds.idlsave', nside, hpx_inds
-            
             
             n_kperp = round(max_kperp_rad / delta_kperp_rad) * 2 + 1
             kx_rad_vals = (findgen(n_kperp) - (n_kperp-1)/2) * delta_kperp_rad
