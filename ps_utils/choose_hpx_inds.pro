@@ -28,8 +28,18 @@ pro choose_hpx_inds, cube_file, inds_save_file, default_size_multiple = default_
   rot_matrix = get_rot_matrix(theta0, phi0, /inverse)
   new_pix_vec = rot_matrix ## pix_center_vec
   
+  ;; adjust to actually center these
+  x_nudge = mean(new_pix_vec[*,0])
+  y_nudge = mean(new_pix_vec[*,1])
+  
+  new_pix_vec[*,0] = new_pix_vec[*,0] - x_nudge
+  new_pix_vec[*,1] = new_pix_vec[*,1] - y_nudge
+  
   ;; then rotate to make as rectangular as possible
   pred_angle = healpix_rot(new_pix_vec[*,0], new_pix_vec[*,1])
+  
+  x_rot = new_pix_vec[*,0] * cos(pred_angle) - new_pix_vec[*,1] * sin(pred_angle)
+  y_rot = new_pix_vec[*,0] * sin(pred_angle) + new_pix_vec[*,1] * cos(pred_angle)
   
   kperp_lambda_conv = z_mpc_mean / (2.*!pi)
   
@@ -40,6 +50,9 @@ pro choose_hpx_inds, cube_file, inds_save_file, default_size_multiple = default_
   
   pix2vec_ring, nside, listpix, list_center_vec
   new_list_vec = rot_matrix ## list_center_vec
+  
+  new_list_vec[*,0] = new_list_vec[*,0] - x_nudge
+  new_list_vec[*,1] = new_list_vec[*,1] - y_nudge
   
   x_list_rot = new_list_vec[*,0] * cos(pred_angle) - new_list_vec[*,1] * sin(pred_angle)
   y_list_rot = new_list_vec[*,0] * sin(pred_angle) + new_list_vec[*,1] * cos(pred_angle)
