@@ -874,7 +874,7 @@ function ps_filenames, folder_names, obs_names_in, dirty_folder = dirty_folder, 
     obs_info = {folder_names:folder_names, folder_basenames:folder_basenames, obs_names:obs_names, info_files:info_files, cube_files:cube_files, $
       fhd_types:fhd_types, integrated:integrated, plot_paths:plot_paths, save_paths:save_paths}
       
-    if n_elements(ps_foldernames) eq 2 then nominal_savepaths = folder_names + path_sep() + ps_foldernames $
+    if n_filesets eq 2 then if ps_foldernames[0] ne ps_foldernames[1] then nominal_savepaths = folder_names + path_sep() + ps_foldernames $
     else nominal_savepaths = folder_names
     if n_elements(nominal_savepaths) eq 2 then begin
       folderparts_1 = strsplit(nominal_savepaths[0], path_sep(), /extract)
@@ -911,7 +911,7 @@ function ps_filenames, folder_names, obs_names_in, dirty_folder = dirty_folder, 
       if count_diff eq 0 then begin
         ;; folders are the same
         if obs_info.obs_names[0] eq obs_info.obs_names[1] then diff_note = obs_info.fhd_types[0] $
-        else diff_note = obs_info.nominal_savepaths[0] + ' ' + obs_info.obs_names[0] + '-' + obs_info.obs_names[1]
+        else diff_note = nominal_savepaths[0] + ' ' + obs_info.obs_names[0] + '-' + obs_info.obs_names[1]
         diff_save_path = nominal_savepaths[0] + path_sep()
       endif else begin
         joint_path = strjoin(folderparts_1[wh_same], path_sep())
