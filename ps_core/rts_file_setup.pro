@@ -625,8 +625,8 @@ function rts_file_setup, filename, save_path = save_path, refresh_info = refresh
     uvf_label = strarr(npol, nfiles, ntypes)
     for pol_i=0, npol-1 do begin
       for file_i=0, nfiles-1 do begin
-        if max(pol_exist) eq 1 then uvf_savefilebase[pol_i, file_i,*] = cgRootName(metadata_struct.datafile[pol_i, file_i]) + uvf_tag + '_' + metadata_struct.type_inc + dft_label $
-        else uvf_savefilebase[pol_i, file_i,*] = cgRootName(metadata_struct.datafile[pol_i, file_i]) + uvf_tag + file_label[pol_i, *] + dft_label
+        if max(pol_exist) eq 1 then uvf_savefilebase[pol_i, file_i,*] = cgRootName(metadata_struct.datafile[pol_i, file_i]) + uvf_tag + '_' + metadata_struct.type_inc $
+        else uvf_savefilebase[pol_i, file_i,*] = cgRootName(metadata_struct.datafile[pol_i, file_i]) + uvf_tag + file_label[pol_i, *]
         uvf_label[pol_i, file_i,*] = metadata_struct.infile_label[file_i] + '_' + file_label[pol_i, *]
       endfor
     endfor
@@ -643,7 +643,7 @@ function rts_file_setup, filename, save_path = save_path, refresh_info = refresh
         endfor
       endfor
     endelse
-    uvf_savefilebase = file_basename(uvf_savefilebase_in) + uvf_tag + file_label + dft_label
+    uvf_savefilebase = file_basename(uvf_savefilebase_in) + uvf_tag + file_label
   endelse
   
   ;; add sw tag to general_filebase so that plotfiles have uvf_tag in them
@@ -689,8 +689,8 @@ function rts_file_setup, filename, save_path = save_path, refresh_info = refresh
     weight_savefilebase = strarr(npol, nfiles)
     for pol_i=0, npol-1 do begin
       for file_i=0, nfiles-1 do begin
-        if max(pol_exist) eq 1 then weight_savefilebase[pol_i, file_i] = cgRootName(metadata_struct.weightfile[pol_i, file_i]) + uvf_tag + '_weights' + dft_label $
-        else weight_savefilebase[pol_i, file_i] = cgRootName(metadata_struct.weightfile[pol_i, file_i]) + uvf_tag + wt_file_label[pol_i] + dft_label
+        if max(pol_exist) eq 1 then weight_savefilebase[pol_i, file_i] = cgRootName(metadata_struct.weightfile[pol_i, file_i]) + uvf_tag + '_weights' $
+        else weight_savefilebase[pol_i, file_i] = cgRootName(metadata_struct.weightfile[pol_i, file_i]) + uvf_tag + wt_file_label[pol_i]
       endfor
     endfor
     
