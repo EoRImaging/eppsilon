@@ -1,5 +1,5 @@
 function ps_filenames, folder_names, obs_names_in, dirty_folder = dirty_folder, dirty_obsname = dirty_obsname, $
-    rts = rts, sim = sim, uvf_input = uvf_input, casa = casa, $
+    rts = rts, uvf_input = uvf_input, casa = casa, $
     data_subdirs = data_subdirs, ps_foldernames = ps_foldernames, plot_paths = plot_paths, save_paths = save_paths, $
     refresh_info = refresh_info, exact_obsnames = exact_obsnames, no_wtvar_rts = no_wtvar_rts
     

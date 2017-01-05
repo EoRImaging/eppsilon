@@ -2,8 +2,8 @@ pro ps_wrapper, folder_name, obs_name, data_subdirs=data_subdirs, exact_obsnames
     no_wtvar_rts = no_wtvar_rts, set_data_ranges = set_data_ranges, $
     beamfiles = beamfiles, rts = rts, casa = casa, sim = sim, $
     refresh_dft = refresh_dft, refresh_ps = refresh_ps, refresh_binning = refresh_binning, refresh_info = refresh_info, $
-    refresh_beam = refresh_beam, dft_fchunk = dft_fchunk, dft_ian = dft_ian, $
-    delta_uv_lambda = delta_uv_lambda, max_uv_lambda = max_uv_lambda, cut_image = cut_image, $
+    refresh_beam = refresh_beam, dft_fchunk = dft_fchunk, $
+    delta_uv_lambda = delta_uv_lambda, max_uv_lambda = max_uv_lambda, $
     pol_inc = pol_inc, type_inc = type_inc, $
     freq_ch_range = freq_ch_range, freq_flags = freq_flags, freq_flag_name = freq_flag_name, $
     uvf_input = uvf_input, uv_avg = uv_avg, uv_img_clip = uv_img_clip, $
@@ -63,7 +63,7 @@ pro ps_wrapper, folder_name, obs_name, data_subdirs=data_subdirs, exact_obsnames
     endcase
   endif
   
-  obs_info = ps_filenames(folder_name, obs_name, dirty_folder = dirty_folder, exact_obsnames = exact_obsnames, rts = rts, sim = sim, $
+  obs_info = ps_filenames(folder_name, obs_name, dirty_folder = dirty_folder, exact_obsnames = exact_obsnames, rts = rts, $
     uvf_input = uvf_input, data_subdirs = data_subdirs, ps_foldernames = ps_foldername, save_paths = save_path, plot_paths = plot_path, $
     refresh_info = refresh_info)
     
@@ -159,8 +159,8 @@ pro ps_wrapper, folder_name, obs_name, data_subdirs=data_subdirs, exact_obsnames
   
   ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, sim = sim, $
     refresh_dft = refresh_dft, refresh_ps = refresh_ps, refresh_binning = refresh_binning, refresh_info = refresh_info, $
-    refresh_beam = refresh_beam, dft_fchunk = dft_fchunk, dft_ian = dft_ian, $
-    delta_uv_lambda = delta_uv_lambda, max_uv_lambda = max_uv_lambda, cut_image = cut_image, $
+    refresh_beam = refresh_beam, dft_fchunk = dft_fchunk, $
+    delta_uv_lambda = delta_uv_lambda, max_uv_lambda = max_uv_lambda, $
     pol_inc = pol_inc, type_inc = type_inc, $
     freq_ch_range = freq_ch_range, freq_flags = freq_flags, freq_flag_name = freq_flag_name, $
     uvf_input = uvf_input, uv_avg = uv_avg, uv_img_clip = uv_img_clip, $

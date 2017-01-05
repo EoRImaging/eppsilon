@@ -1,6 +1,6 @@
 function fhd_file_setup, filename, weightfile = weightfile, variancefile = variancefile, beamfile = beamfile, pixelfile = pixelfile, $
     dirtyvar = dirtyvar, modelvar = modelvar, weightvar = weightvar, variancevar = variancevar, beamvar = beamvar, $
-    pixelvar = pixelvar, save_path = save_path, uvf_input = uvf_input, uv_avg = uv_avg, uv_img_clip = uv_img_clip, dft_ian = dft_ian, $
+    pixelvar = pixelvar, save_path = save_path, uvf_input = uvf_input, uv_avg = uv_avg, uv_img_clip = uv_img_clip, $
     weight_savefilebase = weight_savefilebase_in, $
     uvf_savefilebase = uvf_savefilebase_in, savefilebase = savefilebase_in, $
     freq_ch_range = freq_ch_range, freq_flags = freq_flags, freq_flag_name = freq_flag_name, $
@@ -215,7 +215,7 @@ function fhd_file_setup, filename, weightfile = weightfile, variancefile = varia
           ;; looks good, restore & check for directory structure changes
           file_struct_arr = fhd_file_setup(info_file, save_path = save_path, weight_savefilebase = weight_savefilebase_in, $
             uvf_savefilebase = uvf_savefilebase_in, savefilebase = savefilebase_in, $
-            uvf_input = uvf_input, uv_avg = uv_avg, uv_img_clip = uv_img_clip, dft_ian = dft_ian, $
+            uvf_input = uvf_input, uv_avg = uv_avg, uv_img_clip = uv_img_clip, $
             freq_ch_range = freq_ch_range, freq_flags = freq_flags, freq_flag_name = freq_flag_name, $
             spec_window_type = spec_window_type, delta_uv_lambda = delta_uv_lambda, max_uv_lambda = max_uv_lambda, $
             std_power = std_power, inverse_covar_weight = inverse_covar_weight, ave_removal = ave_removal, no_wtd_avg = no_wtd_avg)
@@ -532,6 +532,9 @@ function fhd_file_setup, filename, weightfile = weightfile, variancefile = varia
         if pix_size[0] gt 0 then pix_dims = pix_size[1:pix_size[0]]
         if total(abs(pix_dims - data_dims[0])) ne 0 then message, 'Number of Healpix pixels does not match data dimension'
         
+        this_pix_vals = getvar_savefile(pixelfile[pol_i, file_i], pixel_varname[pol_i])
+        if pol_i eq 0 and file_i eq 0 then pix_vals = this_pix_vals else if total(abs(this_pix_vals - pix_vals)) ne 0 then message, 'pixel values in files do not match'
+        
       endif else healpix = 0
       
       wh_obs = where(strmatch(varnames, 'obs*',/fold_case) gt 0, count_obs)
@@ -809,9 +812,7 @@ function fhd_file_setup, filename, weightfile = weightfile, variancefile = varia
   
   power_tag = kcube_tag
   if keyword_set(no_wtd_avg) then power_tag = power_tag + '_nowtavg'
-  
-  if keyword_set(dft_ian) then dft_label = '_ian' else dft_label = ''
-  
+    
   wt_file_label = '_weights_' + strlowcase(metadata_struct.pol_inc)
   file_label = strarr(npol, ntypes)
   for i=0, npol-1 do file_label[i,*] = '_' + strlowcase(metadata_struct.type_inc) + '_' + strlowcase(metadata_struct.pol_inc[i])
@@ -832,8 +833,8 @@ function fhd_file_setup, filename, weightfile = weightfile, variancefile = varia
     uvf_label = strarr(npol, nfiles, ntypes)
     for pol_i=0, npol-1 do begin
       for file_i=0, nfiles-1 do begin
-        if max(pol_exist) eq 1 then uvf_savefilebase[pol_i, file_i,*] = cgRootName(metadata_struct.datafile[pol_i, file_i]) + uvf_tag + '_' + metadata_struct.type_inc + dft_label $
-        else uvf_savefilebase[pol_i, file_i,*] = cgRootName(metadata_struct.datafile[pol_i, file_i]) + uvf_tag + file_label[pol_i, *] + dft_label
+        if max(pol_exist) eq 1 then uvf_savefilebase[pol_i, file_i,*] = cgRootName(metadata_struct.datafile[pol_i, file_i]) + uvf_tag + '_' + metadata_struct.type_inc $
+        else uvf_savefilebase[pol_i, file_i,*] = cgRootName(metadata_struct.datafile[pol_i, file_i]) + uvf_tag + file_label[pol_i, *]
         uvf_label[pol_i, file_i,*] = metadata_struct.infile_label[file_i] + '_' + file_label[pol_i, *]
       endfor
     endfor
@@ -850,14 +851,14 @@ function fhd_file_setup, filename, weightfile = weightfile, variancefile = varia
         endfor
       endfor
     endelse
-    uvf_savefilebase = file_basename(uvf_savefilebase_in) + uvf_tag + file_label + dft_label
+    uvf_savefilebase = file_basename(uvf_savefilebase_in) + uvf_tag + file_label
   endelse
   
   ;; add sw tag to general_filebase so that plotfiles have uvf_tag in them
   general_filebase = metadata_struct.general_filebase + uvf_tag
   
   ;; file for saving ra/decs of pixels
-  radec_file = froot + metadata_struct.general_filebase + dft_label + '_radec.idlsave'
+  radec_file = froot + metadata_struct.general_filebase + '_radec.idlsave'
   
   uvf_savefile = uvf_froot + uvf_savefilebase + '_uvf.idlsave'
   uf_savefile = uvf_froot + uvf_savefilebase + '_uf_plane.idlsave'
@@ -899,8 +900,8 @@ function fhd_file_setup, filename, weightfile = weightfile, variancefile = varia
     weight_savefilebase = strarr(npol, nfiles)
     for pol_i=0, npol-1 do begin
       for file_i=0, nfiles-1 do begin
-        if max(pol_exist) eq 1 then weight_savefilebase[pol_i, file_i] = cgRootName(metadata_struct.weightfile[pol_i, file_i]) + uvf_tag + '_weights' + dft_label $
-        else weight_savefilebase[pol_i, file_i] = cgRootName(metadata_struct.weightfile[pol_i, file_i]) + uvf_tag + wt_file_label[pol_i] + dft_label
+        if max(pol_exist) eq 1 then weight_savefilebase[pol_i, file_i] = cgRootName(metadata_struct.weightfile[pol_i, file_i]) + uvf_tag + '_weights' $
+        else weight_savefilebase[pol_i, file_i] = cgRootName(metadata_struct.weightfile[pol_i, file_i]) + uvf_tag + wt_file_label[pol_i]
       endfor
     endfor
     

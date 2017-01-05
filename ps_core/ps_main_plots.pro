@@ -24,12 +24,7 @@
   
   ;; pol_inc specifies which polarizations to generate the power spectra for.
   ;; The default is ['xx,'yy']
-  
-  ;; cut_image keyword only applies to Healpix datasets. It allows for limiting the field of view in the
-  ;; image plane by only using Healpix pixels inside a 30 degree diameter circle centered in the middle of the field.
-  ;; Currently defaults to on. Set equal to 0 to turn it off, 1 to turn it on
-  
-  
+   
   ;; There are 3 refresh flags to indicate that various stages should be re-calculated
   ;;   (rather than using previous save files if they exist).
   ;; If an early stage is recalculated, all subsequent stages will also be recalculated
@@ -58,8 +53,8 @@
   
   pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, sim = sim, $
       refresh_dft = refresh_dft, refresh_ps = refresh_ps, refresh_binning = refresh_binning, refresh_info = refresh_info, $
-      refresh_beam = refresh_beam, dft_fchunk = dft_fchunk, dft_ian = dft_ian, $
-      delta_uv_lambda = delta_uv_lambda, max_uv_lambda = max_uv_lambda, cut_image = cut_image, $
+      refresh_beam = refresh_beam, dft_fchunk = dft_fchunk, $
+      delta_uv_lambda = delta_uv_lambda, max_uv_lambda = max_uv_lambda, $
       pol_inc = pol_inc, type_inc = type_inc, $
       freq_ch_range = freq_ch_range, freq_flags = freq_flags, freq_flag_name = freq_flag_name, $
       uvf_input = uvf_input, uv_avg = uv_avg, uv_img_clip = uv_img_clip, $
@@ -114,10 +109,7 @@
     if not keyword_set(no_spec_window) then begin
       if n_elements(spec_window_type) eq 0 then spec_window_type = 'Blackman-Harris'
     endif else undefine, spec_window_type
-    
-    ;; default to cutting in image space (down to 30 degree diameter circle)
-    if n_elements(cut_image) eq 0 then cut_image = 1
-    
+        
     ;; default to ave_removal
     if n_elements(ave_removal) eq 0 then ave_removal = 1
     
@@ -157,7 +149,7 @@
         spec_window_type = spec_window_type, image_window_name = image_window_name, image_window_frac_size = image_window_frac_size, $
         delta_uv_lambda = delta_uv_lambda, max_uv_lambda = max_uv_lambda, refresh_info = refresh_info)
     endif else begin
-      file_struct_arr = fhd_file_setup(datafile, beamfile = beamfiles, uvf_input = uvf_input, uv_avg = uv_avg, uv_img_clip = uv_img_clip, dft_ian = dft_ian, $
+      file_struct_arr = fhd_file_setup(datafile, beamfile = beamfiles, uvf_input = uvf_input, uv_avg = uv_avg, uv_img_clip = uv_img_clip, $
         savefilebase = savefilebase, save_path = save_path, freq_ch_range = freq_ch_range, freq_flags = freq_flags, freq_flag_name = freq_flag_name, $
         spec_window_type = spec_window_type, image_window_name = image_window_name, image_window_frac_size = image_window_frac_size, $
         delta_uv_lambda = delta_uv_lambda, max_uv_lambda = max_uv_lambda, sim = sim, $
@@ -618,7 +610,7 @@
           
           ps_power, file_struct_arr[i], kcube_refresh = refresh_ps, dft_refresh_data = refresh_dft, $
             dft_refresh_weight = weight_refresh[i], refresh_beam = refresh_beam, $
-            dft_ian = dft_ian, cut_image = cut_image, dft_fchunk = dft_fchunk, freq_ch_range = freq_ch_range, freq_flags = freq_flags, $
+            dft_fchunk = dft_fchunk, freq_ch_range = freq_ch_range, freq_flags = freq_flags, $
             spec_window_type = spec_window_type, image_window_name = image_window_name, image_window_frac_size = image_window_frac_size, $
             delta_uv_lambda = delta_uv_lambda, max_uv_lambda = max_uv_lambda, $
             savefile_2d = savefile_2d_use, savefile_1d = savefile_1d_use, savefile_1to2d_mask = savefiles_mask_use, hinv = hinv, $
