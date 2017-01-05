@@ -134,12 +134,9 @@ function choose_pix_ft, file_struct, pixel_nums = pixel_nums, data_dims = data_d
   ;; drop the unused half before the DFT to save time
   ky_rad_vals = kx_rad_vals[n_kperp/2:n_kperp-1]
   
-  ret_struct = {wh_close: wh_close, x_use: x_rot[wh_close], y_use: x_rot[wh_close]}
-  if keyword_set(dft_ian) then begin
-    ret_struct = create_struct(ret_struct, 'u_lambda_vals', u_lambda_vals, 'v_lambda_vals', v_lambda_vals)
-  endif else begin
-    ret_struct = create_struct(ret_struct, 'kx_rad_vals', kx_rad_vals, 'ky_rad_vals', ky_rad_vals)
-  endelse
+  ret_struct = {wh_close: wh_close, x_use: x_rot[wh_close], y_use: x_rot[wh_close], $
+    kx_rad_vals: kx_rad_vals, ky_rad_vals: ky_rad_vals}
+
   return, ret_struct
   
 end

@@ -1,8 +1,8 @@
 pro code_reference_wrapper, folder_name, obs_range, rts = rts, casa = casa, version = version, refresh_dft = refresh_dft, refresh_ps = refresh_ps, $
-    refresh_binning = refresh_binning, refresh_info = refresh_info, refresh_beam = refresh_beam, dft_ian = dft_ian, $
+    refresh_binning = refresh_binning, refresh_info = refresh_info, refresh_beam = refresh_beam, $
     pol_inc = pol_inc, sim = sim, freq_ch_range = freq_ch_range, freq_flag_name = freq_flag_name, $
     no_spec_window = no_spec_window, spec_window_type = spec_window_type, std_power = std_power, no_wtd_avg = no_wtd_avg, $
-    cut_image = cut_image, individual_plots = individual_plots, plot_filebase = plot_filebase, png = png, eps = eps, pdf = pdf, $
+    individual_plots = individual_plots, plot_filebase = plot_filebase, png = png, eps = eps, pdf = pdf, $
     plot_slices = plot_slices, slice_type = slice_type, uvf_plot_type = uvf_plot_type, plot_stdset = plot_stdset, $
     plot_kpar_power = plot_kpar_power, plot_kperp_power = plot_kperp_power, plot_k0_power = plot_k0_power, plot_noise_1d = plot_noise_1d, $
     coarse_harm_width = coarse_harm_width, $
@@ -81,10 +81,6 @@ pro code_reference_wrapper, folder_name, obs_range, rts = rts, casa = casa, vers
   
   ;; pol_inc specifies which polarizations to generate the power spectra for.
   
-  ;; cut_image keyword only applies to Healpix datasets. It allows for limiting the field of view in the
-  ;; image plane to match calculated k-modes (centered on image center).
-  ;; Currently defaults to on. Set equal to 0 to turn it off, 1 to turn it on
-  
   ;; There are 3 refresh flags to indicate that various stages should be re-calculated
   ;;   (rather than using previous save files if they exist).
   ;; If an early stage is recalculated, all subsequent stages will also be recalculated
@@ -120,7 +116,7 @@ pro code_reference_wrapper, folder_name, obs_range, rts = rts, casa = casa, vers
     refresh_dft = refresh_dft, refresh_ps = refresh_ps, refresh_binning = refresh_binning, refresh_info = refresh_info, refresh_beam = refresh_beam, $
     freq_ch_range = freq_ch_range, freq_flags = freq_flags, freq_flag_name = freq_flag_name, $
     no_spec_window = no_spec_window, spec_window_type = spec_window_type, std_power = std_power, no_wtd_avg = no_wtd_avg, $
-    sim = sim, cut_image = cut_image, dft_ian = dft_ian, uvf_input = uvf_input, uv_avg = uv_avg, uv_img_clip = uv_img_clip, $
+    sim = sim, uvf_input = uvf_input, uv_avg = uv_avg, uv_img_clip = uv_img_clip, $
     log_kpar = log_kpar, log_kperp = log_kperp, kpar_bin = kpar_bin, kperp_bin = kperp_bin, $
     log_k1d = log_k1d, k1d_bin = k1d_bin, $
     kperp_range_1dave = kperp_range_1dave, kperp_range_lambda_1dave = kperp_range_lambda_1dave, kpar_range_1dave = kpar_range_1dave, $

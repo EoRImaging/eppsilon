@@ -90,11 +90,6 @@ pro uwastro_wrapper,folder_name,obs_name,png=png
   ;; pol_inc specifies which polarizations to generate the power spectra for.
   ;; The default is ['xx,'yy']
   
-  ;; cut_image keyword only applies to Healpix datasets. It allows for limiting the field of view in the
-  ;; image plane by only using Healpix pixels inside a 30 degree diameter circle centered in the middle of the field.
-  ;; Currently defaults to on. Set equal to 0 to turn it off, 1 to turn it on
-  
-  
   ;; There are 3 refresh flags to indicate that various stages should be re-calculated
   ;;   (rather than using previous save files if they exist).
   ;; If an early stage is recalculated, all subsequent stages will also be recalculated
@@ -123,7 +118,7 @@ pro uwastro_wrapper,folder_name,obs_name,png=png
     pol_inc = pol_inc, rts = rts, $
     refresh_dft = refresh_dft, refresh_ps = refresh_ps, refresh_binning = refresh_binning, refresh_info = refresh_info, refresh_beam = refresh_beam, $
     freq_ch_range = freq_ch_range, no_spec_window = no_spec_window, spec_window_type = spec_window_type, $
-    sim = sim, cut_image = cut_image, delta_uv_lambda = delta_uv_lambda, $
+    sim = sim, delta_uv_lambda = delta_uv_lambda, $
     log_kpar = log_kpar, log_kperp = log_kperp, kpar_bin = kpar_bin, kperp_bin = kperp_bin, log_k1d = log_k1d, $
     k1d_bin = k1d_bin, kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, $
     data_range = data_range, sigma_range = sigma_range, nev_range = nev_range, snr_range = snr_range, noise_range = noise_range, nnr_range = nnr_range, $

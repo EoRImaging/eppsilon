@@ -605,8 +605,6 @@ function rts_file_setup, filename, save_path = save_path, refresh_info = refresh
     metadata_struct = create_struct(metadata_struct, 'beam_int', beam_int)
   endif
   
-  if keyword_set(dft_ian) then dft_label = '_ian' else dft_label = ''
-  
   wt_file_label = '_weights_' + strlowcase(metadata_struct.pol_inc)
   file_label = strarr(npol, ntypes)
   for i=0, npol-1 do file_label[i,*] = '_' + strlowcase(metadata_struct.type_inc) + '_' + strlowcase(metadata_struct.pol_inc[i])
