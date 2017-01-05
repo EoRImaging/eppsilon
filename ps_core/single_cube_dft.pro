@@ -6,6 +6,8 @@ pro single_cube_dft, folder_name, obs_name, data_subdirs=data_subdirs, exact_obs
   if n_elements(obs_name) gt 1 then message, 'no more than one obs_name can be supplied.'
   
   if n_elements(cube_type) eq 0 then message, 'cube_type must be specified'
+  if cube_type eq 'variances' then message, 'weights and variances must be calculated together. Use cube_type = weights to calculate both.'
+  
   if n_elements(pol) eq 0 then message, 'pol must be specified'
   if n_elements(evenodd) eq 0 then message, 'evenodd must be specified'
   
@@ -90,8 +92,6 @@ pro single_cube_dft, folder_name, obs_name, data_subdirs=data_subdirs, exact_obs
   
   type_pol_str_list = file_struct_arr.type_pol_str
   this_type_pol_str = cube_type + '_' + pol
-  
-  if cube_type eq 'variances' then message, 'weights and variances must be calculated together. Use cube_type = weights to calculate both.'
   
   if cube_type eq 'weights' then begin
     cube_ind = where(file_struct_arr.pol eq pol, count_pol)
