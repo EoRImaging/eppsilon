@@ -183,7 +183,7 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
           if n_elements(freq_ch_range) ne 0 then data_cube = data_cube[*, *, min(freq_ch_range):max(freq_ch_range)]
           
           if n_elements(freq_flags) gt 0 then begin
-             save, file = file_struct.uvf_savefile[i], kx_rad_vals, ky_rad_vals, data_cube, freq_mask, uvf_git_hash
+            save, file = file_struct.uvf_savefile[i], kx_rad_vals, ky_rad_vals, data_cube, freq_mask, uvf_git_hash
           endif else begin
             save, file = file_struct.uvf_savefile[i], kx_rad_vals, ky_rad_vals, data_cube, uvf_git_hash
           endelse
@@ -218,7 +218,7 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
           if n_elements(freq_flags) gt 0 then begin
             save, file = file_struct.uvf_weight_savefile[i], kx_rad_vals, ky_rad_vals, weights_cube, variance_cube, freq_mask, uvf_wt_git_hash
           endif else begin
-             save, file = file_struct.uvf_weight_savefile[i], kx_rad_vals, ky_rad_vals, weights_cube, variance_cube, uvf_wt_git_hash
+            save, file = file_struct.uvf_weight_savefile[i], kx_rad_vals, ky_rad_vals, weights_cube, variance_cube, uvf_wt_git_hash
           endelse
           undefine, weights_cube, variance_cube
           
@@ -318,6 +318,9 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
           kx_rad_vals = pix_ft_struct.kx_rad_vals
           ky_rad_vals = pix_ft_struct.ky_rad_vals
           
+          delta_kperp_rad = pix_ft_struct.delta_kperp_rad
+          n_kperp = pix_ft_struct.n_kperp
+          
           ;; get beam if needed
           if (test_beam eq 0 or keyword_set(refresh_beam)) and tag_exist(file_struct, 'beam_savefile') then begin
             arr = getvar_savefile(file_struct.beamfile[i], file_struct.beamvar)
@@ -362,7 +365,7 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
             print, 'calculating DFT for ra/dec values'
             
             if n_elements(nside) eq 0 then nside = file_struct.nside
-            if n_elements(pixels) eq 0 then pixels = pixel_nums1[wh_close]
+            if n_elements(pixels) eq 0 then pixels = pixel_nums[wh_close]
             
             ;; get ra/dec values for pixels we're using
             pix2vec_ring,nside,pixels,pix_coords

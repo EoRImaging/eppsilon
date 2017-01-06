@@ -135,7 +135,7 @@ function choose_pix_ft, file_struct, pixel_nums = pixel_nums, data_dims = data_d
   ky_rad_vals = kx_rad_vals[n_kperp/2:n_kperp-1]
   
   ret_struct = {wh_close: wh_close, x_use: x_rot[wh_close], y_use: x_rot[wh_close], $
-    kx_rad_vals: kx_rad_vals, ky_rad_vals: ky_rad_vals}
+    kx_rad_vals: kx_rad_vals, ky_rad_vals: ky_rad_vals, delta_kperp_rad: delta_kperp_rad, n_kperp: n_kperp}
 
   return, ret_struct
   
