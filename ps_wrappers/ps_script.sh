@@ -165,14 +165,15 @@ if [ "$exit_flag" -eq 1 ]; then exit 1; fi
 if [ "$first_line_len" == 10 ]; then
     
     # Just PS if flag has been set
-    if [ "$ps_only" -eq "1" ]; then
-        outfile=${FHDdir}/ps/${version}_ps_out.log
-        errfile=${FHDdir}/ps/${version}_ps_err.log
-        if [ ! -d ${FHDdir}/ps ]; then mkdir ${FHDdir}/ps; fi
-	echo "Running only ps code"
-        qsub ${hold_str} -l h_vmem=$mem,h_stack=512k,h_rt=$wallclock_time -V -v file_path_cubes=$FHDdir,obs_list_path=$integrate_list,version=$version,nslots=$nslots -e $errfile -o $outfile -pe chost $nslots ${PSpath}ps_wrappers/PS_list_job.sh
-        exit $?
-    fi
+    #if [ "$ps_only" -eq "1" ]; then
+    #    outfile=${FHDdir}/ps/${version}_ps_out.log
+    #    errfile=${FHDdir}/ps/${version}_ps_err.log
+    #    if [ ! -d ${FHDdir}/ps ]; then mkdir ${FHDdir}/ps; fi
+#	echo "Running only ps code"
+        #qsub ${hold_str} -l h_vmem=$mem,h_stack=512k,h_rt=$wallclock_time -V -v file_path_cubes=$FHDdir,obs_list_path=$integrate_list,version=$version,nslots=$nslots -e $errfile -o $outfile -pe chost $nslots ${PSpath}ps_wrappers/PS_list_job.sh
+        #exit $?
+	
+    #fi
 
     # read in obs ids 100 at a time and divide into chunks to integrate in parallel mode
     obs=0   
@@ -210,51 +211,171 @@ else
 fi
 
 unset idlist
-if [ "$nchunk" -gt "1" ]; then
+if [ "$ps_only" -ne "1" ]; then   
+    if [ "$nchunk" -gt "1" ]; then
 
-    # set up files for master integration
-    sub_cubes_list=${FHDdir}/Healpix/${version}_sub_cubes.txt
-    rm $sub_cubes_list # remove any old lists
+        # set up files for master integration
+        sub_cubes_list=${FHDdir}/Healpix/${version}_sub_cubes.txt
+        rm $sub_cubes_list # remove any old lists
 
-    # launch separate chunks
-    for chunk in $(seq 1 $nchunk); do
-	chunk_obs_list=${FHDdir}/Healpix/${version}_int_chunk${chunk}.txt
-	outfile=${FHDdir}/Healpix/${version}_int_chunk${chunk}_out.log
-	errfile=${FHDdir}/Healpix/${version}_int_chunk${chunk}_err.log
-	message=$(qsub ${hold_str} -l h_vmem=$mem,h_stack=512k,h_rt=$wallclock_time -V -v file_path_cubes=$FHDdir,obs_list_path=$chunk_obs_list,version=$version,chunk=$chunk,nslots=$nslots,legacy=$legacy -e $errfile -o $outfile -pe chost 12 ${PSpath}ps_wrappers/integrate_job.sh)
-	message=($message)
-	if [ "$chunk" -eq 1 ]; then idlist=${message[2]}; else idlist=${idlist},${message[2]}; fi
-	echo Combined_obs_${version}_int_chunk${chunk} >> $sub_cubes_list # trick it into finding our sub cubes
-    done
+        # launch separate chunks
+        for chunk in $(seq 1 $nchunk); do
+	    chunk_obs_list=${FHDdir}/Healpix/${version}_int_chunk${chunk}.txt
+	    outfile=${FHDdir}/Healpix/${version}_int_chunk${chunk}_out.log
+	    errfile=${FHDdir}/Healpix/${version}_int_chunk${chunk}_err.log
+	    message=$(qsub ${hold_str} -l h_vmem=$mem,h_stack=512k,h_rt=$wallclock_time -V -v file_path_cubes=$FHDdir,obs_list_path=$chunk_obs_list,version=$version,chunk=$chunk,nslots=$nslots,legacy=$legacy -e $errfile -o $outfile -pe chost 10 ${PSpath}ps_wrappers/integrate_job.sh)
+	    message=($message)
+	    if [ "$chunk" -eq 1 ]; then idlist=${message[2]}; else idlist=${idlist},${message[2]}; fi
+	    echo Combined_obs_${version}_int_chunk${chunk} >> $sub_cubes_list # trick it into finding our sub cubes
+        done
 
-    # master integrator
-    chunk=0
-    outfile=${FHDdir}/Healpix/${version}_int_chunk${chunk}_out.log
-    errfile=${FHDdir}/Healpix/${version}_int_chunk${chunk}_err.log
-    message=$(qsub -hold_jid $idlist -l h_vmem=$mem,h_stack=512k,h_rt=$wallclock_time -V -v file_path_cubes=$FHDdir,obs_list_path=$sub_cubes_list,version=$version,chunk=$chunk,nslots=$nslots,legacy=$legacy -e $errfile -o $outfile -pe chost $nslots ${PSpath}ps_wrappers/integrate_job.sh)
-    message=($message)
-    master_id=${message[2]}
+        # master integrator
+        chunk=0
+        outfile=${FHDdir}/Healpix/${version}_int_chunk${chunk}_out.log
+        errfile=${FHDdir}/Healpix/${version}_int_chunk${chunk}_err.log
+        message=$(qsub -hold_jid $idlist -l h_vmem=$mem,h_stack=512k,h_rt=$wallclock_time -V -v file_path_cubes=$FHDdir,obs_list_path=$sub_cubes_list,version=$version,chunk=$chunk,nslots=$nslots,legacy=$legacy -e $errfile -o $outfile -pe chost $nslots ${PSpath}ps_wrappers/integrate_job.sh)
+        message=($message)
+        master_id=${message[2]}
 
+    else
+
+        # Just one integrator
+        mv ${FHDdir}/Healpix/${version}_int_chunk1.txt ${FHDdir}/Healpix/${version}_int_chunk0.txt
+        chunk=0
+        chunk_obs_list=${FHDdir}/Healpix/${version}_int_chunk${chunk}.txt
+        outfile=${FHDdir}/Healpix/${version}_int_chunk${chunk}_out.log
+        errfile=${FHDdir}/Healpix/${version}_int_chunk${chunk}_err.log
+        message=$(qsub ${hold_str} -l h_vmem=$mem,h_stack=512k,h_rt=$wallclock_time -V -v file_path_cubes=$FHDdir,obs_list_path=$chunk_obs_list,version=$version,chunk=$chunk,nslots=$nslots,legacy=$legacy -e $errfile -o $outfile -pe chost $nslots ${PSpath}ps_wrappers/integrate_job.sh)
+        message=($message)
+        hold_str="-hold_jid ${message[2]}"
+
+    fi
 else
-
-    # Just one integrator
-    mv ${FHDdir}/Healpix/${version}_int_chunk1.txt ${FHDdir}/Healpix/${version}_int_chunk0.txt
-    chunk=0
-    chunk_obs_list=${FHDdir}/Healpix/${version}_int_chunk${chunk}.txt
-    outfile=${FHDdir}/Healpix/${version}_int_chunk${chunk}_out.log
-    errfile=${FHDdir}/Healpix/${version}_int_chunk${chunk}_err.log
-    message=$(qsub ${hold_str} -l h_vmem=$mem,h_stack=512k,h_rt=$wallclock_time -V -v file_path_cubes=$FHDdir,obs_list_path=$chunk_obs_list,version=$version,chunk=$chunk,nslots=$nslots,legacy=$legacy -e $errfile -o $outfile -pe chost $nslots ${PSpath}ps_wrappers/integrate_job.sh)
-    message=($message)
-    master_id=${message[2]}
-
+    echo "Running only ps code" # Just PS if flag has been set
 fi
 
+outfile=${FHDdir}/ps/logs/${version}_ps_out
+errfile=${FHDdir}/ps/logs/${version}_ps_err
 
-outfile=${FHDdir}/ps/${version}_ps_out.log
-errfile=${FHDdir}/ps/${version}_ps_err.log
 
 if [ ! -d ${FHDdir}/ps ]; then
     mkdir ${FHDdir}/ps
 fi
+if [ ! -d ${FHDdir}/ps/logs ]; then
+    mkdir ${FHDdir}/ps/logs
+fi
 
-qsub -hold_jid $master_id -p $priority -l h_vmem=$mem,h_stack=512k,h_rt=$wallclock_time -V -v file_path_cubes=$FHDdir,obs_list_path=$integrate_list,version=$version,nslots=$nslots -e $errfile -o $outfile -pe chost $nslots ${PSpath}ps_wrappers/PS_list_job.sh
+###XX, even
+pol='xx'
+evenodd='even'
+
+#weights/variance
+cube_type='weights'
+message=$(qsub ${hold_str} -p $priority -l h_vmem=$mem,h_stack=512k,h_rt=$wallclock_time -V -v file_path_cubes=$FHDdir,obs_list_path=$integrate_list,version=$version,nslots=$nslots,cube_type=$cube_type,pol=$pol,evenodd=$evenodd -e ${errfile}_xx_even_weights.log -o ${outfile}_xx_even_weights.log -N PS_xe_weights -pe chost $nslots ${PSpath}ps_wrappers/PS_list_job.sh)
+message=($message)
+id=${message[2]}
+
+#dirty
+cube_type='dirty'
+message=$(qsub -hold_jid $id -p $priority -l h_vmem=$mem,h_stack=512k,h_rt=$wallclock_time -V -v file_path_cubes=$FHDdir,obs_list_path=$integrate_list,version=$version,nslots=$nslots,cube_type=$cube_type,pol=$pol,evenodd=$evenodd -e ${errfile}_xx_even_dirty.log -o ${outfile}_xx_even_dirty.log -N PS_xe_dirty -pe chost $nslots ${PSpath}ps_wrappers/PS_list_job.sh)
+message=($message)
+id_list=${message[2]}
+
+#model
+cube_type='model'
+message=$(qsub -hold_jid $id -p $priority -l h_vmem=$mem,h_stack=512k,h_rt=$wallclock_time -V -v file_path_cubes=$FHDdir,obs_list_path=$integrate_list,version=$version,nslots=$nslots,cube_type=$cube_type,pol=$pol,evenodd=$evenodd -e ${errfile}_xx_even_model.log -o ${outfile}_xx_even_model.log -N PS_xe_model -pe chost $nslots ${PSpath}ps_wrappers/PS_list_job.sh)
+message=($message)
+id_list=${id_list},${message[2]}
+
+#res
+cube_type='res'
+message=$(qsub -hold_jid $id -p $priority -l h_vmem=$mem,h_stack=512k,h_rt=$wallclock_time -V -v file_path_cubes=$FHDdir,obs_list_path=$integrate_list,version=$version,nslots=$nslots,cube_type=$cube_type,pol=$pol,evenodd=$evenodd -e ${errfile}_xx_even_res.log -o ${outfile}_xx_even_res.log -N PS_xe_res -pe chost $nslots ${PSpath}ps_wrappers/PS_list_job.sh)
+message=($message)
+id_list=${id_list},${message[2]}
+
+###XX, odd
+pol='xx'
+evenodd='odd'
+
+#weights/variance
+cube_type='weights'
+message=$(qsub ${hold_str} -p $priority -l h_vmem=$mem,h_stack=512k,h_rt=$wallclock_time -V -v file_path_cubes=$FHDdir,obs_list_path=$integrate_list,version=$version,nslots=$nslots,cube_type=$cube_type,pol=$pol,evenodd=$evenodd -e ${errfile}_xx_odd_weights.log -o ${outfile}_xx_odd_weights.log -N PS_xo_weights -pe chost $nslots ${PSpath}ps_wrappers/PS_list_job.sh)
+message=($message)
+id=${message[2]}
+
+#dirty
+cube_type='dirty'
+message=$(qsub -hold_jid $id -p $priority -l h_vmem=$mem,h_stack=512k,h_rt=$wallclock_time -V -v file_path_cubes=$FHDdir,obs_list_path=$integrate_list,version=$version,nslots=$nslots,cube_type=$cube_type,pol=$pol,evenodd=$evenodd -e ${errfile}_xx_odd_dirty.log -o ${outfile}_xx_odd_dirty.log -N PS_xo_dirty -pe chost $nslots ${PSpath}ps_wrappers/PS_list_job.sh)
+message=($message)
+id_list=${id_list},${message[2]}
+
+#model
+cube_type='model'
+message=$(qsub -hold_jid $id -p $priority -l h_vmem=$mem,h_stack=512k,h_rt=$wallclock_time -V -v file_path_cubes=$FHDdir,obs_list_path=$integrate_list,version=$version,nslots=$nslots,cube_type=$cube_type,pol=$pol,evenodd=$evenodd -e ${errfile}_xx_odd_model.log -o ${outfile}_xx_odd_model.log -N PS_xo_model -pe chost $nslots ${PSpath}ps_wrappers/PS_list_job.sh)
+message=($message)
+id_list=${id_list},${message[2]}
+
+#res
+cube_type='res'
+message=$(qsub -hold_jid $id -p $priority -l h_vmem=$mem,h_stack=512k,h_rt=$wallclock_time -V -v file_path_cubes=$FHDdir,obs_list_path=$integrate_list,version=$version,nslots=$nslots,cube_type=$cube_type,pol=$pol,evenodd=$evenodd -e ${errfile}_xx_odd_res.log -o ${outfile}_xx_odd_res.log -N PS_xo_res -pe chost $nslots ${PSpath}ps_wrappers/PS_list_job.sh)
+message=($message)
+id_list=${id_list},${message[2]}
+
+###YY, even
+pol='yy'
+evenodd='even'
+
+#weights/variance
+cube_type='weights'
+message=$(qsub ${hold_str} -p $priority -l h_vmem=$mem,h_stack=512k,h_rt=$wallclock_time -V -v file_path_cubes=$FHDdir,obs_list_path=$integrate_list,version=$version,nslots=$nslots,cube_type=$cube_type,pol=$pol,evenodd=$evenodd -e ${errfile}_yy_even_weights.log -o ${outfile}_yy_even_weights.log -N PS_ye_weights -pe chost $nslots ${PSpath}ps_wrappers/PS_list_job.sh)
+message=($message)
+id=${message[2]}
+
+#dirty
+cube_type='dirty'
+message=$(qsub -hold_jid $id -p $priority -l h_vmem=$mem,h_stack=512k,h_rt=$wallclock_time -V -v file_path_cubes=$FHDdir,obs_list_path=$integrate_list,version=$version,nslots=$nslots,cube_type=$cube_type,pol=$pol,evenodd=$evenodd -e ${errfile}_yy_even_dirty.log -o ${outfile}_yy_even_dirty.log -N PS_ye_dirty -pe chost $nslots ${PSpath}ps_wrappers/PS_list_job.sh)
+message=($message)
+id_list=${id_list},${message[2]}
+
+#model
+cube_type='model'
+message=$(qsub -hold_jid $id -p $priority -l h_vmem=$mem,h_stack=512k,h_rt=$wallclock_time -V -v file_path_cubes=$FHDdir,obs_list_path=$integrate_list,version=$version,nslots=$nslots,cube_type=$cube_type,pol=$pol,evenodd=$evenodd -e ${errfile}_yy_even_model.log -o ${outfile}_yy_even_model.log -N PS_ye_model -pe chost $nslots ${PSpath}ps_wrappers/PS_list_job.sh)
+message=($message)
+id_list=${id_list},${message[2]}
+
+#res
+cube_type='res'
+message=$(qsub -hold_jid $id -p $priority -l h_vmem=$mem,h_stack=512k,h_rt=$wallclock_time -V -v file_path_cubes=$FHDdir,obs_list_path=$integrate_list,version=$version,nslots=$nslots,cube_type=$cube_type,pol=$pol,evenodd=$evenodd -e ${errfile}_yy_even_res.log -o ${outfile}_yy_even_res.log -N PS_ye_res -pe chost $nslots ${PSpath}ps_wrappers/PS_list_job.sh)
+message=($message)
+id_list=${id_list},${message[2]}
+
+###YY, odd
+pol='yy'
+evenodd='odd'
+
+#weights/variance
+cube_type='weights'
+message=$(qsub ${hold_str} -p $priority -l h_vmem=$mem,h_stack=512k,h_rt=$wallclock_time -V -v file_path_cubes=$FHDdir,obs_list_path=$integrate_list,version=$version,nslots=$nslots,cube_type=$cube_type,pol=$pol,evenodd=$evenodd -e ${errfile}_yy_odd_weights.log -o ${outfile}_yy_odd_weights.log -N PS_yo_weights -pe chost $nslots ${PSpath}ps_wrappers/PS_list_job.sh)
+message=($message)
+id=${message[2]}
+
+#dirty
+cube_type='dirty'
+message=$(qsub -hold_jid $id -p $priority -l h_vmem=$mem,h_stack=512k,h_rt=$wallclock_time -V -v file_path_cubes=$FHDdir,obs_list_path=$integrate_list,version=$version,nslots=$nslots,cube_type=$cube_type,pol=$pol,evenodd=$evenodd -e ${errfile}_yy_odd_dirty.log -o ${outfile}_yy_odd_dirty.log -N PS_yo_dirty -pe chost $nslots ${PSpath}ps_wrappers/PS_list_job.sh)
+message=($message)
+id_list=${id_list},${message[2]}
+
+#model
+cube_type='model'
+message=$(qsub -hold_jid $id -p $priority -l h_vmem=$mem,h_stack=512k,h_rt=$wallclock_time -V -v file_path_cubes=$FHDdir,obs_list_path=$integrate_list,version=$version,nslots=$nslots,cube_type=$cube_type,pol=$pol,evenodd=$evenodd -e ${errfile}_yy_odd_model.log -o ${outfile}_yy_odd_model.log -N PS_yo_model -pe chost $nslots ${PSpath}ps_wrappers/PS_list_job.sh)
+message=($message)
+id_list=${id_list},${message[2]}
+
+#res
+cube_type='res'
+message=$(qsub -hold_jid $id -p $priority -l h_vmem=$mem,h_stack=512k,h_rt=$wallclock_time -V -v file_path_cubes=$FHDdir,obs_list_path=$integrate_list,version=$version,nslots=$nslots,cube_type=$cube_type,pol=$pol,evenodd=$evenodd -e ${errfile}_yy_odd_res.log -o ${outfile}_yy_odd_res.log -N PS_yo_res -pe chost $nslots ${PSpath}ps_wrappers/PS_list_job.sh)
+message=($message)
+id_list=${id_list},${message[2]}
+
+#final plots
+qsub -hold_jid $id_list -p $priority -l h_vmem=1G,h_stack=512k,h_rt=00:20:00 -V -v file_path_cubes=$FHDdir,obs_list_path=$integrate_list,version=$version,nslots=$nslots -e ${errfile}_plots.log -o ${outfile}_plots.log -N PS_plots -pe chost $nslots ${PSpath}ps_wrappers/PS_list_job.sh
