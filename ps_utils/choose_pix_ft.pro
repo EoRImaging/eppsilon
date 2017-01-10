@@ -81,6 +81,11 @@ function choose_pix_ft, file_struct, pixel_nums = pixel_nums, data_dims = data_d
   endelse
   image_len = min([limits[2]-limits[0],limits[3]-limits[1]])
   
+  frequencies = file_struct.frequencies
+   if n_elements(freq_ch_range) ne 0 then begin
+    frequencies = frequencies[min(freq_ch_range):max(freq_ch_range)]
+  endif
+  
   ;; figure out k values to calculate dft
   uv_cellsize_m = 5 ;; based on calculations of beam FWHM by Aaron
   if n_elements(image_window_name) gt 0 then begin
