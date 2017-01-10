@@ -1,6 +1,6 @@
 pro single_cube_dft, folder_name, obs_name, data_subdirs=data_subdirs, exact_obsnames = exact_obsnames, ps_foldername = ps_foldername, $
     rts = rts, dirty_folder = dirty_folder, save_path = save_path, savefilebase = savefilebase, refresh_info = refresh_info, refresh_dft = refresh_dft, $
-    freq_flags = freq_flags, freq_ch_range = freq_ch_range, cube_type = cube_type, pol = pol, evenodd = evenodd
+    freq_flags = freq_flags, freq_ch_range = freq_ch_range, cube_type = cube_type, pol = pol, evenodd = evenodd, loc_name=loc_name
     
   if n_elements(folder_name) ne 1 then message, 'one folder_name must be supplied.'
   if n_elements(obs_name) gt 1 then message, 'no more than one obs_name can be supplied.'
