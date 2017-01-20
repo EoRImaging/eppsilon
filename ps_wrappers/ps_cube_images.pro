@@ -27,9 +27,9 @@ pro ps_cube_images, folder_names, obs_names_in, exact_obsnames = exact_obsnames,
     endelse
   endcase
   
-  obs_info = ps_filenames(folder_names, obs_names_in, dirty_folder = dirty_folder, exact_obsnames = exact_obsnames, rts = rts, sim = sim, $
+  obs_info = ps_filenames(folder_names, obs_names_in, dirty_folder = dirty_folder, exact_obsnames = exact_obsnames, rts = rts, $
     uvf_input = uvf_input, casa = casa, data_subdirs = data_subdirs, $
-    ps_foldernames = ps_foldernames, save_paths = save_paths, plot_paths = plot_paths, refresh_info = refresh_info, no_wtvar_rts = no_wtvar_rts)
+    save_paths = save_paths, plot_paths = plot_paths, refresh_info = refresh_info, no_wtvar_rts = no_wtvar_rts)
     
   if n_elements(plot_path) eq 0 then if tag_exist(obs_info, 'diff_plot_path') then plot_path = obs_info.diff_plot_path $
   else plot_path = obs_info.plot_paths[0]
