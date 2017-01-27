@@ -351,14 +351,7 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
             
           endif
           
-          ;; Create an image space filter to reduce thrown power via the FFT on hard clips
-          if n_elements(image_window_name) ne 0 then begin
-            pix_window = image_window(x_use, y_use, image_window_name = image_window_name, fractional_size = image_window_frac_size)
-            pix_window = rebin(pix_window, n_elements(wh_close), n_freq, /sample)
-          endif else pix_window = fltarr(n_elements(wh_close), n_freq) + 1.
-          
-          
-          ;; do DFT.
+         ;; do RA/Dec DFT.
           if test_radec_uvf eq 0 or keyword_set(dft_refresh_data) then begin
             git, repo_path = ps_repository_dir(), result=uvf_git_hash
             
@@ -429,7 +422,14 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
             
           endif
           
-          if test_uvf eq 0 or keyword_set(dft_refresh_data) then begin
+          ;; Create an image space filter to reduce thrown power via the FFT on hard clips
+          if n_elements(image_window_name) ne 0 then begin
+            pix_window = image_window(x_use, y_use, image_window_name = image_window_name, fractional_size = image_window_frac_size)
+            pix_window = rebin(pix_window, n_elements(wh_close), n_freq, /sample)
+          endif else pix_window = fltarr(n_elements(wh_close), n_freq) + 1.
+         
+          
+           if test_uvf eq 0 or keyword_set(dft_refresh_data) then begin
           
             print, 'calculating DFT for ' + file_struct.datavar + ' in ' + file_struct.datafile[i]
             
@@ -507,8 +507,7 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
               variance_cube = abs(temporary(transform)) ;; make variances real, positive definite (amplitude)
               undefine, arr
             endif
-            
-            
+             
             git, repo_path = ps_repository_dir(), result=uvf_wt_git_hash
             
             if n_elements(freq_flags) then begin
@@ -516,7 +515,7 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
             endif else begin
               save, file = file_struct.uvf_weight_savefile[i], kx_rad_vals, ky_rad_vals, weights_cube, variance_cube, uvf_wt_git_hash
             endelse
-            undefine, new_pix_vec, weights_cube, variance_cube
+            undefine, new_pix_vec, pix_window, weights_cube, variance_cube
           endif
         endelse
       endif else begin
