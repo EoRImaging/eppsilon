@@ -168,6 +168,7 @@ pro single_cube_dft, folder_name, obs_name, data_subdirs=data_subdirs, exact_obs
       pix_window = rebin(pix_window, n_elements(wh_close), n_freq, /sample)
     endif else pix_window = fltarr(n_elements(wh_close), n_freq) + 1.
     
+    git, repo_path = ps_repository_dir(), result=uvf_git_hash
     git, repo_path = ps_repository_dir(), result=uvf_wt_git_hash
     
     if cube_type eq 'weights' then begin
