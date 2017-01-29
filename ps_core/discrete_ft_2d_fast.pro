@@ -102,8 +102,14 @@ function discrete_ft_2d_fast, locations1, locations2, data, k1, k2, timing = tim
 
         data_expand = rebin(data[temporary(data_inds)], n_pts, n_k1, /sample)
 
-        term1_real = data_expand * x_exp_real
-        term1_imag = temporary(data_expand) * x_exp_imag
+        if nsteps EQ 1 then begin
+           term1_real = data_expand * temporary(x_exp_real)
+           term1_imag = temporary(data_expand) * temporary(x_exp_imag)  
+        endif else begin
+           term1_real = data_expand * x_exp_real
+           term1_imag = temporary(data_expand) * x_exp_imag
+        endelse
+        
      endif else begin
         freq_inds = freq_order[findgen(fchunk_sizes[j]) + fchunk_edges[j]]
         data_inds = rebin(dindgen(n_pts), n_pts, fchunk_sizes[j], /sample) + n_pts * $
