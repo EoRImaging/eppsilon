@@ -1,7 +1,7 @@
 pro ps_ratio_plots, folder_names, obs_info, cube_types, pols, ps_foldernames=ps_foldernames, $
     all_pol_diff_ratio = all_pol_diff_ratio, $
     plot_slices = plot_slices, slice_type = slice_type, $
-    freq_ch_range = freq_ch_range, plot_path = plot_path, plot_filebase = plot_filebase, $
+    freq_ch_range = freq_ch_range, plot_path = plot_path, plot_filebase = plot_filebase, save_path=save_path, $
     note = note, spec_window_types = spec_window_types, delta_uv_lambda = delta_uv_lambda, $
     ave_removal = ave_removal, image_window_name = image_window_name, image_window_frac_size = image_window_frac_size, $
     data_range = data_range, $

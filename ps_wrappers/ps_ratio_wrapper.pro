@@ -40,7 +40,7 @@ pro ps_ratio_wrapper, folder_names, obs_names_in, ps_foldernames=ps_foldernames,
   if n_elements(data_range) eq 0 then data_range = [1e-3, 1e1]
   
   ps_ratio_plots, folder_names, obs_info, cube_types, ps_foldernames=ps_foldernames, pols, all_pol_diff_ratio = all_pol_diff_ratio, $
-    freq_ch_range = freq_ch_range, plot_path = diff_plot_path, plot_filebase = plot_filebase, $
+    freq_ch_range = freq_ch_range, plot_path = diff_plot_path, save_path = diff_save_path, plot_filebase = plot_filebase, $
     note = note, spec_window_types = spec_window_types, delta_uv_lambda = delta_uv_lambda, $
     ave_removal = ave_removal, image_window_name = image_window_name, image_window_frac_size = image_window_frac_size, $
     data_range = data_range, $
