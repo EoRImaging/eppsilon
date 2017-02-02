@@ -102,7 +102,8 @@ function discrete_ft_2d_fast, locations1, locations2, data, k1, k2, timing = tim
 
         data_expand = rebin(data[temporary(data_inds)], n_pts, n_k1, /sample)
 
-        if nsteps EQ 1 then begin
+        ;;; save memory if we're only going through this loop once
+        if n_chunks EQ 1 then begin
            term1_real = data_expand * temporary(x_exp_real)
            term1_imag = temporary(data_expand) * temporary(x_exp_imag)  
         endif else begin
