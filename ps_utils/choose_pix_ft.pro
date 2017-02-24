@@ -82,7 +82,7 @@ function choose_pix_ft, file_struct, pixel_nums = pixel_nums, data_dims = data_d
   image_len = min([limits[2]-limits[0],limits[3]-limits[1]])
   
   frequencies = file_struct.frequencies
-   if n_elements(freq_ch_range) ne 0 then begin
+  if n_elements(freq_ch_range) ne 0 then begin
     frequencies = frequencies[min(freq_ch_range):max(freq_ch_range)]
   endif
   
@@ -123,13 +123,18 @@ function choose_pix_ft, file_struct, pixel_nums = pixel_nums, data_dims = data_d
     print, 'Image FoV is smaller than expected, increasing delta kperp to match image FoV'
     delta_kperp_rad = 2*!pi/image_len
     
-    wh_close = where(x_rot le image_len/2. and x_rot ge -1.*image_len/2. and $
-      y_rot le image_len/2. and y_rot ge -1.*image_len/2., count_close, $
-      ncomplement = count_far)
-  endif else wh_close = where(x_rot le xy_len/2. and x_rot ge -1.*xy_len/2. and $
-    y_rot le xy_len/2. and y_rot ge -1.*xy_len/2., count_close, $
-    ncomplement = count_far)
+    x_range = [-1,1]*image_len/2. + mean(x_rot)
+    y_range = [-1,1]*image_len/2. + mean(y_rot)
     
+  endif else begin
+    x_range = [-1,1]*xy_len/2. + mean(x_rot)
+    y_range = [-1,1]*xy_len/2. + mean(y_rot)
+  endelse
+  
+  wh_close = where(x_rot le x_range[1] and x_rot ge x_range[0] and $
+    y_rot le y_range[1] and y_rot ge y_range[0], count_close, $
+    ncomplement = count_far)
+
   if n_elements(wh_close) eq 0 and count_far eq 0 then wh_close = lindgen(n_elements(x_rot))
   
   n_kperp = round(max_kperp_rad / delta_kperp_rad) * 2 + 1
@@ -141,7 +146,7 @@ function choose_pix_ft, file_struct, pixel_nums = pixel_nums, data_dims = data_d
   
   ret_struct = {wh_close: wh_close, x_use: x_rot[wh_close], y_use: y_rot[wh_close], $
     kx_rad_vals: kx_rad_vals, ky_rad_vals: ky_rad_vals, delta_kperp_rad: delta_kperp_rad, n_kperp: n_kperp}
-
+    
   return, ret_struct
   
 end
