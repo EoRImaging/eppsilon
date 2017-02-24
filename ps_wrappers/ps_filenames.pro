@@ -470,7 +470,8 @@ function ps_filenames, folder_names, obs_names_in, dirty_folder = dirty_folder, 
       
       if not keyword_set(uvf_input) then begin
         ;; first look for integrated cube files in folder + data_dir with names like Combined_obs_...
-        if keyword_set(exact_obsnames) then begin
+        ;; if n_infofile > 1 then treat the one that's been chosen as exact to avoid multiple matches
+        if keyword_set(exact_obsnames) or n_infofile gt 1 then begin
           even_file_list = file_search(folder_names[i] + '/' + data_subdirs[i] + 'Combined_obs_' + obs_names[i] + '_even*_cube*.sav', count = n_even)
           odd_file_list = file_search(folder_names[i] + '/' + data_subdirs[i] + 'Combined_obs_' + obs_names[i] + '_odd*_cube*.sav', count = n_odd)
           if n_even gt 0 or n_odd gt 0 then begin
