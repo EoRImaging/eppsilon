@@ -624,12 +624,14 @@ pro ps_power, file_struct, refresh = refresh, kcube_refresh = kcube_refresh, dft
         log_kperp = log_kperp, kperp_bin = kperp_bin, kpar_bin = kpar_bin, weights = mask_weights, fill_holes = fill_holes)
         
       if n_elements(freq_flags) ne 0 then begin
-        save, file = savefile_1to2d_mask[j,i], mask_1to2d, mask_1to2d_ave, noise_frac_1to2d, kperp_edges, kpar_edges, kpar_bin, kpar_bin, kperp_bin, k_edges, k_bin, $
+        save, file = savefile_1to2d_mask[j,i], bin_mask_3d, mask_1to2d, mask_1to2d_ave, noise_frac_1to2d, kx_mpc, ky_mpc, kz_mpc, $
+          kperp_edges, kpar_edges, kpar_bin, kpar_bin, kperp_bin, k_edges, k_bin, $
           kperp_range, kperp_range_lambda, kx_range, kx_range_lambda, ky_range, ky_range_lambda, $
           kpar_range, coarse_harm0, coarse_width, kperp_lambda_conv, delay_params, hubble_param, freq_mask, window_int, git_hashes, $
           wt_ave_power, ave_power, ave_weights, wt_ave_power_freq, ave_power_freq, wt_ave_power_uvf, ave_power_uvf, uv_pix_area, uv_area
       endif else begin
-        save, file = savefile_1to2d_mask[j,i], mask_1to2d, mask_1to2d_ave, noise_frac_1to2d, kperp_edges, kpar_edges, kpar_bin, kpar_bin, kperp_bin, k_edges, k_bin, $
+        save, file = savefile_1to2d_mask[j,i], bin_mask_3d, mask_1to2d, mask_1to2d_ave, noise_frac_1to2d, kx_mpc, ky_mpc, kz_mpc, $
+          kperp_edges, kpar_edges, kpar_bin, kpar_bin, kperp_bin, k_edges, k_bin, $
           kperp_range, kperp_range_lambda, kx_range, kx_range_lambda, ky_range, ky_range_lambda, $
           kpar_range, coarse_harm0, coarse_width, kperp_lambda_conv, delay_params, hubble_param, window_int, git_hashes, $
           wt_ave_power, ave_power, ave_weights, wt_ave_power_freq, ave_power_freq, wt_ave_power_uvf, ave_power_uvf, uv_pix_area, uv_area
