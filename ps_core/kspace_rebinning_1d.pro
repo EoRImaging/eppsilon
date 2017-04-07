@@ -2,7 +2,8 @@
 
 function kspace_rebinning_1d, power, k1_mpc, k2_mpc, k3_mpc, k_edges_mpc, k_bin = k_bin, log_k = log_k, $
     noise_expval = noise_expval, binned_noise_expval = noise_expval_1d, weights = weights, $
-    binned_weights = weights_1d, kperp_range = kperp_range, kpar_range = kpar_range, wedge_amp = wedge_amp, $
+    binned_weights = weights_1d, kperp_range = kperp_range, kx_range = kx_range, ky_range = ky_range, $
+    kpar_range = kpar_range, wedge_amp = wedge_amp, $
     nbins_1d = norm, var_power_1d = var_power_1d, mean_var_1d = mean_var_1d, $
     coarse_harm0 = coarse_harm0, coarse_width = coarse_width, bin_mask_3d = bin_mask_3d, noise_frac_3d = noise_frac_3d, $
     edge_on_grid = edge_on_grid, match_datta = match_datta, kpar_power = kpar_power, kperp_power = kperp_power, $
@@ -35,6 +36,7 @@ function kspace_rebinning_1d, power, k1_mpc, k2_mpc, k3_mpc, k_edges_mpc, k_bin 
   if n_elements(kperp_density_measure) gt 0 and n_elements(kperp_density_cutoff) gt 0 then begin
     if total(abs(size(kperp_density_measure, /dimensions) - power_size[0:power_dim-2])) ne 0 then $
       message, 'If kperp_density_measure is provided, it must have the same kperp dimensions as the power'
+    kperp_density_measure_use = kperp_density_measure
   endif
   
   if n_elements(weights) ne 0 then begin
@@ -77,7 +79,7 @@ function kspace_rebinning_1d, power, k1_mpc, k2_mpc, k3_mpc, k_edges_mpc, k_bin 
     noise_frac_3d = fltarr(n_kx, n_ky, n_kz)
     
     if n_elements(kpar_range) gt 0 then begin
-      if  n_elements(kpar_range) ne 2 then message, 'kpar_range must be a 2 element vector'
+      if n_elements(kpar_range) ne 2 then message, 'kpar_range must be a 2 element vector'
       
       wh_good = where(abs(kz_mpc) ge kpar_range[0] and abs(kz_mpc) le kpar_range[1], count_good, ncomplement = count_bad)
       if count_good eq 0 then message, 'No kz values within kpar_range'
@@ -93,6 +95,43 @@ function kspace_rebinning_1d, power, k1_mpc, k2_mpc, k3_mpc, k_edges_mpc, k_bin 
       endif
     endif else kpar_range = minmax(kz_mpc)
     
+    if n_elements(kx_range) gt 0 then begin
+      if n_elements(kx_range) ne 2 then message, 'kx_range must be a 2 element vector'
+      
+      wh_good = where(abs(kx_mpc) ge kx_range[0] and abs(kx_mpc) le kx_range[1], count_good, ncomplement = count_bad)
+      if count_good eq 0 then message, 'No kx values within kx_range'
+      
+      if count_bad gt 0 then begin
+        power_use = power_use[wh_good,*,*]
+        full_ind_arr = full_ind_arr[wh_good,*,*]
+        if n_elements(weights_use) gt 0 then weights_use = weights_use[wh_good,*,*]
+        if n_elements(noise_expval_use) gt 0 then noise_expval_use = noise_expval_use[wh_good,*,*]
+        if n_elements(kperp_density_measure_use) gt 0 and n_elements(kperp_density_cutoff) gt 0 $
+          then kperp_density_measure_use = kperp_density_measure_use[wh_good, *]
+        kx_mpc = kx_mpc[wh_good]
+        n_kx = n_elements(kx_mpc)
+      endif
+    endif else kx_range = minmax(kx_mpc)
+    
+    
+    if n_elements(ky_range) gt 0 then begin
+      if n_elements(ky_range) ne 2 then message, 'ky_range must be a 2 element vector'
+      
+      wh_good = where(abs(ky_mpc) ge ky_range[0] and abs(ky_mpc) le ky_range[1], count_good, ncomplement = count_bad)
+      if count_good eq 0 then message, 'No ky values within ky_range'
+      
+      if count_bad gt 0 then begin
+        power_use = power_use[*,wh_good,*]
+        full_ind_arr = full_ind_arr[*,wh_good,*]
+        if n_elements(weights_use) gt 0 then weights_use = weights_use[*,wh_good,*]
+        if n_elements(noise_expval_use) gt 0 then noise_expval_use = noise_expval_use[*,wh_good,*]
+        if n_elements(kperp_density_measure_use) gt 0 and n_elements(kperp_density_cutoff) gt 0 $
+          then kperp_density_measure_use = kperp_density_measure_use[*,wh_good]
+        ky_mpc = ky_mpc[wh_good]
+        n_ky = n_elements(ky_mpc)
+      endif
+    endif else ky_range = minmax(ky_mpc)
+
     if keyword_set(kpar_power) then begin
       ;; generate kpar values for histogram
       temp = rebin(reform(kz_mpc, 1, 1, n_kz), n_kx, n_ky, n_kz)
@@ -114,11 +153,11 @@ function kspace_rebinning_1d, power, k1_mpc, k2_mpc, k3_mpc, k_edges_mpc, k_bin 
     full_ind_arr = reform(full_ind_arr, n_kx*n_ky, n_kz)
     if n_elements(noise_expval_use) gt 0 then noise_expval_use = reform(noise_expval_use, n_kx*n_ky, n_kz)
     if n_elements(weights_use) gt 0 then weights_use = reform(weights_use, n_kx*n_ky, n_kz)
-    if n_elements(kperp_density_measure) gt 0 and n_elements(kperp_density_cutoff) gt 0 $
-      then kperp_density_measure_use = reform(kperp_density_measure, n_kx*n_ky)
+    if n_elements(kperp_density_measure_use) gt 0 and n_elements(kperp_density_cutoff) gt 0 $
+      then kperp_density_measure_use = reform(kperp_density_measure_use, n_kx*n_ky)
       
     if n_elements(kperp_range) gt 0 then begin
-      if  n_elements(kperp_range) ne 2 then message, 'kperp_range must be a 2 element vector'
+      if n_elements(kperp_range) ne 2 then message, 'kperp_range must be a 2 element vector'
       
       kperp_vals = sqrt(rebin(kx_mpc^2d, n_kx, n_ky) + rebin(reform(ky_mpc^2d, 1, n_ky), n_kx, n_ky))
       

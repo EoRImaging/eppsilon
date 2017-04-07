@@ -24,7 +24,7 @@
   
   ;; pol_inc specifies which polarizations to generate the power spectra for.
   ;; The default is ['xx,'yy']
-   
+  
   ;; There are 3 refresh flags to indicate that various stages should be re-calculated
   ;;   (rather than using previous save files if they exist).
   ;; If an early stage is recalculated, all subsequent stages will also be recalculated
@@ -72,7 +72,10 @@
       log_kpar = log_kpar, log_kperp = log_kperp, kpar_bin = kpar_bin, kperp_bin = kperp_bin, $
       log_k1d = log_k1d, k1d_bin = k1d_bin, plot_1d_delta = plot_1d_delta, $
       plot_1d_error_bars = plot_1d_error_bars, plot_1d_nsigma = plot_1d_nsigma, $
-      kperp_range_1dave = kperp_range_1dave, kperp_range_lambda_1dave = kperp_range_lambda_1dave, kpar_range_1dave = kpar_range_1dave, $
+      kperp_range_1dave = kperp_range_1dave, kperp_range_lambda_1dave = kperp_range_lambda_1dave, $
+      kx_range_1dave = kx_range_1dave, kx_range_lambda_1dave = kx_range_lambda_1dave, $
+      ky_range_1dave = ky_range_1dave, ky_range_lambda_1dave = ky_range_lambda_1dave, $
+      kpar_range_1dave = kpar_range_1dave, $
       kperp_range_lambda_kparpower = kperp_range_lambda_kparpower, kpar_range_kperppower = kpar_range_kperppower, $
       kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, kperp_plot_range = kperp_plot_range, $
       kperp_lambda_plot_range = kperp_lambda_plot_range, kpar_plot_range = kpar_plot_range, $
@@ -109,7 +112,7 @@
     if not keyword_set(no_spec_window) then begin
       if n_elements(spec_window_type) eq 0 then spec_window_type = 'Blackman-Harris'
     endif else undefine, spec_window_type
-        
+    
     ;; default to ave_removal
     if n_elements(ave_removal) eq 0 then ave_removal = 1
     
@@ -276,11 +279,15 @@
     if keyword_set(log_k1d) then fadd_1dbin = fadd_1dbin + '_logk'
     if n_elements(kperp_range_1dave) gt 1 and n_elements(kperp_range_lambda_1dave) gt 1 then $
       message, 'both kperp_range_1dave and kperp_range_lambda_1dave cannot be set'
+    if n_elements(kx_range_1dave) gt 1 and n_elements(kx_range_lambda_1dave) gt 1 then $
+      message, 'both kx_range_1dave and kx_range_lambda_1dave cannot be set'
+    if n_elements(ky_range_1dave) gt 1 and n_elements(ky_range_lambda_1dave) gt 1 then $
+      message, 'both ky_range_1dave and ky_range_lambda_1dave cannot be set'
       
     fadd_kpar_1d = fadd_1dbin
     fadd_kperp_1d = fadd_1dbin
     
-    if n_elements(kperp_range_1dave) gt 1 then begin
+    if n_elements(kperp_range_1dave) eq 2 then begin
       fadd_1dbin = fadd_1dbin + '_kperp' + number_formatter(kperp_range_1dave[0]) + '-' + $
         number_formatter(kperp_range_1dave[1])
       note_1d = 'kperp: [' + number_formatter(kperp_range_1dave[0]) + ',' + $
@@ -291,7 +298,7 @@
       
     endif else begin
       if n_elements(kperp_range_1dave) gt 0 then print, '2 values must be specified for kperp_range_1dave, defaulting to normal range'
-      if n_elements(kperp_range_lambda_1dave) gt 1 then begin
+      if n_elements(kperp_range_lambda_1dave) eq 2 then begin
         fadd_1dbin = fadd_1dbin + '_kperplambda' + number_formatter(kperp_range_lambda_1dave[0]) + '-' + $
           number_formatter(kperp_range_lambda_1dave[1])
         note_1d = 'kperp: [' + number_formatter(kperp_range_lambda_1dave[0]) + ',' + $
@@ -300,6 +307,52 @@
         if n_elements(kperp_range_lambda_1dave) gt 0 then print, '2 values must be specified for kperp_range_lambda_1dave, defaulting to normal range'
         ;; if no range set default to same range as is used in 2D plots
         kperp_range_lambda_1dave = [5., min([file_struct_arr.kspan/2.,file_struct_arr.max_baseline_lambda])]
+      endelse
+    endelse
+    
+    if n_elements(kx_range_1dave) eq 2 then begin
+      if min(kx_range_1dave) lt 0 then message, 'kx_range_1dave values must be positive (interpreted as absolute values)'
+      fadd_1dbin = fadd_1dbin + '_kx' + number_formatter(kx_range_1dave[0]) + '-' + $
+        number_formatter(kx_range_1dave[1])
+      note_1d = 'kx: [' + number_formatter(kx_range_1dave[0]) + ',' + $
+        number_formatter(kx_range_1dave[1]) + ']'
+        
+      ;; if we're plotting in [k]=h/Mpc then assume these numbers are in h/Mpc. Convert to 1/Mpc for internal code usage
+      if keyword_set(hinv) then kx_range_1d_use = kx_range_1dave * hubble_param else kx_range_1d_use = kx_range_1dave
+      
+    endif else begin
+      if n_elements(kx_range_1dave) gt 0 then print, '2 values must be specified for kx_range_1dave, defaulting to normal range'
+      if n_elements(kx_range_lambda_1dave) eq 2 then begin
+        if min(kx_range_lambda_1dave) lt 0 then message, 'kx_range_lambda_1dave values must be positive (interpreted as absolute values)'
+        fadd_1dbin = fadd_1dbin + '_kxlambda' + number_formatter(kx_range_lambda_1dave[0]) + '-' + $
+          number_formatter(kx_range_lambda_1dave[1])
+        note_1d = 'kx: [' + number_formatter(kx_range_lambda_1dave[0]) + ',' + $
+          number_formatter(kx_range_lambda_1dave[1]) + ']'
+      endif else begin
+        if n_elements(kx_range_lambda_1dave) gt 0 then print, '2 values must be specified for kx_range_lambda_1dave, defaulting to normal range'
+      endelse
+    endelse
+    
+    if n_elements(ky_range_1dave) eq 2 then begin
+      if min(ky_range_1dave) lt 0 then message, 'ky_range_1dave values must be positive (interpreted as absolute values)'
+      fadd_1dbin = fadd_1dbin + '_ky' + number_formatter(ky_range_1dave[0]) + '-' + $
+        number_formatter(ky_range_1dave[1])
+      note_1d = 'ky: [' + number_formatter(ky_range_1dave[0]) + ',' + $
+        number_formatter(ky_range_1dave[1]) + ']'
+        
+      ;; if we're plotting in [k]=h/Mpc then assume these numbers are in h/Mpc. Convert to 1/Mpc for internal code usage
+      if keyword_set(hinv) then ky_range_1d_use = ky_range_1dave * hubble_param else ky_range_1d_use = ky_range_1dave
+      
+    endif else begin
+      if n_elements(ky_range_1dave) gt 0 then print, '2 values must be specified for ky_range_1dave, defaulting to normal range'
+      if n_elements(ky_range_lambda_1dave) eq 2 then begin
+        if min(ky_range_lambda_1dave) lt 0 then message, 'ky_range_lambda_1dave values must be positive (interpreted as absolute values)'
+        fadd_1dbin = fadd_1dbin + '_kylambda' + number_formatter(ky_range_lambda_1dave[0]) + '-' + $
+          number_formatter(ky_range_lambda_1dave[1])
+        note_1d = 'ky: [' + number_formatter(ky_range_lambda_1dave[0]) + ',' + $
+          number_formatter(ky_range_lambda_1dave[1]) + ']'
+      endif else begin
+        if n_elements(ky_range_lambda_1dave) gt 0 then print, '2 values must be specified for ky_range_lambda_1dave, defaulting to normal range'
       endelse
     endelse
     
@@ -596,7 +649,7 @@
       if keyword_set(plot_kpar_power) then test = test * test_kpar
       if keyword_set(plot_kperp_power) then test = test * test_kperp
       if keyword_set(plot_k0_power) then test = test * test_k0
- 
+      
       if test eq 0 then begin
         if n_elements(plotfile_binning_hist) gt 0 then $
           plotfile_binning_hist_use = reform(plotfile_binning_hist[i,*,*], n_elements(kperp_density_names), n_elements(wedge_1dbin_names))
@@ -617,7 +670,10 @@
             savefile_kpar_power = savefile_kpar_use, savefile_kperp_power = savefile_kperp_use, savefile_k0 = savefile_k0_use, $
             std_power = std_power, inverse_covar_weight = inverse_covar_weight, ave_removal = ave_removal, no_wtd_avg = no_wtd_avg, no_kzero = no_kzero, sim=sim, $
             log_k1d = log_k1d, k1d_bin = k1d_bin, log_kpar = log_kpar, log_kperp = log_kperp, kpar_bin = kpar_bin, kperp_bin = kperp_bin, $
-            kperp_range_1dave = kperp_range_1d_use, kperp_range_lambda_1dave = kperp_range_lambda_1dave, kpar_range_1dave = kpar_range_1d_use, $
+            kperp_range_1dave = kperp_range_1d_use, kperp_range_lambda_1dave = kperp_range_lambda_1dave, $
+            kx_range_1dave = kx_range_1d_use, kx_range_lambda_1dave = kx_range_lambda_1dave, $
+            ky_range_1dave = ky_range_1d_use, ky_range_lambda_1dave = ky_range_lambda_1dave, $
+            kpar_range_1dave = kpar_range_1d_use, $
             kperp_range_lambda_kparpower = kperp_range_lambda_kparpower, kpar_range_kperppower = kpar_range_kperppower_use, $
             wt_measures = wt_measures, wt_cutoffs = wt_cutoffs, fix_sim_input = fix_sim_input, $
             wedge_amps = wedge_amp, coarse_harm0 = coarse_harm0, coarse_width = coarse_harm_width, no_dft_progress = no_dft_progress, $
@@ -630,7 +686,10 @@
           std_power = std_power, inverse_covar_weight = inverse_covar_weight, ave_removal = ave_removal, no_wtd_avg = no_wtd_avg, no_kzero = no_kzero, $
           uvf_input = uvf_input, uv_avg = uv_avg, uv_img_clip = uv_img_clip, sim=sim, $
           log_k1d = log_k1d, k1d_bin = k1d_bin, log_kpar = log_kpar, log_kperp = log_kperp, kpar_bin = kpar_bin, kperp_bin = kperp_bin, $
-          kperp_range_1dave = kperp_range_1d_use, kperp_range_lambda_1dave = kperp_range_lambda_1dave, kpar_range_1dave = kpar_range_1d_use, $
+          kperp_range_1dave = kperp_range_1d_use, kperp_range_lambda_1dave = kperp_range_lambda_1dave, $
+          kx_range_1dave = kx_range_1d_use, kx_range_lambda_1dave = kx_range_lambda_1dave, $
+          ky_range_1dave = ky_range_1d_use, ky_range_lambda_1dave = ky_range_lambda_1dave, $
+          kpar_range_1dave = kpar_range_1d_use, $
           kperp_range_lambda_kparpower = kperp_range_lambda_kparpower, kpar_range_kperppower = kpar_range_kperppower_use, $
           wt_measures = wt_measures, wt_cutoffs = wt_cutoffs, fix_sim_input = fix_sim_input, $
           wedge_amps = wedge_amp, coarse_harm0 = coarse_harm0, coarse_width = coarse_harm_width, no_dft_progress = no_dft_progress, $
