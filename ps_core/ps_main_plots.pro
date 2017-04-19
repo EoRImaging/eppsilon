@@ -125,10 +125,10 @@
           undefine, start_multi_params
         endif
         
-        if keyword_set(pub) then begin
-          cgps_close, png = png, pdf = pdf, delete_ps = delete_ps, density = 600
-        endif
       endfor
+      if keyword_set(pub) then begin
+        cgps_close, png = png, pdf = pdf, delete_ps = delete_ps, density = 600
+      endif
       undefine, positions, pos_use
       
       if keyword_set(kperp_linear_axis) then begin
