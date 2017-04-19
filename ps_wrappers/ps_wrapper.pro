@@ -13,7 +13,7 @@ pro ps_wrapper, folder_name, obs_name, data_subdirs=data_subdirs, exact_obsnames
     no_spec_window = no_spec_window, spec_window_type = spec_window_type, $
     image_window_name = image_window_name, image_window_frac_size = image_window_frac_size, $
     no_kzero = no_kzero, plot_slices = plot_slices, slice_type = slice_type, uvf_plot_type = uvf_plot_type, $
-    plot_stdset = plot_stdset, plot_1to2d = plot_1to2d, $
+    plot_stdset = plot_stdset, plot_1to2d = plot_1to2d, plot_2d_masked = plot_2d_masked, $
     plot_kpar_power = plot_kpar_power, plot_kperp_power = plot_kperp_power, plot_k0_power = plot_k0_power, $
     plot_noise_1d = plot_noise_1d, plot_sim_noise = plot_sim_noise, $
     data_range = data_range, sigma_range = sigma_range, nev_range = nev_range, slice_range = slice_range, $
@@ -171,7 +171,8 @@ pro ps_wrapper, folder_name, obs_name, data_subdirs=data_subdirs, exact_obsnames
     wt_cutoffs = wt_cutoffs, wt_measures = wt_measures, fix_sim_input = fix_sim_input, $
     no_spec_window = no_spec_window, spec_window_type = spec_window_type, $
     image_window_name = image_window_name, image_window_frac_size = image_window_frac_size, $
-    no_kzero = no_kzero, plot_slices = plot_slices, slice_type = slice_type, uvf_plot_type = uvf_plot_type, plot_stdset = plot_stdset, plot_1to2d = plot_1to2d, $
+    no_kzero = no_kzero, plot_slices = plot_slices, slice_type = slice_type, uvf_plot_type = uvf_plot_type, $
+    plot_stdset = plot_stdset, plot_1to2d = plot_1to2d, plot_2d_masked = plot_2d_masked, $
     plot_kpar_power = plot_kpar_power, plot_kperp_power = plot_kperp_power, plot_k0_power = plot_k0_power, plot_noise_1d = plot_noise_1d, $
     data_range = data_range, sigma_range = sigma_range, nev_range = nev_range, slice_range = slice_range, plot_sim_noise = plot_sim_noise, $
     snr_range = snr_range, noise_range = noise_range, nnr_range = nnr_range, range_1d = range_1d, $

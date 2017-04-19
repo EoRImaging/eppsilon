@@ -5,7 +5,7 @@ function kspace_rebinning_1d, power, k1_mpc, k2_mpc, k3_mpc, k_edges_mpc, k_bin 
     binned_weights = weights_1d, kperp_range = kperp_range, kx_range = kx_range, ky_range = ky_range, $
     kpar_range = kpar_range, wedge_amp = wedge_amp, $
     nbins_1d = norm, var_power_1d = var_power_1d, mean_var_1d = mean_var_1d, $
-    coarse_harm0 = coarse_harm0, coarse_width = coarse_width, bin_mask_3d = bin_mask_3d, noise_frac_3d = noise_frac_3d, $
+    coarse_harm0 = coarse_harm0, coarse_width = coarse_width, bin_arr_3d = bin_arr_3d, noise_frac_3d = noise_frac_3d, $
     edge_on_grid = edge_on_grid, match_datta = match_datta, kpar_power = kpar_power, kperp_power = kperp_power, $
     kperp_density_measure = kperp_density_measure, kperp_density_cutoff = kperp_density_cutoff
     
@@ -75,7 +75,7 @@ function kspace_rebinning_1d, power, k1_mpc, k2_mpc, k3_mpc, k_edges_mpc, k_bin 
     if n_elements(kz_mpc) ne n_kz then message, 'Length of k3_mpc must be the same as the third dimension of the power array'
     
     full_ind_arr = lindgen(n_kx, n_ky, n_kz)
-    bin_mask_3d = lonarr(n_kx, n_ky, n_kz)
+    bin_arr_3d = lonarr(n_kx, n_ky, n_kz)
     noise_frac_3d = fltarr(n_kx, n_ky, n_kz)
     
     if n_elements(kpar_range) gt 0 then begin
@@ -308,7 +308,7 @@ function kspace_rebinning_1d, power, k1_mpc, k2_mpc, k3_mpc, k_edges_mpc, k_bin 
         endelse
         
         full_inds = full_ind_arr[inds]
-        bin_mask_3d[full_inds] = i+1
+        bin_arr_3d[full_inds] = i+1
         
         where_noise = where(power_use[inds]/weights_use[inds] le 1/sqrt(weights_use[inds]) and weights_use[inds] gt 0, count_noise)
         ;if count_noise / float(k_hist[i]) gt 0.5 then stop

@@ -1,7 +1,129 @@
+pro make_2d_files, nfiles, savefile_2d, savefile_k0, power_3D, sim_noise_3D, new_noise_3d, noise_expval_3d, weights_3d, $
+    kx_mpc, ky_mpc, kz_mpc, $
+    delay_params, hubble_param, hinv, kperp_lambda_conv, freq_mask, vs_name, vs_mean, t_sys_meas, window_int, git_hashes, $
+    wt_ave_power, ave_power, ave_weights, wt_ave_power_freq, ave_power_freq, wt_ave_power_uvf, ave_power_uvf, uv_pix_area, uv_area, $
+    masked_save_items = masked_save_items, noise_3D = noise_3D, sim_noise_diff_3D = sim_noise_diff_3D, wt_measure = wt_measure, wt_cutoff = wt_cutoff, $
+    log_kpar = log_kpar, log_kperp = log_kperp, kperp_bin = kperp_bin, kpar_bin = kpar_bin, fill_holes = fill_holes, freq_flags = freq_flags
+    
+  power_rebin = kspace_rebinning_2d(power_3D, kx_mpc, ky_mpc, kz_mpc, kperp_edges_mpc, kpar_edges_mpc, log_kpar = log_kpar, $
+    log_kperp = log_kperp, kperp_bin = kperp_bin, kpar_bin = kpar_bin, $
+    noise_expval = noise_expval_3d, binned_noise_expval = binned_noise_expval, weights = weights_3d, nbins_2d = nbins_2d, $
+    binned_weights = binned_weights, fill_holes = fill_holes, $
+    kperp_density_measure = wt_measure, kperp_density_cutoff = wt_cutoff)
+    
+  sim_noise_rebin = kspace_rebinning_2d(sim_noise_3D, kx_mpc, ky_mpc, kz_mpc, kperp_edges_mpc, kpar_edges_mpc, log_kpar = log_kpar, $
+    log_kperp = log_kperp, kperp_bin = kperp_bin, kpar_bin = kpar_bin, $
+    noise_expval = noise_expval_3d, binned_noise_expval = binned_noise_expval, weights = weights_3d, $
+    var_power_2d = sim_noise_var_2d, mean_var_2d = mean_var_2d, $
+    binned_weights = binned_weights, fill_holes = fill_holes, $
+    kperp_density_measure = wt_measure, kperp_density_cutoff = wt_cutoff)
+    
+  new_noise_rebin = kspace_rebinning_2d(new_noise_3d, kx_mpc, ky_mpc, kz_mpc, kperp_edges_mpc, kpar_edges_mpc, log_kpar = log_kpar, $
+    log_kperp = log_kperp, kperp_bin = kperp_bin, kpar_bin = kpar_bin, $
+    noise_expval = noise_expval_3d, binned_noise_expval = binned_noise_expval, weights = weights_3d, $
+    var_power_2d = new_noise_var_2d, mean_var_2d = new_mean_var_2d, $
+    binned_weights = binned_weights, fill_holes = fill_holes, $
+    kperp_density_measure = wt_measure, kperp_density_cutoff = wt_cutoff)
+    
+  if nfiles eq 2 then begin
+    noise_rebin = kspace_rebinning_2d(noise_3D, kx_mpc, ky_mpc, kz_mpc, kperp_edges_mpc, kpar_edges_mpc, log_kpar = log_kpar, $
+      log_kperp = log_kperp, kperp_bin = kperp_bin, kpar_bin = kpar_bin, $
+      noise_expval = noise_expval_3d, binned_noise_expval = binned_noise_expval, $
+      weights = weights_3d, binned_weights = binned_weights, fill_holes = fill_holes, $
+      kperp_density_measure = wt_measure, kperp_density_cutoff = wt_cutoff)
+      
+    sim_noise_diff_rebin = kspace_rebinning_2d(sim_noise_diff_3D, kx_mpc, ky_mpc, kz_mpc, kperp_edges_mpc, kpar_edges_mpc, log_kpar = log_kpar, $
+      log_kperp = log_kperp, kperp_bin = kperp_bin, kpar_bin = kpar_bin, $
+      noise_expval = noise_expval_3d, binned_noise_expval = binned_noise_expval, $
+      weights = weights_3d, binned_weights = binned_weights, fill_holes = fill_holes, $
+      kperp_density_measure = wt_measure, kperp_density_cutoff = wt_cutoff)
+  endif
+  
+  power = power_rebin
+  sim_noise = sim_noise_rebin
+  if nfiles eq 2 then begin
+    noise = noise_rebin
+    sim_noise_diff = sim_noise_diff_rebin
+  endif
+  kperp_edges = kperp_edges_mpc
+  kpar_edges = kpar_edges_mpc
+  weights = binned_weights
+  noise_expval = binned_noise_expval
+  
+  wh_good_kperp = where(total(weights, 2) gt 0, count)
+  if count eq 0 then message, '2d weights appear to be entirely zero'
+  
+  if n_elements(masked_save_items) then begin
+  
+    kperp_range = masked_save_items.kperp_range
+    kperp_range_lambda = masked_save_items.kperp_range_lambda
+    kpar_range = masked_save_items.kpar_range
+    kx_range = masked_save_items.kx_range
+    kx_range_lambda = masked_save_items.kx_range_lambda
+    ky_range = masked_save_items.ky_range
+    ky_range_lambda = masked_save_items.ky_range_lambda
+    if tag_exist(masked_save_items, 'coarse_harm0') then begin
+      coarse_harm0 = masked_save_items.coarse_harm0
+      coarse_width = masked_save_items.coarse_width
+    endif
+    
+    if n_elements(freq_flags) ne 0 then begin
+      save, file = savefile_2d, power, noise, sim_noise, sim_noise_diff, weights, noise_expval, kperp_edges, kpar_edges, kperp_bin, kpar_bin, $
+        kperp_lambda_conv, delay_params, hubble_param, freq_mask, vs_name, vs_mean, t_sys_meas, window_int, git_hashes, $
+        wt_ave_power, ave_power, ave_weights, wt_ave_power_freq, ave_power_freq, wt_ave_power_uvf, ave_power_uvf, uv_pix_area, uv_area, $
+        kperp_range, kperp_range_lambda, kpar_range, kx_range, kx_range_lambda, ky_range, ky_range_lambda, coarse_harm0, coarse_width
+    endif else begin
+      save, file = savefile_2d, power, noise, sim_noise, sim_noise_diff, weights, noise_expval, kperp_edges, kpar_edges, kperp_bin, kpar_bin, $
+        kperp_lambda_conv, delay_params, hubble_param, vs_name, vs_mean, t_sys_meas, window_int, git_hashes, $
+        wt_ave_power, ave_power, ave_weights, wt_ave_power_freq, ave_power_freq, wt_ave_power_uvf, ave_power_uvf, uv_pix_area, uv_area, $
+        kperp_range, kperp_range_lambda, kpar_range, kx_range, kx_range_lambda, ky_range, ky_range_lambda, coarse_harm0, coarse_width
+    endelse
+    
+  endif else begin
+    if n_elements(freq_flags) ne 0 then begin
+      save, file = savefile_2d, power, noise, sim_noise, sim_noise_diff, weights, noise_expval, kperp_edges, kpar_edges, kperp_bin, kpar_bin, $
+        kperp_lambda_conv, delay_params, hubble_param, freq_mask, vs_name, vs_mean, t_sys_meas, window_int, git_hashes, $
+        wt_ave_power, ave_power, ave_weights, wt_ave_power_freq, ave_power_freq, wt_ave_power_uvf, ave_power_uvf, uv_pix_area, uv_area
+    endif else begin
+      save, file = savefile_2d, power, noise, sim_noise, sim_noise_diff, weights, noise_expval, kperp_edges, kpar_edges, kperp_bin, kpar_bin, $
+        kperp_lambda_conv, delay_params, hubble_param, vs_name, vs_mean, t_sys_meas, window_int, git_hashes, $
+        wt_ave_power, ave_power, ave_weights, wt_ave_power_freq, ave_power_freq, wt_ave_power_uvf, ave_power_uvf, uv_pix_area, uv_area
+    endelse
+  endelse
+  
+  ;; save just k0 line for plotting purposes
+  if not keyword_set(no_kzero) then begin
+    power = power[*,0]
+    sim_noise = sim_noise[*,0]
+    if n_elements(noise) gt 0 then noise = noise[*,0]
+    if n_elements(sim_noise) gt 0 then sim_noise_diff = sim_noise_diff[*,0]
+    weights = weights[*,0]
+    noise_expval = noise_expval[*,0]
+    
+    k_edges = kperp_edges
+    k_bin = kperp_bin
+    
+    textfile = strmid(savefile_k0, 0, stregex(savefile_k0, '.idlsave')) + '.txt'
+    print, 'saving kpar=0 power to ' + textfile
+    save_1D_text, textfile, k_edges, power, weights, noise_expval, hubble_param, noise, $
+      sim_noise_power = sim_noise, sim_noise_diff = sim_noise_diff, nfiles = nfiles, hinv = hinv
+      
+    if n_elements(freq_flags) ne 0 then begin
+      save, file = savefile_k0, power, noise, sim_noise, sim_noise_diff, weights, noise_expval, k_edges, k_bin, $
+        kperp_lambda_conv, delay_params, hubble_param, freq_mask, $
+        window_int, wt_ave_power, ave_power, ave_weights, uv_pix_area, uv_area, git_hashes
+    endif else begin
+      save, file = savefile_k0, power, noise, sim_noise, sim_noise_diff, weights, noise_expval, k_edges, k_bin, $
+        kperp_lambda_conv, delay_params, hubble_param, $
+        window_int, wt_ave_power, ave_power, ave_weights, uv_pix_area, uv_area, git_hashes
+    endelse
+  endif
+end
+
 pro ps_power, file_struct, refresh = refresh, kcube_refresh = kcube_refresh, dft_refresh_data = dft_refresh_data, $
     dft_refresh_weight = dft_refresh_weight, refresh_beam = refresh_beam, $
-    savefile_2d = savefile_2d, savefile_1d = savefile_1d, savefile_1to2d_mask = savefile_1to2d_mask, hinv = hinv, $
-    savefile_kpar_power = savefile_kpar_power, savefile_kperp_power = savefile_kperp_power, savefile_k0 = savefile_k0, $
+    savefile_2d = savefile_2d, savefile_1d = savefile_1d, savefile_1to2d_bin = savefile_1to2d_bin, savefile_masked_2d = savefile_masked_2d, hinv = hinv, $
+    savefile_kpar_power = savefile_kpar_power, savefile_kperp_power = savefile_kperp_power, savefile_k0 = savefile_k0, savefile_masked_k0 = savefile_masked_k0, $
     uvf_input = uvf_input, uv_avg = uv_avg, uv_img_clip = uv_img_clip, sim=sim, $
     dft_fchunk = dft_fchunk, freq_ch_range = freq_ch_range, freq_flags = freq_flags, $
     spec_window_type = spec_window_type, image_window_name = image_window_name, image_window_frac_size = image_window_frac_size, $
@@ -340,10 +462,6 @@ pro ps_power, file_struct, refresh = refresh, kcube_refresh = kcube_refresh, dft
   else git_hashes = {uvf:strarr(nfiles), uvf_wt:strarr(nfiles), beam:strarr(nfiles), kcube:'', ps:'', binning:binning_git_hash}
   
   
-  print, 'Binning to 2D power spectrum'
-  
-  n_wt_cuts = n_elements(wt_cutoffs)
-  
   sigma_3d = sqrt(1./weights_3d)
   sigma_3d[where(weights_3d eq 0)] = 0
   temp_uniform = randomu(seed, n_kx, n_ky, n_kz) - 0.5
@@ -353,7 +471,10 @@ pro ps_power, file_struct, refresh = refresh, kcube_refresh = kcube_refresh, dft
   if count_0 gt 0 then new_noise_3d[wh_0] = 0
   undefine, temp_uniform, temp_sign, sigma_3d
   
-  for j=0, n_wt_cuts-1 do begin
+  
+  print, 'Binning to 2D power spectrum'
+  
+  for j=0, n_elements(wt_cutoffs)-1 do begin
   
     if wt_cutoffs[j] gt 0 then begin
       case wt_measures[j] of
@@ -364,94 +485,15 @@ pro ps_power, file_struct, refresh = refresh, kcube_refresh = kcube_refresh, dft
       wt_cutoff_use = wt_cutoffs[j]
     endif else undefine, wt_cutoff_use, wt_meas_use
     
-    
-    power_rebin = kspace_rebinning_2d(power_3D, kx_mpc, ky_mpc, kz_mpc, kperp_edges_mpc, kpar_edges_mpc, log_kpar = log_kpar, $
-      log_kperp = log_kperp, kperp_bin = kperp_bin, kpar_bin = kpar_bin, $
-      noise_expval = noise_expval_3d, binned_noise_expval = binned_noise_expval, weights = weights_3d, nbins_2d = nbins_2d, $
-      binned_weights = binned_weights, fill_holes = fill_holes, $
-      kperp_density_measure = wt_meas_use, kperp_density_cutoff = wt_cutoff_use)
+    make_2d_files, nfiles, savefile_2d[j], savefile_k0[j], power_3D, sim_noise_3D, new_noise_3d, noise_expval_3d, weights_3d, $
+      kx_mpc, ky_mpc, kz_mpc, $
+      delay_params, hubble_param, hinv, kperp_lambda_conv, freq_mask, vs_name, vs_mean, t_sys_meas, window_int, git_hashes, $
+      wt_ave_power, ave_power, ave_weights, wt_ave_power_freq, ave_power_freq, wt_ave_power_uvf, ave_power_uvf, uv_pix_area, uv_area, $
+      noise_3D = noise_3D, sim_noise_diff_3D = sim_noise_diff_3D, wt_measure = wt_meas_use, wt_cutoff = wt_cutoff_use, $
+      log_kpar = log_kpar, log_kperp = log_kperp, kperp_bin = kperp_bin, kpar_bin = kpar_bin, fill_holes = fill_holes, freq_flags = freq_flags
       
-    sim_noise_rebin = kspace_rebinning_2d(sim_noise_3D, kx_mpc, ky_mpc, kz_mpc, kperp_edges_mpc, kpar_edges_mpc, log_kpar = log_kpar, $
-      log_kperp = log_kperp, kperp_bin = kperp_bin, kpar_bin = kpar_bin, $
-      noise_expval = noise_expval_3d, binned_noise_expval = binned_noise_expval, weights = weights_3d, $
-      var_power_2d = sim_noise_var_2d, mean_var_2d = mean_var_2d, $
-      binned_weights = binned_weights, fill_holes = fill_holes, $
-      kperp_density_measure = wt_meas_use, kperp_density_cutoff = wt_cutoff_use)
-      
-    new_noise_rebin = kspace_rebinning_2d(new_noise_3d, kx_mpc, ky_mpc, kz_mpc, kperp_edges_mpc, kpar_edges_mpc, log_kpar = log_kpar, $
-      log_kperp = log_kperp, kperp_bin = kperp_bin, kpar_bin = kpar_bin, $
-      noise_expval = noise_expval_3d, binned_noise_expval = binned_noise_expval, weights = weights_3d, $
-      var_power_2d = new_noise_var_2d, mean_var_2d = new_mean_var_2d, $
-      binned_weights = binned_weights, fill_holes = fill_holes, $
-      kperp_density_measure = wt_meas_use, kperp_density_cutoff = wt_cutoff_use)
-      
-    if nfiles eq 2 then begin
-      noise_rebin = kspace_rebinning_2d(noise_3D, kx_mpc, ky_mpc, kz_mpc, kperp_edges_mpc, kpar_edges_mpc, log_kpar = log_kpar, $
-        log_kperp = log_kperp, kperp_bin = kperp_bin, kpar_bin = kpar_bin, $
-        noise_expval = noise_expval_3d, binned_noise_expval = binned_noise_expval, $
-        weights = weights_3d, binned_weights = binned_weights, fill_holes = fill_holes, $
-        kperp_density_measure = wt_meas_use, kperp_density_cutoff = wt_cutoff_use)
-        
-      sim_noise_diff_rebin = kspace_rebinning_2d(sim_noise_diff_3D, kx_mpc, ky_mpc, kz_mpc, kperp_edges_mpc, kpar_edges_mpc, log_kpar = log_kpar, $
-        log_kperp = log_kperp, kperp_bin = kperp_bin, kpar_bin = kpar_bin, $
-        noise_expval = noise_expval_3d, binned_noise_expval = binned_noise_expval, $
-        weights = weights_3d, binned_weights = binned_weights, fill_holes = fill_holes, $
-        kperp_density_measure = wt_meas_use, kperp_density_cutoff = wt_cutoff_use)
-    endif
-    
-    power = power_rebin
-    sim_noise = sim_noise_rebin
-    if nfiles eq 2 then begin
-      noise = noise_rebin
-      sim_noise_diff = sim_noise_diff_rebin
-    endif
-    kperp_edges = kperp_edges_mpc
-    kpar_edges = kpar_edges_mpc
-    weights = binned_weights
-    noise_expval = binned_noise_expval
-    
-    wh_good_kperp = where(total(weights, 2) gt 0, count)
-    if count eq 0 then message, '2d weights appear to be entirely zero'
-    kperp_plot_range = [min(kperp_edges[wh_good_kperp]), max(kperp_edges[wh_good_kperp+1])]
-    
-    if n_elements(freq_flags) ne 0 then begin
-      save, file = savefile_2d[j], power, noise, sim_noise, sim_noise_diff, weights, noise_expval, kperp_edges, kpar_edges, kperp_bin, kpar_bin, $
-        kperp_lambda_conv, delay_params, hubble_param, freq_mask, vs_name, vs_mean, t_sys_meas, window_int, git_hashes, $
-        wt_ave_power, ave_power, ave_weights, wt_ave_power_freq, ave_power_freq, wt_ave_power_uvf, ave_power_uvf, uv_pix_area, uv_area
-    endif else begin
-      save, file = savefile_2d[j], power, noise, sim_noise, sim_noise_diff, weights, noise_expval, kperp_edges, kpar_edges, kperp_bin, kpar_bin, $
-        kperp_lambda_conv, delay_params, hubble_param, vs_name, vs_mean, t_sys_meas, window_int, git_hashes, $
-        wt_ave_power, ave_power, ave_weights, wt_ave_power_freq, ave_power_freq, wt_ave_power_uvf, ave_power_uvf, uv_pix_area, uv_area
-    endelse
-    
-    ;; save just k0 line for plotting purposes
-    if not keyword_set(no_kzero) then begin
-      power = power[*,0]
-      sim_noise = sim_noise[*,0]
-      if n_elements(noise) gt 0 then noise = noise[*,0]
-      if n_elements(sim_noise) gt 0 then sim_noise_diff = sim_noise_diff[*,0]
-      weights = weights[*,0]
-      noise_expval = noise_expval[*,0]
-      
-      k_edges = kperp_edges
-      k_bin = kperp_bin
-      
-      textfile = strmid(savefile_k0[j], 0, stregex(savefile_k0[j], '.idlsave')) + '.txt'
-      print, 'saving kpar=0 power to ' + textfile
-      save_1D_text, textfile, k_edges, power, weights, noise_expval, hubble_param, noise, $
-        sim_noise_power = sim_noise, sim_noise_diff = sim_noise_diff, nfiles = nfiles, hinv = hinv
-        
-      if n_elements(freq_flags) ne 0 then begin
-        save, file = savefile_k0[j], power, noise, sim_noise, sim_noise_diff, weights, noise_expval, k_edges, k_bin, $
-          kperp_lambda_conv, delay_params, hubble_param, freq_mask, $
-          window_int, wt_ave_power, ave_power, ave_weights, uv_pix_area, uv_area, git_hashes
-      endif else begin
-        save, file = savefile_k0[j], power, noise, sim_noise, sim_noise_diff, weights, noise_expval, k_edges, k_bin, $
-          kperp_lambda_conv, delay_params, hubble_param, $
-          window_int, wt_ave_power, ave_power, ave_weights, uv_pix_area, uv_area, git_hashes
-      endelse
-    endif
   endfor
+  
   
   ;; now do slices
   y_tot = total(total(abs(power_3d),3),1)
@@ -525,7 +567,7 @@ pro ps_power, file_struct, refresh = refresh, kcube_refresh = kcube_refresh, dft
       power_1d = kspace_rebinning_1d(power_3d, kx_mpc, ky_mpc, kz_mpc, k_edges_mpc, k_bin = k1d_bin, log_k = log_k1d, $
         noise_expval = noise_expval_3d, binned_noise_expval = noise_expval_1d, weights = weights_3d, $
         binned_weights = weights_1d, kperp_range = kperp_range_use, kx_range = kx_range_use, ky_range = ky_range_use, $
-        kpar_range = kpar_range_use, bin_mask_3d = bin_mask_3d, $
+        kpar_range = kpar_range_use, bin_arr_3d = bin_arr_3d, $
         noise_frac_3d = noise_frac_3d, $
         wedge_amp = wedge_amp_use, coarse_harm0 = coarse_harm0_use, coarse_width = coarse_width_use, $
         kperp_density_measure = wt_meas_use, kperp_density_cutoff = wt_cutoff_use)
@@ -533,7 +575,7 @@ pro ps_power, file_struct, refresh = refresh, kcube_refresh = kcube_refresh, dft
       sim_noise_1d = kspace_rebinning_1d(sim_noise_3d, kx_mpc, ky_mpc, kz_mpc, k_edges_mpc, k_bin = k1d_bin, log_k = log_k1d, $
         noise_expval = noise_expval_3d, binned_noise_expval = noise_expval_1d, weights = weights_3d, $
         binned_weights = weights_1d, kperp_range = kperp_range_use, kx_range = kx_range_use, ky_range = ky_range_use, $
-        kpar_range = kpar_range_use, bin_mask_3d = bin_mask_3d, $
+        kpar_range = kpar_range_use, bin_arr_3d = bin_arr_3d, $
         var_power_1d = var_power_1d, mean_var_1d = mean_var_1d, noise_frac_3d = noise_frac_3d, $
         wedge_amp = wedge_amp_use, coarse_harm0 = coarse_harm0_use, coarse_width = coarse_width_use, $
         kperp_density_measure = wt_meas_use, kperp_density_cutoff = wt_cutoff_use)
@@ -541,7 +583,7 @@ pro ps_power, file_struct, refresh = refresh, kcube_refresh = kcube_refresh, dft
       new_noise_1d = kspace_rebinning_1d(new_noise_3d, kx_mpc, ky_mpc, kz_mpc, k_edges_mpc, k_bin = k1d_bin, log_k = log_k1d, $
         noise_expval = noise_expval_3d, binned_noise_expval = noise_expval_1d, weights = weights_3d, $
         binned_weights = weights_1d, kperp_range = kperp_range_use, kx_range = kx_range_use, ky_range = ky_range_use, $
-        kpar_range = kpar_range_use, bin_mask_3d = bin_mask_3d, $
+        kpar_range = kpar_range_use, bin_arr_3d = bin_arr_3d, $
         var_power_1d = new_var_power_1d, mean_var_1d = new_mean_var_1d, noise_frac_3d = noise_frac_3d, $
         wedge_amp = wedge_amp_use, coarse_harm0 = coarse_harm0_use, coarse_width = coarse_width_use, $
         kperp_density_measure = wt_meas_use, kperp_density_cutoff = wt_cutoff_use)
@@ -600,12 +642,12 @@ pro ps_power, file_struct, refresh = refresh, kcube_refresh = kcube_refresh, dft
       save_1D_text, textfile, k_edges, power, weights, noise_expval, hubble_param, noise, $
         sim_noise_power = sim_noise, sim_noise_diff = sim_noise_diff,  nfiles = nfiles, hinv = hinv
         
-      mask_weights = long(bin_mask_3d gt 0)
+      mask_weights = long(bin_arr_3d gt 0)
       
-      mask_1to2d_ave = kspace_rebinning_2d(bin_mask_3d, kx_mpc, ky_mpc, kz_mpc, kperp_edges_mpc, kpar_edges_mpc, log_kpar = log_kpar, $
+      bin_1to2d_ave = kspace_rebinning_2d(bin_arr_3d, kx_mpc, ky_mpc, kz_mpc, kperp_edges_mpc, kpar_edges_mpc, log_kpar = log_kpar, $
         log_kperp = log_kperp, kperp_bin = kperp_bin, kpar_bin = kpar_bin, fill_holes = fill_holes)
         
-      mask_1to2d = kspace_rebinning_2d(bin_mask_3d, kx_mpc, ky_mpc, kz_mpc, kperp_edges_mpc, kpar_edges_mpc, log_kpar = log_kpar, $
+      bin_1to2d = kspace_rebinning_2d(bin_arr_3d, kx_mpc, ky_mpc, kz_mpc, kperp_edges_mpc, kpar_edges_mpc, log_kpar = log_kpar, $
         log_kperp = log_kperp, kperp_bin = kperp_bin, kpar_bin = kpar_bin, weights = mask_weights, fill_holes = fill_holes)
         
         
@@ -614,29 +656,45 @@ pro ps_power, file_struct, refresh = refresh, kcube_refresh = kcube_refresh, dft
           plotfilebase_use1 = plotfile_binning_hist[j,i] + '_3to1d'
           plotfilebase_use2 = plotfile_binning_hist[j,i] + '_2to1d'
         endif
-        binning_hist_plots, power_3d, sim_noise_3d, weights_3d, bin_mask_3d, power_1d, weights_1d, sim_noise_1d, window_start = 1, $
+        binning_hist_plots, power_3d, sim_noise_3d, weights_3d, bin_arr_3d, power_1d, weights_1d, sim_noise_1d, window_start = 1, $
           plotfilebase = plotfilebase_use1, png = png, eps = eps, pdf = pdf
-        binning_hist_plots, power_rebin, sim_noise_rebin, binned_weights, mask_1to2d, power_1d, weights_1d, sim_noise_1d, $
+        binning_hist_plots, power_rebin, sim_noise_rebin, binned_weights, bin_1to2d, power_1d, weights_1d, sim_noise_1d, $
           window_start = !d.window+1, plotfilebase = plotfilebase_use2, png = png, eps = eps, pdf = pdf
       endif
       
       noise_frac_1to2d = kspace_rebinning_2d(noise_frac_3d, kx_mpc, ky_mpc, kz_mpc, kperp_edges_mpc, kpar_edges_mpc, log_kpar = log_kpar, $
         log_kperp = log_kperp, kperp_bin = kperp_bin, kpar_bin = kpar_bin, weights = mask_weights, fill_holes = fill_holes)
         
+      kperp_edges = kperp_edges_mpc
+      kpar_edges = kpar_edges_mpc
+      
       if n_elements(freq_flags) ne 0 then begin
-        save, file = savefile_1to2d_mask[j,i], bin_mask_3d, mask_1to2d, mask_1to2d_ave, noise_frac_1to2d, kx_mpc, ky_mpc, kz_mpc, $
+        save, file = savefile_1to2d_bin[j,i], bin_arr_3d, bin_1to2d, bin_1to2d_ave, noise_frac_1to2d, kx_mpc, ky_mpc, kz_mpc, $
           kperp_edges, kpar_edges, kpar_bin, kpar_bin, kperp_bin, k_edges, k_bin, $
           kperp_range, kperp_range_lambda, kx_range, kx_range_lambda, ky_range, ky_range_lambda, $
           kpar_range, coarse_harm0, coarse_width, kperp_lambda_conv, delay_params, hubble_param, freq_mask, window_int, git_hashes, $
           wt_ave_power, ave_power, ave_weights, wt_ave_power_freq, ave_power_freq, wt_ave_power_uvf, ave_power_uvf, uv_pix_area, uv_area
       endif else begin
-        save, file = savefile_1to2d_mask[j,i], bin_mask_3d, mask_1to2d, mask_1to2d_ave, noise_frac_1to2d, kx_mpc, ky_mpc, kz_mpc, $
+        save, file = savefile_1to2d_bin[j,i], bin_arr_3d, bin_1to2d, bin_1to2d_ave, noise_frac_1to2d, kx_mpc, ky_mpc, kz_mpc, $
           kperp_edges, kpar_edges, kpar_bin, kpar_bin, kperp_bin, k_edges, k_bin, $
           kperp_range, kperp_range_lambda, kx_range, kx_range_lambda, ky_range, ky_range_lambda, $
           kpar_range, coarse_harm0, coarse_width, kperp_lambda_conv, delay_params, hubble_param, window_int, git_hashes, $
           wt_ave_power, ave_power, ave_weights, wt_ave_power_freq, ave_power_freq, wt_ave_power_uvf, ave_power_uvf, uv_pix_area, uv_area
       endelse
       
+      masked_save_items = {kperp_range: kperp_range, kperp_range_lambda: kperp_range_lambda, kpar_range:kpar_range, $
+        kx_range: kx_range, kx_range_lambda: kx_range_lambda, ky_range: ky_range, ky_range_lambda: ky_range_lambda}
+        
+      if n_elements(coarse_harm0) gt 0 then masked_save_items = create_struct(masked_save_items, 'coarse_harm0', coarse_harm0, 'coarse_width', coarse_width)
+      
+      ;; make new 2d files with mask_weights applied so that the 2d ps contain the same voxels as the 1d ps
+      make_2d_files, nfiles, savefile_masked_2d[j,i], savefile_masked_k0[j,i], power_3D, sim_noise_3D, new_noise_3d, noise_expval_3d, mask_weights*weights_3d, $
+        kx_mpc, ky_mpc, kz_mpc, $
+        delay_params, hubble_param, hinv, kperp_lambda_conv, freq_mask, vs_name, vs_mean, t_sys_meas, window_int, git_hashes, $
+        wt_ave_power, ave_power, ave_weights, wt_ave_power_freq, ave_power_freq, wt_ave_power_uvf, ave_power_uvf, uv_pix_area, uv_area, $
+        masked_save_items = masked_save_items, noise_3D = noise_3D, sim_noise_diff_3D = sim_noise_diff_3D, wt_measure = wt_meas_use, wt_cutoff = wt_cutoff_use, $
+        log_kpar = log_kpar, log_kperp = log_kperp, kperp_bin = kperp_bin, kpar_bin = kpar_bin, fill_holes = fill_holes, freq_flags = freq_flags
+        
     endfor
   endfor
   
