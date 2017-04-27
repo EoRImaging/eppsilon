@@ -134,7 +134,7 @@ pro ps_power, file_struct, refresh = refresh, kcube_refresh = kcube_refresh, dft
     kperp_range_1dave = kperp_range_1dave, kperp_range_lambda_1dave = kperp_range_lambda_1dave, $
     kx_range_1dave = kx_range_1dave, kx_range_lambda_1dave = kx_range_lambda_1dave, $
     ky_range_1dave = ky_range_1dave, ky_range_lambda_1dave = ky_range_lambda_1dave, $
-    kpar_range_1dave = kpar_range_1dave, $
+    kpar_range_1dave = kpar_range_1dave, bin_arr_3d = bin_arr_3d, $
     kperp_range_lambda_kparpower = kperp_range_lambda_kparpower, kpar_range_kperppower = kpar_range_kperppower, $
     wt_measures = wt_measures, wt_cutoffs = wt_cutoffs, fix_sim_input = fix_sim_input, $
     wedge_amps = wedge_amps, coarse_harm0 = coarse_harm0, coarse_width = coarse_width, $

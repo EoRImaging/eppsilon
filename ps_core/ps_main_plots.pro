@@ -463,7 +463,7 @@
       kperp_range_1dave = kperp_range_1dave, kperp_range_lambda_1dave = kperp_range_lambda_1dave, $
       kx_range_1dave = kx_range_1dave, kx_range_lambda_1dave = kx_range_lambda_1dave, $
       ky_range_1dave = ky_range_1dave, ky_range_lambda_1dave = ky_range_lambda_1dave, $
-      kpar_range_1dave = kpar_range_1dave, $
+      kpar_range_1dave = kpar_range_1dave, bin_arr_3d = bin_arr_3d, $
       kperp_range_lambda_kparpower = kperp_range_lambda_kparpower, kpar_range_kperppower = kpar_range_kperppower, $
       kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, kperp_plot_range = kperp_plot_range, $
       kperp_lambda_plot_range = kperp_lambda_plot_range, kpar_plot_range = kpar_plot_range, $
@@ -1116,7 +1116,7 @@
             kperp_range_1dave = kperp_range_1d_use, kperp_range_lambda_1dave = kperp_range_lambda_1dave, $
             kx_range_1dave = kx_range_1d_use, kx_range_lambda_1dave = kx_range_lambda_1dave, $
             ky_range_1dave = ky_range_1d_use, ky_range_lambda_1dave = ky_range_lambda_1dave, $
-            kpar_range_1dave = kpar_range_1d_use, $
+            kpar_range_1dave = kpar_range_1d_use, bin_arr_3d = bin_arr_3d, $
             kperp_range_lambda_kparpower = kperp_range_lambda_kparpower, kpar_range_kperppower = kpar_range_kperppower_use, $
             wt_measures = wt_measures, wt_cutoffs = wt_cutoffs, fix_sim_input = fix_sim_input, $
             wedge_amps = wedge_amp, coarse_harm0 = coarse_harm0, coarse_width = coarse_harm_width, no_dft_progress = no_dft_progress, $
@@ -1133,7 +1133,7 @@
           kperp_range_1dave = kperp_range_1d_use, kperp_range_lambda_1dave = kperp_range_lambda_1dave, $
           kx_range_1dave = kx_range_1d_use, kx_range_lambda_1dave = kx_range_lambda_1dave, $
           ky_range_1dave = ky_range_1d_use, ky_range_lambda_1dave = ky_range_lambda_1dave, $
-          kpar_range_1dave = kpar_range_1d_use, $
+          kpar_range_1dave = kpar_range_1d_use, bin_arr_3d = bin_arr_3d, $
           kperp_range_lambda_kparpower = kperp_range_lambda_kparpower, kpar_range_kperppower = kpar_range_kperppower_use, $
           wt_measures = wt_measures, wt_cutoffs = wt_cutoffs, fix_sim_input = fix_sim_input, $
           wedge_amps = wedge_amp, coarse_harm0 = coarse_harm0, coarse_width = coarse_harm_width, no_dft_progress = no_dft_progress, $
