@@ -1,7 +1,10 @@
 # eppsilon Keyword Dictionary
 eppsilon uses keywords to create unique run-specific settings. This dictionary describes the purpose of each keyword, as well as their logic or applicable ranges.
 
-This is a work in progress; please add keywords as you find them in alphabetical order with their corresponding definition. If there's a question about a definition or keyword, label it with !Q.
+This is a work in progress; please add keywords as you find them with their corresponding definition. If there's a question about a definition or keyword, label it with !Q.
+
+# ps_wrapper keywords
+Many of these keywords are re-used in other wrappers, but since this is the primary eppsilon wrapper they are defined here.
 
 ## input data definitions:
 
@@ -147,9 +150,11 @@ These flags (all default=0) tell the code to redo parts of the analysis that wou
 **kpar_range_kperppower**: This is a 2D vector giving the range of k_parallel values to include in the 1D k_perpendicular power binning (resulting in a 1D power as a function k_perpendicular rather than k).
 
 
-## Output options:
+## Outputs keywords and options:
 
 **cube_power_info**: An output structure that contains some information from the run that we use for quantifying simulations. The fields are: [ave_power, wt_ave_power, uv_pix_area, uv_area, ave_weights, ave_weights_freq, wt_ave_power_freq, ave_power_freq, wt_ave_power_uvf, ave_power_uvf, nbsl_lambda2, nbsl_lambda2_freq] and optionally flat_power.
+
+**note**: An output string giving some limited information about the eppsilon run that is useful for labelling plots.
 
 **ps_foldername**: This is the subdirectory under the folder_name where the eppsilon outputs are saved. Defaults to 'ps' + path_sep().
 
@@ -163,103 +168,97 @@ These flags (all default=0) tell the code to redo parts of the analysis that wou
 
 **individual_plots**: This is a flag (valid values are 0/1, default=0) indicating that separate plot files should be made for each plot, rather than combining different polarization and cube type plots into a single file.
 
-**png**: This is a flag (valid values are 0/1, default=0) indicating that eppsilon plots should be saved as png files rather than just being displayed on the screen. Only one of png, eps and pdf can be set.
+**png**: This is a flag (valid values are 0/1, default=0) to have eppsilon plots saved as png files rather than just being displayed on the screen. Only one of png, eps and pdf can be set.
 
-**eps**: This is a flag (valid values are 0/1, default=0) indicating that eppsilon plots should be saved as eps files rather than just being displayed on the screen. Only one of png, eps and pdf can be set.
+**eps**: This is a flag (valid values are 0/1, default=0) to have eppsilon plots saved as eps files rather than just being displayed on the screen. Only one of png, eps and pdf can be set.
 
-**pdf**: This is a flag (valid values are 0/1, default=0) indicating that eppsilon plots should be saved as pdf files rather than just being displayed on the screen. Only one of png, eps and pdf can be set.
+**pdf**: This is a flag (valid values are 0/1, default=0) to have eppsilon plots saved as pdf files rather than just being displayed on the screen. Only one of png, eps and pdf can be set.
 
 
 ## Plotting options:
 
-**plot_wedge_line**
+**hinv**: This is a flag (valid values are 0/1, default=1) to use h^-1 Mpc rather than physical Mpc in plot units.
 
-**hinv**
+### Flags & keywords controlling which plots to make:
 
-**note**
+**plot_stdset**: This is a flag (valid values are 0/1, default=1) to have eppsilon make the canonical set of plots. It can be usful to turn this off if you only want to look at a few unusual plots.
 
-### Which plots to make:
+**plot_slices**: This is a flag (valid values are 0/1, default=0) to have eppsilon make plots of 2d slices through one of the 3d cubes.
 
-**plot_slices**
+**slice_type**: Only used if plot_slices is set. Controls which type of cube to plot slices of. Options are: ['raw', 'divided', 'kspace', 'sumdiff', 'weights'], default is 'sumdiff'.
 
-**slice_type**
+**uvf_plot_type**: Only used if plot_slices is set and slice_type is not 'kspace': Controls what to plot for slices of uvf cubes. Options are: ['abs', 'phase', 'real', 'imaginary', 'weights'], default is 'abs'.
 
-**slice_range**
+**plot_1to2d**: This is a flag (valid values are 0/1, default=0) to have eppsilon make plots showing where the 1D bins come from up in 2D plots.
 
-**uvf_plot_type**
+**plot_2d_masked**: This is a flag (valid values are 0/1, default=0) to have eppsilon make 2D plots using the 1D masking scenarios.
 
-**plot_stdset**
+**plot_kpar_power**: This is a flag (valid values are 0/1, default=0) to have eppsilon make a 1D plot of the power as a function of k_parallel.
 
+**plot_kperp_power**: This is a flag (valid values are 0/1, default=0) to have eppsilon make a 1D plot of the power as a function of k_perpendicular.
 
-**plot_1to2d**
+**plot_k0_power**: This is a flag (valid values are 0/1, default=0) to have eppsilon make a 1D plot showing the power in the k_parallel=0 modes of the 2D power spectra.
 
-**plot_2d_masked**
+**plot_noise_1d**: This is a flag (valid values are 0/1, default=0) to have eppsilon make 1D plots showing the observed noise in the 1D power spectrum (power of the difference cubes).
 
+**plot_sim_noise**: This is a flag (valid values are 0/1, default=0) to have eppsilon make 1D plots showing the simulated noise in the 1D power spectrum (from simulations based on the input variance cubes).
 
-**plot_kpar_power**
+**plot_binning_hist**:  This is a flag (valid values are 0/1, default=0) to have eppsilon make histogram plots of the values going into each bin. These are *very* non-standard and are used for testing/debugging to understand how binning affects power spectrum levels and noise. These are the plots we used to understand why we could have 2D power spectra with noise-like pixels in the window but end up with 1D power spectra with no noise-like bins (it's just because you have more voxels going into the average, so the noise drops, but we were worried about biases and these plots showed there weren't any obvious ones.)
 
-**plot_kperp_power**
+### 2D plotting options:
 
-**plot_k0_power**
+**plot_wedge_line**: This is a flag (valid values are 0/1, default=1) controlling whether or not the wedge lines (corresponding to the wedge_angles) are drawn on 2D plots.
 
-**plot_noise_1d**
+#### axes options:
+**kperp_linear_axis**: This is a flag (valid values are 0/1, default=0) controlling whether or not the k_perpendicular axis is linear (as opposed to logarithmic).
 
-**plot_sim_noise**
+**kpar_linear_axis**: This is a flag (valid values are 0/1, default=0) controlling whether or not the k_parallel axis is linear (as opposed to logarithmic).
 
-**plot_binning_hist**
+**kperp_plot_range**: A 2D vector giving the range of k_perpendicular values to show on 2D plots. Default is [5. wavelengths equivilent, maximum uv extent]
 
-**plot_2d_masked**: use the 1D masking scenarios on all 2D plots. <br />
-  -*Turn on/off*: 1/0 <br />
+**kperp_lambda_plot_range**: A 2D vector *specified in wavelengths* giving the range of k_perpendicular values to show on 2D plots. Default is [5., maximum uv extent].
 
+**kpar_plot_range**: A 2D vector giving the range of k_parallel values to show on 2D plots. Default is the full range.
 
-### axes options:
-**kperp_linear_axis**
+**baseline_axis**: This is a flag (valid values are 0/1, default=1) controlling whether or not the top axis is labelled in wavelengths units.
 
-**kpar_linear_axis**
+**delay_axis**: This is a flag (valid values are 0/1, default=1) controlling whether or not the right axis is labelled in delay units.
 
-**kperp_plot_range**
-
-**kperp_lambda_plot_range**
-
-**kpar_plot_range**
-
-**baseline_axis**
-
-**delay_axis**
-
-**cable_length_axis**
+**cable_length_axis**: This is a flag (valid values are 0/1, default=0) controlling whether or not the right axis is labelled in cable length units showing where reflections for different cable lengths would appear.
 
 
-### colorbar range options:
+#### colorbar range options:
 
-**set_data_ranges**: This is a flag (valid values are 0/1, default=1) indicating that the default colorbar ranges should be set in ps_wrapper.pro.
+**set_data_ranges**: This is a flag (valid values are 0/1, default=1) controlling whether the default colorbar ranges is set in ps_wrapper.pro.
 
-**data_range**: A 2D vector giving the range to use for the colorbar for the 2D power spectrum plots. Defaults to the maximum range of the data, overridden by set_data_ranges.
+**data_range**: A 2D vector giving the range to use for the colorbar for the 2D power spectrum plots. Defaults to the maximum range of the data or to the value in ps_wrapper if set_data_ranges is set.
 
-**sigma_range**: A 2D vector giving the range to use for the colorbar for the 2D power spectrum error plots. Defaults to the maximum range of the data, overridden by set_data_ranges.
+**sigma_range**: A 2D vector giving the range to use for the colorbar for the 2D power spectrum error plots. Defaults to the maximum range of the data or to the value in ps_wrapper if set_data_ranges is set.
 
-**nev_range**: A 2D vector giving the range to use for the colorbar for the 2D power spectrum expected noise plots. Defaults to the maximum range of the data, overridden by set_data_ranges.
+**nev_range**: A 2D vector giving the range to use for the colorbar for the 2D power spectrum expected noise plots. Defaults to the maximum range of the data or to the value in ps_wrapper if set_data_ranges is set.
 
-**snr_range**: A 2D vector giving the range to use for the colorbar for the 2D power spectrum signal to noise plots. Defaults to the maximum range of the data, overridden by set_data_ranges.
+**snr_range**: A 2D vector giving the range to use for the colorbar for the 2D power spectrum signal to noise plots. Defaults to the maximum range of the data or to the value in ps_wrapper if set_data_ranges is set.
 
-**noise_range**: A 2D vector giving the range to use for the colorbar for the 2D power spectrum measured noise plots. Defaults to the maximum range of the data, overridden by set_data_ranges.
+**noise_range**: A 2D vector giving the range to use for the colorbar for the 2D power spectrum measured noise plots. Defaults to the maximum range of the data or to the value in ps_wrapper if set_data_ranges is set.
 
-**nnr_range**: A 2D vector giving the range to use for the colorbar for the 2D power spectrum noise ratio plots. Defaults to the maximum range of the data, overridden by set_data_ranges.
+**nnr_range**: A 2D vector giving the range to use for the colorbar for the 2D power spectrum noise ratio plots. Defaults to the maximum range of the data or to the value in ps_wrapper if set_data_ranges is set.
+
+**slice_range**: Only used if plot_slices is set. A 2D vector giving the range to use for the colorbar for the specified slice plots. Defaults to the maximum range of the data.
 
 ### 1D plot options:
 
-**set_krange_1dave**
+**set_krange_1dave**: This is a flag (valid values are 0/1, default=1) controlling whether the default 1D plot range is set in ps_wrapper.pro.
 
-**range_1d**
+**range_1d**: A 2D vector giving the range to use for the 1D power axis. Defaults to the maximum range of the data or to the value in ps_wrapper if set_krange_1dave is set.
 
-**plot_1d_delta**
+**plot_1d_delta**: This is a flag (valid values are 0/1, default=0) controlling whether the 1D power axis is scaled by k^3 (theoretician units).
 
-**plot_1d_error_bars**
+**plot_1d_error_bars**: This is a flag (valid values are 0/1, default=0) controlling whether the 1D plots are plotted with error bars. If this keyword is set, the thermal noise line is *not* drawn.
 
-**plot_1d_nsigma**
+**plot_1d_nsigma**: This sets what sigma level the is shown for the thermal noise line (or error bars if plot_1d_error_bars is set) on 1D plots. Default is 1 (meaning 1 sigma), typical values to show for upper limits are 2 sigma so a value of 2 for this keyword.
 
-**plot_eor_1d**
+**plot_eor_1d**: This is a flag (valid values are 0/1, default=0) controlling whether or not a theoretical eor 1D power line is drawn. Default is 1 if the sim keyword is set.
 
-**plot_flat_1d**
+**plot_flat_1d**: This is a flag (valid values are 0/1, default=0) controlling whether or not a flat 1D power line is drawn. This is useful if flat power simulations are being plotted.
 
 **no_text_1d**: This is a flag (valid values are 0/1, default=0) to prevent printing the legend text on the plot.
