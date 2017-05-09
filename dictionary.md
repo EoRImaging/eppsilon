@@ -7,15 +7,13 @@ This is a work in progress; please add keywords as you find them in alphabetical
 
 **folder_name**: **Required** This defines what folder the data live in. For FHD, it should be the top level folder for that run (which contains folders like Metadata and Healpix). On machines where there is support for the standard folder paths (i.e. there is a relevant *_folder_locs.pro file), this can just be the short folder name. It can also be a full path.
 
-**loc_name**
+**loc_name**: This is a keyword to indicate which location the code is running on to help with defining the standard folder paths. It is detected from the hostname by default, but that apparently fails in some cases, so this keyword allows the user to specify it. Options are 'mit' or 'enterprise' (enterprise really means any of the ASU machines.)
 
 **obs_name**: This defines which sets of cubes to use within the specified folder_name. It is not required, but is useful if there are more than one run present in the folder_name. It needs to be a string that uniquely identifies the run from all other runs in the folder (For FHD, this matches the obs_name defined in FHD/fhd_core/HEALPix/integrate_healpix_cubes.pro)
 
 **data_subdirs**: This defines the subdirectory (within the folder_name) where the cubes are located. For FHD, if uvf_input is not set, this defaults to 'Healpix' + path_sep(), otherwise it defaults to ''
 
 **exact_obsnames**: This is a flag (valid values are 0/1, default=0) indicating that the obs_name that was provided was the exact obs_name, rather than a unique string that should be in the obs_name.
-
-**ps_foldername**: This is the subdirectory under the folder_name where the eppsilon outputs are saved. Defaults to 'ps' + path_sep().
 
 **beamfiles**: This is a keyword giving the location and names of the beam files. For FHD inputs, it is only used by the code if the beamfiles are not found in their standard location (it is actually overwritten by those locations if they are found.)
 
@@ -83,12 +81,12 @@ These flags (all default=0) tell the code to redo parts of the analysis that wou
 
 **dft_fchunk**: A very rarely used keyword, this tells the code how many frequencies to calculate at once. It used to be useful for memory management, but rewrites of the DFT code have made this largely obsolete.
 
-**no_dft_progress**
+**no_dft_progress**: This is a flag (valid values are 0/1, default=0) to suppress the printing of progress report statements during the DFT.
 
 
 ## Power spectrum calculation keywords:
 
-**ave_removal**: This is a flag (valid values are 0/1, default=1) indicating that the average along the frequency axis of the cubes should be removed before the frequency Fourier Transform and then added back in to the kparallel=0 mode. This has been well tested and substantially reduces the bleed of the flat spectrum foregrounds into the window.
+**ave_removal**: This is a flag (valid values are 0/1, default=1) indicating that the average along the frequency axis of the cubes should be removed before the frequency Fourier Transform and then added back in to the k_parallel=0 mode. This has been well tested and substantially reduces the bleed of the flat spectrum foregrounds into the window.
 
 **wt_cutoffs**: This is a keyword to support a very subtle power spectrum normalization issue identified by Adrian Liu and quantified for MWA with simulations. It turns out that when baselines substantially overlap there is a suppression of the power of stochastic fields (like the EoR). We measure this overlap using the weights cube and we found through simulations that for MWA antennas, above a certain weight value the power suppression asymptotes to a factor of 0.5. A conservative weight value to use to be sure we are in that regime is a weight value of 1, and if we throw away bins below that value we lose very little sensitivity with the MWA. The wt_cutoffs keyword is the weights value to use for the cutoff value (it is calculated in uvf space, so it applies to all kz values for a given kx,ky pixel). It is defaulted to 1.0 and is only used during the binnning to 1D or 2D power spectra (for 2D, it is used to normalize areas of the ps properly but lower values are not thrown out, for 1D, pixels with lower values are excluded and the power spectrum is normalized by a factor of 2). To turn this normalization correction off, set wt_cutoffs=0.
 
@@ -102,67 +100,112 @@ These flags (all default=0) tell the code to redo parts of the analysis that wou
 
 **no_wtd_avg**: A rarely used testing/exploration flag (valid values are 0/1, default=0) indicating that the power should be calculated as the sum of the square of the two Fourier Transform components (either Lomb-Scargle components or sine/cosine components if the std_power flag is set), rather than as a variance weighted sum of the square of the components.
 
-**inverse_covar_weight**: *This is very much under development and is not yet trustworthy.* A rarely used testing/exploration flag (valid values are 0/1, default=0) that constructs a frequency covariance matrix assuming flat spectrum foregrounds, transforms it to kparallel and uses it to weight the power spectra.
+**inverse_covar_weight**: *This is very much under development and is not yet trustworthy.* A rarely used testing/exploration flag (valid values are 0/1, default=0) that constructs a frequency covariance matrix assuming flat spectrum foregrounds, transforms it to k_parallel and uses it to weight the power spectra.
 
 
 ## Power spectrum binning keywords:
 
-**no_kzero**: This is a flag (valid values are 0/1, default=0) indicating that the kparallel=0 mode should be removed before binning. This is a rarely used keyword because we typically use other keywords to control it.
+**no_kzero**: This is a flag (valid values are 0/1, default=0) indicating that the k_parallel=0 mode should be removed before binning. This is a rarely used keyword because we typically use other keywords to control it.
 
-**log_kpar**
-**log_kperp**
-**kpar_bin**
-**kperp_bin**
-**log_k1d**
+### 2D binning keywords:
 
-**kpar_range_1dave**
-**kperp_range_1dave**
-**kperp_range_lambda_1dave**
-**kx_range_1dave**
-**kx_range_lambda_1dave**
-**ky_range_1dave**
-**ky_range_lambda_1dave**
-**kperp_range_lambda_kparpower**
-**kpar_range_kperppower**
+**log_kpar**: This is a flag (valid values are 0/1, default=0) indicating that logarithmic bins should be used in the k_parallel direction for 2D power spectra.
 
-**wedge_angles**
-**coarse_harm_width**
+**log_kperp**: This is a flag (valid values are 0/1, default=0) indicating that logarithmic bins should be used in the k_perpendicular direction for 2D power spectra.
+
+**kpar_bin**: This sets the size of the bins for 2D power spectra in the k_parallel direction. For linear binning, this is the actual binsize, for log binning, this gives the bins per decade as 1/kpar_bin. The default is the kz pixel size for linear binning and 0.1 for log binning (giving 10 bins per decade).
+
+**kperp_bin**: This sets the size of the bins for 2D power spectra in the k_perpendicular direction. For linear binning, this is the actual binsize, for log binning, this gives the bins per decade as 1/kperp_bin. The default is the min of the kx and ky pixel size (which are usually the same) for linear binning and 0.1 for log binning (giving 10 bins per decade).
+
+
+## 1D binning keywords
+
+**wedge_angles**: This is both a binning and a plotting keyword. List of angles on the sky to use for relevant binning cuts and plotted as lines on 2d power spectra. These are specified in degrees, the default list is for the MWA primary beam width and the horizon: [20, max_theta+90d] (where max_theta is the maximum zenith pointing angle since the MWA can point away from the zenith).
+
+**coarse_harm_width**: Controls the number of kz bins around the MWA coarse band lines to exclude from 1D binning. The actual number of bins excluded = coarse_harm_width*2 - 1, so a value of 1 leads to 1 bin excluded, a value of 2 leads to 3 bins excluded, etc.
+
+**log_k1d**: This is a flag (valid values are 0/1, default=0) indicating that logarithmic bins should be used for 1D power spectra.
+
+**k1d_bin**: This sets the size of the bins for 1D power spectra. For linear binning, this is the actual binsize, for log binning, this gives the bins per decade as 1/kperp_bin. The default is the min of the (kx, ky, kz) pixel size for linear binning and 0.1 for log binning (giving 10 bins per decade).
+
+**kpar_range_1dave**: This is a 2D vector giving the range of k_parallel values to include in the 1D binning.
+
+**kperp_range_1dave**: This is a 2D vector giving the range of k_perpendicular values to include in the 1D binning. This keyword and kperp_range_lambda_1dave cannot both be set.
+
+**kperp_range_lambda_1dave**: This is a 2D vector giving the range of k_perpendicular values *specified in wavelengths* to include in the 1D binning. This keyword and kperp_range_1dave cannot both be set.
+
+**kx_range_1dave**: This is a 2D vector giving the range of k_x values to include in the 1D binning. This keyword and kx_range_lambda_1dave cannot both be set.
+
+**kx_range_lambda_1dave**: This is a 2D vector giving the range of k_x values *specified in wavelengths* to include in the 1D binning. This keyword and kx_range_1dave cannot both be set.
+
+**ky_range_1dave**: This is a 2D vector giving the range of k_y values to include in the 1D binning. This keyword and ky_range_lambda_1dave cannot both be set.
+
+**ky_range_lambda_1dave**: This is a 2D vector giving the range of k_y values *specified in wavelengths* to include in the 1D binning. This keyword and ky_range_1dave cannot both be set.
+
+**kperp_range_lambda_kparpower**: This is a 2D vector giving the range of k_perpendicular values *specified in wavelengths* to include in the 1D k_parallel power binning (resulting in a 1D power as a function k_parallel rather than k).
+
+**kpar_range_kperppower**: This is a 2D vector giving the range of k_parallel values to include in the 1D k_perpendicular power binning (resulting in a 1D power as a function k_perpendicular rather than k).
 
 
 ## Output options:
 
-**cube_power_info**
-**no_text_1d**
-**save_path**
-**savefilebase**
-**plot_path**
-**plot_filebase**
-**individual_plots**
-**png**
-**eps**
-**pdf**
+**cube_power_info**: An output structure that contains some information from the run that we use for quantifying simulations. The fields are: [ave_power, wt_ave_power, uv_pix_area, uv_area, ave_weights, ave_weights_freq, wt_ave_power_freq, ave_power_freq, wt_ave_power_uvf, ave_power_uvf, nbsl_lambda2, nbsl_lambda2_freq] and optionally flat_power.
+
+**ps_foldername**: This is the subdirectory under the folder_name where the eppsilon outputs are saved. Defaults to 'ps' + path_sep().
+
+**save_path**: Path to save eppsilon outputs to. Default is folder_names + path_sep() + ps_foldername + path_sep().
+
+**savefilebase**: Base name for eppsilon output files. Default is taken from the cube file names before the polarization tags.
+
+**plot_path**: Path to save eppsilon plot files to. Default is save_paths + path_sep() + 'plots' + path_sep()
+
+**plot_filebase**: Base name for eppsilon plot files. Default is to savefilebase.
+
+**individual_plots**: This is a flag (valid values are 0/1, default=0) indicating that separate plot files should be made for each plot, rather than combining different polarization and cube type plots into a single file.
+
+**png**: This is a flag (valid values are 0/1, default=0) indicating that eppsilon plots should be saved as png files rather than just being displayed on the screen. Only one of png, eps and pdf can be set.
+
+**eps**: This is a flag (valid values are 0/1, default=0) indicating that eppsilon plots should be saved as eps files rather than just being displayed on the screen. Only one of png, eps and pdf can be set.
+
+**pdf**: This is a flag (valid values are 0/1, default=0) indicating that eppsilon plots should be saved as pdf files rather than just being displayed on the screen. Only one of png, eps and pdf can be set.
 
 
 ## Plotting options:
 
 **plot_wedge_line**
+
 **hinv**
+
 **note**
 
 ### Which plots to make:
 
 **plot_slices**
+
 **slice_type**
+
 **slice_range**
+
 **uvf_plot_type**
+
 **plot_stdset**
+
+
 **plot_1to2d**
+
 **plot_2d_masked**
+
+
 **plot_kpar_power**
+
 **plot_kperp_power**
+
 **plot_k0_power**
+
 **plot_noise_1d**
+
 **plot_sim_noise**
+
 **plot_binning_hist**
 
 **plot_2d_masked**: use the 1D masking scenarios on all 2D plots. <br />
@@ -171,12 +214,19 @@ These flags (all default=0) tell the code to redo parts of the analysis that wou
 
 ### axes options:
 **kperp_linear_axis**
+
 **kpar_linear_axis**
+
 **kperp_plot_range**
+
 **kperp_lambda_plot_range**
+
 **kpar_plot_range**
+
 **baseline_axis**
+
 **delay_axis**
+
 **cable_length_axis**
 
 
@@ -199,9 +249,17 @@ These flags (all default=0) tell the code to redo parts of the analysis that wou
 ### 1D plot options:
 
 **set_krange_1dave**
+
 **range_1d**
+
 **plot_1d_delta**
+
 **plot_1d_error_bars**
+
 **plot_1d_nsigma**
+
 **plot_eor_1d**
+
 **plot_flat_1d**
+
+**no_text_1d**: This is a flag (valid values are 0/1, default=0) to prevent printing the legend text on the plot.

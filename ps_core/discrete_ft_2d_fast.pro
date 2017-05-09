@@ -4,7 +4,8 @@
 ; k1 & k2 are kx/ky values to test at
 
 
-function discrete_ft_2d_fast, locations1, locations2, data, k1, k2, timing = timing, fchunk = fchunk, exp2pi = exp2pi, no_progress = no_progress
+function discrete_ft_2d_fast, locations1, locations2, data, k1, k2, $
+  timing = timing, fchunk = fchunk, exp2pi = exp2pi, no_progress = no_progress
 
   print, 'Beginning discrete 2D FT'
 
@@ -37,7 +38,7 @@ function discrete_ft_2d_fast, locations1, locations2, data, k1, k2, timing = tim
   wh_freq0 = where(total(abs(data), 1) eq 0, count_freq0, complement = wh_freq_n0, ncomplement = count_freq_n0)
   if count_freq0 gt 0 then begin
      if count_freq_n0 eq 0 then message, 'data are all zeros'
-     
+
      ;; want to skip zero channels to save time. Step through freqs in order of good channels.
      freq_order = [wh_freq_n0, wh_freq0]
   endif else freq_order = indgen(n_slices)
@@ -66,17 +67,17 @@ function discrete_ft_2d_fast, locations1, locations2, data, k1, k2, timing = tim
 
   x_exp_real = real_part(x_exp)
   x_exp_imag = imaginary(x_exp)
- 
+
   undefine, x_exp
 
   time_preloop = systime(1) - time0
   print, 'pre-loop time: ' + strsplit(string(time_preloop), /extract)
-  
+
   ;; check memory to reset the highwater mark
   temp = memory(/current)/1.e9
 
   for j=0, n_chunks-1 do begin
-    
+
      this_step = j
      wh = where(progress_steps eq this_step, count)
      if count gt 0 and not keyword_set(no_progress) then begin
@@ -105,21 +106,21 @@ function discrete_ft_2d_fast, locations1, locations2, data, k1, k2, timing = tim
         ;;; save memory if we're only going through this loop once
         if n_chunks EQ 1 then begin
            term1_real = data_expand * temporary(x_exp_real)
-           term1_imag = temporary(data_expand) * temporary(x_exp_imag)  
+           term1_imag = temporary(data_expand) * temporary(x_exp_imag)
         endif else begin
            term1_real = data_expand * x_exp_real
            term1_imag = temporary(data_expand) * x_exp_imag
         endelse
-        
+
      endif else begin
         freq_inds = freq_order[findgen(fchunk_sizes[j]) + fchunk_edges[j]]
         data_inds = rebin(dindgen(n_pts), n_pts, fchunk_sizes[j], /sample) + n_pts * $
                     rebin(reform(freq_inds, 1, fchunk_sizes[j]), n_pts, fchunk_sizes[j], /sample)
-     
+
         data_expand = rebin(reform(data[temporary(data_inds)], n_pts, 1, fchunk_sizes[j]), n_pts, n_k1, fchunk_sizes[j], /sample)
 
         term1_real = reform(data_expand * rebin(x_exp_real, n_pts, n_k1,fchunk_sizes[j], /sample), n_pts, n_k1*fchunk_sizes[j])
-        
+
         term1_imag = reform(temporary(data_expand) * rebin(x_exp_imag, n_pts, n_k1,fchunk_sizes[j], /sample), $
                             n_pts, n_k1*fchunk_sizes[j])
 
@@ -132,7 +133,7 @@ function discrete_ft_2d_fast, locations1, locations2, data, k1, k2, timing = tim
         inds = dindgen(n_k1*n_k2) + n_k1 * n_k2 * freq_inds
 
         temp3 = systime(1)
-        
+
         ft[temporary(inds)] = matrix_multiply(temporary(term1), y_exp,/atranspose)
 
      endif else begin
@@ -150,12 +151,12 @@ function discrete_ft_2d_fast, locations1, locations2, data, k1, k2, timing = tim
      step1_times[this_step] = temp2-temp
      step2_times[this_step] = temp3-temp2
      step3_times[this_step] = temp4-temp3
-     
+
   endfor
-  
+
   time1 = systime(1)
   timing = time1-time0
-  
+
   if timing lt 60 then timing_str = number_formatter(timing, format='(d8.2)') + ' sec' $
   else if timing lt 3600 then timing_str = number_formatter(timing/60, format='(d8.2)') + ' min' $
   else timing_str= number_formatter(timing/3600, format='(d8.2)') + ' hours'
@@ -164,4 +165,3 @@ function discrete_ft_2d_fast, locations1, locations2, data, k1, k2, timing = tim
 
   return, ft
 end
-
