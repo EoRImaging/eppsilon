@@ -162,6 +162,11 @@ These flags (all default=0) tell the code to redo parts of the analysis that wou
 
 **savefilebase**: Base name for eppsilon output files. Default is taken from the cube file names before the polarization tags.
 
+
+## Plotting options:
+
+**hinv**: This is a flag (valid values are 0/1, default=1) to use h^-1 Mpc rather than physical Mpc in plot units.
+
 **plot_path**: Path to save eppsilon plot files to. Default is save_paths + path_sep() + 'plots' + path_sep()
 
 **plot_filebase**: Base name for eppsilon plot files. Default is to savefilebase.
@@ -173,11 +178,6 @@ These flags (all default=0) tell the code to redo parts of the analysis that wou
 **eps**: This is a flag (valid values are 0/1, default=0) to have eppsilon plots saved as eps files rather than just being displayed on the screen. Only one of png, eps and pdf can be set.
 
 **pdf**: This is a flag (valid values are 0/1, default=0) to have eppsilon plots saved as pdf files rather than just being displayed on the screen. Only one of png, eps and pdf can be set.
-
-
-## Plotting options:
-
-**hinv**: This is a flag (valid values are 0/1, default=1) to use h^-1 Mpc rather than physical Mpc in plot units.
 
 ### Flags & keywords controlling which plots to make:
 
