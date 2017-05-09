@@ -3,7 +3,7 @@
 ;; function and is correct for FFTs with even numbers of samples
 
 function spectral_window, n_samples, type = type, periodic = periodic, fractional_size = fractional_size
-  type_list = ['Hann', 'Hamming', 'Blackman', 'Nutall', 'Blackman-Nutall', 'Blackman-Harris', 'Tukey']
+  type_list = ['Hann', 'Hamming', 'Blackman', 'Nutall', 'Blackman-Nutall', 'Blackman-Harris', 'Blackman-Harris^2', 'Tukey']
   
   if n_elements(type) eq 0 then type = 'Blackman-Harris'
   wh_type = where(strlowcase(type_list) eq strlowcase(type), count_type)
@@ -25,6 +25,7 @@ function spectral_window, n_samples, type = type, periodic = periodic, fractiona
     'Nutall': window = 0.355768 - 0.487396 * cos_term1 + 0.144232 * cos_term2 - 0.012604 * cos_term3
     'Blackman-Nutall': window = 0.3635819 - 0.4891775 * cos_term1 + 0.1365995 * cos_term2 - 0.0106411 * cos_term3
     'Blackman-Harris': window = 0.35875 - 0.48829 * cos_term1 + 0.14128 * cos_term2 - 0.01168 * cos_term3
+    'Blackman-Harris^2': window = (0.35875 - 0.48829 * cos_term1 + 0.14128 * cos_term2 - 0.01168 * cos_term3)^2.
     'Tukey': begin
       if n_elements(fractional_size) then alpha = 1.-fractional_size else alpha = 0.5
       window = FLTARR(n_samples) + 1

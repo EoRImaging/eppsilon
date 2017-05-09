@@ -748,8 +748,8 @@ function fhd_file_setup, filename, weightfile = weightfile, variancefile = varia
   
   pol_exist = stregex(metadata_struct.datafile, '[xy][xy]', /boolean, /fold_case)
   
-  type_list = ['Hann', 'Hamming', 'Blackman', 'Nutall', 'Blackman-Nutall', 'Blackman-Harris', 'None']
-  sw_tag_list = ['hann', 'ham', 'blm', 'ntl', 'bn', 'bh', '']
+  type_list = ['Hann', 'Hamming', 'Blackman', 'Nutall', 'Blackman-Nutall', 'Blackman-Harris', 'Blackman-Harris^2',  'None']
+  sw_tag_list = ['hann', 'ham', 'blm', 'ntl', 'bn', 'bh', 'bh2', '']
   if n_elements(spec_window_type) ne 0 then begin
     wh_type = where(strlowcase(type_list) eq strlowcase(spec_window_type), count_type)
     if count_type eq 0 then wh_type = where(strlowcase(sw_tag_list) eq strlowcase(spec_window_type), count_type)

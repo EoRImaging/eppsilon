@@ -31,8 +31,8 @@ pro compare_plot_prep, folder_names, obs_info, ps_foldernames = ps_foldernames, 
   if n_elements(spec_window_types) eq 2 then begin
     if spec_window_types[0] eq spec_window_types[1] then spec_window_types = spec_window_types[0] else begin
     
-      type_list = ['Hann', 'Hamming', 'Blackman', 'Nutall', 'Blackman-Nutall', 'Blackman-Harris', 'None']
-      sw_tag_list = ['hann', 'ham', 'blm', 'ntl', 'bn', 'bh', '']
+      type_list = ['Hann', 'Hamming', 'Blackman', 'Nutall', 'Blackman-Nutall', 'Blackman-Harris', 'Blackman-Harris^2', 'None']
+      sw_tag_list = ['hann', 'ham', 'blm', 'ntl', 'bn', 'bh', 'bh2', '']
       sw_tags = strarr(2)
       for i=0, 1 do begin
         wh_type = where(strlowcase(type_list) eq strlowcase(spec_window_types[i]), count_type)
@@ -208,16 +208,23 @@ pro compare_plot_prep, folder_names, obs_info, ps_foldernames = ps_foldernames, 
     if n_elements(plot_path) eq 0 then plot_path = obs_info.plot_paths[0]
   endelse
   
-  if n_elements(spec_window_types) eq 2 then note = note + ' ' + spec_window_types[0] + ' minus ' + spec_window_types[1]
+    case comp_type of
+    'diff': op_str = ' minus '
+    'diff_ratio': op_str = ' minus '
+    'ratio': op_str = ' over '
+  endcase
+  
+  
+  if n_elements(spec_window_types) eq 2 then note = note + ' ' + spec_window_types[0] + op_str + spec_window_types[1]
   if n_elements(ave_removal) eq 2 then begin
     ave_removal_str = ['no_ave_removal', 'ave_removal']
-    note = note + ' ' + ave_removal_str[ave_removal[0]] + ' minus ' + ave_removal_str[ave_removal[1]]
+    note = note + ' ' + ave_removal_str[ave_removal[0]] + op_str + ave_removal_str[ave_removal[1]]
     ar_tag_list = ['', '_averemoval']
     ar_tags = [ar_tag_list[ave_removal[0]], ar_tag_list[ave_removal[1]]]
   endif else ar_tags = ''
   if n_wtcuts eq 2 then density_tags = kperp_density_names else density_tags = ''
   if n_elements(image_window_name) eq 2 or n_elements(image_window_frac_size) eq 2 then $
-    note = note + ' ' + image_window_name[0] + iw_size_tag[0] + ' minus ' + $
+    note = note + ' ' + image_window_name[0] + iw_size_tag[0] + op_str + $
     image_window_name[max_imwin_name] + iw_size_tag[max_imwin_size]
     
   file_struct_arr1 = fhd_file_setup(obs_info.info_files[0], $
