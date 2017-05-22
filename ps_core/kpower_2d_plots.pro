@@ -81,7 +81,7 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, wei
   plot_weights = plot_weights, plot_noise = plot_noise, plot_sim_noise = plot_sim_noise, plot_simnoise_diff = plot_simnoise_diff, $
   plot_sigma = plot_sigma, plot_exp_noise = plot_exp_noise, $
   snr = snr, nnr = nnr, sim_nnr = sim_nnr, sim_snr = sim_snr, pwr_ratio = pwr_ratio, $
-  plot_mask = plot_mask, mask_savefile = mask_savefile, mask_contour = mask_contour, contour_levels = contour_levels, $
+  plot_bin = plot_bin, bin_savefile = bin_savefile, bin_contour = bin_contour, contour_levels = contour_levels, $
   plot_1d_noisefrac = plot_1d_noisefrac, $
   kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
   force_kperp_axis_range = force_kperp_axis_range, force_kpar_axis_range = force_kpar_axis_range, $
@@ -271,9 +271,9 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, wei
     plot_type = 'sim_nnr'
   endif
 
-  if keyword_set(plot_mask) then begin
-    power_use = mask_1to2d_ave
-    plot_type = 'mask'
+  if keyword_set(plot_bin) then begin
+    power_use = bin_1to2d_ave
+    plot_type = 'bin'
   endif
 
   if keyword_set(plot_1d_noisefrac) then begin
@@ -292,27 +292,27 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, wei
   endif
 
 
-  if keyword_set(mask_contour) then begin
-    if plot_type ne 'mask' then begin
-      if n_elements(mask_savefile) eq 0 then message, 'mask_savefile must be supplied if mask_contour is set'
+  if keyword_set(bin_contour) then begin
+    if plot_type ne 'bin' then begin
+      if n_elements(bin_savefile) eq 0 then message, 'bin_savefile must be supplied if bin_contour is set'
 
       kperp_edges = getvar_savefile(power_savefile, 'kperp_edges')
-      if total(abs(kperp_edges - getvar_savefile(mask_savefile, 'kperp_edges'))) ne 0 then message, 'mask_savefile kperp_edges do not match power_savefile'
+      if total(abs(kperp_edges - getvar_savefile(bin_savefile, 'kperp_edges'))) ne 0 then message, 'bin_savefile kperp_edges do not match power_savefile'
       kpar_edges = getvar_savefile(power_savefile, 'kpar_edges')
-      if total(abs(kpar_edges - getvar_savefile(mask_savefile, 'kpar_edges'))) ne 0 then message, 'mask_savefile kpar_edges do not match power_savefile'
+      if total(abs(kpar_edges - getvar_savefile(bin_savefile, 'kpar_edges'))) ne 0 then message, 'bin_savefile kpar_edges do not match power_savefile'
       kperp_bin = getvar_savefile(power_savefile, 'kperp_bin')
-      if total(abs(kperp_bin - getvar_savefile(mask_savefile, 'kperp_bin'))) ne 0 then message, 'mask_savefile kperp_bin does not match power_savefile'
+      if total(abs(kperp_bin - getvar_savefile(bin_savefile, 'kperp_bin'))) ne 0 then message, 'bin_savefile kperp_bin does not match power_savefile'
       kpar_bin = getvar_savefile(power_savefile, 'kpar_bin')
-      if total(abs(kpar_bin - getvar_savefile(mask_savefile, 'kpar_bin'))) ne 0 then message, 'mask_savefile kpar_bin does not match power_savefile'
+      if total(abs(kpar_bin - getvar_savefile(bin_savefile, 'kpar_bin'))) ne 0 then message, 'bin_savefile kpar_bin does not match power_savefile'
       kperp_lambda_conv = getvar_savefile(power_savefile, 'kperp_lambda_conv')
-      if total(abs(kperp_lambda_conv - getvar_savefile(mask_savefile, 'kperp_lambda_conv'))) ne 0 then message, 'mask_savefile kperp_lambda_conv does not match power_savefile'
+      if total(abs(kperp_lambda_conv - getvar_savefile(bin_savefile, 'kperp_lambda_conv'))) ne 0 then message, 'bin_savefile kperp_lambda_conv does not match power_savefile'
       delay_params = getvar_savefile(power_savefile, 'delay_params')
-      if total(abs(delay_params - getvar_savefile(mask_savefile, 'delay_params'))) ne 0 then message, 'mask_savefile delay_params does not match power_savefile'
+      if total(abs(delay_params - getvar_savefile(bin_savefile, 'delay_params'))) ne 0 then message, 'bin_savefile delay_params does not match power_savefile'
       hubble_param = getvar_savefile(power_savefile, 'hubble_param')
-      if total(abs(hubble_param - getvar_savefile(mask_savefile, 'hubble_param'))) ne 0 then message, 'mask_savefile hubble_param does not match power_savefile'
-    endif else if n_elements(mask_savefile) eq 0 then mask_savefile = power_savefile
+      if total(abs(hubble_param - getvar_savefile(bin_savefile, 'hubble_param'))) ne 0 then message, 'bin_savefile hubble_param does not match power_savefile'
+    endif else if n_elements(bin_savefile) eq 0 then bin_savefile = power_savefile
 
-    mask = getvar_savefile(mask_savefile, 'mask_1to2d')
+    bin = getvar_savefile(bin_savefile, 'bin_1to2d')
   endif
 
   n_kperp = n_elements(kperp_edges) - 1
@@ -446,11 +446,11 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, wei
       plot_title = 'Power Ratio'
       if pub then plotfile_add = '_2dkpower' + plot_exten
     end
-    'mask': begin
+    'bin': begin
       units_str = '1D bin number * fill fraction'
       color_type = 'integer'
       plot_title = ''
-      if pub then plotfile_add = '_1to2dmask' + plot_exten
+      if pub then plotfile_add = '_1to2dbin' + plot_exten
     end
     'noise_frac': begin
       units_str = 'Noise fraction in 1d bin'
@@ -474,7 +474,7 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, wei
 
   if n_kperp_plot ne n_kperp then begin
     power_use = power_use[wh_kperp_inrange, *]
-    if keyword_set(mask_contour) then mask = mask[wh_kperp_inrange, *]
+    if keyword_set(bin_contour) then bin = bin[wh_kperp_inrange, *]
     temp = [wh_kperp_inrange, wh_kperp_inrange[n_kperp_plot-1]+1]
     kperp_edges_use =kperp_edges_use[temp]
     n_kperp = n_kperp_plot
@@ -490,7 +490,7 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, wei
 
   if n_kpar_plot ne n_kpar then begin
     power_use = power_use[*, wh_kpar_inrange]
-    if keyword_set(mask_contour) then mask = mask[*, wh_kpar_inrange]
+    if keyword_set(bin_contour) then bin = bin[*, wh_kpar_inrange]
 
     temp = [wh_kpar_inrange, wh_kpar_inrange[n_kpar_plot-1]+1]
 
@@ -614,27 +614,27 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, wei
 
     kperp_inds = rebin(kperp_inds, nkperp_image, nkpar_image)
     power_plot = power_use[kperp_inds, kpar_inds]
-    if keyword_set(mask_contour) then begin
-      mask_plot = mask[kperp_inds, kpar_inds]
-      if log_axes[0] eq 0 then mask_kperp = findgen(nkperp_image)*(max(kperp_edges_use) - min(kperp_edges_use))/nkperp_image + min(kperp_edges_use) $
-      else mask_kperp = 10^(findgen(nkperp_image)*(max(kperp_log_edges) - min(kperp_log_edges))/nkperp_image + min(kperp_log_edges))
-      if log_axes[1] eq 0 then mask_kpar = findgen(nkpar_image)*(max(kpar_edges_use) - min(kpar_edges_use))/nkpar_image + min(kpar_edges_use) $
-      else mask_kpar = 10^(findgen(nkpar_image)*(max(kpar_log_edges) - min(kpar_log_edges))/nkpar_image + min(kpar_log_edges))
+    if keyword_set(bin_contour) then begin
+      bin_plot = bin[kperp_inds, kpar_inds]
+      if log_axes[0] eq 0 then bin_kperp = findgen(nkperp_image)*(max(kperp_edges_use) - min(kperp_edges_use))/nkperp_image + min(kperp_edges_use) $
+      else bin_kperp = 10^(findgen(nkperp_image)*(max(kperp_log_edges) - min(kperp_log_edges))/nkperp_image + min(kperp_log_edges))
+      if log_axes[1] eq 0 then bin_kpar = findgen(nkpar_image)*(max(kpar_edges_use) - min(kpar_edges_use))/nkpar_image + min(kpar_edges_use) $
+      else bin_kpar = 10^(findgen(nkpar_image)*(max(kpar_log_edges) - min(kpar_log_edges))/nkpar_image + min(kpar_log_edges))
     endif
 
     ;; now expand array in any non-rebinned direction to prevent interpolation
     if rebin_x eq 0 or nkperp_image lt 15 or nkperp_image lt 0.1*nkpar_image then power_plot = congrid(power_plot, nkperp_image*20, nkpar_image)
     if rebin_y eq 0 or nkpar_image lt 15  or nkpar_image lt 0.1*nkperp_image then power_plot = congrid(power_plot, nkperp_image, nkpar_image*20)
-    if keyword_set(mask_contour) then begin
+    if keyword_set(bin_contour) then begin
       if rebin_x eq 0 or nkperp_image lt 15 then begin
-        mask_plot = congrid(mask_plot, nkperp_image*10, nkpar_image)
-        if log_axes[0] eq 0 then mask_kperp = findgen(nkperp_image*10)*(max(kperp_edges_use) - min(kperp_edges_use))/nkperp_image + min(kperp_edges_use) $
-        else mask_kperp = 10^(findgen(nkperp_image*10)*(max(kperp_log_edges) - min(kperp_log_edges))/(nkperp_image*10) + min(kperp_log_edges))
+        bin_plot = congrid(bin_plot, nkperp_image*10, nkpar_image)
+        if log_axes[0] eq 0 then bin_kperp = findgen(nkperp_image*10)*(max(kperp_edges_use) - min(kperp_edges_use))/nkperp_image + min(kperp_edges_use) $
+        else bin_kperp = 10^(findgen(nkperp_image*10)*(max(kperp_log_edges) - min(kperp_log_edges))/(nkperp_image*10) + min(kperp_log_edges))
       endif
       if rebin_y eq 0or nkpar_image lt 15 then begin
-        mask_plot = congrid(mask_plot, nkperp_image, nkpar_image*10)
-        if log_axes[1] eq 0 then mask_kpar = findgen(nkpar_image*10)*(max(kpar_edges_use) - min(kpar_edges_use))/nkpar_image + min(kpar_edges_use) $
-        else mask_kpar = 10^(findgen(nkpar_image*10)*(max(kpar_log_edges) - min(kpar_log_edges))/(nkpar_image*10) + min(kpar_log_edges))
+        bin_plot = congrid(bin_plot, nkperp_image, nkpar_image*10)
+        if log_axes[1] eq 0 then bin_kpar = findgen(nkpar_image*10)*(max(kpar_edges_use) - min(kpar_edges_use))/nkpar_image + min(kpar_edges_use) $
+        else bin_kpar = 10^(findgen(nkpar_image*10)*(max(kpar_log_edges) - min(kpar_log_edges))/(nkpar_image*10) + min(kpar_log_edges))
       endif
     endif
   endif else begin
@@ -647,12 +647,12 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, wei
       delay_log_edges = log_delay_edges
     endif else delay_edges = linear_delay_edges
 
-    if keyword_set(mask_contour) then begin
-      mask_plot = congrid(mask, n_kperp*10, n_kpar*10)
-      if log_axes[0] eq 0 then mask_kperp = findgen(nkperp_image*10)*(max(kperp_edges_use) - min(kperp_edges_use))/nkperp_image + min(kperp_edges_use) $
-      else mask_kperp = 10^(findgen(nkperp_image*10)*(max(kperp_log_edges) - min(kperp_log_edges))/nkperp_image + min(kperp_log_edges))
-      if log_axes[1] eq 0 then mask_kpar = findgen(nkpar_image*10)*(max(kpar_edges_use) - min(kpar_edges_use))/nkpar_image + min(kpar_edges_use) $
-      else mask_kpar = 10^(findgen(nkpar_image*10)*(max(kpar_log_edges) - min(kpar_log_edges))/nkpar_image + min(kpar_log_edges))
+    if keyword_set(bin_contour) then begin
+      bin_plot = congrid(bin, n_kperp*10, n_kpar*10)
+      if log_axes[0] eq 0 then bin_kperp = findgen(nkperp_image*10)*(max(kperp_edges_use) - min(kperp_edges_use))/nkperp_image + min(kperp_edges_use) $
+      else bin_kperp = 10^(findgen(nkperp_image*10)*(max(kperp_log_edges) - min(kperp_log_edges))/nkperp_image + min(kperp_log_edges))
+      if log_axes[1] eq 0 then bin_kpar = findgen(nkpar_image*10)*(max(kpar_edges_use) - min(kpar_edges_use))/nkpar_image + min(kpar_edges_use) $
+      else bin_kpar = 10^(findgen(nkpar_image*10)*(max(kpar_log_edges) - min(kpar_log_edges))/nkpar_image + min(kpar_log_edges))
     endif
   endelse
 
@@ -720,14 +720,14 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, wei
     endcase
   endif
 
-  if keyword_set(mask_contour) then begin
+  if keyword_set(bin_contour) then begin
     if n_elements(contour_levels) then begin
       if size(contour_levels, /type) then begin
-        if contour_levels eq 'all' then levels = indgen(ceil(max(mask_plot))) + 1 $
+        if contour_levels eq 'all' then levels = indgen(ceil(max(bin_plot))) + 1 $
         else message, 'contour_levels is an unrecognized string'
       endif else levels = contour_levels
     endif else begin
-      levels = (indgen(6)+1) * ceil(max(mask_plot)/6.)
+      levels = (indgen(6)+1) * ceil(max(bin_plot)/6.)
       if min(levels) gt 1 then levels = [1, levels]
       wh_large = where(levels gt max(power_plot), count_large, complement = wh_good)
       if count_large gt 0 then levels = levels[wh_good]
@@ -1155,9 +1155,9 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, wei
       axkeywords = axkeywords, /axes
   endelse
 
-  if keyword_set(mask_contour) then begin
+  if keyword_set(bin_contour) then begin
     if keyword_set(png) then c_thick = [3,1,1,1,1] else c_thick = [2,1,1,1,1]
-    cgcontour, mask_plot, mask_kperp, mask_kpar, levels = levels, $;c_color = ['black', 'dark_grey', 'dark_grey'], $
+    cgcontour, bin_plot, bin_kperp, bin_kpar, levels = levels, $;c_color = ['black', 'dark_grey', 'dark_grey'], $
       thick = thick, charsize = charsize, font = font, label=0, /onimage, c_thick = c_thick;, c_linestyle=[0,2,1]
   endif
 
