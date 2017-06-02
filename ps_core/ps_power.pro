@@ -96,7 +96,7 @@ pro make_2d_files, nfiles, savefile_2d, savefile_k0, power_3D, sim_noise_3D, new
     power = power[*,0]
     sim_noise = sim_noise[*,0]
     if n_elements(noise) gt 0 then noise = noise[*,0]
-    if n_elements(sim_noise) gt 0 then sim_noise_diff = sim_noise_diff[*,0]
+    if nfiles eq 2 and n_elements(sim_noise) gt 0 then sim_noise_diff = sim_noise_diff[*,0]
     weights = weights[*,0]
     noise_expval = noise_expval[*,0]
     

@@ -439,7 +439,7 @@
   
   
   
-  pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, sim = sim, $
+  pro ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, sim = sim, no_evenodd = no_evenodd, $
       refresh_dft = refresh_dft, refresh_ps = refresh_ps, refresh_binning = refresh_binning, refresh_info = refresh_info, $
       refresh_beam = refresh_beam, dft_fchunk = dft_fchunk, $
       delta_uv_lambda = delta_uv_lambda, max_uv_lambda = max_uv_lambda, $
@@ -557,6 +557,7 @@
     if not tag_exist(file_struct_arr, 'beam_int') and keyword_set(refresh_ps) then refresh_beam = 1
     
     nfiles = file_struct_arr[0].nfiles
+    if nfiles lt 2 and not keyword_set(no_evenodd) then message, 'Even and odd cubes are not all present. If this is expected, set no_evenodd=1'
     
     if nfiles gt 1 then print, 'n_vis % difference between even & odd cubes: ' + $
       number_formatter((file_struct_arr[0].n_vis[1]-file_struct_arr[0].n_vis[0])*100/mean(file_struct_arr[0].n_vis))
@@ -619,7 +620,7 @@
         file_struct_arr = file_struct_arr[wh_pol]
         file_struct_arr.pol_index = pol_inds
       endif
-      
+
       if n_elements(type_inc) gt 0 then begin
         for i=0,n_elements(type_inc)-1 do begin
           wh_this_type = where(file_struct_arr.type eq type_inc[i], count_this_type)

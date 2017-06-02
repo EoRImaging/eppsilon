@@ -1,5 +1,5 @@
 pro ps_wrapper, folder_name, obs_name, data_subdirs=data_subdirs, exact_obsnames = exact_obsnames, ps_foldername = ps_foldername, $
-    no_wtvar_rts = no_wtvar_rts, set_data_ranges = set_data_ranges, $
+    no_evenodd = no_evenodd, no_wtvar_rts = no_wtvar_rts, set_data_ranges = set_data_ranges, $
     beamfiles = beamfiles, rts = rts, casa = casa, sim = sim, $
     refresh_dft = refresh_dft, refresh_ps = refresh_ps, refresh_binning = refresh_binning, refresh_info = refresh_info, $
     refresh_beam = refresh_beam, dft_fchunk = dft_fchunk, $
@@ -160,7 +160,7 @@ pro ps_wrapper, folder_name, obs_name, data_subdirs=data_subdirs, exact_obsnames
 
   dft_fchunk = 1
 
-  ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, sim = sim, $
+  ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, sim = sim, no_evenodd = no_evenodd, $
     refresh_dft = refresh_dft, refresh_ps = refresh_ps, refresh_binning = refresh_binning, refresh_info = refresh_info, $
     refresh_beam = refresh_beam, dft_fchunk = dft_fchunk, $
     delta_uv_lambda = delta_uv_lambda, max_uv_lambda = max_uv_lambda, $
