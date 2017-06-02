@@ -32,6 +32,10 @@ Many of these keywords are re-used in other wrappers, but since this is the prim
 
 **uvf_input**: This is a flag (valid values are 0/1, default=0) indicating that the input cubes are uvf cubes, rather than image space cubes. This is only supported for FHD inputs and only works for single obsid cubes. This is used most often for simulation testing & exploration.
 
+**no_evenodd**: This is a flag (valid values are 0/1, default=0) indicating that only one
+set of files (rather than both evens and odds) are expected to be present. If not set,
+eppsilon will error fairly quickly rather than proceeding with just the one set of files.
+
 
 ## RTS specific keywords:
 
