@@ -20,7 +20,8 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
   wh = where(units_enum eq input_units, count)
   if count eq 0 then message, 'input units not recognized, options are: ' + units_enum
   
-  
+  git, repo_path = ps_repository_dir(), result=this_run_git_hash
+
   datavar = strupcase(file_struct.datavar)
   if datavar eq '' then begin
     ;; working with a 'derived' cube that is constructed from uvf_savefiles
@@ -187,7 +188,7 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
           endif else begin
             save, file = file_struct.uvf_savefile[i], kx_rad_vals, ky_rad_vals, data_cube, uvf_git_hash
           endelse
-          undefine, data_cube
+          undefine, data_cube, uvf_git_hash
           
           test_uvf = 1
         endif ;; endifif full uvf exists
@@ -220,7 +221,7 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
           endif else begin
             save, file = file_struct.uvf_weight_savefile[i], kx_rad_vals, ky_rad_vals, weights_cube, variance_cube, uvf_wt_git_hash
           endelse
-          undefine, weights_cube, variance_cube
+          undefine, weights_cube, variance_cube, uvf_wt_git_hash
           
           test_wt_uvf = 1
         endif ;; endif full wt_uvf exists
@@ -257,7 +258,7 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
                   endif else begin
                     save, file = input_uvf_files[i,j], kx_rad_vals, ky_rad_vals, data_cube, uvf_git_hash
                   endelse
-                  undefine, data_cube
+                  undefine, data_cube, uvf_git_hash
                   
                   test_uvf = 1
                   
@@ -297,7 +298,7 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
           endif else begin
             save, file = file_struct.uvf_savefile[i], kx_rad_vals, ky_rad_vals, data_cube, uvf_git_hash
           endelse
-          undefine, data_cube
+          undefine, data_cube, uvf_git_hash
           
         endif else begin ;; endif derived cube
         
@@ -353,7 +354,6 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
           
          ;; do RA/Dec DFT.
           if test_radec_uvf eq 0 or keyword_set(dft_refresh_data) then begin
-            git, repo_path = ps_repository_dir(), result=uvf_git_hash
             
             print, 'calculating DFT for ra/dec values'
             
@@ -418,7 +418,9 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
             if max(abs(imaginary(ra_img))) eq 0 then ra_img = real_part(ra_img)
             if max(abs(imaginary(dec_img))) eq 0 then dec_img = real_part(dec_img)
             
+            uvf_git_hash = this_run_git_hash
             save, file = file_struct.radec_file, kx_rad_vals, ky_rad_vals, ra_k, dec_k, ra_img, dec_img, pix_ra, pix_dec, uvf_git_hash
+            undefine, uvf_git_hash
             
           endif
           
@@ -452,12 +454,13 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
             data_cube = temporary(transform)
             undefine, arr
             
+            uvf_git_hash = this_run_git_hash
             if n_elements(freq_flags) then begin
               save, file = file_struct.uvf_savefile[i], kx_rad_vals, ky_rad_vals, data_cube, freq_mask, uvf_git_hash
             endif else begin
               save, file = file_struct.uvf_savefile[i], kx_rad_vals, ky_rad_vals, data_cube, uvf_git_hash
             endelse
-            undefine, data_cube
+            undefine, data_cube, uvf_git_hash
           endif
           
           
@@ -508,14 +511,14 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
               undefine, arr
             endif
              
-            git, repo_path = ps_repository_dir(), result=uvf_wt_git_hash
+            uvf_wt_git_hash = this_run_git_hash
             
             if n_elements(freq_flags) then begin
               save, file = file_struct.uvf_weight_savefile[i], kx_rad_vals, ky_rad_vals, weights_cube, variance_cube, freq_mask, uvf_wt_git_hash
             endif else begin
               save, file = file_struct.uvf_weight_savefile[i], kx_rad_vals, ky_rad_vals, weights_cube, variance_cube, uvf_wt_git_hash
             endelse
-            undefine, new_pix_vec, pix_window, weights_cube, variance_cube
+            undefine, new_pix_vec, pix_window, weights_cube, variance_cube, uvf_wt_git_hash
           endif
         endelse
       endif else begin
