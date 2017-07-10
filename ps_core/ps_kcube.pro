@@ -1696,13 +1696,13 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
     
     if n_elements(freq_flags) gt 0 then begin
       save, file = file_struct.kcube_savefile, data_sum_1, data_sum_2, data_diff_1, data_diff_2, $
-        sim_noise_sum_1, sim_sum_noise_2, sim_noise_diff_1, sim_diff_noise_2, sigma2_1, sigma2_2, n_val, $
+        sim_noise_sum_1, sim_noise_sum_2, sim_noise_diff_1, sim_noise_diff_2, sigma2_1, sigma2_2, n_val, $
         kx_mpc, ky_mpc, kz_mpc, kperp_lambda_conv, delay_params, hubble_param, n_freq_contrib, freq_mask, $
         vs_name, vs_mean, t_sys_meas, window_int, git_hashes, $
         wt_meas_ave, wt_meas_min, ave_weights, wt_ave_power_freq, ave_power_freq, wt_ave_power_uvf, ave_power_uvf
     endif else begin
       save, file = file_struct.kcube_savefile, data_sum_1, data_sum_2, data_diff_1, data_diff_2, $
-        sim_noise_sum_1, sim_sum_noise_2, sim_noise_diff_1, sim_diff_noise_2, sigma2_1, sigma2_2, n_val, $
+        sim_noise_sum_1, sim_noise_sum_2, sim_noise_diff_1, sim_noise_diff_2, sigma2_1, sigma2_2, n_val, $
         kx_mpc, ky_mpc, kz_mpc, kperp_lambda_conv, delay_params, hubble_param, n_freq_contrib, $
         vs_name, vs_mean, t_sys_meas, window_int, git_hashes, $
         wt_meas_ave, wt_meas_min, ave_weights, wt_ave_power_freq, ave_power_freq, wt_ave_power_uvf, ave_power_uvf
