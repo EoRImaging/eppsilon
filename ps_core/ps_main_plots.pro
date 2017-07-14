@@ -444,7 +444,7 @@
       refresh_beam = refresh_beam, dft_fchunk = dft_fchunk, $
       delta_uv_lambda = delta_uv_lambda, max_uv_lambda = max_uv_lambda, $
       pol_inc = pol_inc, type_inc = type_inc, $
-      freq_ch_range = freq_ch_range, freq_flags = freq_flags, freq_flag_name = freq_flag_name, allow_beam_approx = allow_beam_approx, mm$
+      freq_ch_range = freq_ch_range, freq_flags = freq_flags, freq_flag_name = freq_flag_name, allow_beam_approx = allow_beam_approx, $
       uvf_input = uvf_input, uv_avg = uv_avg, uv_img_clip = uv_img_clip, $
       std_power = std_power, inverse_covar_weight = inverse_covar_weight, ave_removal = ave_removal, $
       no_wtd_avg = no_wtd_avg, norm_rts_with_fhd = norm_rts_with_fhd, $
