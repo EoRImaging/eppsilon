@@ -125,7 +125,7 @@ pro ps_power, file_struct, refresh = refresh, kcube_refresh = kcube_refresh, dft
     savefile_2d = savefile_2d, savefile_1d = savefile_1d, savefile_1to2d_bin = savefile_1to2d_bin, savefile_masked_2d = savefile_masked_2d, hinv = hinv, $
     savefile_kpar_power = savefile_kpar_power, savefile_kperp_power = savefile_kperp_power, savefile_k0 = savefile_k0, savefile_masked_k0 = savefile_masked_k0, $
     uvf_input = uvf_input, uv_avg = uv_avg, uv_img_clip = uv_img_clip, sim=sim, $
-    dft_fchunk = dft_fchunk, freq_ch_range = freq_ch_range, freq_flags = freq_flags, $
+    dft_fchunk = dft_fchunk, freq_ch_range = freq_ch_range, freq_flags = freq_flags, allow_beam_approx = allow_beam_approx, $
     spec_window_type = spec_window_type, image_window_name = image_window_name, image_window_frac_size = image_window_frac_size, $
     delta_uv_lambda = delta_uv_lambda, max_uv_lambda = max_uv_lambda, $
     std_power = std_power, inverse_covar_weight = inverse_covar_weight, no_wtd_avg = no_wtd_avg, ave_removal = ave_removal, $
@@ -171,7 +171,7 @@ pro ps_power, file_struct, refresh = refresh, kcube_refresh = kcube_refresh, dft
     
     if test_kcube eq 0 or keyword_set(kcube_refresh) then $
       ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weight = dft_refresh_weight, refresh_beam = refresh_beam, $
-      dft_fchunk = dft_fchunk, freq_ch_range = freq_ch_range, freq_flags = freq_flags, $
+      dft_fchunk = dft_fchunk, freq_ch_range = freq_ch_range, freq_flags = freq_flags, allow_beam_approx = allow_beam_approx, $
       delta_uv_lambda = delta_uv_lambda, max_uv_lambda = max_uv_lambda, $
       uvf_input = uvf_input, uv_avg = uv_avg, uv_img_clip = uv_img_clip, sim=sim, fix_sim_input = fix_sim_input, $
       spec_window_type = spec_window_type, image_window_name = image_window_name, image_window_frac_size = image_window_frac_size, $

@@ -444,7 +444,7 @@
       refresh_beam = refresh_beam, dft_fchunk = dft_fchunk, $
       delta_uv_lambda = delta_uv_lambda, max_uv_lambda = max_uv_lambda, $
       pol_inc = pol_inc, type_inc = type_inc, $
-      freq_ch_range = freq_ch_range, freq_flags = freq_flags, freq_flag_name = freq_flag_name, $
+      freq_ch_range = freq_ch_range, freq_flags = freq_flags, freq_flag_name = freq_flag_name, allow_beam_approx = allow_beam_approx, mm$
       uvf_input = uvf_input, uv_avg = uv_avg, uv_img_clip = uv_img_clip, $
       std_power = std_power, inverse_covar_weight = inverse_covar_weight, ave_removal = ave_removal, $
       no_wtd_avg = no_wtd_avg, norm_rts_with_fhd = norm_rts_with_fhd, $
@@ -492,6 +492,9 @@
     
     ;; default to plot wedge line
     if n_elements(plot_wedge_line) eq 0 then plot_wedge_line=1
+    
+    ;; default to not allowing beam approximations
+    if n_elements(allow_beam_approx) eq 0 then allow_beam_approx = 0
     
     ;; if inverse covariance weighted don't use spectral window
     if keyword_set(inverse_covar_weight) then no_spec_window = 1
@@ -1103,7 +1106,7 @@
           
           ps_power, file_struct_arr[i], kcube_refresh = refresh_ps, dft_refresh_data = refresh_dft, $
             dft_refresh_weight = weight_refresh[i], refresh_beam = refresh_beam, $
-            dft_fchunk = dft_fchunk, freq_ch_range = freq_ch_range, freq_flags = freq_flags, $
+            dft_fchunk = dft_fchunk, freq_ch_range = freq_ch_range, freq_flags = freq_flags, allow_beam_approx = allow_beam_approx, $
             spec_window_type = spec_window_type, image_window_name = image_window_name, image_window_frac_size = image_window_frac_size, $
             delta_uv_lambda = delta_uv_lambda, max_uv_lambda = max_uv_lambda, hinv = hinv, $
             savefile_2d = savefile_2d_use, savefile_1d = savefile_1d_use, savefile_1to2d_bin = savefiles_bin_use, savefile_masked_2d = savefiles_mask_use, $
@@ -1120,7 +1123,8 @@
             plot_binning_hist = plot_binning_hist, plotfile_binning_hist = plotfile_binning_hist_use, png = png, eps = eps, pdf = pdf
         endif else $
           ps_power, file_struct_arr[i], kcube_refresh = refresh_ps, refresh_beam = refresh_beam, freq_ch_range = freq_ch_range, $
-          freq_flags = freq_flags, spec_window_type = spec_window_type, image_window_name = image_window_name, image_window_frac_size = image_window_frac_size, $
+          freq_flags = freq_flags, allow_beam_approx = allow_beam_approx, $
+          spec_window_type = spec_window_type, image_window_name = image_window_name, image_window_frac_size = image_window_frac_size, $
           savefile_2d = savefile_2d_use, savefile_1d = savefile_1d_use, savefile_1to2d_bin = savefiles_bin_use, savefile_masked_2d = savefiles_mask_use, hinv = hinv, $
           savefile_kpar_power = savefile_kpar_use, savefile_kperp_power = savefile_kperp_use, savefile_k0 = savefile_k0_use, $
           std_power = std_power, inverse_covar_weight = inverse_covar_weight, ave_removal = ave_removal, no_wtd_avg = no_wtd_avg, no_kzero = no_kzero, $
