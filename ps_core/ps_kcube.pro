@@ -1,5 +1,5 @@
 pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weight = dft_refresh_weight, $
-    refresh_beam = refresh_beam, sim=sim, fix_sim_input = fix_sim_input, $
+    refresh_beam = refresh_beam, sim=sim, fix_sim_input = fix_sim_input, allow_beam_approx = allow_beam_approx, $
     dft_fchunk = dft_fchunk, freq_ch_range = freq_ch_range, freq_flags = freq_flags, $
     spec_window_type = spec_window_type, image_window_name = image_window_name, image_window_frac_size = image_window_frac_size, $
     delta_uv_lambda = delta_uv_lambda, max_uv_lambda = max_uv_lambda, $
@@ -21,7 +21,7 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
   if count eq 0 then message, 'input units not recognized, options are: ' + units_enum
   
   git, repo_path = ps_repository_dir(), result=this_run_git_hash
-
+  
   datavar = strupcase(file_struct.datavar)
   if datavar eq '' then begin
     ;; working with a 'derived' cube that is constructed from uvf_savefiles
@@ -352,9 +352,9 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
             
           endif
           
-         ;; do RA/Dec DFT.
+          ;; do RA/Dec DFT.
           if test_radec_uvf eq 0 or keyword_set(dft_refresh_data) then begin
-            
+          
             print, 'calculating DFT for ra/dec values'
             
             if n_elements(nside) eq 0 then nside = file_struct.nside
@@ -429,9 +429,9 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
             pix_window = image_window(x_use, y_use, image_window_name = image_window_name, fractional_size = image_window_frac_size)
             pix_window = rebin(pix_window, n_elements(wh_close), n_freq, /sample)
           endif else pix_window = fltarr(n_elements(wh_close), n_freq) + 1.
-         
           
-           if test_uvf eq 0 or keyword_set(dft_refresh_data) then begin
+          
+          if test_uvf eq 0 or keyword_set(dft_refresh_data) then begin
           
             print, 'calculating DFT for ' + file_struct.datavar + ' in ' + file_struct.datafile[i]
             
@@ -510,7 +510,7 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
               variance_cube = abs(temporary(transform)) ;; make variances real, positive definite (amplitude)
               undefine, arr
             endif
-             
+            
             uvf_wt_git_hash = this_run_git_hash
             
             if n_elements(freq_flags) then begin
@@ -1311,11 +1311,19 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
     
     if tag_exist(file_struct, 'beam_int') then begin
       window_int = window_int_beam_obs
-      if min(window_int) eq 0 then print, 'WARNING: beam integral in obs structure is zero, using a less good approximation'
     endif
-    if (n_elements(window_int) eq 0 or min(window_int) eq 0) and tag_exist(file_struct, 'beam_savefile') then begin
-      window_int = window_int_beam
-      if min(window_int) eq 0 then print, 'WARNING: beam cube is zero, using a less good approximation'
+
+    if (n_elements(window_int) eq 0 or min(window_int) eq 0) then begin
+      if keyword_set(allow_beam_approx) then begin
+        print, 'WARNING: beam integral in obs structure is zero, using a less good approximation'
+      endif else begin
+        message, 'Beam integral in obs structure is zero. To use a less good approximation instead, set keyword allow_beam_approx=1'
+      endelse
+      
+      if tag_exist(file_struct, 'beam_savefile') then begin
+        window_int = window_int_beam
+        if min(window_int) eq 0 then print, 'WARNING: beam cube is zero, using a less good approximation'
+      endif
     endif
     if (n_elements(window_int) eq 0 or min(window_int) eq 0) then window_int = window_int_k
   ;if keyword_set(sim) then window_int = 2.39e9 + fltarr(nfiles)
