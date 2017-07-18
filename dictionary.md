@@ -18,11 +18,7 @@ Many of these keywords are re-used in other wrappers, but since this is the prim
 
 **exact_obsnames**: This is a flag (valid values are 0/1, default=0) indicating that the obs_name that was provided was the exact obs_name, rather than a unique string that should be in the obs_name.
 
-**allow_beam_approx**: This is a flag (valid values are 0/1, default=0) indicating
-that a less good beam integral approximation should be used if the beam_integral
-is not present or is zero in the obs structure. If this keyword is not set and the beam_integral is not present or is zero, eppsilon will fail fairly quickly. If
-this keyword is set and the beam_integral is not present or is zero, eppsilon
-will print a warning but continue using a less good approximation.
+**allow_beam_approx**: This is a flag (valid values are 0/1, default=0) indicating that a less good beam integral approximation should be used if the beam_integral is not present or is zero in the obs structure. If this keyword is not set and the beam_integral is not present or is zero, eppsilon will fail fairly quickly. If this keyword is set and the beam_integral is not present or is zero, eppsilon will print a warning but continue using a less good approximation.
 
 **beamfiles**: This is a keyword giving the location and names of the beam files. For FHD inputs, it is only used by the code if the beamfiles are not found in their standard location (it is actually overwritten by those locations if they are found.)
 
