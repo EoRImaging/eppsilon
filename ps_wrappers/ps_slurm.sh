@@ -280,9 +280,7 @@ if [ "$nchunk" -gt "1" ]; then
     chunk=0
     outfile=${FHDdir}/Healpix/${version}_int_chunk${chunk}_out.log
     errfile=${FHDdir}/Healpix/${version}_int_chunk${chunk}_err.log
-    #message=$(sbatch -p jpober-test --mem=$mem -t $wallclock_time -n $ncores --export=file_path_cubes=$FHDdir,obs_list_path=$sub_cubes_list,version=$version,chunk=$chunk,ncores=$ncores,legacy=$legacy -e $errfile -o $outfile ${PSpath}ps_wrappers/integrate_slurm_job.sh)
     message=$(sbatch --mem=$mem -t $wallclock_time -n $ncores --export=file_path_cubes=$FHDdir,obs_list_path=$sub_cubes_list,version=$version,chunk=$chunk,ncores=$ncores,legacy=$legacy -e $errfile -o $outfile ${PSpath}ps_wrappers/integrate_slurm_job.sh)
-#    message=$(qsub -hold_jid $idlist -l h_vmem=$mem,h_stack=512k,h_rt=$wallclock_time -V -v file_path_cubes=$FHDdir,obs_list_path=$sub_cubes_list,version=$version,chunk=$chunk,ncores=$ncores,legacy=$legacy -e $errfile -o $outfile -pe chost $ncores ${PSpath}ps_wrappers/integrate_job.sh)
     message=($message)
     master_id=${message[3]}
 else

@@ -61,5 +61,4 @@ pro ps_cube_images, folder_names_in, obs_names_in, exact_obsnames = exact_obsnam
     log = log, data_range = data_range, data_min_abs = data_min_abs, $
     color_profile = color_profile, sym_color = sym_color, $
     window_num = window_num, plot_as_map = plot_as_map, plot_path = plot_pat
-
 end
