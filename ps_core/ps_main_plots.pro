@@ -623,7 +623,7 @@
         file_struct_arr = file_struct_arr[wh_pol]
         file_struct_arr.pol_index = pol_inds
       endif
-
+      
       if n_elements(type_inc) gt 0 then begin
         for i=0,n_elements(type_inc)-1 do begin
           wh_this_type = where(file_struct_arr.type eq type_inc[i], count_this_type)
@@ -1861,7 +1861,7 @@
         density_index = i mod n_elements(kperp_density_names)
         title_use = wedge_1dbin_names[wedge_index] + ' ' + kperp_density_names[density_index]
         
-       kpower_2d_plots, savefiles_1to2d_bin[wh_2d_use, density_index, wedge_index], $
+        kpower_2d_plots, savefiles_1to2d_bin[wh_2d_use, density_index, wedge_index], $
           multi_pos = pos_use, start_multi_params = start_multi_params, png = png, eps = eps, pdf = pdf, $
           plotfile = plotfile_use, kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
           /plot_bin, /bin_contour, contour_levels = 'all', $
