@@ -1517,7 +1517,8 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
   if keyword_set(inverse_covar_weight) then begin
   
     max_eta_val = max(sum_sigma2)
-    eta_var = shift([max_eta_val, fltarr(n_freq-1)], n_freq/2)
+    ;eta_var = shift([max_eta_val, fltarr(n_freq-1)], n_freq/2)
+    eta_var = shift([max_eta_val/10.,max_eta_val,max_eta_val/10., fltarr(n_freq-3)], n_freq/2-1)
     covar_eta_fg = diag_matrix(eta_var)
     
     identity = diag_matrix([fltarr(n_freq)+1d])
@@ -1612,6 +1613,11 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
   kz_mpc = kz_mpc_orig[where(n_val ge 0)]
   n_kz = n_elements(kz_mpc)
   
+  if keyword_set(inverse_covar_weight) then begin
+      data_sum_ft = weight_invert(sqrt(wt_power_norm)) * data_sum_ft
+      data_diff_ft = weight_invert(sqrt(wt_power_norm)) * data_diff_ft   
+  endif 
+  
   
   ;; these an and bn calculations don't match the standard
   ;; convention (they ares down by a factor of 2) but they make more sense
@@ -1661,6 +1667,10 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
       endfor
     endfor
     undefine, sum_sigma2
+    
+    if keyword_set(inverse_covar_weight) then $
+      sigma2_ft = weight_invert(wt_power_norm) * sigma2_ft
+
     
     a5_0 = sigma2_ft[*,*,where(n_val eq 0)]
     a5_n = (sigma2_ft[*,*, where(n_val gt 0)] + sigma2_ft[*,*, reverse(where(n_val lt 0))])/2.
@@ -1778,7 +1788,7 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
         data_diff_cos[*,*,0] = data_diff_cos[*,*,0] + data_diff_mean * n_freq * z_mpc_delta
         sim_noise_diff_cos[*,*,0] = sim_noise_diff_cos[*,*,0] + sim_noise_diff_mean * n_freq * z_mpc_delta
       endif
-    endif
+    endif 
     
     ;; for new power calc, need cos2, sin2, cos*sin transforms
     ;; have to do this in a for loop for memory's sake
