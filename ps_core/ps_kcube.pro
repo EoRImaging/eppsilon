@@ -1312,7 +1312,7 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
     if tag_exist(file_struct, 'beam_int') then begin
       window_int = window_int_beam_obs
     endif
-
+    
     if (n_elements(window_int) eq 0 or min(window_int) eq 0) then begin
       if keyword_set(allow_beam_approx) then begin
         print, 'WARNING: beam integral in obs structure is zero, using a less good approximation'
@@ -1529,8 +1529,8 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
     
     wt_data_sum = fltarr(n_kx, n_ky, n_freq)
     wt_data_diff = fltarr(n_kx, n_ky, n_freq)
-    wt_sum_sigma2 = fltarr(n_kx, n_ky, n_freq)
-    wt_power_norm = fltarr(n_kx, n_ky, n_freq)
+    wt_sum_sigma2 = fltarr(n_kx, n_ky, n_freq, n_freq)
+    wt_power_norm = fltarr(n_kx, n_ky, n_freq, n_freq)
     for i=0, n_kx-1 do begin
       for j=0, n_ky-1 do begin
         var_z_inst = reform(sum_sigma2[i,j,*])
@@ -1543,18 +1543,22 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
         covar_z = diag_matrix(var_z_inst) + covar_z_fg
         inv_covar_z = la_invert(covar_z)
         inv_covar_kz = shift(matrix_multiply(ft_matrix, matrix_multiply(inv_covar_z, conj(ft_matrix), /btranspose)), n_freq/2, n_freq/2)
+        fisher_kz = abs(inv_covar_kz)^2.
         
         inv_var = 1/var_z_inst
         wh_sigma0 = where(var_z_inst eq 0, count_sigma0)
         if count_sigma0 gt 0 then inv_var[wh_sigma0] = 0
-        norm2 = total(inv_var)^2./(n_freq*total(inv_var^2.))
+        ;; norm2 = total(inv_var)^2./(n_freq*total(inv_var^2.))
         
         wt_data_sum[i,j,*] = matrix_multiply(inv_covar_z, reform(data_sum[i,j,*])) * z_mpc_delta
         wt_data_diff[i,j,*] = matrix_multiply(inv_covar_z, reform(data_diff[i,j,*])) * z_mpc_delta
-        wt_power_norm[i,j,*] = norm2 * total(abs(inv_covar_kz)^2.,2) * kz_mpc_delta
+        ;;wt_power_norm[i,j,*] = norm2 * total(abs(inv_covar_kz)^2.,2) * kz_mpc_delta
+        ;; wt_sum_sigma2[i,j,*] = diag_matrix(shift(matrix_multiply(inv_covar_z, matrix_multiply(diag_matrix(var_z_inst), conj(inv_covar_z), /btranspose)), n_freq/2, n_freq/2))
         
-        wt_sum_sigma2[i,j,*] = diag_matrix(shift(matrix_multiply(inv_covar_z, matrix_multiply(diag_matrix(var_z_inst), conj(inv_covar_z), /btranspose)), n_freq/2, n_freq/2))
+        wt_power_norm[i,j,*,*] = matrix_sqrt(la_invert(fisher_kz))
+        wt_sum_sigma2[i,j,*,*] = matrix_multiply(wt_power_norm[i,j,*,*], matrix_multiply(fisher_kz, wt_power_norm[i,j,*,*], /btranspose))
         
+        stop
       endfor
     endfor
     undefine, covar_z_fg, ft_matrix, inv_ft_matrix, covar_z, inv_covar_z, inv_covar_kz
