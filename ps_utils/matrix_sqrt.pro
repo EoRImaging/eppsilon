@@ -1,4 +1,4 @@
-function sqrt_matrix,matrix
+function matrix_sqrt, matrix
   tol = 1e-8
   dblerr = 1e-10
   dim = size(matrix,/dimensions)
@@ -8,7 +8,7 @@ function sqrt_matrix,matrix
   
   ; Calculate SVD of input matrix
   la_svd,matrix,svmatrix,wmatrix,vmatrix
-  
+   
   num = n_elements(svmatrix)
   
   ; verify that left and right singular vectors are equal
@@ -21,11 +21,12 @@ function sqrt_matrix,matrix
   if negfind[0] ne -1 then message,'Warning: Matrix has negative singular values and/or is non-symmetric'
   
   ; Scale Singular matrix with sqrt of singular values
-  dsvmatrix = dblarr(dim[0],dim[1])
-  dsvmatrix[indgen(dim[0]),indgen(dim[0])] = sqrt(svmatrix)
-  sqmatrix = vmatrix##dsvmatrix
-  
-  error = norm(sqmatrix##transpose(sqmatrix)-matrix)/norm(matrix)
-  if (error ge tol) then message,'Warning: ||LL^T-A||/||A|| > tol, tol: ', tol,' error:', error
+  ;; dsvmatrix = dblarr(dim[0],dim[1])
+  ;; dsvmatrix[indgen(dim[0]),indgen(dim[0])] = sqrt(svmatrix)
+  dsvmatrix = diag_matrix(sqrt(svmatrix))
+  sqmatrix = vmatrix##(dsvmatrix##la_invert(vmatrix))
+
+   error = norm(sqmatrix##transpose(sqmatrix)-matrix)/norm(matrix)
+  if (error ge tol) then message, 'Warning: ||LL^T-A||/||A|| > tol, tol: ' + string(tol) + ' error:' + string(error)
   return,sqmatrix
 end

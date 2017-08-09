@@ -496,8 +496,9 @@
     ;; default to not allowing beam approximations
     if n_elements(allow_beam_approx) eq 0 then allow_beam_approx = 0
     
-    ;; if inverse covariance weighted don't use spectral window
+    ;; if inverse covariance weighted don't use spectral window or ave_removal
     if keyword_set(inverse_covar_weight) then no_spec_window = 1
+    if keyword_set(inverse_covar_weight) then ave_removal = 0
     
     ;; default to blackman-harris spectral window
     if not keyword_set(no_spec_window) then begin
