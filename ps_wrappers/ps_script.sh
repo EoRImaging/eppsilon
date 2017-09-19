@@ -397,4 +397,5 @@ message=($message)
 id_list=${id_list},${message[2]}
 
 #final plots
-qsub -hold_jid $id_list -p $priority -l h_vmem=$mem,h_stack=512k,h_rt=00:20:00 -V -v file_path_cubes=$FHDdir,obs_list_path=$integrate_list,version=$version,nslots=$nslots,image_filter_name=$tukey_filter -e ${errfile}_plots.log -o ${outfile}_plots.log -N PS_plots -pe chost $nslots ${PSpath}ps_wrappers/PS_list_job.sh
+if [[ -n ${tukey_filter} ]]; then plot_walltime=10:00:00; else plot_walltime=00:20:00; fi
+qsub -hold_jid $id_list -p $priority -l h_vmem=$mem,h_stack=512k,h_rt=$plot_walltime -V -v file_path_cubes=$FHDdir,obs_list_path=$integrate_list,version=$version,nslots=$nslots,image_filter_name=$tukey_filter -e ${errfile}_plots.log -o ${outfile}_plots.log -N PS_plots -pe chost $nslots ${PSpath}ps_wrappers/PS_list_job.sh

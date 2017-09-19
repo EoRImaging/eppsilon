@@ -8,7 +8,7 @@ pro kpower_slice_plot, slice_savefile, power = power, noise = noise, noise_expva
     full_title = full_title, title_prefix = title_prefix, $
     plot_wedge_line = plot_wedge_line, wedge_amp = wedge_amp, linear_axes = linear_axes, $
     baseline_axis = baseline_axis, delay_axis = delay_axis, cable_length_axis = cable_length_axis, $
-    hinv = hinv, note = note, invert_colorbar = invert_colorbar, no_units = no_units, pwr_ratio = pwr_ratio
+    hinv = hinv, note = note, invert_colorbar = invert_colorbar, no_units = no_units, pwr_ratio = pwr_ratio, charsize_in=charsize_in, kz_mpc=kz_mpc
     
   if keyword_set(delay_axis) and keyword_set(cable_length_axis) then message, 'Only one of delay_axis and cable_length_axis can be set'
   
@@ -604,7 +604,7 @@ pro kpower_slice_plot, slice_savefile, power = power, noise = noise, noise_expva
     
   if keyword_set(pub) and n_elements(multi_pos) eq 0 then begin
     cgps_close, png = png, pdf = pdf, delete_ps = delete_ps, density=600
-    wdelete, window_num
+    ;wdelete, window_num
   endif
   
   tvlct, r, g, b
