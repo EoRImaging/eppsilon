@@ -1,9 +1,12 @@
 pro ps_uvf, file_struct, refresh_data = refresh_data, refresh_weight = refresh_weight, $
     refresh_beam = refresh_beam, dft_fchunk = dft_fchunk, freq_ch_range = freq_ch_range, freq_flags = freq_flags, $
     image_window_name = image_window_name, image_window_frac_size = image_window_frac_size, $
-    delta_uv_lambda = delta_uv_lambda, max_uv_lambda = max_uv_lambda, no_dft_progress = no_dft_progress
+    delta_uv_lambda = delta_uv_lambda, max_uv_lambda = max_uv_lambda, no_dft_progress = no_dft_progress, $
+    n_vis_freq = n_vis_freq, n_freq = n_freq, input_uvf_varname = input_uvf_varname, $
+    input_uvf_files = input_uvf_files, this_run_git_hash = this_run_git_hash
     
   nfiles = n_elements(file_struct.datafile)
+  if tag_exist(file_struct, 'nside') ne 0 then healpix = 1 else healpix = 0
   
   for i=0, nfiles-1 do begin
     test_uvf = file_test(file_struct.uvf_savefile[i]) *  (1 - file_test(file_struct.uvf_savefile[i], /zero_length))
@@ -87,7 +90,7 @@ pro ps_uvf, file_struct, refresh_data = refresh_data, refresh_weight = refresh_w
     
     if test_uvf eq 0 or test_wt_uvf eq 0 or test_beam eq 0 or test_radec_uvf eq 0 or keyword_set(refresh_data) or keyword_set(refresh_weight) or keyword_set(refresh_beam) then begin
     
-      if datavar eq '' then begin
+      if file_struct.datavar eq '' then begin
         ;; working with a 'derived' cube (ie residual cube) that is constructed from uvf_savefiles
       
         test_input_uvf = intarr(2)

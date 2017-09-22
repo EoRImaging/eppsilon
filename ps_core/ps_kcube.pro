@@ -144,7 +144,9 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
     ps_uvf, file_struct, refresh_data = dft_refresh_data, refresh_weight = dft_refresh_weight, $
       refresh_beam = refresh_beam, dft_fchunk = dft_fchunk, freq_ch_range = freq_ch_range, freq_flags = freq_flags, $
       image_window_name = image_window_name, image_window_frac_size = image_window_frac_size, $
-      delta_uv_lambda = delta_uv_lambda, max_uv_lambda = max_uv_lambda, no_dft_progress = no_dft_progress
+      delta_uv_lambda = delta_uv_lambda, max_uv_lambda = max_uv_lambda, no_dft_progress = no_dft_progress, $
+      n_vis_freq = n_vis_freq, n_freq = n_freq, input_uvf_varname = input_uvf_varname, $
+      input_uvf_files = input_uvf_files, this_run_git_hash = this_run_git_hash
       
     if healpix then begin
       ;; Angular resolution is given in Healpix paper in units of arcminutes, need to convert to radians
