@@ -682,19 +682,23 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
   
     max_eta_val = max(sum_sigma2)
     eta_var = shift([max_eta_val, fltarr(n_freq-1)], n_freq/2)
-    covar_eta_fg = diag_matrix(eta_var)
+    ;covar_eta_fg = diag_matrix(eta_var)
+    
+    ;Testing Adrian-informed foreground covariance
+    norm_z = ((matrix_multiply(redshifts,redshifts,/btranspose))/(1420.40d/150. - 1d)^2.)
+    covar_z_fg = (149E6)*(1E-6/(file_struct.degpix*60.))*(norm_z)^(-2.5+.125*alog(norm_z)) + ((1.1E5)*10^6.)*(norm_z)^(-2.8+.08*alog(norm_z))
     
     identity = diag_matrix([fltarr(n_freq)+1d])
     ft_matrix = fft(identity, dimension=1)*n_freq*z_mpc_delta
     inv_ft_matrix = fft(identity, dimension=1, /inverse)*kz_mpc_delta
     undefine, identity
     
-    covar_z_fg = matrix_multiply(inv_ft_matrix, matrix_multiply(shift(covar_eta_fg, n_freq/2, n_freq/2), conj(inv_ft_matrix), /btranspose))
+    ;covar_z_fg = matrix_multiply(inv_ft_matrix, matrix_multiply(shift(covar_eta_fg, n_freq/2, n_freq/2), conj(inv_ft_matrix), /btranspose))
     if max(abs(imaginary(covar_z_fg))) eq 0 then covar_z_fg = real_part(covar_z_fg)
     
-    wt_data_sum = fltarr(n_kx, n_ky, n_freq)
+    wt_data_sum = complex(fltarr(n_kx, n_ky, n_freq))
     if nfiles eq 2 then begin
-      wt_data_diff = fltarr(n_kx, n_ky, n_freq)
+      wt_data_diff = complex(fltarr(n_kx, n_ky, n_freq))
     endif
     wt_sum_sigma2 = fltarr(n_kx, n_ky, n_freq)
     wt_power_norm = fltarr(n_kx, n_ky, n_freq, n_freq)
@@ -711,7 +715,7 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
         covar_z = diag_matrix(var_z_inst) + covar_z_fg
         inv_covar_z = la_invert(covar_z)
         inv_covar_kz = shift(matrix_multiply(ft_matrix, matrix_multiply(inv_covar_z, conj(ft_matrix), /btranspose)), n_freq/2, n_freq/2)
-        fisher_kz = abs(inv_covar_kz)^2.
+        fisher_kz = .5 * abs(inv_covar_kz)^2.
         
         inv_var = 1/var_z_inst
         wh_sigma0 = where(var_z_inst eq 0, count_sigma0)
@@ -725,7 +729,10 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
         endif
         wt_sum_sigma2[i,j,*] = diag_matrix(shift(matrix_multiply(inv_covar_z, matrix_multiply(diag_matrix(var_z_inst), conj(inv_covar_z), /btranspose)), n_freq/2, n_freq/2))
         
-        m_matrix = la_invert(matrix_sqrt(fisher_kz))
+        sqrt_fisher_kz = matrix_sqrt(fisher_kz) ;this operation takes a while, so do it once
+        m_matrix_norm = FLTARR(n_freq,n_freq)
+        for freq_i=0, n_freq-1 do m_matrix_norm[0:n_freq-1, freq_i] = total(sqrt_fisher_kz,2)
+        m_matrix = la_invert(sqrt_fisher_kz)/m_matrix_norm
         wt_power_norm[i,j,*,*] = m_matrix
         wt_sum_sigma2_norm[i,j,*,*] = matrix_multiply(m_matrix, matrix_multiply(fisher_kz, m_matrix, /btranspose))
         
@@ -854,7 +861,7 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
     endif
   endif
   
-  if keyword_set(inverse_covar) then begin
+  if keyword_set(inverse_covar_weight) then begin
   
     wt_power_norm_coscos = complex(fltarr(n_kx, n_ky, n_kz, n_kz))
     wt_power_norm_sinsin = complex(fltarr(n_kx, n_ky, n_kz, n_kz))
@@ -958,7 +965,7 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
     endif
     
     
-    if keyword_set(inverse_covar) then begin
+    if keyword_set(inverse_covar_weight) then begin
     
       wt_power_norm_1 = temporary(wt_power_norm_coscos)
       wt_power_norm_2 = temporary(wt_power_norm_sinsin)
@@ -1035,8 +1042,9 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
       undefine, sim_noise_diff_cos, sim_noise_diff_sin
     endif
     
-    if keyword_set(inverse_covar) then begin
+    if keyword_set(inverse_covar_weight) then begin
     
+    ;the theta matrices have the wrong size for an element by element multiplication ([n_kx,n_ky,n_kz] instead of [n_kx,n_ky,n_kz,n_kz])
       wt_power_norm_1 = wt_power_norm_coscos*cos_theta^2. + wt_power_norm_cossin*cos_theta*sin_theta $
         + wt_power_norm_sincos*cos_theta*sin_theta + wt_power_norm_sinsin*sin_theta^2.
       wt_power_norm_2 = wt_power_norm_coscos*sin_theta^2. - wt_power_norm_cossin*cos_theta*sin_theta $
@@ -1059,7 +1067,7 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
   git_hashes = {uvf:uvf_git_hashes, uvf_wt:uvf_wt_git_hashes, beam:beam_git_hashes, kcube:kcube_git_hash}
   
   ;; This is very repetative, but avoids getting warnings about not saving non-exisitent variables when they're not present
-  if keyword_set(inverse_covar) then begin
+  if keyword_set(inverse_covar_weight) then begin
     if n_elements(freq_flags) gt 0 then begin
       save, file = file_struct.kcube_savefile, data_sum_1, data_sum_2, data_diff_1, data_diff_2, $
         sim_noise_sum_1, sim_noise_sum_2, sim_noise_diff_1, sim_noise_diff_2, sigma2_1, sigma2_2, $
