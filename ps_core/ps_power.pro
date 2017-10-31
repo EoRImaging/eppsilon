@@ -54,7 +54,7 @@ pro ps_power, file_struct, refresh = refresh, kcube_refresh = kcube_refresh, dft
       uvf_input = uvf_input, uv_avg = uv_avg, uv_img_clip = uv_img_clip, sim=sim, fix_sim_input = fix_sim_input, $
       spec_window_type = spec_window_type, image_window_name = image_window_name, image_window_frac_size = image_window_frac_size, $
       std_power = std_power, inverse_covar_weight = inverse_covar_weight, $
-      input_units = input_units, no_dft_progress = no_dft_progress, ave_removal = ave_removal
+      input_units = input_units, no_dft_progress = no_dft_progress, ave_removal = ave_removal,debug_diagonal_assumption=debug_diagonal_assumption
       
     if nfiles eq 1 then begin
       restore, file_struct.kcube_savefile
@@ -217,32 +217,37 @@ pro ps_power, file_struct, refresh = refresh, kcube_refresh = kcube_refresh, dft
       
         if keyword_set(inverse_covar_weight) then begin
         
-          band_power_1 = fltarr(n_kx,n_ky,n_kz)
-          band_power_2 = fltarr(n_kx,n_ky,n_kz)
-          band_noise_1 = fltarr(n_kx,n_ky,n_kz)
-          band_noise_2 = fltarr(n_kx,n_ky,n_kz)
-          ;diag_wt_sum_sigma2_norm_1 = fltarr(n_kx,n_ky,n_kz)
-          ;diag_wt_sum_sigma2_norm_2 = fltarr(n_kx,n_ky,n_kz)
-          band_weights_1 = fltarr(n_kx,n_ky,n_kz)
-          band_weights_2 = fltarr(n_kx,n_ky,n_kz)
+          band_power_1 = complex(fltarr(n_kx,n_ky,n_kz))
+          band_power_2 = complex(fltarr(n_kx,n_ky,n_kz))
+          band_noise_1 = complex(fltarr(n_kx,n_ky,n_kz))
+          band_noise_2 = complex(fltarr(n_kx,n_ky,n_kz))
+          band_weights_1 = complex(fltarr(n_kx,n_ky,n_kz))
+          band_weights_2 = complex(fltarr(n_kx,n_ky,n_kz))
           
           
           for kx_i=0, n_kx-1 do begin
             for ky_i=0, n_ky-1 do begin
-            
-              ;covariance-weighted data sum outer product, remove covariance-weighted data diff outer product, then
-              ;element-by-element multiplication with norm matrix and row summation
-              band_power_1[kx_i,ky_i,*] = .5 * total(reform(wt_power_norm_1[kx_i,ky_i,*,*]) * ( matrix_multiply(reform(data_sum_1[kx_i,ky_i,*]),conj(reform(data_sum_1[kx_i,ky_i,*])),/btranspose) - $
-                matrix_multiply(reform(data_diff_1[kx_i,ky_i,*]),conj(reform(data_diff_1[kx_i,ky_i,*])),/btranspose) ) ,1)
-              band_power_2[kx_i,ky_i,*] = .5 * total(reform(wt_power_norm_2[kx_i,ky_i,*,*]) * ( matrix_multiply(reform(data_sum_2[kx_i,ky_i,*]),conj(reform(data_sum_2[kx_i,ky_i,*])),/btranspose) - $
-                matrix_multiply(reform(data_diff_2[kx_i,ky_i,*]),conj(reform(data_diff_2[kx_i,ky_i,*])),/btranspose) ) ,1)
-                
-              band_noise_1[kx_i,ky_i,*] = .5 * total(reform(wt_power_norm_1[kx_i,ky_i,*,*]) * ( matrix_multiply(reform(data_diff_1[kx_i,ky_i,*]),conj(reform(data_diff_1[kx_i,ky_i,*])),/btranspose) ) ,1)
-              band_noise_2[kx_i,ky_i,*] = .5 * total(reform(wt_power_norm_2[kx_i,ky_i,*,*]) * ( matrix_multiply(reform(data_diff_2[kx_i,ky_i,*]),conj(reform(data_diff_2[kx_i,ky_i,*])),/btranspose) ) ,1)
 
+                ;covariance-weighted data sum outer product, remove covariance-weighted data diff outer product, then
+                ;element-by-element multiplication with norm matrix and row summation
+                ;band_power_1[kx_i,ky_i,*] = .5 * total(reform(wt_power_norm_1[kx_i,ky_i,*,*]) * ( (matrix_multiply(reform((data_sum_1[kx_i,ky_i,*])),conj(reform(data_sum_1[kx_i,ky_i,*])),/btranspose)) - $
+                ;  (matrix_multiply(reform(data_diff_1[kx_i,ky_i,*]),conj(reform(data_diff_1[kx_i,ky_i,*])),/btranspose)) ) ,1)
+                ;band_power_2[kx_i,ky_i,*] = .5 * total(reform(wt_power_norm_2[kx_i,ky_i,*,*]) * ( (matrix_multiply(reform(data_sum_2[kx_i,ky_i,*]),conj(reform(data_sum_2[kx_i,ky_i,*])),/btranspose)) - $
+                ;  (matrix_multiply(reform(data_diff_2[kx_i,ky_i,*]),conj(reform(data_diff_2[kx_i,ky_i,*])),/btranspose)) ) ,1)
+                ;  
+                ;band_noise_1[kx_i,ky_i,*] = .5 * total(reform(wt_power_norm_1[kx_i,ky_i,*,*]) * ( abs(matrix_multiply(reform(data_diff_1[kx_i,ky_i,*]),conj(reform(data_diff_1[kx_i,ky_i,*])),/btranspose)) ) ,1)
+                ;band_noise_2[kx_i,ky_i,*] = .5 * total(reform(wt_power_norm_2[kx_i,ky_i,*,*]) * ( abs(matrix_multiply(reform(data_diff_2[kx_i,ky_i,*]),conj(reform(data_diff_2[kx_i,ky_i,*])),/btranspose)) ) ,1)
+
+              ;Trying a simplier formulation from Adrian's appendix
+              band_power_1[kx_i,ky_i,*] = .5 * diag_matrix(reform(wt_power_norm_1[kx_i,ky_i,*,*])) * (abs(reform(data_sum_1[kx_i,ky_i,*]))^2. - abs(reform(data_diff_1[kx_i,ky_i,*]))^2.)
+              band_power_2[kx_i,ky_i,*] = .5 * diag_matrix(reform(wt_power_norm_2[kx_i,ky_i,*,*])) * (abs(reform(data_sum_2[kx_i,ky_i,*]))^2. - abs(reform(data_diff_2[kx_i,ky_i,*]))^2.)
+                
+              band_noise_1[kx_i,ky_i,*] = .5 * diag_matrix(reform(wt_power_norm_1[kx_i,ky_i,*,*])) * abs(reform(data_sum_1[kx_i,ky_i,*]))^2.; - reform(data_diff_1[kx_i,ky_i,*]))^2.
+              band_noise_2[kx_i,ky_i,*] = .5 * diag_matrix(reform(wt_power_norm_2[kx_i,ky_i,*,*])) * abs(reform(data_sum_2[kx_i,ky_i,*]))^2.
+                
               ;band_weights_1[kx_i,ky_i,*] = .5 * total(reform(wt_sum_sigma2_norm_1[kx_i,ky_i,*,*]) * matrix_multiply(reform(sigma2_1[kx_i,ky_i,*]),conj(reform(sigma2_1[kx_i,ky_i,*])),/btranspose) ,1)
               ;band_weights_2[kx_i,ky_i,*] = .5 * total(reform(wt_sum_sigma2_norm_2[kx_i,ky_i,*,*]) * matrix_multiply(reform(sigma2_2[kx_i,ky_i,*]),conj(reform(sigma2_2[kx_i,ky_i,*])),/btranspose) ,1)
-              
+
               band_weights_1[kx_i,ky_i,*] = diag_matrix(reform(wt_sum_sigma2_norm_1[kx_i,ky_i,*,*]))
               band_weights_2[kx_i,ky_i,*] = diag_matrix(reform(wt_sum_sigma2_norm_1[kx_i,ky_i,*,*]))
               
@@ -258,8 +263,6 @@ pro ps_power, file_struct, refresh = refresh, kcube_refresh = kcube_refresh, dft
           power_weights2 = band_weights_2
           
           undefine, band_power_1, band_power_2, band_noise_1, band_noise_2, band_weights_1, band_weights_2, data_sum_1, data_sum_2, data_diff_1, data_diff_2
-          
-        ;undefine, diag_wt_sum_sigma2_norm_1, diag_wt_sum_sigma2_norm_2, band_power_1, band_power_2
           
         endif else begin
           term1 = (abs(data_sum_1)^2. - abs(data_diff_1)^2.) * power_weights1
@@ -317,6 +320,12 @@ pro ps_power, file_struct, refresh = refresh, kcube_refresh = kcube_refresh, dft
           sim_noise_3d[wh_wt0] = 0
           sim_noise_diff_3d[wh_wt0] = 0
         endif
+        
+        ;if keyword_set(inverse_covar_weight) then begin
+        ;  power_3d = real_part(power_3d)
+        ;  weights_3d = real_part(weights_3d)
+        ;  noise_3d=real_part(noise_3d)
+        ;endif
         
         ;; variance_3d = 4/weights_3d b/c of factors of 2 in power
         ;; in later code variance is taken to be 1/weights so divide by 4 now

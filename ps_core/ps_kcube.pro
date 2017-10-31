@@ -60,7 +60,7 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
   endif else n_kz = n_elements(kz_mpc_orig)
   
   if input_units eq 'jansky' then begin
-       ;; converting from Jy (in u,v,f) to mK*str (10^-26 * c^2 * 10^3/ (2*f^2*kb))
+    ;; converting from Jy (in u,v,f) to mK*str (10^-26 * c^2 * 10^3/ (2*f^2*kb))
     conv_factor = float((3e8)^2 / (2. * (frequencies*1e6)^2. * 1.38065))
     
     ;; convert from mk*str to mK*Mpc^2
@@ -338,7 +338,7 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
     endif
     
   endif
-    
+  
   n_kx = n_elements(kx_mpc)
   n_ky = n_elements(ky_mpc)
   kx_mpc_delta = kx_mpc[1] - kx_mpc[0]
@@ -682,18 +682,19 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
   
     max_eta_val = max(sum_sigma2)
     eta_var = shift([max_eta_val, fltarr(n_freq-1)], n_freq/2)
-    ;covar_eta_fg = diag_matrix(eta_var)
-    
-    ;Testing Adrian-informed foreground covariance
-    norm_z = ((matrix_multiply(redshifts,redshifts,/btranspose))/(1420.40d/150. - 1d)^2.)
-    covar_z_fg = (149E6)*(1E-6/(file_struct.degpix*60.))*(norm_z)^(-2.5+.125*alog(norm_z)) + ((1.1E5)*10^6.)*(norm_z)^(-2.8+.08*alog(norm_z))
+    covar_eta_fg = diag_matrix(eta_var)
+
+    ;Adrian-informed foreground covariance
+    ;norm_z = ((matrix_multiply(redshifts,redshifts,/btranspose))/(1420.40d/150. - 1d)^2.)
+    ;covar_z_fg = (149E6)*(1E-6/(file_struct.degpix^2. * (180./!Pi)^2.))*(norm_z)^(-2.5+.125*alog(norm_z)) + ((1.1E5)*10^6.)*(norm_z)^(-2.8+.08*alog(norm_z))
+    ;covar_z_fg = pointsource_covariance + ((1.1E5)*10^6.)*(norm_z)^(-2.8+.08*alog(norm_z))
     
     identity = diag_matrix([fltarr(n_freq)+1d])
     ft_matrix = fft(identity, dimension=1)*n_freq*z_mpc_delta
     inv_ft_matrix = fft(identity, dimension=1, /inverse)*kz_mpc_delta
     undefine, identity
     
-    ;covar_z_fg = matrix_multiply(inv_ft_matrix, matrix_multiply(shift(covar_eta_fg, n_freq/2, n_freq/2), conj(inv_ft_matrix), /btranspose))
+    covar_z_fg = matrix_multiply(inv_ft_matrix, matrix_multiply(shift(covar_eta_fg, n_freq/2, n_freq/2), conj(inv_ft_matrix), /btranspose))
     if max(abs(imaginary(covar_z_fg))) eq 0 then covar_z_fg = real_part(covar_z_fg)
     
     wt_data_sum = complex(fltarr(n_kx, n_ky, n_freq))
@@ -712,15 +713,17 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
         wh_var0 = where(var_z_inst eq 0, count_var0)
         if count_var0 gt 0 then var_z_inst[wh_var0] = 1e6
         
-        covar_z = diag_matrix(var_z_inst) + covar_z_fg
+        covar_z = diag_matrix(var_z_inst); + covar_z_fg
         inv_covar_z = la_invert(covar_z)
         inv_covar_kz = shift(matrix_multiply(ft_matrix, matrix_multiply(inv_covar_z, conj(ft_matrix), /btranspose)), n_freq/2, n_freq/2)
+          
+        ;fisher_kz = complex(DBLARR(n_freq,n_freq))
+        ;for freq_i=0, n_freq-1 do for freq_j=0, n_freq-1 do fisher_kz[freq_i,freq_j] = .5 * (total(reform(inv_covar_kz[freq_i,*])*reform((inv_covar_kz[*,freq_j]))))
         fisher_kz = .5 * abs(inv_covar_kz)^2.
         
         inv_var = 1/var_z_inst
         wh_sigma0 = where(var_z_inst eq 0, count_sigma0)
         if count_sigma0 gt 0 then inv_var[wh_sigma0] = 0
-        ;; norm2 = total(inv_var)^2./(n_freq*total(inv_var^2.))
         
         wt_data_sum[i,j,*] = matrix_multiply(inv_covar_z, reform(data_sum[i,j,*])) * z_mpc_delta
         
@@ -1044,7 +1047,7 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
     
     if keyword_set(inverse_covar_weight) then begin
     
-    ;the theta matrices have the wrong size for an element by element multiplication ([n_kx,n_ky,n_kz] instead of [n_kx,n_ky,n_kz,n_kz])
+      ;the theta matrices have the wrong size for an element by element multiplication ([n_kx,n_ky,n_kz] instead of [n_kx,n_ky,n_kz,n_kz])
       wt_power_norm_1 = wt_power_norm_coscos*cos_theta^2. + wt_power_norm_cossin*cos_theta*sin_theta $
         + wt_power_norm_sincos*cos_theta*sin_theta + wt_power_norm_sinsin*sin_theta^2.
       wt_power_norm_2 = wt_power_norm_coscos*sin_theta^2. - wt_power_norm_cossin*cos_theta*sin_theta $
