@@ -54,7 +54,7 @@ pro ps_power, file_struct, refresh = refresh, kcube_refresh = kcube_refresh, dft
       uvf_input = uvf_input, uv_avg = uv_avg, uv_img_clip = uv_img_clip, sim=sim, fix_sim_input = fix_sim_input, $
       spec_window_type = spec_window_type, image_window_name = image_window_name, image_window_frac_size = image_window_frac_size, $
       std_power = std_power, inverse_covar_weight = inverse_covar_weight, $
-      input_units = input_units, no_dft_progress = no_dft_progress, ave_removal = ave_removal,debug_diagonal_assumption=debug_diagonal_assumption
+      input_units = input_units, no_dft_progress = no_dft_progress, ave_removal = ave_removal
       
     if nfiles eq 1 then begin
       restore, file_struct.kcube_savefile
