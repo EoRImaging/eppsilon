@@ -14,7 +14,7 @@ function z_mpc, frequencies, hubble_param = hubble_param, f_delta = f_delta, eve
   comov_los_diff = comov_dist_los - shift(comov_dist_los, -1)
   comov_los_diff = comov_los_diff[0:n_elements(comov_dist_los)-2]
   
-  if max(freq_diff-freq_diff[0]) gt 1e-12 then begin
+  if max(abs(freq_diff-freq_diff[0])) gt 1e-12 then begin
     ;; frequencies are not evenly spaced, need to be careful about z_mpc_delta/mean
     even_freq = 0
     
