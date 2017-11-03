@@ -1569,6 +1569,7 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
   if even_freq then begin
     ;; evenly spaced, just use fft
     ;; old ft convention
+    print, "Using FFT for evenly spaced frequncies"
     ; data_sum_ft = fft(data_sum, dimension=3) * n_freq * z_mpc_delta / (2.*!pi)
     data_sum_ft = fft(data_sum, dimension=3) * n_freq * z_mpc_delta
     sim_noise_sum_ft = fft(sim_noise_sum, dimension=3) * n_freq * z_mpc_delta
@@ -1591,6 +1592,8 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
     endif
   endif else begin
     ;; Not evenly spaced. Do a dft
+    print, "Uneven frequency structure found"
+    print, "Performing Discrete Fourier Transform"
     z_exp =  exp(-1.*complex(0,1)*matrix_multiply(comov_dist_los, kz_mpc_orig, /btranspose))
     
     
