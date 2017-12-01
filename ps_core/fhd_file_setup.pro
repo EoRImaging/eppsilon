@@ -613,13 +613,20 @@ function fhd_file_setup, filename, weightfile = weightfile, variancefile = varia
         n_vis_freq_arr = fltarr([n_obs[pol_i, file_i], n_freq])
         for i=0, n_obs[pol_i, file_i]-1 do n_vis_freq_arr[i, *] = obs_arr[i].nf_vis
         
-        if tag_exist(obs_arr, 'beam_integral') then begin
+        if tag_exist(obs_arr, 'beam_integral') or tag_exist(obs_arr, 'primary_beam_sq_area') then begin
           if j eq 0 then beam_int = fltarr(npol, nfiles, n_freq)
           beam_int_arr = fltarr([n_obs[pol_i, file_i], n_freq])
-          for i=0, n_obs[pol_i, file_i]-1 do begin
-            if obs_arr[i].beam_integral(pol_i) eq !Null then beam_int_arr[i, *] = 0 else $
-              beam_int_arr[i, *] = *(obs_arr[i].beam_integral(pol_i))
-          endfor
+          if tag_exist(obs_arr,'primary_beam_sq_area') then begin
+            for i=0, n_obs[pol_i, file_i]-1 do begin
+                if obs_arr[i].primary_beam_sq_area(pol_i) eq !Null then beam_int_arr[i, *] = 0 else $
+                  beam_int_arr[i, *] = *(obs_arr[i].primary_beam_sq_area(pol_i))
+            endfor
+          endif else begin
+            for i=0, n_obs[pol_i, file_i]-1 do begin
+                if obs_arr[i].beam_integral(pol_i) eq !Null then beam_int_arr[i, *] = 0 else $
+                  beam_int_arr[i, *] = *(obs_arr[i].beam_integral(pol_i))
+            endfor
+          endelse
           if max(beam_int_arr) eq 0 then begin
             ;; all the pointers were null -- treat as if it doesn't exist in obs structure
             undefine, beam_int_arr
