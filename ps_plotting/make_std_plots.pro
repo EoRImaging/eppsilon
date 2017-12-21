@@ -312,7 +312,7 @@ pro make_std_plots, file_struct_arr, savefiles_2d, titles, $
           undefine, plotfile_use
         endelse
 
-        kpower_2d_plots, savefiles_2d[cube_i], /sim_snr, multi_pos = pos_use,
+        kpower_2d_plots, savefiles_2d[cube_i], /sim_snr, multi_pos = pos_use, $
           start_multi_params = start_multi_params, png = png, eps = eps, pdf = pdf, $
           plotfile = plotfile_use, kperp_plot_range = kperp_plot_range, $
           kpar_plot_range = kpar_plot_range, data_range = nnr_range, $
