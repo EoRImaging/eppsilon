@@ -1,4 +1,4 @@
-pro ps_wrapper, folder_name, obs_name, data_subdirs=data_subdirs, exact_obsnames = exact_obsnames, ps_foldername = ps_foldername, $
+pro ps_wrapper, folder_name_in, obs_name, data_subdirs=data_subdirs, exact_obsnames = exact_obsnames, ps_foldername = ps_foldername, $
     no_evenodd = no_evenodd, no_wtvar_rts = no_wtvar_rts, set_data_ranges = set_data_ranges, $
     beamfiles = beamfiles, rts = rts, casa = casa, sim = sim, $
     refresh_dft = refresh_dft, refresh_ps = refresh_ps, refresh_binning = refresh_binning, refresh_info = refresh_info, $
@@ -36,36 +36,10 @@ pro ps_wrapper, folder_name, obs_name, data_subdirs=data_subdirs, exact_obsnames
     note = note, png = png, eps = eps, pdf = pdf, cube_power_info = cube_power_info, $
     no_dft_progress = no_dft_progress, loc_name = loc_name
 
-  if n_elements(folder_name) ne 1 then message, 'one folder_name must be supplied.'
+  if n_elements(folder_name_in) ne 1 then message, 'one folder_name must be supplied.'
 
-  if n_elements(loc_name) eq 0 then begin
-    spawn, 'hostname', hostname
-    if stregex(hostname, 'mit.edu', /boolean) eq 1 then loc_name = 'mit'
-    if stregex(hostname, 'enterprise', /boolean) eq 1 then loc_name = 'enterprise'
-    if stregex(hostname, 'constellation', /boolean) eq 1 then loc_name = 'enterprise'
-    if stregex(hostname, 'defiant', /boolean) eq 1 then loc_name = 'enterprise'
-    if stregex(hostname, 'intrepid', /boolean) eq 1 then loc_name = 'enterprise'
-    if n_elements(loc_name) eq 0 then loc_name = hostname
-  endif
-  case loc_name of
-    'mit':  folder_name = mit_folder_locs(folder_name, rts = rts)
-    'enterprise': folder_name = enterprise_folder_locs(folder_name, rts = rts)
-    else: begin
-      folder_test = file_test(folder_name, /directory)
-      if folder_test eq 0 then message, 'machine not recognized and folder not found'
-    endelse
-  endcase
-
-  if keyword_set(rts) and n_elements(dirty_folder) gt 0 then begin
-    case loc_name of
-      'mit':  dirty_folder = mit_folder_locs(dirty_folder, rts = rts)
-      'enterprise': dirty_folder = enterprise_folder_locs(dirty_folder, rts = rts)
-      else: begin
-        folder_test = file_test(dirty_folder, /directory)
-        if folder_test eq 0 then message, 'machine not recognized and dirty_folder not found'
-      endelse
-    endcase
-  endif
+  folder_name = get_folder(folder_name_in, loc_name = loc_name,  rts = rts, $
+    dirty_folder = dirty_folder)
 
   obs_info = ps_filenames(folder_name, obs_name, dirty_folder = dirty_folder, exact_obsnames = exact_obsnames, rts = rts, $
     uvf_input = uvf_input, data_subdirs = data_subdirs, ps_foldernames = ps_foldername, save_paths = save_path, plot_paths = plot_path, $
