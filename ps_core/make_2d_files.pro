@@ -1,4 +1,4 @@
-pro make_2d_files, nfiles, savefile_2d, savefile_k0, power_3D, sim_noise_3D,
+pro make_2d_files, nfiles, savefile_2d, savefile_k0, power_3D, sim_noise_3D, $
     new_noise_3d, noise_expval_3d, weights_3d, kx_mpc, ky_mpc, kz_mpc, $
     delay_params, hubble_param, hinv, kperp_lambda_conv, freq_mask, vs_name, $
     vs_mean, t_sys_meas, window_int, git_hashes, wt_ave_power, ave_power, $
