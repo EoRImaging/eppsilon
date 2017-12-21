@@ -1,11 +1,14 @@
-pro ps_wrapper, folder_name_in, obs_name, data_subdirs=data_subdirs, exact_obsnames = exact_obsnames, ps_foldername = ps_foldername, $
+pro ps_wrapper, folder_name_in, obs_name, data_subdirs=data_subdirs, $
+  exact_obsnames = exact_obsnames, ps_foldername = ps_foldername, $
     no_evenodd = no_evenodd, no_wtvar_rts = no_wtvar_rts, set_data_ranges = set_data_ranges, $
     beamfiles = beamfiles, rts = rts, casa = casa, sim = sim, $
-    refresh_dft = refresh_dft, refresh_ps = refresh_ps, refresh_binning = refresh_binning, refresh_info = refresh_info, $
+    refresh_dft = refresh_dft, refresh_ps = refresh_ps, $
+    refresh_binning = refresh_binning, refresh_info = refresh_info, $
     refresh_beam = refresh_beam, dft_fchunk = dft_fchunk, $
     delta_uv_lambda = delta_uv_lambda, max_uv_lambda = max_uv_lambda, $
     pol_inc = pol_inc, type_inc = type_inc, $
-    freq_ch_range = freq_ch_range, freq_flags = freq_flags, freq_flag_name = freq_flag_name, allow_beam_approx = allow_beam_approx, $
+    freq_ch_range = freq_ch_range, freq_flags = freq_flags, $
+    freq_flag_name = freq_flag_name, allow_beam_approx = allow_beam_approx, $
     uvf_input = uvf_input, uv_avg = uv_avg, uv_img_clip = uv_img_clip, $
     std_power = std_power, inverse_covar_weight = inverse_covar_weight, ave_removal = ave_removal, $
     no_wtd_avg = no_wtd_avg, norm_rts_with_fhd = norm_rts_with_fhd, $
@@ -41,9 +44,10 @@ pro ps_wrapper, folder_name_in, obs_name, data_subdirs=data_subdirs, exact_obsna
   folder_name = get_folder(folder_name_in, loc_name = loc_name,  rts = rts, $
     dirty_folder = dirty_folder)
 
-  obs_info = ps_filenames(folder_name, obs_name, dirty_folder = dirty_folder, exact_obsnames = exact_obsnames, rts = rts, $
-    uvf_input = uvf_input, data_subdirs = data_subdirs, ps_foldernames = ps_foldername, save_paths = save_path, plot_paths = plot_path, $
-    refresh_info = refresh_info)
+  obs_info = ps_filenames(folder_name, obs_name, dirty_folder = dirty_folder, $
+    exact_obsnames = exact_obsnames, rts = rts, uvf_input = uvf_input, $
+    data_subdirs = data_subdirs, ps_foldernames = ps_foldername, $
+    save_paths = save_path, plot_paths = plot_path, refresh_info = refresh_info)
 
   if not file_test(save_path, /directory) then file_mkdir, save_path
   if not file_test(plot_path, /directory) then file_mkdir, plot_path
@@ -55,16 +59,17 @@ pro ps_wrapper, folder_name_in, obs_name, data_subdirs=data_subdirs, exact_obsna
     if obs_info.info_files[0] ne '' then datafile = obs_info.info_files[0] else begin
 
       if obs_info.cube_files.(0)[0] ne '' then datafile = obs_info.cube_files.(0) else begin
-        datafile = rts_fits2idlcube(obs_info.datafiles.(0), obs_info.weightfiles.(0), obs_info.variancefiles.(0), $
-          dirtyfiles = dirtyfiles, pol_inc = pol_inc, save_path = obs_info.folder_names[0]+path_sep(), $
+        datafile = rts_fits2idlcube(obs_info.datafiles.(0), obs_info.weightfiles.(0), $
+          obs_info.variancefiles.(0), dirtyfiles = dirtyfiles, pol_inc = pol_inc, $
+          save_path = obs_info.folder_names[0]+path_sep(), $
           refresh = refresh_dft, no_wtvar = no_wtvar_rts)
       endelse
     endelse
 
     if keyword_set(refresh_rtscube) then $
-      datafile = rts_fits2idlcube(obs_info.datafiles.(0), obs_info.weightfiles.(0), obs_info.variancefiles.(0), $
-      dirtyfiles = dirtyfiles, pol_inc = pol_inc, save_path = obs_info.folder_names[0]+path_sep(), $
-      /refresh, no_wtvar = no_wtvar_rts)
+      datafile = rts_fits2idlcube(obs_info.datafiles.(0), obs_info.weightfiles.(0), $
+        obs_info.variancefiles.(0), dirtyfiles = dirtyfiles, pol_inc = pol_inc, $
+        save_path = obs_info.folder_names[0]+path_sep(), /refresh, no_wtvar = no_wtvar_rts)
 
     if keyword_set(no_wtvar_rts) then return
 
@@ -74,7 +79,11 @@ pro ps_wrapper, folder_name_in, obs_name, data_subdirs=data_subdirs, exact_obsna
 
   endif else begin
 
-    if obs_info.info_files[0] ne '' then datafile = obs_info.info_files[0] else datafile = obs_info.cube_files.(0)
+    if obs_info.info_files[0] ne '' then begin
+      datafile = obs_info.info_files[0]
+    endif else begin
+      datafile = obs_info.cube_files.(0)
+    endelse
 
     if keyword_set(uvf_input) then plot_filebase = obs_info.fhd_types[0] + '_uvf'$
     else  plot_filebase = obs_info.fhd_types[0]
@@ -104,9 +113,19 @@ pro ps_wrapper, folder_name_in, obs_name, data_subdirs=data_subdirs, exact_obsna
   print,'datafile = '+datafile
 
   if keyword_set(set_data_ranges) then begin
-    if n_elements(range_1d) eq 0 then if keyword_set(plot_1d_delta) then range_1d = [1e0, 1e10] else range_1d = [1e4, 1e15]
+    if n_elements(range_1d) eq 0 then begin
+      if keyword_set(plot_1d_delta) then begin
+        range_1d = [1e0, 1e10]
+      endif else begin
+        range_1d = [1e4, 1e15]
+      endelse
+    endif
 
-    if tag_exist(obs_info, 'integrated') then integrated = obs_info.integrated[0] else integrated = 1
+    if tag_exist(obs_info, 'integrated') then begin
+      integrated = obs_info.integrated[0]
+    endif else begin
+      integrated = 1
+    endelse
 
     if integrated gt 0 then begin
       if n_elements(sigma_range) eq 0 then sigma_range = [2e5, 2e9]
@@ -135,12 +154,15 @@ pro ps_wrapper, folder_name_in, obs_name, data_subdirs=data_subdirs, exact_obsna
 
   dft_fchunk = 1
 
-  ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, sim = sim, no_evenodd = no_evenodd, $
-    refresh_dft = refresh_dft, refresh_ps = refresh_ps, refresh_binning = refresh_binning, refresh_info = refresh_info, $
+  ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, sim = sim, $
+    no_evenodd = no_evenodd, $
+    refresh_dft = refresh_dft, refresh_ps = refresh_ps, $
+    refresh_binning = refresh_binning, refresh_info = refresh_info, $
     refresh_beam = refresh_beam, dft_fchunk = dft_fchunk, $
     delta_uv_lambda = delta_uv_lambda, max_uv_lambda = max_uv_lambda, $
     pol_inc = pol_inc, type_inc = type_inc, $
-    freq_ch_range = freq_ch_range, freq_flags = freq_flags, freq_flag_name = freq_flag_name, allow_beam_approx = allow_beam_approx, $
+    freq_ch_range = freq_ch_range, freq_flags = freq_flags, $
+    freq_flag_name = freq_flag_name, allow_beam_approx = allow_beam_approx, $
     uvf_input = uvf_input, uv_avg = uv_avg, uv_img_clip = uv_img_clip, $
     std_power = std_power, inverse_covar_weight = inverse_covar_weight, ave_removal = ave_removal, $
     no_wtd_avg = no_wtd_avg, norm_rts_with_fhd = norm_rts_with_fhd, $
@@ -149,11 +171,14 @@ pro ps_wrapper, folder_name_in, obs_name, data_subdirs=data_subdirs, exact_obsna
     image_window_name = image_window_name, image_window_frac_size = image_window_frac_size, $
     no_kzero = no_kzero, plot_slices = plot_slices, slice_type = slice_type, uvf_plot_type = uvf_plot_type, $
     plot_stdset = plot_stdset, plot_1to2d = plot_1to2d, plot_2d_masked = plot_2d_masked, $
-    plot_kpar_power = plot_kpar_power, plot_kperp_power = plot_kperp_power, plot_k0_power = plot_k0_power, plot_noise_1d = plot_noise_1d, $
-    data_range = data_range, sigma_range = sigma_range, nev_range = nev_range, slice_range = slice_range, plot_sim_noise = plot_sim_noise, $
+    plot_kpar_power = plot_kpar_power, plot_kperp_power = plot_kperp_power, $
+    plot_k0_power = plot_k0_power, plot_noise_1d = plot_noise_1d, $
+    data_range = data_range, sigma_range = sigma_range, nev_range = nev_range, $
+    slice_range = slice_range, plot_sim_noise = plot_sim_noise, $
     snr_range = snr_range, noise_range = noise_range, nnr_range = nnr_range, range_1d = range_1d, $
     log_kpar = log_kpar, log_kperp = log_kperp, kpar_bin = kpar_bin, kperp_bin = kperp_bin, $
-    log_k1d = log_k1d, k1d_bin = k1d_bin, plot_1d_delta = plot_1d_delta, plot_1d_error_bars = plot_1d_error_bars, plot_1d_nsigma = plot_1d_nsigma, $
+    log_k1d = log_k1d, k1d_bin = k1d_bin, plot_1d_delta = plot_1d_delta, $
+    plot_1d_error_bars = plot_1d_error_bars, plot_1d_nsigma = plot_1d_nsigma, $
     kperp_range_1dave = kperp_range_1dave, kperp_range_lambda_1dave = kperp_range_lambda_1dave, $
     kx_range_1dave = kx_range_1dave, kx_range_lambda_1dave = kx_range_lambda_1dave, $
     ky_range_1dave = ky_range_1dave, ky_range_lambda_1dave = ky_range_lambda_1dave, $

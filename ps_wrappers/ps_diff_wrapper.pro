@@ -1,12 +1,14 @@
 pro ps_diff_wrapper, folder_names_in, obs_names_in, ps_foldernames = ps_foldernames, $
-    cube_types = cube_types, pols = pols, $
-    refresh_diff = refresh_diff, spec_window_types = spec_window_types, delta_uv_lambda = delta_uv_lambda, $
-    ave_removal = ave_removal, image_window_name = image_window_name, image_window_frac_size = image_window_frac_size, $
+    cube_types = cube_types, pols = pols,  refresh_diff = refresh_diff, $
+    spec_window_types = spec_window_types, delta_uv_lambda = delta_uv_lambda, $
+    ave_removal = ave_removal, image_window_name = image_window_name, $
+    image_window_frac_size = image_window_frac_size, $
     all_type_pol = all_type_pol, freq_ch_range = freq_ch_range, $
     plot_slices = plot_slices, slice_type = slice_type, $
     png = png, eps = eps, pdf = pdf, data_range = data_range, data_min_abs = data_min_abs, $
     kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, sim = sim, $
-    plot_1d = plot_1d, axis_type_1d=axis_type_1d, wt_cutoffs = wt_cutoffs, wt_measures = wt_measures, $
+    plot_1d = plot_1d, axis_type_1d=axis_type_1d, wt_cutoffs = wt_cutoffs, $
+    wt_measures = wt_measures, $
     window_num = window_num, invert_colorbar = invert_colorbar, $
     diff_save_path = diff_save_path, exact_obsnames = exact_obsnames, $
     uvf_input = uvf_input, plot_path = diff_plot_path
@@ -23,9 +25,11 @@ pro ps_diff_wrapper, folder_names_in, obs_names_in, ps_foldernames = ps_folderna
   folder_names = get_folder(folder_names_in, loc_name = loc_name,  rts = rts, $
     dirty_folder = dirty_folder)
 
-  obs_info = ps_filenames(folder_names, obs_names_in, dirty_folder = dirty_folder, exact_obsnames = exact_obsnames, rts = rts, sim = sim, $
-    uvf_input = uvf_input, casa = casa, data_subdirs = data_subdirs, $
-    ps_foldernames = ps_foldernames, save_paths = save_paths, plot_paths = plot_paths, refresh_info = refresh_info, no_wtvar_rts = no_wtvar_rts)
+  obs_info = ps_filenames(folder_names, obs_names_in, dirty_folder = dirty_folder, $
+    exact_obsnames = exact_obsnames, rts = rts, sim = sim,  uvf_input = uvf_input, $
+    casa = casa, data_subdirs = data_subdirs, ps_foldernames = ps_foldernames, $
+    save_paths = save_paths, plot_paths = plot_paths, refresh_info = refresh_info, $
+    no_wtvar_rts = no_wtvar_rts)
 
   if n_elements(diff_plot_path) eq 0 then begin
     if n_elements(diff_save_path) gt 0 then diff_plot_path = diff_save_path + path_sep() + 'plots' + path_sep()
@@ -36,7 +40,8 @@ pro ps_diff_wrapper, folder_names_in, obs_names_in, ps_foldernames = ps_folderna
 
   ps_difference_plots, folder_names, obs_info, ps_foldernames = ps_foldernames, cube_types, pols, $
     spec_window_types = spec_window_types, delta_uv_lambda = delta_uv_lambda, $
-    ave_removal = ave_removal, image_window_name = image_window_name, image_window_frac_size = image_window_frac_size, $
+    ave_removal = ave_removal, image_window_name = image_window_name, $
+    image_window_frac_size = image_window_frac_size, $
     all_type_pol = all_type_pol, refresh_diff = refresh_diff, freq_ch_range = freq_ch_range, $
     plot_slices = plot_slices, slice_type = slice_type, $
     plot_path = diff_plot_path, plot_filebase = plot_filebase, save_path = diff_save_path, $
