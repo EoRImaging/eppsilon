@@ -1307,7 +1307,7 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
     window_int_k = window_int * (z_mpc_delta * n_freq) * (kx_mpc_delta * ky_mpc_delta)*z_mpc_mean^4./((2.*!pi)^2.*file_struct.kpix^4.)
     print, 'window integral from variances: ' + number_formatter(window_int_k[0], format='(e10.4)')
     if tag_exist(file_struct, 'beam_savefile') then print, 'window integral from beam cube: ' + number_formatter(window_int_beam[0], format='(e10.4)')
-    if tag_exist(file_struct, 'beam_int') then print, 'window integral from obs.beam_integral: ' + number_formatter(window_int_beam_obs[0], format='(e10.4)')
+    if tag_exist(file_struct, 'beam_int') then print, 'window integral from obs.primary_beam_sq_area: ' + number_formatter(window_int_beam_obs[0], format='(e10.4)')
     
     if tag_exist(file_struct, 'beam_int') then begin
       window_int = window_int_beam_obs
@@ -1332,7 +1332,7 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
     print, 'var_cube multiplier: ', (z_mpc_delta * n_freq) * (2.*!pi)^2. / (kx_mpc_delta * ky_mpc_delta)
     print, 'window integral from variances: ' + number_formatter(window_int_k[0], format='(e10.4)')
     if tag_exist(file_struct, 'beam_savefile') then print, 'window integral from beam cube: ' + number_formatter(window_int_beam[0], format='(e10.4)')
-    if tag_exist(file_struct, 'beam_int') then print, 'window integral from obs.beam_integral: ' + number_formatter(window_int_beam_obs[0], format='(e10.4)')
+    if tag_exist(file_struct, 'beam_int') then print, 'window integral from obs.primary_beam_sq_area: ' + number_formatter(window_int_beam_obs[0], format='(e10.4)')
     
     if tag_exist(file_struct, 'beam_int') then begin
       window_int = window_int_beam_obs
