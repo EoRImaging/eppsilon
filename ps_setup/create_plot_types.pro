@@ -13,7 +13,7 @@ function create_plot_types, plot_types = plot_types, $
     if n_elements(plot_slices) eq 0 then plot_slices=0
 
     ;; default to making standard plot set if plot_slices isn't set
-    if not keyword_set(plot_slices) then if not keyword_set(plot_stdset) then plot_stdset = 1
+    if not keyword_set(plot_slices) then if n_elements(plot_stdset) eq 0 then plot_stdset = 1
 
     ;; default to not plotting 1 to 2d plots, 2d mask plots, kpar power,
     ;; kperp power, kpar=0 power, 1D thermal noise, 1D variance sim noise,
