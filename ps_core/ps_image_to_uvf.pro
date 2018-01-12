@@ -1,9 +1,6 @@
 pro ps_image_to_uvf, file_struct, n_vis_freq, kx_rad_vals, ky_rad_vals, $
-      dft_refresh_data = dft_refresh_data,  dft_refresh_weight = dft_refresh_weight, $
-      refresh_beam = refresh_beam, dft_fchunk = dft_fchunk, $
-      freq_ch_range = freq_ch_range, freq_flags = freq_flags, $
-      delta_uv_lambda = delta_uv_lambda, max_uv_lambda = max_uv_lambda, $
-      no_dft_progress = no_dft_progress
+    freq_ch_range = freq_ch_range, freq_flags = freq_flags, $
+    refresh_options = refresh_options, uvf_options = uvf_options
 
   if tag_exist(file_struct, 'nside') ne 0 then healpix = 1 else healpix = 0
   nfiles = n_elements(file_struct.datafile)
@@ -39,7 +36,7 @@ pro ps_image_to_uvf, file_struct, n_vis_freq, kx_rad_vals, ky_rad_vals, $
       if total(abs(old_freq_mask - freq_mask)) ne 0 then test_uvf = 0
     endif
 
-    if test_uvf eq 0 and not keyword_set(dft_refresh_data) and $
+    if test_uvf eq 0 and not refresh_options.refresh_dft and $
       (n_elements(freq_ch_range) ne 0 or n_elements(freq_flags) ne 0) then begin
 
       ;; if this is a limited freq. range cube, check for the full cube to avoid redoing the DFT
@@ -57,8 +54,8 @@ pro ps_image_to_uvf, file_struct, n_vis_freq, kx_rad_vals, ky_rad_vals, $
 
         if n_elements(freq_flags) ne 0 then begin
           data_cube = data_cube * rebin(reform(freq_mask, 1, 1, $
-                                               n_elements(file_struct.frequencies)), $
-                                               size(data_cube, /dimension), /sample)
+            n_elements(file_struct.frequencies)), $
+            size(data_cube, /dimension), /sample)
         endif
         if n_elements(freq_ch_range) ne 0 then begin
           data_cube = data_cube[*, *, min(freq_ch_range):max(freq_ch_range)]
@@ -78,16 +75,18 @@ pro ps_image_to_uvf, file_struct, n_vis_freq, kx_rad_vals, ky_rad_vals, $
 
     endif ;; endif limited freq range & no matching uvf
 
-    if test_wt_uvf eq 0 and not keyword_set(dft_refresh_weight) and $
+    if test_wt_uvf eq 0 and not refresh_options.refresh_weight_dft and $
       (n_elements(freq_ch_range) ne 0 or n_elements(freq_flags) ne 0) then begin
 
       ;; if this is a limited freq. range cube, check for the full cube to avoid redoing the DFT
       full_uvf_wt_file = file_struct.uvf_weight_savefile[i]
       if n_elements(freq_ch_range) ne 0 then begin
-        full_uvf_wt_file = strjoin(strsplit(full_uvf_wt_file, '_ch[0-9]+-[0-9]+', /regex, /extract))
+        full_uvf_wt_file = strjoin(strsplit(full_uvf_wt_file, '_ch[0-9]+-[0-9]+', $
+          /regex, /extract))
       endif
       if n_elements(freq_flags) ne 0 then begin
-        full_uvf_wt_file = strjoin(strsplit(full_uvf_wt_file, '_flag[a-z0-9]+', /regex, /extract))
+        full_uvf_wt_file = strjoin(strsplit(full_uvf_wt_file, '_flag[a-z0-9]+', $
+          /regex, /extract))
       endif
       test_full_wt_uvf = file_valid(full_uvf_wt_file)
 
@@ -121,8 +120,8 @@ pro ps_image_to_uvf, file_struct, n_vis_freq, kx_rad_vals, ky_rad_vals, $
     endif ;; endif limited freq range & no matching wt_uvf
 
     if test_uvf eq 0 or test_wt_uvf eq 0 or test_beam eq 0 or test_radec_uvf eq 0 $
-      or keyword_set(dft_refresh_data) or keyword_set(dft_refresh_weight) $
-      or keyword_set(refresh_beam) then begin
+      or refresh_options.refresh_dft or refresh_options.refresh_weight_dft $
+      or refresh_options.refresh_beam then begin
 
       if datavar eq '' then begin
         ;; working with a 'derived' cube (ie residual cube) that is constructed
@@ -137,13 +136,16 @@ pro ps_image_to_uvf, file_struct, n_vis_freq, kx_rad_vals, ky_rad_vals, $
 
           for j=0, 1 do begin
             if test_input_uvf[j] eq 0 then begin
-              ;; this is a limited freq. range cube, check for the full cube to avoid redoing the DFT
+              ;; this is a limited freq. range cube, check for the full cube to
+              ;; avoid redoing the DFT
               full_uvf_file = input_uvf_files[i,j]
               if n_elements(freq_ch_range) ne 0 then begin
-                full_uvf_file = strjoin(strsplit(full_uvf_file, '_ch[0-9]+-[0-9]+', /regex, /extract))
+                full_uvf_file = strjoin(strsplit(full_uvf_file, '_ch[0-9]+-[0-9]+', $
+                  /regex, /extract))
               endif
               if n_elements(freq_flags) ne 0 then begin
-                full_uvf_file = strjoin(strsplit(full_uvf_file, '_flag[a-z0-9]+', /regex, /extract))
+                full_uvf_file = strjoin(strsplit(full_uvf_file, '_flag[a-z0-9]+', $
+                  /regex, /extract))
               endif
               test_full_uvf = file_valid(full_uvf_file)
 
@@ -151,8 +153,9 @@ pro ps_image_to_uvf, file_struct, n_vis_freq, kx_rad_vals, ky_rad_vals, $
                 restore, full_uvf_file
 
                 if n_elements(freq_flags) ne 0 then begin
-                  data_cube = data_cube * rebin(reform(freq_mask, 1, 1, n_elements(file_struct.frequencies)), $
-                                                size(data_cube, /dimension), /sample)
+                  data_cube = data_cube * rebin(reform(freq_mask, 1, 1, $
+                    n_elements(file_struct.frequencies)), $
+                    size(data_cube, /dimension), /sample)
                 endif
                 if n_elements(freq_ch_range) ne 0 then begin
                   data_cube = data_cube[*, *, min(freq_ch_range):max(freq_ch_range)]
@@ -174,7 +177,7 @@ pro ps_image_to_uvf, file_struct, n_vis_freq, kx_rad_vals, ky_rad_vals, $
           endfor;; end loop over 2 derived cubes
 
         endif else if min(test_input_uvf) eq 0 then begin
-           message, 'derived cube but input_uvf cube files do not exist'
+          message, 'derived cube but input_uvf cube files do not exist'
         endif
 
         dirty_cube = getvar_savefile(input_uvf_files[i,0], input_uvf_varname[i,0])
@@ -231,9 +234,9 @@ pro ps_image_to_uvf, file_struct, n_vis_freq, kx_rad_vals, ky_rad_vals, $
         endelse
 
         pix_ft_struct = choose_pix_ft(file_struct, pixel_nums = pixel_nums, $
-          data_dims = data_dims, image_window_name = image_window_name, $
-          image_window_frac_size = image_window_frac_size, $
-          delta_uv_lambda = delta_uv_lambda, max_uv_lambda = max_uv_lambda)
+          data_dims = data_dims, image_window_name = uvf_options.image_window_name, $
+          image_window_frac_size = uvf_options.image_window_frac_size, $
+          delta_uv_lambda = uvf_options.delta_uv_lambda, max_uv_lambda = uvf_options.max_uv_lambda)
 
         wh_close = pix_ft_struct.wh_close
         x_use = pix_ft_struct.x_use
@@ -245,8 +248,8 @@ pro ps_image_to_uvf, file_struct, n_vis_freq, kx_rad_vals, ky_rad_vals, $
         n_kperp = pix_ft_struct.n_kperp
 
         ;; get beam if needed
-        if (test_beam eq 0 or keyword_set(refresh_beam)) $
-            and tag_exist(file_struct, 'beam_savefile') then begin
+        if (test_beam eq 0 or refresh_options.refresh_beam) $
+          and tag_exist(file_struct, 'beam_savefile') then begin
 
           arr = getvar_savefile(file_struct.beamfile[i], file_struct.beamvar)
           if n_elements(wh_close) ne n_elements(pixel_nums) then arr = arr[wh_close, *]
@@ -255,7 +258,7 @@ pro ps_image_to_uvf, file_struct, n_vis_freq, kx_rad_vals, ky_rad_vals, $
           endif
           if n_elements(freq_flags) ne 0 then begin
             arr = arr * rebin(reform(freq_mask, 1, n_elements(file_struct.frequencies)), $
-                              size(arr, /dimension), /sample)
+              size(arr, /dimension), /sample)
           endif
 
           pixels = pixel_nums[wh_close]
@@ -266,7 +269,7 @@ pro ps_image_to_uvf, file_struct, n_vis_freq, kx_rad_vals, ky_rad_vals, $
           endif else if max(arr) le file_struct.n_obs[i]*1.1 then begin
             ;; beam is peak normalized to 1 for each obs, then summed over obs so peak is ~ n_obs
             temp = (arr/file_struct.n_obs[i]) * rebin(reform(n_vis_freq[i, *], 1, n_freq), $
-                                                      count_close, n_freq, /sample)
+              count_close, n_freq, /sample)
           endif else begin
             ;; beam is peak normalized to 1 then multiplied by n_vis_freq for each obs & summed
             temp = arr
@@ -283,7 +286,7 @@ pro ps_image_to_uvf, file_struct, n_vis_freq, kx_rad_vals, ky_rad_vals, $
         endif
 
         ;; do RA/Dec DFT.
-        if test_radec_uvf eq 0 or keyword_set(dft_refresh_data) then begin
+        if test_radec_uvf eq 0 or refresh_options.refresh_dft then begin
 
           print, 'calculating DFT for ra/dec values'
 
@@ -296,7 +299,7 @@ pro ps_image_to_uvf, file_struct, n_vis_freq, kx_rad_vals, ky_rad_vals, $
 
           ;; may need to wrap ra values so they are contiguous
           pix_ra_hist = histogram(pix_ra, min=0, max = 359.999, binsize = 1, $
-                                  locations = locs, reverse_indices = pix_ra_ri)
+            locations = locs, reverse_indices = pix_ra_ri)
           wh_hist_zero = where(pix_ra_hist eq 0, count_hist_zero)
           if count_hist_zero gt 0 then begin
             ;; doesn't cover full phase range
@@ -341,7 +344,9 @@ pro ps_image_to_uvf, file_struct, n_vis_freq, kx_rad_vals, ky_rad_vals, $
             ;; if so, no wrapping required!
             if min(region_use) ne 0 and max(region_use) ne 359 then begin
               pix_to_wrap = where(pix_ra gt locs[max(region_use)-1], count_pix_to_wrap)
-              if count_pix_to_wrap eq 0 then message, 'something went wrong with figuring out which pixels to wrap'
+              if count_pix_to_wrap eq 0 then begin
+                message, 'something went wrong with figuring out which pixels to wrap'
+              endif
               pix_ra_wrap = pix_ra
               pix_ra_wrap[pix_to_wrap] = pix_ra[pix_to_wrap] - 360.
 
@@ -351,10 +356,10 @@ pro ps_image_to_uvf, file_struct, n_vis_freq, kx_rad_vals, ky_rad_vals, $
           endif
 
           transform_ra = discrete_ft_2D_fast(x_use, y_use, pix_ra, kx_rad_vals, ky_rad_vals, $
-            timing = ft_time, fchunk = dft_fchunk, no_progress = no_dft_progress)
+            timing = ft_time, fchunk = uvf_options.dft_fchunk, no_progress = uvf_options.no_dft_progress)
 
           transform_dec = discrete_ft_2D_fast(x_use, y_use, pix_dec, kx_rad_vals, ky_rad_vals, $
-            timing = ft_time, fchunk = dft_fchunk, no_progress = no_dft_progress)
+            timing = ft_time, fchunk = uvf_options.dft_fchunk, no_progress = uvf_options.no_dft_progress)
 
           ang_resolution = sqrt(3./!pi) * 3600./file_struct.nside * (1./60.) * (!pi/180.)
           pix_area_rad = ang_resolution^2. ;; by definition of ang. resolution in Healpix paper
@@ -369,19 +374,21 @@ pro ps_image_to_uvf, file_struct, n_vis_freq, kx_rad_vals, ky_rad_vals, $
           if max(abs(imaginary(dec_img))) eq 0 then dec_img = real_part(dec_img)
 
           uvf_git_hash = this_run_git_hash
-          save, file = file_struct.radec_file, kx_rad_vals, ky_rad_vals, ra_k, dec_k, ra_img, dec_img, pix_ra, pix_dec, uvf_git_hash
+          save, file = file_struct.radec_file, kx_rad_vals, ky_rad_vals, ra_k, $
+            dec_k, ra_img, dec_img, pix_ra, pix_dec, uvf_git_hash
           undefine, uvf_git_hash
 
         endif
 
         ;; Create an image space filter to reduce thrown power via the FFT on hard clips
-        if n_elements(image_window_name) ne 0 then begin
-          pix_window = image_window(x_use, y_use, image_window_name = image_window_name, fractional_size = image_window_frac_size)
+        if tag_exist(uvf_options, image_window_name) then begin
+          pix_window = image_window(x_use, y_use, image_window_name = uvf_options.image_window_name, $
+            fractional_size = uvf_options.image_window_frac_size)
           pix_window = rebin(pix_window, n_elements(wh_close), n_freq, /sample)
         endif else pix_window = fltarr(n_elements(wh_close), n_freq) + 1.
 
 
-        if test_uvf eq 0 or keyword_set(dft_refresh_data) then begin
+        if test_uvf eq 0 or refresh_options.refresh_dft then begin
 
           print, 'calculating DFT for ' + file_struct.datavar + ' in ' + file_struct.datafile[i]
 
@@ -389,14 +396,17 @@ pro ps_image_to_uvf, file_struct, n_vis_freq, kx_rad_vals, ky_rad_vals, $
           arr = getvar_savefile(file_struct.datafile[i], file_struct.datavar)
           time1 = systime(1)
 
-          if time1 - time0 gt 60 then print, 'Time to restore cube was ' + number_formatter((time1 - time0)/60.) + ' minutes'
+          if time1 - time0 gt 60 then begin
+            print, 'Time to restore cube was ' + number_formatter((time1 - time0)/60.) + ' minutes'
+          endif
 
-          if size(arr,/type) eq 6 or size(arr,/type) eq 9 then $
+          if size(arr,/type) eq 6 or size(arr,/type) eq 9 then begin
             if max(abs(imaginary(arr))) eq 0 then begin
               arr = real_part(arr)
             endif else begin
               message, 'Data in Healpix cubes is complex.'
             endelse
+          endif
           if not healpix then arr = reform(arr, dims[0]*dims[1], n_freq)
 
           if n_elements(wh_close) ne n_elements(pixel_nums) then begin
@@ -406,66 +416,100 @@ pro ps_image_to_uvf, file_struct, n_vis_freq, kx_rad_vals, ky_rad_vals, $
             arr = arr[*, min(freq_ch_range):max(freq_ch_range)]
           endif
           if n_elements(freq_flags) ne 0 then begin
-            arr = arr * rebin(reform(freq_mask, 1, n_elements(file_struct.frequencies)), size(arr, /dimension), /sample)
+            arr = arr * rebin(reform(freq_mask, 1, n_elements(file_struct.frequencies)), $
+              size(arr, /dimension), /sample)
           endif
 
           transform = discrete_ft_2D_fast(x_use, y_use, arr, kx_rad_vals, ky_rad_vals, $
-            timing = ft_time, fchunk = dft_fchunk, no_progress = no_dft_progress)
+            timing = ft_time, fchunk = uvf_options.dft_fchunk, no_progress = uvf_options.no_dft_progress)
           data_cube = temporary(transform)
           undefine, arr
 
           uvf_git_hash = this_run_git_hash
           if n_elements(freq_flags) then begin
-            save, file = file_struct.uvf_savefile[i], kx_rad_vals, ky_rad_vals, data_cube, freq_mask, uvf_git_hash
+            save, file = file_struct.uvf_savefile[i], kx_rad_vals, ky_rad_vals, $
+              data_cube, freq_mask, uvf_git_hash
           endif else begin
-            save, file = file_struct.uvf_savefile[i], kx_rad_vals, ky_rad_vals, data_cube, uvf_git_hash
+            save, file = file_struct.uvf_savefile[i], kx_rad_vals, ky_rad_vals, $
+              data_cube, uvf_git_hash
           endelse
           undefine, data_cube, uvf_git_hash
         endif
 
 
-        if test_wt_uvf eq 0 or keyword_set(dft_refresh_weight) then begin
-          print, 'calculating DFT for ' + file_struct.weightvar + ' in ' + file_struct.weightfile[i]
+        if test_wt_uvf eq 0 or refresh_options.refresh_weight_dft then begin
+          print, 'calculating DFT for ' + file_struct.weightvar + ' in ' + $
+            file_struct.weightfile[i]
 
           time0 = systime(1)
           arr = getvar_savefile(file_struct.weightfile[i], file_struct.weightvar)
           time1 = systime(1)
 
-          if time1 - time0 gt 60 then print, 'Time to restore cube was ' + number_formatter((time1 - time0)/60.) + ' minutes'
+          if time1 - time0 gt 60 then begin
+            print, 'Time to restore cube was ' + number_formatter((time1 - time0)/60.) + ' minutes'
+          endif
 
-          if size(arr,/type) eq 6 or size(arr,/type) eq 9 then $
-            if max(abs(imaginary(arr))) eq 0 then arr = real_part(arr) else message, 'Weights in Healpix cubes is complex.'
+          if size(arr,/type) eq 6 or size(arr,/type) eq 9 then begin
+            if max(abs(imaginary(arr))) eq 0 then begin
+              arr = real_part(arr)
+            endif else begin
+              message, 'Weights in Healpix cubes is complex.'
+            endelse
+          endif
           if not healpix then arr = reform(arr, dims[0]*dims[1], n_freq)
 
-          if n_elements(wh_close) ne n_elements(pixel_nums) then arr = arr[wh_close, *] * pix_window
-          if n_elements(freq_ch_range) ne 0 then arr = arr[*, min(freq_ch_range):max(freq_ch_range)]
-          if n_elements(freq_flags) ne 0 then arr = arr * rebin(reform(freq_mask, 1, n_elements(file_struct.frequencies)), size(arr, /dimension), /sample)
+          if n_elements(wh_close) ne n_elements(pixel_nums) then begin
+            arr = arr[wh_close, *] * pix_window
+          endif
+          if n_elements(freq_ch_range) ne 0 then begin
+            arr = arr[*, min(freq_ch_range):max(freq_ch_range)]
+          endif
+          if n_elements(freq_flags) ne 0 then begin
+            arr = arr * rebin(reform(freq_mask, 1, n_elements(file_struct.frequencies)), $
+              size(arr, /dimension), /sample)
+          endif
 
           transform = discrete_ft_2D_fast(x_use, y_use, arr, kx_rad_vals, ky_rad_vals, $
-            timing = ft_time, fchunk = dft_fchunk, no_progress = no_dft_progress)
+            timing = ft_time, fchunk = uvf_options.dft_fchunk, no_progress = uvf_options.no_dft_progress)
 
           weights_cube = temporary(transform)
 
           if not no_var then begin
-            print, 'calculating DFT for ' + file_struct.variancevar + ' in ' + file_struct.variancefile[i]
+            print, 'calculating DFT for ' + file_struct.variancevar + ' in ' + $
+              file_struct.variancefile[i]
 
             time0 = systime(1)
             arr = getvar_savefile(file_struct.variancefile[i], file_struct.variancevar)
             time1 = systime(1)
 
-            if time1 - time0 gt 60 then print, 'Time to restore cube was ' + number_formatter((time1 - time0)/60.) + ' minutes'
+            if time1 - time0 gt 60 then begin
+              print, 'Time to restore cube was ' + number_formatter((time1 - time0)/60.) + ' minutes'
+            endif
 
-            if size(arr,/type) eq 6 or size(arr,/type) eq 9 then $
-              if max(abs(imaginary(arr))) eq 0 then arr = real_part(arr) else  message, 'Variances in Healpix cubes is complex.'
-            if not healpix then arr = reform(arr, dims[0]*dims[1], n_freq)
+            if size(arr,/type) eq 6 or size(arr,/type) eq 9 then begin
+              if max(abs(imaginary(arr))) eq 0 then begin
+                arr = real_part(arr)
+              endif else begin
+                message, 'Variances in Healpix cubes is complex.'
+              endelse
+            endif
+            if not healpix then begin
+              arr = reform(arr, dims[0]*dims[1], n_freq)
+            endif
 
-            if n_elements(wh_close) ne n_elements(pixel_nums) then arr = arr[wh_close, *] * pix_window^2.
-            if n_elements(freq_ch_range) ne 0 then arr = arr[*, min(freq_ch_range):max(freq_ch_range)]
-            if n_elements(freq_flags) ne 0 then arr = arr * rebin(reform(freq_mask, 1, n_elements(file_struct.frequencies)), size(arr, /dimension), /sample)
-
+            if n_elements(wh_close) ne n_elements(pixel_nums) then begin
+              arr = arr[wh_close, *] * pix_window^2.
+            endif
+            if n_elements(freq_ch_range) ne 0 then begin
+              arr = arr[*, min(freq_ch_range):max(freq_ch_range)]
+            endif
+            if n_elements(freq_flags) ne 0 then begin
+              arr = arr * rebin(reform(freq_mask, 1, n_elements(file_struct.frequencies)), $
+                size(arr, /dimension), /sample)
+            endif
 
             transform = discrete_ft_2D_fast(x_use, y_use, arr, kx_rad_vals, ky_rad_vals, $
-              timing = ft_time, fchunk = dft_fchunk, no_progress = no_dft_progress)
+              timing = ft_time, fchunk = uvf_options.dft_fchunk, no_progress = uvf_options.no_dft_progress)
 
             variance_cube = abs(temporary(transform)) ;; make variances real, positive definite (amplitude)
             undefine, arr
@@ -474,9 +518,11 @@ pro ps_image_to_uvf, file_struct, n_vis_freq, kx_rad_vals, ky_rad_vals, $
           uvf_wt_git_hash = this_run_git_hash
 
           if n_elements(freq_flags) then begin
-            save, file = file_struct.uvf_weight_savefile[i], kx_rad_vals, ky_rad_vals, weights_cube, variance_cube, freq_mask, uvf_wt_git_hash
+            save, file = file_struct.uvf_weight_savefile[i], kx_rad_vals, $
+              ky_rad_vals, weights_cube, variance_cube, freq_mask, uvf_wt_git_hash
           endif else begin
-            save, file = file_struct.uvf_weight_savefile[i], kx_rad_vals, ky_rad_vals, weights_cube, variance_cube, uvf_wt_git_hash
+            save, file = file_struct.uvf_weight_savefile[i], kx_rad_vals, $
+              ky_rad_vals, weights_cube, variance_cube, uvf_wt_git_hash
           endelse
           undefine, new_pix_vec, pix_window, weights_cube, variance_cube, uvf_wt_git_hash
         endif

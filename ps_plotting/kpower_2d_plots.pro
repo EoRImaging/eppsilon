@@ -18,6 +18,11 @@
 ;;
 ;;   hinv: if set, pull h out of arrays and k values so everything is in h^-1 Mpc rather than real Mpc
 ;;
+;;  Optionally, a plot_2d_options structure (created with create_plot_2d_options.pro)
+;;    and/or a plot_options structure (created with create_plot_options.pro)
+;;    can be passed which sets several of the keywords. If the keywords are set separately,
+;;    the keyword values supercede the structure values.
+;;
 ;;  Plot type flags: set only one of the following to dictate what to plot, power will be plotted if none are set
 ;;    plot_weights: inverse variance plot
 ;;    plot_noise: measured noise plot
@@ -74,14 +79,18 @@
 ;;   margin: 4 element vector of margin sizes (x0, y0, x1, y1) in normal coordinates
 ;;   cb_margin: 2 element vector of margins on left & right of color bar in normal coordinates
 
-pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, weights = weights, noise_expval = noise_expval, $
+pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, $
+  weights = weights, noise_expval = noise_expval, $
   kperp_edges = kperp_edges, kpar_edges = kpar_edges, kperp_bin = kperp_bin, kpar_bin = kpar_bin, $
   kperp_lambda_conv = kperp_lambda_conv, delay_params = delay_params, hubble_param = hubble_param, $
+  plot_options = plot_options, plot_2d_options = plot_2d_options, $
   multi_pos = multi_pos, start_multi_params = start_multi_params, window_num = window_num, $
-  plot_weights = plot_weights, plot_noise = plot_noise, plot_sim_noise = plot_sim_noise, plot_simnoise_diff = plot_simnoise_diff, $
-  plot_sigma = plot_sigma, plot_exp_noise = plot_exp_noise, $
+  plot_weights = plot_weights, plot_noise = plot_noise, plot_sim_noise = plot_sim_noise, $
+  plot_simnoise_diff = plot_simnoise_diff, plot_sigma = plot_sigma, $
+  plot_exp_noise = plot_exp_noise, $
   snr = snr, nnr = nnr, sim_nnr = sim_nnr, sim_snr = sim_snr, pwr_ratio = pwr_ratio, $
-  plot_bin = plot_bin, bin_savefile = bin_savefile, bin_contour = bin_contour, contour_levels = contour_levels, $
+  plot_bin = plot_bin, bin_savefile = bin_savefile, $
+  bin_contour = bin_contour, contour_levels = contour_levels, $
   plot_1d_noisefrac = plot_1d_noisefrac, $
   kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
   force_kperp_axis_range = force_kperp_axis_range, force_kpar_axis_range = force_kpar_axis_range, $
@@ -91,13 +100,75 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, wei
   no_title = no_title, full_title = full_title, title_prefix = title_prefix, note = note, $
   norm_2d = norm_2d, norm_factor = norm_factor, $
   wedge_amp = wedge_amp, plot_wedge_line = plot_wedge_line, $
-  baseline_axis = baseline_axis, delay_axis = delay_axis, cable_length_axis = cable_length_axis, kperp_linear_axis = kperp_linear_axis, $
-  kpar_linear_axis = kpar_linear_axis, no_units = no_units, hinv = hinv, charsize = charsize_in, $
-  cb_size = cb_size_in, margin=margin_in, cb_margin = cb_margin_in, label_lt_0_oncb = label_lt_0_oncb
+  baseline_axis = baseline_axis, delay_axis = delay_axis, $
+  cable_length_axis = cable_length_axis, kperp_linear_axis = kperp_linear_axis, $
+  kpar_linear_axis = kpar_linear_axis, no_units = no_units, hinv = hinv, $
+  charsize = charsize_in, cb_size = cb_size_in, margin=margin_in, $
+  cb_margin = cb_margin_in, label_lt_0_oncb = label_lt_0_oncb
 
-  if keyword_set(delay_axis) and keyword_set(cable_length_axis) then message, 'Only one of delay_axis and cable_length_axis can be set'
+  if total([keyword_set(plot_weights), keyword_set(plot_sigma), $
+  keyword_set(plot_exp_noise), keyword_set(plot_noise), $
+    keyword_set(snr), keyword_set(nnr), keyword_set(pwr_ratio), $
+    keyword_set(plot_sim_noise), keyword_set(plot_simnoise_diff), $
+    keyword_set(sim_nnr), keyword_set(sim_snr)]) gt 1 then $
+    message, 'only one of [plot_noise, plot_sim_noise, plot_simnoise_diff, ' + $
+      'plot_sigma, plot_exp_noise, plot_weights, snr, nnr, sim_nnr, sim_snr] ' + $
+      'keywords can be set'
 
-  if n_elements(plotfile) gt 0 or keyword_set(png) or keyword_set(eps) or keyword_set(pdf) then pub = 1 else pub = 0
+  if n_elements(plot_options) gt 0 then begin
+    if n_elements(hinv) eq 0 then hinv = plot_options.hinv
+    if n_elements(note) eq 0 then note = plot_options.note
+    if n_elements(png) eq 0 then png = plot_options.png
+    if n_elements(eps) eq 0 then eps = plot_options.eps
+    if n_elements(pdf) eq 0 then pdf = plot_options.pdf
+  endif
+
+  if n_elements(plot_2d_options) gt 0 then begin
+    if n_elements(plot_wedge_line) eq 0 then plot_wedge_line = plot_2d_options.plot_wedge_line
+    if n_elements(kperp_linear_axis) eq 0 then kperp_linear_axis = plot_2d_options.kperp_linear_axis
+    if n_elements(kpar_linear_axis) eq 0 then kpar_linear_axis = plot_2d_options.kpar_linear_axis
+    if n_elements(baseline_axis) eq 0 then baseline_axis = plot_2d_options.baseline_axis
+    if n_elements(delay_axis) eq 0 then delay_axis = plot_2d_options.delay_axis
+    if n_elements(cable_length_axis) eq 0 then cable_length_axis = plot_2d_options.cable_length_axis
+
+    if n_elements(kperp_plot_range) eq 0 and tag_exist(plot_2d_options, 'kperp_plot_range') then begin
+      kperp_plot_range = plot_2d_options.kperp_plot_range
+    endif
+    if n_elements(kpar_plot_range) eq 0 and tag_exist(plot_2d_options, 'kpar_plot_range') then begin
+      kpar_plot_range = plot_2d_options.kpar_plot_range
+    endif
+
+    if n_elements(data_range) eq 0 then begin
+      case 1 of
+        keyword_set(plot_sigma): range_tag_use = 'sigma_range'
+        keyword_set(plot_exp_noise): range_tag_use = 'nev_range'
+        keyword_set(snr): range_tag_use = 'snr_range'
+        keyword_set(plot_noise): range_tag_use = 'noise_range'
+        keyword_set(plot_sim_noise): range_tag_use = 'noise_range'
+        keyword_set(plot_simnoise_diff): range_tag_use = 'noise_range'
+        keyword_set(nnr): range_tag_use = 'nnr_range'
+        keyword_set(sim_nnr): range_tag_use = 'nnr_range'
+        else: range_tag_use = 'data_range'
+      endcase
+      if tag_exist(plot_2d_options, range_tag_use) then begin
+        tags = strlowcase(tag_names(plot_2d_options))
+        tindex = (where(strcmp(tags, range_tag_use) EQ 1, count_tag))[0]
+        if count_tag eq 0 then message, 'something went wrong with tag matching'
+        data_range = plot_2d_options.(tindex)
+      endif
+    endif
+  endif
+
+  if keyword_set(delay_axis) and keyword_set(cable_length_axis) then begin
+    message, 'Only one of delay_axis and cable_length_axis can be set'
+  endif
+
+  if n_elements(plotfile) gt 0 or keyword_set(png) or keyword_set(eps) or keyword_set(pdf) then begin
+    pub = 1
+  endif else begin
+    pub = 0
+  endelse
+
   if pub eq 1 then begin
     if not (keyword_set(png) or keyword_set(eps) or keyword_set(pdf)) then begin
       basename = cgRootName(plotfile, directory=directory, extension=extension)
@@ -117,7 +188,8 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, wei
     if n_elements(plotfile) eq 0 and n_elements(multi_pos) eq 0 then begin
       plotfile = 'idl_kpower_2d_plots'
       cd, current = current_dir
-      print, 'no filename specified for kpower_2d_plots output. Using ' + current_dir + path_sep() + plotfile
+      print, 'no filename specified for kpower_2d_plots output. Using ' + $
+        current_dir + path_sep() + plotfile
     endif
 
     n_ext_set = 0
@@ -145,47 +217,64 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, wei
 
   if n_elements(window_num) eq 0 then window_num = 1
 
-  if n_elements(start_multi_params) gt 0 and n_elements(multi_pos) gt 0 then message, 'If start_multi_params are passed, ' + $
-    'multi_pos cannot be passed because then it is used as an output to pass back the positions for future plots.'
+  if n_elements(start_multi_params) gt 0 and n_elements(multi_pos) gt 0 then begin
+    message, 'If start_multi_params are passed, multi_pos cannot be passed ' + $
+      'because then it is used as an output to pass back the positions for future plots.'
+  endif
 
   if n_elements(multi_pos) gt 0 then begin
-    if n_elements(multi_pos) ne 4 then message, 'multi_pos must be a 4 element plot position vector'
-    if max(multi_pos) gt 1 or min(multi_pos) lt 0 then message, 'multi_pos must be in normalized coordinates (between 0 & 1)'
-    if multi_pos[2] le multi_pos[0] or multi_pos[3] le multi_pos[1] then $
+    if n_elements(multi_pos) ne 4 then begin
+      message, 'multi_pos must be a 4 element plot position vector'
+    endif
+    if max(multi_pos) gt 1 or min(multi_pos) lt 0 then begin
+      message, 'multi_pos must be in normalized coordinates (between 0 & 1)'
+    endif
+    if multi_pos[2] le multi_pos[0] or multi_pos[3] le multi_pos[1] then begin
       message, 'In multi_pos, x1 must be greater than x0 and y1 must be greater than y0 '
+    endif
   endif
 
 
-  if total([keyword_set(plot_weights), keyword_set(plot_sigma), keyword_set(plot_exp_noise), keyword_set(plot_noise), $
-    keyword_set(snr), keyword_set(nnr), keyword_set(pwr_ratio), $
-    keyword_set(plot_sim_noise), keyword_set(plot_simnoise_diff), keyword_set(sim_nnr), keyword_set(sim_snr)]) gt 1 then $
-    message, 'only one of [plot_noise, plot_sim_noise, plot_simnoise_diff, plot_sigma, plot_exp_noise, plot_weights,' + $
-    ' snr, nnr, sim_nnr, sim_snr] keywords can be set'
-
   if keyword_set(pwr_ratio) then begin
-    if n_elements(power_savefile) gt 2 or n_elements(power_savefile) eq 1 then message, $
-      'Only 2 files can be specified in power_savefile if pwr_ratio keyword is set'
+    if n_elements(power_savefile) gt 2 or n_elements(power_savefile) eq 1 then begin
+      message, 'Only 2 files can be specified in power_savefile if pwr_ratio keyword is set'
+    endif
   endif else begin
-    if n_elements(power_savefile) gt 1 then message, $
-      'Only 1 file can be specified in power_savefile unless pwr_ratio keyword is set'
+    if n_elements(power_savefile) gt 1 then begin
+      message, 'Only 1 file can be specified in power_savefile unless pwr_ratio keyword is set'
+    endif
   endelse
 
   if keyword_set(pwr_ratio) then begin
     if n_elements(power) eq 0 then begin
       kperp_edges = getvar_savefile(power_savefile[0], 'kperp_edges')
-      if total(abs(kperp_edges - getvar_savefile(power_savefile[1], 'kperp_edges'))) ne 0 then message, 'kperp_edges do not match in savefiles'
+      if total(abs(kperp_edges - getvar_savefile(power_savefile[1], 'kperp_edges'))) ne 0 then begin
+        message, 'kperp_edges do not match in savefiles'
+      endif
       kpar_edges = getvar_savefile(power_savefile[0], 'kpar_edges')
-      if total(abs(kpar_edges - getvar_savefile(power_savefile[1], 'kpar_edges'))) ne 0 then message, 'kpar_edges do not match in savefiles'
+      if total(abs(kpar_edges - getvar_savefile(power_savefile[1], 'kpar_edges'))) ne 0 then begin
+        message, 'kpar_edges do not match in savefiles'
+      endif
       kperp_bin = getvar_savefile(power_savefile[0], 'kperp_bin')
-      if total(abs(kperp_bin - getvar_savefile(power_savefile[1], 'kperp_bin'))) ne 0 then message, 'kperp_bin do not match in savefiles'
+      if total(abs(kperp_bin - getvar_savefile(power_savefile[1], 'kperp_bin'))) ne 0 then begin
+        message, 'kperp_bin do not match in savefiles'
+      endif
       kpar_bin = getvar_savefile(power_savefile[0], 'kpar_bin')
-      if total(abs(kpar_bin - getvar_savefile(power_savefile[1], 'kpar_bin'))) ne 0 then message, 'kpar_bin do not match in savefiles'
+      if total(abs(kpar_bin - getvar_savefile(power_savefile[1], 'kpar_bin'))) ne 0 then begin
+        message, 'kpar_bin do not match in savefiles'
+      endif
       kperp_lambda_conv = getvar_savefile(power_savefile[0], 'kperp_lambda_conv')
-      if total(abs(kperp_lambda_conv - getvar_savefile(power_savefile[1], 'kperp_lambda_conv'))) ne 0 then message, 'kperp_lambda_conv do not match in savefiles'
+      if total(abs(kperp_lambda_conv - getvar_savefile(power_savefile[1], 'kperp_lambda_conv'))) ne 0 then begin
+        message, 'kperp_lambda_conv do not match in savefiles'
+      endif
       delay_params = getvar_savefile(power_savefile[0], 'delay_params')
-      if total(abs(delay_params - getvar_savefile(power_savefile[1], 'delay_params'))) ne 0 then message, 'delay_params do not match in savefiles'
+      if total(abs(delay_params - getvar_savefile(power_savefile[1], 'delay_params'))) ne 0 then begin
+        message, 'delay_params do not match in savefiles'
+      endif
       hubble_param = getvar_savefile(power_savefile[0], 'hubble_param')
-      if total(abs(hubble_param - getvar_savefile(power_savefile[1], 'hubble_param'))) ne 0 then message, 'hubble_param do not match in savefiles'
+      if total(abs(hubble_param - getvar_savefile(power_savefile[1], 'hubble_param'))) ne 0 then begin
+        message, 'hubble_param do not match in savefiles'
+      endif
 
       power1 = getvar_savefile(power_savefile[0], 'power')
       power2 = getvar_savefile(power_savefile[1], 'power')
@@ -294,23 +383,41 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, wei
 
   if keyword_set(bin_contour) then begin
     if plot_type ne 'bin' then begin
-      if n_elements(bin_savefile) eq 0 then message, 'bin_savefile must be supplied if bin_contour is set'
+      if n_elements(bin_savefile) eq 0 then begin
+        message, 'bin_savefile must be supplied if bin_contour is set'
+      endif
 
       kperp_edges = getvar_savefile(power_savefile, 'kperp_edges')
-      if total(abs(kperp_edges - getvar_savefile(bin_savefile, 'kperp_edges'))) ne 0 then message, 'bin_savefile kperp_edges do not match power_savefile'
+      if total(abs(kperp_edges - getvar_savefile(bin_savefile, 'kperp_edges'))) ne 0 then begin
+        message, 'bin_savefile kperp_edges do not match power_savefile'
+      endif
       kpar_edges = getvar_savefile(power_savefile, 'kpar_edges')
-      if total(abs(kpar_edges - getvar_savefile(bin_savefile, 'kpar_edges'))) ne 0 then message, 'bin_savefile kpar_edges do not match power_savefile'
+      if total(abs(kpar_edges - getvar_savefile(bin_savefile, 'kpar_edges'))) ne 0 then begin
+        message, 'bin_savefile kpar_edges do not match power_savefile'
+      endif
       kperp_bin = getvar_savefile(power_savefile, 'kperp_bin')
-      if total(abs(kperp_bin - getvar_savefile(bin_savefile, 'kperp_bin'))) ne 0 then message, 'bin_savefile kperp_bin does not match power_savefile'
+      if total(abs(kperp_bin - getvar_savefile(bin_savefile, 'kperp_bin'))) ne 0 then begin
+        message, 'bin_savefile kperp_bin does not match power_savefile'
+      endif
       kpar_bin = getvar_savefile(power_savefile, 'kpar_bin')
-      if total(abs(kpar_bin - getvar_savefile(bin_savefile, 'kpar_bin'))) ne 0 then message, 'bin_savefile kpar_bin does not match power_savefile'
+      if total(abs(kpar_bin - getvar_savefile(bin_savefile, 'kpar_bin'))) ne 0 then begin
+        message, 'bin_savefile kpar_bin does not match power_savefile'
+      endif
       kperp_lambda_conv = getvar_savefile(power_savefile, 'kperp_lambda_conv')
-      if total(abs(kperp_lambda_conv - getvar_savefile(bin_savefile, 'kperp_lambda_conv'))) ne 0 then message, 'bin_savefile kperp_lambda_conv does not match power_savefile'
+      if total(abs(kperp_lambda_conv - getvar_savefile(bin_savefile, 'kperp_lambda_conv'))) ne 0 then begin
+        message, 'bin_savefile kperp_lambda_conv does not match power_savefile'
+      endif
       delay_params = getvar_savefile(power_savefile, 'delay_params')
-      if total(abs(delay_params - getvar_savefile(bin_savefile, 'delay_params'))) ne 0 then message, 'bin_savefile delay_params does not match power_savefile'
+      if total(abs(delay_params - getvar_savefile(bin_savefile, 'delay_params'))) ne 0 then begin
+        message, 'bin_savefile delay_params does not match power_savefile'
+      endif
       hubble_param = getvar_savefile(power_savefile, 'hubble_param')
-      if total(abs(hubble_param - getvar_savefile(bin_savefile, 'hubble_param'))) ne 0 then message, 'bin_savefile hubble_param does not match power_savefile'
-    endif else if n_elements(bin_savefile) eq 0 then bin_savefile = power_savefile
+      if total(abs(hubble_param - getvar_savefile(bin_savefile, 'hubble_param'))) ne 0 then begin
+        message, 'bin_savefile hubble_param does not match power_savefile'
+      endif
+    endif else begin
+      if n_elements(bin_savefile) eq 0 then bin_savefile = power_savefile
+    endelse
 
     bin = getvar_savefile(bin_savefile, 'bin_1to2d')
   endif
@@ -324,10 +431,14 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, wei
   ;; Check whether binning is log or not
   log_bins = [0, 0]
   kperp_diffs = (kperp_edges_use - shift(kperp_edges_use, 1))[1:*]
-  if kperp_edges_use[0] eq 0 or (abs(mean(kperp_diffs)-kperp_diffs[0]) gt 1e-5) then kperp_diffs = kperp_diffs[1:*] ;; lowest bin may have lower edge set to zero
+  if kperp_edges_use[0] eq 0 or (abs(mean(kperp_diffs)-kperp_diffs[0]) gt 1e-5) then begin
+    kperp_diffs = kperp_diffs[1:*] ;; lowest bin may have lower edge set to zero
+  endif
   if total(abs(kperp_diffs - kperp_diffs[0])) gt n_kperp*2e-5 then log_bins[0] = 1
   kpar_diffs = (kpar_edges_use - shift(kpar_edges_use, 1))[1:*]
-  if kpar_edges_use[0] eq 0 or (abs(mean(kpar_diffs)-kpar_diffs[0]) gt 1e-5) then kpar_diffs = kpar_diffs[1:*] ;; lowest bin may have lower edge set to zero
+  if kpar_edges_use[0] eq 0 or (abs(mean(kpar_diffs)-kpar_diffs[0]) gt 1e-5) then begin
+    kpar_diffs = kpar_diffs[1:*] ;; lowest bin may have lower edge set to zero
+  endif
   if total(abs(kpar_diffs - kpar_diffs[0])) gt n_kpar*2e-5 then log_bins[1] = 1
 
   if n_elements(kpar_bin) gt 0 then kpar_bin_use = kpar_bin else begin
@@ -345,6 +456,15 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, wei
 
   if n_elements(kperp_plot_range) eq 0 then kperp_plot_range = minmax(kperp_edges_use)
   if n_elements(kpar_plot_range) eq 0 then kpar_plot_range = minmax(kpar_edges_use)
+
+  if not tag_exist(plot_2d_options, 'kperp_plot_range') then begin
+    plot_2d_options = create_plot_2d_options(plot_2d_options=plot_2d_options, $
+      kperp_plot_range = kperp_plot_range)
+  endif
+  if not tag_exist(plot_2d_options, 'kpar_plot_range') then begin
+    plot_2d_options = create_plot_2d_options(plot_2d_options=plot_2d_options, $
+      kpar_plot_range = kpar_plot_range)
+  endif
 
   units_str = ''
   case plot_type of
@@ -461,14 +581,21 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, wei
   endcase
 
   if pub then begin
-    if n_elements(plotfile) eq 0 then plotfile = strsplit(power_savefile[0], '.idlsave', /regex, /extract) + plotfile_add $
-    else if strcmp(strmid(plotfile, strlen(plotfile)-4), plot_exten, /fold_case) eq 0 then plotfile = plotfile + plot_exten
+    if n_elements(plotfile) eq 0 then begin
+      plotfile = strsplit(power_savefile[0], '.idlsave', /regex, /extract) + plotfile_add
+    endif else begin
+      if strcmp(strmid(plotfile, strlen(plotfile)-4), plot_exten, /fold_case) eq 0 then begin
+        plotfile = plotfile + plot_exten
+      endif
+    endelse
   endif
 
   if keyword_set(no_units) then units_str = ''
 
-  wh_kperp_inrange = where(kperp_edges_use[0:n_kperp-1] ge kperp_plot_range[0] and kperp_edges_use[1:*] le kperp_plot_range[1], n_kperp_plot)
-  wh_kpar_inrange = where(kpar_edges_use[0:n_kpar-1] ge kpar_plot_range[0] and kpar_edges_use[1:*] le kpar_plot_range[1], n_kpar_plot)
+  wh_kperp_inrange = where(kperp_edges_use[0:n_kperp-1] ge kperp_plot_range[0] and $
+    kperp_edges_use[1:*] le kperp_plot_range[1], n_kperp_plot)
+  wh_kpar_inrange = where(kpar_edges_use[0:n_kpar-1] ge kpar_plot_range[0] and $
+    kpar_edges_use[1:*] le kpar_plot_range[1], n_kpar_plot)
 
   if n_kperp_plot eq 0 or n_kpar_plot eq 0 then message, 'No data in plot k range'
 
@@ -531,7 +658,9 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, wei
           kperp_log_diffs = (kperp_log_edges[1:*] - shift(kperp_log_edges[1:*], 1))[1:*]
           kperp_log_diffs = [kperp_log_diffs[0], kperp_log_diffs]
           kperp_log_edges[wh_kperp0] = kperp_log_edges[wh_kperp0+1] - kperp_log_diffs[wh_kperp0]
-        endif else kperp_log_diffs = (kperp_log_edges - shift(kperp_log_edges, 1))[1:*]
+        endif else begin
+          kperp_log_diffs = (kperp_log_edges - shift(kperp_log_edges, 1))[1:*]
+        endelse
 
         image_kperp_delta = min(kperp_log_diffs)
         kperp_bin_widths = round(kperp_log_diffs / image_kperp_delta)
@@ -593,7 +722,8 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, wei
       ;; now get width for each input bin in image array
       nkperp_image = total(kperp_bin_widths)
 
-      h_kperp = histogram(total(kperp_bin_widths,/cumulative)-1,binsize=1, min=0, reverse_indices=ri_kperp)
+      h_kperp = histogram(total(kperp_bin_widths,/cumulative)-1,binsize=1, min=0, $
+        reverse_indices=ri_kperp)
       undefine, h_kperp
       kperp_inds = ri_kperp[0:nkperp_image-1]-ri_kperp[0]
     endif else begin
@@ -604,9 +734,11 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, wei
     if rebin_y eq 1 then begin
       nkpar_image = total(kpar_bin_widths)
 
-      h_kpar = histogram(total(kpar_bin_widths,/cumulative)-1,binsize=1, min=0, reverse_indices=ri_kpar)
+      h_kpar = histogram(total(kpar_bin_widths,/cumulative)-1,binsize=1, min=0, $
+        reverse_indices=ri_kpar)
       undefine, h_kpar
-      kpar_inds = rebin(reform(ri_kpar[0:nkpar_image-1]-ri_kpar[0], 1, nkpar_image), nkperp_image, nkpar_image)
+      kpar_inds = rebin(reform(ri_kpar[0:nkpar_image-1]-ri_kpar[0], 1, nkpar_image), $
+        nkperp_image, nkpar_image)
     endif else begin
       nkpar_image = n_kpar
       kpar_inds = rebin(reform(indgen(nkpar_image), 1, nkpar_image), nkperp_image, nkpar_image)
@@ -616,25 +748,41 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, wei
     power_plot = power_use[kperp_inds, kpar_inds]
     if keyword_set(bin_contour) then begin
       bin_plot = bin[kperp_inds, kpar_inds]
-      if log_axes[0] eq 0 then bin_kperp = findgen(nkperp_image)*(max(kperp_edges_use) - min(kperp_edges_use))/nkperp_image + min(kperp_edges_use) $
-      else bin_kperp = 10^(findgen(nkperp_image)*(max(kperp_log_edges) - min(kperp_log_edges))/nkperp_image + min(kperp_log_edges))
-      if log_axes[1] eq 0 then bin_kpar = findgen(nkpar_image)*(max(kpar_edges_use) - min(kpar_edges_use))/nkpar_image + min(kpar_edges_use) $
-      else bin_kpar = 10^(findgen(nkpar_image)*(max(kpar_log_edges) - min(kpar_log_edges))/nkpar_image + min(kpar_log_edges))
+      if log_axes[0] eq 0 then begin
+        bin_kperp = findgen(nkperp_image)*(max(kperp_edges_use) - min(kperp_edges_use))/nkperp_image + min(kperp_edges_use)
+      endif else begin
+        bin_kperp = 10^(findgen(nkperp_image)*(max(kperp_log_edges) - min(kperp_log_edges))/nkperp_image + min(kperp_log_edges))
+      endelse
+      if log_axes[1] eq 0 then begin
+        bin_kpar = findgen(nkpar_image)*(max(kpar_edges_use) - min(kpar_edges_use))/nkpar_image + min(kpar_edges_use)
+      endif else begin
+        bin_kpar = 10^(findgen(nkpar_image)*(max(kpar_log_edges) - min(kpar_log_edges))/nkpar_image + min(kpar_log_edges))
+      endelse
     endif
 
     ;; now expand array in any non-rebinned direction to prevent interpolation
-    if rebin_x eq 0 or nkperp_image lt 15 or nkperp_image lt 0.1*nkpar_image then power_plot = congrid(power_plot, nkperp_image*20, nkpar_image)
-    if rebin_y eq 0 or nkpar_image lt 15  or nkpar_image lt 0.1*nkperp_image then power_plot = congrid(power_plot, nkperp_image, nkpar_image*20)
+    if rebin_x eq 0 or nkperp_image lt 15 or nkperp_image lt 0.1*nkpar_image then begin
+      power_plot = congrid(power_plot, nkperp_image*20, nkpar_image)
+    endif
+    if rebin_y eq 0 or nkpar_image lt 15  or nkpar_image lt 0.1*nkperp_image then begin
+      power_plot = congrid(power_plot, nkperp_image, nkpar_image*20)
+    endif
     if keyword_set(bin_contour) then begin
       if rebin_x eq 0 or nkperp_image lt 15 then begin
         bin_plot = congrid(bin_plot, nkperp_image*10, nkpar_image)
-        if log_axes[0] eq 0 then bin_kperp = findgen(nkperp_image*10)*(max(kperp_edges_use) - min(kperp_edges_use))/nkperp_image + min(kperp_edges_use) $
-        else bin_kperp = 10^(findgen(nkperp_image*10)*(max(kperp_log_edges) - min(kperp_log_edges))/(nkperp_image*10) + min(kperp_log_edges))
+        if log_axes[0] eq 0 then begin
+          bin_kperp = findgen(nkperp_image*10)*(max(kperp_edges_use) - min(kperp_edges_use))/nkperp_image + min(kperp_edges_use)
+        endif else begin
+          bin_kperp = 10^(findgen(nkperp_image*10)*(max(kperp_log_edges) - min(kperp_log_edges))/(nkperp_image*10) + min(kperp_log_edges))
+        endelse
       endif
       if rebin_y eq 0or nkpar_image lt 15 then begin
         bin_plot = congrid(bin_plot, nkperp_image, nkpar_image*10)
-        if log_axes[1] eq 0 then bin_kpar = findgen(nkpar_image*10)*(max(kpar_edges_use) - min(kpar_edges_use))/nkpar_image + min(kpar_edges_use) $
-        else bin_kpar = 10^(findgen(nkpar_image*10)*(max(kpar_log_edges) - min(kpar_log_edges))/(nkpar_image*10) + min(kpar_log_edges))
+        if log_axes[1] eq 0 then begin
+          bin_kpar = findgen(nkpar_image*10)*(max(kpar_edges_use) - min(kpar_edges_use))/nkpar_image + min(kpar_edges_use)
+        endif else begin
+          bin_kpar = 10^(findgen(nkpar_image*10)*(max(kpar_log_edges) - min(kpar_log_edges))/(nkpar_image*10) + min(kpar_log_edges))
+        endelse
       endif
     endif
   endif else begin
@@ -649,10 +797,16 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, wei
 
     if keyword_set(bin_contour) then begin
       bin_plot = congrid(bin, n_kperp*10, n_kpar*10)
-      if log_axes[0] eq 0 then bin_kperp = findgen(nkperp_image*10)*(max(kperp_edges_use) - min(kperp_edges_use))/nkperp_image + min(kperp_edges_use) $
-      else bin_kperp = 10^(findgen(nkperp_image*10)*(max(kperp_log_edges) - min(kperp_log_edges))/nkperp_image + min(kperp_log_edges))
-      if log_axes[1] eq 0 then bin_kpar = findgen(nkpar_image*10)*(max(kpar_edges_use) - min(kpar_edges_use))/nkpar_image + min(kpar_edges_use) $
-      else bin_kpar = 10^(findgen(nkpar_image*10)*(max(kpar_log_edges) - min(kpar_log_edges))/nkpar_image + min(kpar_log_edges))
+      if log_axes[0] eq 0 then begin
+        bin_kperp = findgen(nkperp_image*10)*(max(kperp_edges_use) - min(kperp_edges_use))/nkperp_image + min(kperp_edges_use)
+      endif else begin
+        bin_kperp = 10^(findgen(nkperp_image*10)*(max(kperp_log_edges) - min(kperp_log_edges))/nkperp_image + min(kperp_log_edges))
+      endelse
+      if log_axes[1] eq 0 then begin
+        bin_kpar = findgen(nkpar_image*10)*(max(kpar_edges_use) - min(kpar_edges_use))/nkpar_image + min(kpar_edges_use)
+      endif else begin
+        bin_kpar = 10^(findgen(nkpar_image*10)*(max(kpar_log_edges) - min(kpar_log_edges))/nkpar_image + min(kpar_log_edges))
+      endelse
     endif
   endelse
 
@@ -685,12 +839,19 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, wei
           cb_ticks = [cb_ticks, color_range[1]+1]
         endif
 
-        if not keyword_set(invert_colorbar) then cgloadct, 25, /brewer, /reverse, BOTTOM = 0, NCOLORS = n_colors, clip = [0, 235] $
-        else cgloadct, 25, /brewer, BOTTOM = 0, NCOLORS = n_colors, clip = [20, 255]
+        if not keyword_set(invert_colorbar) then begin
+          cgloadct, 25, /brewer, /reverse, BOTTOM = 0, NCOLORS = n_colors, clip = [0, 235]
+        endif else begin
+          cgloadct, 25, /brewer, BOTTOM = 0, NCOLORS = n_colors, clip = [20, 255]
+        endelse
 
       end
-      'log': log_color_calc, power_plot, power_log_norm, cb_ticks, cb_ticknames, color_range, n_colors, data_range = data_range, $
-        color_profile = color_profile, log_cut_val = log_cut_val, min_abs = data_min_abs, oob_low = oob_low, label_lt_0 = label_lt_0_oncb, invert_colorbar = invert_colorbar
+      'log': begin
+        log_color_calc, power_plot, power_log_norm, cb_ticks, cb_ticknames, $
+          color_range, n_colors, data_range = data_range, color_profile = color_profile, $
+          log_cut_val = log_cut_val, min_abs = data_min_abs, oob_low = oob_low, $
+          label_lt_0 = label_lt_0_oncb, invert_colorbar = invert_colorbar
+        end
       'linear': begin
         if n_elements(data_range) eq 0 then data_range = minmax(power_plot)
         color_range = [0, 255]
@@ -713,9 +874,11 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, wei
           cb_ticks = [cb_ticks, color_range[1]]
         endif
 
-        if not keyword_set(invert_colorbar) then cgloadct, 25, /brewer, /reverse, BOTTOM = 0, NCOLORS = n_colors, clip = [0, 235] $
-        else cgloadct, 25, /brewer, BOTTOM = 0, NCOLORS = n_colors, clip = [20, 255]
-
+        if not keyword_set(invert_colorbar) then begin
+          cgloadct, 25, /brewer, /reverse, BOTTOM = 0, NCOLORS = n_colors, clip = [0, 235]
+        endif else begin
+          cgloadct, 25, /brewer, BOTTOM = 0, NCOLORS = n_colors, clip = [20, 255]
+        endelse
       end
     endcase
   endif
@@ -740,9 +903,10 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, wei
 
     if keyword_set(force_kperp_axis_range) then begin
       if min(force_kperp_axis_range) gt min(kperp_edges_use) $
-        or max(force_kperp_axis_range) lt max(kperp_edges_use) then $
-        message, 'force_kperp_axis_range is used for specifying axes outside the range of the plotted data. ' + $
-        'To limit the plotted data range, use kperp_plot_range'
+          or max(force_kperp_axis_range) lt max(kperp_edges_use) then begin
+        message, 'force_kperp_axis_range is used for specifying axes outside the ' + $
+          'range of the plotted data. To limit the plotted data range, use kperp_plot_range'
+      endif
 
       if log_axes[0] eq 0 then begin
         image_relative_pos[0] = (min(kperp_edges_use) - min(force_kperp_axis_range))/(max(force_kperp_axis_range) - min(force_kperp_axis_range))
@@ -758,9 +922,10 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, wei
 
     if keyword_set(force_kpar_axis_range) then begin
       if min(force_kpar_axis_range) gt min(kpar_edges_use) $
-        or max(force_kpar_axis_range) lt max(kpar_edges_use) then $
-        message, 'force_kpar_axis_range is used for specifying axes outside the range of the plotted data. ' + $
-        'To limit the plotted data range, use kpar_plot_range'
+          or max(force_kpar_axis_range) lt max(kpar_edges_use) then begin
+        message, 'force_kpar_axis_range is used for specifying axes outside the ' + $
+          'range of the plotted data. To limit the plotted data range, use kpar_plot_range'
+      endif
 
       if log_axes[0] eq 0 then begin
         image_relative_pos[1] = (min(kpar_edges_use) - min(force_kpar_axis_range))/(max(force_kpar_axis_range) - min(force_kpar_axis_range))
@@ -806,7 +971,8 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, wei
     ;; endelse
   endif else cb_margin = cb_margin_in
 
-  plot_pos = [margin[0], margin[1], (1-cb_margin[1]-cb_size-cb_margin[0]-margin[2]), (1-margin[3])]
+  plot_pos = [margin[0], margin[1], (1-cb_margin[1]-cb_size-cb_margin[0]-margin[2]), $
+    (1-margin[3])]
   cb_pos = [(1-cb_margin[1]-cb_size), margin[1], (1-cb_margin[1]), (1-margin[3])]
 
   plot_len = [plot_pos[2]-plot_pos[0], plot_pos[3] - plot_pos[1]]
@@ -815,11 +981,15 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, wei
   plot_aspect = (plot_pos[3] - plot_pos[1]) / (plot_pos[2] - plot_pos[0])
 
   if log_axes[0] eq 0 then begin
-    if keyword_set(force_kperp_axis_range) then kperp_length = max(force_kperp_axis_range) - min(force_kperp_axis_range) $
-    else kperp_length = max(kperp_edges_use) - min(kperp_edges_use)
+    if keyword_set(force_kperp_axis_range) then begin
+      kperp_length = max(force_kperp_axis_range) - min(force_kperp_axis_range)
+    endif else begin
+      kperp_length = max(kperp_edges_use) - min(kperp_edges_use)
+    endelse
   endif else begin
-    if keyword_set(force_kperp_axis_range) then kperp_length = max(log_kperp_axis) - min(log_kperp_axis) $
-    else begin
+    if keyword_set(force_kperp_axis_range) then begin
+      kperp_length = max(log_kperp_axis) - min(log_kperp_axis)
+    endif else begin
 
       if min(kperp_edges_use) lt 0 then begin
         wh_zero = where(kperp_edges_use eq 0, n_zero)
@@ -831,16 +1001,24 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, wei
 
         kperp_length = neg_leng + pos_leng + pos_leng/(n_pos-1)
 
-      endif else kperp_length = max(kperp_log_edges) - min(kperp_log_edges)
+      endif else begin
+        kperp_length = max(kperp_log_edges) - min(kperp_log_edges)
+      endelse
     endelse
   endelse
 
   if log_axes[1] eq 0 then begin
-    if keyword_set(force_kpar_axis_range) then kpar_length = max(force_kpar_axis_range) - min(force_kpar_axis_range) $
-    else kpar_length = alog10(max(kpar_edges_use)) - alog10(min(kpar_edges_use[where(kpar_edges_use gt 0)]))
+    if keyword_set(force_kpar_axis_range) then begin
+      kpar_length = max(force_kpar_axis_range) - min(force_kpar_axis_range)
+    endif else begin
+      kpar_length = alog10(max(kpar_edges_use)) - alog10(min(kpar_edges_use[where(kpar_edges_use gt 0)]))
+    endelse
   endif else begin
-    if keyword_set(force_kpar_axis_range) then kpar_length = max(log_kpar_axis) - min(log_kpar_axis) $
-    else kpar_length = max(kpar_log_edges) - min(kpar_log_edges)
+    if keyword_set(force_kpar_axis_range) then begin
+      kpar_length = max(log_kpar_axis) - min(log_kpar_axis)
+    endif else begin
+      kpar_length = max(kpar_log_edges) - min(kpar_log_edges)
+    endelse
   endelse
 
   data_aspect = float(kpar_length / kperp_length)
@@ -890,7 +1068,11 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, wei
       ysize = round(base_size * y_factor * double(nrow))
       if not keyword_set(pub) then begin
         while (ysize gt max_ysize) or (xsize gt max_xsize) do begin
-          if base_size_use gt 100 then base_size_use = base_size_use - 100 else base_size_use = base_size_use * .75
+          if base_size_use gt 100 then begin
+            base_size_use = base_size_use - 100
+          endif else begin
+            base_size_use = base_size_use * .75
+          endelse
           xsize = round(base_size_use * x_factor * double(ncol))
           ysize = round(base_size_use * y_factor * double(nrow))
         endwhile
@@ -904,14 +1086,19 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, wei
         IF Keyword_Set(eps) THEN landscape = 0
         sizes = cgpswindow(LANDSCAPE=landscape, aspectRatio = ps_aspect, /sane_offsets)
 
-        cgps_open, plotfile, /font, encapsulated=eps, /nomatch, inches=sizes.inches, xsize=sizes.xsize, ysize=sizes.ysize, $
-          xoffset=sizes.xoffset, yoffset=sizes.yoffset, landscape = landscape
+        cgps_open, plotfile, /font, encapsulated=eps, /nomatch, inches=sizes.inches, $
+          xsize=sizes.xsize, ysize=sizes.ysize, xoffset=sizes.xoffset, $
+          yoffset=sizes.yoffset, landscape = landscape
 
       endif else begin
         ;; make or set window
         if windowavailable(window_num) then begin
           wset, window_num
-          if !d.x_size ne xsize or !d.y_size ne ysize then make_win = 1 else make_win = 0
+          if !d.x_size ne xsize or !d.y_size ne ysize then begin
+            make_win = 1
+          endif else begin
+            make_win = 0
+          endelse
         endif else make_win = 1
         if make_win eq 1 then window, window_num, xsize = xsize, ysize = ysize
         cgerase, background_color
@@ -967,8 +1154,9 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, wei
       IF Keyword_Set(eps) THEN landscape = 0
       sizes = cgpswindow(LANDSCAPE=landscape, aspectRatio = ps_aspect, /sane_offsets)
 
-      cgps_open, plotfile, /font, encapsulated=eps, /nomatch, inches=sizes.inches, xsize=sizes.xsize, ysize=sizes.ysize, $
-        xoffset=sizes.xoffset, yoffset=sizes.yoffset, landscape = landscape
+      cgps_open, plotfile, /font, encapsulated=eps, /nomatch, inches=sizes.inches, $
+        xsize=sizes.xsize, ysize=sizes.ysize, xoffset=sizes.xoffset, $
+        yoffset=sizes.yoffset, landscape = landscape
 
     endif else begin
       while (ysize gt max_ysize) or (xsize gt max_xsize) do begin
@@ -980,7 +1168,11 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, wei
 
       if windowavailable(window_num) then begin
         wset, window_num
-        if !d.x_size ne xsize or !d.y_size ne ysize then make_win = 1 else make_win = 0
+        if !d.x_size ne xsize or !d.y_size ne ysize then begin
+          make_win = 1
+        endif else begin
+          make_win = 0
+        endelse
       endif else make_win = 1
       if make_win eq 1 then window, window_num, xsize = xsize, ysize = ysize
       cgerase, background_color
@@ -991,8 +1183,11 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, wei
 
   if not keyword_set(no_title) then begin
     xloc_title = (plot_pos[2] - plot_pos[0])/2. + plot_pos[0]
-    if n_elements(multi_pos) gt 0 then yloc_title = plot_pos[3] + 0.6* (multi_pos_use[3]-plot_pos[3]) $
-    else yloc_title = plot_pos[3] + 0.6* (1-plot_pos[3])
+    if n_elements(multi_pos) gt 0 then begin
+      yloc_title = plot_pos[3] + 0.6* (multi_pos_use[3]-plot_pos[3])
+    endif else begin
+      yloc_title = plot_pos[3] + 0.6* (1-plot_pos[3])
+    endelse
   endif
 
   if n_elements(multi_pos) gt 0 then begin
@@ -1053,9 +1248,17 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, wei
 
 
   if keyword_set(force_kperp_axis_range) then begin
-    if log_axes[0] eq 1 then plot_kperp = 10^log_kperp_axis else plot_kperp = force_kperp_axis_range
+    if log_axes[0] eq 1 then begin
+      plot_kperp = 10^log_kperp_axis
+    endif else begin
+      plot_kperp = force_kperp_axis_range
+    endelse
   endif else begin
-    if log_axes[0] eq 1 then plot_kperp = 10^kperp_log_edges else plot_kperp = kperp_edges_use
+    if log_axes[0] eq 1 then begin
+      plot_kperp = 10^kperp_log_edges
+    endif else begin
+      plot_kperp = kperp_edges_use
+    endelse
   endelse
 
   if keyword_set(force_kpar_axis_range)then begin
@@ -1081,9 +1284,13 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, wei
 
   ;; if plot title includes sigma need to replace 'sigma' with appropriate character
   ;; (textoidl has to be called after cgps_open)
-  if keyword_set(plot_sigma) then plot_title = repstr(plot_title, 'sigma', textoidl('\sigma', font=font))
+  if keyword_set(plot_sigma) then begin
+    plot_title = repstr(plot_title, 'sigma', textoidl('\sigma', font=font))
+  endif
 
-  if keyword_set(title_prefix) then plot_title = title_prefix + ' ' + plot_title
+  if keyword_set(title_prefix) then begin
+    plot_title = title_prefix + ' ' + plot_title
+  endif
   if n_elements(full_title) ne 0 then plot_title = full_title
   if keyword_set(no_title) then undefine, plot_title
 
@@ -1093,13 +1300,11 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, wei
   if keyword_set (hinv) then ytitle = textoidl('k_{||} (!8h!X Mpc^{-1})', font = font) $
   else ytitle = textoidl('k_{||} (Mpc^{-1})', font = font)
 
-  if keyword_set(no_title) or keyword_set(baseline_axis) then initial_title = '' else initial_title = plot_title
-
-  ;;cgplot, plot_kperp, plot_kpar, /xlog, /ylog, /nodata, xstyle=5, ystyle=5, title = initial_title, $
-  ;;        position = plot_pos, thick = thick, charthick = charthick, xthick = xthick, ythick = ythick, charsize = charsize, $
-  ;;        font = font, noerase = no_erase, axiscolor = annotate_color, background = background_color
-
-  ;;cgimage, power_log_norm, /nointerp,/overplot,/noerase
+  if keyword_set(no_title) or keyword_set(baseline_axis) then begin
+    initial_title = ''
+  endif else begin
+    initial_title = plot_title
+  endelse
 
   if log_axes[0] eq 1 then xtickformat = 'exponent' else begin
     nticks = 5
@@ -1113,8 +1318,11 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, wei
     n_minor = 4
 
     if keyword_set(baseline_axis) then begin
-      if keyword_set(hinv) then baseline_range = minmax(plot_kperp * hubble_param * kperp_lambda_conv) $
-      else baseline_range = minmax(plot_kperp* kperp_lambda_conv)
+      if keyword_set(hinv) then begin
+        baseline_range = minmax(plot_kperp * hubble_param * kperp_lambda_conv)
+      endif else begin
+        baseline_range = minmax(plot_kperp* kperp_lambda_conv)
+      endelse
 
       log_size2 = round(min(alog10(baseline_range)))
       xtick_width2 = round((max(baseline_range) - min(baseline_range))/(nticks-1.)/(10.^log_size2))*(10.^log_size2)
@@ -1138,40 +1346,58 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, wei
     plot_pos_use[1] = plot_pos[1] + image_relative_pos[1] * (plot_pos[3] - plot_pos[1])
     plot_pos_use[3] = plot_pos[1] + image_relative_pos[3] * (plot_pos[3] - plot_pos[1])
 
-    if log_axes[0] eq 1 then data_plot_kperp = 10^log_kperp_axis else data_plot_kperp = force_kpar_axis_range
+    if log_axes[0] eq 1 then begin
+      data_plot_kperp = 10^log_kperp_axis
+    endif else begin
+      data_plot_kperp = force_kpar_axis_range
+    endelse
 
-    cgimage, power_log_norm, /nointerp, xrange = minmax(data_plot_kperp), yrange = minmax(plot_kpar), $
-      title=initial_title, position = plot_pos_use, noerase = no_erase, color = annotate_color, background = background_color, $
+    cgimage, power_log_norm, /nointerp, xrange = minmax(data_plot_kperp), $
+      yrange = minmax(plot_kpar), title=initial_title, position = plot_pos_use, $
+      noerase = no_erase, color = annotate_color, background = background_color, $
       axkeywords = axkeywords, /axes
 
-    cgplot, fltarr(10), /nodata, xrange = minmax(plot_kperp), yrange = minmax(plot_kpar), /noerase, $
-      title=initial_title, position = plot_pos, color = annotate_color, background = background_color, $
-      xlog = log_axes[0], ylog = [1], xstyle = 5, ystyle = 5, thick = thick, charthick = charthick, xthick = xthick, $
+    cgplot, fltarr(10), /nodata, xrange = minmax(plot_kperp), yrange = minmax(plot_kpar), $
+      /noerase, title=initial_title, position = plot_pos, color = annotate_color, $
+      background = background_color, xlog = log_axes[0], ylog = [1], xstyle = 5, $
+      ystyle = 5, thick = thick, charthick = charthick, xthick = xthick, $
       ythick = ythick, charsize = charsize, font = font
 
   endif else begin
-    cgimage, power_log_norm, /nointerp, xrange = minmax(plot_kperp), yrange = minmax(plot_kpar), $
-      title=initial_title, position = plot_pos, noerase = no_erase, color = annotate_color, background = background_color, $
+    cgimage, power_log_norm, /nointerp, xrange = minmax(plot_kperp), $
+      yrange = minmax(plot_kpar), title=initial_title, position = plot_pos, $
+      noerase = no_erase, color = annotate_color, background = background_color, $
       axkeywords = axkeywords, /axes
   endelse
 
   if keyword_set(bin_contour) then begin
-    if keyword_set(png) then c_thick = [3,1,1,1,1] else c_thick = [2,1,1,1,1]
-    cgcontour, bin_plot, bin_kperp, bin_kpar, levels = levels, $;c_color = ['black', 'dark_grey', 'dark_grey'], $
-      thick = thick, charsize = charsize, font = font, label=0, /onimage, c_thick = c_thick;, c_linestyle=[0,2,1]
+    if keyword_set(png) then begin
+      c_thick = [3,1,1,1,1]
+    endif else begin
+      c_thick = [2,1,1,1,1]
+    endelse
+    cgcontour, bin_plot, bin_kperp, bin_kpar, levels = levels, $
+      thick = thick, charsize = charsize, font = font, label=0, /onimage, c_thick = c_thick
   endif
 
   if keyword_set(plot_wedge_line) then begin
     n_lines = n_elements(wedge_amp)
     sorted_amp = reverse(wedge_amp[sort(wedge_amp)])
-    if n_lines gt 1 then linestyles = [0, 2, 1] else linestyles=2
+    if n_lines gt 1 then begin
+      linestyles = [0, 2, 1]
+    endif else begin
+      linestyles=2
+    endelse
 
-    for i=0, n_lines-1 do cgplot, /overplot, plot_kperp, plot_kperp * sorted_amp[i], color = annotate_color, thick = thick+1, $
-      psym=-0, linestyle = linestyles[i mod n_elements(linestyles)]
+    for i=0, n_lines-1 do begin
+      cgplot, /overplot, plot_kperp, plot_kperp * sorted_amp[i], color = annotate_color, $
+      thick = thick+1, psym=-0, linestyle = linestyles[i mod n_elements(linestyles)]
+    endfor
   endif
 
-  cgaxis, xaxis=0, xtick_get = xticks, xtickv = xticks_in, xticks = x_nticks, xminor=n_minor, xrange = minmax(plot_kperp), $
-    xtitle = xtitle, charthick = charthick, xthick = xthick, ythick = ythick, charsize = charsize, font = font, $
+  cgaxis, xaxis=0, xtick_get = xticks, xtickv = xticks_in, xticks = x_nticks, $
+    xminor=n_minor, xrange = minmax(plot_kperp), xtitle = xtitle, charthick = charthick, $
+    xthick = xthick, ythick = ythick, charsize = charsize, font = font, $
     xtickformat = xtickformat, xstyle = 1, color = annotate_color
 
   cgaxis, yaxis=0, ytick_get = yticks, ytitle = ytitle, yrange = minmax(plot_kpar), $
@@ -1179,25 +1405,34 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, wei
     ytickformat = ytickformat, ystyle = 1, color = annotate_color
   if keyword_set(baseline_axis) then begin
     ;; baselines don't care about hinv -- take it back out.
-    if keyword_set(hinv) then baseline_range = minmax(plot_kperp * hubble_param * kperp_lambda_conv) $
-    else baseline_range = minmax(plot_kperp* kperp_lambda_conv)
+    if keyword_set(hinv) then begin
+      baseline_range = minmax(plot_kperp * hubble_param * kperp_lambda_conv)
+    endif else begin
+      baseline_range = minmax(plot_kperp* kperp_lambda_conv)
+    endelse
 
-    if keyword_set(no_title) then xtitle = textoidl('(\lambda)', font = font) else undefine, xtitle
+    if keyword_set(no_title) then begin
+      xtitle = textoidl('(\lambda)', font = font)
+    endif else begin
+      undefine, xtitle
+    endelse
 
-    cgaxis, xaxis=1, xtickv = xticks_in2, xticks = x_nticks, xminor=n_minor, xrange = baseline_range, xtickformat = xtickformat, $
-      xthick = xthick, xtitle = xtitle, $
-      charthick = charthick, ythick = ythick, charsize = charsize, font = font, xstyle = 1, color = annotate_color
+    cgaxis, xaxis=1, xtickv = xticks_in2, xticks = x_nticks, xminor=n_minor, $
+      xrange = baseline_range, xtickformat = xtickformat, xthick = xthick, xtitle = xtitle, $
+      charthick = charthick, ythick = ythick, charsize = charsize, font = font, $
+      xstyle = 1, color = annotate_color
 
     if not keyword_set(no_title) then begin
-      cgtext, xloc_title, yloc_title, plot_title, /normal, alignment=0.5, charsize=1.2 * charsize, $
-        color = annotate_color, font = font
-      cgtext, xloc_lambda, yloc_lambda, textoidl('(\lambda)', font = font), /normal, alignment=0.5, charsize=charsize, $
-        color = annotate_color, font = font
+      cgtext, xloc_title, yloc_title, plot_title, /normal, alignment=0.5, $
+        charsize=1.2 * charsize, color = annotate_color, font = font
+      cgtext, xloc_lambda, yloc_lambda, textoidl('(\lambda)', font = font), $
+        /normal, alignment=0.5, charsize=charsize, color = annotate_color, font = font
     endif
   endif else $
-    cgaxis, xaxis=1, xrange = minmax(plot_kperp), xtickv = xticks, xtickname = replicate(' ', n_elements(xticks)), $
-    charthick = charthick, xthick = xthick, ythick = ythick, charsize = charsize, font = font, xstyle = 1, $
-    color = annotate_color
+    cgaxis, xaxis=1, xrange = minmax(plot_kperp), xtickv = xticks, $
+      xtickname = replicate(' ', n_elements(xticks)), $
+      charthick = charthick, xthick = xthick, ythick = ythick, charsize = charsize, $
+      font = font, xstyle = 1, color = annotate_color
   if keyword_set(delay_axis) or keyword_set(cable_length_axis) then begin
 
     if keyword_set(delay_axis) then begin
@@ -1208,31 +1443,39 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, wei
       units_text = '(cbl m)'
     endelse
 
-    cgaxis, yaxis=1, yrange = yrange_use, ytickformat = ytickformat, charthick = charthick, xthick = xthick, $
-      ythick = ythick, charsize = charsize, font = font, ystyle = 1, color = annotate_color
+    cgaxis, yaxis=1, yrange = yrange_use, ytickformat = ytickformat, charthick = charthick, $
+      xthick = xthick, ythick = ythick, charsize = charsize, font = font, $
+      ystyle = 1, color = annotate_color
 
     cgtext, xloc_delay, yloc_delay, units_text, /normal, alignment=0.5, charsize=charsize*0.9, $
       color = annotate_color, font = font
 
-  endif else $
-    cgaxis, yaxis=1, yrange = minmax(plot_kpar), ytickv = yticks, ytickname = replicate(' ', n_elements(yticks)), $
-    charthick = charthick, xthick = xthick, ythick = ythick, charsize = charsize, font = font, ystyle = 1, $
-    color = annotate_color
+  endif else begin
+    cgaxis, yaxis=1, yrange = minmax(plot_kpar), ytickv = yticks, $
+      ytickname = replicate(' ', n_elements(yticks)), charthick = charthick, $
+      xthick = xthick, ythick = ythick, charsize = charsize, font = font, ystyle = 1, $
+      color = annotate_color
+  endelse
 
   if n_elements(note) ne 0 then begin
-    if keyword_set(pub) then char_factor = 0.75 else char_factor = 1
-    cgtext, xloc_note, yloc_note, note, /normal, alignment=1, charsize = char_factor*charsize, color = annotate_color, font = font
+    if keyword_set(pub) then begin
+      char_factor = 0.75
+    endif else begin
+      char_factor = 1
+    endelse
+    cgtext, xloc_note, yloc_note, note, /normal, alignment=1, $
+      charsize = char_factor*charsize, color = annotate_color, font = font
   endif
 
-  cgcolorbar, color = annotate_color, /vertical, position = cb_pos, bottom = color_range[0], ncolors = n_colors, minor = 0, $
-    ticknames = cb_ticknames, ytickv = cb_ticks, yticks = n_elements(cb_ticks) -1, title = units_str, $
+  cgcolorbar, color = annotate_color, /vertical, position = cb_pos, $
+    bottom = color_range[0], ncolors = n_colors, minor = 0, ticknames = cb_ticknames, $
+    ytickv = cb_ticks, yticks = n_elements(cb_ticks) -1, title = units_str, $
     charsize = charsize, font = font, oob_low = oob_low
-  ;; cgcolorbar, color = annotate_color, /vertical, position = cb_pos, bottom = color_range[0]+1, ncolors = n_colors, /ylog, $
-  ;;             range = 10d^log_data_range, format = 'exponent', minor=minor, charsize = charsize, font = font, $
-  ;;             divisions = 0
 
-  if n_elements(oob_low) gt 0 and not keyword_set(label_lt_0_oncb) then $
-    cgtext, cb_pos[2], cb_pos[1]-(cb_pos[3]-cb_pos[1])*.05, '<0', /normal, alignment=1, charsize = charsize, color = annotate_color, font = font
+  if n_elements(oob_low) gt 0 and not keyword_set(label_lt_0_oncb) then begin
+    cgtext, cb_pos[2], cb_pos[1]-(cb_pos[3]-cb_pos[1])*.05, '<0', /normal, $
+    alignment=1, charsize = charsize, color = annotate_color, font = font
+  endif
 
   if keyword_set(pub) and n_elements(multi_pos) eq 0 then begin
     cgps_close, png = png, pdf = pdf, delete_ps = delete_ps, density=600
