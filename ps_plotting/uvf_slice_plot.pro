@@ -4,7 +4,7 @@
 ;;    the keyword values supercede the structure values.
 
 pro uvf_slice_plot, slice_savefile, multi_pos = multi_pos, $
-    start_multi_params = start_multi_params,
+    start_multi_params = start_multi_params, $
     plot_options = plot_options, plot_2d_options = plot_2d_options, $
     plot_xrange = plot_xrange, plot_yrange = plot_yrange, data_range = data_range, $
     type = type, log=log, png = png, eps = eps, pdf = pdf, plotfile = plotfile, $
@@ -24,7 +24,9 @@ pro uvf_slice_plot, slice_savefile, multi_pos = multi_pos, $
 
   if n_elements(plot_2d_options) gt 0 then begin
     if n_elements(baseline_axis) eq 0 then baseline_axis = plot_2d_options.baseline_axis
-    if n_elements(data_range) eq 0 then data_range = plot_2d_options.slice_range
+    if n_elements(data_range) eq 0 and tag_exist(plot_2d_options, 'slice_range') then begin
+      data_range = plot_2d_options.slice_range
+    endif
   endif
 
   if n_elements(plotfile) gt 0 or keyword_set(png) or keyword_set(eps) or keyword_set(pdf) then begin
@@ -161,11 +163,6 @@ pro uvf_slice_plot, slice_savefile, multi_pos = multi_pos, $
     else plot_yrange = minmax(yarr_edges)
   endif
 
-  ;; if slice_axis eq 2 then begin
-  ;;    plot_xrange = minmax([plot_xrange, plot_yrange])
-  ;;    plot_yrange = plot_xrange
-  ;; endif
-
   wh_x_inrange = where(xarr ge plot_xrange[0] and xarr + xdelta le plot_xrange[1], n_x_plot)
   wh_y_inrange = where(yarr ge plot_yrange[0] and yarr + ydelta le plot_yrange[1], n_y_plot)
 
@@ -237,14 +234,13 @@ pro uvf_slice_plot, slice_savefile, multi_pos = multi_pos, $
   background_color = 'white'
   annotate_color = 'black'
 
-
-
   if n_elements(data_range) eq 0 then begin
     if not keyword_set(all_zero) then begin
       data_range = minmax(plot_slice)
     endif else begin
       data_range = [-1*!pi, !pi]
     endelse
+  endif
 
   if n_x_plot lt 100 or n_y_plot lt 100 then begin
     slice_plot = congrid(plot_slice, n_x_plot*10, n_y_plot * 10)
