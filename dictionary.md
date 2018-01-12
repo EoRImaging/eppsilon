@@ -18,8 +18,6 @@ Many of these keywords are re-used in other wrappers, but since this is the prim
 
 **exact_obsnames**: This is a flag (valid values are 0/1, default=0) indicating that the obs_name that was provided was the exact obs_name, rather than a unique string that should be in the obs_name.
 
-**allow_beam_approx**: This is a flag (valid values are 0/1, default=0) indicating that a less good beam integral approximation should be used if the primary_beam_sq_area (or beam_integral for backwards compatibility) is not present or is zero in the obs structure. If this keyword is not set and the primary_beam_sq_area is not present or is zero, eppsilon will fail fairly quickly. If this keyword is set and the beam_integral is not present or is zero, eppsilon will print a warning but continue using a less good approximation.
-
 **beamfiles**: This is a keyword giving the location and names of the beam files. For FHD inputs, it is only used by the code if the beamfiles are not found in their standard location (it is actually overwritten by those locations if they are found.)
 
 **pol_inc**: A list of which polarizations to calculate power spectra for (e.g. 'xx', 'yy'). For FHD the default is all available polarizations, for RTS it is ['xx', 'yy'].
@@ -103,7 +101,9 @@ These flags (all default=0) tell the code to redo parts of the analysis that wou
 
 **spec_window_type**: Name of spectral window to apply in the frequency direction before Fourier Transforming. Default is 'Blackman-Harris'. Full set of options is: ['Hann', 'Hamming', 'Blackman', 'Nutall', 'Blackman-Nutall', 'Blackman-Harris', 'Blackman-Harris^2'].
 
-**no_spec_window**: This is a flag (valid values are 0/1, default=1) indicating that no spectral window should be applied (see spec_window_type keyword).
+**no_spec_window**: This is a flag (valid values are 0/1, default=0) indicating that no spectral window should be applied (see spec_window_type keyword).
+
+**allow_beam_approx**: This is a flag (valid values are 0/1, default=0) indicating that a less good beam integral approximation should be used if the beam_integral is not present or is zero in the obs structure. If this keyword is not set and the beam_integral is not present or is zero, eppsilon will fail fairly quickly. If this keyword is set and the beam_integral is not present or is zero, eppsilon will print a warning but continue using a less good approximation.
 
 **std_power**: A rarely used testing/exploration flag (valid values are 0/1, default=0) indicating that the power should be calculated using the sine and cosine terms of the FFT along the frequency axis, rather than the Lomb-Scargle components.
 
@@ -160,8 +160,6 @@ These flags (all default=0) tell the code to redo parts of the analysis that wou
 
 **cube_power_info**: An output structure that contains some information from the run that we use for quantifying simulations. The fields are: [ave_power, wt_ave_power, uv_pix_area, uv_area, ave_weights, ave_weights_freq, wt_ave_power_freq, ave_power_freq, wt_ave_power_uvf, ave_power_uvf, nbsl_lambda2, nbsl_lambda2_freq] and optionally flat_power.
 
-**note**: An output string giving some limited information about the eppsilon run that is useful for labelling plots.
-
 **ps_foldername**: This is the subdirectory under the folder_name where the eppsilon outputs are saved. Defaults to 'ps' + path_sep().
 
 **save_path**: Path to save eppsilon outputs to. Default is folder_names + path_sep() + ps_foldername + path_sep().
@@ -176,6 +174,8 @@ These flags (all default=0) tell the code to redo parts of the analysis that wou
 **plot_path**: Path to save eppsilon plot files to. Default is save_paths + path_sep() + 'plots' + path_sep()
 
 **plot_filebase**: Base name for eppsilon plot files. Default is to savefilebase.
+
+**note**: An output string giving some limited information about the eppsilon run that is useful for labelling plots.
 
 **individual_plots**: This is a flag (valid values are 0/1, default=0) indicating that separate plot files should be made for each plot, rather than combining different polarization and cube type plots into a single file.
 

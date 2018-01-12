@@ -5,47 +5,42 @@ pro make_2d_files, nfiles, savefile_2d, savefile_k0, power_3D, sim_noise_3D, $
     ave_weights, wt_ave_power_freq, ave_power_freq, wt_ave_power_uvf, $
     ave_power_uvf, uv_pix_area, uv_area, masked_save_items = masked_save_items, $
     noise_3D = noise_3D, sim_noise_diff_3D = sim_noise_diff_3D, $
-    wt_measure = wt_measure, wt_cutoff = wt_cutoff, log_kpar = log_kpar, $
-    log_kperp = log_kperp, kperp_bin = kperp_bin, kpar_bin = kpar_bin, $
-    fill_holes = fill_holes, freq_flags = freq_flags
+    wt_measure = wt_measure, wt_cutoff = wt_cutoff, freq_flags = freq_flags, $
+    binning_2d_options = binning_2d_options
 
   power_rebin = kspace_rebinning_2d(power_3D, kx_mpc, ky_mpc, kz_mpc, $
-    kperp_edges_mpc, kpar_edges_mpc, log_kpar = log_kpar, log_kperp = log_kperp, $
-    kperp_bin = kperp_bin, kpar_bin = kpar_bin, noise_expval = noise_expval_3d, $
+    kperp_edges_mpc, kpar_edges_mpc, noise_expval = noise_expval_3d, $
     binned_noise_expval = binned_noise_expval, weights = weights_3d, $
-    nbins_2d = nbins_2d, binned_weights = binned_weights, fill_holes = fill_holes, $
-    kperp_density_measure = wt_measure, kperp_density_cutoff = wt_cutoff)
+    nbins_2d = nbins_2d, binned_weights = binned_weights, $
+    kperp_density_measure = wt_measure, kperp_density_cutoff = wt_cutoff, $
+    binning_2d_options = binning_2d_options)
 
   sim_noise_rebin = kspace_rebinning_2d(sim_noise_3D, kx_mpc, ky_mpc, kz_mpc, $
-    kperp_edges_mpc, kpar_edges_mpc, log_kpar = log_kpar, log_kperp = log_kperp, $
-    kperp_bin = kperp_bin, kpar_bin = kpar_bin, noise_expval = noise_expval_3d, $
+    kperp_edges_mpc, kpar_edges_mpc, noise_expval = noise_expval_3d, $
     binned_noise_expval = binned_noise_expval, weights = weights_3d, $
     var_power_2d = sim_noise_var_2d, mean_var_2d = mean_var_2d, $
-    binned_weights = binned_weights, fill_holes = fill_holes, $
-    kperp_density_measure = wt_measure, kperp_density_cutoff = wt_cutoff)
+    binned_weights = binned_weights, kperp_density_measure = wt_measure, $
+    kperp_density_cutoff = wt_cutoff, binning_2d_options = binning_2d_options)
 
   new_noise_rebin = kspace_rebinning_2d(new_noise_3d, kx_mpc, ky_mpc, kz_mpc, $
-    kperp_edges_mpc, kpar_edges_mpc, log_kpar = log_kpar, log_kperp = log_kperp, $
-    kperp_bin = kperp_bin, kpar_bin = kpar_bin, noise_expval = noise_expval_3d, $
+    kperp_edges_mpc, kpar_edges_mpc, noise_expval = noise_expval_3d, $
     binned_noise_expval = binned_noise_expval, weights = weights_3d, $
     var_power_2d = new_noise_var_2d, mean_var_2d = new_mean_var_2d, $
-    binned_weights = binned_weights, fill_holes = fill_holes, $
-    kperp_density_measure = wt_measure, kperp_density_cutoff = wt_cutoff)
+    binned_weights = binned_weights, kperp_density_measure = wt_measure, $
+    kperp_density_cutoff = wt_cutoff, binning_2d_options = binning_2d_options)
 
   if nfiles eq 2 then begin
     noise_rebin = kspace_rebinning_2d(noise_3D, kx_mpc, ky_mpc, kz_mpc, $
-      kperp_edges_mpc, kpar_edges_mpc, log_kpar = log_kpar, log_kperp = log_kperp, $
-      kperp_bin = kperp_bin, kpar_bin = kpar_bin, noise_expval = noise_expval_3d, $
+      kperp_edges_mpc, kpar_edges_mpc, noise_expval = noise_expval_3d, $
       binned_noise_expval = binned_noise_expval, weights = weights_3d, $
-      binned_weights = binned_weights, fill_holes = fill_holes, $
-      kperp_density_measure = wt_measure, kperp_density_cutoff = wt_cutoff)
+      binned_weights = binned_weights, kperp_density_measure = wt_measure, $
+      kperp_density_cutoff = wt_cutoff, binning_2d_options = binning_2d_options)
 
     sim_noise_diff_rebin = kspace_rebinning_2d(sim_noise_diff_3D, kx_mpc, ky_mpc, kz_mpc, $
-      kperp_edges_mpc, kpar_edges_mpc, log_kpar = log_kpar, log_kperp = log_kperp, $
-      kperp_bin = kperp_bin, kpar_bin = kpar_bin, noise_expval = noise_expval_3d, $
+      kperp_edges_mpc, kpar_edges_mpc, noise_expval = noise_expval_3d, $
       binned_noise_expval = binned_noise_expval, weights = weights_3d, $
-      binned_weights = binned_weights, fill_holes = fill_holes, $
-      kperp_density_measure = wt_measure, kperp_density_cutoff = wt_cutoff)
+      binned_weights = binned_weights, kperp_density_measure = wt_measure, $
+      kperp_density_cutoff = wt_cutoff, binning_2d_options = binning_2d_options)
   endif
 
   power = power_rebin
@@ -64,6 +59,9 @@ pro make_2d_files, nfiles, savefile_2d, savefile_k0, power_3D, sim_noise_3D, $
     print, '2d weights appear to be entirely zero'
     return
   endif
+
+  kperp_bin = binning_2d_options.kperp_bin
+  kpar_bin = binning_2d_options.kpar_bin
 
   if n_elements(masked_save_items) then begin
 
@@ -116,7 +114,7 @@ pro make_2d_files, nfiles, savefile_2d, savefile_k0, power_3D, sim_noise_3D, $
   endelse
 
   ;; save just k0 line for plotting purposes
-  if not keyword_set(no_kzero) then begin
+  if not binning_2d_options.no_kzero then begin
     power = power[*,0]
     sim_noise = sim_noise[*,0]
     if n_elements(noise) gt 0 then noise = noise[*,0]
@@ -125,7 +123,7 @@ pro make_2d_files, nfiles, savefile_2d, savefile_k0, power_3D, sim_noise_3D, $
     noise_expval = noise_expval[*,0]
 
     k_edges = kperp_edges
-    k_bin = kperp_bin
+    k_bin = binning_2d_options.kperp_bin
 
     textfile = strmid(savefile_k0, 0, stregex(savefile_k0, '.idlsave')) + '.txt'
     print, 'saving kpar=0 power to ' + textfile

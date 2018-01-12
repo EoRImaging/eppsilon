@@ -8,8 +8,7 @@ pro ps_diff_wrapper, folder_names_in, obs_names_in, ps_foldernames = ps_folderna
     png = png, eps = eps, pdf = pdf, data_range = data_range, data_min_abs = data_min_abs, $
     kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, sim = sim, $
     plot_1d = plot_1d, axis_type_1d=axis_type_1d, wt_cutoffs = wt_cutoffs, $
-    wt_measures = wt_measures, $
-    window_num = window_num, invert_colorbar = invert_colorbar, $
+    wt_measures = wt_measures, window_num = window_num, invert_colorbar = invert_colorbar, $
     diff_save_path = diff_save_path, exact_obsnames = exact_obsnames, $
     uvf_input = uvf_input, plot_path = diff_plot_path
 
@@ -32,14 +31,16 @@ pro ps_diff_wrapper, folder_names_in, obs_names_in, ps_foldernames = ps_folderna
     no_wtvar_rts = no_wtvar_rts)
 
   if n_elements(diff_plot_path) eq 0 then begin
-    if n_elements(diff_save_path) gt 0 then diff_plot_path = diff_save_path + path_sep() + 'plots' + path_sep()
+    if n_elements(diff_save_path) gt 0 then begin
+      diff_plot_path = diff_save_path + path_sep() + 'plots' + path_sep()
+    endif
   endif
 
   wh_noinfo = where(obs_info.info_files eq '', count_noinfo)
   if count_noinfo gt 0 then message, 'Info files are not all present'
 
-  ps_difference_plots, folder_names, obs_info, ps_foldernames = ps_foldernames, cube_types, pols, $
-    spec_window_types = spec_window_types, delta_uv_lambda = delta_uv_lambda, $
+  ps_difference_plots, folder_names, obs_info, ps_foldernames = ps_foldernames, $
+    cube_types, pols, spec_window_types = spec_window_types, delta_uv_lambda = delta_uv_lambda, $
     ave_removal = ave_removal, image_window_name = image_window_name, $
     image_window_frac_size = image_window_frac_size, $
     all_type_pol = all_type_pol, refresh_diff = refresh_diff, freq_ch_range = freq_ch_range, $

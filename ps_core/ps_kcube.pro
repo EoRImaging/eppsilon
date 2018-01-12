@@ -1,15 +1,8 @@
-pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, $
-    dft_refresh_weight = dft_refresh_weight, $
-    refresh_beam = refresh_beam, sim=sim, fix_sim_input = fix_sim_input, $
-    allow_beam_approx = allow_beam_approx, $
-    dft_fchunk = dft_fchunk, freq_ch_range = freq_ch_range, freq_flags = freq_flags, $
-    spec_window_type = spec_window_type, image_window_name = image_window_name, $
-    image_window_frac_size = image_window_frac_size, $
-    delta_uv_lambda = delta_uv_lambda, max_uv_lambda = max_uv_lambda, $
-    std_power = std_power, inverse_covar_weight = inverse_covar_weight, $
-    input_units = input_units, uvf_input = uvf_input, $
-    uv_avg = uv_avg, uv_img_clip = uv_img_clip, no_dft_progress = no_dft_progress, $
-    ave_removal = ave_removal
+pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
+    uvf_input = uvf_input, freq_ch_range = freq_ch_range, freq_flags = freq_flags, $
+    input_units = input_units, $
+    refresh_options = refresh_options, uvf_options = uvf_options, $
+    ps_options = ps_options
 
   if tag_exist(file_struct, 'nside') ne 0 then healpix = 1 else healpix = 0
   if keyword_set(uvf_input) or tag_exist(file_struct, 'uvf_savefile') eq 0 then begin
@@ -19,8 +12,6 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, $
   endelse
   nfiles = n_elements(file_struct.datafile)
   if tag_exist(file_struct, 'no_var') ne 0 then no_var = 1 else no_var = 0
-
-  if tag_exist(file_struct, 'beam_savefile') eq 0 then refresh_beam = 0
 
   if n_elements(input_units) eq 0 then input_units = 'jansky'
   units_enum = ['jansky', 'mk']
@@ -71,7 +62,9 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, $
 
   endif else if input_units eq 'mKstr' then begin
     conv_factor = 1. + fltarr(n_freq)
-  endif else message, 'input_units not recognized'
+  endif else begin
+    message, 'input_units not recognized'
+  endelse
 
   t_sys = 280. * ((1+redshifts)/7.5)^2.3 / sqrt(2.) ;; from skew w/ stu + srt(2) for single pol
   eff_area = 21. ; m^2 -- from Aaron's memo
@@ -105,7 +98,7 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, $
       vis_sigma_adam = vis_sigma_adam[min(freq_ch_range):max(freq_ch_range)]
     endif else begin
       if n_elements(vis_sigma_adam) ne n_freq then message, $
-      'vis_sig file has incorrect number of frequency channels'
+        'vis_sig file has incorrect number of frequency channels'
     endelse
 
     wh_nan = where(finite(vis_sigma_adam) eq 0, count_nan)
@@ -149,14 +142,9 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, $
 
   if healpix or not uvf_input then begin
     ps_image_to_uvf, file_struct, n_vis_freq, kx_rad_vals, ky_rad_vals, $
-          dft_refresh_data = dft_refresh_data, dft_refresh_weight = dft_refresh_weight, $
-          refresh_beam = refresh_beam, dft_fchunk = dft_fchunk, $
-          freq_ch_range = freq_ch_range, freq_flags = freq_flags, $
-          delta_uv_lambda = delta_uv_lambda, max_uv_lambda = max_uv_lambda, $
-          no_dft_progress = no_dft_progress
-  endif
+      freq_ch_range = freq_ch_range, freq_flags = freq_flags, $
+      refresh_options = refresh_options, uvf_options = uvf_options
 
-  if healpix or not keyword_set(uvf_input) then begin
     n_kx = n_elements(kx_rad_vals)
     kx_rad_delta = kx_rad_vals[1] - kx_rad_vals[0]
     kx_mpc = temporary(kx_rad_vals) / z_mpc_mean
@@ -176,26 +164,30 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, $
 
     pix_area_mpc = pix_area_rad * z_mpc_mean^2.
 
-  endif
-
-  if healpix or not keyword_set(uvf_input) then begin
     weights_cube1 = getvar_savefile(file_struct.uvf_weight_savefile[0], 'weights_cube')
     if nfiles eq 2 then begin
       weights_cube2 = getvar_savefile(file_struct.uvf_weight_savefile[1], 'weights_cube')
     endif
 
-    if max(abs(weights_cube1)) eq 0 then message, 'weights cube is entirely zero.'
-    if nfiles eq 2 then if max(abs(weights_cube2)) eq 0 then message, 'weights cube is entirely zero.'
+    if max(abs(weights_cube1)) eq 0 then begin
+      message, 'weights cube is entirely zero.'
+    endif
+    if nfiles eq 2 then if max(abs(weights_cube2)) eq 0 then begin
+      message, 'weights cube is entirely zero.'
+    endif
 
     void = getvar_savefile(file_struct.uvf_weight_savefile[0], names = uvf_varnames)
     wh_hash = where(uvf_varnames eq 'uvf_wt_git_hash', count_hash)
     if count_hash gt 0 then begin
-      uvf_wt_git_hashes = getvar_savefile(file_struct.uvf_weight_savefile[0], 'uvf_wt_git_hash')
+      uvf_wt_git_hashes = getvar_savefile(file_struct.uvf_weight_savefile[0], $
+        'uvf_wt_git_hash')
       if nfiles eq 2 then begin
-         uvf_wt_git_hashes = [uvf_wt_git_hashes, getvar_savefile(file_struct.uvf_weight_savefile[1], $
-                                                                 'uvf_wt_git_hash')]
-       endif
-    endif else uvf_wt_git_hashes = strarr(nfiles)
+        uvf_wt_git_hashes = [uvf_wt_git_hashes, getvar_savefile(file_struct.uvf_weight_savefile[1], $
+          'uvf_wt_git_hash')]
+      endif
+    endif else begin
+      uvf_wt_git_hashes = strarr(nfiles)
+    endelse
 
     if min(ky_mpc) lt 0 then begin
       ;; negative ky values haven't been cut yet
@@ -241,12 +233,17 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, $
 
     endif else dims2 = size(weights_cube1, /dimension)
 
-    if max(abs(weights_cube1)) eq 0 then message, 'weights cube is entirely zero.'
-    if nfiles eq 2 then if max(abs(weights_cube2)) eq 0 then message, 'weights cube is entirely zero.'
+    if max(abs(weights_cube1)) eq 0 then begin
+      message, 'weights cube is entirely zero.'
+    endif
+    if nfiles eq 2 then if max(abs(weights_cube2)) eq 0 then begin
+      message, 'weights cube is entirely zero.'
+    endif
 
     n_kx = dims2[0]
-    if abs(file_struct.kpix-1/(n_kx[0] * (abs(file_struct.degpix) * !pi / 180d)))/file_struct.kpix gt 1e-4 then $
+    if abs(file_struct.kpix-1/(n_kx[0] * (abs(file_struct.degpix) * !pi / 180d)))/file_struct.kpix gt 1e-4 then begin
       message, 'Something has gone wrong with calculating uv pixel size'
+    endif
     kx_mpc_delta = (2.*!pi)*file_struct.kpix / z_mpc_mean
     kx_mpc = (dindgen(n_kx)-n_kx/2) * kx_mpc_delta
 
@@ -265,7 +262,7 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, $
     ;; get beam sorted out
     if tag_exist(file_struct, 'beam_savefile') then begin
       test_beam = file_valid(file_struct.beam_savefile)
-      if min(test_beam) eq 0 or keyword_set(refresh_beam) then begin
+      if min(test_beam) eq 0 or refresh_options.refresh_beam then begin
 
         for i=0, nfiles-1 do begin
           arr = getvar_savefile(file_struct.beamfile[i], file_struct.beamvar)
@@ -279,11 +276,11 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, $
           if max(arr) le 1.1 then begin
             ;; beam is peak normalized to 1
             temp = arr * rebin(reform(nfvis_beam, 1, 1, n_elements(nfvis_beam)), $
-                               n_kx, n_ky, n_elements(nfvis_beam), /sample)
+              n_kx, n_ky, n_elements(nfvis_beam), /sample)
           endif else if max(arr) le file_struct.n_obs[i] then begin
             ;; beam is peak normalized to 1 for each obs, then summed over obs so peak is ~ n_obs
             temp = (arr/file_struct.n_obs[i]) * rebin(reform(nfvis_beam, 1, 1, n_freq), $
-                                                      n_kx, n_ky, n_freq, /sample)
+              n_kx, n_ky, n_freq, /sample)
           endif else begin
             ;; beam is peak normalized to 1 then multiplied by n_vis_freq for each obs & summed
             temp = arr
@@ -300,33 +297,33 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, $
 
     endif
 
-    if keyword_set(uv_avg) then begin
-      nkx_new = floor(n_kx / uv_avg)
+    if uvf_options.uv_avg then begin
+      nkx_new = floor(n_kx / uvf_options.uv_avg)
       temp = complex(fltarr(nkx_new, n_ky, n_freq))
       if nfiles eq 2 then temp2 = complex(fltarr(nkx_new, n_ky, n_freq))
       temp_kx = fltarr(nkx_new)
       for i=0, nkx_new-1 do begin
-        temp[i,*,*] = total(weights_cube1[i*uv_avg:(i+1)*uv_avg-1,*,*], 1) / uv_avg
+        temp[i,*,*] = total(weights_cube1[i*uvf_options.uv_avg:(i+1)*uvf_options.uv_avg-1,*,*], 1) / uvf_options.uv_avg
         if nfiles eq 2 then begin
-          temp2[i,*,*] = total(weights_cube2[i*uv_avg:(i+1)*uv_avg-1,*,*], 1) / uv_avg
+          temp2[i,*,*] = total(weights_cube2[i*uvf_options.uv_avg:(i+1)*uvf_options.uv_avg-1,*,*], 1) / uvf_options.uv_avg
         endif
-        temp_kx[i] = total(kx_mpc[i*uv_avg:(i+1)*uv_avg-1]) / uv_avg
+        temp_kx[i] = total(kx_mpc[i*uvf_options.uv_avg:(i+1)*uvf_options.uv_avg-1]) / uvf_options.uv_avg
       endfor
 
-      nky_new = floor(n_ky / uv_avg)
+      nky_new = floor(n_ky / uvf_options.uv_avg)
       temp3 = complex(fltarr(nkx_new, nky_new, n_freq))
       if nfiles eq 2 then temp4 = complex(fltarr(nkx_new, nky_new, n_freq))
       temp_ky = fltarr(nky_new)
       for i=0, nky_new-1 do begin
-        temp3[*,i,*] = total(temp[*,i*uv_avg:(i+1)*uv_avg-1,*], 2) / uv_avg
-        if nfiles eq 2 then temp4[*,i,*] = total(temp2[*,i*uv_avg:(i+1)*uv_avg-1,*], 2) / uv_avg
-        temp_ky[i] = total(ky_mpc[i*uv_avg:(i+1)*uv_avg-1]) / uv_avg
+        temp3[*,i,*] = total(temp[*,i*uvf_options.uv_avg:(i+1)*uvf_options.uv_avg-1,*], 2) / uvf_options.uv_avg
+        if nfiles eq 2 then temp4[*,i,*] = total(temp2[*,i*uvf_options.uv_avg:(i+1)*uvf_options.uv_avg-1,*], 2) / uvf_options.uv_avg
+        temp_ky[i] = total(ky_mpc[i*uvf_options.uv_avg:(i+1)*uvf_options.uv_avg-1]) / uvf_options.uv_avg
       endfor
       undefine, temp, temp2
 
       ;; averging reduces the value of total(weights) ~ n_vis needed for the
       ;; window int calculation
-      n_vis = n_vis/(uv_avg)^2.
+      n_vis = n_vis/(uvf_options.uv_avg)^2.
 
       weights_cube1 = temporary(temp3)
       if nfiles eq 2 then weights_cube2 = temporary(temp4)
@@ -342,32 +339,32 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, $
       n_ky = nky_new
     endif
 
-    if keyword_set(uv_img_clip) then begin
+    if uvf_options.uv_img_clip then begin
       kx_mpc_delta_old = kx_mpc_delta
       ky_mpc_delta_old = ky_mpc_delta
       temp = shift(fft(fft(shift(weights_cube1,dims2[0]/2,dims2[1]/2,0), $
-                           dimension=1),dimension=2),dims2[0]/2,dims2[1]/2,0)
-      temp = temp[(dims2[0]/2)-(dims2[0]/uv_img_clip)/2:(dims2[0]/2)+(dims2[0]/uv_img_clip)/2-1, *, *]
-      temp = temp[*, (dims2[1]/2)-(dims2[1]/uv_img_clip)/2:(dims2[1]/2)+(dims2[1]/uv_img_clip)/2-1, *]
+        dimension=1),dimension=2),dims2[0]/2,dims2[1]/2,0)
+      temp = temp[(dims2[0]/2)-(dims2[0]/uvf_options.uv_img_clip)/2:(dims2[0]/2)+(dims2[0]/uvf_options.uv_img_clip)/2-1, *, *]
+      temp = temp[*, (dims2[1]/2)-(dims2[1]/uvf_options.uv_img_clip)/2:(dims2[1]/2)+(dims2[1]/uvf_options.uv_img_clip)/2-1, *]
       if nfiles eq 2 then begin
         temp2 = shift(fft(fft(shift(weights_cube2,dims2[0]/2,dims2[1]/2,0), dimension=1), $
-                              dimension=2),dims2[0]/2,dims2[1]/2,0)
-        temp2 = temp2[(dims2[0]/2)-(dims2[0]/uv_img_clip)/2:(dims2[0]/2)+(dims2[0]/uv_img_clip)/2-1, *, *]
-        temp2 = temp2[*, (dims2[1]/2)-(dims2[1]/uv_img_clip)/2:(dims2[1]/2)+(dims2[1]/uv_img_clip)/2-1, *]
+          dimension=2),dims2[0]/2,dims2[1]/2,0)
+        temp2 = temp2[(dims2[0]/2)-(dims2[0]/uvf_options.uv_img_clip)/2:(dims2[0]/2)+(dims2[0]/uvf_options.uv_img_clip)/2-1, *, *]
+        temp2 = temp2[*, (dims2[1]/2)-(dims2[1]/uvf_options.uv_img_clip)/2:(dims2[1]/2)+(dims2[1]/uvf_options.uv_img_clip)/2-1, *]
       endif
       temp_dims = size(temp, /dimension)
       n_kx = temp_dims[0]
       n_ky = temp_dims[1]
-      kx_mpc_delta = kx_mpc_delta * uv_img_clip
+      kx_mpc_delta = kx_mpc_delta * uvf_options.uv_img_clip
       kx_mpc = (dindgen(n_kx)-n_kx/2) * kx_mpc_delta
-      ky_mpc_delta = ky_mpc_delta * uv_img_clip
+      ky_mpc_delta = ky_mpc_delta * uvf_options.uv_img_clip
       ky_mpc = (dindgen(n_kx)-n_kx/2) * ky_mpc_delta
 
       temp = shift(fft(fft(shift(temp,n_kx/2,n_ky/2,0), dimension=1, /inverse), $
-                           dimension=2, /inverse),n_kx/2,n_ky/2,0)
+        dimension=2, /inverse),n_kx/2,n_ky/2,0)
       if nfiles eq 2 then begin
         temp2 = shift(fft(fft(shift(temp2,n_kx/2,n_ky/2,0), dimension=1, /inverse), $
-                          dimension=2, /inverse), n_kx/2, n_ky/2,0)
+          dimension=2, /inverse), n_kx/2, n_ky/2,0)
       endif
 
       weights_cube1 = temp
@@ -387,7 +384,7 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, $
     endif
     if n_elements(freq_flags) ne 0 then begin
       flag_arr = rebin(reform(freq_mask, 1, 1, n_elements(file_struct.frequencies)), $
-                       size(weights_cube1,/dimension), /sample)
+        size(weights_cube1,/dimension), /sample)
       weights_cube1 = weights_cube1 * flag_arr
       if nfiles eq 2 then weights_cube2 = weights_cube2 * flag_arr
     endif
@@ -455,7 +452,7 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, $
           beam_git_hashes = getvar_savefile(file_struct.beam_savefile[0], 'beam_git_hash')
           if nfiles eq 2 then begin
             beam_git_hashes = [beam_git_hashes, $
-                               getvar_savefile(file_struct.beam_savefile[1], 'beam_git_hash')]
+              getvar_savefile(file_struct.beam_savefile[1], 'beam_git_hash')]
           endif
         endif else beam_git_hashes = strarr(nfiles)
 
@@ -476,10 +473,10 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, $
       if tag_exist(file_struct, 'beam_int') then begin
         if nfiles eq 2 then begin
           ave_beam_int = total(file_struct.beam_int * file_struct.n_vis_freq, 2) $
-                         / total(file_struct.n_vis_freq, 2)
+            / total(file_struct.n_vis_freq, 2)
         endif else begin
-         ave_beam_int = total(file_struct.beam_int * file_struct.n_vis_freq) $
-                        / total(file_struct.n_vis_freq)
+          ave_beam_int = total(file_struct.beam_int * file_struct.n_vis_freq) $
+            / total(file_struct.n_vis_freq)
         endelse
 
         ;; fix known units bug in some early runs
@@ -527,21 +524,23 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, $
       endif
 
       if max(abs(variance_cube1)) eq 0 then message, 'variance cube is entirely zero.'
-      if nfiles eq 2 then if max(abs(variance_cube2)) eq 0 then message, 'variance cube is entirely zero.'
+      if nfiles eq 2 then if max(abs(variance_cube2)) eq 0 then begin
+        message, 'variance cube is entirely zero.'
+      endif
 
-      if keyword_set(uv_avg) then begin
+      if uvf_options.uv_avg then begin
         temp = complex(fltarr(nkx_new, dims2[1], n_freq))
         if nfiles eq 2 then temp2 = complex(fltarr(nkx_new, dims2[1], n_freq))
         for i=0, nkx_new-1 do begin
-          temp[i,*,*] = total(variance_cube1[i*uv_avg:(i+1)*uv_avg-1,*,*], 1) / uv_avg
-          if nfiles eq 2 then temp2[i,*,*] = total(variance_cube2[i*uv_avg:(i+1)*uv_avg-1,*,*], 1) / uv_avg
+          temp[i,*,*] = total(variance_cube1[i*uvf_options.uv_avg:(i+1)*uvf_options.uv_avg-1,*,*], 1) / uvf_options.uv_avg
+          if nfiles eq 2 then temp2[i,*,*] = total(variance_cube2[i*uvf_options.uv_avg:(i+1)*uvf_options.uv_avg-1,*,*], 1) / uvf_options.uv_avg
         endfor
 
         temp3 = complex(fltarr(nkx_new, nky_new, n_freq))
         if nfiles eq 2 then temp4 = complex(fltarr(nkx_new, nky_new, n_freq))
         for i=0, nky_new-1 do begin
-          temp3[*,i,*] = total(temp[*,i*uv_avg:(i+1)*uv_avg-1,*], 2) / uv_avg
-          if nfiles eq 2 then temp4[*,i,*] = total(temp2[*,i*uv_avg:(i+1)*uv_avg-1,*], 2) / uv_avg
+          temp3[*,i,*] = total(temp[*,i*uvf_options.uv_avg:(i+1)*uvf_options.uv_avg-1,*], 2) / uvf_options.uv_avg
+          if nfiles eq 2 then temp4[*,i,*] = total(temp2[*,i*uvf_options.uv_avg:(i+1)*uvf_options.uv_avg-1,*], 2) / uvf_options.uv_avg
         endfor
         undefine, temp, temp2
 
@@ -549,26 +548,32 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, $
         if nfiles eq 2 then variance_cube2 = temporary(temp4)
 
         if max(abs(variance_cube1)) eq 0 then message, 'variance cube is entirely zero.'
-        if nfiles eq 2 then if max(abs(variance_cube2)) eq 0 then message, 'variance cube is entirely zero.'
+        if nfiles eq 2 then if max(abs(variance_cube2)) eq 0 then begin
+          message, 'variance cube is entirely zero.'
+        endif
       endif
 
-      if keyword_set(uv_img_clip) then begin
+      if uvf_options.uv_img_clip then begin
         temp = shift(fft(fft(shift(variance_cube1,dims2[0]/2,dims2[1]/2,0), dimension=1), dimension=2),dims2[0]/2,dims2[1]/2,0)
-        temp = temp[(dims2[0]/2)-(dims2[0]/uv_img_clip)/2:(dims2[0]/2)+(dims2[0]/uv_img_clip)/2-1, *, *]
-        temp = temp[*, (dims2[1]/2)-(dims2[1]/uv_img_clip)/2:(dims2[1]/2)+(dims2[1]/uv_img_clip)/2-1, *]
+        temp = temp[(dims2[0]/2)-(dims2[0]/uvf_options.uv_img_clip)/2:(dims2[0]/2)+(dims2[0]/uvf_options.uv_img_clip)/2-1, *, *]
+        temp = temp[*, (dims2[1]/2)-(dims2[1]/uvf_options.uv_img_clip)/2:(dims2[1]/2)+(dims2[1]/uvf_options.uv_img_clip)/2-1, *]
         temp = shift(fft(fft(shift(temp,n_kx/2,n_ky/2,0), dimension=1, /inverse), dimension=2, /inverse),n_kx/2,n_ky/2,0)
         if nfiles eq 2 then begin
           temp2 = shift(fft(fft(shift(variance_cube2,dims2[0]/2,dims2[1]/2,0), dimension=1), dimension=2),dims2[0]/2,dims2[1]/2,0)
-          temp2 = temp2[(dims2[0]/2)-(dims2[0]/uv_img_clip)/2:(dims2[0]/2)+(dims2[0]/uv_img_clip)/2-1, *, *]
-          temp2 = temp2[*, (dims2[1]/2)-(dims2[1]/uv_img_clip)/2:(dims2[1]/2)+(dims2[1]/uv_img_clip)/2-1, *]
+          temp2 = temp2[(dims2[0]/2)-(dims2[0]/uvf_options.uv_img_clip)/2:(dims2[0]/2)+(dims2[0]/uvf_options.uv_img_clip)/2-1, *, *]
+          temp2 = temp2[*, (dims2[1]/2)-(dims2[1]/uvf_options.uv_img_clip)/2:(dims2[1]/2)+(dims2[1]/uvf_options.uv_img_clip)/2-1, *]
           temp2 = shift(fft(fft(shift(temp2,n_kx/2,n_ky/2,0), dimension=1, /inverse), dimension=2, /inverse),n_kx/2,n_ky/2,0)
         endif
 
         variance_cube1 = temp
         if nfiles eq 2 then variance_cube2 = temp2
 
-        if max(abs(variance_cube1)) eq 0 then message, 'variance cube is entirely zero.'
-        if nfiles eq 2 then if max(abs(variance_cube2)) eq 0 then message, 'variance cube is entirely zero.'
+        if max(abs(variance_cube1)) eq 0 then begin
+          message, 'variance cube is entirely zero.'
+        endif
+        if nfiles eq 2 then if max(abs(variance_cube2)) eq 0 then begin
+          message, 'variance cube is entirely zero.'
+        endif
       endif
 
       if max(abs(imaginary(variance_cube1))) gt 0 then begin
@@ -589,7 +594,8 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, $
         if nfiles eq 2 then variance_cube2 = variance_cube2[*, *, min(freq_ch_range):max(freq_ch_range)]
       endif
       if n_elements(freq_flags) ne 0 then begin
-        flag_arr = rebin(reform(freq_mask, 1, 1, n_elements(file_struct.frequencies)), size(variance_cube1,/dimension), /sample)
+        flag_arr = rebin(reform(freq_mask, 1, 1, n_elements(file_struct.frequencies)), $
+          size(variance_cube1,/dimension), /sample)
         variance_cube1 = variance_cube1 * flag_arr
         if nfiles eq 2 then variance_cube2 = variance_cube2 * flag_arr
       endif
@@ -599,7 +605,9 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, $
       if nfiles eq 2 then variance_cube2[0:n_kx/2-1, 0, *] = 0
 
       if max(abs(variance_cube1)) eq 0 then message, 'variance cube is entirely zero.'
-      if nfiles eq 2 then if max(abs(variance_cube2)) eq 0 then message, 'variance cube is entirely zero.'
+      if nfiles eq 2 then if max(abs(variance_cube2)) eq 0 then begin
+        message, 'variance cube is entirely zero.'
+      endif
 
       ;; calculate integral of window function
       ;; already cut out negative ky, so multiply by 2
@@ -615,11 +623,17 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, $
         wh_hash = where(uvf_varnames eq 'beam_git_hash', count_hash)
         if count_hash gt 0 then begin
           beam_git_hashes = getvar_savefile(file_struct.beam_savefile[0], 'beam_git_hash')
-          if nfiles eq 2 then beam_git_hashes = [beam_git_hashes, getvar_savefile(file_struct.beam_savefile[1], 'beam_git_hash')]
+          if nfiles eq 2 then begin
+            beam_git_hashes = [beam_git_hashes, getvar_savefile(file_struct.beam_savefile[1], $
+              'beam_git_hash')]
+          endif
         endif else beam_git_hashes = strarr(nfiles)
 
-        if nfiles eq 2 then window_int_beam = [total(beam1), total(beam2)]*pix_area_mpc*(z_mpc_delta * n_freq) $
-        else window_int_beam = total(beam1)*pix_area_mpc*(z_mpc_delta * n_freq)
+        if nfiles eq 2 then begin
+          window_int_beam = [total(beam1), total(beam2)]*pix_area_mpc*(z_mpc_delta * n_freq)
+        endif else begin
+          window_int_beam = total(beam1)*pix_area_mpc*(z_mpc_delta * n_freq)
+        endelse
 
         volume_factor = total(beam1*0+1.)*pix_area_mpc*(z_mpc_delta * n_freq)
         if nfiles eq 2 then volume_factor = fltarr(2) + volume_factor
@@ -631,12 +645,22 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, $
       endif else beam_git_hashes = ''
 
       if tag_exist(file_struct, 'beam_int') then begin
-        if nfiles eq 2 then ave_beam_int = total(file_struct.beam_int * file_struct.n_vis_freq, 2) / total(file_struct.n_vis_freq, 2) $
-        else ave_beam_int = total(file_struct.beam_int * file_struct.n_vis_freq) / total(file_struct.n_vis_freq)
+        if nfiles eq 2 then begin
+          ave_beam_int = total(file_struct.beam_int * file_struct.n_vis_freq, 2) / $
+            total(file_struct.n_vis_freq, 2)
+        endif else begin
+          ave_beam_int = total(file_struct.beam_int * file_struct.n_vis_freq) / $
+            total(file_struct.n_vis_freq)
+        endelse
 
         ;; fix known units bug in some early runs
-        if max(ave_beam_int) lt 0.01 then ave_beam_int = ave_beam_int / (file_struct.kpix)^4. $
-        else if max(ave_beam_int) lt 0.03 then ave_beam_int = ave_beam_int / (file_struct.kpix)^2.
+        if max(ave_beam_int) lt 0.01 then begin
+          ave_beam_int = ave_beam_int / (file_struct.kpix)^4.
+        endif else begin
+          if max(ave_beam_int) lt 0.03 then begin
+            ave_beam_int = ave_beam_int / (file_struct.kpix)^2.
+          endif
+        endelse
 
         ;; convert rad -> Mpc^2, multiply by depth in Mpc
         window_int_beam_obs = ave_beam_int * z_mpc_mean^2. * (z_mpc_delta * n_freq)
@@ -655,7 +679,10 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, $
     wh_hash = where(uvf_varnames eq 'uvf_git_hash', count_hash)
     if count_hash gt 0 then begin
       uvf_git_hashes = getvar_savefile(file_struct.uvf_savefile[0], 'uvf_git_hash')
-      if nfiles eq 2 then uvf_git_hashes = [uvf_git_hashes, getvar_savefile(file_struct.uvf_savefile[1], 'uvf_git_hash')]
+      if nfiles eq 2 then begin
+        uvf_git_hashes = [uvf_git_hashes, getvar_savefile(file_struct.uvf_savefile[1], $
+          'uvf_git_hash')]
+      endif
     endif else uvf_git_hashes = strarr(nfiles)
 
     if min(ky_mpc) lt 0 then begin
@@ -735,12 +762,17 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, $
       wh_hash = where(uvf_varnames eq 'uvf_git_hash', count_hash)
       if count_hash gt 0 then begin
         uvf_git_hashes = getvar_savefile(input_uvf_files[0,0], 'uvf_git_hash')
-        if nfiles eq 2 then uvf_git_hashes = [uvf_git_hashes, getvar_savefile(input_uvf_files[0,1], 'uvf_git_hash')]
+        if nfiles eq 2 then begin
+          uvf_git_hashes = [uvf_git_hashes, getvar_savefile(input_uvf_files[0,1], $
+            'uvf_git_hash')]
+        endif
       endif else uvf_git_hashes = strarr(nfiles)
 
     endif else begin
       data_cube1 = getvar_savefile(file_struct.datafile[0], file_struct.datavar)
-      if nfiles eq 2 then data_cube2 = getvar_savefile(file_struct.datafile[1], file_struct.datavar)
+      if nfiles eq 2 then begin
+        data_cube2 = getvar_savefile(file_struct.datafile[1], file_struct.datavar)
+      endif
 
       uvf_git_hashes = strarr(nfiles)
 
@@ -772,10 +804,10 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, $
 
       if max(abs(data_cube1)) eq 0 then message, 'data cube is entirely zero.'
       if nfiles eq 2 then if max(abs(data_cube2)) eq 0 then message, 'data cube is entirely zero.'
-      
+
     endelse
 
-    if keyword_set(uv_avg) then begin
+    if tag_exist(uvf_options, 'uv_avg') then begin
       temp = complex(fltarr(nkx_new, dims2[1], n_freq))
       if nfiles eq 2 then temp2 = complex(fltarr(nkx_new, dims2[1], n_freq))
       for i=0, nkx_new-1 do begin
@@ -798,7 +830,7 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, $
       if nfiles eq 2 then if max(abs(data_cube2)) eq 0 then message, 'data cube is entirely zero.'
     endif
 
-    if keyword_set(uv_img_clip) then begin
+    if tag_exist(uvf_options, 'uv_img_clip') then begin
       temp = shift(fft(fft(shift(data_cube1,dims2[0]/2,dims2[1]/2,0), dimension=1), dimension=2),dims2[0]/2,dims2[1]/2,0)
       temp = temp[(dims2[0]/2)-(dims2[0]/uv_img_clip)/2:(dims2[0]/2)+(dims2[0]/uv_img_clip)/2-1, *, *]
       temp = temp[*, (dims2[1]/2)-(dims2[1]/uv_img_clip)/2:(dims2[1]/2)+(dims2[1]/uv_img_clip)/2-1, *]
@@ -859,10 +891,12 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, $
     min_dist_uf_n0 = min(wh_uf_n0, min_loc)
     uf_slice_ind = wh_uf_n0[min_loc]
 
-    uf_slice = uvf_slice(data_cube, kx_mpc, ky_mpc, frequencies, kperp_lambda_conv, delay_params, hubble_param, slice_axis = 1, $
-      slice_inds = uf_slice_ind, slice_savefile = file_struct.uf_raw_savefile[i])
+    uf_slice = uvf_slice(data_cube, kx_mpc, ky_mpc, frequencies, kperp_lambda_conv, $
+      delay_params, hubble_param, slice_axis = 1, slice_inds = uf_slice_ind, $
+        slice_savefile = file_struct.uf_raw_savefile[i])
 
-    uf_weight_slice = uvf_slice(weights_cube, kx_mpc, ky_mpc, frequencies, kperp_lambda_conv, delay_params, hubble_param, slice_axis = 1, $
+    uf_weight_slice = uvf_slice(weights_cube, kx_mpc, ky_mpc, frequencies, $
+      kperp_lambda_conv, delay_params, hubble_param, slice_axis = 1, $
       slice_inds = uf_slice_ind, slice_savefile = file_struct.uf_weight_savefile[i])
     undefine, uf_slice, uf_weight_slice
 
@@ -872,10 +906,12 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, $
     min_dist_vf_n0 = min(abs(n_kx/2-wh_vf_n0), min_loc)
     vf_slice_ind = wh_vf_n0[min_loc]
 
-    vf_slice = uvf_slice(data_cube, kx_mpc, ky_mpc, frequencies, kperp_lambda_conv, delay_params, hubble_param, slice_axis = 0, $
-      slice_inds = vf_slice_ind, slice_savefile = file_struct.vf_raw_savefile[i])
+    vf_slice = uvf_slice(data_cube, kx_mpc, ky_mpc, frequencies, kperp_lambda_conv, $
+      delay_params, hubble_param, slice_axis = 0, slice_inds = vf_slice_ind, $
+      slice_savefile = file_struct.vf_raw_savefile[i])
 
-    vf_weight_slice = uvf_slice(weights_cube, kx_mpc, ky_mpc, frequencies, kperp_lambda_conv, delay_params, hubble_param, slice_axis = 0, $
+    vf_weight_slice = uvf_slice(weights_cube, kx_mpc, ky_mpc, frequencies, $
+      kperp_lambda_conv, delay_params, hubble_param, slice_axis = 0, $
       slice_inds = vf_slice_ind, slice_savefile = file_struct.vf_weight_savefile[i])
 
     if max(abs(vf_slice)) eq 0 then message, 'vf data slice is entirely zero'
@@ -887,10 +923,12 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, $
     min_dist_uv_n0 = min(wh_uv_n0, min_loc)
     uv_slice_ind = wh_uv_n0[min_loc]
 
-    uv_slice = uvf_slice(data_cube, kx_mpc, ky_mpc, frequencies, kperp_lambda_conv, delay_params, hubble_param, slice_axis = 2, $
-      slice_inds = uv_slice_ind, slice_savefile = file_struct.uv_raw_savefile[i])
+    uv_slice = uvf_slice(data_cube, kx_mpc, ky_mpc, frequencies, kperp_lambda_conv, $
+      delay_params, hubble_param, slice_axis = 2, slice_inds = uv_slice_ind, $
+      slice_savefile = file_struct.uv_raw_savefile[i])
 
-    uv_weight_slice = uvf_slice(weights_cube, kx_mpc, ky_mpc, frequencies, kperp_lambda_conv, delay_params, hubble_param, slice_axis = 2, $
+    uv_weight_slice = uvf_slice(weights_cube, kx_mpc, ky_mpc, frequencies, $
+      kperp_lambda_conv, delay_params, hubble_param, slice_axis = 2, $
       slice_inds = uv_slice_ind, slice_savefile = file_struct.uv_weight_savefile[i])
 
     if max(abs(uv_slice)) eq 0 then message, 'uv data slice is entirely zero'
@@ -912,7 +950,10 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, $
     endif
 
     ave_weights = total(total(abs(weights_cube1),2),1)/(n_kx*n_ky)
-    if nfiles eq 2 then ave_weights = transpose([[ave_weights], [total(total(abs(weights_cube2),2),1)/(n_kx*n_ky)]])
+    if nfiles eq 2 then begin
+      ave_weights = transpose([[ave_weights], $
+        [total(total(abs(weights_cube2),2),1)/(n_kx*n_ky)]])
+    endif
   endif
 
   ;; make sigma2 cubes
@@ -932,8 +973,12 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, $
   endif
 
   if nfiles eq 2 then begin
-    if min(sigma2_cube1) lt 0 or min(sigma2_cube2) lt 0 then message, 'sigma2 should be positive definite.'
-    if total(abs(sigma2_cube1)) le 0 or total(abs(sigma2_cube2)) le 0 then message, 'one or both sigma2 cubes is all zero'
+    if min(sigma2_cube1) lt 0 or min(sigma2_cube2) lt 0 then begin
+      message, 'sigma2 should be positive definite.'
+    endif
+    if total(abs(sigma2_cube1)) le 0 or total(abs(sigma2_cube2)) le 0 then begin
+      message, 'one or both sigma2 cubes is all zero'
+    endif
   endif else begin
     if min(sigma2_cube1) lt 0 then message, 'sigma2 should be positive definite.'
     if total(abs(sigma2_cube1)) le 0 then message, 'sigma2 cube is all zero'
@@ -957,15 +1002,18 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, $
   ;; save some slices of the data cube
   for i=0, nfiles-1 do begin
     if i eq 0 then data_cube = data_cube1 else data_cube = data_cube2
-    uf_slice = uvf_slice(data_cube, kx_mpc, ky_mpc, frequencies, kperp_lambda_conv, delay_params, hubble_param, slice_axis = 1, $
+    uf_slice = uvf_slice(data_cube, kx_mpc, ky_mpc, frequencies, kperp_lambda_conv, $
+      delay_params, hubble_param, slice_axis = 1, $
       slice_inds = uf_slice_ind, slice_savefile = file_struct.uf_savefile[i])
     undefine, uf_slice
 
-    vf_slice = uvf_slice(data_cube, kx_mpc, ky_mpc, frequencies, kperp_lambda_conv, delay_params, hubble_param, slice_axis = 0, $
+    vf_slice = uvf_slice(data_cube, kx_mpc, ky_mpc, frequencies, kperp_lambda_conv, $
+      delay_params, hubble_param, slice_axis = 0, $
       slice_inds = vf_slice_ind, slice_savefile = file_struct.vf_savefile[i])
     undefine, vf_slice
 
-    uv_slice = uvf_slice(data_cube, kx_mpc, ky_mpc, frequencies, kperp_lambda_conv, delay_params, hubble_param, slice_axis = 2, $
+    uv_slice = uvf_slice(data_cube, kx_mpc, ky_mpc, frequencies, kperp_lambda_conv, $
+      delay_params, hubble_param, slice_axis = 2, $
       slice_inds = uv_slice_ind, slice_savefile = file_struct.uv_savefile[i])
     undefine, uv_slice
 
@@ -975,45 +1023,74 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, $
   if healpix or not keyword_set(uvf_input) then begin
     ;; fix units on window funtion integral -- now they should be Mpc^3
     ;; checked vs Adam's analytic calculation and it matches to within a factor of 4
-    ;; We are using total(weight) = Nvis for Ian's uv plane and multiplying by a factor to convert between Ian's and my uv plane
-    ;;   the factor is ((2*!pi)^2*(delta_uv)^2) /  (delta_kperp)^2 * Dm^2 which comes in squared in the denominator.
+    ;; We are using total(weight) = Nvis for Ian's uv plane and multiplying by a
+    ;;   factor to convert between Ian's and my uv plane
+    ;;   the factor is ((2*!pi)^2*(delta_uv)^2) /  (delta_kperp)^2 * Dm^2 which
+    ;;   comes in squared in the denominator.
     ;;   see eq 21e from Adam's memo. Also note that delta D is delta z * n_freq
-    ;;   note that we can convert both the weights and variance to uvf from kperp,rz and all jacobians will cancel
-    window_int_k = window_int * (z_mpc_delta * n_freq) * (kx_mpc_delta * ky_mpc_delta)*z_mpc_mean^4./((2.*!pi)^2.*file_struct.kpix^4.)
-    print, 'window integral from variances: ' + number_formatter(window_int_k[0], format='(e10.4)')
-    if tag_exist(file_struct, 'beam_savefile') then print, 'window integral from beam cube: ' + number_formatter(window_int_beam[0], format='(e10.4)')
-    if tag_exist(file_struct, 'beam_int') then print, 'window integral from obs.primary_beam_sq_area: ' + number_formatter(window_int_beam_obs[0], format='(e10.4)')
+    ;;   note that we can convert both the weights and variance to uvf from kperp,
+    ;;   rz and all jacobians will cancel
+    window_int_k = window_int * (z_mpc_delta * n_freq) * (kx_mpc_delta * ky_mpc_delta) * $
+      z_mpc_mean^4./((2.*!pi)^2.*file_struct.kpix^4.)
+    print, 'window integral from variances: ' + number_formatter(window_int_k[0], $
+      format='(e10.4)')
+    if tag_exist(file_struct, 'beam_savefile') then begin
+      print, 'window integral from beam cube: ' + number_formatter(window_int_beam[0], $
+        format='(e10.4)')
+    endif
+    if tag_exist(file_struct, 'beam_int') then begin
+      print, 'window integral from obs.primary_beam_sq_area: ' + $
+        number_formatter(window_int_beam_obs[0], format='(e10.4)')
+    endif
     if tag_exist(file_struct, 'beam_int') then begin
       window_int = window_int_beam_obs
     endif
 
     if (n_elements(window_int) eq 0 or min(window_int) eq 0) then begin
-      if keyword_set(allow_beam_approx) then begin
+      if ps_options.allow_beam_approx then begin
         print, 'WARNING: beam integral in obs structure is zero, using a less good approximation'
       endif else begin
-        message, 'Beam integral in obs structure is zero. To use a less good approximation instead, set keyword allow_beam_approx=1'
+        message, 'Beam integral in obs structure is zero. To use a less good ' + $
+          'approximation instead, set keyword allow_beam_approx=1'
       endelse
 
       if tag_exist(file_struct, 'beam_savefile') then begin
         window_int = window_int_beam
-        if min(window_int) eq 0 then print, 'WARNING: beam cube is zero, using a less good approximation'
+        if min(window_int) eq 0 then print, 'WARNING: beam cube is zero, using a ' + $
+          'less good approximation'
       endif
     endif
     if (n_elements(window_int) eq 0 or min(window_int) eq 0) then window_int = window_int_k
-  ;if keyword_set(sim) then window_int = 2.39e9 + fltarr(nfiles)
+    ;if keyword_set(sim) then window_int = 2.39e9 + fltarr(nfiles)
   endif else begin
-    window_int_k = window_int * (z_mpc_delta * n_freq) * (2.*!pi)^2. / (kx_mpc_delta * ky_mpc_delta)
-    print, 'var_cube multiplier: ', (z_mpc_delta * n_freq) * (2.*!pi)^2. / (kx_mpc_delta * ky_mpc_delta)
-    print, 'window integral from variances: ' + number_formatter(window_int_k[0], format='(e10.4)')
-    if tag_exist(file_struct, 'beam_savefile') then print, 'window integral from beam cube: ' + number_formatter(window_int_beam[0], format='(e10.4)')
-    if tag_exist(file_struct, 'beam_int') then print, 'window integral from obs.primary_beam_sq_area: ' + number_formatter(window_int_beam_obs[0], format='(e10.4)')
+
+    window_int_k = window_int * (z_mpc_delta * n_freq) * (2.*!pi)^2. / $
+      (kx_mpc_delta * ky_mpc_delta)
+    print, 'var_cube multiplier: ', (z_mpc_delta * n_freq) * (2.*!pi)^2. / $
+      (kx_mpc_delta * ky_mpc_delta)
+    print, 'window integral from variances: ' + number_formatter(window_int_k[0], $
+      format='(e10.4)')
+    if tag_exist(file_struct, 'beam_savefile') then begin
+      print, 'window integral from beam cube: ' + number_formatter(window_int_beam[0], $
+        format='(e10.4)')
+    endif
+    if tag_exist(file_struct, 'beam_int') then begin
+      print, 'window integral from obs.primary_beam_sq_area: ' + $
+        number_formatter(window_int_beam_obs[0], format='(e10.4)')
+    endif
+
     if tag_exist(file_struct, 'beam_int') then begin
       window_int = window_int_beam_obs
-      if min(window_int) eq 0 then print, 'WARNING: beam integral in obs structure is zero, using a less good approximation'
+      if min(window_int) eq 0 then begin
+        print, 'WARNING: beam integral in obs structure is zero, using a less good approximation'
+      endif
     endif
-    if (n_elements(window_int) eq 0 or min(window_int) eq 0) and tag_exist(file_struct, 'beam_savefile') then begin
+    if (n_elements(window_int) eq 0 or min(window_int) eq 0) and $
+        tag_exist(file_struct, 'beam_savefile') then begin
       window_int = window_int_beam
-      if min(window_int) eq 0 then print, 'WARNING: beam cube is zero, using a less good approximation'
+      if min(window_int) eq 0 then begin
+        print, 'WARNING: beam cube is zero, using a less good approximation'
+      endif
     endif
     if (n_elements(window_int) eq 0 or min(window_int) eq 0) then window_int = window_int_k
 
@@ -1022,9 +1099,12 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, $
 
   ;; get sigma^2 into Jy^2
   sigma2_cube1 = sigma2_cube1 * rebin(reform(vis_sigma, 1, 1, n_freq), n_kx, n_ky, n_freq)^2.
-  if nfiles eq 2 then sigma2_cube2 = sigma2_cube2 * rebin(reform(vis_sigma, 1, 1, n_freq), n_kx, n_ky, n_freq)^2.
+  if nfiles eq 2 then begin
+    sigma2_cube2 = sigma2_cube2 * rebin(reform(vis_sigma, 1, 1, n_freq), n_kx, n_ky, n_freq)^2.
+  endif
 
-  ;; get data & sigma into mK Mpc^2 and multiply by 2 (4 for variances) to get to estimate of Stokes I rather than instrumental pol
+  ;; get data & sigma into mK Mpc^2 and multiply by 2 (4 for variances) to get
+  ;; to estimate of Stokes I rather than instrumental pol
   for i=0, n_freq-1 do begin
     data_cube1[*,*,i] = data_cube1[*,*,i]*conv_factor[i]*2.
     sigma2_cube1[*,*,i] = sigma2_cube1[*,*,i]*(conv_factor[i])^2.*4.
@@ -1044,8 +1124,12 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, $
   endif
 
   ;; make simulated noise cubes
-  sim_noise1 = randomn(seed, n_kx, n_ky, n_kz) * sqrt(sigma2_cube1) + complex(0,1) * randomn(seed, n_kx, n_ky, n_kz) * sqrt(sigma2_cube1)
-  if nfiles eq 2 then sim_noise2 = randomn(seed, n_kx, n_ky, n_kz) * sqrt(sigma2_cube2) + complex(0,1) * randomn(seed, n_kx, n_ky, n_kz) * sqrt(sigma2_cube2)
+  sim_noise1 = randomn(seed, n_kx, n_ky, n_kz) * sqrt(sigma2_cube1) + $
+    complex(0,1) * randomn(seed, n_kx, n_ky, n_kz) * sqrt(sigma2_cube1)
+  if nfiles eq 2 then begin
+    sim_noise2 = randomn(seed, n_kx, n_ky, n_kz) * sqrt(sigma2_cube2) + $
+      complex(0,1) * randomn(seed, n_kx, n_ky, n_kz) * sqrt(sigma2_cube2)
+  endif
 
   if nfiles eq 2 then begin
     ;; Now construct added & subtracted cubes (weighted by inverse variance) & new variances
@@ -1060,11 +1144,15 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, $
     undefine, sigma2_cube2, wh_sig2_0, count_sig2_0
 
     wt_ave_power_freq = fltarr(2, n_freq)
-    wt_ave_power_freq[0,*] = total(total(sum_weights1 * abs(data_cube1)^2., 2), 1)/total(total(sum_weights1, 2), 1) * (z_mpc_delta * n_freq)^2.
-    wt_ave_power_freq[1,*] = total(total(sum_weights2 * abs(data_cube2)^2., 2), 1)/total(total(sum_weights2, 2), 1) * (z_mpc_delta * n_freq)^2.
+    wt_ave_power_freq[0,*] = total(total(sum_weights1 * abs(data_cube1)^2., 2), 1) / $
+      total(total(sum_weights1, 2), 1) * (z_mpc_delta * n_freq)^2.
+    wt_ave_power_freq[1,*] = total(total(sum_weights2 * abs(data_cube2)^2., 2), 1) / $
+      total(total(sum_weights2, 2), 1) * (z_mpc_delta * n_freq)^2.
     ave_power_freq = fltarr(2, n_freq)
-    for i=0, n_freq-1 do ave_power_freq[*, i] = [mean(abs((data_cube1[*,*,i])[where(sum_weights1[*,*,i] ne 0),*])^2.), $
-      mean(abs((data_cube2[*,*,i])[where(sum_weights2[*,*,i] ne 0),*])^2.)] * (z_mpc_delta * n_freq)^2.
+    for i=0, n_freq-1 do begin
+      ave_power_freq[*, i] = [mean(abs((data_cube1[*,*,i])[where(sum_weights1[*,*,i] ne 0),*])^2.), $
+        mean(abs((data_cube2[*,*,i])[where(sum_weights2[*,*,i] ne 0),*])^2.)] * (z_mpc_delta * n_freq)^2.
+    endfor
 
     wt_ave_power_uvf = [total(sum_weights1 * abs(data_cube1)^2.)/total(sum_weights1), $
       total(sum_weights2 * abs(data_cube2)^2.)/total(sum_weights2)] * (z_mpc_delta * n_freq)^2.
@@ -1094,16 +1182,20 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, $
     sum_sigma2 = 1./temporary(sum_weights_net)
     if count_wt0 ne 0 then sum_sigma2[wh_wt0] = 0
 
-  ;sim_noise = randomn(seed, n_kx, n_ky, n_kz) * sqrt(sum_sigma2) + complex(0,1) * randomn(seed, n_kx, n_ky, n_kz) * sqrt(sum_sigma2)
+    ;sim_noise = randomn(seed, n_kx, n_ky, n_kz) * sqrt(sum_sigma2) + $
+    ; complex(0,1) * randomn(seed, n_kx, n_ky, n_kz) * sqrt(sum_sigma2)
 
   endif else begin
     sum_weights1 = 1./sigma2_cube1
     wh_sig1_0 = where(sigma2_cube1 eq 0, count_sig1_0, complement = wh_sig1_n0)
     if count_sig1_0 ne 0 then sum_weights1[wh_sig1_0] = 0
 
-    wt_ave_power_freq = total(total(sum_weights1 * abs(data_cube1)^2., 2), 1)/total(total(sum_weights1, 2), 1)
+    wt_ave_power_freq = total(total(sum_weights1 * abs(data_cube1)^2., 2), 1)/$
+      total(total(sum_weights1, 2), 1)
     ave_power_freq = fltarr(n_freq)
-    for i=0, n_freq-1 do ave_power_freq[i] = mean(abs((data_cube1[*,*,i])[where(sum_weights1[*,*,i] ne 0),*])^2.)
+    for i=0, n_freq-1 do begin
+      ave_power_freq[i] = mean(abs((data_cube1[*,*,i])[where(sum_weights1[*,*,i] ne 0),*])^2.)
+    endfor
 
     wt_ave_power_uvf = total(sum_weights1 * abs(data_cube1)^2.)/total(sum_weights1)
     ave_power_uvf = mean(abs(data_cube1[wh_sig1_n0])^2.)
@@ -1123,31 +1215,37 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, $
   undefine, mask
 
   ;; save some slices of the sum & diff cubes
-  uf_slice = uvf_slice(data_sum, kx_mpc, ky_mpc, frequencies, kperp_lambda_conv, delay_params, hubble_param, slice_axis = 1, $
+  uf_slice = uvf_slice(data_sum, kx_mpc, ky_mpc, frequencies, kperp_lambda_conv, $
+    delay_params, hubble_param, slice_axis = 1, $
     slice_inds = uf_slice_ind, slice_savefile = file_struct.uf_sum_savefile)
   if nfiles eq 2 then $
-    uf_slice = uvf_slice(data_diff, kx_mpc, ky_mpc, frequencies, kperp_lambda_conv, delay_params, hubble_param, slice_axis = 1, $
+    uf_slice = uvf_slice(data_diff, kx_mpc, ky_mpc, frequencies, kperp_lambda_conv, $
+      delay_params, hubble_param, slice_axis = 1, $
     slice_inds = uf_slice_ind, slice_savefile = file_struct.uf_diff_savefile)
   undefine, uf_slice
 
-  vf_slice = uvf_slice(data_sum, kx_mpc, ky_mpc, frequencies, kperp_lambda_conv, delay_params, hubble_param, slice_axis = 0, $
+  vf_slice = uvf_slice(data_sum, kx_mpc, ky_mpc, frequencies, kperp_lambda_conv, $
+    delay_params, hubble_param, slice_axis = 0, $
     slice_inds = vf_slice_ind, slice_savefile = file_struct.vf_sum_savefile)
   if nfiles eq 2 then $
-    vf_slice2 = uvf_slice(data_diff, kx_mpc, ky_mpc, frequencies, kperp_lambda_conv, delay_params, hubble_param, slice_axis = 0, $
+    vf_slice2 = uvf_slice(data_diff, kx_mpc, ky_mpc, frequencies, kperp_lambda_conv, $
+      delay_params, hubble_param, slice_axis = 0, $
     slice_inds = vf_slice_ind, slice_savefile = file_struct.vf_diff_savefile) $
   else vf_slice2 = vf_slice
   undefine, vf_slice
 
-  uv_slice = uvf_slice(data_sum, kx_mpc, ky_mpc, frequencies, kperp_lambda_conv, delay_params, hubble_param, slice_axis = 2, $
+  uv_slice = uvf_slice(data_sum, kx_mpc, ky_mpc, frequencies, kperp_lambda_conv, $
+    delay_params, hubble_param, slice_axis = 2, $
     slice_inds = uv_slice_ind, slice_savefile = file_struct.uv_sum_savefile)
   if nfiles eq 2 then $
-    uv_slice2 = uvf_slice(data_diff, kx_mpc, ky_mpc, frequencies, kperp_lambda_conv, delay_params, hubble_param, slice_axis = 2, $
+    uv_slice2 = uvf_slice(data_diff, kx_mpc, ky_mpc, frequencies, kperp_lambda_conv, $
+      delay_params, hubble_param, slice_axis = 2, $
     slice_inds = uv_slice_ind, slice_savefile = file_struct.uv_diff_savefile) $
   else uv_slice2 = uv_slice
   undefine, uv_slice
 
 
-  if keyword_set(ave_removal) then begin
+  if ps_options.ave_removal then begin
 
     data_sum_mean = mean(data_sum, dimension=3)
     data_sum = data_sum - (rebin(real_part(data_sum_mean), n_kx, n_ky, n_freq, /sample) + $
@@ -1168,8 +1266,8 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, $
   endif
 
   ;; apply spectral windowing function if desired
-  if n_elements(spec_window_type) ne 0 then begin
-    window = spectral_window(n_freq, type = spec_window_type, /periodic)
+  if tag_exist(ps_options, 'spec_window_type') then begin
+    window = spectral_window(n_freq, type = ps_options.spec_window_type, /periodic)
 
     norm_factor = sqrt(n_freq/total(window^2.))
 
@@ -1187,7 +1285,7 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, $
     sum_sigma2 = sum_sigma2 * temporary(window_expand^2.)
   endif
 
-  if keyword_set(inverse_covar_weight) then begin
+  if ps_options.inverse_covar_weight then begin
 
     max_eta_val = max(sum_sigma2)
     eta_var = shift([max_eta_val, fltarr(n_freq-1)], n_freq/2)
@@ -1198,7 +1296,8 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, $
     inv_ft_matrix = fft(identity, dimension=1, /inverse)*kz_mpc_delta
     undefine, identity
 
-    covar_z_fg = matrix_multiply(inv_ft_matrix, matrix_multiply(shift(covar_eta_fg, n_freq/2, n_freq/2), conj(inv_ft_matrix), /btranspose))
+    covar_z_fg = matrix_multiply(inv_ft_matrix, $
+      matrix_multiply(shift(covar_eta_fg, n_freq/2, n_freq/2), conj(inv_ft_matrix), /btranspose))
 
     wt_data_sum = fltarr(n_kx, n_ky, n_freq)
     wt_data_diff = fltarr(n_kx, n_ky, n_freq)
@@ -1209,13 +1308,15 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, $
         var_z_inst = reform(sum_sigma2[i,j,*])
         if max(abs(var_z_inst)) eq 0 then continue
 
-        ;; need to convert zeros which represet lack of measurements to infinities (or large numbers)
+        ;; need to convert zeros which represet lack of measurements to infinities
+        ;; (or large numbers)
         wh_var0 = where(var_z_inst eq 0, count_var0)
         if count_var0 gt 0 then var_z_inst[wh_var0] = 1e6
 
         covar_z = diag_matrix(var_z_inst) + covar_z_fg
         inv_covar_z = la_invert(covar_z)
-        inv_covar_kz = shift(matrix_multiply(ft_matrix, matrix_multiply(inv_covar_z, conj(ft_matrix), /btranspose)), n_freq/2, n_freq/2)
+        inv_covar_kz = shift(matrix_multiply(ft_matrix, $
+          matrix_multiply(inv_covar_z, conj(ft_matrix), /btranspose)), n_freq/2, n_freq/2)
 
         inv_var = 1/var_z_inst
         wh_sigma0 = where(var_z_inst eq 0, count_sigma0)
@@ -1226,7 +1327,9 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, $
         wt_data_diff[i,j,*] = matrix_multiply(inv_covar_z, reform(data_diff[i,j,*])) * z_mpc_delta
         wt_power_norm[i,j,*] = norm2 * total(abs(inv_covar_kz)^2.,2) * kz_mpc_delta
 
-        wt_sum_sigma2[i,j,*] = diag_matrix(shift(matrix_multiply(inv_covar_z, matrix_multiply(diag_matrix(var_z_inst), conj(inv_covar_z), /btranspose)), n_freq/2, n_freq/2))
+        wt_sum_sigma2[i,j,*] = diag_matrix(shift(matrix_multiply(inv_covar_z, $
+          matrix_multiply(diag_matrix(var_z_inst), conj(inv_covar_z), /btranspose)), $
+          n_freq/2, n_freq/2))
 
       endfor
     endfor
@@ -1271,14 +1374,18 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, $
 
 
     data_sum_ft = z_mpc_delta * $
-      reform(matrix_multiply(reform(temporary(data_sum), n_kx*n_ky, n_freq), z_exp), n_kx, n_ky, n_kz)
+      reform(matrix_multiply(reform(temporary(data_sum), n_kx*n_ky, n_freq), z_exp), $
+      n_kx, n_ky, n_kz)
     sim_noise_sum_ft = z_mpc_delta * $
-      reform(matrix_multiply(reform(temporary(sim_noise_sum), n_kx*n_ky, n_freq), z_exp), n_kx, n_ky, n_kz)
+      reform(matrix_multiply(reform(temporary(sim_noise_sum), n_kx*n_ky, n_freq), z_exp), $
+      n_kx, n_ky, n_kz)
     if nfiles eq 2 then begin
       data_diff_ft = z_mpc_delta * $
-        reform(matrix_multiply(reform(temporary(data_diff), n_kx*n_ky, n_freq), z_exp), n_kx, n_ky, n_kz)
+        reform(matrix_multiply(reform(temporary(data_diff), n_kx*n_ky, n_freq), z_exp), $
+        n_kx, n_ky, n_kz)
       sim_noise_diff_ft  = z_mpc_delta * $
-        reform(matrix_multiply(reform(temporary(sim_noise_diff), n_kx*n_ky, n_freq), z_exp), n_kx, n_ky, n_kz)
+        reform(matrix_multiply(reform(temporary(sim_noise_diff), n_kx*n_ky, n_freq), z_exp), $
+        n_kx, n_ky, n_kz)
     endif
   endelse
 
@@ -1293,34 +1400,43 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, $
   ;; convention (they ares down by a factor of 2) but they make more sense
   ;; and remove factors of 2 we'd otherwise have in the power
   ;; and variance calculations
-  ;; note that the 0th mode will have higher noise because there's half as many measurements going into it
+  ;; note that the 0th mode will have higher noise because there's half as many
+  ;; measurements going into it
   a1_0 = data_sum_ft[*,*,where(n_val eq 0)]
   a1_n = (data_sum_ft[*,*, where(n_val gt 0)] + data_sum_ft[*,*, reverse(where(n_val lt 0))])/2.
-  b1_n = complex(0,1) * (data_sum_ft[*,*, where(n_val gt 0)] - data_sum_ft[*,*, reverse(where(n_val lt 0))])/2.
+  b1_n = complex(0,1) * (data_sum_ft[*,*, where(n_val gt 0)] - $
+    data_sum_ft[*,*, reverse(where(n_val lt 0))])/2.
   undefine, data_sum_ft
 
   a3_0 = sim_noise_sum_ft[*,*,where(n_val eq 0)]
-  a3_n = (sim_noise_sum_ft[*,*, where(n_val gt 0)] + sim_noise_sum_ft[*,*, reverse(where(n_val lt 0))])/2.
-  b3_n = complex(0,1) * (sim_noise_sum_ft[*,*, where(n_val gt 0)] - sim_noise_sum_ft[*,*, reverse(where(n_val lt 0))])/2.
+  a3_n = (sim_noise_sum_ft[*,*, where(n_val gt 0)] + $
+    sim_noise_sum_ft[*,*, reverse(where(n_val lt 0))])/2.
+  b3_n = complex(0,1) * (sim_noise_sum_ft[*,*, where(n_val gt 0)] - $
+    sim_noise_sum_ft[*,*, reverse(where(n_val lt 0))])/2.
   undefine, sim_noise_sum_ft
 
   if nfiles gt 1 then begin
     a2_0 = data_diff_ft[*,*,where(n_val eq 0)]
-    a2_n = (data_diff_ft[*,*, where(n_val gt 0)] + data_diff_ft[*,*, reverse(where(n_val lt 0))])/2.
-    b2_n = complex(0,1) * (data_diff_ft[*,*, where(n_val gt 0)] - data_diff_ft[*,*, reverse(where(n_val lt 0))])/2.
+    a2_n = (data_diff_ft[*,*, where(n_val gt 0)] + $
+      data_diff_ft[*,*, reverse(where(n_val lt 0))])/2.
+    b2_n = complex(0,1) * (data_diff_ft[*,*, where(n_val gt 0)] - $
+      data_diff_ft[*,*, reverse(where(n_val lt 0))])/2.
     undefine, data_diff_ft
 
     a4_0 = sim_noise_diff_ft[*,*,where(n_val eq 0)]
-    a4_n = (sim_noise_diff_ft[*,*, where(n_val gt 0)] + sim_noise_diff_ft[*,*, reverse(where(n_val lt 0))])/2.
-    b4_n = complex(0,1) * (sim_noise_diff_ft[*,*, where(n_val gt 0)] - sim_noise_diff_ft[*,*, reverse(where(n_val lt 0))])/2.
+    a4_n = (sim_noise_diff_ft[*,*, where(n_val gt 0)] + $
+      sim_noise_diff_ft[*,*, reverse(where(n_val lt 0))])/2.
+    b4_n = complex(0,1) * (sim_noise_diff_ft[*,*, where(n_val gt 0)] - $
+      sim_noise_diff_ft[*,*, reverse(where(n_val lt 0))])/2.
     undefine, sim_noise_diff_ft
   endif
 
 
-  if keyword_set(std_power) then begin
+  if ps_options.std_power then begin
     ;; comov_dist_los goes from large to small z
     z_relative = dindgen(n_freq)*z_mpc_delta
-    freq_kz_arr = rebin(reform(kz_mpc_orig, 1, n_elements(kz_mpc_orig)), n_freq, n_elements(kz_mpc_orig)) * rebin(z_relative, n_freq, n_elements(kz_mpc_orig))
+    freq_kz_arr = rebin(reform(kz_mpc_orig, 1, n_elements(kz_mpc_orig)), $
+      n_freq, n_elements(kz_mpc_orig)) * rebin(z_relative, n_freq, n_elements(kz_mpc_orig))
 
     ;; construct FT matrix, hit sigma2 with it from both sides
     identity = diag_matrix([fltarr(n_freq)+1.])
@@ -1331,7 +1447,8 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, $
       for j=0, n_ky-1 do begin
         if max(abs(sum_sigma2[i,j,*])) eq 0 then continue
         temp = diag_matrix(reform(sum_sigma2[i,j,*]))
-        temp2 = shift(matrix_multiply(ft_matrix, matrix_multiply(temp, conj(ft_matrix), /btranspose)), n_freq/2, n_freq/2)
+        temp2 = shift(matrix_multiply(ft_matrix, $
+          matrix_multiply(temp, conj(ft_matrix), /btranspose)), n_freq/2, n_freq/2)
 
         sigma2_ft[i,j,*] = abs(diag_matrix(temp2))
       endfor
@@ -1340,7 +1457,8 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, $
 
     a5_0 = sigma2_ft[*,*,where(n_val eq 0)]
     a5_n = (sigma2_ft[*,*, where(n_val gt 0)] + sigma2_ft[*,*, reverse(where(n_val lt 0))])/2.
-    b5_n = complex(0,1) * (sigma2_ft[*,*, where(n_val gt 0)] - sigma2_ft[*,*, reverse(where(n_val lt 0))])/2.
+    b5_n = complex(0,1) * (sigma2_ft[*,*, where(n_val gt 0)] - $
+      sigma2_ft[*,*, reverse(where(n_val lt 0))])/2.
     undefine, sigma2_ft
 
     data_sum_1 = complex(fltarr(n_kx, n_ky, n_kz))
@@ -1376,20 +1494,24 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, $
     sigma2_2[*, *, 1:n_kz-1] = b5_n
 
     git, repo_path = ps_repository_dir(), result=kcube_git_hash
-    git_hashes = {uvf:uvf_git_hashes, uvf_wt:uvf_wt_git_hashes, beam:beam_git_hashes, kcube:kcube_git_hash}
+    git_hashes = {uvf:uvf_git_hashes, uvf_wt:uvf_wt_git_hashes, $
+      beam:beam_git_hashes, kcube:kcube_git_hash}
 
     if n_elements(freq_flags) gt 0 then begin
-      save, file = file_struct.kcube_savefile, data_sum_1, data_sum_2, data_diff_1, data_diff_2, $
-        sim_noise_sum_1, sim_noise_sum_2, sim_noise_diff_1, sim_noise_diff_2, sigma2_1, sigma2_2, n_val, $
-        kx_mpc, ky_mpc, kz_mpc, kperp_lambda_conv, delay_params, hubble_param, n_freq_contrib, freq_mask, $
-        vs_name, vs_mean, t_sys_meas, window_int, git_hashes, $
-        wt_meas_ave, wt_meas_min, ave_weights, wt_ave_power_freq, ave_power_freq, wt_ave_power_uvf, ave_power_uvf
+      save, file = file_struct.kcube_savefile, data_sum_1, data_sum_2, data_diff_1, $
+        data_diff_2, sim_noise_sum_1, sim_noise_sum_2, sim_noise_diff_1, $
+        sim_noise_diff_2, sigma2_1, sigma2_2, n_val, kx_mpc, ky_mpc, kz_mpc, $
+        kperp_lambda_conv, delay_params, hubble_param, n_freq_contrib, freq_mask, $
+        vs_name, vs_mean, t_sys_meas, window_int, git_hashes, wt_meas_ave, wt_meas_min, $
+        ave_weights, wt_ave_power_freq, ave_power_freq, wt_ave_power_uvf, ave_power_uvf
     endif else begin
-      save, file = file_struct.kcube_savefile, data_sum_1, data_sum_2, data_diff_1, data_diff_2, $
-        sim_noise_sum_1, sim_noise_sum_2, sim_noise_diff_1, sim_noise_diff_2, sigma2_1, sigma2_2, n_val, $
-        kx_mpc, ky_mpc, kz_mpc, kperp_lambda_conv, delay_params, hubble_param, n_freq_contrib, $
-        vs_name, vs_mean, t_sys_meas, window_int, git_hashes, $
-        wt_meas_ave, wt_meas_min, ave_weights, wt_ave_power_freq, ave_power_freq, wt_ave_power_uvf, ave_power_uvf
+      save, file = file_struct.kcube_savefile, data_sum_1, data_sum_2, data_diff_1, $
+        data_diff_2, sim_noise_sum_1, sim_noise_sum_2, sim_noise_diff_1, $
+        sim_noise_diff_2, sigma2_1, sigma2_2, n_val, kx_mpc, ky_mpc, kz_mpc, $
+        kperp_lambda_conv, delay_params, hubble_param, n_freq_contrib, $
+        vs_name, vs_mean, t_sys_meas, window_int, git_hashes, wt_meas_ave, $
+        wt_meas_min, ave_weights, wt_ave_power_freq, ave_power_freq, wt_ave_power_uvf, $
+        ave_power_uvf
     endelse
 
   endif else begin
@@ -1445,14 +1567,16 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, $
       sim_noise_diff_sin[*, *, 1:n_kz-1] = b4_n
     endif
 
-    if keyword_set(ave_removal) then begin
+    if ps_options.ave_removal then begin
 
       data_sum_cos[*,*,0] = data_sum_cos[*,*,0] + data_sum_mean * n_freq * z_mpc_delta
-      sim_noise_sum_cos[*,*,0] = sim_noise_sum_cos[*,*,0] + sim_noise_sum_mean * n_freq * z_mpc_delta
+      sim_noise_sum_cos[*,*,0] = sim_noise_sum_cos[*,*,0] + sim_noise_sum_mean * $
+        n_freq * z_mpc_delta
 
       if nfiles eq 2 then begin
         data_diff_cos[*,*,0] = data_diff_cos[*,*,0] + data_diff_mean * n_freq * z_mpc_delta
-        sim_noise_diff_cos[*,*,0] = sim_noise_diff_cos[*,*,0] + sim_noise_diff_mean * n_freq * z_mpc_delta
+        sim_noise_diff_cos[*,*,0] = sim_noise_diff_cos[*,*,0] + sim_noise_diff_mean * $
+          n_freq * z_mpc_delta
       endif
     endif
 
@@ -1464,7 +1588,8 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, $
 
     ;; comov_dist_los goes from large to small z
     z_relative = dindgen(n_freq)*z_mpc_delta
-    freq_kz_arr = rebin(reform(kz_mpc, 1, n_kz), n_freq, n_kz) * rebin(z_relative, n_freq, n_kz)
+    freq_kz_arr = rebin(reform(kz_mpc, 1, n_kz), n_freq, n_kz) * $
+      rebin(z_relative, n_freq, n_kz)
 
     cos_arr = cos(freq_kz_arr)
     sin_arr = sin(freq_kz_arr)
@@ -1501,7 +1626,8 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, $
     endif
 
     ;; cos 0 term does NOT have a different normalization
-    ;; changed 3/12/14 -- the noise is higher in 0th bin because there are only half as many measurements
+    ;; changed 3/12/14 -- the noise is higher in 0th bin because there are only
+    ;; half as many measurements
     ;;covar_cos[*,*,0] = covar_cos[*,*,0]/4d
     undefine, sum_sigma2, freq_kz_arr, cos_arr, sin_arr
 
@@ -1519,8 +1645,10 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, $
     sin_theta = sin(theta)
     undefine, theta
 
-    sigma2_1 = covar_cos*cos_theta^2. + 2.*covar_cross*cos_theta*sin_theta + covar_sin*sin_theta^2.
-    sigma2_2 = covar_cos*sin_theta^2. - 2.*covar_cross*cos_theta*sin_theta + covar_sin*cos_theta^2.
+    sigma2_1 = covar_cos*cos_theta^2. + 2.*covar_cross*cos_theta*sin_theta + $
+      covar_sin*sin_theta^2.
+    sigma2_2 = covar_cos*sin_theta^2. - 2.*covar_cross*cos_theta*sin_theta + $
+      covar_sin*cos_theta^2.
 
     ;    sigma2_1 = covar_cos
     ;    sigma2_2 = covar_sin
@@ -1546,20 +1674,23 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, $
     endif
 
     git, repo_path = ps_repository_dir(), result=kcube_git_hash
-    git_hashes = {uvf:uvf_git_hashes, uvf_wt:uvf_wt_git_hashes, beam:beam_git_hashes, kcube:kcube_git_hash}
+    git_hashes = {uvf:uvf_git_hashes, uvf_wt:uvf_wt_git_hashes, beam:beam_git_hashes, $
+      kcube:kcube_git_hash}
 
     if n_elements(freq_flags) gt 0 then begin
-      save, file = file_struct.kcube_savefile, data_sum_1, data_sum_2, data_diff_1, data_diff_2, sigma2_1, sigma2_2, $
-        sim_noise_sum_1, sim_noise_sum_2, sim_noise_diff_1, sim_noise_diff_2, $
-        kx_mpc, ky_mpc, kz_mpc, kperp_lambda_conv, delay_params, hubble_param, n_freq_contrib, freq_mask, $
-        vs_name, vs_mean, t_sys_meas, window_int, git_hashes, $
-        wt_meas_ave, wt_meas_min, ave_weights, wt_ave_power_freq, ave_power_freq, wt_ave_power_uvf, ave_power_uvf
+      save, file = file_struct.kcube_savefile, data_sum_1, data_sum_2, data_diff_1, $
+        data_diff_2, sigma2_1, sigma2_2, sim_noise_sum_1, sim_noise_sum_2, $
+        sim_noise_diff_1, sim_noise_diff_2, kx_mpc, ky_mpc, kz_mpc, kperp_lambda_conv, $
+        delay_params, hubble_param, n_freq_contrib, freq_mask, vs_name, vs_mean, $
+        t_sys_meas, window_int, git_hashes, wt_meas_ave, wt_meas_min, ave_weights, $
+        wt_ave_power_freq, ave_power_freq, wt_ave_power_uvf, ave_power_uvf
     endif else begin
-      save, file = file_struct.kcube_savefile, data_sum_1, data_sum_2, data_diff_1, data_diff_2, sigma2_1, sigma2_2, $
-        sim_noise_sum_1, sim_noise_sum_2, sim_noise_diff_1, sim_noise_diff_2, $
-        kx_mpc, ky_mpc, kz_mpc, kperp_lambda_conv, delay_params, hubble_param, n_freq_contrib, $
-        vs_name, vs_mean, t_sys_meas, window_int, git_hashes, $
-        wt_meas_ave, wt_meas_min, ave_weights, wt_ave_power_freq, ave_power_freq, wt_ave_power_uvf, ave_power_uvf
+      save, file = file_struct.kcube_savefile, data_sum_1, data_sum_2, data_diff_1, $
+        data_diff_2, sigma2_1, sigma2_2, sim_noise_sum_1, sim_noise_sum_2, $
+        sim_noise_diff_1, sim_noise_diff_2, kx_mpc, ky_mpc, kz_mpc, kperp_lambda_conv, $
+        delay_params, hubble_param, n_freq_contrib, vs_name, vs_mean, t_sys_meas, $
+        window_int, git_hashes, wt_meas_ave, wt_meas_min, ave_weights, $
+        wt_ave_power_freq, ave_power_freq, wt_ave_power_uvf, ave_power_uvf
     endelse
   endelse
 

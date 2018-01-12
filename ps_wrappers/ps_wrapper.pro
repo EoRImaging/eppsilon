@@ -1,40 +1,46 @@
 pro ps_wrapper, folder_name_in, obs_name, data_subdirs=data_subdirs, $
-  exact_obsnames = exact_obsnames, ps_foldername = ps_foldername, $
-    no_evenodd = no_evenodd, no_wtvar_rts = no_wtvar_rts, set_data_ranges = set_data_ranges, $
-    beamfiles = beamfiles, rts = rts, casa = casa, sim = sim, $
-    refresh_dft = refresh_dft, refresh_ps = refresh_ps, $
+    exact_obsnames = exact_obsnames, ps_foldername = ps_foldername, $
+    no_evenodd = no_evenodd, no_wtvar_rts = no_wtvar_rts, $
+    set_data_ranges = set_data_ranges, beamfiles = beamfiles, rts = rts, $
+    casa = casa, sim = sim, refresh_dft = refresh_dft, refresh_ps = refresh_ps, $
     refresh_binning = refresh_binning, refresh_info = refresh_info, $
     refresh_beam = refresh_beam, dft_fchunk = dft_fchunk, $
     delta_uv_lambda = delta_uv_lambda, max_uv_lambda = max_uv_lambda, $
-    pol_inc = pol_inc, type_inc = type_inc, $
-    freq_ch_range = freq_ch_range, freq_flags = freq_flags, $
-    freq_flag_name = freq_flag_name, allow_beam_approx = allow_beam_approx, $
-    uvf_input = uvf_input, uv_avg = uv_avg, uv_img_clip = uv_img_clip, $
-    std_power = std_power, inverse_covar_weight = inverse_covar_weight, ave_removal = ave_removal, $
+    pol_inc = pol_inc, type_inc = type_inc, freq_ch_range = freq_ch_range, $
+    freq_flags = freq_flags, freq_flag_name = freq_flag_name, $
+    allow_beam_approx = allow_beam_approx, uvf_input = uvf_input, uv_avg = uv_avg, $
+    uv_img_clip = uv_img_clip, std_power = std_power, $
+    inverse_covar_weight = inverse_covar_weight, ave_removal = ave_removal, $
     no_wtd_avg = no_wtd_avg, norm_rts_with_fhd = norm_rts_with_fhd, $
     wt_cutoffs = wt_cutoffs, wt_measures = wt_measures, fix_sim_input = fix_sim_input, $
     no_spec_window = no_spec_window, spec_window_type = spec_window_type, $
     image_window_name = image_window_name, image_window_frac_size = image_window_frac_size, $
-    no_kzero = no_kzero, plot_slices = plot_slices, slice_type = slice_type, uvf_plot_type = uvf_plot_type, $
-    plot_stdset = plot_stdset, plot_1to2d = plot_1to2d, plot_2d_masked = plot_2d_masked, $
-    plot_kpar_power = plot_kpar_power, plot_kperp_power = plot_kperp_power, plot_k0_power = plot_k0_power, $
+    no_kzero = no_kzero, plot_slices = plot_slices, slice_type = slice_type, $
+    uvf_plot_type = uvf_plot_type, plot_stdset = plot_stdset, plot_1to2d = plot_1to2d, $
+    plot_2d_masked = plot_2d_masked, plot_kpar_power = plot_kpar_power, $
+    plot_kperp_power = plot_kperp_power, plot_k0_power = plot_k0_power, $
     plot_noise_1d = plot_noise_1d, plot_sim_noise = plot_sim_noise, $
-    data_range = data_range, sigma_range = sigma_range, nev_range = nev_range, slice_range = slice_range, $
-    snr_range = snr_range, noise_range = noise_range, nnr_range = nnr_range, range_1d = range_1d, $
-    log_kpar = log_kpar, log_kperp = log_kperp, kpar_bin = kpar_bin, kperp_bin = kperp_bin, $
+    data_range = data_range, sigma_range = sigma_range, nev_range = nev_range, $
+    slice_range = slice_range, snr_range = snr_range, noise_range = noise_range, $
+    nnr_range = nnr_range, range_1d = range_1d, log_kpar = log_kpar, $
+    log_kperp = log_kperp, kpar_bin = kpar_bin, kperp_bin = kperp_bin, $
     log_k1d = log_k1d, k1d_bin = k1d_bin, plot_1d_delta = plot_1d_delta, $
     plot_1d_error_bars = plot_1d_error_bars, plot_1d_nsigma = plot_1d_nsigma, $
-    set_krange_1dave = set_krange_1dave, kpar_range_1dave = kpar_range_1dave, bin_arr_3d = bin_arr_3d, $
-    kperp_range_1dave = kperp_range_1dave, kperp_range_lambda_1dave = kperp_range_lambda_1dave, $
-    kx_range_1dave = kx_range_1dave, kx_range_lambda_1dave = kx_range_lambda_1dave, $
-    ky_range_1dave = ky_range_1dave, ky_range_lambda_1dave = ky_range_lambda_1dave, $
-    kperp_range_lambda_kparpower = kperp_range_lambda_kparpower, kpar_range_kperppower = kpar_range_kperppower, $
-    kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, kperp_plot_range = kperp_plot_range, $
-    kperp_lambda_plot_range = kperp_lambda_plot_range, kpar_plot_range = kpar_plot_range, $
-    baseline_axis = baseline_axis, delay_axis = delay_axis, cable_length_axis = cable_length_axis, hinv = hinv, $
-    plot_wedge_line = plot_wedge_line, wedge_angles = wedge_angles, coarse_harm_width = coarse_harm_width, $
-    plot_eor_1d = plot_eor_1d, plot_flat_1d = plot_flat_1d, no_text_1d = no_text_1d, $
-    save_path = save_path, savefilebase = savefilebase, plot_path = plot_path, plot_filebase = plot_filebase, $
+    set_krange_1dave = set_krange_1dave, kpar_range_1dave = kpar_range_1dave, $
+    bin_arr_3d = bin_arr_3d, kperp_range_1dave = kperp_range_1dave, $
+    kperp_range_lambda_1dave = kperp_range_lambda_1dave, kx_range_1dave = kx_range_1dave, $
+    kx_range_lambda_1dave = kx_range_lambda_1dave, ky_range_1dave = ky_range_1dave, $
+    ky_range_lambda_1dave = ky_range_lambda_1dave, $
+    kperp_range_lambda_kparpower = kperp_range_lambda_kparpower, $
+    kpar_range_kperppower = kpar_range_kperppower, $
+    kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, $
+    kperp_plot_range = kperp_plot_range, kperp_lambda_plot_range = kperp_lambda_plot_range, $
+    kpar_plot_range = kpar_plot_range, baseline_axis = baseline_axis, $
+    delay_axis = delay_axis, cable_length_axis = cable_length_axis, hinv = hinv, $
+    plot_wedge_line = plot_wedge_line, wedge_angles = wedge_angles, $
+    coarse_harm_width = coarse_harm_width, plot_eor_1d = plot_eor_1d, $
+    plot_flat_1d = plot_flat_1d, no_text_1d = no_text_1d, save_path = save_path, $
+    savefilebase = savefilebase, plot_path = plot_path, plot_filebase = plot_filebase, $
     individual_plots = individual_plots, plot_binning_hist = plot_binning_hist, $
     note = note, png = png, eps = eps, pdf = pdf, cube_power_info = cube_power_info, $
     no_dft_progress = no_dft_progress, loc_name = loc_name
@@ -110,7 +116,7 @@ pro ps_wrapper, folder_name_in, obs_name, data_subdirs=data_subdirs, $
     if n_elements(set_krange_1dave) eq 0 and not keyword_set(sim) then set_krange_1dave = 1
   endelse
 
-  print,'datafile = '+datafile
+  print,'datafile = ' + datafile
 
   if keyword_set(set_data_ranges) then begin
     if n_elements(range_1d) eq 0 then begin
@@ -140,66 +146,105 @@ pro ps_wrapper, folder_name_in, obs_name, data_subdirs=data_subdirs, $
     if n_elements(snr_range) eq 0 then snr_range = [1e-5, 1e7]
 
     noise_range = nev_range
-  endif
+  endif else begin
+    set_data_ranges = 0
+  endelse
 
   if keyword_set(set_krange_1dave) then begin
 
     ;; set some default kperp & kpar ranges for 1d averaging
     if n_elements(kperp_range_lambda_1dave) eq 0 then kperp_range_lambda_1dave = [10,50]
-  ;; This is the kpar range used for Danny's paper -- generally good for EoR limits but not
-  ;; for evaluating wedges physics. Commented out for now.
-  ;; kpar_range_1dave = [0.2,10]
+
+    ;; This is the kpar range used for Danny's paper -- generally good for EoR limits but not
+    ;; for evaluating wedges physics. Commented out for now.
+    ;; kpar_range_1dave = [0.2,10]
 
   endif
 
   dft_fchunk = 1
 
-  ps_main_plots, datafile, beamfiles = beamfiles, rts = rts, casa = casa, sim = sim, $
-    no_evenodd = no_evenodd, $
-    refresh_dft = refresh_dft, refresh_ps = refresh_ps, $
-    refresh_binning = refresh_binning, refresh_info = refresh_info, $
-    refresh_beam = refresh_beam, dft_fchunk = dft_fchunk, $
-    delta_uv_lambda = delta_uv_lambda, max_uv_lambda = max_uv_lambda, $
-    pol_inc = pol_inc, type_inc = type_inc, $
-    freq_ch_range = freq_ch_range, freq_flags = freq_flags, $
-    freq_flag_name = freq_flag_name, allow_beam_approx = allow_beam_approx, $
-    uvf_input = uvf_input, uv_avg = uv_avg, uv_img_clip = uv_img_clip, $
-    std_power = std_power, inverse_covar_weight = inverse_covar_weight, ave_removal = ave_removal, $
-    no_wtd_avg = no_wtd_avg, norm_rts_with_fhd = norm_rts_with_fhd, $
-    wt_cutoffs = wt_cutoffs, wt_measures = wt_measures, fix_sim_input = fix_sim_input, $
-    no_spec_window = no_spec_window, spec_window_type = spec_window_type, $
-    image_window_name = image_window_name, image_window_frac_size = image_window_frac_size, $
-    no_kzero = no_kzero, plot_slices = plot_slices, slice_type = slice_type, uvf_plot_type = uvf_plot_type, $
-    plot_stdset = plot_stdset, plot_1to2d = plot_1to2d, plot_2d_masked = plot_2d_masked, $
-    plot_kpar_power = plot_kpar_power, plot_kperp_power = plot_kperp_power, $
-    plot_k0_power = plot_k0_power, plot_noise_1d = plot_noise_1d, $
+  ; input_options = create_input_options(freq_ch_range = freq_ch_range, $
+  ;   freq_flags = freq_flags, freq_flag_name = freq_flag_name, no_evenodd = no_evenodd)
+
+  if keyword_set(plot_binning_hist) then refresh_binning = 1
+
+  refresh_options = create_refresh_options(refresh_dft = refresh_dft, $
+    refresh_beam = refresh_beam, refresh_ps = refresh_ps, refresh_kcube = refresh_ps, $
+    refresh_binning = refresh_binning, refresh_info = refresh_info)
+
+  uvf_options = create_uvf_options(image_window_name = image_window_name, $
+    image_window_frac_size = image_window_frac_size, delta_uv_lambda = delta_uv_lambda, $
+    max_uv_lambda = max_uv_lambda, uv_avg = uv_avg, uv_img_clip = uv_img_clip, $
+    dft_fchunk = dft_fchunk, no_dft_progress = no_dft_progress)
+
+  ps_options = create_ps_options(ave_removal = ave_removal, wt_cutoffs = wt_cutoffs, $
+    wt_measures = wt_measures, spec_window_type = spec_window_type, $
+    no_spec_window = no_spec_window, allow_beam_approx = allow_beam_approx, $
+    std_power = std_power, no_wtd_avg = no_wtd_avg, $
+    inverse_covar_weight = inverse_covar_weight)
+
+  binning_2d_options = create_binning_2d_options(no_kzero = no_kzero, $
+    log_kpar = log_kpar, log_kperp = log_kperp, kpar_bin = kpar_bin, kperp_bin = kperp_bin)
+
+  binning_1d_options = create_binning_1d_options(wedge_angles = wedge_angles, $
+    coarse_harm_width = coarse_harm_width, log_k = log_k1d, k_bin = k1d_bin, $
+    kpar_range_1dave = kpar_range_1dave, kperp_range_1dave = kperp_range_1dave, $
+    kperp_range_lambda_1dave = kperp_range_lambda_1dave, kx_range_1dave = kx_range_1dave, $
+    kx_range_lambda_1dave = kx_range_lambda_1dave, ky_range_1dave = ky_range_1dave, $
+    ky_range_lambda_1dave = ky_range_lambda_1dave, $
+    kperp_range_lambda_kparpower = kperp_range_lambda_kparpower, $
+    kpar_range_kperppower = kpar_range_kperppower)
+
+  plot_options = create_plot_options(hinv = hinv, plot_path = plot_path, $
+    plot_filebase = plot_filebase, note = note, individual_plots = individual_plots, $
+    png = png, eps = eps, pdf = pdf)
+
+  plot_types = create_plot_types(plot_stdset = plot_stdset, plot_slices = plot_slices, $
+    slice_type = slice_type, uvf_plot_type = uvf_plot_type, plot_1to2d = plot_1to2d, $
+    plot_2d_masked = plot_2d_masked, plot_kpar_power = plot_kpar_power, $
+    plot_kperp_power = plot_kperp_power, plot_k0_power = plot_k0_power, $
+    plot_noise_1d = plot_noise_1d, plot_sim_noise = plot_sim_noise, $
+    plot_binning_hist = plot_binning_hist)
+
+  plot_2d_options = create_plot_2d_options(plot_wedge_line = plot_wedge_line, $
+    kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, $
+    kperp_plot_range = kperp_plot_range, kperp_lambda_plot_range = kperp_lambda_plot_range, $
+    kpar_plot_range = kpar_plot_range, baseline_axis = baseline_axis, $
+    delay_axis = delay_axis, cable_length_axis = cable_length_axis, $
     data_range = data_range, sigma_range = sigma_range, nev_range = nev_range, $
-    slice_range = slice_range, plot_sim_noise = plot_sim_noise, $
-    snr_range = snr_range, noise_range = noise_range, nnr_range = nnr_range, range_1d = range_1d, $
-    log_kpar = log_kpar, log_kperp = log_kperp, kpar_bin = kpar_bin, kperp_bin = kperp_bin, $
-    log_k1d = log_k1d, k1d_bin = k1d_bin, plot_1d_delta = plot_1d_delta, $
-    plot_1d_error_bars = plot_1d_error_bars, plot_1d_nsigma = plot_1d_nsigma, $
-    kperp_range_1dave = kperp_range_1dave, kperp_range_lambda_1dave = kperp_range_lambda_1dave, $
-    kx_range_1dave = kx_range_1dave, kx_range_lambda_1dave = kx_range_lambda_1dave, $
-    ky_range_1dave = ky_range_1dave, ky_range_lambda_1dave = ky_range_lambda_1dave, $
-    kpar_range_1dave = kpar_range_1dave, bin_arr_3d = bin_arr_3d, $
-    kperp_range_lambda_kparpower = kperp_range_lambda_kparpower, kpar_range_kperppower = kpar_range_kperppower, $
-    kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, kperp_plot_range = kperp_plot_range, $
-    kperp_lambda_plot_range = kperp_lambda_plot_range, kpar_plot_range = kpar_plot_range, $
-    baseline_axis = baseline_axis, delay_axis = delay_axis, cable_length_axis = cable_length_axis, hinv = hinv, $
-    plot_wedge_line = plot_wedge_line, wedge_angles = wedge_angles, coarse_harm_width = coarse_harm_width, $
-    plot_eor_1d = plot_eor_1d, plot_flat_1d = plot_flat_1d, no_text_1d = no_text_1d, $
-    save_path = save_path, savefilebase = savefilebase, plot_path = plot_path, plot_filebase = plot_filebase, $
-    individual_plots = individual_plots, plot_binning_hist = plot_binning_hist, $
-    note = note, png = png, eps = eps, pdf = pdf, cube_power_info = cube_power_info, no_dft_progress = no_dft_progress
+    snr_range = snr_range, noise_range = noise_range, nnr_range = nnr_range, $
+    slice_range = slice_range)
+
+  plot_1d_options = create_plot_1d_options(range_1d = range_1d, $
+    plot_1d_delta = plot_1d_delta, plot_1d_error_bars = plot_1d_error_bars, $
+    plot_1d_nsigma = plot_1d_nsigma, plot_eor_1d = plot_eor_1d, $
+    plot_flat_1d = plot_flat_1d, no_text_1d = no_text_1d)
+
+  ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
+    type_inc = type_inc, freq_ch_range = freq_ch_range, freq_flags = freq_flags, $
+    freq_flag_name = freq_flag_name, uvf_input = uvf_input, no_evenodd = no_evenodd, $
+    rts = rts, norm_rts_with_fhd = norm_rts_with_fhd, casa = casa, sim = sim, $
+    fix_sim_input = fix_sim_input, save_path = save_path, $
+    savefilebase = savefilebase, cube_power_info = cube_power_info, $
+    refresh_options = refresh_options, uvf_options = uvf_options, $
+    ps_options = ps_options, binning_2d_options = binning_2d_options, $
+    binning_1d_options = binning_1d_options, plot_options = plot_options, $
+    plot_types = plot_types, plot_2d_options = plot_2d_options, $
+    plot_1d_options = plot_1d_options
 
   if not keyword_set(set_data_ranges) then begin
-    if n_elements(data_range) ne 0 then print, 'data_range used: ', number_formatter(data_range, format = '(e7.1)')
-    if n_elements(sigma_range) ne 0 then print, 'sigma_range used: ', number_formatter(sigma_range, format = '(e7.1)')
-    if n_elements(nev_range) ne 0 then print, 'nev_range used: ', number_formatter(nev_range, format = '(e7.1)')
-    if n_elements(nnr_range) ne 0 then print, 'nnr_range used: ', number_formatter(nnr_range, format = '(e7.1)')
-    if n_elements(snr_range) ne 0 then print, 'snr_range used: ', number_formatter(snr_range, format = '(e7.1)')
-    if n_elements(noise_range) ne 0 then print, 'noise_range used: ', number_formatter(noise_range, format = '(e7.1)')
+    if n_elements(data_range) ne 0 then $
+      print, 'data_range used: ', number_formatter(data_range, format = '(e7.1)')
+    if n_elements(sigma_range) ne 0 then $
+      print, 'sigma_range used: ', number_formatter(sigma_range, format = '(e7.1)')
+    if n_elements(nev_range) ne 0 then $
+      print, 'nev_range used: ', number_formatter(nev_range, format = '(e7.1)')
+    if n_elements(nnr_range) ne 0 then $
+      print, 'nnr_range used: ', number_formatter(nnr_range, format = '(e7.1)')
+    if n_elements(snr_range) ne 0 then $
+      print, 'snr_range used: ', number_formatter(snr_range, format = '(e7.1)')
+    if n_elements(noise_range) ne 0 then $
+      print, 'noise_range used: ', number_formatter(noise_range, format = '(e7.1)')
   endif
 
 end
