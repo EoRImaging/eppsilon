@@ -84,12 +84,14 @@ function create_plot_types, plot_types = plot_types, $
     update_values.add, uvf_plot_type
   endif
 
-  update_tags = update_tags.toarray()
-
   if n_elements(update_tags) gt 0 or keyword_set(return_new) then begin
-    plot_types = update_option_struct(plot_types, update_tags, update_values, $
-      return_new = return_new)
-  endif
+    update_tags = update_tags.toarray()
 
-  return, plot_types
+    new_plot_types = update_option_struct(plot_types, update_tags, update_values, $
+      return_new = return_new)
+
+    return, new_plot_types
+  endif else begin
+    return, plot_types
+  endelse
 end

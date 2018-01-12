@@ -25,6 +25,8 @@ function create_refresh_options, refresh_options = refresh_options, $
     refresh_options = {refresh_dft: refresh_dft, refresh_weight_dft: refresh_weight_dft, $
       refresh_beam: refresh_beam, refresh_kcube: refresh_kcube, refresh_ps: refresh_ps, $
       refresh_binning:refresh_binning, refresh_info:refresh_info}
+
+    return, refresh_options
   endif else begin
     update_tags = list()
     update_values = list()
@@ -58,13 +60,18 @@ function create_refresh_options, refresh_options = refresh_options, $
       update_values.add, refresh_info
     endif
 
+    if n_elements(update_tags) eq 0 and not keyword_set(return_new) then begin
+        message, 'no update tags and return_new not set.'
+    endif
+
     update_tags = update_tags.toarray()
 
     if n_elements(update_tags) gt 0 or keyword_set(return_new) then begin
-      refresh_options = update_option_struct(refresh_options, update_tags, $
+      new_refresh_options = update_option_struct(refresh_options, update_tags, $
         update_values, return_new = return_new)
     endif
+
+    return, new_refresh_options
   endelse
 
-  return, refresh_options
 end

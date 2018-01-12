@@ -142,12 +142,14 @@ function create_plot_2d_options, plot_2d_options = plot_2d_options,$
     update_values.add, slice_range
   endif
 
-  update_tags = update_tags.toarray()
-
   if n_elements(update_tags) gt 0 or keyword_set(return_new) then begin
-    plot_2d_options = update_option_struct(plot_2d_options, update_tags, update_values, $
-      return_new = return_new)
-  endif
+    update_tags = update_tags.toarray()
 
-  return, plot_2d_options
+    new_plot_2d_options = update_option_struct(plot_2d_options, update_tags, update_values, $
+      return_new = return_new)
+
+    return, new_plot_2d_options
+  endif else begin
+    return, plot_2d_options
+  endelse
 end

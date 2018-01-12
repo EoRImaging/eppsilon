@@ -140,12 +140,14 @@ function create_plot_options, plot_options = plot_options, $
     update_values.add, note
   endif
 
-  update_tags = update_tags.toarray()
-
   if n_elements(update_tags) gt 0 or keyword_set(return_new) then begin
-    plot_options = update_option_struct(plot_options, update_tags, $
-      update_values, return_new = return_new)
-  endif
+    update_tags = update_tags.toarray()
 
-  return, plot_options
+    new_plot_options = update_option_struct(plot_options, update_tags, $
+      update_values, return_new = return_new)
+
+    return, new_plot_options
+  endif else begin
+    return, plot_options
+  endelse
 end
