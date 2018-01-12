@@ -163,9 +163,6 @@ pro ps_wrapper, folder_name_in, obs_name, data_subdirs=data_subdirs, $
 
   dft_fchunk = 1
 
-  ; input_options = create_input_options(freq_ch_range = freq_ch_range, $
-  ;   freq_flags = freq_flags, freq_flag_name = freq_flag_name, no_evenodd = no_evenodd)
-
   if keyword_set(plot_binning_hist) then refresh_binning = 1
 
   refresh_options = create_refresh_options(refresh_dft = refresh_dft, $
