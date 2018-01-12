@@ -174,11 +174,14 @@ function create_binning_1d_options, binning_1d_options = binning_1d_options, $
     endif
   endif
 
-  if n_elements(update_tags) gt 0 or n_elements(remove_tags) gt 0 $
-      or keyword_set(return_new) then begin
-    binning_1d_options = update_option_struct(binning_1d_options, update_tags, $
-      update_values, remove_tags = remove_tags, return_new = return_new)
-  endif
+  if n_elements(remove_tags) gt 0 or n_elements(update_tags) gt 0 or $
+    keyword_set(return_new) then begin
 
-  return, binning_1d_options
+    new_binning_1d_options = update_option_struct(binning_1d_options, update_tags, $
+      update_values, remove_tags = remove_tags, return_new = return_new)
+
+    return, new_binning_1d_options
+  endif else begin
+    return, binning_1d_options
+  endelse
 end

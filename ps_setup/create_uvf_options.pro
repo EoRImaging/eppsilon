@@ -55,12 +55,14 @@ function create_uvf_options, uvf_options = uvf_options, $
     update_values.add, dft_fchunk
   endif
 
-  update_tags = update_tags.toarray()
-
   if n_elements(update_tags) gt 0 or keyword_set(return_new) then begin
-    uvf_options = update_option_struct(uvf_options, update_tags, update_values, $
-      return_new = return_new)
-  endif
+    update_tags = update_tags.toarray()
 
-  return, uvf_options
+    new_uvf_options = update_option_struct(uvf_options, update_tags, update_values, $
+      return_new = return_new)
+
+      return, new_uvf_options
+  endif else begin
+    return, uvf_options
+  endelse
 end

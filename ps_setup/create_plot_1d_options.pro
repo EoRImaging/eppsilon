@@ -57,12 +57,17 @@ function create_plot_1d_options, plot_1d_options = plot_1d_options, $
     update_values.add, plot_1d_nsigma
   endif
 
-  update_tags = update_tags.toarray()
-
   if n_elements(update_tags) gt 0 or keyword_set(return_new) then begin
-    plot_1d_options = update_option_struct(plot_1d_options, update_tags, update_values, $
-      return_new = return_new)
-  endif
 
-  return, plot_1d_options
+    update_tags = update_tags.toarray()
+
+    if n_elements(update_tags) gt 0 or keyword_set(return_new) then begin
+      new_plot_1d_options = update_option_struct(plot_1d_options, update_tags, update_values, $
+        return_new = return_new)
+    endif
+
+    return, new_plot_1d_options
+  endif else begin
+    return, plot_1d_options
+  endelse
 end

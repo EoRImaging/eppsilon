@@ -76,12 +76,14 @@ function create_ps_options, ps_options = ps_options, $
     update_values.add, spec_window_type
   endif
 
-  update_tags = update_tags.toarray()
-
   if n_elements(update_tags) gt 0 or keyword_set(return_new) then begin
-    ps_options = update_option_struct(ps_options, update_tags, update_values, $
-      return_new = return_new)
-  endif
+    update_tags = update_tags.toarray()
 
-  return, ps_options
+    new_ps_options = update_option_struct(ps_options, update_tags, update_values, $
+      return_new = return_new)
+
+    return, new_ps_options
+  endif else begin
+    return, ps_options
+  endelse
 end

@@ -38,12 +38,14 @@ function create_binning_2d_options, binning_2d_options = binning_2d_options, $
     update_values.add, kperp_bin
   endif
 
-  update_tags = update_tags.toarray()
-
   if n_elements(update_tags) gt 0 or keyword_set(return_new) then begin
-    binning_2d_options = update_option_struct(binning_2d_options, update_tags, $
-      update_values, return_new = return_new)
-  endif
+    update_tags = update_tags.toarray()
 
-  return, binning_2d_options
+    new_binning_2d_options = update_option_struct(binning_2d_options, update_tags, $
+      update_values, return_new = return_new)
+
+    return, new_binning_2d_options
+  endif else begin
+    return, binning_2d_options
+  endelse
 end
