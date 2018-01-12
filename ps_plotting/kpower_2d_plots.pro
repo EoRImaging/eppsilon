@@ -822,6 +822,11 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, $
         color_range = [0, ceil(max(power_plot))]
         n_colors = color_range[1] - color_range[0] + 1
 
+        if n_colors gt 256 then begin
+          print, 'Too many bins to color them all differently.'
+          n_colors = 256
+        endif
+
         power_log_norm = power_plot
 
         max_bin = ceil(max(power_plot))

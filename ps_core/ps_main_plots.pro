@@ -288,7 +288,7 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
 
     if tag_exist(binning_1d_options, 'kperp_range_lambda_1dave') then begin
       binning_1d_options = create_binning_1d_options(binning_1d_options = binning_1d_options, $
-        kperp_range_lambda_kparpower = kperp_range_lambda_1dave)
+        kperp_range_lambda_kparpower = binning_1d_options.kperp_range_lambda_1dave)
     endif
   endelse
 

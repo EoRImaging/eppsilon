@@ -414,7 +414,7 @@ pro make_std_plots, file_struct_arr, savefiles_2d, titles, $
           if plot_options.pub then begin
             plotfile_use = plotfile_struct.sim_nnr
           endif else begin
-            bundefine, plotfile_use
+            undefine, plotfile_use
           endelse
 
           kpower_2d_plots, savefiles_2d[cube_i], /sim_nnr, multi_pos = pos_use, $
