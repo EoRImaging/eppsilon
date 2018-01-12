@@ -234,9 +234,7 @@ pro ps_image_to_uvf, file_struct, n_vis_freq, kx_rad_vals, ky_rad_vals, $
         endelse
 
         pix_ft_struct = choose_pix_ft(file_struct, pixel_nums = pixel_nums, $
-          data_dims = data_dims, image_window_name = uvf_options.image_window_name, $
-          image_window_frac_size = uvf_options.image_window_frac_size, $
-          delta_uv_lambda = uvf_options.delta_uv_lambda, max_uv_lambda = uvf_options.max_uv_lambda)
+          data_dims = data_dims, uvf_options = uvf_options)
 
         wh_close = pix_ft_struct.wh_close
         x_use = pix_ft_struct.x_use
@@ -381,7 +379,7 @@ pro ps_image_to_uvf, file_struct, n_vis_freq, kx_rad_vals, ky_rad_vals, $
         endif
 
         ;; Create an image space filter to reduce thrown power via the FFT on hard clips
-        if tag_exist(uvf_options, image_window_name) then begin
+        if tag_exist(uvf_options, 'image_window_name') then begin
           pix_window = image_window(x_use, y_use, image_window_name = uvf_options.image_window_name, $
             fractional_size = uvf_options.image_window_frac_size)
           pix_window = rebin(pix_window, n_elements(wh_close), n_freq, /sample)
