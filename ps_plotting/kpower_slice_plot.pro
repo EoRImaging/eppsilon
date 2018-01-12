@@ -33,7 +33,9 @@ pro kpower_slice_plot, slice_savefile, power = power, noise = noise, $
       if n_elements(baseline_axis) eq 0 then baseline_axis = plot_2d_options.baseline_axis
       if n_elements(delay_axis) eq 0 then delay_axis = plot_2d_options.delay_axis
       if n_elements(cable_length_axis) eq 0 then cable_length_axis = plot_2d_options.cable_length_axis
-      if n_elements(data_range) eq 0 then data_range = plot_2d_options.slice_range
+      if n_elements(data_range) eq 0 and tag_exist(plot_2d_options, 'slice_range') then begin
+        data_range = plot_2d_options.slice_range
+      endif
 
       if n_elements(linear_axes) eq 0 then linear_axes = plot_2d_options.kperp_linear_axis
 
@@ -48,7 +50,7 @@ pro kpower_slice_plot, slice_savefile, power = power, noise = noise, $
 
   if n_elements(plotfile) gt 0 or keyword_set(png) or keyword_set(eps) or keyword_set(pdf) then begin
     pub = 1
-  endif else
+  endif else begin
     pub = 0
   endelse
   if pub eq 1 then begin
@@ -266,8 +268,12 @@ pro kpower_slice_plot, slice_savefile, power = power, noise = noise, $
 
   if max(abs(power_slice)) eq 0 then all_zero = 1
 
-  if n_elements(data_range) eq 0 then if not keyword_set(all_zero) then begin
-    data_range = minmax(power_slice) else data_range = [1e-1, 1e0]
+  if n_elements(data_range) eq 0 then begin
+    if not keyword_set(all_zero) then begin
+      data_range = minmax(power_slice)
+    endif else begin
+      data_range = [1e-1, 1e0]
+    endelse
   endif
   wh = where(power_slice gt 0d, count)
   if count gt 0 then min_pos = min(power_slice[wh]) else if keyword_set(all_zero) then begin
