@@ -13,10 +13,16 @@ pro ps_ratio_wrapper, folder_names, obs_names_in, ps_foldernames=ps_foldernames,
   if n_elements(spec_window_types) gt 2 then message, 'only 1 or 2 spec_window_types allowed'
   if n_elements(delta_uv_lambda) gt 1 then message, 'only 1 delta_uv_lambda allowed'
   if n_elements(ave_removal) gt 2 then message, 'only 1 or 2 ave_removal values allowed'
-  
-  spawn, 'hostname', hostname
-  if stregex(hostname, 'mit.edu', /boolean) eq 1 then loc_name = 'mit'
-  if stregex(hostname, 'enterprise', /boolean) eq 1 then loc_name = 'enterprise'
+
+  if n_elements(loc_name) eq 0 then begin
+    spawn, 'hostname', hostname
+    if stregex(hostname, 'mit.edu', /boolean) eq 1 then loc_name = 'mit'
+    if stregex(hostname, 'enterprise', /boolean) eq 1 then loc_name = 'enterprise'
+    if stregex(hostname, 'constellation', /boolean) eq 1 then loc_name = 'enterprise'
+    if stregex(hostname, 'defiant', /boolean) eq 1 then loc_name = 'enterprise'
+    if stregex(hostname, 'intrepid', /boolean) eq 1 then loc_name = 'enterprise'
+    if n_elements(loc_name) eq 0 then loc_name = hostname
+  endif
   case loc_name of
     'mit':  folder_names = mit_folder_locs(folder_names, rts = rts)
     'enterprise': folder_names = enterprise_folder_locs(folder_names, rts = rts)
