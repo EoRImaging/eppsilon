@@ -12,12 +12,16 @@ pro ps_cube_images, folder_names, obs_names_in, exact_obsnames = exact_obsnames,
   if n_elements(evenodd) eq 0 then evenodd = 'even'
   if n_elements(evenodd) gt 2 then message, 'No more than 2 evenodd values can be supplied'
   if n_elements(obs_names_in) gt 2 then message, 'No more than 2 obs_names can be supplied'
-  
-  spawn, 'hostname', hostname
-  if stregex(hostname, 'mit.edu', /boolean) eq 1 then loc_name = 'mit'
-  if stregex(hostname, 'enterprise', /boolean) eq 1 then loc_name = 'enterprise'
-  if stregex(hostname, 'constellation', /boolean) eq 1 then loc_name = 'enterprise'
-  if stregex(hostname, 'defiant', /boolean) eq 1 then loc_name = 'enterprise'
+
+  if n_elements(loc_name) eq 0 then begin
+    spawn, 'hostname', hostname
+    if stregex(hostname, 'mit.edu', /boolean) eq 1 then loc_name = 'mit'
+    if stregex(hostname, 'enterprise', /boolean) eq 1 then loc_name = 'enterprise'
+    if stregex(hostname, 'constellation', /boolean) eq 1 then loc_name = 'enterprise'
+    if stregex(hostname, 'defiant', /boolean) eq 1 then loc_name = 'enterprise'
+    if stregex(hostname, 'intrepid', /boolean) eq 1 then loc_name = 'enterprise'
+    if n_elements(loc_name) eq 0 then loc_name = hostname
+  endif
   case loc_name of
     'mit':  folder_names = mit_folder_locs(folder_names, rts = rts)
     'enterprise': folder_names = enterprise_folder_locs(folder_names, rts = rts)

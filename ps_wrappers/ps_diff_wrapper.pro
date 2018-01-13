@@ -19,10 +19,16 @@ pro ps_diff_wrapper, folder_names, obs_names_in, ps_foldernames = ps_foldernames
   if n_elements(ave_removal) gt 2 then message, 'only 1 or 2 ave_removal values allowed'
   if n_elements(image_window_name) gt 2 then message, 'only 1 or 2 image_window_names values allowed'
   if n_elements(image_window_frac_size) gt 2 then message, 'only 1 or 2 image_window_frac_size values allowed'
-  
-  spawn, 'hostname', hostname
-  if stregex(hostname, 'mit.edu', /boolean) eq 1 then loc_name = 'mit'
-  if stregex(hostname, 'enterprise', /boolean) eq 1 then loc_name = 'enterprise'
+
+  if n_elements(loc_name) eq 0 then begin
+    spawn, 'hostname', hostname
+    if stregex(hostname, 'mit.edu', /boolean) eq 1 then loc_name = 'mit'
+    if stregex(hostname, 'enterprise', /boolean) eq 1 then loc_name = 'enterprise'
+    if stregex(hostname, 'constellation', /boolean) eq 1 then loc_name = 'enterprise'
+    if stregex(hostname, 'defiant', /boolean) eq 1 then loc_name = 'enterprise'
+    if stregex(hostname, 'intrepid', /boolean) eq 1 then loc_name = 'enterprise'
+    if n_elements(loc_name) eq 0 then loc_name = hostname
+  endif
   case loc_name of
     'mit':  folder_names = mit_folder_locs(folder_names, rts = rts)
     'enterprise': folder_names = enterprise_folder_locs(folder_names, rts = rts)
