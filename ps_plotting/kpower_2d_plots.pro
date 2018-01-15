@@ -117,7 +117,7 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, $
 
   if n_elements(plot_options) gt 0 then begin
     if n_elements(hinv) eq 0 then hinv = plot_options.hinv
-    if n_elements(note) eq 0 then note = plot_options.note
+    if n_elements(note) eq 0 and tag_exist(plot_options, 'note') then note = plot_options.note
     if n_elements(png) eq 0 then png = plot_options.png
     if n_elements(eps) eq 0 then eps = plot_options.eps
     if n_elements(pdf) eq 0 then pdf = plot_options.pdf
