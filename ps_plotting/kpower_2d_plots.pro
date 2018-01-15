@@ -457,13 +457,15 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, $
   if n_elements(kperp_plot_range) eq 0 then kperp_plot_range = minmax(kperp_edges_use)
   if n_elements(kpar_plot_range) eq 0 then kpar_plot_range = minmax(kpar_edges_use)
 
-  if not tag_exist(plot_2d_options, 'kperp_plot_range') then begin
-    plot_2d_options = create_plot_2d_options(plot_2d_options=plot_2d_options, $
-      kperp_plot_range = kperp_plot_range)
-  endif
-  if not tag_exist(plot_2d_options, 'kpar_plot_range') then begin
-    plot_2d_options = create_plot_2d_options(plot_2d_options=plot_2d_options, $
-      kpar_plot_range = kpar_plot_range)
+  if n_elements(plot_2d_options) gt 0 then begin
+    if not tag_exist(plot_2d_options, 'kperp_plot_range') then begin
+      plot_2d_options = create_plot_2d_options(plot_2d_options=plot_2d_options, $
+        kperp_plot_range = kperp_plot_range)
+    endif
+    if not tag_exist(plot_2d_options, 'kpar_plot_range') then begin
+      plot_2d_options = create_plot_2d_options(plot_2d_options=plot_2d_options, $
+        kpar_plot_range = kpar_plot_range)
+    endif
   endif
 
   units_str = ''
