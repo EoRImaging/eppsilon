@@ -721,10 +721,13 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
         if nfiles eq 2 then begin
           wt_data_diff[i,j,*] = matrix_multiply(inv_covar_z, reform(data_diff[i,j,*])) * z_mpc_delta
         endif
+        ;; should the shift be there?
         wt_sum_sigma2[i,j,*] = diag_matrix(shift(matrix_multiply(inv_covar_z, matrix_multiply(diag_matrix(var_z_inst), conj(inv_covar_z), /btranspose)), n_freq/2, n_freq/2))
         
         m_matrix = la_invert(matrix_sqrt(fisher_kz))
         wt_power_norm[i,j,*,*] = m_matrix
+        
+        ;; units terms?s
         wt_sum_sigma2_norm[i,j,*,*] = matrix_multiply(m_matrix, matrix_multiply(fisher_kz, m_matrix, /btranspose))
         
       endfor

@@ -56,43 +56,106 @@ pro ps_power, file_struct, refresh = refresh, kcube_refresh = kcube_refresh, dft
       std_power = std_power, inverse_covar_weight = inverse_covar_weight, $
       input_units = input_units, no_dft_progress = no_dft_progress, ave_removal = ave_removal
       
-    if nfiles eq 1 then begin
-      restore, file_struct.kcube_savefile
       
-      n_kx = n_elements(kx_mpc)
-      n_ky = n_elements(ky_mpc)
-      n_kz = n_elements(kz_mpc)
       
+      
+    restore, file_struct.kcube_savefile
+    
+    n_kx = n_elements(kx_mpc)
+    n_ky = n_elements(ky_mpc)
+    n_kz = n_elements(kz_mpc)
+    
+    if keyword_set(inverse_covar) then begin
+      power_sigma2_1 = fltarr(n_kx, n_ky, n_kz)
+      power_sigma2_2 = fltarr(n_kx, n_ky, n_kz)
+      sum_term1 = fltarr(n_kx, n_ky, n_kz)
+      sum_term2 = fltarr(n_kx, n_ky, n_kz)
+      sim_noise_sum_t1 = fltarr(n_kx, n_ky, n_kz)
+      sim_noise_sum_t2 = fltarr(n_kx, n_ky, n_kz)
+      if nfiles gt 1 then begin
+        diff_term_2 = fltarr(n_kx, n_ky, n_kz)
+        diff_term_2 = fltarr(n_kx, n_ky, n_kz)
+        sim_noise_diff_t1 = fltarr(n_kx, n_ky, n_kz)
+        sim_noise_diff_t2 = fltarr(n_kx, n_ky, n_kz)
+      endif
+      
+      for i=0, n_elements(kx_mpc)-1 do begin
+        for j=0, n_elements(ky_mpc)-1 do begin
+          power_sigma2_1[i,j,*] = diag_matrix(wt_sum_sigma2_norm_1[i,j,*,*])
+          power_sigma2_2[i,j,*] = diag_matrix(wt_sum_sigma2_norm_2[i,j,*,*])
+          
+          ;; units?
+          sum_term1[i,j,*] = matrix_multiply(wt_power_norm_1[i,j,*,*], abs(data_sum_1[i,j,*])^2.)
+          sum_term2[i,j,*] = matrix_multiply(wt_power_norm_2[i,j,*,*], abs(data_sum_2[i,j,*])^2.)
+          sim_noise_sum_t1[i,j,*] = matrix_multiply(wt_power_norm_1[i,j,*,*], abs(sim_noise_sum_1[i,j,*])^2.)
+          sim_noise_sum_t2[i,j,*] = matrix_multiply(wt_power_norm_2[i,j,*,*], abs(sim_noise_sum_2[i,j,*])^2.)
+          
+          if nfiles gt 1 then begin
+            diff_term1[i,j,*] = matrix_multiply(wt_power_norm_1[i,j,*,*], abs(data_diff_1[i,j,*])^2.)
+            diff_term2[i,j,*] = matrix_multiply(wt_power_norm_2[i,j,*,*], abs(data_diff_2[i,j,*])^2.)
+            sim_noise_diff_t1[i,j,*] = matrix_multiply(wt_power_norm_1[i,j,*,*], abs(sim_noise_diff_1[i,j,*])^2.)
+            sim_noise_diff_t2[i,j,*] = matrix_multiply(wt_power_norm_2[i,j,*,*], abs(sim_noise_diff_2[i,j,*])^2.)
+          endif
+        endfor
+      endfor
+      undefine, data_sum_1, data_sum_2, sim_noise_sum_1, sim_noise_sum_1, data_diff_1, data_diff_2, sim_noise_diff_1, sim_noise_diff_1
+      
+      power_weights1 = 1d/power_sigma2_1
+      wh_sig1_0 = where(power_sigma2_1 eq 0, count_sig1_0)
+      if count_sig1_0 ne 0 then power_weights1[wh_sig1_0] = 0
+      undefine, sigma2_1, power_sigma2_1
+      
+      power_weights2 = 1d/power_sigma2_2
+      wh_sig2_0 = where(power_sigma2_2 eq 0, count_sig2_0)
+      if count_sig2_0 ne 0 then power_weights2[wh_sig2_0] = 0
+      undefine, sigma2_2, power_sigma2_2
+      
+    endif else begin
       ;; now construct weights for power (mag. squared) = 1/power variance
-      power_weights1 = 1d/(4*(sigma2_1)^2d)
+      power_weights1 = 1d/(4*(sigma2_1)^2d) ;; inverse variance
       wh_sig1_0 = where(sigma2_1^2d eq 0, count_sig1_0)
       if count_sig1_0 ne 0 then power_weights1[wh_sig1_0] = 0
       undefine, sigma2_1
       
-      power_weights2 = 1d/(4*(sigma2_2)^2d) ;; inverse variance
+      power_weights2 = 1d/(4*(sigma2_2)^2d)
       wh_sig2_0 = where(sigma2_2^2d eq 0, count_sig2_0)
       if count_sig2_0 ne 0 then power_weights2[wh_sig2_0] = 0
       undefine, sigma2_2
       
+      sum_term1 = abs(data_sum_1)^2.
+      sum_term2 = abs(data_sum_2)^2.
+      undefine, data_sum_1, data_sum_2
+      
+      sim_noise_sum_t1 = abs(sim_noise_sum_1)^2.
+      sim_noise_sum_t2 = abs(sim_noise_sum_2)^2.
+      undefine, sim_noise_sum_1, sim_noise_sum_1
+      
+      if nfiles gt 1 then begin
+        diff_term1 = abs(data_diff_1)^2.
+        diff_term2 = abs(data_diff_2)^2.
+        undefine, data_diff_1, data_diff_2
+        
+        sim_noise_diff_t1 = abs(sim_noise_diff_1)^2.
+        sim_noise_diff_t2 = abs(sim_noise_diff_2)^2.
+        undefine, sim_noise_diff_1, sim_noise_diff_1
+      endif
+      
+    endelse
+    
+    weights_3d = (power_weights1 + power_weights2)
+    
+    
+    if nfiles eq 1 then begin
+    
       if keyword_set(no_wtd_avg) then begin
-        term1 = abs(data_sum_1)^2.
-        term2 = abs(data_sum_2)^2.
-        undefine, data_sum_1, data_sum_2
-        
-        sim_noise_t1 = abs(sim_noise_sum_1)^2.
-        sim_noise_t1 = abs(sim_noise_sum_2)^2.
-        undefine, data_sum_1, data_sum_2
-        
-        weights_3d = (power_weights1 + power_weights2)
-        undefine, power_weights1, power_weights2
-        
+      
         ;; expected noise is just sqrt(variance)
         noise_expval_3d = 1./sqrt(weights_3d)
         
         ;; Add the 2 terms
-        power_3d = (term1 + term2)
-        sim_noise_3d = (sim_noise_t1 + sim_noise_t2)
-        undefine, term1, term2, sim_noise_t1, sim_noise_t2
+        power_3d = (sum_term1 + sum_term2)
+        sim_noise_3d = (sim_noise_sum_t1 + sim_noise_sum_t2)
+        undefine, sum_term1, term2, sim_noise_sum_t1, sim_noise_sum_t2
         
         wh_wt0 = where(weights_3d eq 0, count_wt0)
         if count_wt0 ne 0 then begin
@@ -102,13 +165,12 @@ pro ps_power, file_struct, refresh = refresh, kcube_refresh = kcube_refresh, dft
         endif
         
       endif else begin
-        term1 = abs(data_sum_1)^2.*power_weights1
-        term2 = abs(data_sum_2)^2.*power_weights2
-        undefine, data_sum_1, data_sum_2
+        term1 = sum_term1 * power_weights1
+        term2 = sum_term2 * power_weights2
+        undefine, sum_term1, sum_term2
         
-        sim_noise_t1 = abs(sim_noise_sum_1)^2. * power_weights1
-        sim_noise_t2 = abs(sim_noise_sum_2)^2. * power_weights2
-        undefine, data_sum_1, data_sum_2
+        sim_noise_t1 = sim_noise_sum_t1 * power_weights1
+        sim_noise_t2 = sim_noise_sum_t2 * power_weights2
         
         ;; Factor of 2 because we're adding the cosine & sine terms
         noise_expval_3d = (sqrt(power_weights1 + power_weights2))*2.
@@ -147,48 +209,31 @@ pro ps_power, file_struct, refresh = refresh, kcube_refresh = kcube_refresh, dft
       
     endif else begin
       ;; nfiles=2
-      restore, file_struct.kcube_savefile
-      
-      n_kx = n_elements(kx_mpc)
-      n_ky = n_elements(ky_mpc)
-      n_kz = n_elements(kz_mpc)
-      
-      ;; now construct weights for power & diff power cubes
-      ;; variance of power is a factor of 2 higher than variance of diff power because sum & difference contributions
-      ;; weights = 1/variance
-      power_weights1 = 1d/(8*(sigma2_1)^2d)
-      wh_sig1_0 = where(sigma2_1^2d eq 0, count_sig1_0)
-      if count_sig1_0 ne 0 then power_weights1[wh_sig1_0] = 0
-      
-      power_weights2 = 1d/(8*(sigma2_2)^2d)
-      wh_sig2_0 = where(sigma2_2^2d eq 0, count_sig2_0)
-      if count_sig2_0 ne 0 then power_weights2[wh_sig2_0] = 0
-      
-      diff_power_weights1 = 1d/(4*(sigma2_1)^2d)
-      if count_sig1_0 ne 0 then diff_power_weights1[wh_sig1_0] = 0
-      undefine, sigma2_1
-      
-      diff_power_weights2 = 1d/(4*(sigma2_2)^2d)
-      if count_sig2_0 ne 0 then diff_power_weights2[wh_sig2_0] = 0
-      undefine, sigma2_1
+    
+      if not keyword_set(inverse_covar) then begin
+        ;; now construct weights for power & diff power cubes
+        ;; variance of power is a factor of 2 higher than variance of diff power because sum & difference contributions
+        ;; diff power variance is the same as the power variance for single files
+        diff_power_weights1 = power_weights1
+        diff_power_weights2 = power_weights2
+        
+        power_weights1 = power_weights1/2
+        power_weights2 = power_weights2/2
+      endif
       
       if keyword_set(no_wtd_avg) then begin
-        term1 = (abs(data_sum_1)^2. - abs(data_diff_1)^2.)
-        term2 = (abs(data_sum_2)^2. - abs(data_diff_2)^2.)
-        undefine, data_sum_1, data_sum_2
+        term1 = (sum_term1 - diff_term1)
+        term2 = (sum_term2 - diff_term2)
+        undefine, sum_term1, sum_term1, diff_term1, diff_term2
         
-        sim_noise_t1 = (abs(sim_noise_sum_1)^2. - abs(sim_noise_diff_1)^2.)
-        sim_noise_t2 = (abs(sim_noise_sum_2)^2. - abs(sim_noise_diff_2)^2.)
-        undefine, data_sum_1, data_sum_2
+        sim_noise_t1 = sim_noise_sum_t1 - sim_noise_diff_t1
+        sim_noise_t2 = sim_noise_sum_t2 - sim_noise_diff_t2
+        undefine, sim_noise_sum_t1, sim_noise_sum_t2
         
-        noise_t1 = abs(data_diff_1)^2.
-        noise_t2 = abs(data_diff_2)^2.
+        noise_t1 = diff_term1
+        noise_t2 = diff_term2
         undefine, data_diff_1, data_diff_2
-        
-        sim_noise_diff_t1 = abs(sim_noise_diff_1)^2.
-        sim_noise_diff_t2 = abs(sim_noise_diff_2)^2.
-        undefine, sim_noise_diff_1, sim_noise_diff_2
-        
+                
         weights_3d = power_weights1 + power_weights2
         undefine, power_weights1, power_weights2
         
@@ -214,22 +259,21 @@ pro ps_power, file_struct, refresh = refresh, kcube_refresh = kcube_refresh, dft
         endif
         
       endif else begin
-        term1 = (abs(data_sum_1)^2. - abs(data_diff_1)^2.) * power_weights1
-        term2 = (abs(data_sum_2)^2. - abs(data_diff_2)^2.) * power_weights2
-        undefine, data_sum_1, data_sum_2
+        term1 = (sum_term1 - diff_term1) * power_weights1
+        term2 = (sum_term2 - diff_term2) * power_weights2
+        undefine, sum_term1, sum_term2
         
-        sim_noise_t1 = (abs(sim_noise_sum_1)^2. - abs(sim_noise_diff_1)^2.) * power_weights1
-        sim_noise_t2 = (abs(sim_noise_sum_2)^2. - abs(sim_noise_diff_2)^2.) * power_weights2
-        undefine, data_sum_1, data_sum_2
+        sim_noise_t1 = (sim_noise_sum_t1 - sim_noise_diff_t1) * power_weights1
+        sim_noise_t2 = (sim_noise_sum_t2 - sim_noise_diff_t2) * power_weights2
+        undefine, sim_noise_sum_t1, sim_noise_sum_t2
         
-        noise_t1 = abs(data_diff_1)^2. * diff_power_weights1
-        noise_t2 = abs(data_diff_2)^2. * diff_power_weights2
-        undefine, data_diff_1, data_diff_2
+        noise_t1 = diff_term1 * diff_power_weights1
+        noise_t2 = diff_term2 * diff_power_weights2
+        undefine, diff_term1, diff_term2
         
-        sim_noise_diff_t1 = abs(sim_noise_diff_1)^2. * diff_power_weights1
-        sim_noise_diff_t2 = abs(sim_noise_diff_2)^2. * diff_power_weights2
-        undefine, sim_noise_diff_1, sim_noise_diff_2
-        
+        sim_noise_diff_t1 = sim_noise_diff_t1 * diff_power_weights1
+        sim_noise_diff_t2 = sim_noise_diff_t2 * diff_power_weights2
+         
         ;; Factor of 2 because we're adding the cosine & sine terms,
         ;; sqrt(2) because sum of exponentials gives erlang with mean = 2*sigma_exponential
         noise_expval_3d = sqrt(diff_power_weights1 + diff_power_weights2)*2*sqrt(2)
