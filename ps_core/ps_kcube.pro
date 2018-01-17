@@ -1032,13 +1032,9 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
         endif
       endif
       
-      dirty_cube1 = dirty_cube1[*, n_ky/2:n_ky-1,*]
-      model_cube1 = model_cube1[*, n_ky/2:n_ky-1,*]
       data_cube1 = temporary(dirty_cube1) - temporary(model_cube1)
       
       if nfiles eq 2 then begin
-        dirty_cube2 = dirty_cube2[*, n_ky/2:n_ky-1,*]
-        model_cube2 = model_cube2[*, n_ky/2:n_ky-1,*]
         data_cube2 = temporary(dirty_cube2) - temporary(model_cube2)
       endif
       
@@ -1051,17 +1047,6 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
         uvf_git_hashes = getvar_savefile(input_uvf_files[0,0], 'uvf_git_hash')
         if nfiles eq 2 then uvf_git_hashes = [uvf_git_hashes, getvar_savefile(input_uvf_files[0,1], 'uvf_git_hash')]
       endif else uvf_git_hashes = strarr(nfiles)
-      
-      
-      if n_elements(freq_ch_range) ne 0 then begin
-        data_cube1 = data_cube1[*, *, min(freq_ch_range):max(freq_ch_range)]
-        if nfiles eq 2 then data_cube2 = data_cube2[*, *, min(freq_ch_range):max(freq_ch_range)]
-      endif
-      if n_elements(freq_flags) ne 0 then begin
-        flag_arr = rebin(reform(freq_mask, 1, 1, n_elements(file_struct.frequencies)), size(data_cube1,/dimension), /sample)
-        data_cube1 = data_cube1 * flag_arr
-        if nfiles eq 2 then data_cube2 = data_cube2 * flag_arr
-      endif
       
     endif else begin
       data_cube1 = getvar_savefile(file_struct.datafile[0], file_struct.datavar)
@@ -1098,63 +1083,63 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
       if max(abs(data_cube1)) eq 0 then message, 'data cube is entirely zero.'
       if nfiles eq 2 then if max(abs(data_cube2)) eq 0 then message, 'data cube is entirely zero.'
       
-      if keyword_set(uv_avg) then begin
-        temp = complex(fltarr(nkx_new, dims2[1], n_freq))
-        if nfiles eq 2 then temp2 = complex(fltarr(nkx_new, dims2[1], n_freq))
-        for i=0, nkx_new-1 do begin
-          temp[i,*,*] = total(data_cube1[i*uv_avg:(i+1)*uv_avg-1,*,*], 1) / uv_avg
-          if nfiles eq 2 then temp2[i,*,*] = total(data_cube2[i*uv_avg:(i+1)*uv_avg-1,*,*], 1) / uv_avg
-        endfor
-        
-        temp3 = complex(fltarr(nkx_new, nky_new, n_freq))
-        if nfiles eq 2 then temp4 = complex(fltarr(nkx_new, nky_new, n_freq))
-        for i=0, nky_new-1 do begin
-          temp3[*,i,*] = total(temp[*,i*uv_avg:(i+1)*uv_avg-1,*], 2) / uv_avg
-          if nfiles eq 2 then temp4[*,i,*] = total(temp2[*,i*uv_avg:(i+1)*uv_avg-1,*], 2) / uv_avg
-        endfor
-        undefine, temp, temp2
-        
-        data_cube1 = temporary(temp3)
-        if nfiles eq 2 then data_cube2 = temporary(temp4)
-        
-        if max(abs(data_cube1)) eq 0 then message, 'data cube is entirely zero.'
-        if nfiles eq 2 then if max(abs(data_cube2)) eq 0 then message, 'data cube is entirely zero.'
-      endif
-      
-      if keyword_set(uv_img_clip) then begin
-        temp = shift(fft(fft(shift(data_cube1,dims2[0]/2,dims2[1]/2,0), dimension=1), dimension=2),dims2[0]/2,dims2[1]/2,0)
-        temp = temp[(dims2[0]/2)-(dims2[0]/uv_img_clip)/2:(dims2[0]/2)+(dims2[0]/uv_img_clip)/2-1, *, *]
-        temp = temp[*, (dims2[1]/2)-(dims2[1]/uv_img_clip)/2:(dims2[1]/2)+(dims2[1]/uv_img_clip)/2-1, *]
-        temp = shift(fft(fft(shift(temp,n_kx/2,n_ky/2,0), dimension=1, /inverse), dimension=2, /inverse),n_kx/2,n_ky/2,0)
-        if nfiles eq 2 then begin
-          temp2 = shift(fft(fft(shift(data_cube2,dims2[0]/2,dims2[1]/2,0), dimension=1), dimension=2),dims2[0]/2,dims2[1]/2,0)
-          temp2 = temp2[(dims2[0]/2)-(dims2[0]/uv_img_clip)/2:(dims2[0]/2)+(dims2[0]/uv_img_clip)/2-1, *, *]
-          temp2 = temp2[*, (dims2[1]/2)-(dims2[1]/uv_img_clip)/2:(dims2[1]/2)+(dims2[1]/uv_img_clip)/2-1, *]
-          temp2 = shift(fft(fft(shift(temp2,n_kx/2,n_ky/2,0), dimension=1, /inverse), dimension=2, /inverse),n_kx/2,n_ky/2,0)
-        endif
-        
-        data_cube1 = temp
-        if nfiles eq 2 then data_cube2 = temp2
-        
-        if max(abs(data_cube1)) eq 0 then message, 'data cube is entirely zero.'
-        if nfiles eq 2 then if max(abs(data_cube2)) eq 0 then message, 'data cube is entirely zero.'
-      endif
-      
-      ;; need to cut uvf cubes in half because image is real -- we'll cut negative ky
-      data_cube1 = data_cube1[*, n_ky/2:n_ky-1,*]
-      if nfiles eq 2 then data_cube2 = data_cube2[*, n_ky/2:n_ky-1,*]
-      
-      if n_elements(freq_ch_range) ne 0 then begin
-        data_cube1 = data_cube1[*, *, min(freq_ch_range):max(freq_ch_range)]
-        if nfiles eq 2 then data_cube2 = data_cube2[*, *, min(freq_ch_range):max(freq_ch_range)]
-      endif
-      if n_elements(freq_flags) ne 0 then begin
-        flag_arr = rebin(reform(freq_mask, 1, 1, n_elements(file_struct.frequencies)), size(data_cube1,/dimension), /sample)
-        data_cube1 = data_cube1 * flag_arr
-        if nfiles eq 2 then data_cube2 = data_cube2 * flag_arr
-      endif
-      
     endelse
+    
+    if keyword_set(uv_avg) then begin
+      temp = complex(fltarr(nkx_new, dims2[1], n_freq))
+      if nfiles eq 2 then temp2 = complex(fltarr(nkx_new, dims2[1], n_freq))
+      for i=0, nkx_new-1 do begin
+        temp[i,*,*] = total(data_cube1[i*uv_avg:(i+1)*uv_avg-1,*,*], 1) / uv_avg
+        if nfiles eq 2 then temp2[i,*,*] = total(data_cube2[i*uv_avg:(i+1)*uv_avg-1,*,*], 1) / uv_avg
+      endfor
+      
+      temp3 = complex(fltarr(nkx_new, nky_new, n_freq))
+      if nfiles eq 2 then temp4 = complex(fltarr(nkx_new, nky_new, n_freq))
+      for i=0, nky_new-1 do begin
+        temp3[*,i,*] = total(temp[*,i*uv_avg:(i+1)*uv_avg-1,*], 2) / uv_avg
+        if nfiles eq 2 then temp4[*,i,*] = total(temp2[*,i*uv_avg:(i+1)*uv_avg-1,*], 2) / uv_avg
+      endfor
+      undefine, temp, temp2
+      
+      data_cube1 = temporary(temp3)
+      if nfiles eq 2 then data_cube2 = temporary(temp4)
+      
+      if max(abs(data_cube1)) eq 0 then message, 'data cube is entirely zero.'
+      if nfiles eq 2 then if max(abs(data_cube2)) eq 0 then message, 'data cube is entirely zero.'
+    endif
+    
+    if keyword_set(uv_img_clip) then begin
+      temp = shift(fft(fft(shift(data_cube1,dims2[0]/2,dims2[1]/2,0), dimension=1), dimension=2),dims2[0]/2,dims2[1]/2,0)
+      temp = temp[(dims2[0]/2)-(dims2[0]/uv_img_clip)/2:(dims2[0]/2)+(dims2[0]/uv_img_clip)/2-1, *, *]
+      temp = temp[*, (dims2[1]/2)-(dims2[1]/uv_img_clip)/2:(dims2[1]/2)+(dims2[1]/uv_img_clip)/2-1, *]
+      temp = shift(fft(fft(shift(temp,n_kx/2,n_ky/2,0), dimension=1, /inverse), dimension=2, /inverse),n_kx/2,n_ky/2,0)
+      if nfiles eq 2 then begin
+        temp2 = shift(fft(fft(shift(data_cube2,dims2[0]/2,dims2[1]/2,0), dimension=1), dimension=2),dims2[0]/2,dims2[1]/2,0)
+        temp2 = temp2[(dims2[0]/2)-(dims2[0]/uv_img_clip)/2:(dims2[0]/2)+(dims2[0]/uv_img_clip)/2-1, *, *]
+        temp2 = temp2[*, (dims2[1]/2)-(dims2[1]/uv_img_clip)/2:(dims2[1]/2)+(dims2[1]/uv_img_clip)/2-1, *]
+        temp2 = shift(fft(fft(shift(temp2,n_kx/2,n_ky/2,0), dimension=1, /inverse), dimension=2, /inverse),n_kx/2,n_ky/2,0)
+      endif
+      
+      data_cube1 = temp
+      if nfiles eq 2 then data_cube2 = temp2
+      
+      if max(abs(data_cube1)) eq 0 then message, 'data cube is entirely zero.'
+      if nfiles eq 2 then if max(abs(data_cube2)) eq 0 then message, 'data cube is entirely zero.'
+    endif
+    
+    ;; need to cut uvf cubes in half because image is real -- we'll cut negative ky
+    data_cube1 = data_cube1[*, n_ky/2:n_ky-1,*]
+    if nfiles eq 2 then data_cube2 = data_cube2[*, n_ky/2:n_ky-1,*]
+    
+    if n_elements(freq_ch_range) ne 0 then begin
+      data_cube1 = data_cube1[*, *, min(freq_ch_range):max(freq_ch_range)]
+      if nfiles eq 2 then data_cube2 = data_cube2[*, *, min(freq_ch_range):max(freq_ch_range)]
+    endif
+    if n_elements(freq_flags) ne 0 then begin
+      flag_arr = rebin(reform(freq_mask, 1, 1, n_elements(file_struct.frequencies)), size(data_cube1,/dimension), /sample)
+      data_cube1 = data_cube1 * flag_arr
+      if nfiles eq 2 then data_cube2 = data_cube2 * flag_arr
+    endif
     
     ky_mpc = ky_mpc[n_ky/2:n_ky-1]
     n_ky = n_elements(ky_mpc)
@@ -1312,7 +1297,7 @@ pro ps_kcube, file_struct, dft_refresh_data = dft_refresh_data, dft_refresh_weig
     if tag_exist(file_struct, 'beam_int') then begin
       window_int = window_int_beam_obs
     endif
-
+    
     if (n_elements(window_int) eq 0 or min(window_int) eq 0) then begin
       if keyword_set(allow_beam_approx) then begin
         print, 'WARNING: beam integral in obs structure is zero, using a less good approximation'
