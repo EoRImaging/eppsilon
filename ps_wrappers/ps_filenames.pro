@@ -365,18 +365,27 @@ function ps_filenames, folder_names, obs_names_in, dirty_folder = dirty_folder, 
       endelse
       ;; first look for integrated info files in save_paths with names like Combined_obs_...
       if keyword_set(exact_obsnames) then begin
-        if keyword_set(uvf_input) then begin
-          info_file = file_search(save_paths[i] +  'Combined_obs_' + obs_names[i] + uvf_endobsname_tag + uvf_info_tag + '*info*', count = n_infofile)
+        hpx_info_file = file_search(save_paths[i] +  'Combined_obs_' + obs_names[i] + hpx_endobsname_tag + '*info*', count = n_hpx)
+        uvf_info_file = file_search(save_paths[i] +  'Combined_obs_' + obs_names[i] + uvf_endobsname_tag + uvf_info_tag + '*info*', count = n_uvf)
+      endif else begin
+        hpx_info_file = file_search(save_paths[i] +  'Combined_obs_' + obs_names[i] + '*' + hpx_endobsname_tag + '*info*', count = n_hpx)
+        uvf_info_file = file_search(save_paths[i] +  'Combined_obs_' + obs_names[i] + '*' + uvf_endobsname_tag + uvf_info_tag + '*info*', count = n_uvf)
+      endelse
+      if keyword_set(uvf_input) then begin
+        info_file = uvf_info_file
+        n_infofile = n_uvf
+      endif else begin
+        if n_elements(uvf_input) gt 0 then begin
+          info_file = hpx_info_file
+          n_infofile = n_hpx
         endif else begin
-          hpx_info_file = file_search(save_paths[i] +  'Combined_obs_' + obs_names[i] + hpx_endobsname_tag + '*info*', count = n_hpx)
-          uvf_info_file = file_search(save_paths[i] +  'Combined_obs_' + obs_names[i] + uvf_endobsname_tag + uvf_info_tag + '*info*', count = n_uvf)
           n_infofile = n_hpx + n_uvf
           if n_hpx gt 0 then begin
             info_file = hpx_info_file
             if n_uvf gt 0 then info_file = [info_file, uvf_info_file]
           endif else if n_uvf gt 0 then info_file = uvf_info_file
         endelse
-      endif else info_file = file_search(save_paths[i] +  'Combined_obs_' + obs_names[i] + '*' + uvf_info_tag + '*info*', count = n_infofile)
+      endelse
       if n_infofile gt 0 then begin
         if obs_names[i] eq '' then begin
           info_files[i] = info_file[0]
@@ -425,18 +434,28 @@ function ps_filenames, folder_names, obs_names_in, dirty_folder = dirty_folder, 
       endif else begin
         ;; then look for single obs info files
         if keyword_set(exact_obsnames) then begin
-          if keyword_set(uvf_input) then begin
-            info_file = file_search(save_paths[i] + obs_name_single + uvf_endobsname_tag + uvf_info_tag + '*info*', count = n_infofile)
+          hpx_info_file = file_search(save_paths[i] + obs_name_single + hpx_endobsname_tag + '*info*', count = n_hpx)
+          uvf_info_file = file_search(save_paths[i] + obs_name_single + uvf_endobsname_tag + uvf_info_tag + '*info*', count = n_uvf)
+        endif else begin
+          hpx_info_file = file_search(save_paths[i] + obs_name_single + '*' + hpx_endobsname_tag + '*info*', count = n_hpx)
+          uvf_info_file = file_search(save_paths[i] + obs_name_single + '*' + uvf_endobsname_tag + uvf_info_tag + '*info*', count = n_uvf)
+        endelse
+        if keyword_set(uvf_input) then begin
+          info_file = uvf_info_file
+          n_infofile = n_uvf
+        endif else begin
+          if n_elements(uvf_input) gt 0 then begin
+            info_file = hpx_info_file
+            n_infofile = n_hpx
           endif else begin
-            hpx_info_file = file_search(save_paths[i] + obs_name_single + hpx_endobsname_tag + '*info*', count = n_hpx)
-            uvf_info_file = file_search(save_paths[i] + obs_name_single + uvf_endobsname_tag + uvf_info_tag + '*info*', count = n_uvf)
             n_infofile = n_hpx + n_uvf
             if n_hpx gt 0 then begin
               info_file = hpx_info_file
               if n_uvf gt 0 then info_file = [info_file, uvf_info_file]
             endif else if n_uvf gt 0 then info_file = uvf_info_file
           endelse
-        endif else info_file = file_search(save_paths[i] + obs_name_single + '*' + uvf_info_tag + '*info*', count = n_infofile)
+        endelse      
+        
         if n_infofile gt 0 then begin
           info_basename = file_basename(info_file)
           if obs_names[i] eq '' then begin
