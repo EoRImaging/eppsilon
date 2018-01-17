@@ -142,7 +142,7 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
 
   if healpix or not uvf_input then begin
     ps_image_to_uvf, file_struct, n_vis_freq, kx_rad_vals, ky_rad_vals, $
-      freq_ch_range = freq_ch_range, freq_flags = freq_flags, $
+      freq_ch_range = freq_ch_range, freq_flags = freq_flags, no_var = no_var, $
       refresh_options = refresh_options, uvf_options = uvf_options
 
     n_kx = n_elements(kx_rad_vals)
