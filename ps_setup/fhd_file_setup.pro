@@ -861,9 +861,9 @@ function fhd_file_setup, filename, weightfile = weightfile, $
     beam_savefile = uvf_froot + uvf_savefilebase + '_beam2.idlsave'
   endif
 
-  kcube_savefile = froot + savefilebase + kcube_tag + '_kcube.idlsave'
-  power_savefile = froot + savefilebase + power_tag + '_power.idlsave'
-  fits_power_savefile = froot + savefilebase + power_tag + '_power.fits'
+  kcube_savefile = froot + savefilebase + file_tags.kcube_tag + '_kcube.idlsave'
+  power_savefile = froot + savefilebase + file_tags.power_tag + '_power.idlsave'
+  fits_power_savefile = froot + savefilebase + file_tags.power_tag + '_power.fits'
 
   if n_elements(weight_savefilebase_in) eq 0 then begin
     temp = cgrootname(metadata_struct.weightfile[0, 0], directory = wt_froot)
