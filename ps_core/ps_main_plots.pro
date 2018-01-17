@@ -1126,7 +1126,7 @@
           freq_flags = freq_flags, allow_beam_approx = allow_beam_approx, $
           spec_window_type = spec_window_type, image_window_name = image_window_name, image_window_frac_size = image_window_frac_size, $
           savefile_2d = savefile_2d_use, savefile_1d = savefile_1d_use, savefile_1to2d_bin = savefiles_bin_use, savefile_masked_2d = savefiles_mask_use, hinv = hinv, $
-          savefile_kpar_power = savefile_kpar_use, savefile_kperp_power = savefile_kperp_use, savefile_k0 = savefile_k0_use, $
+          savefile_kpar_power = savefile_kpar_use, savefile_kperp_power = savefile_kperp_use, savefile_k0 = savefile_k0_use, savefile_masked_k0 = savefile_k0_masked_use, $
           std_power = std_power, inverse_covar_weight = inverse_covar_weight, ave_removal = ave_removal, no_wtd_avg = no_wtd_avg, no_kzero = no_kzero, $
           uvf_input = uvf_input, uv_avg = uv_avg, uv_img_clip = uv_img_clip, sim=sim, $
           log_k1d = log_k1d, k1d_bin = k1d_bin, log_kpar = log_kpar, log_kperp = log_kperp, kpar_bin = kpar_bin, kperp_bin = kperp_bin, $

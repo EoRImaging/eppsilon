@@ -441,7 +441,7 @@ function fhd_file_setup, filename, weightfile = weightfile, variancefile = varia
       
       void = getvar_savefile(weightfile[pol_i, file_i], names = wt_varnames)
       void = getvar_savefile(variancefile[pol_i, file_i], names = var_varnames)
-      void = getvar_savefile(beamfile[pol_i, file_i], names = bm_varnames)
+      if n_elements(beamfile) gt 0 then void = getvar_savefile(beamfile[pol_i, file_i], names = bm_varnames)
       wh = where(strlowcase(wt_varnames) eq strlowcase(weight_varname[pol_i]), count)
       
       if count eq 0 then message, weight_varname[pol_i] + ' is not present in weightfile (weightfile=' + weightfile[pol_i, file_i] + ')'
@@ -500,17 +500,27 @@ function fhd_file_setup, filename, weightfile = weightfile, variancefile = varia
         if total(abs(var_dims - data_dims)) ne 0 then message, 'variance and data dimensions in files do not match'
       endelse
       
-      wh = where(strlowcase(bm_varnames) eq strlowcase(beam_varname[pol_i]), count)
-      if count eq 0 then message, beam_varname[pol_i] + ' is not present in beamfile (beamfile=' + beamfile[pol_i, file_i] + ')'
+      if n_elements(beamfile) gt 0 then begin
+        wh = where(strlowcase(bm_varnames) eq strlowcase(beam_varname[pol_i]), count)
+        if count eq 0 then begin
+          if beamfile[pol_i, file_i] ne datafile[pol_i, file_i] then begin
+            message, beam_varname[pol_i] + ' is not present in beamfile (beamfile=' + beamfile[pol_i, file_i] + ')'
+          endif else begin
+            undefine, beamfile
+          endelse
+        endif
+      endif
       
-      bm_size = getvar_savefile(beamfile[pol_i, file_i], beam_varname[pol_i], /return_size)
-      if bm_size[0] eq 0 then message, 'beam cube has no size'
-      if bm_size[n_elements(bm_size)-2] eq 10 then begin
-        ;; beam cube is a pointer
-        message, 'Beam is in a pointer array, format unknown'
-      endif else bm_dims = bm_size[1:bm_size[0]]
-      
-      if total(abs(bm_dims - data_dims)) ne 0 then print, 'Warning: Beam and data dimensions in files do not match'
+      if n_elements(beamfile) gt 0 then begin
+        bm_size = getvar_savefile(beamfile[pol_i, file_i], beam_varname[pol_i], /return_size)
+        if bm_size[0] eq 0 then message, 'beam cube has no size'
+        if bm_size[n_elements(bm_size)-2] eq 10 then begin
+          ;; beam cube is a pointer
+          message, 'Beam is in a pointer array, format unknown'
+        endif else bm_dims = bm_size[1:bm_size[0]]
+        
+        if total(abs(bm_dims - data_dims)) ne 0 then print, 'Warning: Beam and data dimensions in files do not match'
+      endif
       
       if j gt 0 then if (this_healpix eq 1 and healpix eq 0) or (this_healpix eq 0 and healpix eq 1) then $
         message, 'One datafile is in healpix and the other is not.'
@@ -618,13 +628,13 @@ function fhd_file_setup, filename, weightfile = weightfile, variancefile = varia
           beam_int_arr = fltarr([n_obs[pol_i, file_i], n_freq])
           if tag_exist(obs_arr,'primary_beam_sq_area') then begin
             for i=0, n_obs[pol_i, file_i]-1 do begin
-                if obs_arr[i].primary_beam_sq_area(pol_i) eq !Null then beam_int_arr[i, *] = 0 else $
-                  beam_int_arr[i, *] = *(obs_arr[i].primary_beam_sq_area(pol_i))
+              if obs_arr[i].primary_beam_sq_area(pol_i) eq !Null then beam_int_arr[i, *] = 0 else $
+                beam_int_arr[i, *] = *(obs_arr[i].primary_beam_sq_area(pol_i))
             endfor
           endif else begin
             for i=0, n_obs[pol_i, file_i]-1 do begin
-                if obs_arr[i].beam_integral(pol_i) eq !Null then beam_int_arr[i, *] = 0 else $
-                  beam_int_arr[i, *] = *(obs_arr[i].beam_integral(pol_i))
+              if obs_arr[i].beam_integral(pol_i) eq !Null then beam_int_arr[i, *] = 0 else $
+                beam_int_arr[i, *] = *(obs_arr[i].beam_integral(pol_i))
             endfor
           endelse
           if max(beam_int_arr) eq 0 then begin
@@ -731,12 +741,14 @@ function fhd_file_setup, filename, weightfile = weightfile, variancefile = varia
       frequencies = freq / 1e6 ;; in MHz
     endelse
     
-    metadata_struct = {datafile: datafile, weightfile: weightfile, variancefile:variancefile, beamfile:beamfile, $
-      cube_varname:cube_varname, weight_varname:weight_varname, variance_varname:variance_varname, beam_varname:beam_varname, $
+    metadata_struct = {datafile: datafile, weightfile: weightfile, variancefile:variancefile, $
+      cube_varname:cube_varname, weight_varname:weight_varname, variance_varname:variance_varname, $
       frequencies:frequencies, freq_resolution:freq_resolution, time_resolution:time_resolution, $
       n_vis:n_vis, n_vis_freq:n_vis_freq, max_baseline_lambda:max_baseline_lambda, max_theta:max_theta, degpix:degpix, kpix:kpix, kspan:kspan, $
       general_filebase:general_filebase, infile_label:infile_label, type_pol_str:type_pol_str, type_inc:type_inc, n_obs:n_obs, pol_inc:pol_inc, nfiles:nfiles}
       
+    if n_elements(beamfile) gt 0 then metadata_struct = create_struct(metadata_struct, 'beamfile', beamfile, 'beam_varname', beam_varname)
+    
     if healpix then metadata_struct = create_struct(metadata_struct, 'pixelfile', pixelfile, 'pixel_varname', pixel_varname, 'nside', nside)
     
     if no_var then metadata_struct = create_struct(metadata_struct, 'no_var', 1)
@@ -820,7 +832,7 @@ function fhd_file_setup, filename, weightfile = weightfile, variancefile = varia
   
   power_tag = kcube_tag
   if keyword_set(no_wtd_avg) then power_tag = power_tag + '_nowtavg'
-    
+  
   wt_file_label = '_weights_' + strlowcase(metadata_struct.pol_inc)
   file_label = strarr(npol, ntypes)
   for i=0, npol-1 do file_label[i,*] = '_' + strlowcase(metadata_struct.type_inc) + '_' + strlowcase(metadata_struct.pol_inc[i])
@@ -885,7 +897,9 @@ function fhd_file_setup, filename, weightfile = weightfile, variancefile = varia
   vf_diff_savefile = froot + savefilebase + '_diff_vf_plane.idlsave'
   uv_diff_savefile = froot + savefilebase + '_diff_uv_plane.idlsave'
   
-  beam_savefile = uvf_froot + uvf_savefilebase + '_beam2.idlsave'
+  if tag_exist(metadata_struct, 'beamfile') then begin
+    beam_savefile = uvf_froot + uvf_savefilebase + '_beam2.idlsave'
+  endif
   
   kcube_savefile = froot + savefilebase + kcube_tag + '_kcube.idlsave'
   power_savefile = froot + savefilebase + power_tag + '_power.idlsave'
@@ -950,16 +964,16 @@ function fhd_file_setup, filename, weightfile = weightfile, variancefile = varia
           derived_uvf_inputfiles = strarr(nfiles,2)
           derived_uvf_varname = strarr(nfiles,2)
           for j=0, nfiles-1 do begin
-            derived_uvf_inputfiles[j,*] = datafile[pol_i, j]
+            derived_uvf_inputfiles[j,*] = metadata_struct.datafile[pol_i, j]
             derived_uvf_varname[j,*] = [metadata_struct.cube_varname[0, pol_i], metadata_struct.cube_varname[1, pol_i]]
           endfor
         endelse
       endelse
       
       file_struct = {datafile:reform(metadata_struct.datafile[pol_i,*]), weightfile:reform(metadata_struct.weightfile[pol_i,*]), $
-        variancefile:reform(metadata_struct.variancefile[pol_i,*]), beamfile:reform(metadata_struct.beamfile[pol_i,*]), $
+        variancefile:reform(metadata_struct.variancefile[pol_i,*]), $
         datavar:data_varname, weightvar:metadata_struct.weight_varname[pol_i], $
-        variancevar:metadata_struct.variance_varname[pol_i], beamvar:metadata_struct.beam_varname[pol_i], $
+        variancevar:metadata_struct.variance_varname[pol_i], $
         frequencies:metadata_struct.frequencies, freq_resolution:metadata_struct.freq_resolution, time_resolution:metadata_struct.time_resolution, $
         n_obs:reform(metadata_struct.n_obs[pol_i,*]), n_vis:reform(metadata_struct.n_vis[pol_i,*]), n_vis_freq:reform(metadata_struct.n_vis_freq[pol_i,*,*]), $
         max_baseline_lambda:metadata_struct.max_baseline_lambda, max_theta:metadata_struct.max_theta, $
@@ -972,7 +986,6 @@ function fhd_file_setup, filename, weightfile = weightfile, variancefile = varia
         vf_diff_savefile:vf_diff_savefile[pol_i,type_i], uv_diff_savefile:uv_diff_savefile[pol_i,type_i], $
         uf_weight_savefile:reform(uf_weight_savefile[pol_i, *]), vf_weight_savefile:reform(vf_weight_savefile[pol_i, *]), $
         uv_weight_savefile:reform(uv_weight_savefile[pol_i, *]), $
-        beam_savefile:reform(beam_savefile[pol_i, *]), $
         kcube_savefile:kcube_savefile[pol_i,type_i], power_savefile:power_savefile[pol_i,type_i], fits_power_savefile:fits_power_savefile[pol_i,type_i],$
         savefile_froot:froot, savefilebase:savefilebase[pol_i,type_i], general_filebase:general_filebase, $
         weight_savefilebase:reform(weight_savefilebase[pol_i, *]), $
@@ -981,6 +994,11 @@ function fhd_file_setup, filename, weightfile = weightfile, variancefile = varia
         uvf_tag:uvf_tag, kcube_tag:kcube_tag, power_tag:power_tag, type_pol_str:metadata_struct.type_pol_str[pol_i,type_i], $
         pol_index:pol_i, type_index:type_i, pol:metadata_struct.pol_inc[pol_i], type:metadata_struct.type_inc[type_i], nfiles:nfiles}
         
+      if tag_exist(metadata_struct, 'beamfile') then begin
+        file_struct = create_struct(file_struct, 'beamfile', reform(metadata_struct.beamfile[pol_i,*]), $
+          'beamvar', metadata_struct.beam_varname[pol_i], 'beam_savefile', reform(beam_savefile[pol_i, *]))
+      endif
+      
       if healpix or not keyword_set(uvf_input) then begin
         file_struct = create_struct(file_struct, 'radec_file', radec_file)
         
