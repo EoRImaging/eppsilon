@@ -297,7 +297,7 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
 
     endif
 
-    if uvf_options.uv_avg then begin
+    if tag_exist(uvf_options, 'uv_avg') then begin
       nkx_new = floor(n_kx / uvf_options.uv_avg)
       temp = complex(fltarr(nkx_new, n_ky, n_freq))
       if nfiles eq 2 then temp2 = complex(fltarr(nkx_new, n_ky, n_freq))
@@ -339,7 +339,7 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
       n_ky = nky_new
     endif
 
-    if uvf_options.uv_img_clip then begin
+    if tag_exist(uvf_options, 'uv_img_clip') then begin
       kx_mpc_delta_old = kx_mpc_delta
       ky_mpc_delta_old = ky_mpc_delta
       temp = shift(fft(fft(shift(weights_cube1,dims2[0]/2,dims2[1]/2,0), $
@@ -528,7 +528,7 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
         message, 'variance cube is entirely zero.'
       endif
 
-      if uvf_options.uv_avg then begin
+      if tag_exist(uvf_options, 'uv_avg') then begin
         temp = complex(fltarr(nkx_new, dims2[1], n_freq))
         if nfiles eq 2 then temp2 = complex(fltarr(nkx_new, dims2[1], n_freq))
         for i=0, nkx_new-1 do begin
@@ -553,7 +553,7 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
         endif
       endif
 
-      if uvf_options.uv_img_clip then begin
+      if tag_exist(uvf_options, 'uv_img_clip') then begin
         temp = shift(fft(fft(shift(variance_cube1,dims2[0]/2,dims2[1]/2,0), dimension=1), dimension=2),dims2[0]/2,dims2[1]/2,0)
         temp = temp[(dims2[0]/2)-(dims2[0]/uvf_options.uv_img_clip)/2:(dims2[0]/2)+(dims2[0]/uvf_options.uv_img_clip)/2-1, *, *]
         temp = temp[*, (dims2[1]/2)-(dims2[1]/uvf_options.uv_img_clip)/2:(dims2[1]/2)+(dims2[1]/uvf_options.uv_img_clip)/2-1, *]
