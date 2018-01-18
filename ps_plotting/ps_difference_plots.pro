@@ -42,7 +42,7 @@ pro ps_difference_plots, folder_names, obs_info, ps_foldernames = ps_foldernames
             savefiles_1d = compare_files.savefiles_1d[cube_i,*], $
             wedge_amp = compare_files.wedge_amp, $
             wt_cutoffs = ps_options.wt_cutoffs, $
-            wt_measures = ps_options.wt_measures
+            wt_measures = ps_options.wt_measures, plot_options = plot_options
 
         endelse
       endif
