@@ -1361,7 +1361,7 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
   if even_freq then begin
     ;; evenly spaced, just use fft
     ;; old ft convention
-    print, "Using FFT for evenly spaced frequncies"
+    print, "Using FFT for evenly spaced frequencies"
     ; data_sum_ft = fft(data_sum, dimension=3) * n_freq * z_mpc_delta / (2.*!pi)
     data_sum_ft = fft(data_sum, dimension=3) * n_freq * z_mpc_delta
     sim_noise_sum_ft = fft(sim_noise_sum, dimension=3) * n_freq * z_mpc_delta
