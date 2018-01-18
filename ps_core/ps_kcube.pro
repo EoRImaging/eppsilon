@@ -811,15 +811,23 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
       temp = complex(fltarr(nkx_new, dims2[1], n_freq))
       if nfiles eq 2 then temp2 = complex(fltarr(nkx_new, dims2[1], n_freq))
       for i=0, nkx_new-1 do begin
-        temp[i,*,*] = total(data_cube1[i*uv_avg:(i+1)*uv_avg-1,*,*], 1) / uv_avg
-        if nfiles eq 2 then temp2[i,*,*] = total(data_cube2[i*uv_avg:(i+1)*uv_avg-1,*,*], 1) / uv_avg
+        temp[i, *, *] = total(data_cube1[i * uvf_options.uv_avg:(i+1) * uvf_options.uv_avg-1, *, *], 1) / $
+          uvf_options.uv_avg
+        if nfiles eq 2 then begin
+          temp2[i, *, *] = total(data_cube2[i * uvf_options.uv_avg:(i+1) * uvf_options.uv_avg-1, *, *], 1) / $
+            uvf_options.uv_avg
+        endif
       endfor
 
       temp3 = complex(fltarr(nkx_new, nky_new, n_freq))
       if nfiles eq 2 then temp4 = complex(fltarr(nkx_new, nky_new, n_freq))
       for i=0, nky_new-1 do begin
-        temp3[*,i,*] = total(temp[*,i*uv_avg:(i+1)*uv_avg-1,*], 2) / uv_avg
-        if nfiles eq 2 then temp4[*,i,*] = total(temp2[*,i*uv_avg:(i+1)*uv_avg-1,*], 2) / uv_avg
+        temp3[*,i,*] = total(temp[*,i*uvf_options.uv_avg:(i+1)*uvf_options.uv_avg-1,*], 2) / $
+          uvf_options.uv_avg
+        if nfiles eq 2 then begin
+          temp4[*,i,*] = total(temp2[*,i*uvf_options.uv_avg:(i+1)*uvf_options.uv_avg-1,*], 2) / $
+            uvf_options.uv_avg
+        endif
       endfor
       undefine, temp, temp2
 
@@ -831,15 +839,23 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
     endif
 
     if tag_exist(uvf_options, 'uv_img_clip') then begin
-      temp = shift(fft(fft(shift(data_cube1,dims2[0]/2,dims2[1]/2,0), dimension=1), dimension=2),dims2[0]/2,dims2[1]/2,0)
-      temp = temp[(dims2[0]/2)-(dims2[0]/uv_img_clip)/2:(dims2[0]/2)+(dims2[0]/uv_img_clip)/2-1, *, *]
-      temp = temp[*, (dims2[1]/2)-(dims2[1]/uv_img_clip)/2:(dims2[1]/2)+(dims2[1]/uv_img_clip)/2-1, *]
-      temp = shift(fft(fft(shift(temp,n_kx/2,n_ky/2,0), dimension=1, /inverse), dimension=2, /inverse),n_kx/2,n_ky/2,0)
+      temp = shift(fft(fft(shift(data_cube1,dims2[0]/2,dims2[1]/2,0), dimension=1), $
+        dimension=2), dims2[0]/2, dims2[1]/2,0)
+      temp = temp[(dims2[0]/2)-(dims2[0]/uvf_options.uv_img_clip)/2:(dims2[0]/2) + $
+        (dims2[0]/uvf_options.uv_img_clip)/2-1, *, *]
+      temp = temp[*, (dims2[1]/2)-(dims2[1]/uvf_options.uv_img_clip)/2:(dims2[1]/2) + $
+        (dims2[1]/uvf_options.uv_img_clip)/2-1, *]
+      temp = shift(fft(fft(shift(temp,n_kx/2,n_ky/2,0), dimension=1, /inverse), $
+        dimension=2, /inverse),n_kx/2,n_ky/2,0)
       if nfiles eq 2 then begin
-        temp2 = shift(fft(fft(shift(data_cube2,dims2[0]/2,dims2[1]/2,0), dimension=1), dimension=2),dims2[0]/2,dims2[1]/2,0)
-        temp2 = temp2[(dims2[0]/2)-(dims2[0]/uv_img_clip)/2:(dims2[0]/2)+(dims2[0]/uv_img_clip)/2-1, *, *]
-        temp2 = temp2[*, (dims2[1]/2)-(dims2[1]/uv_img_clip)/2:(dims2[1]/2)+(dims2[1]/uv_img_clip)/2-1, *]
-        temp2 = shift(fft(fft(shift(temp2,n_kx/2,n_ky/2,0), dimension=1, /inverse), dimension=2, /inverse),n_kx/2,n_ky/2,0)
+        temp2 = shift(fft(fft(shift(data_cube2,dims2[0]/2,dims2[1]/2,0), dimension=1), $
+          dimension=2),dims2[0]/2,dims2[1]/2,0)
+        temp2 = temp2[(dims2[0]/2)-(dims2[0]/uvf_options.uv_img_clip)/2:(dims2[0]/2) + $
+          (dims2[0]/uvf_options.uv_img_clip)/2-1, *, *]
+        temp2 = temp2[*, (dims2[1]/2)-(dims2[1]/uvf_options.uv_img_clip)/2:(dims2[1]/2) + $
+          (dims2[1]/uvf_options.uv_img_clip)/2-1, *]
+        temp2 = shift(fft(fft(shift(temp2,n_kx/2,n_ky/2,0), dimension=1, /inverse), $
+          dimension=2, /inverse),n_kx/2,n_ky/2,0)
       endif
 
       data_cube1 = temp
