@@ -51,7 +51,10 @@ pro make_2d_files, nfiles, savefile_2d, savefile_k0, power_3D, sim_noise_3D, new
   noise_expval = binned_noise_expval
   
   wh_good_kperp = where(total(weights, 2) gt 0, count)
-  if count eq 0 then message, '2d weights appear to be entirely zero'
+  if count eq 0 then begin
+    print, '2d weights appear to be entirely zero'
+    return
+  endif
   
   if n_elements(masked_save_items) then begin
   
