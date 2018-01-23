@@ -381,7 +381,10 @@ pro kpower_1d_plots, power_savefile, multi_pos = multi_pos, start_multi_params =
     endif
     
     wh_zero = where(power eq 0d, count_zero, complement = wh_non0, ncomplement = count_non0)
-    if count_non0 eq 0 then message, 'No non-zero power'
+    if count_non0 eq 0 then begin
+      print, 'No non-zero power'
+      return
+    endif
     if count_zero gt 0 then begin
       ;; only want to drop 0 bins at the edges.
       wh_keep = indgen(max(wh_non0) - min(wh_non0) + 1) + min(wh_non0)
