@@ -590,18 +590,19 @@ pro compare_plot_prep, folder_names, obs_info, ps_foldernames = ps_foldernames, 
 
       if plot_options.pub then begin
         if keyword_set(plot_slices) then begin
-          plotfiles_2d[slice_i] = plot_options.plot_path + plot_filebase + '_power_' + $
-            slice_tags[slice_i] + '_plane' + plot_exten
+          plotfiles_2d[slice_i] = plot_options.plot_path + plot_filebase + $
+            '_power_' + slice_tags[slice_i] + '_plane' + plot_options.plot_exten
         endif else begin
 
-          plotfiles_2d[slice_i] = plot_options.plot_path + plot_filebase + '_2dkpower' + plot_exten
+          plotfiles_2d[slice_i] = plot_options.plot_path + plot_filebase + $
+            '_2dkpower' + plot_options.plot_exten
 
           if comp_type eq 'diff' and cube_i eq 0 then begin
             plotfiles_1d = plot_options.plot_path + plot_filebase + ['', wedge_1dbin_names] + $
-              '_1dkpower' + plot_exten
+              '_1dkpower' + plot_options.plot_exten
           endif
         endelse
-      endif else plot_exten = ''
+      endif
 
       kperp_lambda_conv = getvar_savefile(input_savefile1[slice_i, cube_i], 'kperp_lambda_conv')
       hubble_param = getvar_savefile(input_savefile1[slice_i, cube_i], 'hubble_param')
