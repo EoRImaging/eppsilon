@@ -39,14 +39,32 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
   time1 = systime(1)
   print, 'file setup time: ' + number_formatter(time1-time0)
 
+  ;; make sure save paths exist
+  save_paths = file_struct_arr(0).savefile_froot + file_struct_arr(0).subfolders.data + $
+    ['', file_struct_arr(0).subfolders.uvf + ['', file_struct_arr(0).subfolders.slices], $
+     file_struct_arr(0).subfolders.kspace + ['', file_struct_arr(0).subfolders.slices], $
+     file_struct_arr(0).subfolders.beams, $
+     file_struct_arr(0).subfolders.bin_2d + ['', 'from_1d/'], $
+     file_struct_arr(0).subfolders.bin_1d]
+  for i = 0, n_elements(save_paths) - 1 do begin
+    if not file_test(save_paths[i], /directory) then file_mkdir, save_paths[i]
+  endfor
+
   if plot_options.pub then begin
     if tag_exist(plot_options, 'plot_path') ne 0 then begin
       plotfile_path = plot_options.plot_path
-    endif else if n_elements(save_path) ne 0 then begin
-      plotfile_path = save_path
     endif else begin
-      plotfile_path = file_struct_arr.savefile_froot
+      plotfile_path = file_struct_arr(0).savefile_froot + file_struct_arr(0).subfolders.plots
     endelse
+
+    ;; make sure plot paths exist
+    plot_paths = file_struct_arr(0).savefile_froot + file_struct_arr(0).subfolders.plots + $
+      ['', file_struct_arr(0).subfolders.slices, $
+       file_struct_arr(0).subfolders.bin_2d + ['', 'from_1d/'], $
+       file_struct_arr(0).subfolders.bin_1d + ['', 'bin_histograms/']]
+    for i = 0, n_elements(plot_paths) - 1 do begin
+      if not file_test(plot_paths[i], /directory) then file_mkdir, plot_paths[i]
+    endfor
   endif
 
   if not tag_exist(file_struct_arr, 'beam_int') and refresh_options.refresh_ps then begin
@@ -370,26 +388,30 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
   endfor
 
   savefiles_2d = strarr(n_cubes, n_elements(kperp_density_names))
+  bin_2d_path = file_struct_arr.savefile_froot + file_struct_arr(0).subfolders.data + $
+    file_struct_arr(0).subfolders.bin_2d
   for j=0, n_elements(kperp_density_names)-1 do begin
-    savefiles_2d[*,j] = file_struct_arr.savefile_froot + file_struct_arr.savefilebase + $
+    savefiles_2d[*,j] = bin_2d_path + file_struct_arr.savefilebase + $
       power_tag + fadd_2dbin + kperp_density_names[j] + '_2dkpower.idlsave'
   endfor
   test_save_2d = file_valid(savefiles_2d)
 
   savefiles_1d = strarr(n_cubes, n_elements(kperp_density_names), n_elements(wedge_1dbin_names))
+  bin_1d_path = file_struct_arr.savefile_froot + file_struct_arr(0).subfolders.data + $
+    file_struct_arr(0).subfolders.bin_1d
   savefiles_1to2d_bin = strarr(n_cubes, n_elements(kperp_density_names), $
     n_elements(wedge_1dbin_names))
   savefiles_2d_masked = strarr(n_cubes, n_elements(kperp_density_names), $
     n_elements(wedge_1dbin_names))
   for i=0, n_elements(wedge_1dbin_names)-1 do begin
     for j=0, n_elements(kperp_density_names)-1 do begin
-      savefiles_1d[*,j,i] = file_struct_arr.savefile_froot + file_struct_arr.savefilebase + $
+      savefiles_1d[*,j,i] = bin_1d_path + file_struct_arr.savefilebase + $
         power_tag + kperp_density_names[j] + wedge_1dbin_names[i] + fadd_1dbin + $
         '_1dkpower.idlsave'
-      savefiles_1to2d_bin[*,j,i] = file_struct_arr.savefile_froot + $
+      savefiles_1to2d_bin[*,j,i] = bin_2d_path + 'from_1d/' + $
         file_struct_arr.savefilebase + power_tag + fadd_2dbin + kperp_density_names[j] + $
         wedge_1dbin_names[i] + fadd_1dbin + '_1to2d_bin.idlsave'
-      savefiles_2d_masked[*,j, i] = file_struct_arr.savefile_froot + $
+      savefiles_2d_masked[*,j, i] = bin_2d_path + 'from_1d/' + $
         file_struct_arr.savefilebase + power_tag + fadd_2dbin + kperp_density_names[j] + $
         wedge_1dbin_names[i] + fadd_1dmask + '_2dkpower_1dmask.idlsave'
     endfor
@@ -400,14 +422,14 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
 
   savefiles_kpar_1d = strarr(n_cubes, n_elements(kperp_density_names))
   for j=0, n_elements(kperp_density_names)-1 do begin
-    savefiles_kpar_1d[*,j] = file_struct_arr.savefile_froot + file_struct_arr.savefilebase + $
+    savefiles_kpar_1d[*,j] = bin_1d_path + file_struct_arr.savefilebase + $
       power_tag + kperp_density_names[j] + fadd_kpar_1d + '_kpar_power.idlsave'
   endfor
   if plot_types.plot_kpar_power then test_save_kpar = file_valid(savefiles_kpar_1d)
 
   savefiles_kperp_1d = strarr(n_cubes, n_elements(kperp_density_names))
   for j=0, n_elements(kperp_density_names)-1 do begin
-    savefiles_kperp_1d[*,j] = file_struct_arr.savefile_froot + file_struct_arr.savefilebase + $
+    savefiles_kperp_1d[*,j] = bin_1d_path + file_struct_arr.savefilebase + $
       power_tag + kperp_density_names[j] + fadd_kperp_1d + '_kperp_power.idlsave'
   endfor
   if plot_types.plot_kperp_power then test_save_kperp = file_valid(savefiles_kperp_1d)
@@ -416,10 +438,10 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
   savefiles_k0_masked = strarr(n_cubes, n_elements(kperp_density_names), $
     n_elements(wedge_1dbin_names))
   for j=0, n_elements(kperp_density_names)-1 do begin
-    savefiles_k0[*,j] = file_struct_arr.savefile_froot + file_struct_arr.savefilebase + $
+    savefiles_k0[*,j] = bin_1d_path + file_struct_arr.savefilebase + $
       power_tag + fadd_2dbin + kperp_density_names[j]+ '_k0power.idlsave'
     for i=0, n_elements(wedge_1dbin_names)-1 do begin
-      savefiles_k0_masked[*,j,i] = file_struct_arr.savefile_froot + $
+      savefiles_k0_masked[*,j,i] = bin_1d_path + $
         file_struct_arr.savefilebase + power_tag + fadd_2dbin + kperp_density_names[j] + $
         wedge_1dbin_names[i] + fadd_1dmask + '_k0power_1dmask.idlsave'
     endfor
@@ -457,13 +479,14 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
   endif
 
   if plot_types.plot_binning_hist and plot_options.pub eq 1 then begin
+    bin_hist_plot_path = plotfile_path + file_struct_arr(0).subfolders.bin_1d + 'bin_histograms/'
     if not tag_exist(plot_options, 'plot_filebase') then begin
       plotfile_binning_hist = strarr(n_cubes, n_elements(kperp_density_names), $
         n_elements(wedge_1dbin_names))
 
       for i=0, n_elements(wedge_1dbin_names)-1 do begin
         for j=0, n_elements(kperp_density_names)-1 do begin
-          plotfile_binning_hist[*,j,i] = plotfile_path + file_struct_arr.savefilebase + $
+          plotfile_binning_hist[*,j,i] = bin_hist_plot_path + file_struct_arr.savefilebase + $
             power_tag + kperp_density_names[j] + wedge_1dbin_names[i] + fadd_1dbin
         endfor
       endfor
@@ -473,7 +496,7 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
 
       for i=0, n_elements(wedge_1dbin_names)-1 do begin
         for j=0, n_elements(kperp_density_names)-1 do begin
-          plotfile_binning_hist[*,j,i] = plotfile_path + plot_options.plot_filebase + $
+          plotfile_binning_hist[*,j,i] = bin_hist_plot_path + plot_options.plot_filebase + $
             uvf_tag + file_struct_arr.file_label + power_tag + kperp_density_names[j] + $
             wedge_1dbin_names[i] + fadd_1dbin
         endfor
@@ -845,15 +868,6 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
   endif
 
   if plot_options.pub then begin
-    if tag_exist(plot_options, 'plot_path') ne 0 then begin
-      plotfile_path = plot_options.plot_path
-    endif else begin
-      if n_elements(save_path) ne 0 then begin
-        plotfile_path = save_path
-      endif else begin
-        plotfile_path = file_struct_arr.savefile_froot
-      endelse
-    endelse
     plot_fadd = ''
     if plot_2d_options.kperp_linear_axis and plot_2d_options.kpar_linear_axis then begin
       plot_fadd = plot_fadd + '_linaxes'
@@ -864,83 +878,79 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
 
     if plot_options.individual_plots then begin
       if not tag_exist(plot_options, 'plot_filebase') then begin
-        plotfile_base = plotfile_path + file_struct_arr.savefilebase + power_tag
-        plotfile_base_wt = plotfile_path + general_filebase + '_' + $
+        plotfile_base = file_struct_arr.savefilebase + power_tag
+        plotfile_base_wt = general_filebase + '_' + $
           file_struct_arr[uniq(weight_ind, sort(weight_ind))].pol + power_tag
       endif else begin
-        plotfile_base = plotfile_path + plot_options.plot_filebase + uvf_tag + $
+        plotfile_base = plot_options.plot_filebase + uvf_tag + $
           file_struct_arr.file_label + power_tag
-        plotfile_base_wt = plotfile_path + plot_options.plot_filebase + uvf_tag + $
+        plotfile_base_wt = plot_options.plot_filebase + uvf_tag + $
           '_' + file_struct_arr[uniq(weight_ind, sort(weight_ind))].pol + power_tag
       endelse
     endif else begin
       if not tag_exist(plot_options, 'plot_filebase') then begin
-        plotfile_base = plotfile_path + general_filebase + power_tag
+        plotfile_base = general_filebase + power_tag
       endif else begin
-        plotfile_base = plotfile_path + plot_options.plot_filebase + uvf_tag + power_tag
+        plotfile_base = plot_options.plot_filebase + uvf_tag + power_tag
       endelse
       plotfile_base_wt = plotfile_base
     endelse
 
-    plotfiles_2d = strarr(n_elements(plotfile_base), n_elements(kperp_density_names))
-    plotfiles_2d_error = strarr(n_elements(plotfile_base_wt), n_elements(kperp_density_names))
-    plotfiles_2d_noise_expval = strarr(n_elements(plotfile_base_wt), n_elements(kperp_density_names))
-    plotfiles_2d_noise = strarr(n_elements(plotfile_base), n_elements(kperp_density_names))
-    plotfiles_2d_sim_noise = strarr(n_elements(plotfile_base), n_elements(kperp_density_names))
-    plotfiles_2d_sim_noise_diff = strarr(n_elements(plotfile_base), n_elements(kperp_density_names))
-    plotfiles_2d_snr = strarr(n_elements(plotfile_base), n_elements(kperp_density_names))
-    plotfiles_2d_nnr = strarr(n_elements(plotfile_base), n_elements(kperp_density_names))
-    plotfiles_2d_sim_snr = strarr(n_elements(plotfile_base), n_elements(kperp_density_names))
-    plotfiles_2d_sim_nnr = strarr(n_elements(plotfile_base), n_elements(kperp_density_names))
+    plotfile_path_2d = plotfile_path + file_struct_arr(0).subfolders.bin_2d
+    plotfiles_shape = [n_elements(plotfile_base), n_elements(kperp_density_names)]
+    plotfiles_err_shape = [n_elements(plotfile_base_wt), n_elements(kperp_density_names)]
+    plotfiles_2d = strarr(plotfiles_shape)
+    plotfiles_2d_error = strarr(plotfiles_err_shape)
+    plotfiles_2d_noise_expval = strarr(plotfiles_err_shape)
+    plotfiles_2d_noise = strarr(plotfiles_shape)
+    plotfiles_2d_sim_noise = strarr(plotfiles_shape)
+    plotfiles_2d_sim_noise_diff = strarr(plotfiles_shape)
+    plotfiles_2d_snr = strarr(plotfiles_shape)
+    plotfiles_2d_nnr = strarr(plotfiles_shape)
+    plotfiles_2d_sim_snr = strarr(plotfiles_shape)
+    plotfiles_2d_sim_nnr = strarr(plotfiles_shape)
     for j=0, n_elements(kperp_density_names)-1 do begin
       this_fadd = fadd_2dbin + kperp_density_names[j]
+      this_begin = plotfile_path_2d + plotfile_base + this_fadd
+      this_end = plot_fadd + plot_options.plot_exten
 
-      plotfiles_2d[*,j] = plotfile_base + this_fadd + '_2dkpower' + plot_fadd + $
-        plot_options.plot_exten
-      plotfiles_2d_error[*,j] = plotfile_base_wt + this_fadd + '_2derror' + $
-        plot_fadd + plot_options.plot_exten
+      plotfiles_2d[*,j] = this_begin + '_2dkpower' +  this_end
+      plotfiles_2d_error[*,j] = this_begin + '_2derror' + this_end
       if plot_options.individual_plots then begin
-        plotfiles_2d_noise_expval[*,j] = plotfile_base_wt + this_fadd + $
-          '_2dnoise_expval' + plot_fadd + plot_options.plot_exten
+        plotfiles_2d_noise_expval[*,j] = plotfile_path_2d + plotfile_base_wt + $
+          this_fadd + '_2dnoise_expval' + this_end
       endif
-      plotfiles_2d_noise[*,j] = plotfile_base + this_fadd + '_2dnoise' + $
-        plot_fadd + plot_options.plot_exten
-      plotfiles_2d_sim_noise[*,j] = plotfile_base + this_fadd + '_2dsimnoise' + $
-        plot_fadd + plot_options.plot_exten
-      plotfiles_2d_sim_noise_diff[*,j] = plotfile_base + this_fadd + '_2dsimnoisediff' + $
-        plot_fadd + plot_options.plot_exten
+      plotfiles_2d_noise[*,j] = this_begin + '_2dnoise' + this_end
+      plotfiles_2d_sim_noise[*,j] = this_begin + '_2dsimnoise' + this_end
+      plotfiles_2d_sim_noise_diff[*,j] = this_begin + '_2dsimnoisediff' + this_end
 
-      plotfiles_2d_snr[*,j] = plotfile_base + this_fadd + '_2dsnr' + plot_fadd + $
-        plot_options.plot_exten
+      plotfiles_2d_snr[*,j] = this_begin + '_2dsnr' + this_end
 
-      plotfiles_2d_nnr[*,j] = plotfile_base + this_fadd + '_2dnnr' + plot_fadd + $
-        plot_options.plot_exten
-      plotfiles_2d_sim_snr[*,j] = plotfile_base + this_fadd + '_2dsimsnr' + $
-        plot_fadd + plot_options.plot_exten
-      plotfiles_2d_sim_nnr[*,j] = plotfile_base + this_fadd + '_2dsimnnr' + $
-        plot_fadd + plot_options.plot_exten
+      plotfiles_2d_nnr[*,j] = this_begin + '_2dnnr' + this_end
+      plotfiles_2d_sim_snr[*,j] = this_begin + '_2dsimsnr' + this_end
+      plotfiles_2d_sim_nnr[*,j] = this_begin + '_2dsimnnr' + this_end
     endfor
 
-    if not tag_exist(plot_options, 'plot_filebase') then begin
-      plotfile_1d_base = plotfile_path + general_filebase
-    endif else begin
-      plotfile_1d_base = plotfile_path + plot_options.plot_filebase + uvf_tag
-    endelse
-    plotfile_1d = plotfile_1d_base + power_tag + wedge_1dbin_names + fadd_1dbin + $
-      '_1dkpower' + plot_options.plot_exten
-    plotfile_1d_noise = plotfile_1d_base + power_tag + wedge_1dbin_names + $
-      fadd_1dbin + '_1dnoise' + plot_options.plot_exten
-    plotfile_1d_sim_noise_diff = plotfile_1d_base + power_tag + wedge_1dbin_names + $
-      fadd_1dbin + '_1dsimnoisediff' + plot_options.plot_exten
-    plotfile_1d_sim_noise = plotfile_1d_base + power_tag + wedge_1dbin_names + $
-      fadd_1dbin + '_1dsimnoise' + plot_options.plot_exten
-    plotfile_kpar_power = plotfile_1d_base + power_tag + fadd_kpar_1d + $
-      '_kpar_power' + plot_options.plot_exten
-    plotfile_kperp_power = plotfile_1d_base + power_tag + fadd_kperp_1d + $
-      '_kperp_power' + plot_options.plot_exten
-    plotfile_k0_power = plotfile_1d_base + power_tag + fadd_2dbin + $
-      '_k0power' + plot_options.plot_exten
 
+    if not tag_exist(plot_options, 'plot_filebase') then begin
+      plotfile_1d_base = general_filebase
+    endif else begin
+      plotfile_1d_base = plot_options.plot_filebase + uvf_tag
+    endelse
+    plotfile_path_1d = plotfile_path + file_struct_arr(0).subfolders.bin_1d
+    begin_1d = plotfile_path_1d + plotfile_1d_base + power_tag + wedge_1dbin_names + fadd_1dbin
+    plotfile_1d = begin_1d + '_1dkpower' + plot_options.plot_exten
+    plotfile_1d_noise = begin_1d + '_1dnoise' + plot_options.plot_exten
+    plotfile_1d_sim_noise_diff = begin_1d + '_1dsimnoisediff' + plot_options.plot_exten
+    plotfile_1d_sim_noise = begin_1d + '_1dsimnoise' + plot_options.plot_exten
+
+    begin_1d_axis = plotfile_path_1d + plotfile_1d_base + power_tag
+    plotfile_kpar_power = begin_1d_axis + fadd_kpar_1d + '_kpar_power' + $
+      plot_options.plot_exten
+    plotfile_kperp_power = begin_1d_axis + fadd_kperp_1d + '_kperp_power' + $
+      plot_options.plot_exten
+    plotfile_k0_power = begin_1d_axis + fadd_2dbin + '_k0power' + $
+      plot_options.plot_exten
   endif
 
   if plot_types.plot_1to2d then begin
@@ -956,14 +966,12 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
     if count_type_pol eq 0 then wh_2d_use = 0
 
     if plot_options.pub then begin
-      plotfile_1to2d_heatmap = plotfile_base + fadd_2dbin + fadd_1dbin + '_' + $
-      type_1to2d_use + '_' + pol_1to2d_use + '_1dheatmap' + plot_options.plot_exten
-      plotfile_1to2d_contours = plotfile_base + fadd_2dbin + fadd_1dbin + '_' + $
-      type_1to2d_use + '_' + pol_1to2d_use + '_1dcontours' + plot_options.plot_exten
-      plotfile_1to2d_noisefrac = plotfile_base + fadd_2dbin + fadd_1dbin + '_' + $
-      type_1to2d_use + '_' + pol_1to2d_use + '_1dnoisefrac' + plot_options.plot_exten
-      plotfile_1to2d_contour_zoom = plotfile_base + fadd_2dbin + fadd_1dbin + '_' + $
-      type_1to2d_use + '_' + pol_1to2d_use + '_1dcontour_zoom' + plot_options.plot_exten
+      begin_1to2d = plotfile_path_2d + 'from_1d/' + plotfile_base + fadd_2dbin + $
+        fadd_1dbin + '_' + type_1to2d_use + '_' + pol_1to2d_use
+      plotfile_1to2d_heatmap =  begin_1to2d + '_1dheatmap' + plot_options.plot_exten
+      plotfile_1to2d_contours = begin_1to2d + '_1dcontours' + plot_options.plot_exten
+      plotfile_1to2d_noisefrac = begin_1to2d + '_1dnoisefrac' + plot_options.plot_exten
+      plotfile_1to2d_contour_zoom = begin_1to2d + '_1dcontour_zoom' + plot_options.plot_exten
     endif
   endif
 
@@ -971,6 +979,7 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
 
     masked_plotfiles_shape = [n_elements(plotfile_base), $
       n_elements(kperp_density_names), n_elements(wedge_1dbin_names)]
+
     plotfiles_2d_masked = strarr(masked_plotfiles_shape)
     plotfiles_2d_error_masked = strarr(masked_plotfiles_shape)
     plotfiles_2d_noise_expval_masked = strarr(masked_plotfiles_shape)
@@ -985,32 +994,26 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
       for j=0, n_elements(kperp_density_names)-1 do begin
         this_fadd = fadd_2dbin + kperp_density_names[j] + wedge_1dbin_names[i] + $
           fadd_1dmask
+        this_begin = plotfile_path_2d + 'from_1d/' + plotfile_base + this_fadd
+        this_end = plot_fadd + plot_options.plot_exten
 
-        plotfiles_2d_masked[*,j,i] = plotfile_base + this_fadd + '_2dkpower' + $
-          plot_fadd + plot_options.plot_exten
-        plotfiles_2d_error_masked[*,j,i] = plotfile_base_wt + this_fadd + $
-          wedge_1dbin_names[i] + fadd_1dmask +  '_2derror' + plot_fadd + $
+        plotfiles_2d_masked[*,j,i] = this_begin + '_2dkpower' + this_end
+        plotfiles_2d_error_masked[*,j,i] = this_begin +  '_2derror' + plot_fadd + $
           plot_options.plot_exten
         if plot_options.individual_plots then begin
-          plotfiles_2d_noise_expval_masked[*,j,i] = plotfile_base_wt + this_fadd + $
-            '_2dnoise_expval' + plot_fadd + plot_options.plot_exten
+          plotfiles_2d_noise_expval_masked[*,j,i] = plotfile_path_2d + 'from_1d/' + $
+            plotfile_base_wt + this_fadd + '_2dnoise_expval' + this_end
         endif
-        plotfiles_2d_noise_masked[*,j,i] = plotfile_base + this_fadd + '_2dnoise' + $
-          plot_fadd + plot_options.plot_exten
-        plotfiles_2d_sim_noise_masked[*,j,i] = plotfile_base + this_fadd + $
-          '_2dsimnoise' + plot_fadd + plot_options.plot_exten
-        plotfiles_2d_sim_noise_diff_masked[*,j,i] = plotfile_base + this_fadd + $
-          '_2dsimnoisediff' + plot_fadd + plot_options.plot_exten
+        plotfiles_2d_noise_masked[*,j,i] = this_begin + '_2dnoise' + this_end
+        plotfiles_2d_sim_noise_masked[*,j,i] = this_begin + '_2dsimnoise' + this_end
+        plotfiles_2d_sim_noise_diff_masked[*,j,i] = this_begin + '_2dsimnoisediff' + $
+          this_end
 
-        plotfiles_2d_snr_masked[*,j,i] = plotfile_base + this_fadd + '_2dsnr' + $
-          plot_fadd + plot_options.plot_exten
+        plotfiles_2d_snr_masked[*,j,i] = this_begin + '_2dsnr' + this_end
 
-        plotfiles_2d_nnr_masked[*,j,i] = plotfile_base + this_fadd + '_2dnnr' + $
-          plot_fadd + plot_options.plot_exten
-        plotfiles_2d_sim_snr_masked[*,j,i] = plotfile_base + this_fadd + $
-          '_2dsimsnr' + plot_fadd + plot_options.plot_exten
-        plotfiles_2d_sim_nnr_masked[*,j,i] = plotfile_base + this_fadd + $
-          '_2dsimnnr' + plot_fadd + plot_options.plot_exten
+        plotfiles_2d_nnr_masked[*,j,i] = this_begin + '_2dnnr' + this_end
+        plotfiles_2d_sim_snr_masked[*,j,i] = this_begin + '_2dsimsnr' + this_end
+        plotfiles_2d_sim_nnr_masked[*,j,i] = this_begin + '_2dsimnnr' + this_end
       endfor
     endfor
   endif
@@ -1044,11 +1047,13 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
 
     if plot_options.pub then begin
 
-      slice_plotfile_base = plotfile_base + '_' + plot_types.slice_type
+      slice_plotfile_base = plotfile_path + file_struct_arr(0).subfolders.slices + $
+        plotfile_base + '_' + plot_types.slice_type
       slice_plotfile_end = plot_fadd + plot_options.plot_exten
       if plot_options.individual_plots then begin
 
-        indv_plotfile_base = transpose([[plotfile_base +'_even_'], [plotfile_base +'_odd_']]) + $
+        indv_plotfile_base = plotfile_path + file_struct_arr(0).subfolders.slices + $
+          transpose([[plotfile_base +'_even_'], [plotfile_base +'_odd_']]) + $
           '_' + plot_types.slice_type
         case plot_types.slice_type of
           'raw': begin
@@ -1062,7 +1067,8 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
             uv_slice_plotfile = indv_plotfile_base + '_uv_plane' + slice_plotfile_end
           end
           'sumdiff': begin
-            sumdiff_plotfile_base = [plotfile_base +'_sum_',plotfile_base +'_diff_'] + $
+            sumdiff_plotfile_base = plotfile_path + file_struct_arr(0).subfolders.slices + $
+              [plotfile_base +'_sum_',plotfile_base +'_diff_'] + $
               '_' + plot_types.slice_type
             uf_slice_plotfile = sumdiff_plotfile_base + '_uf_plane' + slice_plotfile_end
             vf_slice_plotfile = sumdiff_plotfile_base + '_vf_plane' + slice_plotfile_end
@@ -1129,10 +1135,9 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
         slice_titles = file_struct_arr.uvf_label
       end
       'kspace': begin
-        kspace_slice_savefile_base = file_struct_arr.savefile_froot + file_struct_arr.savefilebase
-        uf_slice_savefile = kspace_slice_savefile_base + power_tag + '_xz_plane.idlsave'
-        vf_slice_savefile = kspace_slice_savefile_base + power_tag + '_yz_plane.idlsave'
-        uv_slice_savefile = kspace_slice_savefile_base + power_tag + '_xy_plane.idlsave'
+        uf_slice_savefile = file_struct_arr.xz_savefile
+        vf_slice_savefile = file_struct_arr.yz_savefile
+        uv_slice_savefile = file_struct_arr.xy_savefile
         slice_titles = file_struct_arr.file_label
       end
     endcase

@@ -377,8 +377,7 @@ pro ps_power, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
   min_dist_y_n0 = min(wh_y_n0, min_loc)
   y_slice_ind = wh_y_n0[min_loc]
 
-  yslice_savefile = file_struct.savefile_froot + file_struct.savefilebase + $
-    power_tag + '_xz_plane.idlsave'
+  yslice_savefile = file_struct.xz_savefile
   yslice_power = kpower_slice(power_3d, kx_mpc, ky_mpc, kz_mpc, kperp_lambda_conv, $
     delay_params, hubble_param, noise_3d = noise_3d, noise_expval_3d = noise_expval_3d, $
     weights_3d = weights_3d, slice_axis = 1, slice_inds = y_slice_ind, $
@@ -390,8 +389,7 @@ pro ps_power, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
   min_dist_x_n0 = min(abs(n_kx/2-wh_x_n0), min_loc)
   x_slice_ind = wh_x_n0[min_loc]
 
-  xslice_savefile = file_struct.savefile_froot + file_struct.savefilebase + $
-    power_tag + '_yz_plane.idlsave'
+  xslice_savefile = file_struct.yz_savefile
   xslice_power = kpower_slice(power_3d, kx_mpc, ky_mpc, kz_mpc, kperp_lambda_conv, $
     delay_params, hubble_param, noise_3d = noise_3d, noise_expval_3d = noise_expval_3d, $
     weights_3d = weights_3d, slice_axis = 0, slice_inds = x_slice_ind, $
@@ -402,8 +400,7 @@ pro ps_power, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
   min_dist_z_n0 = min(wh_z_n0, min_loc)
   z_slice_ind = wh_y_n0[min_loc]
 
-  zslice_savefile = file_struct.savefile_froot + file_struct.savefilebase + $
-    power_tag + '_xy_plane.idlsave'
+  zslice_savefile = file_struct.xy_savefile
   zslice_power = kpower_slice(power_3d, kx_mpc, ky_mpc, kz_mpc, kperp_lambda_conv, $
     delay_params, hubble_param, noise_3d = noise_3d, noise_expval_3d = noise_expval_3d, $
     weights_3d = weights_3d, slice_axis = 2, slice_inds = z_slice_ind, $

@@ -4,8 +4,7 @@ function fhd_file_setup, filename, weightfile = weightfile, $
     variancevar = variancevar, beamvar = beamvar, pixelvar = pixelvar, $
     freq_ch_range = freq_ch_range, freq_flags = freq_flags, $
     freq_flag_name = freq_flag_name, $
-    save_path = save_path, weight_savefilebase = weight_savefilebase_in, $
-    uvf_savefilebase = uvf_savefilebase_in, savefilebase = savefilebase_in, $
+    save_path = save_path, savefilebase = savefilebase_in, $
     uvf_input = uvf_input, sim = sim, refresh_info = refresh_info, $
     uvf_options = uvf_options, ps_options = ps_options
 
@@ -257,7 +256,6 @@ function fhd_file_setup, filename, weightfile = weightfile, $
         endif else begin
           froot = datafile_dir
         endelse
-        uvf_froot = froot
 
         general_filebase = data_filebase
 
@@ -305,8 +303,7 @@ function fhd_file_setup, filename, weightfile = weightfile, $
               variancevar = variancevar, beamvar = beamvar, pixelvar = pixelvar, $
               freq_ch_range = freq_ch_range, freq_flags = freq_flags, $
               freq_flag_name = freq_flag_name, $
-              save_path = save_path, weight_savefilebase = weight_savefilebase_in, $
-              uvf_savefilebase = uvf_savefilebase_in, savefilebase = savefilebase_in, $
+              save_path = save_path, savefilebase = savefilebase_in, $
               uvf_input = uvf_input, sim = sim, refresh_info = refresh_info, $
               uvf_options = uvf_options, ps_options = ps_options)
 
@@ -556,62 +553,6 @@ function fhd_file_setup, filename, weightfile = weightfile, $
       if n_elements(pixel_varname) eq 1 then pixel_varname = replicate(pixel_varname, npol)
     endif else begin
       message, 'pixelvar must be a scalar or have the same number of elements as pol_inc'
-    endelse
-
-    if max(pol_exist) gt 1 then begin
-      if n_elements(weight_savefilebase_in) gt 0 then begin
-        if n_elements(weight_savefilebase_in) ne nfiles then begin
-          message, 'if weight_savefilebase is specified it must have the same ' + $
-            'number of elements as datafiles'
-        endif
-
-        pols = stregex(weight_savefilebase_in, '[xy][xy]', /extract, /fold_case)
-        temp = strarr(npol, nfiles)
-        for i=0, npol-1 do begin
-          wh_pol =  where(pols eq pol_inc[i], count_pol)
-          if count_pol ne nfiles then begin
-            message, 'The same number of weight_savefilebase must be included per pol'
-          endif
-          temp[i,*] = weight_savefilebase_in[wh_pol]
-        endfor
-        weight_savefilebase_in = temp
-      endif
-      if n_elements(uvf_savefilebase_in) gt 0 then begin
-        if n_elements(uvf_savefilebase_in) ne nfiles then begin
-          message, 'if uvf_savefilebase is specified it must have the same ' + $
-            'number of elements as datafiles'
-        endif
-
-        pols = stregex(uvf_savefilebase_in, '[xy][xy]', /extract, /fold_case)
-        temp = strarr(npol, nfiles)
-        for i=0, npol-1 do begin
-          wh_pol =  where(pols eq pol_inc[i], count_pol)
-          if count_pol ne nfiles then begin
-            message, 'The same number of uvf_savefilebase must be included per pol'
-          endif
-          temp[i,*] = uvf_savefilebase_in[wh_pol]
-        endfor
-        weight_savefilebase_in = temp
-      endif
-    endif else begin
-      if n_elements(weight_savefilebase_in) gt 0 then begin
-        if n_elements(weight_savefilebase_in) ne nfiles then begin
-          message, 'if weight_savefilebase is specified it must have the same ' + $
-            'number of elements as datafiles'
-        endif
-        temp = strarr(npol, nfiles)
-        for i=0, nfiles-1 do temp[*,i] = weight_savefilebase_in[i]
-        weight_savefilebase_in = temp
-      endif
-      if n_elements(uvf_savefilebase_in) gt 0 then begin
-        if n_elements(uvf_savefilebase_in) ne nfiles then begin
-          message, 'if uvf_savefilebase is specified it must have the same ' + $
-            'number of elements as datafiles'
-        endif
-        temp = strarr(npol, nfiles)
-        for i=0, nfiles-1 do temp[*,i] = uvf_savefilebase_in[i]
-        uvf_savefilebase_in = temp
-      endif
     endelse
 
     n_obs = lonarr(npol, nfiles)
@@ -1141,146 +1082,82 @@ function fhd_file_setup, filename, weightfile = weightfile, $
   endfor
   savefilebase = metadata_struct.general_filebase + file_tags.uvf_tag + file_label
 
-  if n_elements(uvf_savefilebase_in) lt nfiles then begin
-    if n_elements(save_path) ne 0 then uvf_froot = replicate(save_path, npol, nfiles, ntypes) else begin
-      uvf_froot = strarr(npol, nfiles, ntypes)
-      ;; test datafile path to see if it exists. if not, use froot
-      for pol_i=0, npol-1 do begin
-        for file_i=0, nfiles-1 do begin
-          datafile_path = file_dirname(metadata_struct.datafile[pol_i, file_i], $
-            /mark_directory)
-          if file_test(datafile_path, /directory) then begin
-            uvf_froot[pol_i, file_i, *] = datafile_path
-          endif else begin
-            uvf_froot[pol_i, file_i, *] = froot
-          endelse
-        endfor
-      endfor
-    endelse
-    uvf_savefilebase = strarr(npol, nfiles, ntypes)
-    uvf_label = strarr(npol, nfiles, ntypes)
-    for pol_i=0, npol-1 do begin
-      for file_i=0, nfiles-1 do begin
-        if max(pol_exist) eq 1 then begin
+  uvf_savefilebase = strarr(npol, nfiles, ntypes)
+  uvf_label = strarr(npol, nfiles, ntypes)
+  for pol_i=0, npol-1 do begin
+    for file_i=0, nfiles-1 do begin
+      if max(pol_exist) eq 1 then begin
+        uvf_savefilebase[pol_i, file_i,*] = cgRootName(metadata_struct.datafile[pol_i, file_i]) + $
+          file_tags.uvf_tag + '_' + metadata_struct.type_inc
+        endif else begin
           uvf_savefilebase[pol_i, file_i,*] = cgRootName(metadata_struct.datafile[pol_i, file_i]) + $
-            file_tags.uvf_tag + '_' + metadata_struct.type_inc
-          endif else begin
-            uvf_savefilebase[pol_i, file_i,*] = cgRootName(metadata_struct.datafile[pol_i, file_i]) + $
-              file_tags.uvf_tag + file_label[pol_i, *]
-          endelse
-        uvf_label[pol_i, file_i,*] = metadata_struct.infile_label[file_i] + '_' + $
-          file_label[pol_i, *]
-      endfor
+            file_tags.uvf_tag + file_label[pol_i, *]
+        endelse
+      uvf_label[pol_i, file_i,*] = metadata_struct.infile_label[file_i] + '_' + $
+        file_label[pol_i, *]
     endfor
-  endif else begin
-    if n_elements(save_path) gt 0 then uvf_froot = replicate(save_path, npol, nfiles, ntypes) else begin
-      temp = file_dirname(uvf_savefilebase_in, /mark_directory)
-      uvf_froot = strarr(npol, nfiles, ntypes)
-      for pol_i=0, npol-1 do begin
-        for file_i=0, nfiles-1 do begin
-          if temp[i] ne '.' then uvf_froot[i,*] = temp[i] else begin
-            datafile_path = file_dirname(metadata_struct.datafile[pol_i, file_i], /mark_directory)
-            if file_test(datafile_path, /directory) then begin
-              uvf_froot[pol_i, file_i, *] = datafile_path
-            endif else begin
-              uvf_froot[pol_i, file_i, *] = froot
-            endelse
-          endelse
-        endfor
-      endfor
-    endelse
-    uvf_savefilebase = file_basename(uvf_savefilebase_in) + file_tags.uvf_tag + file_label
-  endelse
+  endfor
 
   ;; add sw tag to general_filebase so that plotfiles havefile_tags.uvf_tag in them
   general_filebase = metadata_struct.general_filebase + file_tags.uvf_tag
 
+  subfolders = {data: 'data/', plots: 'plots/', uvf: 'uvf_cubes/', beams: 'beam_cubes/', $
+    kspace: 'kspace_cubes/', slices: 'slices/', bin_2d: '2d_binning/', bin_1d: '1d_binning/'}
+
   ;; file for saving ra/decs of pixels
-  radec_file = froot + metadata_struct.general_filebase + '_radec.idlsave'
+  radec_file = froot + subfolders.data + metadata_struct.general_filebase + '_radec.idlsave'
 
-  uvf_savefile = uvf_froot + uvf_savefilebase + '_uvf.idlsave'
-  uf_savefile = uvf_froot + uvf_savefilebase + '_uf_plane.idlsave'
-  vf_savefile = uvf_froot + uvf_savefilebase + '_vf_plane.idlsave'
-  uv_savefile = uvf_froot + uvf_savefilebase + '_uv_plane.idlsave'
+  uvf_path = froot + subfolders.data + subfolders.uvf
+  uvf_slice_path = uvf_path + subfolders.slices
 
-  uf_raw_savefile = uvf_froot + uvf_savefilebase + '_uf_plane_raw.idlsave'
-  vf_raw_savefile = uvf_froot + uvf_savefilebase + '_vf_plane_raw.idlsave'
-  uv_raw_savefile = uvf_froot + uvf_savefilebase + '_uv_plane_raw.idlsave'
+  uvf_savefile = uvf_path + uvf_savefilebase + '_uvf.idlsave'
+  uf_savefile = uvf_slice_path + uvf_savefilebase + '_uf_plane.idlsave'
+  vf_savefile = uvf_slice_path + uvf_savefilebase + '_vf_plane.idlsave'
+  uv_savefile = uvf_slice_path + uvf_savefilebase + '_uv_plane.idlsave'
 
+  uf_raw_savefile = uvf_slice_path + uvf_savefilebase + '_uf_plane_raw.idlsave'
+  vf_raw_savefile = uvf_slice_path + uvf_savefilebase + '_vf_plane_raw.idlsave'
+  uv_raw_savefile = uvf_slice_path + uvf_savefilebase + '_uv_plane_raw.idlsave'
 
-  uf_sum_savefile = froot + savefilebase + '_sum_uf_plane.idlsave'
-  vf_sum_savefile = froot + savefilebase + '_sum_vf_plane.idlsave'
-  uv_sum_savefile = froot + savefilebase + '_sum_uv_plane.idlsave'
-  uf_diff_savefile = froot + savefilebase + '_diff_uf_plane.idlsave'
-  vf_diff_savefile = froot + savefilebase + '_diff_vf_plane.idlsave'
-  uv_diff_savefile = froot + savefilebase + '_diff_uv_plane.idlsave'
+  uf_sum_savefile = uvf_slice_path + savefilebase + '_sum_uf_plane.idlsave'
+  vf_sum_savefile = uvf_slice_path + savefilebase + '_sum_vf_plane.idlsave'
+  uv_sum_savefile = uvf_slice_path + savefilebase + '_sum_uv_plane.idlsave'
+  uf_diff_savefile = uvf_slice_path + savefilebase + '_diff_uf_plane.idlsave'
+  vf_diff_savefile = uvf_slice_path + savefilebase + '_diff_vf_plane.idlsave'
+  uv_diff_savefile = uvf_slice_path + savefilebase + '_diff_uv_plane.idlsave'
 
   if tag_exist(metadata_struct, 'beamfile') then begin
-    beam_savefile = uvf_froot + uvf_savefilebase + '_beam2.idlsave'
+    beam_savefile = froot + subfolders.data + subfolders.beams + uvf_savefilebase + '_beam2.idlsave'
   endif
 
-  kcube_savefile = froot + savefilebase + file_tags.kcube_tag + '_kcube.idlsave'
-  power_savefile = froot + savefilebase + file_tags.power_tag + '_power.idlsave'
-  fits_power_savefile = froot + savefilebase + file_tags.power_tag + '_power.fits'
+  kspace_path = froot + subfolders.data + subfolders.kspace
+  kspace_slice_path = kspace_path + subfolders.slices
 
-  if n_elements(weight_savefilebase_in) eq 0 then begin
-    temp = cgrootname(metadata_struct.weightfile[0, 0], directory = wt_froot)
-    if file_test(wt_froot, /directory) eq 0 then wt_froot = froot
+  xz_savefile = kspace_slice_path + savefilebase + file_tags.power_tag + '_xz_plane.idlsave'
+  yz_savefile = kspace_slice_path + savefilebase + file_tags.power_tag + '_yz_plane.idlsave'
+  xy_savefile = kspace_slice_path + savefilebase + file_tags.power_tag + '_xy_plane.idlsave'
 
-    if n_elements(save_path) gt 0 then wt_froot = save_path else begin
-      wt_froot = strarr(npol, nfiles)
-      for pol_i=0, npol-1 do begin
-        for file_i=0, nfiles-1 do begin
-          wtfile_path = file_dirname(metadata_struct.weightfile[pol_i, file_i], /mark_directory)
-          if file_test(wtfile_path, /directory) then begin
-            wt_froot[pol_i, file_i] = wtfile_path
-          endif else begin
-            wt_froot[pol_i, file_i] = froot
-          endelse
-        endfor
-      endfor
-    endelse
+  kcube_savefile = kspace_path + savefilebase + file_tags.kcube_tag + '_kcube.idlsave'
+  power_savefile = kspace_path + savefilebase + file_tags.power_tag + '_power.idlsave'
+  fits_power_savefile = kspace_path + savefilebase + file_tags.power_tag + '_power.fits'
 
-    weight_savefilebase = strarr(npol, nfiles)
-    for pol_i=0, npol-1 do begin
-      for file_i=0, nfiles-1 do begin
-        if max(pol_exist) eq 1 then begin
+  weight_savefilebase = strarr(npol, nfiles)
+  for pol_i=0, npol-1 do begin
+    for file_i=0, nfiles-1 do begin
+      if max(pol_exist) eq 1 then begin
+        weight_savefilebase[pol_i, file_i] = cgRootName(metadata_struct.weightfile[pol_i, file_i]) + $
+          file_tags.uvf_tag + '_weights'
+        endif else begin
           weight_savefilebase[pol_i, file_i] = cgRootName(metadata_struct.weightfile[pol_i, file_i]) + $
-            file_tags.uvf_tag + '_weights'
-          endif else begin
-            weight_savefilebase[pol_i, file_i] = cgRootName(metadata_struct.weightfile[pol_i, file_i]) + $
-              file_tags.uvf_tag + wt_file_label[pol_i]
-          endelse
-      endfor
+            file_tags.uvf_tag + wt_file_label[pol_i]
+        endelse
     endfor
+  endfor
 
-  endif else begin
-    if n_elements(save_path) gt 0 then wt_froot = save_path else begin
-      temp = file_dirname(weight_savefilebase_in, /mark_directory)
-
-      wt_froot = strarr(npol, nfiles)
-      for pol_i=0, npol-1 do begin
-        for file_i=0, nfiles-1 do begin
-          if temp[pol_i, file_i] ne '.' then begin
-            wt_froot[pol_i, file_i] = temp[pol_i, file_i]
-          endif else begin
-            wtfile_path = file_dirname(metadata_struct.weightfile[pol_i, file_i], /mark_directory)
-            if file_test(wtfile_path, /directory) then begin
-              wt_froot[pol_i, file_i] = wtfile_path
-            endif else begin
-              wt_froot[pol_i, file_i] = froot
-            endelse
-          endelse
-        endfor
-      endfor
-    endelse
-    weight_savefilebase = file_basename(weight_savefilebase_in) + file_tags.uvf_tag
-  endelse
-
-  uvf_weight_savefile = wt_froot + weight_savefilebase + '_uvf.idlsave'
-  uf_weight_savefile = wt_froot + weight_savefilebase + '_uf_plane.idlsave'
-  vf_weight_savefile = wt_froot + weight_savefilebase + '_vf_plane.idlsave'
-  uv_weight_savefile = wt_froot + weight_savefilebase + '_uv_plane.idlsave'
+  uvf_weight_savefile = uvf_path + weight_savefilebase + '_uvf.idlsave'
+  uf_weight_savefile = uvf_slice_path + weight_savefilebase + '_uf_plane.idlsave'
+  vf_weight_savefile = uvf_slice_path + weight_savefilebase + '_vf_plane.idlsave'
+  uv_weight_savefile = uvf_slice_path + weight_savefilebase + '_uv_plane.idlsave'
 
   for pol_i=0, npol-1 do begin
     for type_i=0, ntypes-1 do begin
@@ -1337,10 +1214,14 @@ function fhd_file_setup, filename, weightfile = weightfile, $
         uf_weight_savefile:reform(uf_weight_savefile[pol_i, *]), $
         vf_weight_savefile:reform(vf_weight_savefile[pol_i, *]), $
         uv_weight_savefile:reform(uv_weight_savefile[pol_i, *]), $
+        xz_savefile:xz_savefile[pol_i,type_i], $
+        yz_savefile:yz_savefile[pol_i,type_i], $
+        xy_savefile:xy_savefile[pol_i,type_i], $
         kcube_savefile:kcube_savefile[pol_i,type_i], $
         power_savefile:power_savefile[pol_i,type_i], $
         fits_power_savefile:fits_power_savefile[pol_i,type_i],$
-        savefile_froot:froot, savefilebase:savefilebase[pol_i,type_i], $
+        savefile_froot:froot, subfolders:subfolders, $
+        savefilebase:savefilebase[pol_i,type_i], $
         general_filebase:general_filebase, $
         weight_savefilebase:reform(weight_savefilebase[pol_i, *]), $
         derived_uvf_inputfiles:derived_uvf_inputfiles, $
