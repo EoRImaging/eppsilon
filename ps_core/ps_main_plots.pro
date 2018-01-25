@@ -40,12 +40,12 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
   print, 'file setup time: ' + number_formatter(time1-time0)
 
   ;; make sure save paths exist
-  save_paths = file_struct_arr(0).savefile_froot + file_struct_arr(0).subfolders.data + $
-    ['', file_struct_arr(0).subfolders.uvf + ['', file_struct_arr(0).subfolders.slices], $
-     file_struct_arr(0).subfolders.kspace + ['', file_struct_arr(0).subfolders.slices], $
-     file_struct_arr(0).subfolders.beams, $
-     file_struct_arr(0).subfolders.bin_2d + ['', 'from_1d/'], $
-     file_struct_arr(0).subfolders.bin_1d]
+  save_paths = file_struct_arr[0].savefile_froot + file_struct_arr[0].subfolders.data + $
+    ['', file_struct_arr[0].subfolders.uvf + ['', file_struct_arr[0].subfolders.slices], $
+     file_struct_arr[0].subfolders.kspace + ['', file_struct_arr[0].subfolders.slices], $
+     file_struct_arr[0].subfolders.beams, $
+     file_struct_arr[0].subfolders.bin_2d + ['', 'from_1d/'], $
+     file_struct_arr[0].subfolders.bin_1d]
   for i = 0, n_elements(save_paths) - 1 do begin
     if not file_test(save_paths[i], /directory) then file_mkdir, save_paths[i]
   endfor
@@ -54,14 +54,13 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
     if tag_exist(plot_options, 'plot_path') ne 0 then begin
       plotfile_path = plot_options.plot_path
     endif else begin
-      plotfile_path = file_struct_arr(0).savefile_froot + file_struct_arr(0).subfolders.plots
+      plotfile_path = file_struct_arr[0].savefile_froot + file_struct_arr[0].subfolders.plots
     endelse
 
     ;; make sure plot paths exist
-    plot_paths = file_struct_arr(0).savefile_froot + file_struct_arr(0).subfolders.plots + $
-      ['', file_struct_arr(0).subfolders.slices, $
-       file_struct_arr(0).subfolders.bin_2d + ['', 'from_1d/'], $
-       file_struct_arr(0).subfolders.bin_1d + ['', 'bin_histograms/']]
+    plot_paths = plotfile_path + ['', file_struct_arr[0].subfolders.slices, $
+       file_struct_arr[0].subfolders.bin_2d + ['', 'from_1d/'], $
+       file_struct_arr[0].subfolders.bin_1d + ['', 'bin_histograms/']]
     for i = 0, n_elements(plot_paths) - 1 do begin
       if not file_test(plot_paths[i], /directory) then file_mkdir, plot_paths[i]
     endfor
@@ -380,7 +379,7 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
   if count_std gt 0 then kperp_density_names[wh_std] = '_dencorr'
 
   ;; need general_filebase for 1D plotfiles, make sure it doesn't have a full path
-  general_filebase = file_struct_arr(0).general_filebase
+  general_filebase = file_struct_arr[0].general_filebase
   for i=0, n_cubes-1 do begin
     if file_struct_arr(i).general_filebase ne general_filebase then begin
       message, 'general_filebase does not match between 1d savefiles'
@@ -388,8 +387,8 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
   endfor
 
   savefiles_2d = strarr(n_cubes, n_elements(kperp_density_names))
-  bin_2d_path = file_struct_arr.savefile_froot + file_struct_arr(0).subfolders.data + $
-    file_struct_arr(0).subfolders.bin_2d
+  bin_2d_path = file_struct_arr.savefile_froot + file_struct_arr[0].subfolders.data + $
+    file_struct_arr[0].subfolders.bin_2d
   for j=0, n_elements(kperp_density_names)-1 do begin
     savefiles_2d[*,j] = bin_2d_path + file_struct_arr.savefilebase + $
       power_tag + fadd_2dbin + kperp_density_names[j] + '_2dkpower.idlsave'
@@ -397,8 +396,8 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
   test_save_2d = file_valid(savefiles_2d)
 
   savefiles_1d = strarr(n_cubes, n_elements(kperp_density_names), n_elements(wedge_1dbin_names))
-  bin_1d_path = file_struct_arr.savefile_froot + file_struct_arr(0).subfolders.data + $
-    file_struct_arr(0).subfolders.bin_1d
+  bin_1d_path = file_struct_arr.savefile_froot + file_struct_arr[0].subfolders.data + $
+    file_struct_arr[0].subfolders.bin_1d
   savefiles_1to2d_bin = strarr(n_cubes, n_elements(kperp_density_names), $
     n_elements(wedge_1dbin_names))
   savefiles_2d_masked = strarr(n_cubes, n_elements(kperp_density_names), $
@@ -479,7 +478,7 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
   endif
 
   if plot_types.plot_binning_hist and plot_options.pub eq 1 then begin
-    bin_hist_plot_path = plotfile_path + file_struct_arr(0).subfolders.bin_1d + 'bin_histograms/'
+    bin_hist_plot_path = plotfile_path + file_struct_arr[0].subfolders.bin_1d + 'bin_histograms/'
     if not tag_exist(plot_options, 'plot_filebase') then begin
       plotfile_binning_hist = strarr(n_cubes, n_elements(kperp_density_names), $
         n_elements(wedge_1dbin_names))
@@ -896,7 +895,7 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
       plotfile_base_wt = plotfile_base
     endelse
 
-    plotfile_path_2d = plotfile_path + file_struct_arr(0).subfolders.bin_2d
+    plotfile_path_2d = plotfile_path + file_struct_arr[0].subfolders.bin_2d
     plotfiles_shape = [n_elements(plotfile_base), n_elements(kperp_density_names)]
     plotfiles_err_shape = [n_elements(plotfile_base_wt), n_elements(kperp_density_names)]
     plotfiles_2d = strarr(plotfiles_shape)
@@ -937,7 +936,7 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
     endif else begin
       plotfile_1d_base = plot_options.plot_filebase + uvf_tag
     endelse
-    plotfile_path_1d = plotfile_path + file_struct_arr(0).subfolders.bin_1d
+    plotfile_path_1d = plotfile_path + file_struct_arr[0].subfolders.bin_1d
     begin_1d = plotfile_path_1d + plotfile_1d_base + power_tag + wedge_1dbin_names + fadd_1dbin
     plotfile_1d = begin_1d + '_1dkpower' + plot_options.plot_exten
     plotfile_1d_noise = begin_1d + '_1dnoise' + plot_options.plot_exten
@@ -1047,12 +1046,12 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
 
     if plot_options.pub then begin
 
-      slice_plotfile_base = plotfile_path + file_struct_arr(0).subfolders.slices + $
+      slice_plotfile_base = plotfile_path + file_struct_arr[0].subfolders.slices + $
         plotfile_base + '_' + plot_types.slice_type
       slice_plotfile_end = plot_fadd + plot_options.plot_exten
       if plot_options.individual_plots then begin
 
-        indv_plotfile_base = plotfile_path + file_struct_arr(0).subfolders.slices + $
+        indv_plotfile_base = plotfile_path + file_struct_arr[0].subfolders.slices + $
           transpose([[plotfile_base +'_even_'], [plotfile_base +'_odd_']]) + $
           '_' + plot_types.slice_type
         case plot_types.slice_type of
@@ -1067,7 +1066,7 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
             uv_slice_plotfile = indv_plotfile_base + '_uv_plane' + slice_plotfile_end
           end
           'sumdiff': begin
-            sumdiff_plotfile_base = plotfile_path + file_struct_arr(0).subfolders.slices + $
+            sumdiff_plotfile_base = plotfile_path + file_struct_arr[0].subfolders.slices + $
               [plotfile_base +'_sum_',plotfile_base +'_diff_'] + $
               '_' + plot_types.slice_type
             uf_slice_plotfile = sumdiff_plotfile_base + '_uf_plane' + slice_plotfile_end
