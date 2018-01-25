@@ -1104,11 +1104,12 @@ function fhd_file_setup, filename, weightfile = weightfile, $
   subfolders = {data: 'data/', plots: 'plots/', uvf: 'uvf_cubes/', beams: 'beam_cubes/', $
     kspace: 'kspace_cubes/', slices: 'slices/', bin_2d: '2d_binning/', bin_1d: '1d_binning/'}
 
-  ;; file for saving ra/decs of pixels
-  radec_file = froot + subfolders.data + metadata_struct.general_filebase + '_radec.idlsave'
-
   uvf_path = froot + subfolders.data + subfolders.uvf
   uvf_slice_path = uvf_path + subfolders.slices
+
+  ;; file for saving ra/decs of pixels & their DFT values
+  radec_file = uvf_path + subfolders.data + metadata_struct.general_filebase + $
+    '_radec.idlsave'
 
   uvf_savefile = uvf_path + uvf_savefilebase + '_uvf.idlsave'
   uf_savefile = uvf_slice_path + uvf_savefilebase + '_uf_plane.idlsave'
