@@ -191,6 +191,7 @@ pro compare_plot_prep, folder_names, obs_info, ps_foldernames = ps_foldernames, 
     if slice_type ne 'kspace' then message, 'only kspace slice difference plots are currently supported'
 
     slice_tags = ['xz', 'yz', 'xy']
+    slice_file_tags = ['xz_savefile', 'yz_savefile', 'xy_savefile']
     n_slices = n_elements(slice_tags)
   endif else n_slices = 1
 
@@ -308,8 +309,18 @@ pro compare_plot_prep, folder_names, obs_info, ps_foldernames = ps_foldernames, 
     endelse
   endelse
 
-  if not file_test(plot_options.plot_path, /directory) then file_mkdir, plot_options.plot_path
-  if not file_test(save_path, /directory) then file_mkdir, save_path
+  save_paths = save_path + file_struct_arr1[0].subfolders.data + ['', $
+    file_struct_arr1[0].subfolders.kspace + ['', file_struct_arr1[0].subfolders.slices], $
+    file_struct_arr1[0].subfolders.bin_2d, file_struct_arr1[0].subfolders.bin_1d]
+  for i = 0, n_elements(save_paths) - 1 do begin
+    if not file_test(save_paths[i], /directory) then file_mkdir, save_paths[i]
+  endfor
+
+  plot_paths = plot_options.plot_path + ['', file_struct_arr1[0].subfolders.slices, $
+     file_struct_arr1[0].subfolders.bin_2d, file_struct_arr1[0].subfolders.bin_1d]
+  for i = 0, n_elements(plot_paths) - 1 do begin
+    if not file_test(plot_paths[i], /directory) then file_mkdir, plot_paths[i]
+  endfor
 
   if keyword_set(full_compare) then begin
     case comp_type of
@@ -543,30 +554,38 @@ pro compare_plot_prep, folder_names, obs_info, ps_foldernames = ps_foldernames, 
 
       if keyword_set(plot_slices) then begin
         if comp_type eq 'diff' then begin
-          mid_savefile_2d[slice_i, cube_i] = save_path + savefilebase_use + $
+          slice_save_path = save_path + file_struct_arr1[0].subfolders.data + $
+            file_struct_arr1[0].subfolders.kspace + file_struct_arr1[0].subfolders.slices
+
+          mid_savefile_2d[slice_i, cube_i] = slice_save_path + savefilebase_use + $
             kperp_density_names + '_power_' + slice_tags[slice_i] + '_plane.idlsave'
         endif
 
-        slice_filebase1 = file_struct_arr1[type_pol_locs[cube_i, 0]].savefile_froot + $
-          file_struct_arr1[type_pol_locs[cube_i, 0]].savefilebase + $
-          file_struct_arr1[type_pol_locs[cube_i, 0]].power_tag
-        input_savefile1[slice_i, cube_i] = slice_filebase1 + '_' + slice_tags[slice_i] + $
-          '_plane.idlsave'
+        file_tag_loc1 = where(tag_names(file_struct_arr1[type_pol_locs[cube_i, 0]]) eq $
+          slice_file_tags[slice_i], count_file_tag1)
+        if count_file_tag1 eq 0 then message, 'no filename for slice ' + slice_tags[slice_i]
+        slice_filebase1 = file_struct_arr1[type_pol_locs[cube_i, 0]].(file_tag_loc1[0])
 
-        slice_filebase2 = file_struct_arr2[type_pol_locs[cube_i, 1]].savefile_froot + $
-          file_struct_arr2[type_pol_locs[cube_i, 1]].savefilebase + $
-          file_struct_arr2[type_pol_locs[cube_i, 1]].power_tag
-        input_savefile2[slice_i, cube_i] = slice_filebase2 + '_' + slice_tags[slice_i] + $
-          '_plane.idlsave'
+        file_tag_loc2 = where(tag_names(file_struct_arr2[type_pol_locs[cube_i, 0]]) eq $
+          slice_file_tags[slice_i], count_file_tag2)
+        if count_file_tag2 eq 0 then message, 'no filename for slice ' + slice_tags[slice_i]
+        slice_filebase2 = file_struct_arr2[type_pol_locs[cube_i, 0]].(file_tag_loc2[0])
 
       endif else begin
         if comp_type eq 'diff' then begin
-          mid_savefile_3d[slice_i, cube_i] = save_path + savefilebase_use + '_power.idlsave'
-          mid_savefile_2d[slice_i, cube_i] = save_path + savefilebase_use + $
+          cube_save_path  = save_path + file_struct_arr1[0].subfolders.data + $
+            file_struct_arr1[0].subfolders.kspace
+          bin_2d_save_path = save_path + file_struct_arr1[0].subfolders.data + $
+            file_struct_arr1[0].subfolders.bin_2d
+          bin_1d_save_path = save_path + file_struct_arr1[0].subfolders.data + $
+            file_struct_arr1[0].subfolders.bin_1d
+
+          mid_savefile_3d[slice_i, cube_i] = cube_save_path + savefilebase_use + '_power.idlsave'
+          mid_savefile_2d[slice_i, cube_i] = bin_2d_save_path + savefilebase_use + $
             kperp_density_names + '_2dkpower.idlsave'
 
           for wedge_i=0, n_elements(wedge_1dbin_names)-1 do begin
-            savefiles_1d[cube_i, wedge_i] = save_path + savefilebase_use + $
+            savefiles_1d[cube_i, wedge_i] = bin_1d_save_path + savefilebase_use + $
               kperp_density_names + wedge_1dbin_names[wedge_i] + '_1dkpower.idlsave'
           endfor
 
@@ -584,10 +603,14 @@ pro compare_plot_prep, folder_names, obs_info, ps_foldernames = ps_foldernames, 
         endif else begin
 
           input_savefile1[slice_i, cube_i] = file_struct_arr1[type_pol_locs[cube_i, 0]].savefile_froot + $
+            file_struct_arr1[type_pol_locs[cube_i, 0]].subfolders.data + $
+            file_struct_arr1[type_pol_locs[cube_i, 0]].subfolders.bin_2d + $
             file_struct_arr1[type_pol_locs[cube_i, 0]].savefilebase + $
             file_struct_arr1[type_pol_locs[cube_i, 0]].power_tag + fadd_2dbin + $
             kperp_density_names[0] + '_2dkpower.idlsave'
           input_savefile2[slice_i, cube_i] = file_struct_arr2[type_pol_locs[cube_i, 1]].savefile_froot + $
+            file_struct_arr2[type_pol_locs[cube_i, 0]].subfolders.data + $
+            file_struct_arr2[type_pol_locs[cube_i, 0]].subfolders.bin_2d + $
             file_struct_arr2[type_pol_locs[cube_i, 1]].savefilebase + $
             file_struct_arr2[type_pol_locs[cube_i, 1]].power_tag + fadd_2dbin + $
             kperp_density_names[n_wtcuts-1] + '_2dkpower.idlsave'
@@ -597,16 +620,17 @@ pro compare_plot_prep, folder_names, obs_info, ps_foldernames = ps_foldernames, 
 
       if plot_options.pub then begin
         if keyword_set(plot_slices) then begin
-          plotfiles_2d[slice_i] = plot_options.plot_path + plot_filebase + $
+          slice_plot_path = plot_options.plot_path + file_struct_arr1[0].subfolders.slices
+
+          plotfiles_2d[slice_i] = slice_plot_path + plot_filebase + $
             '_power_' + slice_tags[slice_i] + '_plane' + plot_options.plot_exten
         endif else begin
-
-          plotfiles_2d[slice_i] = plot_options.plot_path + plot_filebase + $
-            '_2dkpower' + plot_options.plot_exten
+          plotfiles_2d[slice_i] = plot_options.plot_path + file_struct_arr1[0].subfolders.bin_2d + $
+            plot_filebase + '_2dkpower' + plot_options.plot_exten
 
           if comp_type eq 'diff' and cube_i eq 0 then begin
-            plotfiles_1d = plot_options.plot_path + plot_filebase + ['', wedge_1dbin_names] + $
-              '_1dkpower' + plot_options.plot_exten
+            plotfiles_1d = plot_options.plot_path + file_struct_arr1[0].subfolders.bin_1d + $
+              plot_filebase + ['', wedge_1dbin_names] + '_1dkpower' + plot_options.plot_exten
           endif
         endelse
       endif
