@@ -15,7 +15,7 @@ function create_plot_types, plot_types = plot_types, $
     ;; default to making standard plot set if plot_slices isn't set
     if keyword_set(plot_slices) then begin
       if n_elements(plot_stdset) eq 0 then plot_stdset = 0
-    else begin
+    endif else begin
       if n_elements(plot_stdset) eq 0 then plot_stdset = 1
     endelse
 
