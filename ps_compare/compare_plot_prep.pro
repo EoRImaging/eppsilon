@@ -16,28 +16,28 @@ pro compare_plot_prep, folder_names, obs_info, ps_foldernames = ps_foldernames, 
 
   if n_elements(obs_info.info_files) gt 2 then message, 'Only 1 or 2 info_files can be used'
 
+  window_type_list = ['Hann', 'Hamming', 'Blackman', 'Nutall', 'Blackman-Nutall', $
+                      'Blackman-Harris', 'Blackman-Harris^2', 'Tukey', 'None']
+  win_tag_list = ['hann', 'ham', 'blm', 'ntl', 'bn', 'bh', 'bh2', 'tk', '']
   if n_elements(ps_options) eq 2 and tag_exist(ps_options[0], 'spec_window_type') then begin
     if (ps_options[0].spec_window_type ne ps_options[1].spec_window_type) then begin
 
-      type_list = ['Hann', 'Hamming', 'Blackman', 'Nutall', 'Blackman-Nutall', $
-        'Blackman-Harris', 'Blackman-Harris^2', 'None']
-      sw_tag_list = ['hann', 'ham', 'blm', 'ntl', 'bn', 'bh', 'bh2', '']
       sw_tags = strarr(2)
       for i=0, 1 do begin
-        wh_type = where(strlowcase(type_list) eq strlowcase(ps_options[i].spec_window_type), $
+        wh_type = where(strlowcase(window_type_list) eq strlowcase(ps_options[i].spec_window_type), $
           count_type)
         if count_type eq 0 then begin
-          wh_type = where(strlowcase(sw_tag_list) eq strlowcase(ps_options[i].spec_window_type), $
+          wh_type = where(strlowcase(win_tag_list) eq strlowcase(ps_options[i].spec_window_type), $
             count_type)
         endif
         if count_type eq 0 then begin
           message, 'Spectral window type not recognized.'
         endif else begin
-          ps_options[i].spec_window_type = type_list[wh_type[0]]
+          ps_options[i].spec_window_type = window_type_list[wh_type[0]]
           if ps_options[i].spec_window_type eq 'None' then begin
             sw_tags[i] = '_nosw'
           endif else begin
-            sw_tags[i] = '_' + sw_tag_list[wh_type[0]]
+            sw_tags[i] = '_' + win_tag_list[wh_type[0]]
           endelse
         endelse
       endfor
@@ -48,23 +48,20 @@ pro compare_plot_prep, folder_names, obs_info, ps_foldernames = ps_foldernames, 
     if (uvf_options[0].image_window_name ne uvf_options[1].image_window_name) $
       or (uvf_options[0].image_window_frac_size ne uvf_options[1].image_window_frac_size) then begin
 
-      type_list = ['Tukey', 'None','Blackman-Harris']
-      iw_tag_list = ['tk', '','bh']
-
       iw_tag = strarr(2)
       iw_size_tag = strarr(2)
       for i=0,1 do begin
-        wh_type = where(strlowcase(type_list) eq strlowcase(uvf_options[i].image_window_name), $
+        wh_type = where(strlowcase(window_type_list) eq strlowcase(uvf_options[i].image_window_name), $
           count_type)
         if count_type eq 0 then begin
-          wh_type = where(strlowcase(iw_tag_list) eq strlowcase(uvf_options[i].image_window_name), $
+          wh_type = where(strlowcase(win_tag_list) eq strlowcase(uvf_options[i].image_window_name), $
             count_type)
         endif
         if count_type eq 0 then begin
           message, 'Image window type not recognized.'
         endif else begin
-          uvf_options[i].image_window_name = type_list[wh_type[0]]
-          if type_list[wh_type] ne 'None' and tag_exist(uvf_options[i], 'image_window_frac_size') then begin
+          uvf_options[i].image_window_name = window_type_list[wh_type[0]]
+          if window_type_list[wh_type] ne 'None' and tag_exist(uvf_options[i], 'image_window_frac_size') then begin
            iw_size_tag[i] = number_formatter(uvf_options[i].image_window_frac_size)
           endif else begin
             iw_size_tag[i] = ''
@@ -72,7 +69,7 @@ pro compare_plot_prep, folder_names, obs_info, ps_foldernames = ps_foldernames, 
           if uvf_options[i].image_window_name eq 'None' then begin
             iw_tag[i] = ''
           endif else begin
-            iw_tag[i] = '_' + iw_tag_list[wh_type[0]] + iw_size_tag[i]
+            iw_tag[i] = '_' + win_tag_list[wh_type[0]] + iw_size_tag[i]
           endelse
         endelse
       endfor
