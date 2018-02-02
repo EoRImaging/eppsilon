@@ -17,19 +17,19 @@ function create_file_tags, freq_ch_range = freq_ch_range, freq_flags = freq_flag
     endelse
   endif else sw_tag = ''
 
-  type_list = ['Tukey', 'None']
-  iw_tag_list = ['tk', '']
-  if tag_exist(ps_options, 'image_window_name') ne 0 then begin
-    wh_type = where(strlowcase(type_list) eq strlowcase(ps_options.image_window_name), $
+  type_list = ['Tukey', 'None','Blackman-Harris']
+  iw_tag_list = ['tk', '','bh']
+  if tag_exist(uvf_options, 'image_window_name') ne 0 then begin
+    wh_type = where(strlowcase(type_list) eq strlowcase(uvf_options.image_window_name), $
       count_type)
     if count_type eq 0 then begin
-      wh_type = where(strlowcase(iw_tag_list) eq strlowcase(ps_options.image_window_name), $
+      wh_type = where(strlowcase(iw_tag_list) eq strlowcase(uvf_options.image_window_name), $
         count_type)
     endif
     if count_type eq 0 then message, 'Image window type not recognized.' else begin
       image_window_name = type_list[wh_type[0]]
-      if type_list[wh_type] ne 'None' and tag_exist(ps_options, 'image_window_frac_size') ne 0 then begin
-        iw_size_tag = number_formatter(ps_options.image_window_frac_size)
+      if type_list[wh_type] ne 'None' and tag_exist(uvf_options, 'image_window_frac_size') ne 0 then begin
+        iw_size_tag = number_formatter(uvf_options.image_window_frac_size)
       endif else iw_size_tag = ''
       if image_window_name eq 'None' then begin
         iw_tag = ''
