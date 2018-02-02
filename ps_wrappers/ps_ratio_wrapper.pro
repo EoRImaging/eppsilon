@@ -2,6 +2,7 @@ pro ps_ratio_wrapper, folder_names_in, obs_names_in, ps_foldernames=ps_foldernam
     exact_obsnames = exact_obsnames,  cube_types = cube_types,  pols = pols, $
     all_pol_diff_ratio = all_pol_diff_ratio, freq_ch_range = freq_ch_range, $
     spec_window_types = spec_window_types, delta_uv_lambda = delta_uv_lambda, $
+    full_image = full_image, $
     ave_removal = ave_removal, image_window_name = image_window_name, $
     image_window_frac_size = image_window_frac_size,  diff_ratio = diff_ratio, $
     diff_range = diff_range, png = png, eps = eps, pdf = pdf, data_range = data_range, $
@@ -35,11 +36,13 @@ pro ps_ratio_wrapper, folder_names_in, obs_names_in, ps_foldernames=ps_foldernam
   if n_elements(data_range) eq 0 then data_range = [1e-3, 1e1]
 
   if n_elements(delta_uv_lambda) gt 1 then message, 'only 1 delta_uv_lambda allowed'
+  if n_elements(full_image) gt 1 then message, 'only 1 full_image allowed'
 
   if n_elements(image_window_name) lt 2 and n_elements(image_window_frac_size) lt 2 then begin
 
     uvf_options = create_uvf_options(image_window_name = image_window_name, $
-      image_window_frac_size = image_window_frac_size, delta_uv_lambda = delta_uv_lambda)
+      image_window_frac_size = image_window_frac_size, delta_uv_lambda = delta_uv_lambda,
+      full_image = full_image)
 
   endif else begin
     case n_elements(image_window_name) of
@@ -69,9 +72,11 @@ pro ps_ratio_wrapper, folder_names_in, obs_names_in, ps_foldernames=ps_foldernam
     endcase
 
     uvf_options0 = create_uvf_options(image_window_name = iwn0, $
-      image_window_frac_size = iwfs0, delta_uv_lambda = delta_uv_lambda)
+      image_window_frac_size = iwfs0, delta_uv_lambda = delta_uv_lambda,
+      full_image = full_image)
     uvf_options1 = create_uvf_options(image_window_name = iwn1, $
-      image_window_frac_size = iwfs1, delta_uv_lambda = delta_uv_lambda)
+      image_window_frac_size = iwfs1, delta_uv_lambda = delta_uv_lambda,
+      full_image = full_image)
 
     uvf_options = [uvf_options0, uvf_options1]
   endelse
