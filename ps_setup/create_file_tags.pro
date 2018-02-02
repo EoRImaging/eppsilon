@@ -17,8 +17,8 @@ function create_file_tags, freq_ch_range = freq_ch_range, freq_flags = freq_flag
     endelse
   endif else sw_tag = ''
 
-  type_list = ['Tukey', 'None']
-  iw_tag_list = ['tk', '']
+  type_list = ['Tukey', 'None','Blackman-Harris']
+  iw_tag_list = ['tk', '','bh']
   if tag_exist(ps_options, 'image_window_name') ne 0 then begin
     wh_type = where(strlowcase(type_list) eq strlowcase(ps_options.image_window_name), $
       count_type)
