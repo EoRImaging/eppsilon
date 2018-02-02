@@ -1,40 +1,39 @@
 function create_file_tags, freq_ch_range = freq_ch_range, freq_flags = freq_flags, $
     freq_flag_name = freq_flag_name, uvf_options = uvf_options, ps_options = ps_options
 
-  type_list = ['Hann', 'Hamming', 'Blackman', 'Nutall', 'Blackman-Nutall', 'Blackman-Harris']
-  sw_tag_list = ['hann', 'ham', 'blm', 'ntl', 'bn', 'bh']
+  window_type_list = ['Hann', 'Hamming', 'Blackman', 'Nutall', 'Blackman-Nutall', $
+                      'Blackman-Harris', 'Blackman-Harris^2', 'Tukey', 'None']
+  win_tag_list = ['hann', 'ham', 'blm', 'ntl', 'bn', 'bh', 'bh2', 'tk', '']
   if tag_exist(ps_options, 'spec_window_type') then begin
-    wh_type = where(strlowcase(type_list) eq strlowcase(ps_options.spec_window_type), count_type)
+    wh_type = where(strlowcase(window_type_list) eq strlowcase(ps_options.spec_window_type), count_type)
     if count_type eq 0 then begin
-      wh_type = where(strlowcase(sw_tag_list) eq strlowcase(ps_options.spec_window_type), $
+      wh_type = where(strlowcase(win_tag_list) eq strlowcase(ps_options.spec_window_type), $
         count_type)
     endif
     if count_type eq 0 then begin
       message, 'Spectral window type not recognized.'
     endif else begin
-      ps_options.spec_window_type = type_list[wh_type[0]]
-      sw_tag = '_' + sw_tag_list[wh_type[0]]
+      ps_options.spec_window_type = window_type_list[wh_type[0]]
+      sw_tag = '_' + win_tag_list[wh_type[0]]
     endelse
   endif else sw_tag = ''
 
-  type_list = ['Tukey', 'None','Blackman-Harris']
-  iw_tag_list = ['tk', '','bh']
   if tag_exist(uvf_options, 'image_window_name') ne 0 then begin
-    wh_type = where(strlowcase(type_list) eq strlowcase(uvf_options.image_window_name), $
+    wh_type = where(strlowcase(window_type_list) eq strlowcase(uvf_options.image_window_name), $
       count_type)
     if count_type eq 0 then begin
-      wh_type = where(strlowcase(iw_tag_list) eq strlowcase(uvf_options.image_window_name), $
+      wh_type = where(strlowcase(win_tag_list) eq strlowcase(uvf_options.image_window_name), $
         count_type)
     endif
     if count_type eq 0 then message, 'Image window type not recognized.' else begin
-      image_window_name = type_list[wh_type[0]]
-      if type_list[wh_type] ne 'None' and tag_exist(uvf_options, 'image_window_frac_size') ne 0 then begin
+      image_window_name = window_type_list[wh_type[0]]
+      if window_type_list[wh_type] ne 'None' and tag_exist(uvf_options, 'image_window_frac_size') ne 0 then begin
         iw_size_tag = number_formatter(uvf_options.image_window_frac_size)
       endif else iw_size_tag = ''
       if image_window_name eq 'None' then begin
         iw_tag = ''
       endif else begin
-        iw_tag = '_' + iw_tag_list[wh_type[0]] + iw_size_tag
+        iw_tag = '_' + win_tag_list[wh_type[0]] + iw_size_tag
       endelse
     endelse
   endif else iw_tag = ''
