@@ -48,8 +48,8 @@ pro compare_plot_prep, folder_names, obs_info, ps_foldernames = ps_foldernames, 
     if (uvf_options[0].image_window_name ne uvf_options[1].image_window_name) $
       or (uvf_options[0].image_window_frac_size ne uvf_options[1].image_window_frac_size) then begin
 
-      type_list = ['Tukey', 'None']
-      iw_tag_list = ['tk', '']
+      type_list = ['Tukey', 'None','Blackman-Harris']
+      iw_tag_list = ['tk', '','bh']
 
       iw_tag = strarr(2)
       iw_size_tag = strarr(2)
