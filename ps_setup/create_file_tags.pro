@@ -61,9 +61,12 @@ function create_file_tags, freq_ch_range = freq_ch_range, freq_flags = freq_flag
   endif else begin
     uv_tag = ''
   endelse
-  ; if tag_exist(uvf_options, 'max_uv_lambda') then begin
-  ;   uv_tag = uv_tag + '_maxuv' + number_formatter(uvf_options.max_uv_lambda)
-  ; endif
+  if uvf_options.full_image then begin
+    uv_tag = uv_tag + '_fullimg'
+  endif
+  if tag_exist(uvf_options, 'max_uv_lambda') then begin
+    uv_tag = uv_tag + '_maxuv' + number_formatter(uvf_options.max_uv_lambda)
+  endif
   if tag_exist(uvf_options, 'uv_avg') then begin
     uv_tag = uv_tag + '_uvavg' + number_formatter(uvf_options.uv_avg)
   endif

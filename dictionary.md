@@ -82,6 +82,8 @@ These flags (all default=0) tell the code to redo parts of the analysis that wou
 
 **max_uv_lambda**: The maximum distance from (0,0) in uv space that we should calculate in the DFT. **Note**: The actual uv extent used may be smaller than this value if the maximum uv extent of the input image cubes is smaller or if the longest gridded baseline is smaller. So the actual uv extent will be the minimum of max_uv_lambda, the maximum uv extent of the input image cubes and the longest gridded baseline.
 
+**full_image**: This is a flag (valid values are 0/1, default=0) indicating that the full image should be used and that the uv spacing should be set based on the image size. This keyword is only needed if no image window function is applied (if image_window_name is set to anything other than 'None' the full image is used). This keyword cannot be set if delta_uv_lambda is set.
+
 **uv_avg**: A rarely used testing/exploration keyword that is only used if the uvf_input flag is set. This is a factor by which to average up pixels in the uv plane. A value of 2 results in pixels that are larger by a factor of 2 in each direction and 4x fewer total pixels.
 
 **uv_img_clip**: A rarely used testing/exploration keyword that is only used if the uvf_input flag is set. This is a factor by which to clip the cubes in image space (i.e. 2D FFT to image space, clip, then 2D FFT back to uv). A value of 2 results in images that are smaller by a factor of 2 in each direction, 4x smaller overall, and uv pixels that are larger by a factor of 2 in each direction.
