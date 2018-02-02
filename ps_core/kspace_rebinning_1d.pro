@@ -80,8 +80,8 @@ function kspace_rebinning_1d, power, k1_mpc, k2_mpc, k3_mpc, k_edges_mpc, $
 
   if keyword_set(kperp_power) then begin
     if tag_exist(binning_1d_options, 'kpar_range_kperppower') then begin
-      kperp_range_use = binning_1d_options.kpar_range_kperppower
-      if plot_options.hinv then kperp_range_use *= hubble_param
+      kpar_range_use = binning_1d_options.kpar_range_kperppower
+      if plot_options.hinv then kpar_range_use *= hubble_param
     endif
   endif else begin
     if tag_exist(binning_1d_options, 'kpar_range_1dave') then begin
