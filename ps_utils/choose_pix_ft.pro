@@ -116,7 +116,7 @@ function choose_pix_ft, file_struct, pixel_nums = pixel_nums, data_dims = data_d
   endif else max_kperp_rad = min([file_struct.max_baseline_lambda])* (2.*!pi)
 
   if tag_exist(uvf_options, 'max_uv_lambda') then begin
-    max_kperp_rad = min([max_kperp_rad, max_uv_lambda * (2.*!pi)])
+    max_kperp_rad = min([max_kperp_rad, uvf_options.max_uv_lambda * (2.*!pi)])
   endif
 
   ;; limit field of view to match calculated k-modes
