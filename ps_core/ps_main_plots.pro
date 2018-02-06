@@ -457,7 +457,7 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
   endif
 
   if plot_types.plot_binning_hist and plot_options.pub eq 1 then begin
-    if tag_exist(plot_options, 'plot_filebase') then begin
+    if not tag_exist(plot_options, 'plot_filebase') then begin
       plotfile_binning_hist = strarr(n_cubes, n_elements(kperp_density_names), $
         n_elements(wedge_1dbin_names))
 
@@ -863,7 +863,7 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
     endelse
 
     if plot_options.individual_plots then begin
-      if tag_exist(plot_options, 'plot_filebase') then begin
+      if not tag_exist(plot_options, 'plot_filebase') then begin
         plotfile_base = plotfile_path + file_struct_arr.savefilebase + power_tag
         plotfile_base_wt = plotfile_path + general_filebase + '_' + $
           file_struct_arr[uniq(weight_ind, sort(weight_ind))].pol + power_tag
@@ -874,7 +874,7 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
           '_' + file_struct_arr[uniq(weight_ind, sort(weight_ind))].pol + power_tag
       endelse
     endif else begin
-      if tag_exist(plot_options, 'plot_filebase') then begin
+      if not tag_exist(plot_options, 'plot_filebase') then begin
         plotfile_base = plotfile_path + general_filebase + power_tag
       endif else begin
         plotfile_base = plotfile_path + plot_options.plot_filebase + uvf_tag + power_tag
@@ -921,8 +921,7 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
         plot_fadd + plot_options.plot_exten
     endfor
 
-
-    if tag_exist(plot_options, 'plot_filebase') then begin
+    if not tag_exist(plot_options, 'plot_filebase') then begin
       plotfile_1d_base = plotfile_path + general_filebase
     endif else begin
       plotfile_1d_base = plotfile_path + plot_options.plot_filebase + uvf_tag

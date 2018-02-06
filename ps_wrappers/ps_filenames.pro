@@ -32,8 +32,8 @@ function ps_filenames, folder_names, obs_names_in, dirty_folder = dirty_folder, 
   
   if n_elements(ps_foldernames) eq 0 then ps_foldernames = 'ps'
   if n_elements(save_paths) eq 0 then save_paths = folder_names + path_sep() + ps_foldernames + path_sep()
-  if n_elements(plot_paths) eq 0 then plot_paths = save_paths + path_sep() + 'plots' + path_sep()
-  
+  if n_elements(plot_paths) eq 0 then plot_paths = save_paths + 'plots' + path_sep()
+
   if n_filesets gt 1 then begin
     if n_elements(folder_names) eq 1 then folder_names = replicate(folder_names, n_filesets)
     if n_elements(folder_names) ne n_filesets then message, 'If both folder_names and obs_names_in are arrays, the number of elements must match'
