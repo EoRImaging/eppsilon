@@ -768,8 +768,11 @@ function fhd_file_setup, filename, weightfile = weightfile, $
       if count_obs ne 0 then begin
         n_obs[pol_i, file_i] = n_elements(obs_arr)
 
-        if j eq 0 then max_baseline_lambda = max(obs_arr.max_baseline) $
-        else max_baseline_lambda = max([max_baseline_lambda, obs_arr.max_baseline])
+        if j eq 0 then begin
+          max_baseline_lambda = max(obs_arr.max_baseline)
+        endif else begin
+          max_baseline_lambda = max([max_baseline_lambda, obs_arr.max_baseline])
+        endelse
 
         obs_radec_vals = [[obs_arr.obsra],[obs_arr.obsdec]]
         zen_radec_vals = [[obs_arr.zenra],[obs_arr.zendec]]
