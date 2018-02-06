@@ -66,8 +66,8 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
 
   if tag_exist(file_struct_arr, 'n_obs') then begin
     print, 'n_obs: ', file_struct_arr[0].n_obs
-    if not tag_exist(plot_options, 'note') then begin
-      plot_options.note = '(' + number_formatter(round(mean(file_struct_arr[0].n_obs))) + ')'
+    if tag_exist(plot_options, 'note') then begin
+      plot_options.note += '(' + number_formatter(round(mean(file_struct_arr[0].n_obs))) + ')'
     endif else begin
       plot_options = create_plot_options(plot_options = plot_options, $
         note = ' (' + number_formatter(round(mean(file_struct_arr[0].n_obs))) + ')')
