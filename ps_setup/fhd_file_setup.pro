@@ -669,14 +669,10 @@ function fhd_file_setup, filename, weightfile = weightfile, $
 
           if j eq 0 then vis_noise = fltarr(npol, nfiles, n_freq)
 
-          vis_noise_temp = sqrt(total(vis_noise_arr^2.*n_vis_freq_arr, 1))
-          wh_nonzero = where(total(n_vis_freq_arr, 1) ne 0, count_nonzero)
-          if count_nonzero gt 0 then begin
-            vis_noise_temp[wh_nonzero]/=(total(n_vis_freq_arr, 1))[wh_nonzero]
-          endif
-
-          vis_noise[pol_i, file_i, *] = vis_noise_temp
-          undefine, wh_nonzero, count_nonzero, vis_noise_temp
+          vis_noise[pol_i, file_i, *] = sqrt(total(vis_noise_arr^2.*n_vis_freq_arr, 1)/total(n_vis_freq_arr, 1))
+          wh_zero = where(total(n_vis_freq_arr, 1) eq 0, count_zero)
+          if count_zero gt 0 then vis_noise[wh_zero] = 0
+          undefine, wh_zero, count_zero
         endif
 
         n_vis_freq[pol_i, file_i, *] = total(n_vis_freq_arr, 1)
