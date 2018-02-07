@@ -3,7 +3,7 @@ function create_file_tags, freq_ch_range = freq_ch_range, freq_flags = freq_flag
 
   window_type_list = ['Hann', 'Hamming', 'Blackman', 'Nutall', 'Blackman-Nutall', $
                       'Blackman-Harris', 'Blackman-Harris^2', 'Tukey', 'None']
-  win_tag_list = ['hann', 'ham', 'blm', 'ntl', 'bn', 'bh', 'bh2', 'tk', '']
+  win_tag_list = ['han', 'ham', 'blm', 'ntl', 'bn', 'bh', 'bh2', 'tk', '']
   if tag_exist(ps_options, 'spec_window_type') then begin
     wh_type = where(strlowcase(window_type_list) eq strlowcase(ps_options.spec_window_type), count_type)
     if count_type eq 0 then begin
@@ -14,7 +14,7 @@ function create_file_tags, freq_ch_range = freq_ch_range, freq_flags = freq_flag
       message, 'Spectral window type not recognized.'
     endif else begin
       ps_options.spec_window_type = window_type_list[wh_type[0]]
-      sw_tag = '_' + win_tag_list[wh_type[0]]
+      sw_tag = '_sw' + win_tag_list[wh_type[0]]
     endelse
   endif else sw_tag = ''
 
