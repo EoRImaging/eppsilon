@@ -100,6 +100,7 @@ function choose_pix_ft, file_struct, pixel_nums = pixel_nums, data_dims = data_d
 
     if not tag_exist(uvf_options, 'image_window_frac_size') then begin
       uvf_options = create_uvf_options(uvf_options = uvf_options, $
+        image_window_name = uvf_options.image_window_name, $
         image_window_frac_size = std_fraction)
       if std_fraction gt 0.9 then begin
         print, 'The calculated window fractional size is ' + number_formatter(std_fraction)
