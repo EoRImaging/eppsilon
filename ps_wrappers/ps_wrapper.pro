@@ -5,7 +5,7 @@ pro ps_wrapper, folder_name_in, obs_name, data_subdirs=data_subdirs, $
     casa = casa, sim = sim, refresh_dft = refresh_dft, refresh_ps = refresh_ps, $
     refresh_binning = refresh_binning, refresh_info = refresh_info, $
     refresh_beam = refresh_beam, dft_fchunk = dft_fchunk, $
-    delta_uv_lambda = delta_uv_lambda, max_uv_lambda = max_uv_lambda,
+    delta_uv_lambda = delta_uv_lambda, max_uv_lambda = max_uv_lambda, $
     full_image = full_image, $
     pol_inc = pol_inc, type_inc = type_inc, freq_ch_range = freq_ch_range, $
     freq_flags = freq_flags, freq_flag_name = freq_flag_name, $
