@@ -187,7 +187,7 @@ pro single_cube_dft, folder_name_in, obs_name, data_subdirs=data_subdirs, $
     ky_rad_vals = pix_ft_struct.ky_rad_vals
 
     ;; Create an image space filter to reduce thrown power via the FFT on hard clips
-    if tag_exist(uvf_options, image_window_name) then begin
+    if tag_exist(uvf_options, 'image_window_name') then begin
       pix_window = image_window(x_use, y_use, image_window_name = uvf_options.image_window_name, $
         fractional_size = uvf_options.image_window_frac_size)
       pix_window = rebin(pix_window, n_elements(wh_close), n_freq, /sample)
