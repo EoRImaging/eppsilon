@@ -5,7 +5,8 @@ pro single_cube_dft, folder_name_in, obs_name, data_subdirs=data_subdirs, $
     freq_flags = freq_flags, freq_ch_range = freq_ch_range, cube_type = cube_type, $
     pol = pol, evenodd = evenodd, loc_name=loc_name, $
     image_window_name=image_window_name, image_window_frac_size=image_window_frac_size, $
-    delta_uv_lambda = delta_uv_lambda, max_uv_lambda = max_uv_lambda
+    delta_uv_lambda = delta_uv_lambda, max_uv_lambda = max_uv_lambda, $
+    full_image = full_image
 
   if n_elements(folder_name_in) ne 1 then begin
     message, 'one folder_name must be supplied.'
@@ -79,7 +80,8 @@ pro single_cube_dft, folder_name_in, obs_name, data_subdirs=data_subdirs, $
 
   uvf_options = create_uvf_options(image_window_name = image_window_name, $
     image_window_frac_size = image_window_frac_size, delta_uv_lambda = delta_uv_lambda, $
-    max_uv_lambda = max_uv_lambda, dft_fchunk = dft_fchunk, no_dft_progress = no_dft_progress)
+    max_uv_lambda = max_uv_lambda, full_image = full_image, $
+    dft_fchunk = dft_fchunk, no_dft_progress = no_dft_progress)
 
   ;; it doesn't matter what's in ps_options because we don't use any of the filenames
   ;; that depend on this
