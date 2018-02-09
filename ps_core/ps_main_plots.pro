@@ -1253,7 +1253,7 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
         if i eq (nrow*ncol)-1 and tag_exist(plot_options, 'note') then begin
           note_use = plot_options.note
         endif else begin
-          undefine, note_use
+          note_use = ''
         endelse
 
         if plot_types.slice_type eq 'kspace' then begin
@@ -1291,7 +1291,7 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
         if i eq (nrow*ncol)-1 and tag_exist(plot_options, 'note') then begin
           note_use = plot_options.note
         endif else begin
-          undefine, note_use
+          note_use = ''
         endelse
 
         if plot_types.slice_type eq 'kspace' then begin
@@ -1329,7 +1329,7 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
         if i eq (nrow*ncol)-1 and tag_exist(plot_options, 'note') then begin
           note_use = plot_options.note
         endif else begin
-          undefine, note_use
+          note_use = ''
         endelse
 
         if plot_types.slice_type eq 'kspace' then begin
@@ -1654,7 +1654,7 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
       if i eq nrow*ncol-1 and tag_exist(plot_options, 'note') then begin
         note_use = plot_options.note + ',' + type_1to2d_use + '_' + pol_1to2d_use
       endif else begin
-        undefine, note_use
+        note_use = ''
       endelse
       if plot_options.pub then plotfile_use = plotfile_1to2d_heatmap else undefine, plotfile_use
 
@@ -1723,7 +1723,7 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
       if i eq nrow*ncol-1 and tag_exist(plot_options, 'note') then begin
         note_use = plot_options.note + ',' + type_1to2d_use + '_' + pol_1to2d_use
       endif else begin
-        undefine, note_use
+        note_use = ''
      endelse
       if plot_options.pub then begin
         plotfile_use = plotfile_1to2d_contours
@@ -1765,7 +1765,7 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
       if i eq nrow*ncol-1 and tag_exist(plot_options, 'note') then begin
         note_use = plot_options.note + ',' + type_1to2d_use + '_' + pol_1to2d_use
       endif else begin
-        undefine, note_use
+        note_use = ''
       endelse
       if plot_options.pub then begin
         plotfile_use = plotfile_1to2d_noisefrac
@@ -1808,7 +1808,7 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
         if i eq nrow*ncol-1 and tag_exist(plot_options, 'note') then begin
           note_use = plot_options.note + ',' + type_1to2d_use + '_' + pol_1to2d_use
         endif else begin
-          undefine, note_use
+          note_use = ''
         endelse
         if plot_options.pub then begin
           plotfile_use = plotfile_1to2d_contour_zoom

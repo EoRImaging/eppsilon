@@ -117,7 +117,7 @@ pro make_std_plots, file_struct_arr, savefiles_2d, titles, $
       if i eq n_cubes-1 and tag_exist(plot_options, 'note') then begin
         note_use = plot_options.note
       endif else begin
-        undefine, note_use
+        note_use = ''
       endelse
       if plot_options.pub then begin
         plotfile_use = plotfile_struct.power
@@ -158,7 +158,7 @@ pro make_std_plots, file_struct_arr, savefiles_2d, titles, $
       if i eq npol*2-1 and tag_exist(plot_options, 'note') then begin
         note_use = plot_options.note + ' ' + vs_note
       endif else begin
-        undefine, note_use
+        note_use = ''
       endelse
       if plot_options.pub then begin
         plotfile_use = plotfile_struct.error
@@ -173,8 +173,8 @@ pro make_std_plots, file_struct_arr, savefiles_2d, titles, $
         kpower_2d_plots, savefiles_2d[cube_ind], multi_pos = pos_use, $
           start_multi_params = start_multi_params, plotfile = plotfile_use, /plot_sigma, $
           plot_options = plot_options, plot_2d_options = plot_2d_options, $
-          title_prefix = file_struct_arr[cube_ind].pol, wedge_amp = wedge_amp, $
-          window_num = window_num
+          title_prefix = file_struct_arr[cube_ind].pol, note = note_use, $
+          wedge_amp = wedge_amp, window_num = window_num
       endif else begin
         kpower_2d_plots, savefiles_2d[cube_ind], multi_pos = pos_use, $
           start_multi_params = start_multi_params, /plot_exp_noise, $
@@ -211,7 +211,7 @@ pro make_std_plots, file_struct_arr, savefiles_2d, titles, $
       if i eq n_cubes-1 and tag_exist(plot_options, 'note') then begin
         note_use = plot_options.note
       endif else begin
-        undefine, note_use
+        note_use = ''
       endelse
       if plot_options.pub then plotfile_use = plotfile_struct.snr else undefine, plotfile_use
 
@@ -241,7 +241,7 @@ pro make_std_plots, file_struct_arr, savefiles_2d, titles, $
         if i eq n_cubes-1 and tag_exist(plot_options, 'note') then begin
           note_use = plot_options.note + ' ' + vs_note
         endif else begin
-          undefine, note_use
+          note_use = ''
         endelse
         if plot_options.pub then begin
           plotfile_use = plotfile_struct.sim_noise
@@ -274,7 +274,7 @@ pro make_std_plots, file_struct_arr, savefiles_2d, titles, $
         if i eq n_cubes-1 and tag_exist(plot_options, 'note') then begin
           note_use = plot_options.note + ' ' + vs_note
         endif else begin
-          undefine, note_use
+          note_use = ''
         endelse
         if plot_options.pub then begin
           plotfile_use = plotfile_struct.sim_snr
@@ -311,7 +311,7 @@ pro make_std_plots, file_struct_arr, savefiles_2d, titles, $
         if i eq n_cubes-1 and tag_exist(plot_options, 'note') then begin
           note_use = plot_options.note + ' ' + vs_note
         endif else begin
-          undefine, note_use
+          note_use = ''
         endelse
         if plot_options.pub then begin
           plotfile_use = plotfile_struct.noise
@@ -345,7 +345,7 @@ pro make_std_plots, file_struct_arr, savefiles_2d, titles, $
           if i eq n_cubes-1 and tag_exist(plot_options, 'note') then begin
             note_use = plot_options.note + ' ' + vs_note
           endif else begin
-            undefine, note_use
+            note_use = ''
           endelse
           if plot_options.pub then begin
             plotfile_use = plotfile_struct.sim_noise_diff
@@ -380,7 +380,7 @@ pro make_std_plots, file_struct_arr, savefiles_2d, titles, $
         if i eq n_cubes-1 and tag_exist(plot_options, 'note') then begin
           note_use = plot_options.note + ' ' + vs_note
         endif else begin
-          undefine, note_use
+          note_use = ''
         endelse
         if plot_options.pub then begin
           plotfile_use = plotfile_struct.nnr
@@ -414,7 +414,7 @@ pro make_std_plots, file_struct_arr, savefiles_2d, titles, $
           if i eq n_cubes-1 and tag_exist(plot_options, 'note') then begin
             note_use = plot_options.note + ' ' + vs_note
           endif else begin
-            undefine, note_use
+            note_use = ''
           endelse
           if plot_options.pub then begin
             plotfile_use = plotfile_struct.sim_nnr
