@@ -17,18 +17,22 @@ pro make_std_plots, file_struct_arr, savefiles_2d, titles, $
     endfor
 
     for i=0, npol -1 do begin
-      kpower_2d_plots, savefiles_2d[i], /plot_sigma, $
+      cube_ind = ntype * i
+
+      kpower_2d_plots, savefiles_2d[cube_ind], /plot_sigma, $
         plotfile = plotfile_struct.error[i], $
         plot_options = plot_options, plot_2d_options = plot_2d_options, $
-        title_prefix = file_struct_arr[i].pol, note = plot_options.note + ' ' + vs_note, $
+        title_prefix = file_struct_arr[cube_ind].pol, note = plot_options.note + ' ' + vs_note, $
         wedge_amp = wedge_amp
     endfor
 
     for i=0, npol -1 do begin
-      kpower_2d_plots, savefiles_2d[i], /plot_exp_noise, $
+      cube_ind = ntype * i
+
+      kpower_2d_plots, savefiles_2d[cube_ind], /plot_exp_noise, $
         plotfile = plotfile_struct.noise_expval[i], $
         plot_options = plot_options, plot_2d_options = plot_2d_options, $
-        title_prefix = file_struct_arr[i].pol, note = plot_options.note + ' ' + vs_note, $
+        title_prefix = file_struct_arr[cube_ind].pol, note = plot_options.note + ' ' + vs_note, $
         wedge_amp = wedge_amp
     endfor
 
@@ -163,18 +167,19 @@ pro make_std_plots, file_struct_arr, savefiles_2d, titles, $
       endelse
 
       pol_ind = i / 2
+      cube_ind = ntype * pol_ind
 
       if i mod 2 eq 0 then begin
-        kpower_2d_plots, savefiles_2d[pol_ind], multi_pos = pos_use, $
+        kpower_2d_plots, savefiles_2d[cube_ind], multi_pos = pos_use, $
           start_multi_params = start_multi_params, plotfile = plotfile_use, /plot_sigma, $
           plot_options = plot_options, plot_2d_options = plot_2d_options, $
-          title_prefix = file_struct_arr[pol_ind].pol, wedge_amp = wedge_amp, $
+          title_prefix = file_struct_arr[cube_ind].pol, wedge_amp = wedge_amp, $
           window_num = window_num
       endif else begin
-        kpower_2d_plots, savefiles_2d[pol_ind], multi_pos = pos_use, $
+        kpower_2d_plots, savefiles_2d[cube_ind], multi_pos = pos_use, $
           start_multi_params = start_multi_params, /plot_exp_noise, $
           plot_options = plot_options, plot_2d_options = plot_2d_options, $
-          title_prefix = file_struct_arr[pol_ind].pol, note = note_use, $
+          title_prefix = file_struct_arr[cube_ind].pol, note = note_use, $
           wedge_amp = wedge_amp
       endelse
       if i eq 0 then begin

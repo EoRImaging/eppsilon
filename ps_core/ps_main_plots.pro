@@ -883,8 +883,8 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
     endelse
 
     plotfiles_2d = strarr(n_elements(plotfile_base), n_elements(kperp_density_names))
-    plotfiles_2d_error = strarr(n_elements(plotfile_base), n_elements(kperp_density_names))
-    plotfiles_2d_noise_expval = strarr(n_elements(plotfile_base), n_elements(kperp_density_names))
+    plotfiles_2d_error = strarr(n_elements(plotfile_base_wt), n_elements(kperp_density_names))
+    plotfiles_2d_noise_expval = strarr(n_elements(plotfile_base_wt), n_elements(kperp_density_names))
     plotfiles_2d_noise = strarr(n_elements(plotfile_base), n_elements(kperp_density_names))
     plotfiles_2d_sim_noise = strarr(n_elements(plotfile_base), n_elements(kperp_density_names))
     plotfiles_2d_sim_noise_diff = strarr(n_elements(plotfile_base), n_elements(kperp_density_names))
