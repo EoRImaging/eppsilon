@@ -302,14 +302,7 @@ function kspace_rebinning_2d, power_3d, kx_mpc, ky_mpc, kz_mpc, kperp_edges_mpc,
 
   undefine, reformed_power, reformed_nev, reformed_wtpower, reformed_wtnev, reformed_weights
 
-  kpar_centers_mpc = kz_mpc
-  kz_delta = kz_mpc[1] - kz_mpc[0]
   if not binning_2d_options.log_kpar then begin
-
-    ;; kpar_edges_mpc = [kz_mpc[0] - kz_delta/2d, kz_mpc + kz_delta/2d]
-
-    ;; weighted_power_2d = temporary(weighted_power_mid)
-    ;; weights_2d = temporary(weights_mid)
 
     if keyword_set(edge_on_grid) then begin
       kpar_min = floor(min(kz_mpc) / binning_2d_options.kpar_bin) * binning_2d_options.kpar_bin
