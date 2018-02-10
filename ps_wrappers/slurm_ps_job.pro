@@ -10,18 +10,29 @@ pro slurm_ps_job
   print,'obs_range = '+obs_range
 
   ;;;;;; FT Parameters
-  ;freq_ch_range=[ 161, 199 ]   ; 10MHz, z ~ 8.36 to 8.99
-;  freq_ch_range=[ 141, 179 ]   ; 10MHz, z ~ 9.83 to 10.37
-  freq_ch_range=[ 161, 238 ]   ; 20MHz, z ~ 8.36 to ??
+;  freq_ch_range=[ 125, 250 ]   ; 10MHz for the correct MWA channelization (z = 6.56 to 7.00)
+    ;; freq_ch_range deactivated for HERA 10MHz simulation
+  freq_ch_range=[ 0, 129 ]   ; 10MHz for the correct MWA channelization ( z = 7.019 to 7.5)
+;  freq_ch_range=[ 0, 65 ]   ; 5MHz for the correct MWA channelization ( z = 7.019 to 7.5)
+;  freq_ch_range=[ 130, 259 ] 
+;  freq_ch_range=[ 260, 383 ] 
   no_spec_window=1
+;  kperp_range_1dave = []    ; Set to limit kperp range for binning
+  std_power = 0    ; Use FT instead of Lomb-Scargle
+  refresh_beam=0
+
+  ;;;;; Binning options
+;  kperp_range_lambda_1dave=[9,11]
+;  kpar_range_kperppower=[0.3,0.4]
+
 
   ;;;;;; Which plots?:
   plot_stdset=1
   plot_slices=0
 ;  slice_type='raw'
 ;  uvf_plot_type='abs'	; These two only used if plot_slices=1
-  plot_1to2d=0
   plot_2d_masked=0
+  plot_1to2d=1    ; Show where the 2d bins are on the 2d plot
   plot_kpar_power=0
   plot_kperp_power=0
   plot_k0_power = 0    ; Causes issues when running with other 1d plots
