@@ -33,7 +33,7 @@ do
         w) wallclock_time=$OPTARG;;     	#Time for execution in slurm
         n) ncores=$OPTARG;;             	#Number of cores for slurm
         m) mem=$OPTARG;;                	#Memory per node for slurm
-	o) ps_only=$OPTARG;;			#Flag for skipping integration to make PS only
+    	o) ps_only=$OPTARG;;			#Flag for skipping integration to make PS only
         l) legacy=$OPTARG;;                     #Use legacy directory structure. hacky solution to a silly problem.
         h) hold=$OPTARG;;                       #Hold for a job to finish before running. Useful when running immediately after firstpass
         \?) echo "Unknown option: Accepted flags are -d (file path to fhd directory with cubes), -f (obs list or subcube path or single obsid), "
@@ -46,6 +46,8 @@ do
 done
 
 module load git/2.2.1
+
+qos='jpober-condo'
 
 #Manual shift to the next flag
 shift $(($OPTIND - 1))
@@ -73,6 +75,8 @@ then
     echo "Need to specify obs list file path or preintegrated subcubes list file path with option -f"
     exit 1
 fi
+
+echo "List: "${integrate_list}
 
 #Warning if integrate list filename does not exist
 if [ ! -e "$integrate_list" ]
@@ -135,21 +139,20 @@ else
     #If minimum not specified, start at minimum of obs_file
     if [ -z ${starting_obs} ]
     then
-       echo "Starting observation not specified: Starting at minimum of $obs_file_name"
+       echo "Starting observation not specified: Starting at minimum of $integrate_list"
        starting_obs=$min
     fi
     
     #If maximum not specified, end at maximum of obs_file
     if [ -z ${ending_obs} ]
     then
-       echo "Ending observation not specified: Ending at maximum of $obs_file_name"
+       echo "Ending observation not specified: Ending at maximum of $integrate_list"
        ending_obs=$max
     fi
     
     unset good_obs_list
     startflag=0
     endflag=0
-    #echo $starting_obs
     for obs_id in "${obs_id_array[@]}"; do
          if [ $obs_id == $starting_obs ]; then
             startflag=1
@@ -177,32 +180,12 @@ if [ "$ps_only" -ne "1" ]; then 	#only if we're integrating
 #while read line
 for line in ${integrate_list[@]}
 do
-#   if [ "$first_line_len" == 10 ]; then       ## ie., if the ObsId is of a valid length
-#      if [ "$legacy" -ne "1" ]; then
-#	  if ! ls $FHDdir/Healpix/$line*cube*.sav &> /dev/null; then
-#              echo Missing cube for obs $line
-#	      if [ -z "$hold" ]; then
-#		  exit_flag=1
-#	      fi
-#	  fi
-#      else
-#	  if ! ls $FHDdir/$line*cube*.sav &> /dev/null; then
-#	      echo Missing cube for obs $line
-#	      exit_flag=1
-#	  fi
-#      fi
-#   else
-      if [[ "$first_line" != */* ]]; then
 	 check=$FHDdir/Healpix/$line*.sav
-      else
-	 check=$FHDdir/$line*.sav
-      fi
-      if ! ls $check &> /dev/null; then
+     if ! ls $check &> /dev/null; then
 	    echo Missing save file for $line
 	    exit_flag=1
-      fi
-#   fi
-done # < $integrate_list
+     fi
+done
 fi
 
 if [ "$exit_flag" -eq 1 ]; then exit 1; fi
@@ -216,9 +199,7 @@ if [ "$first_line_len" -ge 1 ]; then
         if [ ! -d ${FHDdir}/ps ]; then mkdir ${FHDdir}/ps; fi
 	echo "Running only ps code"
 
-#        sbatch -p jpober-test --mem=$mem -t ${wallclock_time} -n ${ncores} --export=file_path_cubes=$FHDdir,nobs=$nobs,version=$version,ncores=$ncores -o $errfile -o $outfile ${PSpath}ps_wrappers/PS_list_slurm_job.sh
-
-        sbatch --mem=$mem -t ${wallclock_time} -n ${ncores} --export=file_path_cubes=$FHDdir,nobs=$nobs,version=$version,ncores=$ncores -o $errfile -o $outfile ${PSpath}ps_wrappers/PS_list_slurm_job.sh
+        sbatch --qos=$qos --mem=$mem -t ${wallclock_time} -n ${ncores} --export=file_path_cubes=$FHDdir,nobs=$nobs,version=$version,ncores=$ncores -o $errfile -o $outfile ${PSpath}ps_wrappers/PS_list_slurm_job.sh
         exit $?
     fi
 
@@ -231,7 +212,7 @@ if [ "$first_line_len" -ge 1 ]; then
         ((chunk=obs/100))		#integer division results in chunks labeled 0 (first 100), 1 (second 100), etc
         echo $line >> ${FHDdir}/Healpix/${version}_int_chunk${chunk}.txt	#put that obs id into the right txt file
         ((obs++))			#increment obs for the next run through
-    done #< $integrate_list
+    done
     nchunk=$chunk 			#number of chunks we ended up with
 else
 
@@ -241,12 +222,11 @@ else
 	for line in ${integrate_list[@]}
         do
             echo Healpix/$line >> ${FHDdir}/Healpix/${version}_int_chunk${chunk}.txt        #put that obs id into the right txt file
-        done #< $integrate_list
+        done
         nchunk=$chunk                       #number of chunks we ended up with
     
     else
         chunk=0 
-        #while read line
 	for line in ${integrate_list[@]}
         do
             echo $line >> ${FHDdir}/Healpix/${version}_int_chunk${chunk}.txt        #put that obs id into the right txt file
@@ -269,8 +249,7 @@ if [ "$nchunk" -gt "1" ]; then
 	outfile=${FHDdir}/Healpix/${version}_int_chunk${chunk}_out.log
 	errfile=${FHDdir}/Healpix/${version}_int_chunk${chunk}_err.log
 
-	#message=$(sbatch -p jpober-test --mem=$mem -t ${wallclock_time} -n ${ncores} --export=file_path_cubes=$FHDdir,obs_list_path=$chunk_obs_list,version=$version,chunk=$chunk,ncores=$ncores,legacy=$legacy -e $errfile -o $outfile ${PSpath}ps_wrappers/integrate_job.sh)
-	message=$(sbatch --mem=$mem -t ${wallclock_time} -n ${ncores} --export=file_path_cubes=$FHDdir,obs_list_path=$chunk_obs_list,version=$version,chunk=$chunk,ncores=$ncores,legacy=$legacy -e $errfile -o $outfile ${PSpath}ps_wrappers/integrate_job.sh)
+	message=$(sbatch --qos=$qos --mem=$mem -t ${wallclock_time} -n ${ncores} --export=file_path_cubes=$FHDdir,obs_list_path=$chunk_obs_list,version=$version,chunk=$chunk,ncores=$ncores,legacy=$legacy -e $errfile -o $outfile ${PSpath}ps_wrappers/integrate_job.sh)
 	message=($message)
 	if [ "$chunk" -eq 1 ]; then idlist=${message[3]}; else idlist=${idlist},${message[3]}; fi
 	echo Combined_obs_${version}_int_chunk${chunk} >> $sub_cubes_list # trick it into finding our sub cubes
@@ -280,27 +259,23 @@ if [ "$nchunk" -gt "1" ]; then
     chunk=0
     outfile=${FHDdir}/Healpix/${version}_int_chunk${chunk}_out.log
     errfile=${FHDdir}/Healpix/${version}_int_chunk${chunk}_err.log
-    message=$(sbatch --mem=$mem -t $wallclock_time -n $ncores --export=file_path_cubes=$FHDdir,obs_list_path=$sub_cubes_list,version=$version,chunk=$chunk,ncores=$ncores,legacy=$legacy -e $errfile -o $outfile ${PSpath}ps_wrappers/integrate_slurm_job.sh)
+    message=$(sbatch --qos=$qos --mem=$mem -t $wallclock_time -n $ncores --export=file_path_cubes=$FHDdir,obs_list_path=$sub_cubes_list,version=$version,chunk=$chunk,ncores=$ncores,legacy=$legacy -e $errfile -o $outfile ${PSpath}ps_wrappers/integrate_slurm_job.sh)
     message=($message)
     master_id=${message[3]}
 else
 
     # Just one integrator
-#    mv ${FHDdir}/Healpix/${version}_int_chunk1.txt ${FHDdir}/Healpix/${version}_int_chunk0.txt
     chunk=0
     chunk_obs_list=${FHDdir}/Healpix/${version}_int_chunk${chunk}.txt
     outfile=${FHDdir}/Healpix/${version}_int_chunk${chunk}_out.log
     errfile=${FHDdir}/Healpix/${version}_int_chunk${chunk}_err.log
-    #message=$(sbatch -p jpober-test --mem=$mem -t $wallclock_time -n $ncores --export=file_path_cubes=$FHDdir,obs_list_path=$chunk_obs_list,version=$version,chunk=$chunk,ncores=$ncores,legacy=$legacy -e $errfile -o $outfile ${PSpath}ps_wrappers/integrate_slurm_job.sh)
-    message=$(sbatch --mem=$mem -t $wallclock_time -n $ncores --export=file_path_cubes=$FHDdir,obs_list_path=$chunk_obs_list,version=$version,chunk=$chunk,ncores=$ncores,legacy=$legacy -e $errfile -o $outfile ${PSpath}ps_wrappers/integrate_slurm_job.sh)
+    message=$(sbatch --qos=$qos --mem=$mem -t $wallclock_time -n $ncores --export=file_path_cubes=$FHDdir,obs_list_path=$chunk_obs_list,version=$version,chunk=$chunk,ncores=$ncores,legacy=$legacy -e $errfile -o $outfile ${PSpath}ps_wrappers/integrate_slurm_job.sh)
 
-   # message=$(qsub ${hold_str} -l h_vmem=$mem,h_stack=512k,h_rt=$wallclock_time -V -v file_path_cubes=$FHDdir,obs_list_path=$chunk_obs_list,version=$version,chunk=$chunk,ncores=$ncores,legacy=$legacy -e $errfile -o $outfile -pe chost $ncores ${PSpath}ps_wrappers/integrate_job.sh)
     message=($message)
     master_id=${message[3]}
 fi
 echo $master_id
 while [ `myq | grep $master_id | wc -l` -eq 1 ]; do
-#     echo "sleeping"
      sleep 10
 done
 
@@ -312,8 +287,5 @@ if [ ! -d ${FHDdir}/ps ]; then
 fi
 
 
-#sbatch -p jpober-test --mem=$mem -t ${wallclock_time} -n ${ncores} --export=file_path_cubes=$FHDdir,nobs=$nobs,version=$version,ncores=$ncores -o $errfile -o $outfile ${PSpath}ps_wrappers/PS_list_slurm_job.sh
-sbatch --mem=$mem -t ${wallclock_time} -n ${ncores} --export=file_path_cubes=$FHDdir,nobs=$nobs,version=$version,ncores=$ncores -o $errfile -o $outfile ${PSpath}ps_wrappers/PS_list_slurm_job.sh
+sbatch --qos=$qos  --mem=$mem -t ${wallclock_time} -n ${ncores} --export=file_path_cubes=$FHDdir,nobs=$nobs,version=$version,ncores=$ncores -o $errfile -o $outfile ${PSpath}ps_wrappers/PS_list_slurm_job.sh
 
-
-#qsub -hold_jid $master_id -p $priority -l h_vmem=$mem,h_stack=512k,h_rt=$wallclock_time -V -v file_path_cubes=$FHDdir,obs_list_path=$integrate_list,version=$version,ncores=$ncores -e $errfile -o $outfile -pe chost $ncores ${PSpath}ps_wrappers/PS_list_job.sh
