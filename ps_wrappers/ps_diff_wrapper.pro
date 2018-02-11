@@ -1,7 +1,7 @@
 pro ps_diff_wrapper, folder_names_in, obs_names_in, ps_foldernames = ps_foldernames, $
     cube_types = cube_types, pols = pols,  refresh_diff = refresh_diff, $
     spec_window_types = spec_window_types, delta_uv_lambda = delta_uv_lambda, $
-    full_image = full_image, $
+    max_uv_lambda = max_uv_lambda, full_image = full_image, $
     ave_removal = ave_removal, image_window_name = image_window_name, $
     image_window_frac_size = image_window_frac_size, $
     all_type_pol = all_type_pol, freq_ch_range = freq_ch_range, $
@@ -38,11 +38,12 @@ pro ps_diff_wrapper, folder_names_in, obs_names_in, ps_foldernames = ps_folderna
   if n_elements(delta_uv_lambda) gt 1 then message, 'only 1 delta_uv_lambda allowed'
   if n_elements(full_image) gt 1 then message, 'only 1 full_image allowed'
 
-  if n_elements(image_window_name) lt 2 and n_elements(image_window_frac_size) lt 2 then begin
+  if n_elements(image_window_name) lt 2 and n_elements(image_window_frac_size) lt 2 $
+    and n_elements(max_uv_lambda) lt 2 then begin
 
     uvf_options = create_uvf_options(image_window_name = image_window_name, $
-      image_window_frac_size = image_window_frac_size, delta_uv_lambda = delta_uv_lambda,
-      full_image = full_image)
+      image_window_frac_size = image_window_frac_size, delta_uv_lambda = delta_uv_lambda, $
+      max_uv_lambda = max_uv_lambda, full_image = full_image)
 
   endif else begin
     case n_elements(image_window_name) of
@@ -70,13 +71,26 @@ pro ps_diff_wrapper, folder_names_in, obs_names_in, ps_foldernames = ps_folderna
       end
       else: message, 'only 1 or 2 image_window_frac_size values allowed'
     endcase
+    
+    case n_elements(max_uv_lambda) of
+      0:
+      1: begin
+        mul0 = max_uv_lambda
+        mul1 = max_uv_lambda
+      end
+      2: begin
+        mul0 = max_u_lambda[0]
+        mul1 = max_uv_lambda[1]
+      end
+      else: message, 'only 1 or 2 max_uv_lambda values allowed'
+    endcase
 
     uvf_options0 = create_uvf_options(image_window_name = iwn0, $
-      image_window_frac_size = iwfs0, delta_uv_lambda = delta_uv_lambda,
-      full_image = full_image)
+      image_window_frac_size = iwfs0, delta_uv_lambda = delta_uv_lambda, $
+      max_uv_lambda = mul0, full_image = full_image)
     uvf_options1 = create_uvf_options(image_window_name = iwn1, $
-      image_window_frac_size = iwfs1, delta_uv_lambda = delta_uv_lambda,
-      full_image = full_image)
+      image_window_frac_size = iwfs1, delta_uv_lambda = delta_uv_lambda, $
+      max_uv_lambda = mul1, full_image = full_image)
 
     uvf_options = [uvf_options0, uvf_options1]
   endelse
