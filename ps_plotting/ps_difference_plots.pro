@@ -82,7 +82,7 @@ pro ps_difference_plots, folder_names, obs_info, ps_foldernames = ps_foldernames
       if cube_i eq compare_files.n_cubes-1 and tag_exist(plot_options, 'note') then begin
         note_use = plot_options.note + ', ' + compare_files.kperp_density_names
       endif else begin
-        undefine, note_use
+        note_use = ''
       endelse
 
       if plot_options.pub then plotfile = compare_files.plotfiles_2d[slice_i]
@@ -150,7 +150,7 @@ pro ps_difference_plots, folder_names, obs_info, ps_foldernames = ps_foldernames
         if i eq compare_files.n_cubes-1 and tag_exist(plot_options, 'note') then begin
           note_use = plot_options.note
         endif else begin
-          undefine, note_use
+          note_use = ''
         endelse
 
         kpower_1d_plots, compare_files.savefiles_1d[j,i], window_num=window_num, $
