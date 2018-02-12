@@ -44,13 +44,26 @@ pro cube_images, folder_names, obs_info, nvis_norm = nvis_norm, $
   max_pol = n_elements(pols)-1
   max_eo = n_elements(evenodd)-1
   
+  ;; create default uvf & ps options structures
+  ;; (the filenames generated using these options are not used here)
+  uvf_options = create_uvf_options()
+  ps_options = create_ps_options()
+
   if obs_info.info_files[0] ne '' then begin
-    if keyword_set(rts) then file_struct_arr1 = rts_file_setup(obs_info.info_files[0]) $
-    else $
-      if keyword_set(casa) then file_struct_arr1 = casa_file_setup(obs_info.info_files[0]) $
-    else file_struct_arr1 = fhd_file_setup(obs_info.info_files[0])
-  endif else file_struct_arr1 = fhd_file_setup(obs_info.cube_files.(0))
-  
+    if keyword_set(rts) then begin
+      file_struct_arr1 = rts_file_setup(obs_info.info_files[0])
+    endif else begin
+      if keyword_set(casa) then begin
+        file_struct_arr1 = casa_file_setup(obs_info.info_files[0])
+      endif else begin
+        file_struct_arr1 = fhd_file_setup(obs_info.info_files[0], $
+          uvf_options = uvf_options, ps_options = ps_options)
+    endelse
+  endif else begin
+    file_struct_arr1 = fhd_file_setup(obs_info.cube_files.(0), $
+      uvf_options = uvf_options, ps_options = ps_options)
+  endelse
+
   if n_elements(obs_info.info_files) eq 2 then if obs_info.info_files[1] ne '' then begin
     if keyword_set(rts) then file_struct_arr2 = rts_file_setup(obs_info.info_files[1]) $
     else $
