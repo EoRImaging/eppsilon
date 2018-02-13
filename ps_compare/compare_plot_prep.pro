@@ -45,8 +45,8 @@ pro compare_plot_prep, folder_names, obs_info, ps_foldernames = ps_foldernames, 
 
   if count_cutoff0 gt 0 then kperp_density_names[wh_cutoff0] = '_nodensitycorr'
   if count_cutoff_n0 gt 0 then begin
-    kperp_density_names[wh_cutoff_n0] = '_kperp_density_' + ps_options.wt_measures[wh_cutoff_n0] $
-      + '_gt' + number_formatter(ps_options.wt_cutoffs[wh_cutoff_n0])
+    kperp_density_names[wh_cutoff_n0] = '_kperp_density_' + ps_options[wh_cutoff_n0].wt_measures $
+      + '_gt' + number_formatter(ps_options[wh_cutoff_n0].wt_cutoffs)
   endif
   if count_std gt 0 then kperp_density_names[wh_std] = '_dencorr'
 
@@ -210,7 +210,7 @@ pro compare_plot_prep, folder_names, obs_info, ps_foldernames = ps_foldernames, 
         same_uvf_tag = strjoin(tag_arr1[wh_same], '_')
       endif
       if count_diff gt 0 then begin
-        diff_uvf_tags = [strjoin(tag_arr1[wh_diff], '_'), strjoin(tag_arr1[tag_arr2], '_')]
+        diff_uvf_tags = [strjoin(tag_arr1[wh_diff], '_'), strjoin(tag_arr2[wh_diff], '_')]
       endif
     endelse
   endelse
@@ -231,7 +231,7 @@ pro compare_plot_prep, folder_names, obs_info, ps_foldernames = ps_foldernames, 
         same_power_tag = strjoin(tag_arr1[wh_same], '_')
       endif
       if count_diff gt 0 then begin
-        diff_power_tags = [strjoin(tag_arr1[wh_diff], '_'), strjoin(tag_arr1[tag_arr2], '_')]
+        diff_power_tags = [strjoin(tag_arr1[wh_diff], '_'), strjoin(tag_arr2[wh_diff], '_')]
       endif
     endelse
   endelse

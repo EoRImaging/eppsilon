@@ -35,14 +35,24 @@ pro ps_difference_plots, folder_names, obs_info, ps_foldernames = ps_foldernames
             savefile_diff = compare_files.mid_savefile_2d[slice_i, cube_i]
         endif else begin
 
+          wt_cutoffs = ps_options.wt_cutoffs
+          wt_measures = ps_options.wt_measures
+          if n_elements(ps_options) gt 1 then begin
+            if ps_options[1].wt_cutoffs eq ps_options[0].wt_cutoffs then begin
+              wt_cutoffs = ps_options[0].wt_cutoffs
+            endif
+            if ps_options[1].wt_measures eq ps_options[0].wt_measures then begin
+              wt_measures = ps_options[0].wt_measures
+            endif
+          endif
+
           ps_differences, compare_files.input_savefile1[slice_i, cube_i], $
             compare_files.input_savefile2[slice_i, cube_i], refresh = refresh_diff, $
             savefile_3d = compare_files.mid_savefile_3d[slice_i, cube_i], $
             savefile_2d = compare_files.mid_savefile_2d[slice_i, cube_i], $
             savefiles_1d = compare_files.savefiles_1d[cube_i,*], $
             wedge_amp = compare_files.wedge_amp, $
-            wt_cutoffs = ps_options.wt_cutoffs, $
-            wt_measures = ps_options.wt_measures, plot_options = plot_options
+            wt_cutoffs = wt_cutoffs, wt_measures = wt_measures, plot_options = plot_options
 
         endelse
       endif

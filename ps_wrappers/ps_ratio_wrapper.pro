@@ -41,7 +41,7 @@ pro ps_ratio_wrapper, folder_names_in, obs_names_in, ps_foldernames=ps_foldernam
   if n_elements(image_window_name) lt 2 and n_elements(image_window_frac_size) lt 2 then begin
 
     uvf_options = create_uvf_options(image_window_name = image_window_name, $
-      image_window_frac_size = image_window_frac_size, delta_uv_lambda = delta_uv_lambda,
+      image_window_frac_size = image_window_frac_size, delta_uv_lambda = delta_uv_lambda, $
       full_image = full_image)
 
   endif else begin
@@ -72,10 +72,10 @@ pro ps_ratio_wrapper, folder_names_in, obs_names_in, ps_foldernames=ps_foldernam
     endcase
 
     uvf_options0 = create_uvf_options(image_window_name = iwn0, $
-      image_window_frac_size = iwfs0, delta_uv_lambda = delta_uv_lambda,
+      image_window_frac_size = iwfs0, delta_uv_lambda = delta_uv_lambda, $
       full_image = full_image)
     uvf_options1 = create_uvf_options(image_window_name = iwn1, $
-      image_window_frac_size = iwfs1, delta_uv_lambda = delta_uv_lambda,
+      image_window_frac_size = iwfs1, delta_uv_lambda = delta_uv_lambda, $
       full_image = full_image)
 
     uvf_options = [uvf_options0, uvf_options1]
