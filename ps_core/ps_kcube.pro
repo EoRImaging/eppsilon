@@ -42,11 +42,12 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
   z_mpc_length = max(comov_dist_los) - min(comov_dist_los) + z_mpc_delta
   kz_mpc_range =  (2.*!pi) / (z_mpc_delta)
   kz_mpc_delta = (2.*!pi) / z_mpc_length
-  kz_mpc_orig = findgen(round(kz_mpc_range / kz_mpc_delta)) * kz_mpc_delta - kz_mpc_range/2.
-  if n_elements(n_kz) ne 0 then begin
-    if n_elements(kz_mpc_orig) ne n_kz then message, $
-      'something has gone wrong with kz_mpc calculation.'
-  endif else n_kz = n_elements(kz_mpc_orig)
+  ;; calculate this way to be correct for even or odd numbers of frequencies
+  min_kz = floor((kz_mpc_range/2)/kz_mpc_delta)*kz_mpc_delta
+  kz_mpc_orig = findgen(round(kz_mpc_range / kz_mpc_delta)) * kz_mpc_delta - min_kz
+
+  n_kz = n_elements(kz_mpc_orig)
+  if n_kz ne n_freq then message, 'something has gone wrong with kz_mpc calculation.'
 
   if input_units eq 'jansky' then begin
     ;; converting from Jy (in u,v,f) to mK*str (10^-26 * c^2 * 10^3/ (2*f^2*kb))
