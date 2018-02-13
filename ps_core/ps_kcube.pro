@@ -1358,29 +1358,61 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
 
   endif
 
+  n_val = round(kz_mpc_orig / kz_mpc_delta)
+  wh_pos = where(n_val gt 0, n_pos)
+  wh_neg = where(n_val lt 0, n_neg)
+  kz_mpc_orig[where(n_val eq 0)] = 0
+
+  kz_mpc = kz_mpc_orig[where(n_val ge 0)]
+
+  if n_pos ne n_neg then begin
+    ;; remove unmatched max k positive mode:
+    trim_max_pos = 1
+    n_val = n_val[0:-2]
+    kz_mpc = kz_mpc[0:-2]
+    wh_pos = wh_pos[0:-2]
+    n_pos = n_elements(wh_pos)
+  endif else begin
+    trim_max_pos = 0
+  endelse
+
+  n_kz = n_elements(kz_mpc)
+
   ;; now take frequency FT
   if even_freq then begin
     ;; evenly spaced, just use fft
-    ;; old ft convention
     print, "Using FFT for evenly spaced frequencies"
-    ; data_sum_ft = fft(data_sum, dimension=3) * n_freq * z_mpc_delta / (2.*!pi)
     data_sum_ft = fft(data_sum, dimension=3) * n_freq * z_mpc_delta
     sim_noise_sum_ft = fft(sim_noise_sum, dimension=3) * n_freq * z_mpc_delta
 
     ;; put k0 in middle of cube
-    data_sum_ft = shift(data_sum_ft, [0,0,n_kz/2])
-    sim_noise_sum_ft = shift(sim_noise_sum_ft, [0,0,n_kz/2])
+    data_sum_ft = shift(data_sum_ft, [0,0,n_freq/2-1])
+    sim_noise_sum_ft = shift(sim_noise_sum_ft, [0,0,n_freq/2-1])
+
+    if trim_max_pos then begin
+      ;; remove unmatched max k positive mode:
+      data_sum_ft = data_sum_ft[*, *, 0:-2]
+      sim_noise_sum_ft = sim_noise_sum_ft[*, *, 0:-2]
+    endif
 
     undefine, data_sum, sim_noise_sum
     if nfiles eq 2 then begin
       data_diff_ft = fft(data_diff, dimension=3) * n_freq * z_mpc_delta
       ;; put k0 in middle of cube
-      data_diff_ft = shift(data_diff_ft, [0,0,n_kz/2])
+      data_diff_ft = shift(data_diff_ft, [0,0,n_freq/2-1])
+      if trim_max_pos then begin
+        ;; remove unmatched max k positive mode:
+        data_diff_ft = data_diff_ft[*, *, 0:-2]
+      endif
       undefine, data_diff
 
       sim_noise_diff_ft = fft(sim_noise_diff, dimension=3) * n_freq * z_mpc_delta
       ;; put k0 in middle of cube
-      sim_noise_diff_ft = shift(sim_noise_diff_ft, [0,0,n_kz/2])
+      sim_noise_diff_ft = shift(sim_noise_diff_ft, [0,0,n_freq/2-1])
+      if trim_max_pos then begin
+        ;; remove unmatched max k positive mode:
+        sim_noise_diff_ft = sim_noise_diff_ft[*, *, 0:-2]
+      endif
       undefine, sim_noise_diff
     endif
   endif else begin
@@ -1406,13 +1438,6 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
     endif
   endelse
 
-  n_val = round(kz_mpc_orig / kz_mpc_delta)
-  kz_mpc_orig[where(n_val eq 0)] = 0
-
-  kz_mpc = kz_mpc_orig[where(n_val ge 0)]
-  n_kz = n_elements(kz_mpc)
-
-
   ;; these an and bn calculations don't match the standard
   ;; convention (they ares down by a factor of 2) but they make more sense
   ;; and remove factors of 2 we'd otherwise have in the power
@@ -1420,31 +1445,28 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
   ;; note that the 0th mode will have higher noise because there's half as many
   ;; measurements going into it
   a1_0 = data_sum_ft[*,*,where(n_val eq 0)]
-  a1_n = (data_sum_ft[*,*, where(n_val gt 0)] + data_sum_ft[*,*, reverse(where(n_val lt 0))])/2.
-  b1_n = complex(0,1) * (data_sum_ft[*,*, where(n_val gt 0)] - $
-    data_sum_ft[*,*, reverse(where(n_val lt 0))])/2.
+  a1_n = (data_sum_ft[*, *, wh_pos] + data_sum_ft[*, *, reverse(wh_neg)])/2.
+  b1_n = complex(0,1) * (data_sum_ft[*, *, wh_pos] - $
+        data_sum_ft[*, *, reverse(wh_neg)])/2.
   undefine, data_sum_ft
 
   a3_0 = sim_noise_sum_ft[*,*,where(n_val eq 0)]
-  a3_n = (sim_noise_sum_ft[*,*, where(n_val gt 0)] + $
-    sim_noise_sum_ft[*,*, reverse(where(n_val lt 0))])/2.
-  b3_n = complex(0,1) * (sim_noise_sum_ft[*,*, where(n_val gt 0)] - $
-    sim_noise_sum_ft[*,*, reverse(where(n_val lt 0))])/2.
+  a3_n = (sim_noise_sum_ft[*, *, wh_pos] + sim_noise_sum_ft[*, *, reverse(wh_neg)])/2.
+  b3_n = complex(0,1) * (sim_noise_sum_ft[*, *, wh_pos] - $
+        sim_noise_sum_ft[*, *, reverse(wh_neg)])/2.
   undefine, sim_noise_sum_ft
 
   if nfiles gt 1 then begin
     a2_0 = data_diff_ft[*,*,where(n_val eq 0)]
-    a2_n = (data_diff_ft[*,*, where(n_val gt 0)] + $
-      data_diff_ft[*,*, reverse(where(n_val lt 0))])/2.
-    b2_n = complex(0,1) * (data_diff_ft[*,*, where(n_val gt 0)] - $
-      data_diff_ft[*,*, reverse(where(n_val lt 0))])/2.
+    a2_n = (data_diff_ft[*, *, wh_pos] + data_diff_ft[*, *, reverse(wh_neg)])/2.
+    b2_n = complex(0,1) * (data_diff_ft[*, *, wh_pos] - $
+          data_diff_ft[*, *, reverse(wh_neg)])/2.
     undefine, data_diff_ft
 
     a4_0 = sim_noise_diff_ft[*,*,where(n_val eq 0)]
-    a4_n = (sim_noise_diff_ft[*,*, where(n_val gt 0)] + $
-      sim_noise_diff_ft[*,*, reverse(where(n_val lt 0))])/2.
-    b4_n = complex(0,1) * (sim_noise_diff_ft[*,*, where(n_val gt 0)] - $
-      sim_noise_diff_ft[*,*, reverse(where(n_val lt 0))])/2.
+    a4_n = (sim_noise_diff_ft[*, *, wh_pos] + sim_noise_diff_ft[*, *, reverse(wh_neg)])/2.
+    b4_n = complex(0,1) * (sim_noise_diff_ft[*, *, wh_pos] - $
+          sim_noise_diff_ft[*, *, reverse(wh_neg)])/2.
     undefine, sim_noise_diff_ft
   endif
 
@@ -1472,10 +1494,15 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
     endfor
     undefine, sum_sigma2
 
+    if trim_max_pos then begin
+      ;; remove unmatched max k positive mode:
+      sigma2_ft = sigma2_ft[*, *, 0:-2]
+    endif
+
     a5_0 = sigma2_ft[*,*,where(n_val eq 0)]
-    a5_n = (sigma2_ft[*,*, where(n_val gt 0)] + sigma2_ft[*,*, reverse(where(n_val lt 0))])/2.
-    b5_n = complex(0,1) * (sigma2_ft[*,*, where(n_val gt 0)] - $
-      sigma2_ft[*,*, reverse(where(n_val lt 0))])/2.
+    a5_n = (sigma2_ft[*, *, wh_pos] + sigma2_ft[*, *, reverse(wh_neg)])/2.
+    b5_n = complex(0,1) * (sigma2_ft[*, *, wh_pos] - $
+          sigma2_ft[*, *, reverse(wh_neg)])/2.
     undefine, sigma2_ft
 
     data_sum_1 = complex(fltarr(n_kx, n_ky, n_kz))
@@ -1614,10 +1641,6 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
     sum_sigma2 = reform(sum_sigma2, n_kx*n_ky, n_freq)
     ;; doing 2 FTs so need 2 factors of z_mpc_delta/(2*!pi).
     ;; No multiplication by N b/c don't need to fix IDL FFT
-    ;; old ft convention
-    ;    covar_cos = matrix_multiply(sum_sigma2, cos_arr^2d) * (z_mpc_delta / (2.*!pi))^2.
-    ;    covar_sin = matrix_multiply(sum_sigma2, sin_arr^2d) * (z_mpc_delta / (2.*!pi))^2.
-    ;    covar_cross = matrix_multiply(sum_sigma2, cos_arr*sin_arr) * (z_mpc_delta / (2.*!pi))^2.
     covar_cos = matrix_multiply(sum_sigma2, cos_arr^2d) * (z_mpc_delta)^2.
     covar_sin = matrix_multiply(sum_sigma2, sin_arr^2d) * (z_mpc_delta)^2.
     covar_cross = matrix_multiply(sum_sigma2, cos_arr*sin_arr) * (z_mpc_delta)^2.
