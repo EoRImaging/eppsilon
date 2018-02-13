@@ -58,6 +58,7 @@ pro cube_images, folder_names, obs_info, nvis_norm = nvis_norm, $
       endif else begin
         file_struct_arr1 = fhd_file_setup(obs_info.info_files[0], $
           uvf_options = uvf_options, ps_options = ps_options)
+      endelse
     endelse
   endif else begin
     file_struct_arr1 = fhd_file_setup(obs_info.cube_files.(0), $
