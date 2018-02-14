@@ -3,16 +3,16 @@ pro ps_differences, power_file1, power_file2, refresh = refresh, $
     wedge_amp = wedge_amp, wt_cutoffs = wt_cutoffs, wt_measures = wt_measures, $
     plot_options = plot_options
 
-  test_save = file_test(savefile_3d) *  (1 - file_test(savefile_3d, /zero_length))
-  test_save_2d = file_test(savefile_2d) *  (1 - file_test(savefile_2d, /zero_length))
-  test_save_1d = file_test(reform(savefiles_1d)) *  (1 - file_test(reform(savefiles_1d) , /zero_length))
+  test_save = file_valid(savefile_3d)
+  test_save_2d = file_valid(savefile_2d)
+  test_save_1d = file_valid(reform(savefiles_1d))
 
   if test_save eq 0 or keyword_set(refresh) then begin
 
-    if file_test(power_file1) eq 0 then begin
+    if file_valid(power_file1) eq 0 then begin
       message, 'file not found: ' + power_file1
     endif
-    if file_test(power_file2) eq 0 then begin
+    if file_valid(power_file2) eq 0 then begin
       message, 'file not found: ' + power_file2
     endif
 
