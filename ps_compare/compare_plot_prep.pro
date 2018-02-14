@@ -590,13 +590,27 @@ pro compare_plot_prep, folder_names, obs_info, ps_foldernames = ps_foldernames, 
           endfor
 
           input_savefile1[slice_i, cube_i] = file_struct_arr1[type_pol_locs[cube_i, 0]].power_savefile
-          if file_test(input_savefile1[slice_i, cube_i]) eq 0 then begin
+          file_test1 = file_valid(input_savefile1[slice_i, cube_i])
+          if not file_test1 then begin
+            this_file_struct = file_struct_arr1[type_pol_locs[cube_i, 0]]
+            file_test1 = check_old_path(this_file_struct, 'power_savefile')
+            file_struct_arr1[type_pol_locs[cube_i, 0]] = this_file_struct
+            input_savefile1[slice_i, cube_i] = file_struct_arr1[type_pol_locs[cube_i, 0]].power_savefile
+          endif
+          if file_test1 eq 0 then begin
             message, 'No power file for ' + type_pol1 + ' and info_file: ' + $
               obs_info.info_files[0]
           endif
 
           input_savefile2[slice_i, cube_i] = file_struct_arr2[type_pol_locs[cube_i, 1]].power_savefile
-          if file_test(input_savefile2[slice_i, cube_i]) eq 0 then begin
+          file_test2 = file_valid(input_savefile2[slice_i, cube_i])
+          if not file_test2 then begin
+            this_file_struct = file_struct_arr2[type_pol_locs[cube_i, 1]]
+            file_test2 = check_old_path(this_file_struct, 'power_savefile')
+            file_struct_arr2[type_pol_locs[cube_i, 1]] = this_file_struct
+            input_savefile2[slice_i, cube_i] = file_struct_arr2[type_pol_locs[cube_i, 1]].power_savefile
+          endif
+          if file_test2 eq 0 then begin
             message, 'No power file for ' + type_pol2 + ' and info_file: ' + $
               obs_info.info_files[n_elements(obs_info.info_files)-1]
           endif
@@ -608,12 +622,45 @@ pro compare_plot_prep, folder_names, obs_info, ps_foldernames = ps_foldernames, 
             file_struct_arr1[type_pol_locs[cube_i, 0]].savefilebase + $
             file_struct_arr1[type_pol_locs[cube_i, 0]].power_tag + fadd_2dbin + $
             kperp_density_names[0] + '_2dkpower.idlsave'
+
+          file_test1 = file_valid(input_savefile1[slice_i, cube_i])
+          if not file_test1 then begin
+            old_file = file_struct_arr1[type_pol_locs[cube_i, 0]].savefile_froot + $
+              file_struct_arr1[type_pol_locs[cube_i, 0]].savefilebase + $
+              file_struct_arr1[type_pol_locs[cube_i, 0]].power_tag + fadd_2dbin + $
+              kperp_density_names[0] + '_2dkpower.idlsave'
+            file_test_old = file_valid(old_file)
+            if file_test_old then begin
+              input_savefile1[slice_i, cube_i] = old_file
+              file_test1 = file_test_old
+            endif
+          endif
+          if not file_test1 then begin
+            message, '2D input file ' + input_savefile1[slice_i, cube_i] + ' not found'
+          endif
+
           input_savefile2[slice_i, cube_i] = file_struct_arr2[type_pol_locs[cube_i, 1]].savefile_froot + $
             file_struct_arr2[type_pol_locs[cube_i, 0]].subfolders.data + $
             file_struct_arr2[type_pol_locs[cube_i, 0]].subfolders.bin_2d + $
             file_struct_arr2[type_pol_locs[cube_i, 1]].savefilebase + $
             file_struct_arr2[type_pol_locs[cube_i, 1]].power_tag + fadd_2dbin + $
             kperp_density_names[n_wtcuts-1] + '_2dkpower.idlsave'
+
+            file_test2 = file_valid(input_savefile2[slice_i, cube_i])
+            if not file_test2 then begin
+              old_file = file_struct_arr2[type_pol_locs[cube_i, 1]].savefile_froot + $
+              file_struct_arr2[type_pol_locs[cube_i, 1]].savefilebase + $
+              file_struct_arr2[type_pol_locs[cube_i, 1]].power_tag + fadd_2dbin + $
+              kperp_density_names[n_wtcuts-1] + '_2dkpower.idlsave'
+              file_test_old = file_valid(old_file)
+              if file_test_old then begin
+                input_savefile2[slice_i, cube_i] = old_file
+                file_test2 = file_test_old
+              endif
+            endif
+            if not file_test2 then begin
+              message, '2D input file ' + input_savefile2[slice_i, cube_i] + ' not found'
+            endif
 
         endelse
       endelse
