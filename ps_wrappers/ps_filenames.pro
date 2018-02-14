@@ -29,14 +29,14 @@ function ps_filenames, folder_names, obs_names_in, dirty_folder = dirty_folder, 
 
   if n_elements(dirty_folder) gt 0 then begin
     if n_elements(dirty_folder) ne n_elements(folder_names) then begin
-      message, 'If dirty_folder is provided it must contain the same number of ' +
+      message, 'If dirty_folder is provided it must contain the same number of ' + $
         'elements as folder_names'
     endif
   endif
 
   if n_elements(dirty_obsname) gt 0 then begin
     if n_elements(obs_names_in) ne n_elements(dirty_obsname) then begin
-      message, 'If dirty_obsname is provided it must contain the same number ' +
+      message, 'If dirty_obsname is provided it must contain the same number ' + $
         'of elements as obs_names_in'
     endif
     if n_elements(dirty_folder) eq 0 then dirty_folder = folder_names
@@ -67,7 +67,7 @@ function ps_filenames, folder_names, obs_names_in, dirty_folder = dirty_folder, 
       folder_names = replicate(folder_names, n_filesets)
     endif
     if n_elements(folder_names) ne n_filesets then begin
-      message, 'If both folder_names and obs_names_in are arrays, the number ' +
+      message, 'If both folder_names and obs_names_in are arrays, the number ' + $
         'of elements must match'
     endif
 
@@ -75,7 +75,7 @@ function ps_filenames, folder_names, obs_names_in, dirty_folder = dirty_folder, 
       ps_foldernames = replicate(ps_foldernames, n_filesets)
     endif
     if n_elements(ps_foldernames) ne n_filesets then begin
-      message, 'If both ps_foldernames and obs_names_in are arrays, the number ' +
+      message, 'If both ps_foldernames and obs_names_in are arrays, the number ' + $
         'of elements must match'
     endif
 
@@ -97,7 +97,7 @@ function ps_filenames, folder_names, obs_names_in, dirty_folder = dirty_folder, 
       data_subdirs = replicate(data_subdirs, n_filesets)
     endif
     if n_elements(data_subdirs) ne n_filesets then begin
-      message, 'If data_subdirs is an array, the number of elements must match ' +
+      message, 'If data_subdirs is an array, the number of elements must match ' + $
         'the max of folder_names & obs_names_in'
     endif
 
@@ -106,7 +106,7 @@ function ps_filenames, folder_names, obs_names_in, dirty_folder = dirty_folder, 
         save_paths = replicate(save_paths, n_filesets)
       endif
       if n_elements(save_paths) ne n_filesets then begin
-        message, 'If save_paths is an array, the number of elements must match '+
+        message, 'If save_paths is an array, the number of elements must match ' + $
           'the max of folder_names & obs_names_in'
       endif
     endif else begin
@@ -118,7 +118,7 @@ function ps_filenames, folder_names, obs_names_in, dirty_folder = dirty_folder, 
         plot_paths = replicate(plot_paths, n_filesets)
       endif
       if n_elements(plot_paths) ne n_filesets then begin
-        message, 'If plot_paths is an array, the number of elements must match ' +
+        message, 'If plot_paths is an array, the number of elements must match ' + $
           'the max of folder_names & obs_names_in'
       endif
     endif else begin
@@ -279,10 +279,11 @@ function ps_filenames, folder_names, obs_names_in, dirty_folder = dirty_folder, 
         if n_elements(dirty_folder) gt 0 then begin
           dirtyfile_list = file_search(dirty_folder[i] + '/' + data_subdirs[i] + $
             dirty_obsname[i] + '*_image*MHz*.fits', count = n_dirtyfiles)
+
           if n_dirtyfiles eq 0 then begin
             dirtyfile_list = file_search(dirty_folder[i] + '/' + data_subdirs[i] + $
               dirty_obsname[i] + '*_image*.fits', count = n_dirtyfiles)
-
+          endif
           if n_dirtyfiles gt 0 then begin
             if dirty_obsname[i] eq '' then begin
               dirty_obsname_arr = strmid(file_basename(dirtyfile_list), 0, $
@@ -307,8 +308,10 @@ function ps_filenames, folder_names, obs_names_in, dirty_folder = dirty_folder, 
         ;; now get weights & variance files
         weightfile_list = file_search(folder_names[i] + '/' + data_subdirs[i] + $
           obs_names[i] + '*_weights*MHz*.fits', count = n_wtfiles)
-        if n_wtfiles eq 0 then weightfile_list = file_search(folder_names[i] + $
-          '/' + data_subdirs[i] + obs_names[i] + '*_weights*.fits', count = n_wtfiles)
+        if n_wtfiles eq 0 then begin
+          weightfile_list = file_search(folder_names[i] + $
+            '/' + data_subdirs[i] + obs_names[i] + '*_weights*.fits', count = n_wtfiles)
+        endif
         if not keyword_set(no_wtvar_rts) then begin
           if n_wtfiles ne n_elements(fits_files) and info_files[i] eq '' then begin
             message, 'number of weight files does not match number of datafiles'
@@ -317,8 +320,10 @@ function ps_filenames, folder_names, obs_names_in, dirty_folder = dirty_folder, 
 
         variancefile_list = file_search(folder_names[i] + '/' + data_subdirs[i] + $
           obs_names[i] + '*_variance*MHz*.fits', count = n_varfiles)
-        if n_varfiles eq 0 then variancefile_list = file_search(folder_names[i] + $
-          '/' + data_subdirs[i] + obs_names[i] + '*_variance*.fits', count = n_varfiles)
+        if n_varfiles eq 0 then begin
+          variancefile_list = file_search(folder_names[i] + $
+            '/' + data_subdirs[i] + obs_names[i] + '*_variance*.fits', count = n_varfiles)
+        endif
         if not keyword_set(no_wtvar_rts) then begin
           if n_varfiles ne n_elements(fits_files) and info_files[i] eq '' then begin
             message, 'number of variance files does not match number of datafiles'
@@ -347,7 +352,7 @@ function ps_filenames, folder_names, obs_names_in, dirty_folder = dirty_folder, 
         tag = 'fs' + number_formatter(i)
         if n_cubefiles gt 0 then begin
           cubefiles = create_struct(cubefiles, tag, cube_files)
-        endif elsebegin
+        endif else begin
           cubefiles = create_struct(cubefiles, tag, '')
         endelse
         if n_fitsfiles gt 0 then begin
@@ -1029,7 +1034,7 @@ function ps_filenames, folder_names, obs_names_in, dirty_folder = dirty_folder, 
             integrated[i]=1
             print, 'Only found uvf_input cubes, switching to uvf_input.'
             uvf_input=1
-            
+
             ;; look for beam files
             beam_file_list = file_search(folder_names[i] + '/' + data_subdirs[i] + $
               'Combined_obs_' + obs_names[i] + '*gridded*beam2*image*.sav', count = n_beamfiles)
@@ -1153,7 +1158,7 @@ function ps_filenames, folder_names, obs_names_in, dirty_folder = dirty_folder, 
             endif
             print, 'Only found uvf_input cubes, switching to uvf_input.'
             uvf_input=1
-            
+
             ;; look for beam files
             beam_file_list = file_search(folder_names[i] + '/' + data_subdirs[i] + $
               obs_names[i] + '*gridded*beam2*image*.sav', count = n_beamfiles)
@@ -1200,8 +1205,9 @@ function ps_filenames, folder_names, obs_names_in, dirty_folder = dirty_folder, 
       if ps_foldernames[0] ne ps_foldernames[1] then begin
         nominal_savepaths = folder_names + path_sep() + ps_foldernames
       endif
-    endif
-    else nominal_savepaths = folder_names
+    endif else begin
+      nominal_savepaths = folder_names
+    endelse
     if n_elements(nominal_savepaths) eq 2 then begin
       folderparts_1 = strsplit(nominal_savepaths[0], path_sep(), /extract)
       folderparts_2 = strsplit(nominal_savepaths[1], path_sep(), /extract)

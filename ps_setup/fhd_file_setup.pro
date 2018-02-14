@@ -1111,7 +1111,7 @@ function fhd_file_setup, filename, weightfile = weightfile, $
   uvf_slice_path = uvf_path + subfolders.slices
 
   ;; file for saving ra/decs of pixels & their DFT values
-  radec_file = uvf_path + subfolders.data + metadata_struct.general_filebase + $
+  radec_file = uvf_path + metadata_struct.general_filebase + $
     '_radec.idlsave'
 
   uvf_savefile = uvf_path + uvf_savefilebase + '_uvf.idlsave'
