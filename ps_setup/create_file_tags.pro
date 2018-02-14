@@ -14,7 +14,11 @@ function create_file_tags, freq_ch_range = freq_ch_range, freq_flags = freq_flag
       message, 'Spectral window type not recognized.'
     endif else begin
       ps_options.spec_window_type = window_type_list[wh_type[0]]
-      sw_tag = '_sw' + win_tag_list[wh_type[0]]
+      if win_tag_list[wh_type[0]] ne '' then begin
+        sw_tag = '_sw' + win_tag_list[wh_type[0]]
+      endif else begin
+        sw_tag = ''
+      endelse
     endelse
   endif else sw_tag = ''
 
