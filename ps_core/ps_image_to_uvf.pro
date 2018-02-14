@@ -19,15 +19,19 @@ pro ps_image_to_uvf, file_struct, n_vis_freq, kx_rad_vals, ky_rad_vals, $
   
   for i=0, nfiles-1 do begin
     test_uvf = file_valid(file_struct.uvf_savefile[i])
-    
+    if not test_uvf then test_uvf = check_old_path(file_struct, 'uvf_savefile', index=i)
+
     test_wt_uvf = file_valid(file_struct.uvf_weight_savefile[i])
-    
+    if not test_wt_uvf then test_wt_uvf = check_old_path(file_struct, 'uvf_weight_savefile', index=i)
+
     if tag_exist(file_struct, 'beam_savefile') then begin
       test_beam = file_valid(file_struct.beam_savefile[i])
+      if not test_beam then test_beam = check_old_path(file_struct, 'beam_savefile', index=i)
     endif else test_beam = 1
     
     test_radec_uvf = file_valid(file_struct.radec_file)
-    
+    if not test_radec_uvf then test_radec_uvf = check_old_path(file_struct, 'radec_file')
+
     if test_uvf eq 1 and n_elements(freq_flags) ne 0 then begin
       old_freq_mask = getvar_savefile(file_struct.uvf_savefile[i], 'freq_mask')
       if total(abs(old_freq_mask - freq_mask)) ne 0 then test_uvf = 0
@@ -50,7 +54,8 @@ pro ps_image_to_uvf, file_struct, n_vis_freq, kx_rad_vals, ky_rad_vals, $
         full_uvf_file = strjoin(strsplit(full_uvf_file, '_flag[a-z0-9]+', /regex, /extract))
       endif
       test_full_uvf = file_valid(full_uvf_file)
-      
+      if not test_full_uvf then test_full_uvf = check_old_path(file_struct, 'uvf_savefile', index=i)
+
       if test_full_uvf eq 1 then begin
         restore, full_uvf_file
         
@@ -90,7 +95,8 @@ pro ps_image_to_uvf, file_struct, n_vis_freq, kx_rad_vals, ky_rad_vals, $
           /regex, /extract))
       endif
       test_full_wt_uvf = file_valid(full_uvf_wt_file)
-      
+      if not test_full_wt_uvf then test_full_wt_uvf = check_old_path(file_struct, 'uvf_weight_savefile', index=i)
+
       if test_full_wt_uvf eq 1 then begin
         restore, full_uvf_wt_file
         
@@ -129,9 +135,11 @@ pro ps_image_to_uvf, file_struct, n_vis_freq, kx_rad_vals, ky_rad_vals, $
         ;; from uvf_savefiles
       
         test_input_uvf = intarr(2)
-        test_input_uvf [0] =  file_valid(input_uvf_files[i,0])
-        test_input_uvf [1] =  file_valid(input_uvf_files[i,1])
-        
+        test_input_uvf[0] =  file_valid(input_uvf_files[i,0])
+        if not test_input_uvf[0] then test_input_uvf[0] = check_old_path(file_struct, 'derived_uvf_inputfiles', index=i)
+        test_input_uvf[1] =  file_valid(input_uvf_files[i,1])
+        if not test_input_uvf[0] then test_input_uvf[0] = check_old_path(file_struct, 'derived_uvf_inputfiles', index=nfiles+i)
+
         if min(test_input_uvf) eq 1 and (n_elements(freq_ch_range) ne 0 $
           or n_elements(freq_flags) ne 0) then begin
           
@@ -149,7 +157,8 @@ pro ps_image_to_uvf, file_struct, n_vis_freq, kx_rad_vals, ky_rad_vals, $
                   /regex, /extract))
               endif
               test_full_uvf = file_valid(full_uvf_file)
-              
+              if not test_full_uvf then test_full_uvf = check_old_path(file_struct, 'derived_uvf_inputfiles', index=j*nfiles+i)
+
               if test_full_uvf eq 1 then begin
                 restore, full_uvf_file
                 

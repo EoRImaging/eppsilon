@@ -16,6 +16,7 @@ pro ps_power, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
   if n_elements(freq_flags) ne 0 then freq_mask = file_struct.freq_mask
 
   test_powersave = file_valid(file_struct.power_savefile)
+  if not test_powersave then test_powersave = check_old_path(file_struct, 'power_savefile')
 
   if test_powersave eq 1 and n_elements(freq_flags) ne 0 then begin
     old_freq_mask = getvar_savefile(file_struct.power_savefile, 'freq_mask')
@@ -25,6 +26,7 @@ pro ps_power, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
   if test_powersave eq 0 or refresh_options.refresh_ps then begin
 
     test_kcube = file_valid(file_struct.kcube_savefile)
+    if not test_kcube then test_kcube = check_old_path(file_struct, 'kcube_savefile')
 
     if test_kcube eq 1 and n_elements(freq_flags) ne 0 then begin
       old_freq_mask = getvar_savefile(file_struct.kcube_savefile, 'freq_mask')
