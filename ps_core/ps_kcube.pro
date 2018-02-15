@@ -1258,7 +1258,6 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
   else uv_slice2 = uv_slice
   undefine, uv_slice
 
-
   if ps_options.ave_removal then begin
 
     data_sum_mean = mean(data_sum, dimension=3)
@@ -1286,6 +1285,13 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
     norm_factor = sqrt(n_freq/total(window^2.))
 
     window = window * norm_factor
+
+    if ps_options.ave_removal then begin
+      data_sum_mean = data_sum_mean / norm_factor
+      sim_noise_sum_mean = sim_noise_sum_mean / norm_factor
+      data_diff_mean = data_diff_mean / norm_factor
+      sim_noise_diff_mean = sim_noise_diff_mean / norm_factor
+    endif
 
     window_expand = rebin(reform(window, 1, 1, n_freq), n_kx, n_ky, n_freq, /sample)
 
