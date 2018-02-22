@@ -235,7 +235,11 @@ These flags (all default=0) tell the code to redo parts of the analysis that wou
 **cable_length_axis**: This is a flag (valid values are 0/1, default=0) controlling whether or not the right axis is labelled in cable length units showing where reflections for different cable lengths would appear.
 
 
-#### colorbar range options:
+#### colorbar options:
+
+**color_type**: Can be set to 'log', 'linear' or 'integer' to control the color mapping. The default in most cases is 'log', but it is 'linear' and 'integer' for some plots that map 1d bin characteristics to 2d.
+
+##### colorbar range options:
 
 **set_data_ranges**: This is a flag (valid values are 0/1, default=1) controlling whether the default colorbar ranges is set in ps_wrapper.pro.
 
