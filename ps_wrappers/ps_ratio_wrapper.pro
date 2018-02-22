@@ -6,7 +6,8 @@ pro ps_ratio_wrapper, folder_names_in, obs_names_in, ps_foldernames=ps_foldernam
     ave_removal = ave_removal, image_window_name = image_window_name, $
     image_window_frac_size = image_window_frac_size,  diff_ratio = diff_ratio, $
     diff_range = diff_range, png = png, eps = eps, pdf = pdf, data_range = data_range, $
-    invert_colorbar = invert_colorbar, kperp_linear_axis = kperp_linear_axis, $
+    color_type = color_type, invert_colorbar = invert_colorbar, $
+    kperp_linear_axis = kperp_linear_axis, $
     kpar_linear_axis = kpar_linear_axis, sim = sim, wt_cutoffs = wt_cutoffs, $
     wt_measures = wt_measures, window_num = window_num, $
     uvf_input = uvf_input, diff_save_path = diff_save_path, plot_path = diff_plot_path
@@ -153,7 +154,7 @@ pro ps_ratio_wrapper, folder_names_in, obs_names_in, ps_foldernames=ps_foldernam
     png = png, eps = eps, pdf = pdf)
 
   plot_2d_options = create_plot_2d_options(kperp_linear_axis = kperp_linear_axis, $
-    kpar_linear_axis = kpar_linear_axis, data_range = data_range)
+    kpar_linear_axis = kpar_linear_axis, data_range = data_range, color_type = color_type)
 
   ps_ratio_plots, folder_names, obs_info, cube_types, ps_foldernames=ps_foldernames, $
     pols, all_pol_diff_ratio = all_pol_diff_ratio, freq_ch_range = freq_ch_range, $

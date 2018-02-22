@@ -9,7 +9,8 @@ pro ps_diff_wrapper, folder_names_in, obs_names_in, ps_foldernames = ps_folderna
     png = png, eps = eps, pdf = pdf, data_range = data_range, data_min_abs = data_min_abs, $
     kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, sim = sim, $
     plot_1d = plot_1d, axis_type_1d=axis_type_1d, wt_cutoffs = wt_cutoffs, $
-    wt_measures = wt_measures, window_num = window_num, invert_colorbar = invert_colorbar, $
+    wt_measures = wt_measures, window_num = window_num, $
+    color_type = color_type, invert_colorbar = invert_colorbar, $
     diff_save_path = diff_save_path, exact_obsnames = exact_obsnames, $
     uvf_input = uvf_input, plot_path = diff_plot_path
 
@@ -71,7 +72,7 @@ pro ps_diff_wrapper, folder_names_in, obs_names_in, ps_foldernames = ps_folderna
       end
       else: message, 'only 1 or 2 image_window_frac_size values allowed'
     endcase
-    
+
     case n_elements(max_uv_lambda) of
       0:
       1: begin
@@ -167,7 +168,7 @@ pro ps_diff_wrapper, folder_names_in, obs_names_in, ps_foldernames = ps_folderna
     png = png, eps = eps, pdf = pdf)
 
   plot_2d_options = create_plot_2d_options(kperp_linear_axis = kperp_linear_axis, $
-    kpar_linear_axis = kpar_linear_axis, data_range = data_range)
+    kpar_linear_axis = kpar_linear_axis, data_range = data_range, color_type = color_type)
 
   ps_difference_plots, folder_names, obs_info, ps_foldernames = ps_foldernames, $
     cube_types, pols, uvf_options = uvf_options, ps_options = ps_options, $

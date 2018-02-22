@@ -95,7 +95,8 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, $
   kperp_plot_range = kperp_plot_range, kpar_plot_range = kpar_plot_range, $
   force_kperp_axis_range = force_kperp_axis_range, force_kpar_axis_range = force_kpar_axis_range, $
   data_range = data_range, data_min_abs = data_min_abs, $
-  color_profile = color_profile, log_cut_val = log_cut_val, invert_colorbar = invert_colorbar, $
+  color_profile = color_profile, log_cut_val = log_cut_val, $
+  color_type = color_type, invert_colorbar = invert_colorbar, $
   plotfile = plotfile, png = png, eps = eps, pdf = pdf, $
   no_title = no_title, full_title = full_title, title_prefix = title_prefix, note = note, $
   norm_2d = norm_2d, norm_factor = norm_factor, $
@@ -136,6 +137,10 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, $
     endif
     if n_elements(kpar_plot_range) eq 0 and tag_exist(plot_2d_options, 'kpar_plot_range') then begin
       kpar_plot_range = plot_2d_options.kpar_plot_range
+    endif
+
+    if n_elements(color_type) eq 0 and tag_exist(plot_2d_options, 'color_type') then begin
+      color_type = plot_2d_options.color_type
     endif
 
     if n_elements(data_range) eq 0 then begin
@@ -476,14 +481,14 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, $
         units_str = textoidl(' (mK^2 !8h!X^{-3} Mpc^3)', font = font)
       endif else units_str = textoidl(' (mK^2 Mpc^3)', font = font)
 
-      color_type = 'log'
+      if n_elements(color_type) eq 0 then color_type = 'log'
       plot_title = textoidl('P_k', font = font)
       if pub then plotfile_add = '_2dkpower' + plot_exten
     end
     'weight': begin
       units_str = ''
       plot_title = 'Weights'
-      color_type = 'log'
+      if n_elements(color_type) eq 0 then color_type = 'log'
       if pub then plotfile_add = '_2dweight' + plot_exten
     end
     'sigma': begin
@@ -492,7 +497,7 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, $
         units_str = textoidl(' (mK^2 !8h!X^{-3} Mpc^3)', font = font)
       endif else units_str = textoidl(' (mK^2 Mpc^3)', font = font)
 
-      color_type = 'log'
+      if n_elements(color_type) eq 0 then color_type = 'log'
       plot_title = 'Error (sigma)'
       if pub then plotfile_add = '_2dsigma' + plot_exten
     end
@@ -502,13 +507,13 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, $
         units_str = textoidl(' (mK^2 !8h!X^{-3} Mpc^3)', font = font)
       endif else units_str = textoidl(' (mK^2 Mpc^3)', font = font)
 
-      color_type = 'log'
+      if n_elements(color_type) eq 0 then color_type = 'log'
       plot_title = 'Expected Noise'
       if pub then plotfile_add = '_2dnoise_expval' + plot_exten
     end
     'snr': begin
       units_str = ''
-      color_type = 'log'
+      if n_elements(color_type) eq 0 then color_type = 'log'
       plot_title = 'SNR (' + textoidl('P_k/\sigma', font = font) + ')'
       if pub then plotfile_add = '_2dsnr' + plot_exten
     end
@@ -518,7 +523,7 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, $
         units_str = textoidl(' (mK^2 !8h!X^{-3} Mpc^3)', font = font)
       endif else units_str = textoidl(' (mK^2 Mpc^3)', font = font)
 
-      color_type = 'log'
+      if n_elements(color_type) eq 0 then color_type = 'log'
       plot_title = 'Observed Noise'
       if pub then plotfile_add = '_2dnoise' + plot_exten
     end
@@ -528,7 +533,7 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, $
         units_str = textoidl(' (mK^2 !8h!X^{-3} Mpc^3)', font = font)
       endif else units_str = textoidl(' (mK^2 Mpc^3)', font = font)
 
-      color_type = 'log'
+      if n_elements(color_type) eq 0 then color_type = 'log'
       color_profile = 'abs'
       plot_title = '|Simulated Noise (cross)|'
       if pub then plotfile_add = '_2dsimnoise' + plot_exten
@@ -539,44 +544,44 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, $
         units_str = textoidl(' (mK^2 !8h!X^{-3} Mpc^3)', font = font)
       endif else units_str = textoidl(' (mK^2 Mpc^3)', font = font)
 
-      color_type = 'log'
+      if n_elements(color_type) eq 0 then color_type = 'log'
       plot_title = 'Simulated Noise Diff'
       if pub then plotfile_add = '_2dsimnoisediff' + plot_exten
     end
     'nnr': begin
       units_str = ''
-      color_type = 'log'
+      if n_elements(color_type) eq 0 then color_type = 'log'
       plot_title = 'Noise Ratio (' + textoidl('N_O/N_E', font = font) + ')'
       if pub then plotfile_add = '_2dnnr' + plot_exten
     end
     'sim_snr': begin
       units_str = ''
-      color_type = 'log'
+      if n_elements(color_type) eq 0 then color_type = 'log'
       ;color_profile = 'abs'
       plot_title = '|Sim Noise SNR| (|' + textoidl('Sim Noise/\sigma', font = font) + '|)'
       if pub then plotfile_add = '_2dsimsnr' + plot_exten
     end
     'sim_nnr': begin
       units_str = ''
-      color_type = 'log'
+      if n_elements(color_type) eq 0 then color_type = 'log'
       plot_title = 'Sim Noise diff Ratio (' + textoidl('N_{sim}/N_E', font = font) + ')'
       if pub then plotfile_add = '_2dsimnnr' + plot_exten
     end
     'power_ratio': begin
       units_str = ''
-      color_type = 'log'
+      if n_elements(color_type) eq 0 then color_type = 'log'
       plot_title = 'Power Ratio'
       if pub then plotfile_add = '_2dkpower' + plot_exten
     end
     'bin': begin
       units_str = '1D bin number * fill fraction'
-      color_type = 'integer'
+      if n_elements(color_type) eq 0 then color_type = 'integer'
       plot_title = ''
       if pub then plotfile_add = '_1to2dbin' + plot_exten
     end
     'noise_frac': begin
       units_str = 'Noise fraction in 1d bin'
-      color_type = 'linear'
+      if n_elements(color_type) eq 0 then color_type = 'linear'
       plot_title = ''
       if pub then plotfile_add = '_1to2dnoisefrac' + plot_exten
     end
