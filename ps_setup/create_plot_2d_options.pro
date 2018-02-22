@@ -6,7 +6,7 @@ function create_plot_2d_options, plot_2d_options = plot_2d_options,$
     delay_axis = delay_axis, cable_length_axis = cable_length_axis, $
     data_range = data_range, sigma_range = sigma_range, nev_range = nev_range, $
     snr_range = snr_range, noise_range = noise_range, nnr_range = nnr_range, $
-    slice_range = slice_range, return_new = return_new
+    slice_range = slice_range, color_type = color_type, return_new = return_new
 
   if keyword_set(delay_axis) and keyword_set(cable_length_axis) then begin
     message, 'only one of delay_axis and cable_length_axis can be set'
@@ -140,6 +140,16 @@ function create_plot_2d_options, plot_2d_options = plot_2d_options,$
     endif
     update_tags.add, 'slice_range'
     update_values.add, slice_range
+  endif
+
+  if n_elements(color_type) gt 0 then begin
+    color_type_enum = ['integer', 'log', 'linear']
+    wh_color_type = where(color_type_enum eq color_type, count_type)
+    if count_type eq 0 then begin
+      message, 'color_type must be one of: ' + color_type_enum
+    endif
+    update_tags.add, 'color_type'
+    update_values.add, color_type
   endif
 
   if n_elements(update_tags) gt 0 or keyword_set(return_new) then begin

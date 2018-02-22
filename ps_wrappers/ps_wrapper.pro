@@ -23,8 +23,9 @@ pro ps_wrapper, folder_name_in, obs_name, data_subdirs=data_subdirs, $
     plot_noise_1d = plot_noise_1d, plot_sim_noise = plot_sim_noise, $
     data_range = data_range, sigma_range = sigma_range, nev_range = nev_range, $
     slice_range = slice_range, snr_range = snr_range, noise_range = noise_range, $
-    nnr_range = nnr_range, range_1d = range_1d, log_kpar = log_kpar, $
-    log_kperp = log_kperp, kpar_bin = kpar_bin, kperp_bin = kperp_bin, $
+    nnr_range = nnr_range, range_1d = range_1d, color_type = color_type, $
+    log_kpar = log_kpar, log_kperp = log_kperp, $
+    kpar_bin = kpar_bin, kperp_bin = kperp_bin, $
     log_k1d = log_k1d, k1d_bin = k1d_bin, plot_1d_delta = plot_1d_delta, $
     plot_1d_error_bars = plot_1d_error_bars, plot_1d_nsigma = plot_1d_nsigma, $
     set_krange_1dave = set_krange_1dave, kpar_range_1dave = kpar_range_1dave, $
@@ -212,7 +213,7 @@ pro ps_wrapper, folder_name_in, obs_name, data_subdirs=data_subdirs, $
     delay_axis = delay_axis, cable_length_axis = cable_length_axis, $
     data_range = data_range, sigma_range = sigma_range, nev_range = nev_range, $
     snr_range = snr_range, noise_range = noise_range, nnr_range = nnr_range, $
-    slice_range = slice_range)
+    slice_range = slice_range, color_type = color_type)
 
   plot_1d_options = create_plot_1d_options(range_1d = range_1d, $
     plot_1d_delta = plot_1d_delta, plot_1d_error_bars = plot_1d_error_bars, $
