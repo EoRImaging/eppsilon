@@ -129,7 +129,7 @@ These flags (all default=0) tell the code to redo parts of the analysis that wou
 **kperp_bin**: This sets the size of the bins for 2D power spectra in the k_perpendicular direction. For linear binning, this is the actual binsize, for log binning, this gives the bins per decade as 1/kperp_bin. The default is the min of the kx and ky pixel size (which are usually the same) for linear binning and 0.1 for log binning (giving 10 bins per decade).
 
 
-## 1D binning keywords
+### 1D binning keywords
 
 **wedge_angles**: This is both a binning and a plotting keyword. List of angles on the sky to use for relevant binning cuts and plotted as lines on 2d power spectra. These are specified in degrees, the default list is for the MWA primary beam width and the horizon: [20, max_theta+90d] (where max_theta is the maximum zenith pointing angle since the MWA can point away from the zenith).
 
@@ -239,7 +239,7 @@ These flags (all default=0) tell the code to redo parts of the analysis that wou
 
 **color_type**: Can be set to 'log', 'linear' or 'integer' to control the color mapping. The default in most cases is 'log', but it is 'linear' and 'integer' for some plots that map 1d bin characteristics to 2d.
 
-##### colorbar range options:
+#### colorbar range options:
 
 **set_data_ranges**: This is a flag (valid values are 0/1, default=1) controlling whether the default colorbar ranges is set in ps_wrapper.pro.
 
