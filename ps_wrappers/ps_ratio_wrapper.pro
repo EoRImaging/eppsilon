@@ -5,7 +5,8 @@ pro ps_ratio_wrapper, folder_names_in, obs_names_in, ps_foldernames=ps_foldernam
     full_image = full_image, $
     ave_removal = ave_removal, image_window_name = image_window_name, $
     image_window_frac_size = image_window_frac_size,  diff_ratio = diff_ratio, $
-    diff_range = diff_range, png = png, eps = eps, pdf = pdf, data_range = data_range, $
+    diff_range = diff_range, png = png, eps = eps, pdf = pdf, $
+    data_range = data_range, $
     color_type = color_type, invert_colorbar = invert_colorbar, $
     kperp_linear_axis = kperp_linear_axis, $
     kpar_linear_axis = kpar_linear_axis, sim = sim, wt_cutoffs = wt_cutoffs, $
@@ -34,7 +35,16 @@ pro ps_ratio_wrapper, folder_names_in, obs_names_in, ps_foldernames=ps_foldernam
   wh_noinfo = where(obs_info.info_files eq '', count_noinfo)
   if count_noinfo gt 0 then message, 'Info files are not all present'
 
-  if n_elements(data_range) eq 0 then data_range = [1e-3, 1e1]
+  if n_elements(data_range) eq 0 then begin
+    if n_elements(color_type) gt 0 then begin
+      if color_type eq 'linear' then begin
+        data_range = [0, 1.2]
+      endif
+    endif
+    if n_elements(data_range) eq 0 then begin
+      data_range = [1e-3, 1e1]
+    endif
+  endif
 
   if n_elements(delta_uv_lambda) gt 1 then message, 'only 1 delta_uv_lambda allowed'
   if n_elements(full_image) gt 1 then message, 'only 1 full_image allowed'
