@@ -41,7 +41,7 @@
 ;;   pdf: flag to save plot as a pdf. Overridden by plotfile extension if present
 ;;
 ;;  Plot window & multi plot keywords
-;;   start_multi_params: structure with tags {ncol, nrow, ordering} to indicate the beginning of a multi plot.
+;;   start_multi_params: structure with tags {ncol, nrow, ordering} to indicate the start of a multi plot.
 ;;     If set, plot positions for future plots on the same page are returned in multi_pos
 ;;   multi_pos: either an output array of dimension [4, nplots] (if start_multi_params is set) containing plot positions for all plots
 ;;     or a 4 element vector input containing the plot positions for the current plot
@@ -50,7 +50,7 @@
 ;;
 ;;  Plot text keywords
 ;;   full_title: full plot title. Nothing will be added
-;;   title_prefix: Beginning of plot file, descriptors of plot type will be added
+;;   title_prefix: start of plot file, descriptors of plot type will be added
 ;;   no_title: enforce no plot title
 ;;   note: text to be written at bottom right corner of plot
 ;;   no_units: don't print units on color bar
@@ -869,16 +869,70 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, $
         color_range = [0, 255]
         n_colors = color_range[1] - color_range[0] + 1
 
-        power_log_norm = power_plot*(color_range[1] - color_range[0])/(data_range[1]-data_range[0]) + color_range[0]
+        if n_elements(color_profile) gt 0 then begin
+          if color_profile eq 'sym_log' then begin
+            color_profile_use = 'sym_lin'
+          endif
+        endif else begin
+          color_profile_use = 'lin'
+        endelse
+
+        if color_profile_use eq 'sym_lin' then begin
+          data_range = [-1, 1] * max(abs(data_range))
+
+          n_pos_neg_colors = floor((n_colors-1)/2)
+          zero_color = n_pos_neg_colors
+          neg_color_range = zero_color-1 + [-1*(n_pos_neg_colors-1), 0]
+          pos_color_range = zero_color+1 + [0,n_pos_neg_colors-1]
+
+          if (n_pos_neg_colors*2. + 1) lt n_colors then begin
+            ndiff = n_colors - (n_pos_neg_colors*2. + 1)
+            n_colors = n_colors - ndiff
+            color_range[1] = color_range[1] - ndiff
+          endif
+
+          power_log_norm = power_plot * 0.
+          wh_pos = where(power_plot gt 0d, count_pos)
+          if count_pos gt 0 then begin
+            power_log_norm[wh_pos] = power_plot[wh_pos]*(pos_color_range[1] - pos_color_range[0]) / $
+              (data_range[1]-0) + pos_color_range[0]
+          endif
+          wh_neg = where(power_plot lt 0d, count_neg)
+          if count_neg gt 0 then begin
+            power_log_norm[wh_neg] = (power_plot[wh_neg]-data_range[0])*(neg_color_range[1] - neg_color_range[0]) / $
+              (0-data_range[0]) + neg_color_range[0]
+          endif
+          wh_zero = where(power_plot eq 0, count_zero)
+          if count_zero gt 0 then begin
+            power_log_norm[wh_zero] = zero_color
+          endif
+
+        endif else begin
+          power_log_norm = (power_plot-data_range[0])*(color_range[1] - color_range[0]) / $
+            (data_range[1]-data_range[0]) + color_range[0]
+        endelse
+
+        wh_low = where(power_plot lt data_range[0], count_low)
+        if count_low gt 0 then power_log_norm[wh_low] = color_range[0]
+        wh_high = where(power_plot gt data_range[1], count_high)
+        if count_high gt 0 then power_log_norm[wh_high] = color_range[1]
 
         cb_tick_size = (data_range[1] - data_range[0])/8.
-        cb_tick_size = 10.^round(alog10(cb_tick_size))
+        ; cb_tick_size = 10.^round(alog10(cb_tick_size))
         cb_tick_vals = findgen(12) * cb_tick_size + data_range[0]
 
-        wh_large = where(cb_tick_vals gt data_range[1], count_large, complement = wh_good)
+        wh_large = where((cb_tick_vals - data_range[1]) gt 0.1, count_large, complement = wh_good)
         if count_large gt 0 then cb_tick_vals = cb_tick_vals[wh_good]
-        cb_ticknames = number_formatter(cb_tick_vals, format = '(f9.5)')
-        cb_ticks = cb_tick_vals*(color_range[1] - color_range[0])/(data_range[1]-data_range[0])
+
+        if abs(alog10(data_range[1] - data_range[0])) > 3 then begin
+          format = '(e8.1)'
+        endif else begin
+          format = '(f9.5)'
+        endelse
+
+        cb_ticknames = number_formatter(cb_tick_vals, format = format, /print_exp)
+        cb_ticks = (cb_tick_vals - cb_tick_vals[0])*(color_range[1] - color_range[0]) / $
+          (data_range[1]-data_range[0])
 
         if data_range[1] gt max(cb_tick_vals) then begin
           cb_tick_vals = [cb_tick_vals, data_range[1]]
@@ -886,10 +940,22 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, $
           cb_ticks = [cb_ticks, color_range[1]]
         endif
 
-        if not keyword_set(invert_colorbar) then begin
-          cgloadct, 25, /brewer, /reverse, BOTTOM = 0, NCOLORS = n_colors, clip = [0, 235]
+        if color_profile_use eq 'sym_lin' then begin
+          if keyword_set(invert_colorbar) then begin
+            cgLoadCT, 13, /brewer, /reverse, clip=[20, 220], bottom=0, ncolors=n_pos_neg_colors
+            cgloadct, 0, clip = [255, 255], bottom = zero_color, ncolors = 1
+            cgLoadCT, 16, /brewer, clip=[20, 220], bottom=zero_color+1, ncolors=n_pos_neg_colors
+          endif else begin
+            cgLoadCT, 16, /brewer, /reverse, clip=[20, 220], bottom=0, ncolors=n_pos_neg_colors
+            cgloadct, 0, clip = [255, 255], bottom = zero_color, ncolors = 1
+            cgLoadCT, 13, /brewer, clip=[20, 220], bottom=zero_color+1, ncolors=n_pos_neg_colors
+          endelse
         endif else begin
-          cgloadct, 25, /brewer, BOTTOM = 0, NCOLORS = n_colors, clip = [20, 255]
+          if not keyword_set(invert_colorbar) then begin
+            cgloadct, 25, /brewer, /reverse, BOTTOM = 0, NCOLORS = n_colors, clip = [0, 235]
+          endif else begin
+            cgloadct, 25, /brewer, BOTTOM = 0, NCOLORS = n_colors, clip = [20, 255]
+          endelse
         endelse
       end
     endcase
