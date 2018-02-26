@@ -98,7 +98,8 @@ function choose_pix_ft, file_struct, pixel_nums = pixel_nums, data_dims = data_d
       print, 'The Healpix image cubes do not extend much beyond the standard window size.'
     endif
 
-    if not tag_exist(uvf_options, 'image_window_frac_size') then begin
+    if tag_exist(uvf_options, 'image_window_name') and $
+        not tag_exist(uvf_options, 'image_window_frac_size') then begin
       uvf_options = create_uvf_options(uvf_options = uvf_options, $
         image_window_name = uvf_options.image_window_name, $
         image_window_frac_size = std_fraction)
