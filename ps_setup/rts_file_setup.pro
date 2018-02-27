@@ -283,7 +283,7 @@ function rts_file_setup, filename, save_path = save_path, refresh_info = refresh
               variance_savefilebase = variance_savefilebase_in, $
               freq_ch_range = freq_ch_range, freq_flags = freq_flags, freq_flag_name = freq_flag_name, $
               uvf_savefilebase = uvf_savefilebase_in, savefilebase = savefilebase_in, $
-              use_fhd_norm = use_fhd_norm, uvf_options = uvf_options, ps_options = ps_options
+              use_fhd_norm = use_fhd_norm, uvf_options = uvf_options, ps_options = ps_options)
 
           return, file_struct_arr
         endif

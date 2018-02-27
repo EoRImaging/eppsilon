@@ -131,7 +131,7 @@ function casa_file_setup, filename, pol_inc, save_path = save_path, $
               variance_savefilebase = variance_savefilebase_in, $
               freq_ch_range = freq_ch_range, freq_flags = freq_flags, freq_flag_name = freq_flag_name, $
               uvf_savefilebase = uvf_savefilebase_in, savefilebase = savefilebase_in, $
-              uvf_options = uvf_options, ps_options = ps_options
+              uvf_options = uvf_options, ps_options = ps_options)
 
           return, file_struct_arr
         endif
