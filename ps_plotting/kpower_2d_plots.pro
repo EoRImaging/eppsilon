@@ -918,7 +918,6 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, $
         if count_high gt 0 then power_log_norm[wh_high] = color_range[1]
 
         cb_tick_size = (data_range[1] - data_range[0])/8.
-        ; cb_tick_size = 10.^round(alog10(cb_tick_size))
         cb_tick_vals = findgen(12) * cb_tick_size + data_range[0]
 
         wh_large = where((cb_tick_vals - data_range[1]) gt 0.1, count_large, complement = wh_good)
