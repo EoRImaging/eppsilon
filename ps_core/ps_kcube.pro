@@ -1080,7 +1080,6 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
       endif
     endif
     if (n_elements(window_int) eq 0 or min(window_int) eq 0) then window_int = window_int_k
-    ;if keyword_set(sim) then window_int = 2.39e9 + fltarr(nfiles)
   endif else begin
 
     window_int_k = window_int * (z_mpc_delta * n_freq) * (2.*!pi)^2. / $
@@ -1201,9 +1200,6 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
     sum_sigma2 = 1./temporary(sum_weights_net)
     if count_wt0 ne 0 then sum_sigma2[wh_wt0] = 0
 
-    ;sim_noise = randomn(seed, n_kx, n_ky, n_kz) * sqrt(sum_sigma2) + $
-    ; complex(0,1) * randomn(seed, n_kx, n_ky, n_kz) * sqrt(sum_sigma2)
-
   endif else begin
     sum_weights1 = 1./sigma2_cube1
     wh_sig1_0 = where(sigma2_cube1 eq 0, count_sig1_0, complement = wh_sig1_n0)
@@ -1228,7 +1224,6 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
   mask = intarr(n_kx, n_ky, n_kz) + 1
   wh_sig0 = where(sum_sigma2 eq 0, count_sig0)
   if count_sig0 gt 0 then mask[wh_sig0] = 0
-  ;; n_pix_contrib = total(total(mask, 2), 1)
   n_freq_contrib = total(mask, 3)
   wh_nofreq = where(n_freq_contrib eq 0, count_nofreq)
   undefine, mask
@@ -1589,26 +1584,26 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
 
     data_sum_cos = complex(fltarr(n_kx, n_ky, n_kz))
     data_sum_sin = complex(fltarr(n_kx, n_ky, n_kz))
-    data_sum_cos[*, *, 0] = a1_0 ;/2. changed 3/12/14.
+    data_sum_cos[*, *, 0] = a1_0
     data_sum_cos[*, *, 1:n_kz-1] = a1_n
     data_sum_sin[*, *, 1:n_kz-1] = b1_n
 
     sim_noise_sum_cos = complex(fltarr(n_kx, n_ky, n_kz))
     sim_noise_sum_sin = complex(fltarr(n_kx, n_ky, n_kz))
-    sim_noise_sum_cos[*, *, 0] = a3_0 ;/2. changed 3/12/14.
+    sim_noise_sum_cos[*, *, 0] = a3_0
     sim_noise_sum_cos[*, *, 1:n_kz-1] = a3_n
     sim_noise_sum_sin[*, *, 1:n_kz-1] = b3_n
 
     if nfiles gt 1 then begin
       data_diff_cos = complex(fltarr(n_kx, n_ky, n_kz))
       data_diff_sin = complex(fltarr(n_kx, n_ky, n_kz))
-      data_diff_cos[*, *, 0] = a2_0 ;/2. changed 3/12/14.
+      data_diff_cos[*, *, 0] = a2_0
       data_diff_cos[*, *, 1:n_kz-1] = a2_n
       data_diff_sin[*, *, 1:n_kz-1] = b2_n
 
       sim_noise_diff_cos = complex(fltarr(n_kx, n_ky, n_kz))
       sim_noise_diff_sin = complex(fltarr(n_kx, n_ky, n_kz))
-      sim_noise_diff_cos[*, *, 0] = a4_0 ;/2. changed 3/12/14.
+      sim_noise_diff_cos[*, *, 0] = a4_0
       sim_noise_diff_cos[*, *, 1:n_kz-1] = a4_n
       sim_noise_diff_sin[*, *, 1:n_kz-1] = b4_n
     endif
@@ -1627,7 +1622,6 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
     endif
 
     ;; for new power calc, need cos2, sin2, cos*sin transforms
-    ;; have to do this in a for loop for memory's sake
     covar_cos = fltarr(n_kx, n_ky, n_kz)
     covar_sin = fltarr(n_kx, n_ky, n_kz)
     covar_cross = fltarr(n_kx, n_ky, n_kz)
@@ -1641,7 +1635,7 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
     sin_arr = sin(freq_kz_arr)
 
     sum_sigma2 = reform(sum_sigma2, n_kx*n_ky, n_freq)
-    ;; doing 2 FTs so need 2 factors of z_mpc_delta/(2*!pi).
+    ;; doing 2 FTs so need 2 factors of z_mpc_delta.
     ;; No multiplication by N b/c don't need to fix IDL FFT
     covar_cos = matrix_multiply(sum_sigma2, cos_arr^2d) * (z_mpc_delta)^2.
     covar_sin = matrix_multiply(sum_sigma2, sin_arr^2d) * (z_mpc_delta)^2.
@@ -1667,18 +1661,7 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
       undefine, mask_fewfreq
     endif
 
-    ;; cos 0 term does NOT have a different normalization
-    ;; changed 3/12/14 -- the noise is higher in 0th bin because there are only
-    ;; half as many measurements
-    ;;covar_cos[*,*,0] = covar_cos[*,*,0]/4d
     undefine, sum_sigma2, freq_kz_arr, cos_arr, sin_arr
-
-    ;; factor to go to eor theory FT convention
-    ;; I don't think I need these factors in the covariance
-    ;; matrix because I've use the FT & inv FT -- should cancel
-    ;; covar_cos = factor * temporary(covar_cos2)
-    ;; covar_sin = factor * temporary(covar_sin2)
-    ;; covar_cross = factor * temporary(covar_cross)
 
     ;; get rotation angle to diagonalize covariance block
     theta = atan(2.*covar_cross, covar_cos - covar_sin)/2.
@@ -1691,9 +1674,6 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
       covar_sin*sin_theta^2.
     sigma2_2 = covar_cos*sin_theta^2. - 2.*covar_cross*cos_theta*sin_theta + $
       covar_sin*cos_theta^2.
-
-    ;    sigma2_1 = covar_cos
-    ;    sigma2_2 = covar_sin
 
     undefine, covar_cos, covar_sin, covar_cross
 
