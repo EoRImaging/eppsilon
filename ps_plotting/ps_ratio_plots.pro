@@ -260,14 +260,14 @@ pro ps_ratio_plots, folder_names, obs_info, cube_types, pols, ps_foldernames=ps_
           compare_files.input_savefile2[slice_i]], $
           plot_options = plot_options, plot_2d_options = plot_2d_options, $
           plotfile = plotfile_2d, window_num = window_num, $
-          title_prefix = title, note = plot_options.note + ', ' + compare_files.kperp_density_names, $
+          title_prefix = compare_files.titles, note = plot_options.note + ', ' + compare_files.kperp_density_names, $
           /pwr_ratio, wedge_amp = compare_files.wedge_amp
       endif else begin
         kpower_2d_plots, [compare_files.input_savefile1[slice_i], $
           compare_files.input_savefile2[slice_i]], $
           plot_options = plot_options, plot_2d_options = plot_2d_options, $
           plotfile = plotfile_2d, window_num = window_num, $
-          title_prefix = title, note = plot_options.note + ', ' + compare_files.kperp_density_names, $
+          title_prefix = compare_files.titles, note = plot_options.note + ', ' + compare_files.kperp_density_names, $
           /pwr_ratio, wedge_amp = compare_files.wedge_amp
       endelse
 
