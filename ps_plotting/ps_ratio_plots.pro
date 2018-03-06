@@ -143,6 +143,9 @@ pro ps_ratio_plots, folder_names, obs_info, cube_types, pols, ps_foldernames=ps_
         if count0 gt 0 then power_ratio2[wh0] = 0
 
         power_diff_ratio = power_ratio1-power_ratio2
+        if n_elements(diff_range) lt 2 then begin
+          diff_range = minmax(power_diff_ratio)
+        endif
 
         if i eq 0 then begin
           ncol=3
@@ -221,10 +224,10 @@ pro ps_ratio_plots, folder_names, obs_info, cube_types, pols, ps_foldernames=ps_
             start_multi_params = start_multi_params, $
             xarr = xarr, yarr = yarr, slice_axis = slice_axis, $
             kperp_lambda_conv = kperp_lambda_conv, delay_params = delay_params, $
-            hubble_param = hubble_param, $
+            hubble_param = hubble_param, data_range = diff_range, $
             plot_options = plot_options, plot_2d_options = plot_2d_options, $
             plotfile = plotfile_2d, window_num = window_num, color_profile = 'sym_log', $, $
-            data_min_abs = diff_min_abs, full_title = title_use, /pwr_ratio, $
+            data_min_abs = diff_min_abs, full_title = title_use, $
             wedge_amp = compare_files.wedge_amp
         endif else begin
           kpower_2d_plots, power = power_diff_ratio, multi_pos = pos_use, $
@@ -232,11 +235,11 @@ pro ps_ratio_plots, folder_names, obs_info, cube_types, pols, ps_foldernames=ps_
             kperp_edges = kperp_edges, kpar_edges = kpar_edges, $
             kperp_bin = kperp_bin, kpar_bin = kpar_bin, $
             kperp_lambda_conv = kperp_lambda_conv, delay_params = delay_params, $
-            hubble_param = hubble_param, $
+            hubble_param = hubble_param, data_range = diff_range, $
             plot_options = plot_options, plot_2d_options = plot_2d_options, $
             plotfile = plotfile_2d, window_num = window_num, color_profile = 'sym_log', $
             data_min_abs = diff_min_abs, full_title = compare_files.titles[i,2], $
-            note = plot_options.note + ', ' + compare_files.kperp_density_names, /pwr_ratio, $
+            note = plot_options.note + ', ' + compare_files.kperp_density_names, $
             wedge_amp = compare_files.wedge_amp
         endelse
 
