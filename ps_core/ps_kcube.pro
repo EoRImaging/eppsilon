@@ -1282,11 +1282,14 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
   if tag_exist(ps_options, 'spec_window_type') then begin
     window = spectral_window(n_freq, type = ps_options.spec_window_type, /periodic)
 
+    ;; this is the equivilent bandwidth reduction (approx. 2 for blackman-harris)
     norm_factor = sqrt(n_freq/total(window^2.))
 
     window = window * norm_factor
 
     if ps_options.ave_removal then begin
+      ;; need to divide by bandwidth factor to account for the
+      ;; reduction in the mean that should happen when the window is applied
       data_sum_mean = data_sum_mean / norm_factor
       sim_noise_sum_mean = sim_noise_sum_mean / norm_factor
       data_diff_mean = data_diff_mean / norm_factor
