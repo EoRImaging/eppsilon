@@ -1,4 +1,4 @@
-pro mit_ps_job
+pro aws_ps_job
   ;wrapper for ps_wrapper to take in shell parameters from a grid engine bash script
 
   ;***Read-in typical parameters
