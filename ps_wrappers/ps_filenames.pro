@@ -667,6 +667,8 @@ function ps_filenames, folder_names, obs_names_in, dirty_folder = dirty_folder, 
             'Combined_obs_' + obs_names[i] + '_odd*_cube*.sav', count = n_odd)
           if n_even gt 0 or n_odd gt 0 then begin
             cube_file_list = [even_file_list, odd_file_list]
+            if n_even gt 0 and n_odd eq 0 then cube_file_list = even_file_list
+            if n_even eq 0 and n_odd gt 0 then cube_file_list = odd_file_list
             n_cubefiles = n_even + n_odd
           endif else begin
             cube_file_list = file_search(folder_names[i] + '/' + data_subdirs[i] + $
