@@ -1206,10 +1206,10 @@ function ps_filenames, folder_names, obs_names_in, dirty_folder = dirty_folder, 
     if n_filesets eq 2 then begin
       if ps_foldernames[0] ne ps_foldernames[1] then begin
         nominal_savepaths = folder_names + path_sep() + ps_foldernames
-      endif
-    endif else begin
-      nominal_savepaths = folder_names
-    endelse
+      endif else begin
+        nominal_savepaths = folder_names
+      endelse
+    endif
     if n_elements(nominal_savepaths) eq 2 then begin
       folderparts_1 = strsplit(nominal_savepaths[0], path_sep(), /extract)
       folderparts_2 = strsplit(nominal_savepaths[1], path_sep(), /extract)
