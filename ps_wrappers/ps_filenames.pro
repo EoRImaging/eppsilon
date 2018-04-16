@@ -1342,10 +1342,11 @@ function ps_filenames, folder_names, obs_names_in, dirty_folder = dirty_folder, 
 
     if n_elements(diff_save_path) gt 0 then begin
       diff_plot_path = diff_save_path + 'plots' + path_sep()
+      obs_info = create_struct(obs_info, 'diff_save_path', diff_save_path, $
+        'diff_plot_path', diff_plot_path)
     endif
     if n_elements(diff_note) gt 0 then begin
-      obs_info = create_struct(obs_info, 'diff_note', diff_note, 'diff_save_path', $
-        diff_save_path, 'diff_plot_path', diff_plot_path)
+      obs_info = create_struct(obs_info, 'diff_note', diff_note)
     endif
 
     if n_elements(name_same_parts) gt 0 then begin
