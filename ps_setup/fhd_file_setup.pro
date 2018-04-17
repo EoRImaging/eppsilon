@@ -389,10 +389,10 @@ function fhd_file_setup, filename, weightfile = weightfile, $
         if n_elements(dirty_varname) ne npol then begin
           if n_elements(dirty_varname) eq 1 then begin
             dirty_varname = replicate(dirty_varname, npol)
-          endif
-        endif else begin
-          message, 'dirtyvar must be a scalar or have the same number of elements as pol_inc'
-        endelse
+          endif else begin
+            message, 'dirtyvar must be a scalar or have the same number of elements as pol_inc'
+          endelse
+        endif
 
         type_inc = ['dirty']
         if npol gt 1 then begin
@@ -417,11 +417,10 @@ function fhd_file_setup, filename, weightfile = weightfile, $
         if n_elements(model_varname) ne npol then begin
           if n_elements(model_varname) eq 1 then begin
             model_varname = replicate(model_varname, npol)
-          endif
-        endif else begin
-          message, 'modelvar must be a scalar or have the same number of elements as pol_inc'
-        endelse
-
+          endif else begin
+            message, 'modelvar must be a scalar or have the same number of elements as pol_inc'
+          endelse
+        endif
         if n_elements(type_inc) eq 0 then begin
           type_inc = ['model']
           if npol gt 1 then begin
@@ -502,10 +501,10 @@ function fhd_file_setup, filename, weightfile = weightfile, $
     if n_elements(weight_varname) ne npol then begin
       if n_elements(weight_varname) eq 1 then begin
         weight_varname = replicate(weight_varname, npol)
-      endif
-    endif else begin
-      message, 'weightvar must be a scalar or have the same number of elements as pol_inc'
-    endelse
+      endif else begin
+        message, 'weightvar must be a scalar or have the same number of elements as pol_inc'
+      endelse
+    endif
     if n_elements(variancevar) eq 0 then begin
       if keyword_set(uvf_input) then begin
         variance_varname = strupcase('variance_uv_arr')
@@ -520,11 +519,10 @@ function fhd_file_setup, filename, weightfile = weightfile, $
     if n_elements(variance_varname) ne npol then begin
       if n_elements(variance_varname) eq 1 then begin
         variance_varname = replicate(variance_varname, npol)
-      endif
-    endif else begin
-      message, 'variancevar must be a scalar or have the same number of elements as pol_inc'
-    endelse
-
+      endif else begin
+        message, 'variancevar must be a scalar or have the same number of elements as pol_inc'
+      endelse
+    endif
     if n_elements(beamvar) eq 0 then begin
       if keyword_set(uvf_input) then begin
         if max(pol_exist) gt 0 then begin
@@ -541,20 +539,22 @@ function fhd_file_setup, filename, weightfile = weightfile, $
       endelse
     endif else beam_varname = beamvar
     if n_elements(beam_varname) ne npol then begin
-      if n_elements(beam_varname) eq 1 then beam_varname = replicate(beam_varname, npol)
-    endif else begin
-      message, 'beamvar must be a scalar or have the same number of elements as pol_inc'
-    endelse
-
+      if n_elements(beam_varname) eq 1 then begin
+        beam_varname = replicate(beam_varname, npol)
+      endif else begin
+        message, 'beamvar must be a scalar or have the same number of elements as pol_inc'
+      endelse
+    endif
     if n_elements(pixelvar) eq 0 then begin
       pixel_varname = strupcase('hpx_inds')
     endif else pixel_varname = pixelvar
     if n_elements(pixel_varname) ne npol then begin
-      if n_elements(pixel_varname) eq 1 then pixel_varname = replicate(pixel_varname, npol)
-    endif else begin
-      message, 'pixelvar must be a scalar or have the same number of elements as pol_inc'
-    endelse
-
+      if n_elements(pixel_varname) eq 1 then begin
+        pixel_varname = replicate(pixel_varname, npol)
+      endif else begin
+        message, 'pixelvar must be a scalar or have the same number of elements as pol_inc'
+      endelse
+    endif
     n_obs = lonarr(npol, nfiles)
     for j=0, nfiles*npol-1 do begin
       pol_i = j mod npol
