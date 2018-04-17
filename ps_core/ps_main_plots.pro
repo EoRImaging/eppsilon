@@ -1022,16 +1022,15 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
        slice_type = 'sumdiff'
        plot_types = create_plot_types(plot_types = plot_types, slice_type = slice_type)
     endif
-    slice_type_enum = ['raw', 'divided', 'kspace', 'sumdiff', 'weights']
+    slice_type_enum = ['raw', 'divided', 'kspace', 'sumdiff', 'weights', 'variance']
 
     wh_slice_type = where(slice_type_enum eq plot_types.slice_type, count_slice_type)
     if count_slice_type eq 0 then begin
-      print, 'slice_type not recognized, using default'
-      plot_types.slice_type = 'sumdiff'
+      message, 'slice_type not recognized. options are: ' + strjoin(slice_type_enum, ', ')
     endif
 
     if plot_types.slice_type ne 'kspace' then begin
-      uvf_type_enum = ['abs', 'phase', 'real', 'imaginary', 'weights']
+      uvf_type_enum = ['abs', 'phase', 'real', 'imaginary', 'weights', 'variance']
       if not tag_exist(plot_types, 'uvf_plot_type') then begin
         uvf_plot_type = 'abs'
         plot_types = create_plot_types(plot_types = plot_types, uvf_plot_type = uvf_plot_type)
@@ -1055,16 +1054,6 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
           transpose([[plotfile_base +'_even_'], [plotfile_base +'_odd_']]) + $
           '_' + plot_types.slice_type
         case plot_types.slice_type of
-          'raw': begin
-            uf_slice_plotfile = indv_plotfile_base + '_uf_plane' + slice_plotfile_end
-            vf_slice_plotfile = indv_plotfile_base + '_vf_plane' + slice_plotfile_end
-            uv_slice_plotfile = indv_plotfile_base + '_uv_plane' + slice_plotfile_end
-          end
-          'divided': begin
-            uf_slice_plotfile = indv_plotfile_base + '_uf_plane' + slice_plotfile_end
-            vf_slice_plotfile = indv_plotfile_base + '_vf_plane' + slice_plotfile_end
-            uv_slice_plotfile = indv_plotfile_base + '_uv_plane' + slice_plotfile_end
-          end
           'sumdiff': begin
             sumdiff_plotfile_base = plotfile_path + file_struct_arr[0].subfolders.slices + $
               [plotfile_base +'_sum_',plotfile_base +'_diff_'] + $
@@ -1073,17 +1062,18 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
             vf_slice_plotfile = sumdiff_plotfile_base + '_vf_plane' + slice_plotfile_end
             uv_slice_plotfile = sumdiff_plotfile_base + '_uv_plane' + slice_plotfile_end
           end
-          'weights': begin
+          'kspace': begin
+            uf_slice_plotfile = slice_plotfile_base + '_xz_plane' + slice_plotfile_end
+            vf_slice_plotfile = slice_plotfile_base + '_yz_plane' + slice_plotfile_end
+            uv_slice_plotfile = slice_plotfile_base + '_xy_plane' + slice_plotfile_end
+          end
+          else: begin
             uf_slice_plotfile = indv_plotfile_base + '_uf_plane' + slice_plotfile_end
             vf_slice_plotfile = indv_plotfile_base + '_vf_plane' + slice_plotfile_end
             uv_slice_plotfile = indv_plotfile_base + '_uv_plane' + slice_plotfile_end
           end
-          'kspace': begin
-            uf_slice_plotfile = slice_plotfile_base + '_uf_plane' + slice_plotfile_end
-            vf_slice_plotfile = slice_plotfile_base + '_vf_plane' + slice_plotfile_end
-            uv_slice_plotfile = slice_plotfile_base + '_uv_plane' + slice_plotfile_end
-          end
         endcase
+
 
       endif else begin
         if plot_types.slice_type ne 'kspace' then begin
@@ -1099,12 +1089,10 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
 
     endif else begin
       case plot_types.slice_type of
-        'raw': slice_titles = file_struct_arr.uvf_label
-        'divided': slice_titles = file_struct_arr.uvf_label
         'sumdiff': slice_titles = ['sum ' + file_struct_arr.file_label, 'diff ' + $
           file_struct_arr.file_label]
-        'weights': slice_titles = file_struct_arr.uvf_label
         'kspace': slice_titles = file_struct_arr.file_label
+        else: slice_titles = file_struct_arr.uvf_label
       endcase
     endelse
 
@@ -1131,6 +1119,12 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
         uf_slice_savefile = file_struct_arr.uf_weight_savefile
         vf_slice_savefile = file_struct_arr.vf_weight_savefile
         uv_slice_savefile = file_struct_arr.uv_weight_savefile
+        slice_titles = file_struct_arr.uvf_label
+      end
+      'variance': begin
+        uf_slice_savefile = file_struct_arr.uf_var_savefile
+        vf_slice_savefile = file_struct_arr.vf_var_savefile
+        uv_slice_savefile = file_struct_arr.uv_var_savefile
         slice_titles = file_struct_arr.uvf_label
       end
       'kspace': begin

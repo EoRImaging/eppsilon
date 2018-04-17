@@ -1158,10 +1158,20 @@ function fhd_file_setup, filename, weightfile = weightfile, $
     endfor
   endfor
 
+  var_savefilebase = strarr(npol, nfiles)
+  for i=0, n_elements(weight_savefilebase)-1 do begin
+    var_savefilebase[i] = strjoin(strsplit(weight_savefilebase[i], 'weights', /regex, /extract, $
+      /preserve_null), 'variance')
+  endfor
+
   uvf_weight_savefile = uvf_path + weight_savefilebase + '_uvf.idlsave'
   uf_weight_savefile = uvf_slice_path + weight_savefilebase + '_uf_plane.idlsave'
   vf_weight_savefile = uvf_slice_path + weight_savefilebase + '_vf_plane.idlsave'
   uv_weight_savefile = uvf_slice_path + weight_savefilebase + '_uv_plane.idlsave'
+
+  uf_var_savefile = uvf_slice_path + var_savefilebase + '_uf_plane.idlsave'
+  vf_var_savefile = uvf_slice_path + var_savefilebase + '_vf_plane.idlsave'
+  uv_var_savefile = uvf_slice_path + var_savefilebase + '_uv_plane.idlsave'
 
   for pol_i=0, npol-1 do begin
     for type_i=0, ntypes-1 do begin
@@ -1218,6 +1228,9 @@ function fhd_file_setup, filename, weightfile = weightfile, $
         uf_weight_savefile:reform(uf_weight_savefile[pol_i, *]), $
         vf_weight_savefile:reform(vf_weight_savefile[pol_i, *]), $
         uv_weight_savefile:reform(uv_weight_savefile[pol_i, *]), $
+        uf_var_savefile:reform(uf_var_savefile[pol_i, *]), $
+        vf_var_savefile:reform(vf_var_savefile[pol_i, *]), $
+        uv_var_savefile:reform(uv_var_savefile[pol_i, *]), $
         xz_savefile:xz_savefile[pol_i,type_i], $
         yz_savefile:yz_savefile[pol_i,type_i], $
         xy_savefile:xy_savefile[pol_i,type_i], $

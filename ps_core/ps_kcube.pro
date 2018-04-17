@@ -903,6 +903,7 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
   for i=0, nfiles-1 do begin
     if i eq 0 then data_cube = data_cube1 else data_cube = data_cube2
     if i eq 0 then weights_cube = weights_cube1 else weights_cube = weights_cube2
+    if i eq 0 then var_cube = variance_cube1 else var_cube = variance_cube2
 
     uf_tot = total(total(abs(weights_cube),3),1)
     wh_uf_n0 = where(uf_tot gt 0, count_uf_n0)
@@ -917,7 +918,11 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
     uf_weight_slice = uvf_slice(weights_cube, kx_mpc, ky_mpc, frequencies, $
       kperp_lambda_conv, delay_params, hubble_param, slice_axis = 1, $
       slice_inds = uf_slice_ind, slice_savefile = file_struct.uf_weight_savefile[i])
-    undefine, uf_slice, uf_weight_slice
+
+    uf_var_slice = uvf_slice(var_cube, kx_mpc, ky_mpc, frequencies, $
+      kperp_lambda_conv, delay_params, hubble_param, slice_axis = 1, $
+      slice_inds = uf_slice_ind, slice_savefile = file_struct.uf_var_savefile[i])
+    undefine, uf_slice, uf_weight_slice, uf_var_slice
 
     vf_tot = total(total(abs(weights_cube),3),2)
     wh_vf_n0 = where(vf_tot gt 0, count_vf_n0)
@@ -933,8 +938,12 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
       kperp_lambda_conv, delay_params, hubble_param, slice_axis = 0, $
       slice_inds = vf_slice_ind, slice_savefile = file_struct.vf_weight_savefile[i])
 
+    vf_var_slice = uvf_slice(var_cube, kx_mpc, ky_mpc, frequencies, $
+      kperp_lambda_conv, delay_params, hubble_param, slice_axis = 0, $
+      slice_inds = vf_slice_ind, slice_savefile = file_struct.vf_var_savefile[i])
+
     if max(abs(vf_slice)) eq 0 then message, 'vf data slice is entirely zero'
-    undefine, vf_slice, vf_weight_slice
+    undefine, vf_slice, vf_weight_slice, vf_var_slice
 
     uv_tot = total(total(abs(weights_cube),2),1)
     wh_uv_n0 = where(uv_tot gt 0, count_uv_n0)
@@ -950,10 +959,14 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
       kperp_lambda_conv, delay_params, hubble_param, slice_axis = 2, $
       slice_inds = uv_slice_ind, slice_savefile = file_struct.uv_weight_savefile[i])
 
-    if max(abs(uv_slice)) eq 0 then message, 'uv data slice is entirely zero'
-    undefine, uv_slice, uv_weight_slice
+    uv_var_slice = uvf_slice(var_cube, kx_mpc, ky_mpc, frequencies, $
+      kperp_lambda_conv, delay_params, hubble_param, slice_axis = 2, $
+      slice_inds = uv_slice_ind, slice_savefile = file_struct.uv_var_savefile[i])
 
-    undefine, data_cube, weights_cube
+    if max(abs(uv_slice)) eq 0 then message, 'uv data slice is entirely zero'
+    undefine, uv_slice, uv_weight_slice, uv_var_slice
+
+    undefine, data_cube, weights_cube, var_cube
   endfor
 
   if healpix or not keyword_set(uvf_input) then begin
