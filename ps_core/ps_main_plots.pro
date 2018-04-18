@@ -1135,6 +1135,16 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
       end
     endcase
 
+    if plot_types.slice_type eq 'weights' or plot_types.slice_type eq 'variance' then begin
+      ;; we don't need separate ones for dirty, model, residual
+      wh_use = where(strpos(slice_titles, 'dirty')>0)
+
+      uf_slice_savefile = uf_slice_savefile[wh_use]
+      vf_slice_savefile = uf_slice_savefile[wh_use]
+      uv_slice_savefile = uv_slice_savefile[wh_use]
+      slice_titles = slice_titles[wh_use]
+    endif
+
   endif
 
   if plot_options.pub then font = 1 else font = -1
@@ -1164,7 +1174,12 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
   if plot_types.plot_slices then begin
 
     if plot_options.pub and plot_options.individual_plots then begin
-      if plot_types.slice_type eq 'kspace' then nplots = ntype*npol else nplots = ntype*nfiles*npol
+      case plot_types.slice_type of
+        'kspace': nplots = ntype*npol
+        'weights': nplots = nfiles*npol
+        'variance': nplots = nfiles*npol
+        else: nplots = ntype*nfiles*npol
+      endcase
 
       for i=0, nplots-1 do begin
 
@@ -1219,20 +1234,37 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
       if plot_2d_options.kperp_linear_axis then begin
         ;; aspect ratio doesn't work out for kperp_linear with multiple rows
         nrow = 1
-        if plot_types.slice_type eq 'kspace' then ncol = ntype*npol else ncol = ntype*nfiles*npol
+
+        case plot_types.slice_type of
+          'kspace': ncol = ntype*npol
+          'weights': ncol = nfiles*npol
+          'variance': ncol = nfiles*npol
+          else: ncol = ntype*nfiles*npol
+        endcase
       endif else begin
-        if plot_types.slice_type eq 'kspace' then begin
-          ncol=ntype
-          nrow = npol
-        endif else begin
-          if ntype gt 1 then begin
+        case plot_types.slice_type of
+          'kspace': begin
             ncol=ntype
-            nrow = npol*nfiles
-          endif else begin
-            ncol=ntype*nfiles
             nrow = npol
-          endelse
-        endelse
+          end
+          'weights': begin
+            ncol = nfiles
+            nrow = npol
+          end
+          'variance': begin
+            ncol = nfiles
+            nrow = npol
+          end
+          else: begin
+            if ntype gt 1 then begin
+              ncol=ntype
+              nrow = npol*nfiles
+            endif else begin
+              ncol=ntype*nfiles
+              nrow = npol
+            endelse
+        end
+        endcase
       endelse
 
       if plot_types.slice_type eq 'raw' or plot_types.slice_type eq 'divided' then begin
