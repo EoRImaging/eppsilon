@@ -1030,7 +1030,7 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
     endif
 
     if plot_types.slice_type ne 'kspace' then begin
-      uvf_type_enum = ['abs', 'phase', 'real', 'imaginary', 'weights', 'variance']
+      uvf_type_enum = ['abs', 'phase', 'real', 'imaginary', 'weights']
       if not tag_exist(plot_types, 'uvf_plot_type') then begin
         uvf_plot_type = 'abs'
         plot_types = create_plot_types(plot_types = plot_types, uvf_plot_type = uvf_plot_type)
@@ -1140,7 +1140,7 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
       wh_use = where(strpos(slice_titles, 'dirty')>0)
 
       uf_slice_savefile = uf_slice_savefile[wh_use]
-      vf_slice_savefile = uf_slice_savefile[wh_use]
+      vf_slice_savefile = vf_slice_savefile[wh_use]
       uv_slice_savefile = uv_slice_savefile[wh_use]
       slice_titles = slice_titles[wh_use]
     endif
