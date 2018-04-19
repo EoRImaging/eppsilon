@@ -104,7 +104,7 @@ pro uvf_slice_plot, slice_savefile, multi_pos = multi_pos, $
     type = 'phase'
   endelse
   wh = where(type_enum eq type, count)
-  if count eq 0 then message, 'unknown type. Use one of: ' + print, strjoin(type_enum, ', ')
+  if count eq 0 then message, 'unknown type. Use one of: ' + strjoin(type_enum, ', ')
 
   if keyword_set(image_space) and keyword_set(baseline_axis) then begin
     print, 'baseline_axis keyword cannot be used with image_space keyword'
