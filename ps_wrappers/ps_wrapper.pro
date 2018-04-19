@@ -39,7 +39,7 @@ pro ps_wrapper, folder_name_in, obs_name, data_subdirs=data_subdirs, $
     kperp_plot_range = kperp_plot_range, kperp_lambda_plot_range = kperp_lambda_plot_range, $
     kpar_plot_range = kpar_plot_range, baseline_axis = baseline_axis, $
     delay_axis = delay_axis, cable_length_axis = cable_length_axis, hinv = hinv, $
-    plot_wedge_line = plot_wedge_line, wedge_angles = wedge_angles, $
+    plot_wedge_line = plot_wedge_line, wedge_angles = wedge_angles, wedge_names = wedge_names, $
     coarse_harm_width = coarse_harm_width, plot_eor_1d = plot_eor_1d, $
     plot_flat_1d = plot_flat_1d, no_text_1d = no_text_1d, save_path = save_path, $
     savefilebase = savefilebase, plot_path = plot_path, plot_filebase = plot_filebase, $
@@ -187,6 +187,7 @@ pro ps_wrapper, folder_name_in, obs_name, data_subdirs=data_subdirs, $
     log_kpar = log_kpar, log_kperp = log_kperp, kpar_bin = kpar_bin, kperp_bin = kperp_bin)
 
   binning_1d_options = create_binning_1d_options(wedge_angles = wedge_angles, $
+    wedge_names = wedge_names, $
     coarse_harm_width = coarse_harm_width, log_k = log_k1d, k_bin = k1d_bin, $
     kpar_range_1dave = kpar_range_1dave, kperp_range_1dave = kperp_range_1dave, $
     kperp_range_lambda_1dave = kperp_range_lambda_1dave, kx_range_1dave = kx_range_1dave, $

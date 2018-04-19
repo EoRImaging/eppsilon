@@ -101,46 +101,58 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
     endelse
   endif
 
-  if plot_2d_options.plot_wedge_line then begin
+  if plot_2d_options.plot_wedge_line or tag_exist(binning_1d_options, 'wedge_angles') then begin
     z0_freq = 1420.40 ;; MHz
     redshifts = z0_freq/file_struct_arr[0].frequencies - 1
     mean_redshift = mean(redshifts)
 
     cosmology_measures, mean_redshift, wedge_factor = wedge_factor, hubble_param = hubble_param
-    ;; assume 20 degrees from pointing center to first null
-    source_dist = 20d * !dpi / 180d
-    fov_amp = wedge_factor * source_dist
-
-    ;; calculate angular distance to horizon
-    horizon_amp = wedge_factor * ((file_struct_arr[0].max_theta+90d) * !dpi / 180d)
-
-    wedge_amps = [fov_amp, horizon_amp]
-    wedge_names = ['fov', 'horizon']
-    if tag_exist(binning_1d_options, 'wedge_angles') gt 0 then begin
+    if tag_exist(binning_1d_options, 'wedge_angles') then begin
       if min(binning_1d_options.wedge_angles) le 0 or $
           max(binning_1d_options.wedge_angles) ge 180 then begin
         message, 'wedge_angles must be in degrees and between 0 & 180'
       endif
       wedge_amps = [wedge_factor * (binning_1d_options.wedge_angles*!dpi / 180d)]
-      wedge_names = [number_formatter(binning_1d_options.wedge_angles) + 'deg']
-    endif
-    binning_1d_options = create_binning_1d_options(binning_1d_options = binning_1d_options, $
-      wedge_amps = wedge_amps, wedge_names = wedge_names)
 
-    if tag_exist(binning_1d_options, 'coarse_harm_width') then begin
-      harm_freq = 1.28
-      if n_elements(freq_ch_range) gt 0 then begin
-        freqs_use = file_struct_arr[0].frequencies[freq_ch_range[0]:freq_ch_range[1]]
+      if tag_exist(binning_1d_options, 'wedge_names') then begin
+        if n_elements(binning_1d_options.wedge_names) ne n_elements(binning_1d_options.wedge_angles) then begin
+          message, 'number of wedge_names must match number of wedge_angles'
+        endif
       endif else begin
-        freqs_use = file_struct_arr[0].frequencies
+        wedge_names = [number_formatter(binning_1d_options.wedge_angles) + 'deg']
+        binning_1d_options = create_binning_1d_options(binning_1d_options = binning_1d_options, $
+          wedge_names = wedge_names)
       endelse
-
-      bandwidth = max(freqs_use) - min(freqs_use) + freqs_use[1] - freqs_use[0]
-      coarse_harm0 = round(bandwidth / harm_freq)
       binning_1d_options = create_binning_1d_options(binning_1d_options = binning_1d_options, $
-        coarse_harm0 = coarse_harm0)
-    endif
+        wedge_amps = wedge_amps)
+    endif else begin
+      ;; use standard angles for MWA
+      ;; assume 20 degrees from pointing center to first null
+      source_dist = 20d * !dpi / 180d
+      fov_amp = wedge_factor * source_dist
 
+      ;; calculate angular distance to horizon (can be >90 for non-zenith pointings)
+      horizon_amp = wedge_factor * ((file_struct_arr[0].max_theta+90d) * !dpi / 180d)
+
+      wedge_amps = [fov_amp, horizon_amp]
+      wedge_names = ['fov', 'horizon']
+      binning_1d_options = create_binning_1d_options(binning_1d_options = binning_1d_options, $
+        wedge_amps = wedge_amps, wedge_names = wedge_names)
+    endelse
+  endif
+
+  if tag_exist(binning_1d_options, 'coarse_harm_width') then begin
+    harm_freq = 1.28
+    if n_elements(freq_ch_range) gt 0 then begin
+      freqs_use = file_struct_arr[0].frequencies[freq_ch_range[0]:freq_ch_range[1]]
+    endif else begin
+      freqs_use = file_struct_arr[0].frequencies
+    endelse
+
+    bandwidth = max(freqs_use) - min(freqs_use) + freqs_use[1] - freqs_use[0]
+    coarse_harm0 = round(bandwidth / harm_freq)
+    binning_1d_options = create_binning_1d_options(binning_1d_options = binning_1d_options, $
+      coarse_harm0 = coarse_harm0)
   endif
 
   if n_elements(pol_inc) gt 0 or n_elements(type_inc) gt 0 then begin
