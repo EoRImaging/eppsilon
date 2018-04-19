@@ -911,10 +911,11 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
     for j=0, n_elements(kperp_density_names)-1 do begin
       this_fadd = fadd_2dbin + kperp_density_names[j]
       this_begin = plotfile_path_2d + plotfile_base + this_fadd
+      this_begin_wt = plotfile_path_2d + plotfile_base_wt + this_fadd
       this_end = plot_fadd + plot_options.plot_exten
 
       plotfiles_2d[*,j] = this_begin + '_2dkpower' +  this_end
-      plotfiles_2d_error[*,j] = this_begin + '_2derror' + this_end
+      plotfiles_2d_error[*,j] = this_begin_wt + '_2derror' + this_end
       if plot_options.individual_plots then begin
         plotfiles_2d_noise_expval[*,j] = plotfile_path_2d + plotfile_base_wt + $
           this_fadd + '_2dnoise_expval' + this_end
