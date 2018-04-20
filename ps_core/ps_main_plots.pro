@@ -76,6 +76,8 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
   endif
 
   if nfiles gt 1 then begin
+    print, 'n_vis difference between even & odd cubes: ' + $
+      number_formatter((file_struct_arr[0].n_vis[1]-file_struct_arr[0].n_vis[0]))
     print, 'n_vis % difference between even & odd cubes: ' + $
       number_formatter((file_struct_arr[0].n_vis[1]-file_struct_arr[0].n_vis[0])*100 / $
       mean(file_struct_arr[0].n_vis))
