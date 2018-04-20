@@ -1023,14 +1023,21 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
        slice_type = 'sumdiff'
        plot_types = create_plot_types(plot_types = plot_types, slice_type = slice_type)
     endif
-    slice_type_enum = ['raw', 'divided', 'kspace', 'sumdiff', 'weights', 'variance']
+    slice_type_enum = ['raw', 'divided', 'sumdiff', 'weights', 'variance', $
+                       'power', 'var_power']
 
     wh_slice_type = where(slice_type_enum eq plot_types.slice_type, count_slice_type)
     if count_slice_type eq 0 then begin
       message, 'slice_type not recognized. options are: ' + strjoin(slice_type_enum, ', ')
     endif
 
-    if plot_types.slice_type ne 'kspace' then begin
+    if plot_types.slice_type eq 'power' or plot_types.slice_type eq 'var_power' then begin
+      slice_space = 'kspace'
+    endif else begin
+      slice_space = 'uvf'
+    endelse
+
+    if slice_space eq 'uvf' then begin
       uvf_type_enum = ['abs', 'phase', 'real', 'imaginary', 'weights']
       if not tag_exist(plot_types, 'uvf_plot_type') then begin
         uvf_plot_type = 'abs'
@@ -1054,30 +1061,26 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
         indv_plotfile_base = plotfile_path + file_struct_arr[0].subfolders.slices + $
           transpose([[plotfile_base +'_even_'], [plotfile_base +'_odd_']]) + $
           '_' + plot_types.slice_type
-        case plot_types.slice_type of
-          'sumdiff': begin
-            sumdiff_plotfile_base = plotfile_path + file_struct_arr[0].subfolders.slices + $
-              [plotfile_base +'_sum_',plotfile_base +'_diff_'] + $
-              '_' + plot_types.slice_type
-            uf_slice_plotfile = sumdiff_plotfile_base + '_uf_plane' + slice_plotfile_end
-            vf_slice_plotfile = sumdiff_plotfile_base + '_vf_plane' + slice_plotfile_end
-            uv_slice_plotfile = sumdiff_plotfile_base + '_uv_plane' + slice_plotfile_end
-          end
-          'kspace': begin
-            uf_slice_plotfile = slice_plotfile_base + '_xz_plane' + slice_plotfile_end
-            vf_slice_plotfile = slice_plotfile_base + '_yz_plane' + slice_plotfile_end
-            uv_slice_plotfile = slice_plotfile_base + '_xy_plane' + slice_plotfile_end
-          end
-          else: begin
-            uf_slice_plotfile = indv_plotfile_base + '_uf_plane' + slice_plotfile_end
-            vf_slice_plotfile = indv_plotfile_base + '_vf_plane' + slice_plotfile_end
-            uv_slice_plotfile = indv_plotfile_base + '_uv_plane' + slice_plotfile_end
-          end
-        endcase
-
-
+        if slice_space eq 'uvf' then begin
+          if plot_types.slice_type eq 'sumdiff' then begin
+              sumdiff_plotfile_base = plotfile_path + file_struct_arr[0].subfolders.slices + $
+                [plotfile_base +'_sum_',plotfile_base +'_diff_'] + $
+                '_' + plot_types.slice_type
+              uf_slice_plotfile = sumdiff_plotfile_base + '_uf_plane' + slice_plotfile_end
+              vf_slice_plotfile = sumdiff_plotfile_base + '_vf_plane' + slice_plotfile_end
+              uv_slice_plotfile = sumdiff_plotfile_base + '_uv_plane' + slice_plotfile_end
+          endif else begin
+              uf_slice_plotfile = indv_plotfile_base + '_uf_plane' + slice_plotfile_end
+              vf_slice_plotfile = indv_plotfile_base + '_vf_plane' + slice_plotfile_end
+              uv_slice_plotfile = indv_plotfile_base + '_uv_plane' + slice_plotfile_end
+          endelse
+        endif else begin
+          uf_slice_plotfile = slice_plotfile_base + '_xz_plane' + slice_plotfile_end
+          vf_slice_plotfile = slice_plotfile_base + '_yz_plane' + slice_plotfile_end
+          uv_slice_plotfile = slice_plotfile_base + '_xy_plane' + slice_plotfile_end
+        endelse
       endif else begin
-        if plot_types.slice_type ne 'kspace' then begin
+        if slice_space eq 'uvf' then begin
           uf_slice_plotfile = slice_plotfile_base + '_uf_plane' + slice_plotfile_end
           vf_slice_plotfile = slice_plotfile_base + '_vf_plane' + slice_plotfile_end
           uv_slice_plotfile = slice_plotfile_base + '_uv_plane' + slice_plotfile_end
@@ -1092,7 +1095,8 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
       case plot_types.slice_type of
         'sumdiff': slice_titles = ['sum ' + file_struct_arr.file_label, 'diff ' + $
           file_struct_arr.file_label]
-        'kspace': slice_titles = file_struct_arr.file_label
+        'power': slice_titles = file_struct_arr.file_label
+        'var_power': slice_titles = file_struct_arr.file_label
         else: slice_titles = file_struct_arr.uvf_label
       endcase
     endelse
@@ -1128,7 +1132,13 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
         uv_slice_savefile = file_struct_arr.uv_var_savefile
         slice_titles = file_struct_arr.uvf_label
       end
-      'kspace': begin
+      'power': begin
+        uf_slice_savefile = file_struct_arr.xz_savefile
+        vf_slice_savefile = file_struct_arr.yz_savefile
+        uv_slice_savefile = file_struct_arr.xy_savefile
+        slice_titles = file_struct_arr.file_label
+      end
+      'var_power': begin
         uf_slice_savefile = file_struct_arr.xz_savefile
         vf_slice_savefile = file_struct_arr.yz_savefile
         uv_slice_savefile = file_struct_arr.xy_savefile
@@ -1136,7 +1146,8 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
       end
     endcase
 
-    if plot_types.slice_type eq 'weights' or plot_types.slice_type eq 'variance' then begin
+    if plot_types.slice_type eq 'weights' or plot_types.slice_type eq 'variance' $
+        or plot_types.slice_type eq 'var_power' then begin
       ;; we don't need separate ones for dirty, model, residual
       wh_use = where(strpos(slice_titles, 'dirty')>0)
 
@@ -1145,7 +1156,6 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
       uv_slice_savefile = uv_slice_savefile[wh_use]
       slice_titles = slice_titles[wh_use]
     endif
-
   endif
 
   if plot_options.pub then font = 1 else font = -1
@@ -1176,7 +1186,8 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
 
     if plot_options.pub and plot_options.individual_plots then begin
       case plot_types.slice_type of
-        'kspace': nplots = ntype*npol
+        'power': nplots = ntype*npol
+        'var_power': nplots = npol
         'weights': nplots = nfiles*npol
         'variance': nplots = nfiles*npol
         else: nplots = ntype*nfiles*npol
@@ -1184,23 +1195,29 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
 
       for i=0, nplots-1 do begin
 
-        if plot_types.slice_type eq 'kspace' then begin
+        if plot_types.slice_type eq 'power' or plot_types.slice_type eq 'var_power' then begin
+          if plot_types.slice_type eq 'power' then begin
+            kspace_plot_type = 'power'
+          endif else begin
+            kspace_plot_type = 'variance'
+          endelse
+
           kpower_slice_plot, uf_slice_savefile[i], multi_pos = pos_use, $
             start_multi_params = start_multi_params, plotfile = uf_slice_plotfile[i], $
             plot_options = plot_options, plot_2d_options = plot_2d_options, $
-            title_prefix = slice_titles[i], note = note_use, $
+            plot_type = kspace_plot_type, title_prefix = slice_titles[i], note = note_use, $
             wedge_amp = binning_1d_options.wedge_amps, window_num = window_num
 
           kpower_slice_plot, vf_slice_savefile[i], multi_pos = pos_use, $
             start_multi_params = start_multi_params, plotfile = vf_slice_plotfile[i], $
             plot_options = plot_options, plot_2d_options = plot_2d_options, $
-            title_prefix = slice_titles[i], note = note_use, $
+            plot_type = kspace_plot_type, title_prefix = slice_titles[i], note = note_use, $
             wedge_amp = binning_1d_options.wedge_amps, window_num = window_num
 
           kpower_slice_plot, uv_slice_savefile[i], multi_pos = pos_use, $
             start_multi_params = start_multi_params, plotfile = uv_slice_plotfile[i], $
             plot_options = plot_options, plot_2d_options = plot_2d_options, $
-            title_prefix = slice_titles[i], note = note_use,  $
+            plot_type = kspace_plot_type, title_prefix = slice_titles[i], note = note_use,  $
             wedge_amp = binning_1d_options.wedge_amps, window_num = window_num
 
         endif else begin
@@ -1237,15 +1254,20 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
         nrow = 1
 
         case plot_types.slice_type of
-          'kspace': ncol = ntype*npol
+          'power': ncol = ntype*npol
+          'var_power': ncol = npol
           'weights': ncol = nfiles*npol
           'variance': ncol = nfiles*npol
           else: ncol = ntype*nfiles*npol
         endcase
       endif else begin
         case plot_types.slice_type of
-          'kspace': begin
-            ncol=ntype
+          'power': begin
+            ncol = ntype
+            nrow = npol
+          end
+          'var_power': begin
+            ncol = 1
             nrow = npol
           end
           'weights': begin
@@ -1287,11 +1309,17 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
           note_use = ''
         endelse
 
-        if plot_types.slice_type eq 'kspace' then begin
+        if plot_types.slice_type eq 'power' or plot_types.slice_type eq 'var_power' then begin
+          if plot_types.slice_type eq 'power' then begin
+            kspace_plot_type = 'power'
+          endif else begin
+            kspace_plot_type = 'variance'
+          endelse
+
           kpower_slice_plot, uf_slice_savefile[i], multi_pos = pos_use, $
             start_multi_params = start_multi_params, plotfile = uf_slice_plotfile, $
             plot_options = plot_options, plot_2d_options = plot_2d_options, $
-            title_prefix = slice_titles[i], note = note_use,  $
+            plot_type = kspace_plot_type, title_prefix = slice_titles[i], note = note_use,  $
             wedge_amp = binning_1d_options.wedge_amps, window_num = window_num
         endif else begin
 
@@ -1325,11 +1353,11 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
           note_use = ''
         endelse
 
-        if plot_types.slice_type eq 'kspace' then begin
+        if plot_types.slice_type eq 'power' or plot_types.slice_type eq 'var_power' then begin
           kpower_slice_plot, vf_slice_savefile[i], multi_pos = pos_use, $
             start_multi_params = start_multi_params, plotfile = vf_slice_plotfile, $
             plot_options = plot_options, plot_2d_options = plot_2d_options, $
-            title_prefix = slice_titles[i], note = note_use,  $
+            plot_type = kspace_plot_type, title_prefix = slice_titles[i], note = note_use,  $
             wedge_amp = binning_1d_options.wedge_amps, window_num = window_num
         endif else begin
 
@@ -1363,11 +1391,11 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
           note_use = ''
         endelse
 
-        if plot_types.slice_type eq 'kspace' then begin
+        if plot_types.slice_type eq 'power' or plot_types.slice_type eq 'var_power' then begin
           kpower_slice_plot, uv_slice_savefile[i], multi_pos = pos_use, $
             start_multi_params = start_multi_params, plotfile = uv_slice_plotfile, $
             plot_options = plot_options, plot_2d_options = plot_2d_options, $
-            title_prefix = slice_titles[i], note = note_use,  $
+            plot_type = kspace_plot_type, title_prefix = slice_titles[i], note = note_use,  $
             wedge_amp = binning_1d_options.wedge_amps, window_num = window_num
       endif else begin
 

@@ -8,6 +8,7 @@ pro kpower_slice_plot, slice_savefile, power = power, noise = noise, $
     slice_axis = slice_axis, slice_inds = slice_inds, $
     kperp_lambda_conv = kperp_lambda_conv, delay_params = delay_params, $
     hubble_param = hubble_param, $
+    plot_type = plot_type, $
     plot_options = plot_options, plot_2d_options = plot_2d_options, $
     multi_pos = multi_pos, start_multi_params = start_multi_params, $
     plot_xrange = plot_xrange, plot_yrange = plot_yrange, $
@@ -48,6 +49,12 @@ pro kpower_slice_plot, slice_savefile, power = power, noise = noise, $
     message, 'Only one of delay_axis and cable_length_axis can be set'
   endif
 
+  if n_elements(plot_type) eq 0 then plot_type = 'power'
+
+  plot_type_enum = ['power', 'noise', 'noise_expval', 'variance', 'sigma']
+  wh_type = where(plot_type_enum eq plot_type, count_type)
+  if count_type eq 0 then message, 'plot_type must be one of: ' + strjoin(plot_type, ', ')
+
   if n_elements(plotfile) gt 0 or keyword_set(png) or keyword_set(eps) or keyword_set(pdf) then begin
     pub = 1
   endif else begin
@@ -71,9 +78,9 @@ pro kpower_slice_plot, slice_savefile, power = power, noise = noise, $
     endif
     if n_elements(plotfile) eq 0 and n_elements(multi_pos) eq 0 then begin
       if keyword_set(eps) then begin
-        plotfile = 'idl_kpower_slice_plot.eps'
+        plotfile = 'idl_k' + plot_type + '_slice_plot.eps'
       endif else begin
-        plotfile = 'idl_kpower_slice_plot'
+        plotfile = 'idl_k' + plot_type + '_slice_plot'
       endelse
       cd, current = current_dir
       print, 'no filename specified for kpower_slice_plot output. Using ' + $
@@ -116,8 +123,17 @@ pro kpower_slice_plot, slice_savefile, power = power, noise = noise, $
     endif
   endif
 
+  plot_type_enum = ['power', 'noise', 'noise_expval', 'variance', 'sigma']
+  case plot_type of
+    'power': if n_elements(power) gt 0 then plot_data = power
+    'noise': if n_elements(noise) gt 0 then plot_data = noise
+    'noise_expval': if n_elements(noise_expval) gt 0 then plot_data = noise_expval
+    'variance': if n_elements(weights) gt 0 then plot_data = 1/weights
+    'sigma': if n_elements(weights) gt 0 then plot_data = sqrt(1/weights)
+  endcase
+
   if keyword_set(pwr_ratio) then begin
-    if n_elements(power) eq 0 then begin
+    if n_elements(plot_data) eq 0 then begin
       xarr = getvar_savefile(slice_savefile[0], 'xarr')
       if total(abs(xarr - getvar_savefile(slice_savefile[1], 'xarr'))) ne 0 then begin
         message, 'xarr do not match in savefiles'
@@ -147,17 +163,46 @@ pro kpower_slice_plot, slice_savefile, power = power, noise = noise, $
         message, 'hubble_param do not match in savefiles'
       endif
 
-      power1 = getvar_savefile(slice_savefile[0], 'power')
-      power2 = getvar_savefile(slice_savefile[1], 'power')
+      case plot_type of
+        'power': begin
+          plot_data1 = getvar_savefile(slice_savefile[0], 'power')
+          plot_data2 = getvar_savefile(slice_savefile[1], 'power')
+        end
+        'noise': begin
+          plot_data1 = getvar_savefile(slice_savefile[0], 'noise')
+          plot_data2 = getvar_savefile(slice_savefile[1], 'noise')
+        end
+        'noise_expval': begin
+          plot_data1 = getvar_savefile(slice_savefile[0], 'noise_expval')
+          plot_data2 = getvar_savefile(slice_savefile[1], 'noise_expval')
+        end
+        'variance': begin
+          plot_data1 = 1/getvar_savefile(slice_savefile[0], 'weights')
+          plot_data2 = 1/getvar_savefile(slice_savefile[1], 'weights')
+        end
+        'sigma': begin
+          plot_data1 = sqrt(1/getvar_savefile(slice_savefile[0], 'weights'))
+          plot_data2 = sqrt(1/getvar_savefile(slice_savefile[1], 'weights'))
+        end
+      endcase
 
-      power = power1 / power2
-      wh0 = where(power2 eq 0, count0)
-      if count0 gt 0 then power[wh0] = 0
+      plot_data = plot_data1 / plot_data2
+      wh0 = where(plot_data2 eq 0, count0)
+      if count0 gt 0 then plot_data[wh0] = 0
     endif
 
-    plot_type = 'power_ratio'
+    ; plot_type = 'power_ratio'
 
-  endif else if n_elements(slice_savefile) gt 0 then restore, slice_savefile
+  endif else if n_elements(slice_savefile) gt 0 then begin
+    restore, slice_savefile
+    case plot_type of
+      'power':  plot_data = power
+      'noise': plot_data = noise
+      'noise_expval': plot_data = noise_expval
+      'variance': plot_data = 1/weights
+      'sigma': plot_data = sqrt(1/weights)
+    endcase
+  endif
 
   if n_elements(plot_yrange) eq 0 and n_elements(plot_2d_options) gt 0 then begin
     if slice_axis eq 2 then begin
@@ -198,16 +243,20 @@ pro kpower_slice_plot, slice_savefile, power = power, noise = noise, $
   yarr_use = yarr
 
   if n_elements(slice_inds) gt 1 then begin
-    power_slice = total(power, slice_axis+1) / n_elements(slice_inds)
+    data_slice = total(plot_data, slice_axis+1) / n_elements(slice_inds)
   endif else begin
-    power_slice = reform(power)
+    data_slice = reform(plot_data)
   endelse
 
   if keyword_set(hinv) then begin
     xarr_use = xarr_use / hubble_param
     yarr_use = yarr_use / hubble_param
 
-    power = power * (hubble_param)^3d
+    if plot_type eq 'variance' then begin
+      data_slice = data_slice * (hubble_param)^6d
+    endif else begin
+      data_slice = data_slice * (hubble_param)^3d
+    endelse
   endif
 
   xdelta = xarr_use[1] - xarr_use[0]
@@ -219,7 +268,7 @@ pro kpower_slice_plot, slice_savefile, power = power, noise = noise, $
   if slice_axis lt 2 then kpar_bin_use = ydelta
 
   if n_elements(plot_xrange) eq 0 then begin
-    temp = where(total(power_slice,2) gt 0)
+    temp = where(total(data_slice, 2) gt 0)
 
     if keyword_set(linear_axes) then begin
       plot_xrange =  minmax(xarr_edges[[temp, max(temp)+1]])
@@ -229,7 +278,7 @@ pro kpower_slice_plot, slice_savefile, power = power, noise = noise, $
   endif
 
   if n_elements(plot_yrange) eq 0 then begin
-    temp = where(total(abs(power_slice),1) gt 0)
+    temp = where(total(abs(data_slice),1) gt 0)
     plot_yrange = minmax(yarr_edges[[temp, max(temp)+1]])
   endif
 
@@ -249,14 +298,13 @@ pro kpower_slice_plot, slice_savefile, power = power, noise = noise, $
   if n_x_plot eq 0 or n_y_plot eq 0 then message, 'No data in plot k range'
 
   if n_x_plot ne n_elements(xarr_use) then begin
-    power_slice = power_slice[wh_x_inrange, *]
+    data_slice = data_slice[wh_x_inrange, *]
     xarr_use = xarr_use[wh_x_inrange]
   endif
   if n_y_plot ne n_elements(yarr_use) then begin
-    power_slice = power_slice[*, wh_y_inrange]
+    data_slice = data_slice[*, wh_y_inrange]
     yarr_use = yarr_use[wh_y_inrange]
   endif
-  power_3d=0
   xarr_edges = [xarr_use - xdelta/2, max(xarr_use) + xdelta/2]
   yarr_edges = [yarr_use - ydelta/2, max(yarr_use) + ydelta/2]
 
@@ -266,22 +314,22 @@ pro kpower_slice_plot, slice_savefile, power = power, noise = noise, $
     linear_delay_edges = lin_delay_kpar_slope * yarr_edges + lin_delay_kpar_intercept
   endif
 
-  if max(abs(power_slice)) eq 0 then all_zero = 1
+  if max(abs(data_slice)) eq 0 then all_zero = 1
 
   if n_elements(data_range) eq 0 then begin
     if not keyword_set(all_zero) then begin
-      data_range = minmax(power_slice)
+      data_range = minmax(data_slice)
     endif else begin
       data_range = [1e-1, 1e0]
     endelse
   endif
-  wh = where(power_slice gt 0d, count)
-  if count gt 0 then min_pos = min(power_slice[wh]) else if keyword_set(all_zero) then begin
+  wh = where(data_slice gt 0d, count)
+  if count gt 0 then min_pos = min(data_slice[wh]) else if keyword_set(all_zero) then begin
     min_pos = data_range[0]
   endif
 
   if keyword_set(linear_axes) then begin
-    power_plot = congrid(power_slice, n_x_plot*10, n_y_plot * 10)
+    data_plot = congrid(data_slice, n_x_plot*10, n_y_plot * 10)
     xlog = 0
     ylog = 0
 
@@ -333,7 +381,7 @@ pro kpower_slice_plot, slice_savefile, power = power, noise = noise, $
     hy=0
     yinds = rebin(reform(riy[0:ny_image-1]-riy[0], 1, ny_image), nx_image, ny_image)
 
-    power_plot = power_slice[xinds, yinds]
+    data_plot = data_slice[xinds, yinds]
     xlog = 1
     ylog = 1
 
@@ -344,12 +392,12 @@ pro kpower_slice_plot, slice_savefile, power = power, noise = noise, $
   background_color = 'white'
   annotate_color = 'black'
 
-  log_color_calc, power_plot, power_log_norm, cb_ticks, cb_ticknames, color_range, $
+  log_color_calc, data_plot, data_log_norm, cb_ticks, cb_ticknames, color_range, $
     n_colors, data_range = data_range, color_profile = color_profile, $
     log_cut_val = log_cut_val, min_abs = data_min_abs, oob_low = oob_low, $
     invert_colorbar = invert_colorbar
 
-  if keyword_set(all_zero) then power_log_norm = power_log_norm * 0 + annotate_color
+  if keyword_set(all_zero) then data_log_norm = data_log_norm * 0 + annotate_color
 
   screen_size = get_screen_size()
   max_xsize = screen_size[0]
@@ -655,7 +703,7 @@ pro kpower_slice_plot, slice_savefile, power = power, noise = noise, $
   axkeywords = {xlog: xlog, ylog: ylog, xstyle: 5, ystyle: 5, thick: thick, $
     charthick: charthick, xthick: xthick, ythick: ythick, $
     charsize: charsize, font: font}
-  cgimage, power_log_norm, /nointerp, xrange = minmax(plot_xarr), yrange = minmax(plot_yarr), $
+  cgimage, data_log_norm, /nointerp, xrange = minmax(plot_xarr), yrange = minmax(plot_yarr), $
     title=initial_title, position = plot_pos, noerase = no_erase, color = annotate_color, $
     background = background_color, axkeywords = axkeywords, /axes
 
