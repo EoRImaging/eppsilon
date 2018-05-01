@@ -80,7 +80,15 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
       number_formatter((file_struct_arr[0].n_vis[1]-file_struct_arr[0].n_vis[0]))
     print, 'n_vis % difference between even & odd cubes: ' + $
       number_formatter((file_struct_arr[0].n_vis[1]-file_struct_arr[0].n_vis[0])*100 / $
-      mean(file_struct_arr[0].n_vis))
+        mean(file_struct_arr[0].n_vis))
+    if total(abs(total(file_struct_arr[0].n_vis_freq, 2) - file_struct_arr[0].n_vis)) ne 0 then begin
+      print('number of visibilities in n_vis and nf_vis do not match!')
+      print, 'nf_vis difference between even & odd cubes: ' + $
+        number_formatter(total(abs(file_struct_arr[0].n_vis_freq[1, *]-file_struct_arr[0].n_vis_freq[0, *])))
+      print, 'nf_vis % difference between even & odd cubes: ' + $
+        number_formatter(total(abs(file_struct_arr[0].n_vis_freq[1, *]-file_struct_arr[0].n_vis_freq[0, *]))*100 / $
+          mean(total(file_struct_arr[0].n_vis_freq, 2))
+    endif
   endif
 
   if tag_exist(file_struct_arr, 'n_obs') then begin
