@@ -1048,7 +1048,7 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
     endelse
 
     if slice_space eq 'uvf' then begin
-      uvf_type_enum = ['abs', 'phase', 'real', 'imaginary', 'weights']
+      uvf_type_enum = ['abs', 'phase', 'real', 'imaginary', 'normalized']
       if not tag_exist(plot_types, 'uvf_plot_type') then begin
         uvf_plot_type = 'abs'
         plot_types = create_plot_types(plot_types = plot_types, uvf_plot_type = uvf_plot_type)

@@ -97,7 +97,7 @@ pro uvf_slice_plot, slice_savefile, multi_pos = multi_pos, $
     endif
   endif
 
-  type_enum = ['abs', 'phase', 'real', 'imaginary', 'weights']
+  type_enum = ['abs', 'phase', 'real', 'imaginary', 'normalized']
   if n_elements(type) eq 0 then if keyword_set(image_space) then begin
     type = 'real'
   endif else begin
@@ -203,12 +203,12 @@ pro uvf_slice_plot, slice_savefile, multi_pos = multi_pos, $
       if pub then plotfile_fadd = '_imaginary.eps'
       if n_elements(color_profile) eq 0 then color_profile = 'sym_log'
     end
-    'weights': begin
+    'normalized': begin
       if size(uvf_slice, /type) ne 4 and size(uvf_slice, /type) ne 5 then begin
-        message, 'weights slices must be floats or doubles'
+        message, "To use 'normalized' type, the slices must be floats or doubles"
       endif
       plot_slice = uvf_slice / max(uvf_slice)
-      cb_title = 'Normalized Weights'
+      cb_title = 'Peak Normalized'
       if pub then plotfile_add = plot_exten
       if n_elements(log) eq 0 then log = 1
       if n_elements(color_profile) eq 0 then color_profile = 'log_cut'
@@ -550,7 +550,7 @@ pro uvf_slice_plot, slice_savefile, multi_pos = multi_pos, $
       'phase': plot_title = 'Phase in ' + plane_name + ' plane'
       'real': plot_title = 'Real part of ' + plane_name + ' plane'
       'imaginary': plot_title = 'Imaginary part of ' + plane_name + ' plane'
-      'weights': plot_title = plane_name + ' plane weights'
+      'normalized': plot_title = 'Peak normalized ' + plane_name + ' plane'
     endcase
   endelse
   if keyword_set(title_prefix) then plot_title = title_prefix + ' ' + plot_title

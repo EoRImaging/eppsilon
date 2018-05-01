@@ -193,9 +193,9 @@ These flags (all default=0) tell the code to redo parts of the analysis that wou
 
 **plot_slices**: This is a flag (valid values are 0/1, default=0) to have eppsilon make plots of 2d slices through one of the 3d cubes.
 
-**slice_type**: Only used if plot_slices is set. Controls which type of cube to plot slices of. Options are: ['raw', 'divided', 'kspace', 'sumdiff', 'weights'], default is 'sumdiff'.
+**slice_type**: Only used if plot_slices is set. Controls which type of cube to plot slices of. Options are: ['raw', 'divided', 'sumdiff', 'weights', 'variance', 'power', 'var_power'], default is 'sumdiff'. 'power' and 'var_power' are slices in k-space, the others are in uvf space.
 
-**uvf_plot_type**: Only used if plot_slices is set and slice_type is not 'kspace': Controls what to plot for slices of uvf cubes. Options are: ['abs', 'phase', 'real', 'imaginary', 'weights'], default is 'abs'.
+**uvf_plot_type**: Only used if plot_slices is set and slice_type is not 'kspace': Controls what to plot for slices of uvf cubes. Options are: ['abs', 'phase', 'real', 'imaginary', 'normalized'], default is 'abs'. 'normalized' means peak normalized (for a real plane only) -- useful for weights or variances.
 
 **plot_1to2d**: This is a flag (valid values are 0/1, default=0) to have eppsilon make plots showing where the 1D bins come from up in 2D plots.
 
