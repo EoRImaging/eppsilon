@@ -87,7 +87,7 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
         number_formatter(total(abs(file_struct_arr[0].n_vis_freq[1, *]-file_struct_arr[0].n_vis_freq[0, *])))
       print, 'nf_vis % difference between even & odd cubes: ' + $
         number_formatter(total(abs(file_struct_arr[0].n_vis_freq[1, *]-file_struct_arr[0].n_vis_freq[0, *]))*100 / $
-          mean(total(file_struct_arr[0].n_vis_freq, 2))
+          mean(total(file_struct_arr[0].n_vis_freq, 2)))
     endif
   endif
 
