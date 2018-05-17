@@ -20,9 +20,15 @@ function healpix_rot_calc, x_locs, y_locs, ang_range, ang_step
 
   wh = where(area eq min(area), count)
 
-  if count eq 1 then rot_angle = angles[wh[0]] $
-  else if count eq 2 and abs(wh[1] - wh[0]) eq 1 then rot_angle = mean(angles[wh]) $
-  else stop
+  if count eq 1 then begin
+    rot_angle = angles[wh[0]]
+  endif else begin
+    if count eq 2 and abs(wh[1] - wh[0]) eq 1 then begin
+      rot_angle = mean(angles[wh])
+    endif else begin
+      message, 'something has gone wrong with calculating the healpix area. ' + $
+        'count is ' + number_formatter(count)
+  endelse
 
   return, rot_angle
 end
@@ -31,6 +37,9 @@ function healpix_rot, x_locs, y_locs
 
   n_pts = n_elements(x_locs)
   if n_elements(y_locs) ne n_pts then message, 'x_locs and y_locs must have the same number of elements'
+
+  if n_pts le 1 then $
+    message, 'Only one healpix location. Calculating a rotation makes no sense.'
 
   ang_range = [0, 90]
   ang_step = 1
