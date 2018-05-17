@@ -862,11 +862,11 @@ function fhd_file_setup, filename, weightfile = weightfile, $
           max_theta = max([max_theta, theta_vals])
         endelse
 
-        if j eq 0 then n_vis = fltarr(npol, nfiles)
+        if j eq 0 then n_vis = dblarr(npol, nfiles)
         n_vis[pol_i, file_i] = total(obs_arr.n_vis)
 
-        if j eq 0 then n_vis_freq = fltarr(npol, nfiles, n_freq)
-        n_vis_freq_arr = fltarr([n_obs[pol_i, file_i], n_freq])
+        if j eq 0 then n_vis_freq = dblarr(npol, nfiles, n_freq)
+        n_vis_freq_arr = dblarr([n_obs[pol_i, file_i], n_freq])
         for i=0, n_obs[pol_i, file_i]-1 do n_vis_freq_arr[i, *] = obs_arr[i].nf_vis
 
         if tag_exist(obs_arr, 'beam_integral') or tag_exist(obs_arr, 'primary_beam_sq_area') then begin
@@ -978,7 +978,7 @@ function fhd_file_setup, filename, weightfile = weightfile, $
 
     if n_elements(vis_noise) gt 0 then vis_noise_avg = fltarr(npol, nfiles, n_freqbins)
     if n_elements(beam_int) gt 0 then beam_int_avg = fltarr(npol, nfiles, n_freqbins)
-    n_vis_freq_avg = fltarr(npol, nfiles, n_freqbins)
+    n_vis_freq_avg = dblarr(npol, nfiles, n_freqbins)
     if n_avg gt 1 then begin
       for i=0, n_freqbins-1 do begin
         frequencies[i] = mean(freq[i*n_avg:i*n_avg+(n_avg-1)]) / 1e6 ;; in MHz
