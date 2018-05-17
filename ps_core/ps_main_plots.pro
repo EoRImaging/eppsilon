@@ -76,21 +76,23 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
   endif
 
   if nfiles gt 1 then begin
+    nvis_diff = (file_struct_arr[0].n_vis[1]-file_struct_arr[0].n_vis[0])
     print, 'n_vis difference between even & odd cubes: ' + $
-      number_formatter((file_struct_arr[0].n_vis[1]-file_struct_arr[0].n_vis[0]))
+      number_formatter(nvis_diff)
     print, 'n_vis % difference between even & odd cubes: ' + $
-      number_formatter((file_struct_arr[0].n_vis[1]-file_struct_arr[0].n_vis[0])*100 / $
-        mean(file_struct_arr[0].n_vis))
-    print, 'n_vis_freq difference between even & odd cubes: ' + $
-      number_formatter(total(abs(file_struct_arr[0].n_vis_freq[0, *] - file_struct_arr[0].n_vis_freq[1,*])))
-stop
-    if total(abs(total(file_struct_arr[0].n_vis_freq, 2) - file_struct_arr[0].n_vis)) ne 0 then begin
-      print, 'number of visibilities in n_vis and nf_vis do not match!'
+      number_formatter(nvis_diff*100 / mean(file_struct_arr[0].n_vis))
+
+    nvis_nfvis_diff = total(abs(total(file_struct_arr[0].n_vis_freq, 2) - file_struct_arr[0].n_vis))
+    nfvis_diff = total(abs(file_struct_arr[0].n_vis_freq[0, *] - file_struct_arr[0].n_vis_freq[1,*]))
+    if nvis_nfvis_diff ne 0 or nfvis_diff ne 0 then begin
+      if nvis_nfvis_diff ne 0 then $
+        print, 'number of visibilities in n_vis and nf_vis do not match!'
+      print, 'difference between n_vis and sum(nf_vis): ' + $
+        number_formatter(nvis_nfvis_diff)
       print, 'nf_vis difference between even & odd cubes: ' + $
-        number_formatter(total(abs(file_struct_arr[0].n_vis_freq[1, *]-file_struct_arr[0].n_vis_freq[0, *])))
+        number_formatter(nfvis_diff)
       print, 'nf_vis % difference between even & odd cubes: ' + $
-        number_formatter(total(abs(file_struct_arr[0].n_vis_freq[1, *]-file_struct_arr[0].n_vis_freq[0, *]))*100 / $
-          mean(total(file_struct_arr[0].n_vis_freq, 2)))
+        number_formatter(nfvis_diff*100 / mean(total(file_struct_arr[0].n_vis_freq, 2)))
     endif
   endif
 
