@@ -28,6 +28,7 @@ function healpix_rot_calc, x_locs, y_locs, ang_range, ang_step
     endif else begin
       message, 'something has gone wrong with calculating the healpix area. ' + $
         'count is ' + number_formatter(count)
+    endelse
   endelse
 
   return, rot_angle
