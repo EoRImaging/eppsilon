@@ -238,13 +238,13 @@ pro ps_image_to_uvf, file_struct, n_vis_freq, kx_rad_vals, ky_rad_vals, $
         
         if healpix then begin
           pixel_nums = getvar_savefile(file_struct.pixelfile[0], file_struct.pixelvar[0])
-          if pixel_nums eq 0 then begin
+          if n_elements(pixel_nums) eq 1 then begin
             message, 'Error getting pixels out of file: ' + file_struct.pixelfile[0] + $
               ' If the file name has changed, set "/refresh_info" in the ps_wrapper call.'
           endif
         endif else begin
           data_size = getvar_savefile(file_struct.datafile[i], file_struct.datavar, /return_size)
-          if pixel_nums eq 0 then begin
+          if n_elements(data_size) eq 1 then begin
             message, 'Error getting data out of file: ' + file_struct.datafile[i] + $
               ' If the file name has changed, set "/refresh_info" in the ps_wrapper call.'
           endif
@@ -268,7 +268,7 @@ pro ps_image_to_uvf, file_struct, n_vis_freq, kx_rad_vals, ky_rad_vals, $
           and tag_exist(file_struct, 'beam_savefile') then begin
           
           arr = getvar_savefile(file_struct.beamfile[i], file_struct.beamvar)
-          if arr eq 0 then begin
+          if n_elements(arr) eq 1 then begin
             message, 'Error getting beam out of file: ' + file_struct.beamfile[i] + $
               ' If the file name has changed, set "/refresh_info" in the ps_wrapper call.'
           endif
@@ -415,7 +415,7 @@ pro ps_image_to_uvf, file_struct, n_vis_freq, kx_rad_vals, ky_rad_vals, $
           
           time0 = systime(1)
           arr = getvar_savefile(file_struct.datafile[i], file_struct.datavar)
-          if arr eq 0 then begin
+          if n_elements(arr) eq 1 then begin
             message, 'Error getting data out of file: ' + file_struct.datafile[i] + $
               ' If the file name has changed, set "/refresh_info" in the ps_wrapper call.'
           endif
@@ -468,7 +468,7 @@ pro ps_image_to_uvf, file_struct, n_vis_freq, kx_rad_vals, ky_rad_vals, $
             
           time0 = systime(1)
           arr = getvar_savefile(file_struct.weightfile[i], file_struct.weightvar)
-          if arr eq 0 then begin
+          if n_elements(arr) eq 1 then begin
             message, 'Error getting weights out of file: ' + file_struct.weightfile[i] + $
               ' If the file name has changed, set "/refresh_info" in the ps_wrapper call.'
           endif
@@ -509,7 +509,7 @@ pro ps_image_to_uvf, file_struct, n_vis_freq, kx_rad_vals, ky_rad_vals, $
               
             time0 = systime(1)
             arr = getvar_savefile(file_struct.variancefile[i], file_struct.variancevar)
-            if arr eq 0 then begin
+            if n_elements(arr) eq 1 then begin
               message, 'Error getting variance out of file: ' + file_struct.variancefile[i] + $
                 ' If the file name has changed, set "/refresh_info" in the ps_wrapper call.'
             endif
