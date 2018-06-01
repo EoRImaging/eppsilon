@@ -12,7 +12,7 @@ pro slurm_ps_job
   ;;;;;; FT Parameters
 ;  freq_ch_range=[ 125, 250 ]   ; 10MHz for the correct MWA channelization (z = 6.56 to 7.00)
     ;; freq_ch_range deactivated for HERA 10MHz simulation
-  freq_ch_range=[ 0, 129 ]   ; 10MHz for the correct MWA channelization ( z = 7.019 to 7.5)
+;  freq_ch_range=[ 0, 129 ]   ; 10MHz for the correct MWA channelization ( z = 7.019 to 7.5)
 ;  freq_ch_range=[ 0, 65 ]   ; 5MHz for the correct MWA channelization ( z = 7.019 to 7.5)
 ;  freq_ch_range=[ 130, 259 ] 
 ;  freq_ch_range=[ 260, 383 ] 
@@ -22,7 +22,7 @@ pro slurm_ps_job
   refresh_beam=0
 
   ;;;;; Binning options
-;  kperp_range_lambda_1dave=[9,11]
+;  kperp_range_lambda_1dave=[0.0,100.0]
 ;  kpar_range_kperppower=[0.3,0.4]
 
 
