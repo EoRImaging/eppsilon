@@ -17,8 +17,10 @@
 #Make power spectra through a ps wrapper in idl
 
 module load ghostscript
-module load git/2.2.1
+module load git/2.10.2
 module load imagemagick
+module load idl
+shopt -s expand_aliases; source $IDL/envi53/bin/envi_setup.bash
 
 input_file=${file_path_cubes}/
 idl -IDL_DEVICE ps -IDL_CPU_TPOOL_NTHREADS $ncores -e slurm_ps_job -args $input_file $version # $nobs
