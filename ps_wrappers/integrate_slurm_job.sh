@@ -10,6 +10,9 @@
 
 #echo JOBID ${JOB_ID}
 
+module load idl
+shopt -s expand_aliases; source $IDL/envi53/bin/envi_setup.bash
+
 (( nperint = $ncores/4 ))
 
 echo ${file_path_cubes}' , '${version}' , '${chunk}' , '$obs_list_path
@@ -56,13 +59,13 @@ if [ "$legacy" -ne "1" ]; then
 	save_file_oddYY="$file_path_cubes"/Healpix/Combined_obs_${version}_odd_cubeYY.sav
     fi
 # $! = PID of most recent background process
-    /usr/local/bin/idl -IDL_DEVICE ps -IDL_CPU_TPOOL_NTHREADS $nperint -e integrate_healpix_cubes -args "$evenXX_file_paths" "$save_file_evenXX" &
+    idl -IDL_DEVICE ps -IDL_CPU_TPOOL_NTHREADS $nperint -e integrate_healpix_cubes -args "$evenXX_file_paths" "$save_file_evenXX" &
     int_pids+=( $! )
-    /usr/local/bin/idl -IDL_DEVICE ps -IDL_CPU_TPOOL_NTHREADS $nperint -e integrate_healpix_cubes -args "$evenYY_file_paths" "$save_file_evenYY" &
+    idl -IDL_DEVICE ps -IDL_CPU_TPOOL_NTHREADS $nperint -e integrate_healpix_cubes -args "$evenYY_file_paths" "$save_file_evenYY" &
     int_pids+=( $! )
-    /usr/local/bin/idl -IDL_DEVICE ps -IDL_CPU_TPOOL_NTHREADS $nperint -e integrate_healpix_cubes -args "$oddXX_file_paths" "$save_file_oddXX" &
+    idl -IDL_DEVICE ps -IDL_CPU_TPOOL_NTHREADS $nperint -e integrate_healpix_cubes -args "$oddXX_file_paths" "$save_file_oddXX" &
     int_pids+=( $! )
-    /usr/local/bin/idl -IDL_DEVICE ps -IDL_CPU_TPOOL_NTHREADS $nperint -e integrate_healpix_cubes -args "$oddYY_file_paths" "$save_file_oddYY" &
+    idl -IDL_DEVICE ps -IDL_CPU_TPOOL_NTHREADS $nperint -e integrate_healpix_cubes -args "$oddYY_file_paths" "$save_file_oddYY" &
     int_pids+=( $! )
     wait ${int_pids[@]} # Wait for integration to finish before making PS
 
@@ -94,9 +97,9 @@ else # legacy
 	save_file_even="$file_path_cubes"/Healpix/Combined_obs_${version}_even_cube.sav
 	save_file_odd="$file_path_cubes"/Healpix/Combined_obs_${version}_odd_cube.sav
     fi
-    /usr/local/bin/idl -IDL_DEVICE ps -IDL_CPU_TPOOL_NTHREADS $nperint -e integrate_healpix_cubes -args "$even_file_paths" "$save_file_even" &
+    idl -IDL_DEVICE ps -IDL_CPU_TPOOL_NTHREADS $nperint -e integrate_healpix_cubes -args "$even_file_paths" "$save_file_even" &
     int_pids+=( $! )
-    /usr/local/bin/idl -IDL_DEVICE ps -IDL_CPU_TPOOL_NTHREADS $nperint -e integrate_healpix_cubes -args "$odd_file_paths" "$save_file_odd" &
+    idl -IDL_DEVICE ps -IDL_CPU_TPOOL_NTHREADS $nperint -e integrate_healpix_cubes -args "$odd_file_paths" "$save_file_odd" &
     int_pids+=( $! )
     wait ${int_pids[@]} # Wait for integration to finish before making PS
 fi
