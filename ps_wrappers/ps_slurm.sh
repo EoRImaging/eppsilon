@@ -49,7 +49,8 @@ module load git/2.2.1
 module load idl
 shopt -s expand_aliases; source $IDL/envi53/bin/envi_setup.bash
 
-qos='jpober-condo'
+acct='default'
+qos='pri-alanman'
 
 #Manual shift to the next flag
 shift $(($OPTIND - 1))
@@ -201,7 +202,7 @@ if [ "$first_line_len" -ge 1 ]; then
         if [ ! -d ${FHDdir}/ps ]; then mkdir ${FHDdir}/ps; fi
 	echo "Running only ps code"
 
-        sbatch -A $qos --mem=$mem -t ${wallclock_time} -n ${ncores} --export=file_path_cubes=$FHDdir,nobs=$nobs,version=$version,ncores=$ncores -o $errfile -o $outfile ${PSpath}ps_wrappers/PS_list_slurm_job.sh
+        sbatch -A $acct --qos=$qos --mem=$mem -t ${wallclock_time} -n ${ncores} --export=file_path_cubes=$FHDdir,nobs=$nobs,version=$version,ncores=$ncores -o $errfile -o $outfile ${PSpath}ps_wrappers/PS_list_slurm_job.sh
         exit $?
     fi
 
@@ -251,7 +252,7 @@ if [ "$nchunk" -gt "1" ]; then
 	outfile=${FHDdir}/Healpix/${version}_int_chunk${chunk}_out.log
 	errfile=${FHDdir}/Healpix/${version}_int_chunk${chunk}_err.log
 
-	message=$(sbatch -A $qos --mem=$mem -t ${wallclock_time} -n ${ncores} --export=file_path_cubes=$FHDdir,obs_list_path=$chunk_obs_list,version=$version,chunk=$chunk,ncores=$ncores,legacy=$legacy -e $errfile -o $outfile ${PSpath}ps_wrappers/integrate_job.sh)
+	message=$(sbatch -A $acct --qos=$qos --mem=$mem -t ${wallclock_time} -n ${ncores} --export=file_path_cubes=$FHDdir,obs_list_path=$chunk_obs_list,version=$version,chunk=$chunk,ncores=$ncores,legacy=$legacy -e $errfile -o $outfile ${PSpath}ps_wrappers/integrate_job.sh)
 	message=($message)
 	if [ "$chunk" -eq 1 ]; then idlist=${message[3]}; else idlist=${idlist},${message[3]}; fi
 	echo Combined_obs_${version}_int_chunk${chunk} >> $sub_cubes_list # trick it into finding our sub cubes
@@ -261,7 +262,7 @@ if [ "$nchunk" -gt "1" ]; then
     chunk=0
     outfile=${FHDdir}/Healpix/${version}_int_chunk${chunk}_out.log
     errfile=${FHDdir}/Healpix/${version}_int_chunk${chunk}_err.log
-    message=$(sbatch -A $qos --mem=$mem -t $wallclock_time -n $ncores --export=file_path_cubes=$FHDdir,obs_list_path=$sub_cubes_list,version=$version,chunk=$chunk,ncores=$ncores,legacy=$legacy -e $errfile -o $outfile ${PSpath}ps_wrappers/integrate_slurm_job.sh)
+    message=$(sbatch -A $acct --qos=$qos --mem=$mem -t $wallclock_time -n $ncores --export=file_path_cubes=$FHDdir,obs_list_path=$sub_cubes_list,version=$version,chunk=$chunk,ncores=$ncores,legacy=$legacy -e $errfile -o $outfile ${PSpath}ps_wrappers/integrate_slurm_job.sh)
     message=($message)
     master_id=${message[3]}
 else
@@ -271,7 +272,7 @@ else
     chunk_obs_list=${FHDdir}/Healpix/${version}_int_chunk${chunk}.txt
     outfile=${FHDdir}/Healpix/${version}_int_chunk${chunk}_out.log
     errfile=${FHDdir}/Healpix/${version}_int_chunk${chunk}_err.log
-    message=$(sbatch -A $qos --mem=$mem -t $wallclock_time -n $ncores --export=file_path_cubes=$FHDdir,obs_list_path=$chunk_obs_list,version=$version,chunk=$chunk,ncores=$ncores,legacy=$legacy -e $errfile -o $outfile ${PSpath}ps_wrappers/integrate_slurm_job.sh)
+    message=$(sbatch -A $acct --qos=$qos --mem=$mem -t $wallclock_time -n $ncores --export=file_path_cubes=$FHDdir,obs_list_path=$chunk_obs_list,version=$version,chunk=$chunk,ncores=$ncores,legacy=$legacy -e $errfile -o $outfile ${PSpath}ps_wrappers/integrate_slurm_job.sh)
 
     message=($message)
     master_id=${message[3]}
@@ -289,5 +290,5 @@ if [ ! -d ${FHDdir}/ps ]; then
 fi
 
 
-sbatch -A $qos  --mem=$mem -t ${wallclock_time} -n ${ncores} --export=file_path_cubes=$FHDdir,nobs=$nobs,version=$version,ncores=$ncores -o $errfile -o $outfile ${PSpath}ps_wrappers/PS_list_slurm_job.sh
+sbatch -A $acct --qos=$qos --mem=$mem -t ${wallclock_time} -n ${ncores} --export=file_path_cubes=$FHDdir,nobs=$nobs,version=$version,ncores=$ncores -o $errfile -o $outfile ${PSpath}ps_wrappers/PS_list_slurm_job.sh
 
