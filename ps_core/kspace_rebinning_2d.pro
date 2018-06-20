@@ -65,7 +65,7 @@ function kspace_rebinning_2d, power_3d, kx_mpc, ky_mpc, kz_mpc, kperp_edges_mpc,
         '(so there will be > 1 bin per decade)'
     endif
   endif else begin
-    ;; for linear binning default to binsize = min(kx, ky binsize)
+    ;; for linear binning default to binsize = max(kx, ky binsize)
     if not tag_exist(binning_2d_options, 'kperp_bin') then begin
       binning_2d_options = create_struct(binning_2d_options, 'kperp_bin', $
         max([kx_mpc[1]-kx_mpc[0], ky_mpc[1]-ky_mpc[0]]))
