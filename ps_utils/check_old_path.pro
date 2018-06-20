@@ -14,7 +14,7 @@ function check_old_path, file_struct, tag_name, index = index
 
   test_uvf_old = file_valid(old_file)
 
-  if test_uvf_old then begin
+  if min(test_uvf_old) gt 0 then begin
     if n_elements(index) gt 0 then begin
       file_struct.(tag_loc)[index] = old_file
     endif else begin
