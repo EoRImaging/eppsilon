@@ -263,7 +263,7 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
     ;; get beam sorted out
     if tag_exist(file_struct, 'beam_savefile') then begin
       test_beam = file_valid(file_struct.beam_savefile)
-      if not test_beam then test_beam = check_old_path(file_struct, 'beam_savefile')
+      if min(test_beam) eq 0 then test_beam = check_old_path(file_struct, 'beam_savefile')
 
       if min(test_beam) eq 0 or refresh_options.refresh_beam then begin
 
