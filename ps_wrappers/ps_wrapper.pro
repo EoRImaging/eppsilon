@@ -13,6 +13,7 @@ pro ps_wrapper, folder_name_in, obs_name, data_subdirs=data_subdirs, $
     uv_img_clip = uv_img_clip, std_power = std_power, $
     inverse_covar_weight = inverse_covar_weight, ave_removal = ave_removal, $
     no_wtd_avg = no_wtd_avg, norm_rts_with_fhd = norm_rts_with_fhd, $
+    sim_use_weight_cutoff = sim_use_weight_cutoff, $
     wt_cutoffs = wt_cutoffs, wt_measures = wt_measures, fix_sim_input = fix_sim_input, $
     no_spec_window = no_spec_window, spec_window_type = spec_window_type, $
     image_window_name = image_window_name, image_window_frac_size = image_window_frac_size, $
@@ -108,10 +109,13 @@ pro ps_wrapper, folder_name_in, obs_name, data_subdirs=data_subdirs, $
       plot_eor_1d=1
       if n_elements(range_1d) eq 0 then range_1d = [1e3, 1e7]
 
-      if keyword_set(use_weight_cutoff) then begin
+      if n_elements(sim_use_weight_cutoff) eq 0 then sim_use_weight_cutoff = 1
+      if keyword_set(sim_use_weight_cutoff) then begin
         wt_cutoffs = [0,1]
         wt_measures = strarr(2)+'min'
-      endif
+      endif else begin
+        wt_cutoffs = 0
+      endelse
     endif
 
     if n_elements(set_data_ranges) eq 0 and not keyword_set(sim) then set_data_ranges = 1

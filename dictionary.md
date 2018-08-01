@@ -55,6 +55,8 @@ eppsilon will error fairly quickly rather than proceeding with just the one set 
 
 **sim**: This is a flag (valid values are 0/1, default=0) indicating that the inputs are simulations, which results in minor plotting changes that are better suited to simulations.
 
+**sim_use_weight_cutoff**: This is a flag (valid values are 0/1, default=1) that is only used if the sim keyword is set and it causes the code to use the weights cutoff with density correction in the simulation (it does both with and without). Set it to 0 to causes the code to do no cutoff or density correction.
+
 **fix_sim_input**: This is a backwards compatability flag (valid values are 0/1, default=0) to fix some errors with very old simulations where the normalization was off by a factor of 2 because of a mistake in the simulation code. It should only be used with care if working with old simulations. It will soon be deprecated.
 
 
