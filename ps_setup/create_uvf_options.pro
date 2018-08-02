@@ -8,9 +8,14 @@ function create_uvf_options, uvf_options = uvf_options, $
     message, 'full_image and delta_uv_lambda cannot both be set'
   endif
 
-  if n_elements(image_window_name) gt 0 then begin
+  if n_elements(image_window_name) eq 0 then begin
     ;; ignore image_window_frac_size if image_window_name is not set
     undefine, image_window_frac_size
+  endif else begin
+    if not (image_window_name eq 'Tukey' or image_window_name eq 'tk') then begin
+      ;; ignore image_window_frac_size if not a Tukey window
+      undefine, image_window_frac_size
+    endif
   endelse
 
   if n_elements(image_window_name) gt 0 and keyword_set(full_image) then begin
