@@ -9,18 +9,13 @@ function create_uvf_options, uvf_options = uvf_options, $
   endif
 
   if n_elements(image_window_name) gt 0 then begin
-    if strlowcase(image_window_name) eq 'none' then begin
-      ;; image_window set to none -- use full image with no window function
-      full_image = 1
-      undefine, image_window_name, image_window_frac_size
-    endif
-  endif else begin
     ;; ignore image_window_frac_size if image_window_name is not set
     undefine, image_window_frac_size
   endelse
 
   if n_elements(image_window_name) gt 0 and keyword_set(full_image) then begin
-    ;; the full image is always used if using an image window
+    ;; the full image is always used if using an image window,
+    ;; the keyword is only for the case where no image window is used and we still want the full image
     full_image = 0
   endif
 
