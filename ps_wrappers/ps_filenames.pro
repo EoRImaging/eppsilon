@@ -406,17 +406,19 @@ function ps_filenames, folder_names, obs_names_in, dirty_folder = dirty_folder, 
       endelse
 
       ;; first look for info files in save_paths
-      info_file = file_search(save_paths[i] + obs_names[i] + '*info*', count = n_infofile)
-      if n_infofile gt 0 then begin
-        if obs_names[i] eq '' then begin
-          if n_infofile gt 1 then print, 'More than 1 info files found, using first one'
-          info_files[i] = info_file[0]
-        ;obs_names[i] = stregex(info_files[i], '[0-9]+.[0-9]+_', /extract)
-        endif else begin
-          if n_infofile gt 1 then message, 'More than one info file found with given obs_name'
-          info_files[i] = info_file[0]
-        endelse
+      if not keyword_set(refresh_info) then begin
+        info_file = file_search(save_paths[i] + obs_names[i] + '*info*', count = n_infofile)
+        if n_infofile gt 0 then begin
+          if obs_names[i] eq '' then begin
+            if n_infofile gt 1 then print, 'More than 1 info files found, using first one'
+            info_files[i] = info_file[0]
+          ;obs_names[i] = stregex(info_files[i], '[0-9]+.[0-9]+_', /extract)
+          endif else begin
+            if n_infofile gt 1 then message, 'More than one info file found with given obs_name'
+            info_files[i] = info_file[0]
+          endelse
 
+        endif
       endif
 
       ;; then look for cube files in folder + data_subdir
@@ -506,103 +508,21 @@ function ps_filenames, folder_names, obs_names_in, dirty_folder = dirty_folder, 
         uvf_info_tag = ''
         endobsname_tag_use = uvf_endobsname_tag
       endelse
-      ;; first look for integrated info files in save_paths with names like Combined_obs_...
-      if keyword_set(exact_obsnames) then begin
-        hpx_info_file = file_search(save_paths[i] +  'Combined_obs_' + $
-          obs_names[i] + hpx_endobsname_tag + '*info*', count = n_hpx)
-        uvf_info_file = file_search(save_paths[i] +  'Combined_obs_' + $
-          obs_names[i] + uvf_endobsname_tag + uvf_info_tag + '*info*', count = n_uvf)
-      endif else begin
-        hpx_info_file = file_search(save_paths[i] +  'Combined_obs_' + $
-          obs_names[i] + '*' + hpx_endobsname_tag + '*info*', count = n_hpx)
-        uvf_info_file = file_search(save_paths[i] +  'Combined_obs_' + $
-          obs_names[i] + '*' + uvf_endobsname_tag + uvf_info_tag + '*info*', count = n_uvf)
-      endelse
-      if keyword_set(uvf_input) then begin
-        info_file = uvf_info_file
-        n_infofile = n_uvf
-      endif else begin
-        if n_elements(uvf_input) gt 0 then begin
-          info_file = hpx_info_file
-          n_infofile = n_hpx
-        endif else begin
-          n_infofile = n_hpx + n_uvf
-          if n_hpx gt 0 then begin
-            info_file = hpx_info_file
-            if n_uvf gt 0 then info_file = [info_file, uvf_info_file]
-          endif else if n_uvf gt 0 then info_file = uvf_info_file
-        endelse
-      endelse
-      if n_infofile gt 0 then begin
-        if obs_names[i] eq '' then begin
-          info_files[i] = info_file[0]
-          if stregex(info_files[i], '[0-9]+-[0-9]+', /boolean) then begin
-            obs_names[i] = stregex(info_files[i], '[0-9]+-[0-9]+', /extract)
-          endif else begin
-            start_pos = strpos(info_files[i], 'Combined_obs_') + strlen('Combined_obs_')
-            end_pos = stregex(strmid(info_files[i], start_pos), hpx_endobsname_tag + $
-              '|' + uvf_endobsname_tag)
-            obs_names[i] = strmid(info_files[i], start_pos, end_pos)
-          endelse
-          if n_infofile gt 1 then begin
-            print, 'More than 1 info files found, using first one'
-            fhd_types[i] = fhd_types[i] + '_' + obs_names[i]
-          endif
-        endif else begin
-          if n_infofile gt 1 then begin
-            ;; try just using the exact obs_name
-            if keyword_set(uvf_input) then begin
-              new_info_file = file_search(save_paths[i] +  'Combined_obs_' + $
-                obs_names[i] + uvf_endobsname_tag + uvf_info_tag + '*info*', count = n_infofile)
-            endif else begin
-              hpx_info_file = file_search(save_paths[i] +  'Combined_obs_' + $
-                obs_names[i] + hpx_endobsname_tag + '*info*', count = n_hpx)
-              uvf_info_file = file_search(save_paths[i] +  'Combined_obs_' + $
-                obs_names[i] + uvf_endobsname_tag + uvf_info_tag + '*info*', count = n_uvf)
-              n_new_infofile = n_hpx + n_uvf
-              if n_hpx gt 0 then begin
-                new_info_file = hpx_info_file
-                if n_uvf gt 0 then new_info_file = [new_info_file, uvf_info_file]
-              endif else if n_uvf gt 0 then new_info_file = uvf_info_file
-            endelse
-            if n_new_infofile eq 1 then begin
-              exact_obsnames=1
-              info_file = new_info_file
-              n_infofile = n_new_infofile
-            endif else begin
-              message, 'More than one info file found with given obs_name'
-            endelse
-          endif
-          info_files[i] = info_file
-          if stregex(info_files[i], '[0-9]+-[0-9]+', /boolean) then begin
-            obs_names[i] = stregex(info_files[i], '[0-9]+-[0-9]+', /extract)
-          endif else begin
-            start_pos = strpos(info_files[i], 'Combined_obs_') + strlen('Combined_obs_')
-            end_pos = stregex(strmid(info_files[i], start_pos), hpx_endobsname_tag + $
-              '|' + uvf_endobsname_tag)
-            obs_names[i] = strmid(info_files[i], start_pos, end_pos)
-          endelse
-          test_other_obsnames = file_search(save_paths[i] +  'Combined_obs_' + $
-            '*' + uvf_info_tag + '*info*', count = n_all_infofile)
-          if n_all_infofile gt n_infofile then begin
-            fhd_types[i] = fhd_types[i] + '_' + obs_names[i]
-          endif
-        endelse
-        integrated[i]=1
 
-      endif else begin
-        ;; then look for single obs info files
+      ;; first look for integrated info files in save_paths with names like Combined_obs_...
+      if not keyword_set(refresh_info) then begin
         if keyword_set(exact_obsnames) then begin
-          hpx_info_file = file_search(save_paths[i] + obs_name_single + $
-            hpx_endobsname_tag + '*info*', count = n_hpx)
-          uvf_info_file = file_search(save_paths[i] + obs_name_single + $
-            uvf_endobsname_tag + uvf_info_tag + '*info*', count = n_uvf)
+          hpx_info_file = file_search(save_paths[i] +  'Combined_obs_' + $
+            obs_names[i] + hpx_endobsname_tag + '*info*', count = n_hpx)
+          uvf_info_file = file_search(save_paths[i] +  'Combined_obs_' + $
+            obs_names[i] + uvf_endobsname_tag + uvf_info_tag + '*info*', count = n_uvf)
         endif else begin
-          hpx_info_file = file_search(save_paths[i] + obs_name_single + '*' + $
-            hpx_endobsname_tag + '*info*', count = n_hpx)
-          uvf_info_file = file_search(save_paths[i] + obs_name_single + '*' + $
-            uvf_endobsname_tag + uvf_info_tag + '*info*', count = n_uvf)
+          hpx_info_file = file_search(save_paths[i] +  'Combined_obs_' + $
+            obs_names[i] + '*' + hpx_endobsname_tag + '*info*', count = n_hpx)
+          uvf_info_file = file_search(save_paths[i] +  'Combined_obs_' + $
+            obs_names[i] + '*' + uvf_endobsname_tag + uvf_info_tag + '*info*', count = n_uvf)
         endelse
+
         if keyword_set(uvf_input) then begin
           info_file = uvf_info_file
           n_infofile = n_uvf
@@ -620,15 +540,15 @@ function ps_filenames, folder_names, obs_names_in, dirty_folder = dirty_folder, 
         endelse
 
         if n_infofile gt 0 then begin
-          info_basename = file_basename(info_file)
           if obs_names[i] eq '' then begin
             info_files[i] = info_file[0]
-            if stregex(info_basename[0], '[0-9]+', /boolean) then begin
-              obs_names[i] = stregex(info_basename[0], '[0-9]+', /extract)
+            if stregex(info_files[i], '[0-9]+-[0-9]+', /boolean) then begin
+              obs_names[i] = stregex(info_files[i], '[0-9]+-[0-9]+', /extract)
             endif else begin
-              end_pos = stregex(info_basename[0], hpx_endobsname_tag + '|' + $
-                uvf_endobsname_tag)
-              obs_names[i] = strmid(info_basename[0], 0, end_pos)
+              start_pos = strpos(info_files[i], 'Combined_obs_') + strlen('Combined_obs_')
+              end_pos = stregex(strmid(info_files[i], start_pos), hpx_endobsname_tag + $
+                '|' + uvf_endobsname_tag)
+              obs_names[i] = strmid(info_files[i], start_pos, end_pos)
             endelse
             if n_infofile gt 1 then begin
               print, 'More than 1 info files found, using first one'
@@ -636,26 +556,113 @@ function ps_filenames, folder_names, obs_names_in, dirty_folder = dirty_folder, 
             endif
           endif else begin
             if n_infofile gt 1 then begin
-              message, 'More than one info file found with given obs_name'
+              ;; try just using the exact obs_name
+              if keyword_set(uvf_input) then begin
+                new_info_file = file_search(save_paths[i] +  'Combined_obs_' + $
+                  obs_names[i] + uvf_endobsname_tag + uvf_info_tag + '*info*', count = n_infofile)
+              endif else begin
+                hpx_info_file = file_search(save_paths[i] +  'Combined_obs_' + $
+                  obs_names[i] + hpx_endobsname_tag + '*info*', count = n_hpx)
+                uvf_info_file = file_search(save_paths[i] +  'Combined_obs_' + $
+                  obs_names[i] + uvf_endobsname_tag + uvf_info_tag + '*info*', count = n_uvf)
+                n_new_infofile = n_hpx + n_uvf
+                if n_hpx gt 0 then begin
+                  new_info_file = hpx_info_file
+                  if n_uvf gt 0 then new_info_file = [new_info_file, uvf_info_file]
+                endif else if n_uvf gt 0 then new_info_file = uvf_info_file
+              endelse
+              if n_new_infofile eq 1 then begin
+                exact_obsnames=1
+                info_file = new_info_file
+                n_infofile = n_new_infofile
+              endif else begin
+                message, 'More than one info file found with given obs_name'
+              endelse
             endif
             info_files[i] = info_file
-            if stregex(info_basename[0], '[0-9]+', /boolean) then begin
-              obs_names[i] = stregex(info_basename[0], '[0-9]+', /extract)
+            if stregex(info_files[i], '[0-9]+-[0-9]+', /boolean) then begin
+              obs_names[i] = stregex(info_files[i], '[0-9]+-[0-9]+', /extract)
             endif else begin
-              end_pos = stregex(info_basename[0], hpx_endobsname_tag + '|' + $
-                uvf_endobsname_tag)
-              obs_names[i] = strmid(info_basename[0], 0, end_pos)
+              start_pos = strpos(info_files[i], 'Combined_obs_') + strlen('Combined_obs_')
+              end_pos = stregex(strmid(info_files[i], start_pos), hpx_endobsname_tag + $
+                '|' + uvf_endobsname_tag)
+              obs_names[i] = strmid(info_files[i], start_pos, end_pos)
             endelse
-            test_other_obsnames = file_search(save_paths[i] + '*' + uvf_info_tag + $
-              '*info*', count = n_all_infofile)
+            test_other_obsnames = file_search(save_paths[i] +  'Combined_obs_' + $
+              '*' + uvf_info_tag + '*info*', count = n_all_infofile)
             if n_all_infofile gt n_infofile then begin
               fhd_types[i] = fhd_types[i] + '_' + obs_names[i]
             endif
           endelse
-          integrated[i]=0
+          integrated[i]=1
 
-        endif
-      endelse
+        endif else begin
+          ;; then look for single obs info files
+          if keyword_set(exact_obsnames) then begin
+            hpx_info_file = file_search(save_paths[i] + obs_name_single + $
+              hpx_endobsname_tag + '*info*', count = n_hpx)
+            uvf_info_file = file_search(save_paths[i] + obs_name_single + $
+              uvf_endobsname_tag + uvf_info_tag + '*info*', count = n_uvf)
+          endif else begin
+            hpx_info_file = file_search(save_paths[i] + obs_name_single + '*' + $
+              hpx_endobsname_tag + '*info*', count = n_hpx)
+            uvf_info_file = file_search(save_paths[i] + obs_name_single + '*' + $
+              uvf_endobsname_tag + uvf_info_tag + '*info*', count = n_uvf)
+          endelse
+          if keyword_set(uvf_input) then begin
+            info_file = uvf_info_file
+            n_infofile = n_uvf
+          endif else begin
+            if n_elements(uvf_input) gt 0 then begin
+              info_file = hpx_info_file
+              n_infofile = n_hpx
+            endif else begin
+              n_infofile = n_hpx + n_uvf
+              if n_hpx gt 0 then begin
+                info_file = hpx_info_file
+                if n_uvf gt 0 then info_file = [info_file, uvf_info_file]
+              endif else if n_uvf gt 0 then info_file = uvf_info_file
+            endelse
+          endelse
+
+          if n_infofile gt 0 then begin
+            info_basename = file_basename(info_file)
+            if obs_names[i] eq '' then begin
+              info_files[i] = info_file[0]
+              if stregex(info_basename[0], '[0-9]+', /boolean) then begin
+                obs_names[i] = stregex(info_basename[0], '[0-9]+', /extract)
+              endif else begin
+                end_pos = stregex(info_basename[0], hpx_endobsname_tag + '|' + $
+                  uvf_endobsname_tag)
+                obs_names[i] = strmid(info_basename[0], 0, end_pos)
+              endelse
+              if n_infofile gt 1 then begin
+                print, 'More than 1 info files found, using first one'
+                fhd_types[i] = fhd_types[i] + '_' + obs_names[i]
+              endif
+            endif else begin
+              if n_infofile gt 1 then begin
+                message, 'More than one info file found with given obs_name'
+              endif
+              info_files[i] = info_file
+              if stregex(info_basename[0], '[0-9]+', /boolean) then begin
+                obs_names[i] = stregex(info_basename[0], '[0-9]+', /extract)
+              endif else begin
+                end_pos = stregex(info_basename[0], hpx_endobsname_tag + '|' + $
+                  uvf_endobsname_tag)
+                obs_names[i] = strmid(info_basename[0], 0, end_pos)
+              endelse
+              test_other_obsnames = file_search(save_paths[i] + '*' + uvf_info_tag + $
+                '*info*', count = n_all_infofile)
+              if n_all_infofile gt n_infofile then begin
+                fhd_types[i] = fhd_types[i] + '_' + obs_names[i]
+              endif
+            endelse
+            integrated[i]=0
+
+          endif
+        endelse
+      endif
 
       if not keyword_set(uvf_input) then begin
         ;; first look for integrated cube files in folder + data_dir with names like Combined_obs_...
