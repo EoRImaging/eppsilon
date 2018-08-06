@@ -49,8 +49,11 @@ module load git/2.2.1
 module load idl
 shopt -s expand_aliases; source $IDL/envi53/bin/envi_setup.bash
 
-acct='default'
-qos='pri-alanman'
+#acct='default'
+#qos='pri-alanman'
+
+acct='jpober-condo'
+qos='jpober-condo'
 
 #Manual shift to the next flag
 shift $(($OPTIND - 1))

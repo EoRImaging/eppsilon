@@ -331,17 +331,6 @@ pro kpower_1d_plots, power_savefile, multi_pos = multi_pos, $
     endif
 
     if keyword_set(kpar_power) then begin
-      if n_elements(k_edges) eq 0 then begin
-        if log_bins then begin
-          k_bin = alog10(k_centers[2])-alog10(k_centers[1])
-          k_edges = 10^([alog10(k_centers) - k_bin, alog10(max(k_centers)) + k_bin])
-          if keyword_set(kpar_power) then delay_edges = log_delay_edges
-        endif else begin
-          k_bin = k_centers[2] - k_centers[1]
-          k_edges = [k_centers - k_bin, max(k_centers) + k_bin]
-          if keyword_set(kpar_power) then delay_edges = linear_delay_edges
-        endelse
-      endif
       lin_delay_kpar_slope = (delay_params[1] - delay_params[0])/(max(k_edges) - k_bin)
       lin_delay_kpar_intercept = delay_params[0] / (lin_delay_kpar_slope * k_bin)
       linear_delay_edges = lin_delay_kpar_slope * k_edges + lin_delay_kpar_intercept
@@ -437,6 +426,7 @@ pro kpower_1d_plots, power_savefile, multi_pos = multi_pos, $
       k_mid = k_mid[wh_keep]
       k_edges = k_edges[[wh_keep, max(wh_keep)+1]]
       if keyword_set(kpar_power) then delay_edges = delay_edges[temp]
+
       wh_zero = where(power eq 0d, count_zero, complement = wh_non0, ncomplement = count_non0)
     endif
 
