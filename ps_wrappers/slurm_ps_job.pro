@@ -21,8 +21,11 @@ pro slurm_ps_job
   std_power = 0    ; Use FT instead of Lomb-Scargle
   refresh_beam=0
 
-  ;;;;; Binning options
-;  kperp_range_lambda_1dave=[0.0,100.0]
+ ; Colorbar options
+
+  color_type='linear'
+
+  ;;;;; BinninMWAGoldenZenith;   kperp_range_lambda_1dave=[0.0,25.0]
 ;  kpar_range_kperppower=[0.3,0.4]
 
 
