@@ -68,6 +68,8 @@ pro slurm_ps_job
   png=1
 ;  data_range=[1,3]
 
+
+  use_weight_cutoff_sim=0
   hinv=0
 
   extra = var_bundle()
