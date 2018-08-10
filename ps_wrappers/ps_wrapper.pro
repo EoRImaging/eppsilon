@@ -46,7 +46,7 @@ pro ps_wrapper, folder_name_in, obs_name, data_subdirs=data_subdirs, $
     savefilebase = savefilebase, plot_path = plot_path, plot_filebase = plot_filebase, $
     individual_plots = individual_plots, plot_binning_hist = plot_binning_hist, $
     note = note, png = png, eps = eps, pdf = pdf, cube_power_info = cube_power_info, $
-    no_dft_progress = no_dft_progress, loc_name = loc_name, _Extra=extra
+    no_dft_progress = no_dft_progress, loc_name = loc_name
 
   if n_elements(folder_name_in) ne 1 then message, 'one folder_name must be supplied.'
 
