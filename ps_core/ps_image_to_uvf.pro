@@ -403,8 +403,11 @@ pro ps_image_to_uvf, file_struct, n_vis_freq, kx_rad_vals, ky_rad_vals, $
         
         ;; Create an image space filter to reduce thrown power via the FFT on hard clips
         if tag_exist(uvf_options, 'image_window_name') then begin
+          if tag_exist(uvf_options, 'image_window_frac_size') then begin
+            image_window_frac_size = uvf_options.image_window_frac_size
+          endif
           pix_window = image_window(x_use, y_use, image_window_name = uvf_options.image_window_name, $
-            fractional_size = uvf_options.image_window_frac_size)
+            fractional_size = image_window_frac_size)
           pix_window = rebin(pix_window, n_elements(wh_close), n_freq, /sample)
         endif else pix_window = fltarr(n_elements(wh_close), n_freq) + 1.
         
