@@ -196,7 +196,9 @@ function ps_filenames, folder_names, obs_names_in, dirty_folder = dirty_folder, 
           endelse
 
         endif
-      endif
+      endif else begin
+        n_infofile = 0
+      endelse
 
       ;; then look for combined cube files in folder + data_subdir
       cube_file_list = file_search(folder_names[i] + '/' + data_subdirs[i] + $
@@ -419,7 +421,9 @@ function ps_filenames, folder_names, obs_names_in, dirty_folder = dirty_folder, 
           endelse
 
         endif
-      endif
+      endif else begin
+        n_infofile = 0
+      endelse
 
       ;; then look for cube files in folder + data_subdir
       cube_file_list = file_search(folder_names[i] + '/' + data_subdirs[i] + $
@@ -662,7 +666,9 @@ function ps_filenames, folder_names, obs_names_in, dirty_folder = dirty_folder, 
 
           endif
         endelse
-      endif
+      endif else begin
+        n_infofile = 0
+      endelse
 
       if not keyword_set(uvf_input) then begin
         ;; first look for integrated cube files in folder + data_dir with names like Combined_obs_...
