@@ -4,15 +4,12 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
     rts = rts, norm_rts_with_fhd = norm_rts_with_fhd, casa = casa, sim = sim, $
     fix_sim_input = fix_sim_input, save_path = save_path, $
     savefilebase = savefilebase, cube_power_info = cube_power_info, $
+    input_units = input_units, save_slices = save_slices, no_binning = no_binning, $
     refresh_options = refresh_options, uvf_options = uvf_options, $
     ps_options = ps_options, binning_2d_options = binning_2d_options, $
     binning_1d_options = binning_1d_options, plot_options = plot_options, $
     plot_types = plot_types, plot_2d_options = plot_2d_options, $
     plot_1d_options = plot_1d_options
-
-  if binning_2d_options.no_kzero and plot_types.plot_k0_power then begin
-    message, 'plot_k0_power cannot be set if no_kzero keyword is set.'
-  endif
 
   if n_elements(savefilebase) gt 1 then message, 'savefilebase must be a scalar'
 
@@ -49,22 +46,6 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
   for i = 0, n_elements(save_paths) - 1 do begin
     if not file_test(save_paths[i], /directory) then file_mkdir, save_paths[i]
   endfor
-
-  if plot_options.pub then begin
-    if tag_exist(plot_options, 'plot_path') ne 0 then begin
-      plotfile_path = plot_options.plot_path
-    endif else begin
-      plotfile_path = file_struct_arr[0].savefile_froot + file_struct_arr[0].subfolders.plots
-    endelse
-
-    ;; make sure plot paths exist
-    plot_paths = plotfile_path + ['', file_struct_arr[0].subfolders.slices, $
-       file_struct_arr[0].subfolders.bin_2d + ['', 'from_1d/'], $
-       file_struct_arr[0].subfolders.bin_1d + ['', 'bin_histograms/']]
-    for i = 0, n_elements(plot_paths) - 1 do begin
-      if not file_test(plot_paths[i], /directory) then file_mkdir, plot_paths[i]
-    endfor
-  endif
 
   if not tag_exist(file_struct_arr, 'beam_int') and refresh_options.refresh_ps then begin
     refresh_options.refresh_beam = 1
@@ -104,60 +85,6 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
       plot_options = create_plot_options(plot_options = plot_options, $
         note = ' (' + number_formatter(round(mean(file_struct_arr[0].n_obs))) + ')')
     endelse
-  endif
-
-  if plot_2d_options.plot_wedge_line or tag_exist(binning_1d_options, 'wedge_angles') then begin
-    z0_freq = 1420.40 ;; MHz
-    redshifts = z0_freq/file_struct_arr[0].frequencies - 1
-    mean_redshift = mean(redshifts)
-
-    cosmology_measures, mean_redshift, wedge_factor = wedge_factor, hubble_param = hubble_param
-    if tag_exist(binning_1d_options, 'wedge_angles') then begin
-      if min(binning_1d_options.wedge_angles) le 0 or $
-          max(binning_1d_options.wedge_angles) ge 180 then begin
-        message, 'wedge_angles must be in degrees and between 0 & 180'
-      endif
-      wedge_amps = [wedge_factor * (binning_1d_options.wedge_angles*!dpi / 180d)]
-
-      if tag_exist(binning_1d_options, 'wedge_names') then begin
-        if n_elements(binning_1d_options.wedge_names) ne n_elements(binning_1d_options.wedge_angles) then begin
-          message, 'number of wedge_names must match number of wedge_angles'
-        endif
-      endif else begin
-        wedge_names = [number_formatter(binning_1d_options.wedge_angles) + 'deg']
-        binning_1d_options = create_binning_1d_options(binning_1d_options = binning_1d_options, $
-          wedge_names = wedge_names)
-      endelse
-      binning_1d_options = create_binning_1d_options(binning_1d_options = binning_1d_options, $
-        wedge_amps = wedge_amps)
-    endif else begin
-      ;; use standard angles for MWA
-      ;; assume 20 degrees from pointing center to first null
-      source_dist = 20d * !dpi / 180d
-      fov_amp = wedge_factor * source_dist
-
-      ;; calculate angular distance to horizon (can be >90 for non-zenith pointings)
-      horizon_amp = wedge_factor * ((file_struct_arr[0].max_theta+90d) * !dpi / 180d)
-
-      wedge_amps = [fov_amp, horizon_amp]
-      wedge_names = ['fov', 'horizon']
-      binning_1d_options = create_binning_1d_options(binning_1d_options = binning_1d_options, $
-        wedge_amps = wedge_amps, wedge_names = wedge_names)
-    endelse
-  endif
-
-  if tag_exist(binning_1d_options, 'coarse_harm_width') then begin
-    harm_freq = 1.28
-    if n_elements(freq_ch_range) gt 0 then begin
-      freqs_use = file_struct_arr[0].frequencies[freq_ch_range[0]:freq_ch_range[1]]
-    endif else begin
-      freqs_use = file_struct_arr[0].frequencies
-    endelse
-
-    bandwidth = max(freqs_use) - min(freqs_use) + freqs_use[1] - freqs_use[0]
-    coarse_harm0 = round(bandwidth / harm_freq)
-    binning_1d_options = create_binning_1d_options(binning_1d_options = binning_1d_options, $
-      coarse_harm0 = coarse_harm0)
   endif
 
   if n_elements(pol_inc) gt 0 or n_elements(type_inc) gt 0 then begin
@@ -205,22 +132,595 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
     message, 'number of cubes does not match expected value'
   endif
 
-  file_labels = file_struct_arr.file_label
-  wt_file_labels = file_struct_arr.wt_file_label
-  titles = strarr(n_cubes)
-  for i=0, n_cubes-1 do begin
-    titles[i] = strjoin(strsplit(file_labels[i], '_', /extract), ' ')
-  endfor
+  if tag_exist(file_struct_arr[0], 'nside') ne 0 then healpix = 1 else healpix = 0
+
+  if tag_exist(file_struct_arr, 'uvf_savefile') then uvf_input = 0 else uvf_input = 1
+
+  n_freq = n_elements(file_struct_arr[0].frequencies)
+  if n_elements(freq_ch_range) ne 0 then begin
+    if max(freq_ch_range) gt n_freq-1 then message, 'invalid freq_ch_range'
+    n_freq = freq_ch_range[1]-freq_ch_range[0]+1
+  endif
+
+  if healpix and tag_exist(uvf_options, 'dft_fchunk') then begin
+    if uvf_options.dft_fchunk gt n_freq then begin
+      print, 'dft_fchunk is larger than the number of frequency slices, setting ' + $
+        'it to the number of slices -- ' + number_formatter(n_freq)
+      uvf_options.dft_fchunk = n_freq
+    endif
+  endif
+
+  if plot_types.plot_slices then begin
+    ;; check to see if needed slices are available.
+    if not tag_exist(plot_types, 'slice_type') then begin
+       slice_type = 'sumdiff'
+       plot_types = create_plot_types(plot_types = plot_types, slice_type = slice_type)
+    endif
+    slice_type_enum = ['raw', 'divided', 'sumdiff', 'weights', 'variance', $
+                       'power', 'var_power']
+
+    wh_slice_type = where(slice_type_enum eq plot_types.slice_type, count_slice_type)
+    if count_slice_type eq 0 then begin
+      message, 'slice_type not recognized. options are: ' + strjoin(slice_type_enum, ', ')
+    endif
+
+    case plot_types.slice_type of
+      'raw': begin
+        uf_slice_savefile = file_struct_arr.uf_raw_savefile
+        vf_slice_savefile = file_struct_arr.vf_raw_savefile
+        uv_slice_savefile = file_struct_arr.uv_raw_savefile
+        slice_titles = file_struct_arr.uvf_label
+      end
+      'divided': begin
+        uf_slice_savefile = file_struct_arr.uf_savefile
+        vf_slice_savefile = file_struct_arr.vf_savefile
+        uv_slice_savefile = file_struct_arr.uv_savefile
+        slice_titles = file_struct_arr.uvf_label
+      end
+      'sumdiff': begin
+        uf_slice_savefile = [file_struct_arr.uf_sum_savefile, file_struct_arr.uf_diff_savefile]
+        vf_slice_savefile = [file_struct_arr.vf_sum_savefile, file_struct_arr.vf_diff_savefile]
+        uv_slice_savefile = [file_struct_arr.uv_sum_savefile, file_struct_arr.uv_diff_savefile]
+        slice_titles = ['sum ' + file_struct_arr.file_label, 'diff ' + file_struct_arr.file_label]
+      end
+      'weights': begin
+        uf_slice_savefile = file_struct_arr.uf_weight_savefile
+        vf_slice_savefile = file_struct_arr.vf_weight_savefile
+        uv_slice_savefile = file_struct_arr.uv_weight_savefile
+        slice_titles = file_struct_arr.uvf_label
+      end
+      'variance': begin
+        uf_slice_savefile = file_struct_arr.uf_var_savefile
+        vf_slice_savefile = file_struct_arr.vf_var_savefile
+        uv_slice_savefile = file_struct_arr.uv_var_savefile
+        slice_titles = file_struct_arr.uvf_label
+      end
+      'power': begin
+        uf_slice_savefile = file_struct_arr.xz_savefile
+        vf_slice_savefile = file_struct_arr.yz_savefile
+        uv_slice_savefile = file_struct_arr.xy_savefile
+        slice_titles = file_struct_arr.file_label
+      end
+      'var_power': begin
+        uf_slice_savefile = file_struct_arr.xz_savefile
+        vf_slice_savefile = file_struct_arr.yz_savefile
+        uv_slice_savefile = file_struct_arr.xy_savefile
+        slice_titles = file_struct_arr.file_label
+      end
+    endcase
+
+    if plot_types.slice_type eq 'weights' or plot_types.slice_type eq 'variance' $
+        or plot_types.slice_type eq 'var_power' then begin
+      ;; we don't need separate ones for dirty, model, residual
+      wh_use = where(strpos(slice_titles, 'dirty')>0)
+
+      uf_slice_savefile = uf_slice_savefile[wh_use]
+      vf_slice_savefile = vf_slice_savefile[wh_use]
+      uv_slice_savefile = uv_slice_savefile[wh_use]
+      slice_titles = slice_titles[wh_use]
+    endif
+
+    ;; now test to see if required save files exist
+    test_uf_slice = file_valid(uf_slice_savefile)
+    test_vf_slice = file_valid(vf_slice_savefile)
+    test_uv_slice = file_valid(uv_slice_savefile)
+
+    test_slices = min(test_uf_slice) * min(test_vf_slice) * min(test_uv_slice)
+
+    if plot_types.slice_type eq 'power' or plot_types.slice_type eq 'var_power' then begin
+      slice_space = 'kspace'
+    endif else begin
+      slice_space = 'uvf'
+    endelse
+
+    if test_slices eq 0 then begin
+      if slice_space eq 'kspace' then begin
+        refresh_options = create_refresh_options(refresh_options = refresh_options, $
+          /refresh_ps)
+      endif else begin
+        refresh_options = create_refresh_options(refresh_options = refresh_options, $
+          /refresh_kcube)
+      endelse
+    endif
+
+  endif
 
   weight_ind = file_struct_arr.pol_index
-  weight_labels = strupcase(file_struct_arr.pol)
 
+  for i=0, n_cubes-1 do begin
+    power_file = file_struct_arr[i].power_savefile
+    test_power_3d = file_valid(power_file)
+
+    if test_power_3d eq 1 and n_elements(freq_flags) ne 0 then begin
+      freq_mask = file_struct_arr[i].freq_mask
+      old_freq_mask = getvar_savefile(power_file, 'freq_mask')
+      if total(abs(old_freq_mask - freq_mask)) ne 0 then test_power_3d = 0
+    endif
+
+    if healpix or not keyword_set(uvf_input) then begin
+      weight_refresh = intarr(n_cubes)
+      if refresh_options.refresh_dft then begin
+        temp = weight_ind[uniq(weight_ind, sort(weight_ind))]
+        for j=0, n_elements(temp)-1 do begin
+          weight_refresh[(where(weight_ind eq temp[j]))[0]] = 1
+        endfor
+      endif
+      refresh_options = create_refresh_options(refresh_options = refresh_options, $
+        refresh_weight_dft = weight_refresh[i])
+    endif
+
+    if test_power_3d eq 0 or refresh_options.refresh_ps then begin
+      ps_power, file_struct_arr[i], sim = sim, fix_sim_input = fix_sim_input, $
+          uvf_input = uvf_input, freq_ch_range = freq_ch_range, freq_flags = freq_flags, $
+          input_units = input_units, save_slices = save_slices, $
+          refresh_options = refresh_options, uvf_options = uvf_options, $
+          ps_options = ps_options
+    endif
+  endfor
+
+  ;; setup for saving plots
   power_tag = file_struct_arr[0].power_tag
   if tag_exist(file_struct_arr[0], 'uvf_tag') then begin
     uvf_tag = file_struct_arr[0].uvf_tag
   endif else begin
     uvf_tag = ''
   endelse
+
+
+  ;; need general_filebase for 1D and weight plotfiles, make sure it doesn't have a full path
+  general_filebase = file_struct_arr[0].general_filebase
+  for i=0, n_cubes-1 do begin
+    if file_struct_arr(i).general_filebase ne general_filebase then begin
+      message, 'general_filebase does not match between 1d savefiles'
+    endif
+  endfor
+
+  if plot_options.pub then begin
+    if tag_exist(plot_options, 'plot_path') ne 0 then begin
+      plotfile_path = plot_options.plot_path
+    endif else begin
+      plotfile_path = file_struct_arr[0].savefile_froot + file_struct_arr[0].subfolders.plots
+    endelse
+
+    ;; make sure plot paths exist
+    plot_paths = plotfile_path + ['', file_struct_arr[0].subfolders.slices, $
+       file_struct_arr[0].subfolders.bin_2d + ['', 'from_1d/'], $
+       file_struct_arr[0].subfolders.bin_1d + ['', 'bin_histograms/']]
+    for i = 0, n_elements(plot_paths) - 1 do begin
+      if not file_test(plot_paths[i], /directory) then file_mkdir, plot_paths[i]
+    endfor
+
+    if plot_options.individual_plots then begin
+      if not tag_exist(plot_options, 'plot_filebase') then begin
+        plotfile_base = file_struct_arr.savefilebase + power_tag
+        plotfile_base_wt = general_filebase + '_' + $
+          file_struct_arr[uniq(weight_ind, sort(weight_ind))].pol + power_tag
+      endif else begin
+        plotfile_base = plot_options.plot_filebase + uvf_tag + $
+          file_struct_arr.file_label + power_tag
+        plotfile_base_wt = plot_options.plot_filebase + uvf_tag + $
+          '_' + file_struct_arr[uniq(weight_ind, sort(weight_ind))].pol + power_tag
+      endelse
+    endif else begin
+      if not tag_exist(plot_options, 'plot_filebase') then begin
+        plotfile_base = general_filebase + power_tag
+      endif else begin
+        plotfile_base = plot_options.plot_filebase + uvf_tag + power_tag
+      endelse
+      plotfile_base_wt = plotfile_base
+    endelse
+
+    plot_fadd_2d = ''
+    plot_fadd_kslice = ''
+    if plot_2d_options.kperp_linear_axis and plot_2d_options.kpar_linear_axis then begin
+      plot_fadd_2d = plot_fadd_2d + '_linaxes'
+    endif else begin
+      if plot_2d_options.kperp_linear_axis then begin
+        plot_fadd_2d = plot_fadd_2d + '_kperplinaxis'
+        ;; Right now, if kperp_linear_axis is set, the power slices will all have linear axes
+        ;; basically kpar_linear_axis is ignored for slice plots.
+        ;; uvf slice plots always have linear axes
+        plot_fadd_kslice = '_linaxes'
+      endif
+      if plot_2d_options.kpar_linear_axis then plot_fadd_2d = plot_fadd_2d + '_kparlinaxis'
+    endelse
+  endif
+
+  ;; do this here because power slice plots need it.
+  if plot_2d_options.plot_wedge_line or tag_exist(binning_1d_options, 'wedge_angles') then begin
+    z0_freq = 1420.40 ;; MHz
+    redshifts = z0_freq/file_struct_arr[0].frequencies - 1
+    mean_redshift = mean(redshifts)
+
+    cosmology_measures, mean_redshift, wedge_factor = wedge_factor, hubble_param = hubble_param
+    if tag_exist(binning_1d_options, 'wedge_angles') then begin
+      if min(binning_1d_options.wedge_angles) le 0 or $
+          max(binning_1d_options.wedge_angles) ge 180 then begin
+        message, 'wedge_angles must be in degrees and between 0 & 180'
+      endif
+      wedge_amps = [wedge_factor * (binning_1d_options.wedge_angles*!dpi / 180d)]
+
+      if tag_exist(binning_1d_options, 'wedge_names') then begin
+        if n_elements(binning_1d_options.wedge_names) ne n_elements(binning_1d_options.wedge_angles) then begin
+          message, 'number of wedge_names must match number of wedge_angles'
+        endif
+      endif else begin
+        wedge_names = [number_formatter(binning_1d_options.wedge_angles) + 'deg']
+        binning_1d_options = create_binning_1d_options(binning_1d_options = binning_1d_options, $
+          wedge_names = wedge_names)
+      endelse
+      binning_1d_options = create_binning_1d_options(binning_1d_options = binning_1d_options, $
+        wedge_amps = wedge_amps)
+    endif else begin
+      ;; use standard angles for MWA
+      ;; assume 20 degrees from pointing center to first null
+      source_dist = 20d * !dpi / 180d
+      fov_amp = wedge_factor * source_dist
+
+      ;; calculate angular distance to horizon (can be >90 for non-zenith pointings)
+      horizon_amp = wedge_factor * ((file_struct_arr[0].max_theta+90d) * !dpi / 180d)
+
+      wedge_amps = [fov_amp, horizon_amp]
+      wedge_names = ['fov', 'horizon']
+      binning_1d_options = create_binning_1d_options(binning_1d_options = binning_1d_options, $
+        wedge_amps = wedge_amps, wedge_names = wedge_names)
+    endelse
+  endif
+
+  window_num=0
+
+  ;; Now set up slice stuff
+  if plot_types.plot_slices then begin
+
+    if slice_space eq 'uvf' then begin
+      uvf_type_enum = ['abs', 'phase', 'real', 'imaginary', 'normalized']
+      if not tag_exist(plot_types, 'uvf_plot_type') then begin
+        uvf_plot_type = 'abs'
+        plot_types = create_plot_types(plot_types = plot_types, uvf_plot_type = uvf_plot_type)
+      endif
+      wh = where(uvf_type_enum eq plot_types.uvf_plot_type, count_uvf_type)
+      if count_uvf_type eq 0 then begin
+        message, 'unknown uvf_plot_type. Use one of: ' + print, strjoin(uvf_type_enum, ', ')
+      endif
+
+      if plot_types.uvf_plot_type eq 'phase' then uvf_log = 0 else uvf_log=1
+    endif
+
+    if plot_options.pub then begin
+
+      slice_plotfile_base = plotfile_path + file_struct_arr[0].subfolders.slices + $
+        plotfile_base + '_' + plot_types.slice_type
+      slice_plotfile_end = plot_fadd + plot_options.plot_exten
+      if plot_options.individual_plots then begin
+
+        indv_plotfile_base = plotfile_path + file_struct_arr[0].subfolders.slices + $
+          transpose([[plotfile_base +'_even_'], [plotfile_base +'_odd_']]) + $
+          '_' + plot_types.slice_type
+        if slice_space eq 'uvf' then begin
+          if plot_types.slice_type eq 'sumdiff' then begin
+              sumdiff_plotfile_base = plotfile_path + file_struct_arr[0].subfolders.slices + $
+                [plotfile_base +'_sum_',plotfile_base +'_diff_'] + $
+                '_' + plot_types.slice_type
+              uf_slice_plotfile = sumdiff_plotfile_base + '_uf_plane' + plot_options.plot_exten
+              vf_slice_plotfile = sumdiff_plotfile_base + '_vf_plane' + plot_options.plot_exten
+              uv_slice_plotfile = sumdiff_plotfile_base + '_uv_plane' + plot_options.plot_exten
+          endif else begin
+              uf_slice_plotfile = indv_plotfile_base + '_uf_plane' + plot_options.plot_exten
+              vf_slice_plotfile = indv_plotfile_base + '_vf_plane' + plot_options.plot_exten
+              uv_slice_plotfile = indv_plotfile_base + '_uv_plane' + plot_options.plot_exten
+          endelse
+        endif else begin
+          uf_slice_plotfile = slice_plotfile_base + '_xz_plane' + plot_fadd_kslice + plot_options.plot_exten
+          vf_slice_plotfile = slice_plotfile_base + '_yz_plane' + plot_fadd_kslice + plot_options.plot_exten
+          uv_slice_plotfile = slice_plotfile_base + '_xy_plane' + plot_fadd_kslice + plot_options.plot_exten
+        endelse
+      endif else begin
+        if slice_space eq 'uvf' then begin
+          uf_slice_plotfile = slice_plotfile_base + '_uf_plane' + plot_options.plot_exten
+          vf_slice_plotfile = slice_plotfile_base + '_vf_plane' + plot_options.plot_exten
+          uv_slice_plotfile = slice_plotfile_base + '_uv_plane' + plot_options.plot_exten
+        endif else begin
+          uf_slice_plotfile = slice_plotfile_base + '_xz_plane' + plot_fadd_kslice + plot_options.plot_exten
+          vf_slice_plotfile = slice_plotfile_base + '_yz_plane' + plot_fadd_kslice + plot_options.plot_exten
+          uv_slice_plotfile = slice_plotfile_base + '_xy_plane' + plot_fadd_kslice + plot_options.plot_exten
+        endelse
+      endelse
+
+    endif else begin
+      case plot_types.slice_type of
+        'sumdiff': slice_titles = ['sum ' + file_struct_arr.file_label, 'diff ' + $
+          file_struct_arr.file_label]
+        'power': slice_titles = file_struct_arr.file_label
+        'var_power': slice_titles = file_struct_arr.file_label
+        else: slice_titles = file_struct_arr.uvf_label
+      endcase
+    endelse
+
+    if plot_options.pub and plot_options.individual_plots then begin
+      case plot_types.slice_type of
+        'power': nplots = ntype*npol
+        'var_power': nplots = npol
+        'weights': nplots = nfiles*npol
+        'variance': nplots = nfiles*npol
+        else: nplots = ntype*nfiles*npol
+      endcase
+
+      for i=0, nplots-1 do begin
+
+        if plot_types.slice_type eq 'power' or plot_types.slice_type eq 'var_power' then begin
+          if plot_types.slice_type eq 'power' then begin
+            kspace_plot_type = 'power'
+          endif else begin
+            kspace_plot_type = 'variance'
+          endelse
+
+          kpower_slice_plot, uf_slice_savefile[i], multi_pos = pos_use, $
+            start_multi_params = start_multi_params, plotfile = uf_slice_plotfile[i], $
+            plot_options = plot_options, plot_2d_options = plot_2d_options, $
+            plot_type = kspace_plot_type, title_prefix = slice_titles[i], note = note_use, $
+            wedge_amp = binning_1d_options.wedge_amps, window_num = window_num
+
+          kpower_slice_plot, vf_slice_savefile[i], multi_pos = pos_use, $
+            start_multi_params = start_multi_params, plotfile = vf_slice_plotfile[i], $
+            plot_options = plot_options, plot_2d_options = plot_2d_options, $
+            plot_type = kspace_plot_type, title_prefix = slice_titles[i], note = note_use, $
+            wedge_amp = binning_1d_options.wedge_amps, window_num = window_num
+
+          kpower_slice_plot, uv_slice_savefile[i], multi_pos = pos_use, $
+            start_multi_params = start_multi_params, plotfile = uv_slice_plotfile[i], $
+            plot_options = plot_options, plot_2d_options = plot_2d_options, $
+            plot_type = kspace_plot_type, title_prefix = slice_titles[i], note = note_use,  $
+            wedge_amp = binning_1d_options.wedge_amps, window_num = window_num
+
+        endif else begin
+
+          uvf_slice_plot, uf_slice_savefile[i], multi_pos = pos_use, $
+            start_multi_params = start_multi_params, $
+            plotfile = uf_slice_plotfile[i], type = plot_types.uvf_plot_type, $
+            plot_options = plot_options, plot_2d_options = plot_2d_options, $
+            title_prefix = slice_titles[i], note = note_use, $
+            log = uvf_log, window_num = window_num
+
+          uvf_slice_plot, vf_slice_savefile[i], multi_pos = pos_use, $
+            start_multi_params = start_multi_params, $
+            plotfile = vf_slice_plotfile[i], type = plot_types.uvf_plot_type, $
+            plot_options = plot_options, plot_2d_options = plot_2d_options, $
+            title_prefix = slice_titles[i], note = note_use, $
+            log = uvf_log, window_num = window_num
+
+          uvf_slice_plot, uv_slice_savefile[i], multi_pos = pos_use, $
+            start_multi_params = start_multi_params, $
+            plotfile = uv_slice_plotfile[i], type = plot_types.uvf_plot_type, $
+            plot_options = plot_options, plot_2d_options = plot_2d_options, $
+            title_prefix = slice_titles[i], note = note_use, $
+            log = uvf_log, window_num = window_num
+
+        endelse
+
+      endfor
+
+    endif else begin
+
+      if plot_2d_options.kperp_linear_axis then begin
+        ;; aspect ratio doesn't work out for kperp_linear with multiple rows
+        nrow = 1
+
+        case plot_types.slice_type of
+          'power': ncol = ntype*npol
+          'var_power': ncol = npol
+          'weights': ncol = nfiles*npol
+          'variance': ncol = nfiles*npol
+          else: ncol = ntype*nfiles*npol
+        endcase
+      endif else begin
+        case plot_types.slice_type of
+          'power': begin
+            ncol = ntype
+            nrow = npol
+          end
+          'var_power': begin
+            ncol = 1
+            nrow = npol
+          end
+          'weights': begin
+            ncol = nfiles
+            nrow = npol
+          end
+          'variance': begin
+            ncol = nfiles
+            nrow = npol
+          end
+          else: begin
+            if ntype gt 1 then begin
+              ncol=ntype
+              nrow = npol*nfiles
+            endif else begin
+              ncol=ntype*nfiles
+              nrow = npol
+            endelse
+        end
+        endcase
+      endelse
+
+      if plot_types.slice_type eq 'raw' or plot_types.slice_type eq 'divided' then begin
+        slice_titles = transpose(slice_titles)
+        uf_slice_savefile = transpose(uf_slice_savefile)
+        vf_slice_savefile = transpose(vf_slice_savefile)
+        uv_slice_savefile = transpose(uv_slice_savefile)
+      endif
+
+      window_num = window_num+1
+      start_multi_params = {ncol:ncol, nrow:nrow, ordering:'row'}
+      undefine, pos_use
+
+      for i=0, (nrow*ncol)-1 do begin
+        if i gt 0 then  pos_use = positions[*,i]
+        if i eq (nrow*ncol)-1 and tag_exist(plot_options, 'note') then begin
+          note_use = plot_options.note
+        endif else begin
+          note_use = ''
+        endelse
+
+        if plot_types.slice_type eq 'power' or plot_types.slice_type eq 'var_power' then begin
+          if plot_types.slice_type eq 'power' then begin
+            kspace_plot_type = 'power'
+          endif else begin
+            kspace_plot_type = 'variance'
+          endelse
+
+          kpower_slice_plot, uf_slice_savefile[i], multi_pos = pos_use, $
+            start_multi_params = start_multi_params, plotfile = uf_slice_plotfile, $
+            plot_options = plot_options, plot_2d_options = plot_2d_options, $
+            plot_type = kspace_plot_type, title_prefix = slice_titles[i], note = note_use,  $
+            wedge_amp = binning_1d_options.wedge_amps, window_num = window_num
+        endif else begin
+
+          uvf_slice_plot, uf_slice_savefile[i], multi_pos = pos_use, $
+            start_multi_params = start_multi_params, $
+            plotfile = uf_slice_plotfile, type = plot_types.uvf_plot_type, $
+            plot_options = plot_options, plot_2d_options = plot_2d_options, $
+            title_prefix = slice_titles[i], note = note_use, $
+            log = uvf_log, window_num = window_num
+        endelse
+
+        if i eq 0 then begin
+          positions = pos_use
+          undefine, start_multi_params
+        endif
+      endfor
+      if plot_options.pub then begin
+        cgps_close, png = plot_options.png, pdf = plot_options.pdf, $
+          delete_ps = plot_options.delete_ps, density = 600
+      endif
+
+      window_num = window_num+1
+      start_multi_params = {ncol:ncol, nrow:nrow, ordering:'row'}
+      undefine, pos_use
+
+      for i=0, (nrow*ncol)-1 do begin
+        if i gt 0 then  pos_use = positions[*,i]
+        if i eq (nrow*ncol)-1 and tag_exist(plot_options, 'note') then begin
+          note_use = plot_options.note
+        endif else begin
+          note_use = ''
+        endelse
+
+        if plot_types.slice_type eq 'power' or plot_types.slice_type eq 'var_power' then begin
+          kpower_slice_plot, vf_slice_savefile[i], multi_pos = pos_use, $
+            start_multi_params = start_multi_params, plotfile = vf_slice_plotfile, $
+            plot_options = plot_options, plot_2d_options = plot_2d_options, $
+            plot_type = kspace_plot_type, title_prefix = slice_titles[i], note = note_use,  $
+            wedge_amp = binning_1d_options.wedge_amps, window_num = window_num
+        endif else begin
+
+          uvf_slice_plot, vf_slice_savefile[i], multi_pos = pos_use, $
+            start_multi_params = start_multi_params, $
+            plotfile = vf_slice_plotfile, type = plot_types.uvf_plot_type, $
+            plot_options = plot_options, plot_2d_options = plot_2d_options, $
+            title_prefix = slice_titles[i], note = note_use, $
+            log = uvf_log, window_num = window_num
+        endelse
+
+        if i eq 0 then begin
+          positions = pos_use
+          undefine, start_multi_params
+        endif
+      endfor
+      if plot_options.pub then begin
+        cgps_close, png = plot_options.png, pdf = plot_options.pdf, $
+          delete_ps = plot_options.delete_ps, density = 600
+      endif
+
+      window_num = window_num+1
+      start_multi_params = {ncol:ncol, nrow:nrow, ordering:'row'}
+      undefine, pos_use
+
+      for i=0, (nrow*ncol)-1 do begin
+        if i gt 0 then  pos_use = positions[*,i]
+        if i eq (nrow*ncol)-1 and tag_exist(plot_options, 'note') then begin
+          note_use = plot_options.note
+        endif else begin
+          note_use = ''
+        endelse
+
+        if plot_types.slice_type eq 'power' or plot_types.slice_type eq 'var_power' then begin
+          kpower_slice_plot, uv_slice_savefile[i], multi_pos = pos_use, $
+            start_multi_params = start_multi_params, plotfile = uv_slice_plotfile, $
+            plot_options = plot_options, plot_2d_options = plot_2d_options, $
+            plot_type = kspace_plot_type, title_prefix = slice_titles[i], note = note_use,  $
+            wedge_amp = binning_1d_options.wedge_amps, window_num = window_num
+      endif else begin
+
+          uvf_slice_plot, uv_slice_savefile[i], multi_pos = pos_use, $
+            start_multi_params = start_multi_params, $
+            plotfile = uv_slice_plotfile, type = plot_types.uvf_plot_type, $
+            plot_options = plot_options, plot_2d_options = plot_2d_options, $
+            title_prefix = slice_titles[i], note = note_use, $
+            log = uvf_log, window_num = window_num
+        endelse
+
+        if i eq 0 then begin
+          positions = pos_use
+          undefine, start_multi_params
+        endif
+      endfor
+      undefine, pos_use
+      if plot_options.pub then begin
+        cgps_close, png = plot_options.png, pdf = plot_options.pdf, $
+          delete_ps = plot_options.delete_ps, density = 600
+      endif
+
+    endelse
+  endif
+
+
+  ;; Exit here if no_binning is set: do not make 1 & 2D files, do not plot them
+  if keyword_set(no_binning) then return
+
+  ;; start checking binning & plotting stuff
+  file_labels = file_struct_arr.file_label
+  titles = strarr(n_cubes)
+  for i=0, n_cubes-1 do begin
+    titles[i] = strjoin(strsplit(file_labels[i], '_', /extract), ' ')
+  endfor
+
+  if binning_2d_options.no_kzero and plot_types.plot_k0_power then begin
+    message, 'plot_k0_power cannot be set if no_kzero keyword is set.'
+  endif
+
+  if tag_exist(binning_1d_options, 'coarse_harm_width') then begin
+    harm_freq = 1.28
+    if n_elements(freq_ch_range) gt 0 then begin
+      freqs_use = file_struct_arr[0].frequencies[freq_ch_range[0]:freq_ch_range[1]]
+    endif else begin
+      freqs_use = file_struct_arr[0].frequencies
+    endelse
+
+    bandwidth = max(freqs_use) - min(freqs_use) + freqs_use[1] - freqs_use[0]
+    coarse_harm0 = round(bandwidth / harm_freq)
+    binning_1d_options = create_binning_1d_options(binning_1d_options = binning_1d_options, $
+      coarse_harm0 = coarse_harm0)
+  endif
 
   fadd_2dbin = ''
   if binning_2d_options.no_kzero then fadd_2dbin = fadd_2dbin + '_nok0'
@@ -405,14 +905,6 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
 
   if count_std gt 0 then kperp_density_names[wh_std] = '_dencorr'
 
-  ;; need general_filebase for 1D plotfiles, make sure it doesn't have a full path
-  general_filebase = file_struct_arr[0].general_filebase
-  for i=0, n_cubes-1 do begin
-    if file_struct_arr(i).general_filebase ne general_filebase then begin
-      message, 'general_filebase does not match between 1d savefiles'
-    endif
-  endfor
-
   savefiles_2d = strarr(n_cubes, n_elements(kperp_density_names))
   bin_2d_path = file_struct_arr.savefile_froot + file_struct_arr[0].subfolders.data + $
     file_struct_arr[0].subfolders.bin_2d
@@ -483,24 +975,6 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
     if plot_types.plot_k0_power then begin
       test_save_k0 = test_save_k0*0
       test_save_k0_masked = test_save_k0_masked*0
-    endif
-  endif
-
-  if tag_exist(file_struct_arr[0], 'nside') ne 0 then healpix = 1 else healpix = 0
-
-  if tag_exist(file_struct_arr, 'uvf_savefile') then uvf_input = 0 else uvf_input = 1
-
-  n_freq = n_elements(file_struct_arr[0].frequencies)
-  if n_elements(freq_ch_range) ne 0 then begin
-    if max(freq_ch_range) gt n_freq-1 then message, 'invalid freq_ch_range'
-    n_freq = freq_ch_range[1]-freq_ch_range[0]+1
-  endif
-
-  if healpix and tag_exist(uvf_options, 'dft_fchunk') then begin
-    if tag_exist(uvf_options, 'wt_cutoffs') gt n_freq then begin
-      print, 'dft_fchunk is larger than the number of frequency slices, setting ' + $
-        'it to the number of slices -- ' + number_formatter(n_freq)
-      uvf_options.dft_fchunk = n_freq
     endif
   endif
 
@@ -814,21 +1288,7 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
           n_elements(kperp_density_names), n_elements(wedge_1dbin_names))
       endif
 
-      if healpix or not keyword_set(uvf_input) then begin
-        weight_refresh = intarr(n_cubes)
-        if refresh_options.refresh_dft then begin
-          temp = weight_ind[uniq(weight_ind, sort(weight_ind))]
-          for j=0, n_elements(temp)-1 do begin
-            weight_refresh[(where(weight_ind eq temp[j]))[0]] = 1
-          endfor
-        endif
-        refresh_options = create_refresh_options(refresh_options = refresh_options, $
-          refresh_weight_dft = weight_refresh[i])
-      endif
-
-      ps_power, file_struct_arr[i], sim = sim, fix_sim_input = fix_sim_input, $
-        uvf_input = uvf_input, freq_ch_range = freq_ch_range, freq_flags = freq_flags, $
-        refresh_options = refresh_options, uvf_options = uvf_options, $
+      ps_binning, file_struct_arr[i], sim = sim, freq_flags = freq_flags, $
         ps_options = ps_options, binning_2d_options = binning_2d_options, $
         binning_1d_options = binning_1d_options, plot_options = plot_options, $
         plot_types = plot_types, $
@@ -894,33 +1354,6 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
   endif
 
   if plot_options.pub then begin
-    plot_fadd = ''
-    if plot_2d_options.kperp_linear_axis and plot_2d_options.kpar_linear_axis then begin
-      plot_fadd = plot_fadd + '_linaxes'
-    endif else begin
-      if plot_2d_options.kperp_linear_axis then plot_fadd = plot_fadd + '_kperplinaxis'
-      if plot_2d_options.kpar_linear_axis then plot_fadd = plot_fadd + '_kparlinaxis'
-    endelse
-
-    if plot_options.individual_plots then begin
-      if not tag_exist(plot_options, 'plot_filebase') then begin
-        plotfile_base = file_struct_arr.savefilebase + power_tag
-        plotfile_base_wt = general_filebase + '_' + $
-          file_struct_arr[uniq(weight_ind, sort(weight_ind))].pol + power_tag
-      endif else begin
-        plotfile_base = plot_options.plot_filebase + uvf_tag + $
-          file_struct_arr.file_label + power_tag
-        plotfile_base_wt = plot_options.plot_filebase + uvf_tag + $
-          '_' + file_struct_arr[uniq(weight_ind, sort(weight_ind))].pol + power_tag
-      endelse
-    endif else begin
-      if not tag_exist(plot_options, 'plot_filebase') then begin
-        plotfile_base = general_filebase + power_tag
-      endif else begin
-        plotfile_base = plot_options.plot_filebase + uvf_tag + power_tag
-      endelse
-      plotfile_base_wt = plotfile_base
-    endelse
 
     plotfile_path_2d = plotfile_path + file_struct_arr[0].subfolders.bin_2d
     plotfiles_shape = [n_elements(plotfile_base), n_elements(kperp_density_names)]
@@ -939,7 +1372,7 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
       this_fadd = fadd_2dbin + kperp_density_names[j]
       this_begin = plotfile_path_2d + plotfile_base + this_fadd
       this_begin_wt = plotfile_path_2d + plotfile_base_wt + this_fadd
-      this_end = plot_fadd + plot_options.plot_exten
+      this_end = plot_fadd_2d + plot_options.plot_exten
 
       plotfiles_2d[*,j] = this_begin + '_2dkpower' +  this_end
       plotfiles_2d_error[*,j] = this_begin_wt + '_2derror' + this_end
@@ -1023,11 +1456,10 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
         this_fadd = fadd_2dbin + kperp_density_names[j] + wedge_1dbin_names[i] + $
           fadd_1dmask
         this_begin = plotfile_path_2d + 'from_1d/' + plotfile_base + this_fadd
-        this_end = plot_fadd + plot_options.plot_exten
+        this_end = plot_fadd_2d + plot_options.plot_exten
 
         plotfiles_2d_masked[*,j,i] = this_begin + '_2dkpower' + this_end
-        plotfiles_2d_error_masked[*,j,i] = this_begin +  '_2derror' + plot_fadd + $
-          plot_options.plot_exten
+        plotfiles_2d_error_masked[*,j,i] = this_begin +  '_2derror' + this_end
         if plot_options.individual_plots then begin
           plotfiles_2d_noise_expval_masked[*,j,i] = plotfile_path_2d + 'from_1d/' + $
             plotfile_base_wt + this_fadd + '_2dnoise_expval' + this_end
@@ -1038,7 +1470,6 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
           this_end
 
         plotfiles_2d_snr_masked[*,j,i] = this_begin + '_2dsnr' + this_end
-
         plotfiles_2d_nnr_masked[*,j,i] = this_begin + '_2dnnr' + this_end
         plotfiles_2d_sim_snr_masked[*,j,i] = this_begin + '_2dsimsnr' + this_end
         plotfiles_2d_sim_nnr_masked[*,j,i] = this_begin + '_2dsimnnr' + this_end
@@ -1046,148 +1477,8 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
     endfor
   endif
 
-  if plot_types.plot_slices then begin
-    if not tag_exist(plot_types, 'slice_type') then begin
-       slice_type = 'sumdiff'
-       plot_types = create_plot_types(plot_types = plot_types, slice_type = slice_type)
-    endif
-    slice_type_enum = ['raw', 'divided', 'sumdiff', 'weights', 'variance', $
-                       'power', 'var_power']
-
-    wh_slice_type = where(slice_type_enum eq plot_types.slice_type, count_slice_type)
-    if count_slice_type eq 0 then begin
-      message, 'slice_type not recognized. options are: ' + strjoin(slice_type_enum, ', ')
-    endif
-
-    if plot_types.slice_type eq 'power' or plot_types.slice_type eq 'var_power' then begin
-      slice_space = 'kspace'
-    endif else begin
-      slice_space = 'uvf'
-    endelse
-
-    if slice_space eq 'uvf' then begin
-      uvf_type_enum = ['abs', 'phase', 'real', 'imaginary', 'normalized']
-      if not tag_exist(plot_types, 'uvf_plot_type') then begin
-        uvf_plot_type = 'abs'
-        plot_types = create_plot_types(plot_types = plot_types, uvf_plot_type = uvf_plot_type)
-      endif
-      wh = where(uvf_type_enum eq plot_types.uvf_plot_type, count_uvf_type)
-      if count_uvf_type eq 0 then begin
-        message, 'unknown uvf_plot_type. Use one of: ' + print, strjoin(uvf_type_enum, ', ')
-      endif
-
-      if plot_types.uvf_plot_type eq 'phase' then uvf_log = 0 else uvf_log=1
-    endif
-
-    if plot_options.pub then begin
-
-      slice_plotfile_base = plotfile_path + file_struct_arr[0].subfolders.slices + $
-        plotfile_base + '_' + plot_types.slice_type
-      slice_plotfile_end = plot_fadd + plot_options.plot_exten
-      if plot_options.individual_plots then begin
-
-        indv_plotfile_base = plotfile_path + file_struct_arr[0].subfolders.slices + $
-          transpose([[plotfile_base +'_even_'], [plotfile_base +'_odd_']]) + $
-          '_' + plot_types.slice_type
-        if slice_space eq 'uvf' then begin
-          if plot_types.slice_type eq 'sumdiff' then begin
-              sumdiff_plotfile_base = plotfile_path + file_struct_arr[0].subfolders.slices + $
-                [plotfile_base +'_sum_',plotfile_base +'_diff_'] + $
-                '_' + plot_types.slice_type
-              uf_slice_plotfile = sumdiff_plotfile_base + '_uf_plane' + slice_plotfile_end
-              vf_slice_plotfile = sumdiff_plotfile_base + '_vf_plane' + slice_plotfile_end
-              uv_slice_plotfile = sumdiff_plotfile_base + '_uv_plane' + slice_plotfile_end
-          endif else begin
-              uf_slice_plotfile = indv_plotfile_base + '_uf_plane' + slice_plotfile_end
-              vf_slice_plotfile = indv_plotfile_base + '_vf_plane' + slice_plotfile_end
-              uv_slice_plotfile = indv_plotfile_base + '_uv_plane' + slice_plotfile_end
-          endelse
-        endif else begin
-          uf_slice_plotfile = slice_plotfile_base + '_xz_plane' + slice_plotfile_end
-          vf_slice_plotfile = slice_plotfile_base + '_yz_plane' + slice_plotfile_end
-          uv_slice_plotfile = slice_plotfile_base + '_xy_plane' + slice_plotfile_end
-        endelse
-      endif else begin
-        if slice_space eq 'uvf' then begin
-          uf_slice_plotfile = slice_plotfile_base + '_uf_plane' + slice_plotfile_end
-          vf_slice_plotfile = slice_plotfile_base + '_vf_plane' + slice_plotfile_end
-          uv_slice_plotfile = slice_plotfile_base + '_uv_plane' + slice_plotfile_end
-        endif else begin
-          uf_slice_plotfile = slice_plotfile_base + '_xz_plane' + slice_plotfile_end
-          vf_slice_plotfile = slice_plotfile_base + '_yz_plane' + slice_plotfile_end
-          uv_slice_plotfile = slice_plotfile_base + '_xy_plane' + slice_plotfile_end
-        endelse
-      endelse
-
-    endif else begin
-      case plot_types.slice_type of
-        'sumdiff': slice_titles = ['sum ' + file_struct_arr.file_label, 'diff ' + $
-          file_struct_arr.file_label]
-        'power': slice_titles = file_struct_arr.file_label
-        'var_power': slice_titles = file_struct_arr.file_label
-        else: slice_titles = file_struct_arr.uvf_label
-      endcase
-    endelse
-
-    case plot_types.slice_type of
-      'raw': begin
-        uf_slice_savefile = file_struct_arr.uf_raw_savefile
-        vf_slice_savefile = file_struct_arr.vf_raw_savefile
-        uv_slice_savefile = file_struct_arr.uv_raw_savefile
-        slice_titles = file_struct_arr.uvf_label
-      end
-      'divided': begin
-        uf_slice_savefile = file_struct_arr.uf_savefile
-        vf_slice_savefile = file_struct_arr.vf_savefile
-        uv_slice_savefile = file_struct_arr.uv_savefile
-        slice_titles = file_struct_arr.uvf_label
-      end
-      'sumdiff': begin
-        uf_slice_savefile = [file_struct_arr.uf_sum_savefile, file_struct_arr.uf_diff_savefile]
-        vf_slice_savefile = [file_struct_arr.vf_sum_savefile, file_struct_arr.vf_diff_savefile]
-        uv_slice_savefile = [file_struct_arr.uv_sum_savefile, file_struct_arr.uv_diff_savefile]
-        slice_titles = ['sum ' + file_struct_arr.file_label, 'diff ' + file_struct_arr.file_label]
-      end
-      'weights': begin
-        uf_slice_savefile = file_struct_arr.uf_weight_savefile
-        vf_slice_savefile = file_struct_arr.vf_weight_savefile
-        uv_slice_savefile = file_struct_arr.uv_weight_savefile
-        slice_titles = file_struct_arr.uvf_label
-      end
-      'variance': begin
-        uf_slice_savefile = file_struct_arr.uf_var_savefile
-        vf_slice_savefile = file_struct_arr.vf_var_savefile
-        uv_slice_savefile = file_struct_arr.uv_var_savefile
-        slice_titles = file_struct_arr.uvf_label
-      end
-      'power': begin
-        uf_slice_savefile = file_struct_arr.xz_savefile
-        vf_slice_savefile = file_struct_arr.yz_savefile
-        uv_slice_savefile = file_struct_arr.xy_savefile
-        slice_titles = file_struct_arr.file_label
-      end
-      'var_power': begin
-        uf_slice_savefile = file_struct_arr.xz_savefile
-        vf_slice_savefile = file_struct_arr.yz_savefile
-        uv_slice_savefile = file_struct_arr.xy_savefile
-        slice_titles = file_struct_arr.file_label
-      end
-    endcase
-
-    if plot_types.slice_type eq 'var_power' then begin
-      ;; we don't need separate ones for dirty, model, residual
-      wh_use = where(strpos(slice_titles, 'dirty')>0)
-
-      uf_slice_savefile = uf_slice_savefile[wh_use]
-      vf_slice_savefile = vf_slice_savefile[wh_use]
-      uv_slice_savefile = uv_slice_savefile[wh_use]
-      slice_titles = slice_titles[wh_use]
-    endif
-  endif
-
   if plot_options.pub then font = 1 else font = -1
 
-  window_num=0
   if plot_types.plot_stdset then begin
 
     for j=0, n_elements(kperp_density_names)-1 do begin
@@ -1209,244 +1500,6 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
 
   endif
 
-  if plot_types.plot_slices then begin
-
-    if plot_options.pub and plot_options.individual_plots then begin
-      case plot_types.slice_type of
-        'power': nplots = ntype*npol
-        'var_power': nplots = npol
-        'weights': nplots = nfiles*npol
-        'variance': nplots = nfiles*npol
-        else: nplots = ntype*nfiles*npol
-      endcase
-
-      for i=0, nplots-1 do begin
-
-        if plot_types.slice_type eq 'power' or plot_types.slice_type eq 'var_power' then begin
-          if plot_types.slice_type eq 'power' then begin
-            kspace_plot_type = 'power'
-          endif else begin
-            kspace_plot_type = 'variance'
-          endelse
-
-          kpower_slice_plot, uf_slice_savefile[i], multi_pos = pos_use, $
-            start_multi_params = start_multi_params, plotfile = uf_slice_plotfile[i], $
-            plot_options = plot_options, plot_2d_options = plot_2d_options, $
-            plot_type = kspace_plot_type, title_prefix = slice_titles[i], note = note_use, $
-            wedge_amp = binning_1d_options.wedge_amps, window_num = window_num
-
-          kpower_slice_plot, vf_slice_savefile[i], multi_pos = pos_use, $
-            start_multi_params = start_multi_params, plotfile = vf_slice_plotfile[i], $
-            plot_options = plot_options, plot_2d_options = plot_2d_options, $
-            plot_type = kspace_plot_type, title_prefix = slice_titles[i], note = note_use, $
-            wedge_amp = binning_1d_options.wedge_amps, window_num = window_num
-
-          kpower_slice_plot, uv_slice_savefile[i], multi_pos = pos_use, $
-            start_multi_params = start_multi_params, plotfile = uv_slice_plotfile[i], $
-            plot_options = plot_options, plot_2d_options = plot_2d_options, $
-            plot_type = kspace_plot_type, title_prefix = slice_titles[i], note = note_use,  $
-            wedge_amp = binning_1d_options.wedge_amps, window_num = window_num
-
-        endif else begin
-
-          uvf_slice_plot, uf_slice_savefile[i], multi_pos = pos_use, $
-            start_multi_params = start_multi_params, $
-            plotfile = uf_slice_plotfile[i], type = plot_types.uvf_plot_type, $
-            plot_options = plot_options, plot_2d_options = plot_2d_options, $
-            title_prefix = slice_titles[i], note = note_use, $
-            log = uvf_log, window_num = window_num
-
-          uvf_slice_plot, vf_slice_savefile[i], multi_pos = pos_use, $
-            start_multi_params = start_multi_params, $
-            plotfile = vf_slice_plotfile[i], type = plot_types.uvf_plot_type, $
-            plot_options = plot_options, plot_2d_options = plot_2d_options, $
-            title_prefix = slice_titles[i], note = note_use, $
-            log = uvf_log, window_num = window_num
-
-          uvf_slice_plot, uv_slice_savefile[i], multi_pos = pos_use, $
-            start_multi_params = start_multi_params, $
-            plotfile = uv_slice_plotfile[i], type = plot_types.uvf_plot_type, $
-            plot_options = plot_options, plot_2d_options = plot_2d_options, $
-            title_prefix = slice_titles[i], note = note_use, $
-            log = uvf_log, window_num = window_num
-
-        endelse
-
-      endfor
-
-    endif else begin
-
-      if plot_2d_options.kperp_linear_axis then begin
-        ;; aspect ratio doesn't work out for kperp_linear with multiple rows
-        nrow = 1
-
-        case plot_types.slice_type of
-          'power': ncol = ntype*npol
-          'var_power': ncol = npol
-          'weights': ncol = nfiles*npol
-          'variance': ncol = nfiles*npol
-          else: ncol = ntype*nfiles*npol
-        endcase
-      endif else begin
-        case plot_types.slice_type of
-          'power': begin
-            ncol = ntype
-            nrow = npol
-          end
-          'var_power': begin
-            ncol = 1
-            nrow = npol
-          end
-          'weights': begin
-            ncol = nfiles
-            nrow = npol
-          end
-          'variance': begin
-            ncol = nfiles
-            nrow = npol
-          end
-          else: begin
-            if ntype gt 1 then begin
-              ncol=ntype
-              nrow = npol*nfiles
-            endif else begin
-              ncol=ntype*nfiles
-              nrow = npol
-            endelse
-        end
-        endcase
-      endelse
-
-      if plot_types.slice_type eq 'raw' or plot_types.slice_type eq 'divided' then begin
-        slice_titles = transpose(slice_titles)
-        uf_slice_savefile = transpose(uf_slice_savefile)
-        vf_slice_savefile = transpose(vf_slice_savefile)
-        uv_slice_savefile = transpose(uv_slice_savefile)
-      endif
-
-      window_num = window_num+1
-      start_multi_params = {ncol:ncol, nrow:nrow, ordering:'row'}
-      undefine, pos_use
-
-      for i=0, (nrow*ncol)-1 do begin
-        if i gt 0 then  pos_use = positions[*,i]
-        if i eq (nrow*ncol)-1 and tag_exist(plot_options, 'note') then begin
-          note_use = plot_options.note
-        endif else begin
-          note_use = ''
-        endelse
-
-        if plot_types.slice_type eq 'power' or plot_types.slice_type eq 'var_power' then begin
-          if plot_types.slice_type eq 'power' then begin
-            kspace_plot_type = 'power'
-          endif else begin
-            kspace_plot_type = 'variance'
-          endelse
-
-          kpower_slice_plot, uf_slice_savefile[i], multi_pos = pos_use, $
-            start_multi_params = start_multi_params, plotfile = uf_slice_plotfile, $
-            plot_options = plot_options, plot_2d_options = plot_2d_options, $
-            plot_type = kspace_plot_type, title_prefix = slice_titles[i], note = note_use,  $
-            wedge_amp = binning_1d_options.wedge_amps, window_num = window_num
-        endif else begin
-
-          uvf_slice_plot, uf_slice_savefile[i], multi_pos = pos_use, $
-            start_multi_params = start_multi_params, $
-            plotfile = uf_slice_plotfile, type = plot_types.uvf_plot_type, $
-            plot_options = plot_options, plot_2d_options = plot_2d_options, $
-            title_prefix = slice_titles[i], note = note_use, $
-            log = uvf_log, window_num = window_num
-        endelse
-
-        if i eq 0 then begin
-          positions = pos_use
-          undefine, start_multi_params
-        endif
-      endfor
-      if plot_options.pub then begin
-        cgps_close, png = plot_options.png, pdf = plot_options.pdf, $
-          delete_ps = plot_options.delete_ps, density = 600
-      endif
-
-      window_num = window_num+1
-      start_multi_params = {ncol:ncol, nrow:nrow, ordering:'row'}
-      undefine, pos_use
-
-      for i=0, (nrow*ncol)-1 do begin
-        if i gt 0 then  pos_use = positions[*,i]
-        if i eq (nrow*ncol)-1 and tag_exist(plot_options, 'note') then begin
-          note_use = plot_options.note
-        endif else begin
-          note_use = ''
-        endelse
-
-        if plot_types.slice_type eq 'power' or plot_types.slice_type eq 'var_power' then begin
-          kpower_slice_plot, vf_slice_savefile[i], multi_pos = pos_use, $
-            start_multi_params = start_multi_params, plotfile = vf_slice_plotfile, $
-            plot_options = plot_options, plot_2d_options = plot_2d_options, $
-            plot_type = kspace_plot_type, title_prefix = slice_titles[i], note = note_use,  $
-            wedge_amp = binning_1d_options.wedge_amps, window_num = window_num
-        endif else begin
-
-          uvf_slice_plot, vf_slice_savefile[i], multi_pos = pos_use, $
-            start_multi_params = start_multi_params, $
-            plotfile = vf_slice_plotfile, type = plot_types.uvf_plot_type, $
-            plot_options = plot_options, plot_2d_options = plot_2d_options, $
-            title_prefix = slice_titles[i], note = note_use, $
-            log = uvf_log, window_num = window_num
-        endelse
-
-        if i eq 0 then begin
-          positions = pos_use
-          undefine, start_multi_params
-        endif
-      endfor
-      if plot_options.pub then begin
-        cgps_close, png = plot_options.png, pdf = plot_options.pdf, $
-          delete_ps = plot_options.delete_ps, density = 600
-      endif
-
-      window_num = window_num+1
-      start_multi_params = {ncol:ncol, nrow:nrow, ordering:'row'}
-      undefine, pos_use
-
-      for i=0, (nrow*ncol)-1 do begin
-        if i gt 0 then  pos_use = positions[*,i]
-        if i eq (nrow*ncol)-1 and tag_exist(plot_options, 'note') then begin
-          note_use = plot_options.note
-        endif else begin
-          note_use = ''
-        endelse
-
-        if plot_types.slice_type eq 'power' or plot_types.slice_type eq 'var_power' then begin
-          kpower_slice_plot, uv_slice_savefile[i], multi_pos = pos_use, $
-            start_multi_params = start_multi_params, plotfile = uv_slice_plotfile, $
-            plot_options = plot_options, plot_2d_options = plot_2d_options, $
-            plot_type = kspace_plot_type, title_prefix = slice_titles[i], note = note_use,  $
-            wedge_amp = binning_1d_options.wedge_amps, window_num = window_num
-      endif else begin
-
-          uvf_slice_plot, uv_slice_savefile[i], multi_pos = pos_use, $
-            start_multi_params = start_multi_params, $
-            plotfile = uv_slice_plotfile, type = plot_types.uvf_plot_type, $
-            plot_options = plot_options, plot_2d_options = plot_2d_options, $
-            title_prefix = slice_titles[i], note = note_use, $
-            log = uvf_log, window_num = window_num
-        endelse
-
-        if i eq 0 then begin
-          positions = pos_use
-          undefine, start_multi_params
-        endif
-      endfor
-      undefine, pos_use
-      if plot_options.pub then begin
-        cgps_close, png = plot_options.png, pdf = plot_options.pdf, $
-          delete_ps = plot_options.delete_ps, density = 600
-      endif
-
-    endelse
-  endif
 
   ave_power_vals = fltarr(n_cubes)
   wt_ave_power_vals = fltarr(n_cubes)
