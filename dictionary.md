@@ -170,6 +170,10 @@ These flags (all default=0) tell the code to redo parts of the analysis that wou
 
 **savefilebase**: Base name for eppsilon output files. Default is taken from the cube file names before the polarization tags.
 
+**no_binning**: This is a flag (valid values are 0/1, default=0) indicating that binning should not be performed. This may be desirable if the large number of resulting files poses a problem (an issue for some clusters). In general binning is fast, so can be done later on another machine quickly. If this keyword is set no 1D or 2D binned plots will be displayed.
+
+**save_slices**: This is a flag (valid values are 0/1, default=1) indicating that slices of the 3D cubes should not be saved at various stages. It may be desirable to turn this off if the number of resulting files poses a problem (an issue for some clusters).
+
 
 ## Plotting options:
 

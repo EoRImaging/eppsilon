@@ -4,7 +4,8 @@ pro ps_wrapper, folder_name_in, obs_name, data_subdirs=data_subdirs, $
     ps_folder_branch = ps_folder_branch, copy_master_uvf = copy_master_uvf, $
     no_evenodd = no_evenodd, no_wtvar_rts = no_wtvar_rts, $
     set_data_ranges = set_data_ranges, beamfiles = beamfiles, rts = rts, $
-    casa = casa, sim = sim, refresh_dft = refresh_dft, refresh_ps = refresh_ps, $
+    casa = casa, sim = sim, save_slices = save_slices, no_binning = no_binning, $
+    refresh_dft = refresh_dft, refresh_ps = refresh_ps, $
     refresh_binning = refresh_binning, refresh_info = refresh_info, $
     refresh_beam = refresh_beam, dft_fchunk = dft_fchunk, $
     delta_uv_lambda = delta_uv_lambda, max_uv_lambda = max_uv_lambda, $
@@ -173,6 +174,14 @@ pro ps_wrapper, folder_name_in, obs_name, data_subdirs=data_subdirs, $
     if n_elements(set_krange_1dave) eq 0 and not keyword_set(sim) then set_krange_1dave = 1
   endelse
 
+  ;; default to doing binning
+  if n_elements(no_binning) eq 0 then no_binning = 0
+  ;; default to saving slices
+  if n_elements(save_slices) eq 0 then save_slices = 1
+  if save_slices eq 0 and keyword_set(plot_slices) then begin
+    message, 'save_slices cannot be set to 0 if plot_slices is set'
+  endif
+
   print,'datafile = ' + datafile
 
   if keyword_set(set_data_ranges) then begin
@@ -282,6 +291,7 @@ pro ps_wrapper, folder_name_in, obs_name, data_subdirs=data_subdirs, $
     rts = rts, norm_rts_with_fhd = norm_rts_with_fhd, casa = casa, sim = sim, $
     fix_sim_input = fix_sim_input, save_path = save_path, $
     savefilebase = savefilebase, cube_power_info = cube_power_info, $
+    save_slices = save_slices, no_binning = no_binning, $
     refresh_options = refresh_options, uvf_options = uvf_options, $
     ps_options = ps_options, binning_2d_options = binning_2d_options, $
     binning_1d_options = binning_1d_options, plot_options = plot_options, $
