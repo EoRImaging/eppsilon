@@ -1,7 +1,7 @@
 pro ps_differences, power_file1, power_file2, refresh = refresh, $
     savefile_3d = savefile_3d, savefile_2d = savefile_2d, savefiles_1d = savefiles_1d, $
     wedge_amp = wedge_amp, wt_cutoffs = wt_cutoffs, wt_measures = wt_measures, $
-    plot_options = plot_options
+    plot_options = plot_options, binning_1d_options = binning_1d_options
 
   test_save = file_valid(savefile_3d)
   test_save_2d = file_valid(savefile_2d)
@@ -116,7 +116,7 @@ pro ps_differences, power_file1, power_file2, refresh = refresh, $
           'min': wt_meas_use = wt_meas_min
         endcase
       endif
-      binning_1d_options = create_binning_1d_options()
+      if ~keyword_set(binning_1d_options) then binning_1d_options = create_binning_1d_options()
 
       power_rebin = kspace_rebinning_1d(power_diff, kx_mpc, ky_mpc, kz_mpc, $
         k_edges_mpc, weights = weight_diff, binned_weights = binned_weights, $
