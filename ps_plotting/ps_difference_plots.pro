@@ -2,6 +2,7 @@ pro ps_difference_plots, folder_names, obs_info, ps_foldernames = ps_foldernames
     cube_types, pols, all_type_pol = all_type_pol, $
     uvf_options = uvf_options, ps_options = ps_options, $
     plot_options = plot_options, plot_2d_options = plot_2d_options, $
+    binning_1d_options = binning_1d_options, $
     refresh_diff = refresh_diff, freq_ch_range = freq_ch_range, $
     plot_slices = plot_slices, slice_type = slice_type, $
     plot_filebase = plot_filebase, save_path = save_path, savefilebase = savefilebase, $
@@ -52,7 +53,8 @@ pro ps_difference_plots, folder_names, obs_info, ps_foldernames = ps_foldernames
             savefile_2d = compare_files.mid_savefile_2d[slice_i, cube_i], $
             savefiles_1d = compare_files.savefiles_1d[cube_i,*], $
             wedge_amp = compare_files.wedge_amp, $
-            wt_cutoffs = wt_cutoffs, wt_measures = wt_measures, plot_options = plot_options
+            wt_cutoffs = wt_cutoffs, wt_measures = wt_measures, plot_options = plot_options, $
+            binning_1d_options = binning_1d_options
 
         endelse
       endif
@@ -134,7 +136,7 @@ pro ps_difference_plots, folder_names, obs_info, ps_foldernames = ps_foldernames
   if keyword_set(plot_1d) and not keyword_set(plot_slices) then begin
     for i=0, n_elements(wedge_amp) do begin
 
-      if plot_options.pub then plotfiles_use = compare_files.plotfiles_1d[cube_i]
+      if plot_options.pub then plotfiles_use = compare_files.plotfiles_1d[i]
 
       for j=0, compare_files.n_cubes-1 do begin
 

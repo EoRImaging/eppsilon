@@ -12,7 +12,15 @@ pro ps_diff_wrapper, folder_names_in, obs_names_in, ps_foldernames = ps_folderna
     wt_measures = wt_measures, window_num = window_num, $
     color_type = color_type, invert_colorbar = invert_colorbar, $
     diff_save_path = diff_save_path, exact_obsnames = exact_obsnames, $
-    uvf_input = uvf_input, plot_path = diff_plot_path
+    uvf_input = uvf_input, plot_path = diff_plot_path, $
+    wedge_angles = wedge_angles, wedge_names = wedge_names, $
+    coarse_harm_width = coarse_harm_width, log_k1d = log_k1d, k1d_bin = k1d_bin, $
+    kpar_range_1dave = kpar_range_1dave, kperp_range_1dave = kperp_range_1dave, $
+    kperp_range_lambda_1dave = kperp_range_lambda_1dave, kx_range_1dave = kx_range_1dave, $
+    kx_range_lambda_1dave = kx_range_lambda_1dave, ky_range_1dave = ky_range_1dave, $
+    ky_range_lambda_1dave = ky_range_lambda_1dave, $
+    kperp_range_lambda_kparpower = kperp_range_lambda_kparpower, $
+    kpar_range_kperppower = kpar_range_kperppower
 
   if n_elements(folder_names_in) gt 2 then message, 'only 1 or 2 folder_names allowed'
   if n_elements(folder_names_in) eq 0 then message, 'at least 1 folder name must be specified'
@@ -26,6 +34,16 @@ pro ps_diff_wrapper, folder_names_in, obs_names_in, ps_foldernames = ps_folderna
     casa = casa, data_subdirs = data_subdirs, ps_foldernames = ps_foldernames, $
     save_paths = save_paths, plot_paths = plot_paths, refresh_info = refresh_info, $
     no_wtvar_rts = no_wtvar_rts)
+    
+  binning_1d_options = create_binning_1d_options(wedge_angles = wedge_angles, $
+    wedge_names = wedge_names, $
+    coarse_harm_width = coarse_harm_width, log_k = log_k1d, k_bin = k1d_bin, $
+    kpar_range_1dave = kpar_range_1dave, kperp_range_1dave = kperp_range_1dave, $
+    kperp_range_lambda_1dave = kperp_range_lambda_1dave, kx_range_1dave = kx_range_1dave, $
+    kx_range_lambda_1dave = kx_range_lambda_1dave, ky_range_1dave = ky_range_1dave, $
+    ky_range_lambda_1dave = ky_range_lambda_1dave, $
+    kperp_range_lambda_kparpower = kperp_range_lambda_kparpower, $
+    kpar_range_kperppower = kpar_range_kperppower)
 
   if n_elements(diff_plot_path) eq 0 then begin
     if n_elements(diff_save_path) gt 0 then begin
@@ -173,6 +191,7 @@ pro ps_diff_wrapper, folder_names_in, obs_names_in, ps_foldernames = ps_folderna
   ps_difference_plots, folder_names, obs_info, ps_foldernames = ps_foldernames, $
     cube_types, pols, uvf_options = uvf_options, ps_options = ps_options, $
     plot_options = plot_options, plot_2d_options = plot_2d_options, $
+    binning_1d_options = binning_1d_options, $
     all_type_pol = all_type_pol, refresh_diff = refresh_diff, freq_ch_range = freq_ch_range, $
     plot_slices = plot_slices, slice_type = slice_type, $
     save_path = diff_save_path, savefilebase = savefilebase, $

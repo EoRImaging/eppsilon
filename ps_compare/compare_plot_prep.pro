@@ -708,6 +708,9 @@ pro compare_plot_prep, folder_names, obs_info, ps_foldernames = ps_foldernames, 
 
   if plot_options.pub then begin
     compare_files = create_struct(compare_files, 'plotfiles_2d', plotfiles_2d)
+    if comp_type eq 'diff' then begin
+      compare_files = create_struct(compare_files, 'plotfiles_1d', plotfiles_1d)
+    endif
   endif
   if n_elements(mid_savefile_2d) gt 0 then begin
     compare_files = create_struct(compare_files, 'mid_savefile_2d', mid_savefile_2d)
