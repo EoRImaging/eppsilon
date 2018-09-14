@@ -228,8 +228,18 @@ pro log_color_calc, data, data_log_norm, cb_ticks, cb_ticknames, color_range, n_
   
     pos_tick_vals = loglevels(10d^[floor(log_data_range[0])-.1, ceil(log_data_range[1])+.1], coarse=0)
     wh_keep = where(pos_tick_vals gt 10^(log_data_range[0]-0.001) and pos_tick_vals lt 10^(log_data_range[1]+0.001), count_keep)
-    if count_keep gt 0 then pos_tick_vals = pos_tick_vals[wh_keep] else stop
-    
+    if count_keep gt 0 then begin
+      pos_tick_vals = pos_tick_vals[wh_keep]
+    endif else begin
+      pos_tick_vals = loglevels(10d^[floor(log_data_range[0])-.1, ceil(log_data_range[1])+.1])
+      wh_keep = where(pos_tick_vals gt 10^(log_data_range[0]-0.001) and pos_tick_vals lt 10^(log_data_range[1]+0.001), count_keep)
+      if count_keep gt 0 then begin
+        pos_tick_vals = pos_tick_vals[wh_keep]
+      endif else begin
+        stop
+      endelse
+    endelse
+
     neg_tick_vals = reverse(pos_tick_vals)
     
     nloop = 0
