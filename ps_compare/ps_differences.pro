@@ -116,7 +116,7 @@ pro ps_differences, power_file1, power_file2, refresh = refresh, $
           'min': wt_meas_use = wt_meas_min
         endcase
       endif
-      if ~keyword_set(binning_1d_options) then binning_1d_options = create_binning_1d_options()
+      if n_elements(binning_1d_options) eq 0 then binning_1d_options = create_binning_1d_options()
 
       power_rebin = kspace_rebinning_1d(power_diff, kx_mpc, ky_mpc, kz_mpc, $
         k_edges_mpc, weights = weight_diff, binned_weights = binned_weights, $
