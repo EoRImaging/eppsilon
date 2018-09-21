@@ -128,8 +128,16 @@ pro kpower_slice_plot, slice_savefile, power = power, noise = noise, $
     'power': if n_elements(power) gt 0 then plot_data = power
     'noise': if n_elements(noise) gt 0 then plot_data = noise
     'noise_expval': if n_elements(noise_expval) gt 0 then plot_data = noise_expval
-    'variance': if n_elements(weights) gt 0 then plot_data = 1/weights
-    'sigma': if n_elements(weights) gt 0 then plot_data = sqrt(1/weights)
+    'variance': if n_elements(weights) gt 0 then begin
+      plot_data = 1/weights
+      wh0 = where(weights eq 0, count_wh0)
+      if count_wh0 gt 1 then plot_data[wh0] = 0
+     end
+    'sigma': if n_elements(weights) gt 0 then begin
+      plot_data = sqrt(1/weights)
+      wh0 = where(weights eq 0, count_wh0)
+      if count_wh0 gt 1 then plot_data[wh0] = 0
+    end
   endcase
 
   if keyword_set(pwr_ratio) then begin
@@ -177,12 +185,26 @@ pro kpower_slice_plot, slice_savefile, power = power, noise = noise, $
           plot_data2 = getvar_savefile(slice_savefile[1], 'noise_expval')
         end
         'variance': begin
-          plot_data1 = 1/getvar_savefile(slice_savefile[0], 'weights')
-          plot_data2 = 1/getvar_savefile(slice_savefile[1], 'weights')
+          weights1 = getvar_savefile(slice_savefile[0], 'weights')
+          plot_data1 = 1/weights1
+          wh0 = where(weights1 eq 0, count_wh0)
+          if count_wh0 gt 1 then plot_data1[wh0] = 0
+          
+          weights2 = getvar_savefile(slice_savefile[1], 'weights')
+          plot_data2 = 1/weights2
+          wh0 = where(weights2 eq 0, count_wh0)
+          if count_wh0 gt 1 then plot_data2[wh0] = 0
         end
         'sigma': begin
-          plot_data1 = sqrt(1/getvar_savefile(slice_savefile[0], 'weights'))
-          plot_data2 = sqrt(1/getvar_savefile(slice_savefile[1], 'weights'))
+          weights1 = getvar_savefile(slice_savefile[0], 'weights')
+          plot_data1 = 1/sqrt(weights1)
+          wh0 = where(weights1 eq 0, count_wh0)
+          if count_wh0 gt 1 then plot_data1[wh0] = 0
+          
+          weights2 = getvar_savefile(slice_savefile[1], 'weights')
+          plot_data2 = 1/sqrt(weights2)
+          wh0 = where(weights2 eq 0, count_wh0)
+          if count_wh0 gt 1 then plot_data2[wh0] = 0
         end
       endcase
 
@@ -199,8 +221,16 @@ pro kpower_slice_plot, slice_savefile, power = power, noise = noise, $
       'power':  plot_data = power
       'noise': plot_data = noise
       'noise_expval': plot_data = noise_expval
-      'variance': plot_data = 1/weights
-      'sigma': plot_data = sqrt(1/weights)
+      'variance': begin
+        plot_data = 1/weights
+        wh0 = where(weights eq 0, count_wh0)
+        if count_wh0 gt 1 then plot_data[wh0] = 0
+      end
+      'sigma': begin
+        plot_data = sqrt(1/weights)
+        wh0 = where(weights eq 0, count_wh0)
+        if count_wh0 gt 1 then plot_data[wh0] = 0
+      end
     endcase
   endif
 
