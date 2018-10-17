@@ -76,10 +76,10 @@ pro ps_diff_wrapper, folder_names_in, obs_names_in, ps_foldernames = ps_folderna
         iwn1 = image_window_name
       end
       2: begin
-        if strlowcase(image_window_name[0]) ne 'none':
+        if strlowcase(image_window_name[0]) ne 'none' then begin
           iwn0 = image_window_name[0]
         endif
-        if strlowcase(image_window_name[1]) ne 'none':
+        if strlowcase(image_window_name[1]) ne 'none' then begin
           iwn1 = image_window_name[1]
         endif
       end
