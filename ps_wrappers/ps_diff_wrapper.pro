@@ -57,8 +57,10 @@ pro ps_diff_wrapper, folder_names_in, obs_names_in, ps_foldernames = ps_folderna
   if n_elements(delta_uv_lambda) gt 1 then message, 'only 1 delta_uv_lambda allowed'
   if n_elements(full_image) gt 1 then message, 'only 1 full_image allowed'
 
-  if n_elements(image_window_name) eq 1 and strlowcase(image_window_name) eq 'none' then begin
-    undefine, image_window_name
+  if n_elements(image_window_name) eq 1 then begin
+    if strlowcase(image_window_name) eq 'none' then begin
+      undefine, image_window_name
+    endif
   endif
 
   if n_elements(image_window_name) lt 2 and n_elements(image_window_frac_size) lt 2 $
