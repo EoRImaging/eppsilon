@@ -69,8 +69,10 @@ pro cube_images, folder_names, obs_info, nvis_norm = nvis_norm, $
     if keyword_set(rts) then file_struct_arr2 = rts_file_setup(obs_info.info_files[1]) $
     else $
       if keyword_set(casa) then file_struct_arr2 = casa_file_setup(obs_info.info_files[1]) $
-    else file_struct_arr2 = fhd_file_setup(obs_info.info_files[1])
-  endif else file_struct_arr2 = fhd_file_setup(obs_info.cube_files.(1))
+    else file_struct_arr2 = fhd_file_setup(obs_info.info_files[1], $
+      uvf_options = uvf_options, ps_options = ps_options)
+  endif else file_struct_arr2 = fhd_file_setup(obs_info.cube_files.(1), $
+    uvf_options = uvf_options, ps_options = ps_options)
   
   type_pol_str1 = file_struct_arr1.type_pol_str
   if n_elements(file_struct_arr2) gt 0 then type_pol_str2 = file_struct_arr2.type_pol_str
