@@ -1198,7 +1198,7 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
           noise_expval: plotfiles_2d_noise_expval[*,j], snr: plotfiles_2d_snr[*,j], $
           noise: plotfiles_2d_noise[*,j], sim_noise: plotfiles_2d_sim_noise[*,j], $
           sim_noise_diff: plotfiles_2d_sim_noise_diff[*,j], nnr: plotfiles_2d_nnr[*,j], $
-          sim_nnr: plotfiles_2d_sim_nnr[*,j]}
+          sim_nnr: plotfiles_2d_sim_nnr[*,j], sim_snr: plotfiles_2d_sim_snr[*,j]}
       endif
 
       make_std_plots, file_struct_arr, savefiles_2d[*,j], titles, $
@@ -1942,7 +1942,8 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
             snr: plotfiles_2d_snr_masked[*,j,i], noise: plotfiles_2d_noise_masked[*,j,i], $
             sim_noise: plotfiles_2d_sim_noise_masked[*,j,i], $
             sim_noise_diff: plotfiles_2d_sim_noise_diff_masked[*,j,i], $
-            nnr: plotfiles_2d_nnr_masked[*,j,i], sim_nnr: plotfiles_2d_sim_nnr_masked[*,j,i]}
+            nnr: plotfiles_2d_nnr_masked[*,j,i], sim_nnr: plotfiles_2d_sim_nnr_masked[*,j,i], $
+            sim_snr: plotfiles_2d_sim_snr_masked[*,j,i]}
         endif
 
         make_std_plots, file_struct_arr, savefiles_2d_masked[*,j,i], titles, $
