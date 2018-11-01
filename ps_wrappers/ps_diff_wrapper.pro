@@ -62,7 +62,6 @@ pro ps_diff_wrapper, folder_names_in, obs_names_in, ps_foldernames = ps_folderna
   if count_noinfo gt 0 then message, 'Info files are not all present'
 
   if n_elements(delta_uv_lambda) gt 1 then message, 'only 1 delta_uv_lambda allowed'
-  if n_elements(full_image) gt 1 then message, 'only 1 full_image allowed'
 
   if n_elements(image_window_name) eq 1 then begin
     if strlowcase(image_window_name) eq 'none' then begin
@@ -71,7 +70,7 @@ pro ps_diff_wrapper, folder_names_in, obs_names_in, ps_foldernames = ps_folderna
   endif
 
   if n_elements(image_window_name) lt 2 and n_elements(image_window_frac_size) lt 2 $
-    and n_elements(max_uv_lambda) lt 2 then begin
+    and n_elements(max_uv_lambda) lt 2 n_elements(full_image) lt 2 then begin
 
     uvf_options = create_uvf_options(image_window_name = image_window_name, $
       image_window_frac_size = image_window_frac_size, delta_uv_lambda = delta_uv_lambda, $
@@ -121,14 +120,25 @@ pro ps_diff_wrapper, folder_names_in, obs_names_in, ps_foldernames = ps_folderna
       else: message, 'only 1 or 2 max_uv_lambda values allowed'
     endcase
 
+    case n_elements(full_image) of
+      0:
+      1: begin
+        fi0 = full_image
+        fi1 = full_image
+      end
+      2: begin
+        fi0 = full_image[0]
+        fi1 = full_image[1]
+      end
+      else: message, 'only 1 or 2 full_image values allowed'
+    endcase
+
     uvf_options0 = create_uvf_options(image_window_name = iwn0, $
       image_window_frac_size = iwfs0, delta_uv_lambda = delta_uv_lambda, $
-      max_uv_lambda = mul0, full_image = full_image)
+      max_uv_lambda = mul0, full_image = fi0)
     uvf_options1 = create_uvf_options(image_window_name = iwn1, $
       image_window_frac_size = iwfs1, delta_uv_lambda = delta_uv_lambda, $
-      max_uv_lambda = mul1, full_image = full_image)
-
-    uvf_options = [uvf_options0, uvf_options1]
+      max_uv_lambda = mul1, full_image = fi1)
   endelse
 
   if n_elements(ave_removal) lt 2 and n_elements(wt_cutoffs) lt 2 and $
@@ -206,7 +216,8 @@ pro ps_diff_wrapper, folder_names_in, obs_names_in, ps_foldernames = ps_folderna
     kpar_linear_axis = kpar_linear_axis, data_range = data_range, color_type = color_type)
 
   ps_difference_plots, folder_names, obs_info, ps_foldernames = ps_foldernames, $
-    cube_types, pols, uvf_options = uvf_options, ps_options = ps_options, $
+    cube_types, pols, uvf_options0 = uvf_options0, uvf_options1 = uvf_options1,
+    ps_options = ps_options, $
     plot_options = plot_options, plot_2d_options = plot_2d_options, $
     binning_1d_options = binning_1d_options, $
     all_type_pol = all_type_pol, refresh_diff = refresh_diff, freq_ch_range = freq_ch_range, $
