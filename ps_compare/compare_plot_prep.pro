@@ -1,6 +1,6 @@
 pro compare_plot_prep, folder_names, obs_info, ps_foldernames = ps_foldernames, $
     cube_types, pols, comp_type, compare_files, $
-    uvf_options = uvf_options, ps_options = ps_options, $
+    uvf_options0 = uvf_options0, uvf_options1 = uvf_options1, ps_options = ps_options, $
     plot_options = plot_options, plot_2d_options = plot_2d_options, $
     plot_slices = plot_slices, slice_type = slice_type, fadd_2dbin = fadd_2dbin, $
     freq_ch_range = freq_ch_range, $
@@ -62,8 +62,14 @@ pro compare_plot_prep, folder_names, obs_info, ps_foldernames = ps_foldernames, 
     same_density_tag = ''
   endelse
 
+  if n_elements(uvf_options1) gt 0 then
+    n_uvf_options = 2
+  endif else begin
+    n_uvf_options = 1
+  endelse
+
   n_diffs = max([n_elements(obs_info.info_files), n_elements(cube_types), $
-    n_elements(pols), n_elements(ps_options), n_elements(uvf_options)])
+    n_elements(pols), n_elements(ps_options), n_uvf_options])
   if n_diffs gt 2 then begin
     message, 'only 1 or 2 each of [folder_names, ps_foldernames, ' + $
       'obs_names, cube_types, pols, spec_window_types, wt_cutoffs, ave_removal, ' + $
@@ -71,11 +77,11 @@ pro compare_plot_prep, folder_names, obs_info, ps_foldernames = ps_foldernames, 
   endif
 
   if (n_elements(obs_info.info_files) eq 2 or n_elements(ps_options) eq 2 $
-    or n_elements(uvf_options) eq 2) and n_elements(cube_types) eq 0 $
+    or n_uvf_options eq 2) and n_elements(cube_types) eq 0 $
     and n_elements(pols) eq 0 and n_elements(full_compare) eq 0 then full_compare = 1
 
   if keyword_set(full_compare) and n_elements(info_files) eq 1 and n_elements(ps_options) eq 1 $
-      and n_elements(uvf_options) eq 1 then begin
+      and n_uvf_options eq 1 then begin
 
     message, 'full_compare can only be set if one of [folder names, obs names, ' + $
       'spec windows, wt_cutoffs/measures, ave_removal values, image window name/size] is length 2.'
@@ -90,7 +96,7 @@ pro compare_plot_prep, folder_names, obs_info, ps_foldernames = ps_foldernames, 
       cube_types = 'res'
     endelse
     n_diffs = max([n_elements(obs_info.info_files), n_elements(cube_types), n_elements(pols), $
-      n_elements(ps_options), n_elements(uvf_options)])
+      n_elements(ps_options), n_uvf_options])
 
     if n_elements(pols) eq 0 then begin
       if n_diffs eq 1 then begin
@@ -100,7 +106,7 @@ pro compare_plot_prep, folder_names, obs_info, ps_foldernames = ps_foldernames, 
       endelse
     endif
     n_diffs = max([n_elements(obs_info.info_files), n_elements(cube_types), n_elements(pols), $
-      n_elements(ps_options), n_elements(uvf_options)])
+      n_elements(ps_options), n_uvf_options])
 
     if n_diffs eq 1 then begin
       message, 'at least one of [folder_names, ps_foldernames, ' + $
@@ -128,7 +134,7 @@ pro compare_plot_prep, folder_names, obs_info, ps_foldernames = ps_foldernames, 
   max_type = n_elements(cube_types)-1
   max_pol = n_elements(pols)-1
   max_ps = n_elements(ps_options) - 1
-  max_uvf = n_elements(uvf_options) - 1
+  max_uvf = n_uvf_options - 1
 
   if n_elements(axis_type_1d) eq 0 then axis_type_1d = 'sym_log'
 
@@ -165,12 +171,16 @@ pro compare_plot_prep, folder_names, obs_info, ps_foldernames = ps_foldernames, 
   'ratio': op_str = ' over '
   endcase
 
+  uvf_options_use = uvf_options0
   file_struct_arr1 = fhd_file_setup(obs_info.info_files[0], $
-    uvf_options = uvf_options[0], ps_options = ps_options[0], $
+    uvf_options = uvf_options_use, ps_options = ps_options[0], $
     freq_ch_range = freq_ch_range)
   if n_elements(obs_info.info_files) eq 2 or max_ps eq 1 or max_uvf eq 1 then begin
+    if max_uvf eq 1 then begin
+      uvf_options_use = uvf_options1
+    endif
     file_struct_arr2 = fhd_file_setup(obs_info.info_files[max_file], $
-    uvf_options = uvf_options[max_uvf], ps_options = ps_options[max_ps],$
+    uvf_options = uvf_options_use, ps_options = ps_options[max_ps],$
     freq_ch_range = freq_ch_range)
   endif else begin
     file_struct_arr2 = file_struct_arr1
