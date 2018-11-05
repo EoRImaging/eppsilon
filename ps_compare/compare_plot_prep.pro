@@ -62,7 +62,7 @@ pro compare_plot_prep, folder_names, obs_info, ps_foldernames = ps_foldernames, 
     same_density_tag = ''
   endelse
 
-  if n_elements(uvf_options1) gt 0 then
+  if n_elements(uvf_options1) gt 0 then begin
     n_uvf_options = 2
   endif else begin
     n_uvf_options = 1
