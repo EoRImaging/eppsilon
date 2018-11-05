@@ -72,7 +72,7 @@ pro ps_diff_wrapper, folder_names_in, obs_names_in, ps_foldernames = ps_folderna
   if n_elements(image_window_name) lt 2 and n_elements(image_window_frac_size) lt 2 $
     and n_elements(max_uv_lambda) lt 2 and n_elements(full_image) lt 2 then begin
 
-    uvf_options = create_uvf_options(image_window_name = image_window_name, $
+    uvf_options0 = create_uvf_options(image_window_name = image_window_name, $
       image_window_frac_size = image_window_frac_size, delta_uv_lambda = delta_uv_lambda, $
       max_uv_lambda = max_uv_lambda, full_image = full_image)
 
