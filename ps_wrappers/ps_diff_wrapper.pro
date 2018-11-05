@@ -63,7 +63,7 @@ pro ps_diff_wrapper, folder_names_in, obs_names_in, ps_foldernames = ps_folderna
   endif
 
   if n_elements(image_window_name) lt 2 and n_elements(image_window_frac_size) lt 2 $
-    and n_elements(max_uv_lambda) lt 2 n_elements(full_image) lt 2 then begin
+    and n_elements(max_uv_lambda) lt 2 and n_elements(full_image) lt 2 then begin
 
     uvf_options = create_uvf_options(image_window_name = image_window_name, $
       image_window_frac_size = image_window_frac_size, delta_uv_lambda = delta_uv_lambda, $
@@ -209,7 +209,7 @@ pro ps_diff_wrapper, folder_names_in, obs_names_in, ps_foldernames = ps_folderna
     kpar_linear_axis = kpar_linear_axis, data_range = data_range, color_type = color_type)
 
   ps_difference_plots, folder_names, obs_info, ps_foldernames = ps_foldernames, $
-    cube_types, pols, uvf_options0 = uvf_options0, uvf_options1 = uvf_options1,
+    cube_types, pols, uvf_options0 = uvf_options0, uvf_options1 = uvf_options1, $
     ps_options = ps_options, $
     plot_options = plot_options, plot_2d_options = plot_2d_options, $
     binning_1d_options = binning_1d_options, $
