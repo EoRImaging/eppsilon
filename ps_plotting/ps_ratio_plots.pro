@@ -1,6 +1,6 @@
 pro ps_ratio_plots, folder_names, obs_info, cube_types, pols, ps_foldernames=ps_foldernames, $
     all_pol_diff_ratio = all_pol_diff_ratio, $
-    uvf_options = uvf_options, ps_options = ps_options, $
+    uvf_options0 = uvf_options0, uvf_options1 = uvf_options1, ps_options = ps_options, $
     plot_options = plot_options, plot_2d_options = plot_2d_options, $
     plot_slices = plot_slices, slice_type = slice_type, $
     freq_ch_range = freq_ch_range, plot_filebase = plot_filebase, save_path=save_path, $
@@ -15,7 +15,7 @@ pro ps_ratio_plots, folder_names, obs_info, cube_types, pols, ps_foldernames=ps_
 
   compare_plot_prep, folder_names, obs_info, cube_types, pols, 'ratio', compare_files, $
     ps_foldernames=ps_foldernames, $
-    uvf_options = uvf_options, ps_options = ps_options, $
+    uvf_options0 = uvf_options0, uvf_options1 = uvf_options1, ps_options = ps_options, $
     plot_options = plot_options, plot_2d_options = plot_2d_options, $
     plot_slices = plot_slices, slice_type = slice_type, fadd_2dbin = fadd_2dbin, $
     freq_ch_range = freq_ch_range, $
