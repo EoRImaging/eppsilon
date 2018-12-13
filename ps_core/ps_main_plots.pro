@@ -1952,7 +1952,7 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
         undefine, plotfile_use
       endelse
 
-      density_index = i / n_elements(kperp_density_names)
+      density_index = i / 2
       row_index = i mod 2
       row_titles = ['weight measure', 'voxels_used']
       title_use = kperp_density_names[density_index] + ' ' + row_titles[row_index]
