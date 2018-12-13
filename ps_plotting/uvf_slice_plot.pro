@@ -3,12 +3,16 @@
 ;;    can be passed which sets several of the keywords. If the keywords are set separately,
 ;;    the keyword values supercede the structure values.
 
-pro uvf_slice_plot, slice_savefile, multi_pos = multi_pos, $
-    start_multi_params = start_multi_params, $
+pro uvf_slice_plot, slice_savefile, uvf_slice=uvf_slice, xarr=xarr, yarr=yarr, $
+    slice_axis=slice_axis, slice_inds=slice_inds, $
+    plane_name=plane_name, plot_xname=plot_xname, plot_yname=plot_yname, $
+    kperp_lambda_conv = kperp_lambda_conv, delay_params = delay_params, $
+    hubble_param = hubble_param, $
+    multi_pos = multi_pos, start_multi_params = start_multi_params, $
     plot_options = plot_options, plot_2d_options = plot_2d_options, $
     plot_xrange = plot_xrange, plot_yrange = plot_yrange, data_range = data_range, $
     type = type, log=log, png = png, eps = eps, pdf = pdf, plotfile = plotfile, $
-    window_num = window_num, title = title, title_prefix = title_prefix, $
+    window_num = window_num, full_title = full_title, title_prefix = title_prefix, $
     baseline_axis = baseline_axis, hinv = hinv, mark_0 = mark_0, image_space = image_space, $
     color_0amp = color_0amp, color_profile = color_profile, charsize = charsize_in, $
     cb_size = cb_size_in, margin = margin_in, cb_margin = cb_margin_in, no_title = no_title, $
@@ -111,7 +115,7 @@ pro uvf_slice_plot, slice_savefile, multi_pos = multi_pos, $
     baseline_axis = 0
   endif
 
-  restore, slice_savefile
+  if n_elements(uvf_slice) eq 0 then restore, slice_savefile
 
   dims = size(uvf_slice, /dimension)
   if n_elements(dims) gt 2 then uvf_slice = total(uvf_slice, slice_axis+1) / n_elements(slice_inds)
@@ -544,7 +548,7 @@ pro uvf_slice_plot, slice_savefile, multi_pos = multi_pos, $
   endelse
 
 
-  if n_elements(title) ne 0 then plot_title = title else begin
+  if n_elements(full_title) ne 0 then plot_title = full_title else begin
     case type of
       'abs': plot_title = 'Magnitude in ' + plane_name + ' plane'
       'phase': plot_title = 'Phase in ' + plane_name + ' plane'
@@ -576,12 +580,14 @@ pro uvf_slice_plot, slice_savefile, multi_pos = multi_pos, $
         if keyword_set (hinv) then plot_xtitle = textoidl('k_y (!8h!X Mpc^{-1})', font = font) $
         else plot_xtitle = textoidl('k_y (Mpc^{-1})', font = font)
         plot_ytitle = plot_yname + ' (MHz)'
+        if n_elements(plot_xname) eq 0 then plot_xname = 'v'
         baseline_xtitle = plot_xname + textoidl(' (\lambda)', font = font)
       end
       1: begin
         if keyword_set (hinv) then plot_xtitle = textoidl('k_x (!8h!X Mpc^{-1})', font = font) $
         else plot_xtitle = textoidl('k_x (Mpc^{-1})', font = font)
         plot_ytitle = plot_yname + ' (MHz)'
+        if n_elements(plot_xname) eq 0 then plot_xname = 'u'
         baseline_xtitle = plot_xname + textoidl(' (\lambda)', font = font)
       end
       2: begin
@@ -589,6 +595,8 @@ pro uvf_slice_plot, slice_savefile, multi_pos = multi_pos, $
         else plot_xtitle = textoidl('k_x (Mpc^{-1})', font = font)
         if keyword_set (hinv) then plot_ytitle = textoidl('k_y (!8h!X Mpc^{-1})', font = font) $
         else plot_ytitle = textoidl('k_y (Mpc^{-1})', font = font)
+        if n_elements(plot_xname) eq 0 then plot_xname = 'u'
+        if n_elements(plot_yname) eq 0 then plot_yname = 'v'
         baseline_xtitle = plot_xname + textoidl(' (\lambda)', font = font)
         baseline_ytitle = plot_yname + textoidl(' (\lambda)', font = font)
       end

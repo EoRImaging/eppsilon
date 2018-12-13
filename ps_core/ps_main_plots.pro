@@ -999,6 +999,7 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
       plotfile_1to2d_contours = begin_1to2d + '_1dcontours' + plot_options.plot_exten
       plotfile_1to2d_noisefrac = begin_1to2d + '_1dnoisefrac' + plot_options.plot_exten
       plotfile_1to2d_contour_zoom = begin_1to2d + '_1dcontour_zoom' + plot_options.plot_exten
+      plotfile_wt_meas = begin_1to2d + '_dencorr_meas' + plot_options.plot_exten
     endif
   endif
 
@@ -1173,8 +1174,7 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
       end
     endcase
 
-    if plot_types.slice_type eq 'weights' or plot_types.slice_type eq 'variance' $
-        or plot_types.slice_type eq 'var_power' then begin
+    if plot_types.slice_type eq 'var_power' then begin
       ;; we don't need separate ones for dirty, model, residual
       wh_use = where(strpos(slice_titles, 'dirty')>0)
 
@@ -1722,7 +1722,6 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
 
   if plot_types.plot_1to2d then begin
 
-
     if plot_2d_options.kperp_linear_axis then begin
       ;; aspect ratio doesn't work out for kperp_linear with multiple rows
       ncol = n_elements(wedge_1dbin_names)*n_elements(kperp_density_names)
@@ -1926,6 +1925,80 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
           delete_ps = plot_options.delete_ps, density = 600
       endif
     endif
+
+    if plot_2d_options.kperp_linear_axis then begin
+      ;; aspect ratio doesn't work out for kperp_linear with multiple rows
+      ncol = n_elements(kperp_density_names)*2
+      nrow = 1
+    endif else begin
+      ncol = n_elements(kperp_density_names)
+      nrow = 2
+    endelse
+    start_multi_params = {ncol:ncol, nrow:nrow, ordering:'col'}
+    undefine, pos_use
+
+    ;; make a plot of the weight measure used for dencorr cuts
+    window_num = window_num+1
+    for i=0, nrow*ncol-1 do begin
+      if i gt 0 then pos_use = positions[*,i]
+      if i eq nrow*ncol-1 and tag_exist(plot_options, 'note') then begin
+        note_use = plot_options.note  + ',' + type_1to2d_use + '_' + pol_1to2d_use
+      endif else begin
+        note_use = ''
+      endelse
+      if plot_options.pub then begin
+        plotfile_use = plotfile_wt_meas
+      endif else begin
+        undefine, plotfile_use
+      endelse
+
+      density_index = i / n_elements(kperp_density_names)
+      row_index = i mod 2
+      row_titles = ['weight measure', 'voxels_used']
+      title_use = kperp_density_names[density_index] + ' ' + row_titles[row_index]
+
+      ;; get wt_measure
+      pol_index = where(file_struct_arr.pol eq pol_1to2d_use, count_pol)
+      if count_pol gt 0 then pol_index = pol_index[0] else pol_index = 0
+      wt_meas = getvar_savefile(file_struct_arr[pol_index].power_savefile, $
+                                'wt_meas_' + ps_options.wt_measures[density_index])
+      kx_arr = getvar_savefile(file_struct_arr[pol_index].power_savefile, 'kx_mpc')
+      ky_arr = getvar_savefile(file_struct_arr[pol_index].power_savefile, 'ky_mpc')
+      kperp_lambda_conv = getvar_savefile(file_struct_arr[pol_index].power_savefile, 'kperp_lambda_conv')
+      delay_params = getvar_savefile(file_struct_arr[pol_index].power_savefile, 'delay_params')
+      hubble_param = getvar_savefile(file_struct_arr[pol_index].power_savefile, 'hubble_param')
+
+      if row_index eq 0 then begin
+        data_plot = wt_meas
+        log_use = 1
+        undefine, data_range_use
+      endif else begin
+        data_plot = wt_meas * 0
+        data_plot[where(wt_meas ge ps_options.wt_cutoffs[density_index])] = 1
+        log_use = 0
+        data_range_use = [0, 1]
+      endelse
+
+      uvf_slice_plot, uvf_slice = data_plot, xarr=kx_arr, yarr=ky_arr, slice_axis=2, $
+        kperp_lambda_conv = kperp_lambda_conv, delay_params = delay_params, $
+        hubble_param = hubble_param, type='abs', $
+        multi_pos = pos_use, start_multi_params = start_multi_params, $
+        plotfile = plotfile_use, log = log_use, data_range = data_range_use, $
+        plot_xrange = minmax(kx_arr), plot_yrange = minmax(ky_arr), $
+        plot_options = plot_options, plot_2d_options = plot_2d_options, $
+        full_title = title_use, note = note_use, window_num = window_num
+
+      if i eq 0 then begin
+        positions = pos_use
+        undefine, start_multi_params
+      endif
+    endfor
+    undefine, positions, pos_use
+    if plot_options.pub then begin
+      cgps_close, png = plot_options.png, pdf = plot_options.pdf, $
+        delete_ps = plot_options.delete_ps, density = 600
+    endif
+
   endif
 
 
