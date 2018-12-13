@@ -12,8 +12,8 @@ function create_plot_types, plot_types = plot_types, $
     ;; default to not plotting slices
     if n_elements(plot_slices) eq 0 then plot_slices=0
 
-    ;; default to making standard plot set if plot_slices isn't set
-    if keyword_set(plot_slices) then begin
+    ;; default to making standard plot set if [plot_slices, plot_1to2d, plot_2d_masked] isn't set
+    if keyword_set(plot_slices) or keyword_set(plot_1to2d) or keyword_set(plot_2d_masked) then begin
       if n_elements(plot_stdset) eq 0 then plot_stdset = 0
     endif else begin
       if n_elements(plot_stdset) eq 0 then plot_stdset = 1
