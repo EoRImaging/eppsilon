@@ -1,5 +1,7 @@
 pro ps_wrapper, folder_name_in, obs_name, data_subdirs=data_subdirs, $
     exact_obsnames = exact_obsnames, ps_foldername = ps_foldername, $
+    version_test = version_test, $
+    ps_folder_branch = ps_folder_branch, copy_master_uvf = copy_master_uvf, $
     no_evenodd = no_evenodd, no_wtvar_rts = no_wtvar_rts, $
     set_data_ranges = set_data_ranges, beamfiles = beamfiles, rts = rts, $
     casa = casa, sim = sim, refresh_dft = refresh_dft, refresh_ps = refresh_ps, $
@@ -52,6 +54,55 @@ pro ps_wrapper, folder_name_in, obs_name, data_subdirs=data_subdirs, $
 
   folder_name = get_folder(folder_name_in, loc_name = loc_name,  rts = rts, $
     dirty_folder = dirty_folder)
+
+  if keyword_set(version_test) then begin
+    if n_elements(ps_folder_branch) eq 0 then ps_folder_branch = 1
+    if n_elements(copy_master_uvf) eq 0 then copy_master_uvf = 1
+  endif
+
+  if keyword_set(ps_folder_branch) and n_elements(ps_foldername) eq 0 then begin
+    git_info = git_info(ps_repository_dir())
+    ps_foldername = 'ps_' + git_info.branch
+
+    if git_info.branch eq 'master' and keyword_set(copy_master_uvf) then copy_master_uvf=0
+  endif
+
+  if keyword_set(copy_master_uvf) then begin
+    ;; copy over uvf files from the ps_master folder if it exists and the uvf cubes don't exist for this run
+    master_folder_test = file_test(folder_name + path_sep() + 'ps_master', /directory)
+    if master_folder_test gt 0 then begin
+      master_uvf_folder = folder_name + path_sep() + 'ps_master' + path_sep() + 'data' + path_sep() + 'uvf_cubes'
+      master_uvf_files = [file_search(master_uvf_folder + path_sep() + '*_uvf.idlsave'), $
+                          file_search(master_uvf_folder + path_sep() + '*_radec.idlsave')]
+
+
+      new_uvf_folder = folder_name + path_sep() + ps_foldername + path_sep() $
+        + 'data' + path_sep() + 'uvf_cubes'
+      if file_test(new_uvf_folder, /directory) eq 0 then file_mkdir, new_uvf_folder
+
+      filebases = file_basename(master_uvf_files)
+      new_files_exist = file_test(new_uvf_folder + path_sep() + filebases)
+
+      if min(new_files_exist) eq 0 then begin
+        wh_copy = where(new_files_exist eq 0)
+        file_copy, master_uvf_files[wh_copy], new_uvf_folder, /require_directory
+      endif
+
+      master_beam_folder = folder_name + path_sep() + 'ps_master' + path_sep() + 'data' + path_sep() + 'beam_cubes'
+      master_beam_files = file_search(master_beam_folder + path_sep() + '*_beam2.idlsave')
+
+      new_beam_folder = folder_name + path_sep() + ps_foldername + path_sep() $
+        + 'data' + path_sep() + 'beam_cubes'
+      if file_test(new_beam_folder, /directory) eq 0 then file_mkdir, new_beam_folder
+
+      filebases = file_basename(master_beam_files)
+      new_files_exist = file_test(new_beam_folder + path_sep() + filebases)
+      if min(new_files_exist) eq 0 then begin
+        wh_copy = where(new_files_exist eq 0)
+        file_copy, master_beam_files[wh_copy], new_beam_folder, /require_directory
+      endif
+    endif
+  endif
 
   obs_info = ps_filenames(folder_name, obs_name, dirty_folder = dirty_folder, $
     exact_obsnames = exact_obsnames, rts = rts, uvf_input = uvf_input, $

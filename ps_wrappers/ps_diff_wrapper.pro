@@ -1,4 +1,5 @@
 pro ps_diff_wrapper, folder_names_in, obs_names_in, ps_foldernames = ps_foldernames, $
+    version_test = version_test, $
     cube_types = cube_types, pols = pols,  refresh_diff = refresh_diff, $
     spec_window_types = spec_window_types, delta_uv_lambda = delta_uv_lambda, $
     max_uv_lambda = max_uv_lambda, full_image = full_image, $
@@ -29,12 +30,18 @@ pro ps_diff_wrapper, folder_names_in, obs_names_in, ps_foldernames = ps_folderna
   folder_names = get_folder(folder_names_in, loc_name = loc_name,  rts = rts, $
     dirty_folder = dirty_folder)
 
+  if keyword_set(version_test) and n_elements(ps_foldername) eq 0 $
+      and n_elements(folder_names_in) eq 1 and n_elements(obs_names_in) lt 2 then begin
+    git_info = git_info(ps_repository_dir())
+    ps_foldernames = ['ps_master', 'ps_' + git_info.branch]
+  endif
+
   obs_info = ps_filenames(folder_names, obs_names_in, dirty_folder = dirty_folder, $
     exact_obsnames = exact_obsnames, rts = rts, sim = sim,  uvf_input = uvf_input, $
     casa = casa, data_subdirs = data_subdirs, ps_foldernames = ps_foldernames, $
     save_paths = save_paths, plot_paths = plot_paths, refresh_info = refresh_info, $
     no_wtvar_rts = no_wtvar_rts)
-    
+
   binning_1d_options = create_binning_1d_options(wedge_angles = wedge_angles, $
     wedge_names = wedge_names, $
     coarse_harm_width = coarse_harm_width, log_k = log_k1d, k_bin = k1d_bin, $
