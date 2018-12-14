@@ -209,8 +209,7 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
       end
     endcase
 
-    if plot_types.slice_type eq 'weights' or plot_types.slice_type eq 'variance' $
-        or plot_types.slice_type eq 'var_power' then begin
+    if plot_types.slice_type eq 'var_power' then begin
       ;; we don't need separate ones for dirty, model, residual
       wh_use = where(strpos(slice_titles, 'dirty')>0)
 
