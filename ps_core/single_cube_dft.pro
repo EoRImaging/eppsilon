@@ -4,7 +4,6 @@ pro single_cube_dft, folder_name_in, obs_name, data_subdirs=data_subdirs, $
     savefilebase = savefilebase, refresh_info = refresh_info, refresh_dft = refresh_dft, $
     freq_flags = freq_flags, freq_ch_range = freq_ch_range, cube_type = cube_type, $
     pol = pol, evenodd = evenodd, loc_name=loc_name, $
-    image_window_name=image_window_name, image_window_frac_size=image_window_frac_size, $
     delta_uv_lambda = delta_uv_lambda, max_uv_lambda = max_uv_lambda, $
     full_image = full_image
 
@@ -78,8 +77,7 @@ pro single_cube_dft, folder_name_in, obs_name, data_subdirs=data_subdirs, $
 
   refresh_options = create_refresh_options(refresh_dft = refresh_dft)
 
-  uvf_options = create_uvf_options(image_window_name = image_window_name, $
-    image_window_frac_size = image_window_frac_size, delta_uv_lambda = delta_uv_lambda, $
+  uvf_options = create_uvf_options(delta_uv_lambda = delta_uv_lambda, $
     max_uv_lambda = max_uv_lambda, full_image = full_image, $
     dft_fchunk = dft_fchunk, no_dft_progress = no_dft_progress)
 
@@ -188,15 +186,7 @@ pro single_cube_dft, folder_name_in, obs_name, data_subdirs=data_subdirs, $
     kx_rad_vals = pix_ft_struct.kx_rad_vals
     ky_rad_vals = pix_ft_struct.ky_rad_vals
 
-    ;; Create an image space filter to reduce thrown power via the FFT on hard clips
-    if tag_exist(uvf_options, 'image_window_name') then begin
-      if tag_exist(uvf_options, 'image_window_frac_size') then begin
-        image_window_frac_size = uvf_options.image_window_frac_size
-      endif
-      pix_window = image_window(x_use, y_use, image_window_name = uvf_options.image_window_name, $
-        fractional_size = image_window_frac_size)
-      pix_window = rebin(pix_window, n_elements(wh_close), n_freq, /sample)
-    endif else pix_window = fltarr(n_elements(wh_close), n_freq) + 1.
+    pix_window = fltarr(n_elements(wh_close), n_freq) + 1.
 
     git, repo_path = ps_repository_dir(), result = this_run_git_hash
 

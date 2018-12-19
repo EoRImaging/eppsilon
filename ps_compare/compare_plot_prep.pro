@@ -72,8 +72,7 @@ pro compare_plot_prep, folder_names, obs_info, ps_foldernames = ps_foldernames, 
     n_elements(pols), n_elements(ps_options), n_uvf_options])
   if n_diffs gt 2 then begin
     message, 'only 1 or 2 each of [folder_names, ps_foldernames, ' + $
-      'obs_names, cube_types, pols, spec_window_types, wt_cutoffs, ave_removal, ' + $
-      'image_window_name, image_window_frac_size] allowed'
+      'obs_names, cube_types, pols, spec_window_types, wt_cutoffs, ave_removal] allowed'
   endif
 
   if (n_elements(obs_info.info_files) eq 2 or n_elements(ps_options) eq 2 $
@@ -110,8 +109,7 @@ pro compare_plot_prep, folder_names, obs_info, ps_foldernames = ps_foldernames, 
 
     if n_diffs eq 1 then begin
       message, 'at least one of [folder_names, ps_foldernames, ' + $
-        'obs_names, cube_types, pols, spec_window_types, wt_cutoffs, ave_removal, ' + $
-        'image_window_name, image_window_frac_size] must be a 2 element vector'
+        'obs_names, cube_types, pols, spec_window_types, wt_cutoffs, ave_removal] must be a 2 element vector'
     endif
     case comp_type of
       'diff': n_cubes = 1

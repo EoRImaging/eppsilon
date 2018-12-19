@@ -2,9 +2,7 @@ pro ps_ratio_wrapper, folder_names_in, obs_names_in, ps_foldernames=ps_foldernam
     exact_obsnames = exact_obsnames,  cube_types = cube_types,  pols = pols, $
     all_pol_diff_ratio = all_pol_diff_ratio, freq_ch_range = freq_ch_range, $
     spec_window_types = spec_window_types, delta_uv_lambda = delta_uv_lambda, $
-    full_image = full_image, $
-    ave_removal = ave_removal, image_window_name = image_window_name, $
-    image_window_frac_size = image_window_frac_size,  diff_ratio = diff_ratio, $
+    full_image = full_image, ave_removal = ave_removal, diff_ratio = diff_ratio, $
     diff_range = diff_range, png = png, eps = eps, pdf = pdf, $
     data_range = data_range, $
     color_type = color_type, invert_colorbar = invert_colorbar, $
@@ -48,50 +46,12 @@ pro ps_ratio_wrapper, folder_names_in, obs_names_in, ps_foldernames=ps_foldernam
 
   if n_elements(delta_uv_lambda) gt 1 then message, 'only 1 delta_uv_lambda allowed'
 
-  if n_elements(image_window_name) eq 1 then begin
-    if strlowcase(image_window_name) eq 'none' then begin
-      undefine, image_window_name
-    endif
-  endif
+  if n_elements(max_uv_lambda) lt 2 and n_elements(full_image) lt 2 then begin
 
-  if n_elements(image_window_name) lt 2 and n_elements(image_window_frac_size) lt 2 $
-    and n_elements(max_uv_lambda) lt 2 and n_elements(full_image) lt 2 then begin
-
-    uvf_options0 = create_uvf_options(image_window_name = image_window_name, $
-      image_window_frac_size = image_window_frac_size, delta_uv_lambda = delta_uv_lambda, $
+    uvf_options0 = create_uvf_options(delta_uv_lambda = delta_uv_lambda, $
       max_uv_lambda = max_uv_lambda, full_image = full_image)
 
   endif else begin
-    case n_elements(image_window_name) of
-      0:
-      1: begin
-        iwn0 = image_window_name
-        iwn1 = image_window_name
-      end
-      2: begin
-        if strlowcase(image_window_name[0]) ne 'none' then begin
-          iwn0 = image_window_name[0]
-        endif
-        if strlowcase(image_window_name[1]) ne 'none' then begin
-          iwn1 = image_window_name[1]
-        endif
-      end
-      else: message, 'only 1 or 2 image_window_names values allowed'
-    endcase
-
-    case n_elements(image_window_frac_size) of
-      0:
-      1: begin
-        iwfs0 = image_window_frac_size
-        iwfs1 = image_window_frac_size
-      end
-      2: begin
-        iwfs0 = image_window_frac_size[0]
-        iwfs1 = image_window_frac_size[1]
-      end
-      else: message, 'only 1 or 2 image_window_frac_size values allowed'
-    endcase
-
     case n_elements(max_uv_lambda) of
       0:
       1: begin
@@ -118,11 +78,9 @@ pro ps_ratio_wrapper, folder_names_in, obs_names_in, ps_foldernames=ps_foldernam
       else: message, 'only 1 or 2 full_image values allowed'
     endcase
 
-    uvf_options0 = create_uvf_options(image_window_name = iwn0, $
-      image_window_frac_size = iwfs0, delta_uv_lambda = delta_uv_lambda, $
+    uvf_options0 = create_uvf_options(delta_uv_lambda = delta_uv_lambda, $
       max_uv_lambda = mul0, full_image = fi0)
-    uvf_options1 = create_uvf_options(image_window_name = iwn1, $
-      image_window_frac_size = iwfs1, delta_uv_lambda = delta_uv_lambda, $
+    uvf_options1 = create_uvf_options(delta_uv_lambda = delta_uv_lambda, $
       max_uv_lambda = mul1, full_image = fi1)
   endelse
 

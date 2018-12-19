@@ -19,7 +19,6 @@ pro ps_wrapper, folder_name_in, obs_name, data_subdirs=data_subdirs, $
     use_weight_cutoff_sim = use_weight_cutoff_sim, $
     wt_cutoffs = wt_cutoffs, wt_measures = wt_measures, fix_sim_input = fix_sim_input, $
     no_spec_window = no_spec_window, spec_window_type = spec_window_type, $
-    image_window_name = image_window_name, image_window_frac_size = image_window_frac_size, $
     no_kzero = no_kzero, plot_slices = plot_slices, slice_type = slice_type, $
     uvf_plot_type = uvf_plot_type, plot_stdset = plot_stdset, plot_1to2d = plot_1to2d, $
     plot_2d_masked = plot_2d_masked, plot_kpar_power = plot_kpar_power, $
@@ -235,8 +234,7 @@ pro ps_wrapper, folder_name_in, obs_name, data_subdirs=data_subdirs, $
     refresh_beam = refresh_beam, refresh_ps = refresh_ps, refresh_kcube = refresh_ps, $
     refresh_binning = refresh_binning, refresh_info = refresh_info)
 
-  uvf_options = create_uvf_options(image_window_name = image_window_name, $
-    image_window_frac_size = image_window_frac_size, delta_uv_lambda = delta_uv_lambda, $
+  uvf_options = create_uvf_options(delta_uv_lambda = delta_uv_lambda, $
     max_uv_lambda = max_uv_lambda, full_image = full_image, $
     uv_avg = uv_avg, uv_img_clip = uv_img_clip, $
     dft_fchunk = dft_fchunk, no_dft_progress = no_dft_progress)

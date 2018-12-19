@@ -76,11 +76,7 @@ These flags (all default=0) tell the code to redo parts of the analysis that wou
 
 ## DFT and UV grid related keywords:
 
-**image_window_name**: Name of an image space window to apply to the input cubes before the DFT as an anti-aliasing filter. This is not supplied by default, but evidence is growing for a Blackman-Harris or Tukey style window and the default may change to one of those soon. Any of the spec_window_type windows are also supported. Setting this keyword also makes eppsilon use the full size of the provided image (or the size dictated by the **delta_uv_lambda** keyword if it is set). To use the full size image without a window function, set the **full_image** keyword.
-
-**image_window_frac_size**: Only applies if image_window_name is 'Tukey'. The fractional size of the flat part of the Tukey function. Defaults to the ratio of the standard image size (given by a uv pixel size of 5 meters) to the input cube image size (so that the flat section matches the size of the standard image size).
-
-**delta_uv_lambda**: The default size of the uv pixels to calculate in wavelengths. If there's no image_window_name set, this is defaulted to (5 meters)*freq/c, otherwise it is decreased to match the size of the input image cube. **Note**: the actual uv pixel size used by the code may be larger than this value if the size of the input image cube is smaller than would be needed to support delta_uv_lambda. In that case, the following warning will be printed: 'Image FoV is smaller than expected, increasing delta kperp to match image FoV'.
+**delta_uv_lambda**: The default size of the uv pixels to calculate in wavelengths. If full_image is not set, this is defaulted to (5 meters)*freq/c, otherwise it is decreased to match the size of the input image cube. **Note**: the actual uv pixel size used by the code may be larger than this value if the size of the input image cube is smaller than would be needed to support delta_uv_lambda. In that case, the following warning will be printed: 'Image FoV is smaller than expected, increasing delta kperp to match image FoV'.
 
 **max_uv_lambda**: The maximum distance from (0,0) in uv space that we should calculate in the DFT. **Note**: The actual uv extent used may be smaller than this value if the maximum uv extent of the input image cubes is smaller or if the longest gridded baseline is smaller. So the actual uv extent will be the minimum of max_uv_lambda, the maximum uv extent of the input image cubes and the longest gridded baseline.
 
