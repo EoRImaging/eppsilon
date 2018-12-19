@@ -22,26 +22,6 @@ function create_file_tags, freq_ch_range = freq_ch_range, freq_flags = freq_flag
     endelse
   endif else sw_tag = ''
 
-  if tag_exist(uvf_options, 'image_window_name') ne 0 then begin
-    wh_type = where(strlowcase(window_type_list) eq strlowcase(uvf_options.image_window_name), $
-      count_type)
-    if count_type eq 0 then begin
-      wh_type = where(strlowcase(win_tag_list) eq strlowcase(uvf_options.image_window_name), $
-        count_type)
-    endif
-    if count_type eq 0 then message, 'Image window type not recognized.' else begin
-      uvf_options.image_window_name = window_type_list[wh_type[0]]
-      if window_type_list[wh_type] ne 'None' and tag_exist(uvf_options, 'image_window_frac_size') ne 0 then begin
-        iw_size_tag = number_formatter(uvf_options.image_window_frac_size)
-      endif else iw_size_tag = ''
-      if uvf_options.image_window_name eq 'None' then begin
-        iw_tag = ''
-      endif else begin
-        iw_tag = '_' + win_tag_list[wh_type[0]] + iw_size_tag
-      endelse
-    endelse
-  endif else iw_tag = ''
-
   if n_elements(freq_ch_range) ne 0 then begin
     if min(freq_ch_range) lt 0 or max(freq_ch_range) - min(freq_ch_range) lt 3 then begin
       message, 'invalid freq_ch_range'

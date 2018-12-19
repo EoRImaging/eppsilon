@@ -87,34 +87,15 @@ function choose_pix_ft, file_struct, pixel_nums = pixel_nums, data_dims = data_d
 
   ;; figure out k values to calculate dft
   uv_cellsize_m = 5 ;; based on calculations of beam FWHM by Aaron
-  if tag_exist(uvf_options, 'image_window_name') or uvf_options.full_image then begin
+  if uvf_options.full_image then begin
     ;; use the full image size.
-    ;; if we have a image window we want to go out wider than normal to accommodate the window.
-    if tag_exist(uvf_options, 'image_window_name') then begin
-      use_window = 1
-    endif else begin
-      use_window = 0
-    endelse
 
     min_uv_cellsize_m = max([file_struct.kpix * (3e8) / mean(frequencies*1e6), $
                              (3e8) / (image_len * mean(frequencies*1e6))])
     std_fraction = min_uv_cellsize_m / uv_cellsize_m
 
-    if std_fraction gt 0.9 and use_window then begin
-      print, 'The Healpix image cubes do not extend much beyond the standard ' + $
-             'window size and an image_window_name is specified. This may result in unexpected behavior.'
-    endif
-
-    if use_window and not tag_exist(uvf_options, 'image_window_frac_size') then begin
-      if uvf_options.image_window_name eq 'Tukey' then begin
-        if std_fraction gt 0.9 then begin
-          print, 'The calculated window fractional size is ' + number_formatter(std_fraction)
-          if std_fraction gt 1.0 then std_fraction = 1.0
-        endif
-        uvf_options = create_uvf_options(uvf_options = uvf_options, $
-          image_window_name = uvf_options.image_window_name, $
-          image_window_frac_size = std_fraction)
-      endif
+    if std_fraction gt 0.9 then begin
+      print, 'The Healpix image cubes do not extend much beyond the standard window size.'
     endif
 
     uv_cellsize_m = min_uv_cellsize_m

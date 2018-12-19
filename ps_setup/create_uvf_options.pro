@@ -1,27 +1,10 @@
 function create_uvf_options, uvf_options = uvf_options, $
-    image_window_name = image_window_name, image_window_frac_size = image_window_frac_size, $
     delta_uv_lambda = delta_uv_lambda, max_uv_lambda = max_uv_lambda, $
     full_image = full_image, uv_avg = uv_avg, uv_img_clip = uv_img_clip, $
     dft_fchunk = dft_fchunk, no_dft_progress = no_dft_progress, return_new = return_new
 
   if keyword_set(full_image) and n_elements(delta_uv_lambda) gt 0 then begin
     message, 'full_image and delta_uv_lambda cannot both be set'
-  endif
-
-  if n_elements(image_window_name) eq 0 then begin
-    ;; ignore image_window_frac_size if image_window_name is not set
-    undefine, image_window_frac_size
-  endif else begin
-    if not (image_window_name eq 'Tukey' or image_window_name eq 'tk') then begin
-      ;; ignore image_window_frac_size if not a Tukey window
-      undefine, image_window_frac_size
-    endif
-  endelse
-
-  if n_elements(image_window_name) gt 0 and keyword_set(full_image) then begin
-    ;; the full image is always used if using an image window,
-    ;; the keyword is only for the case where no image window is used and we still want the full image
-    full_image = 0
   endif
 
   update_tags = list()
@@ -45,20 +28,6 @@ function create_uvf_options, uvf_options = uvf_options, $
       update_values.add, full_image
     endif
   endelse
-
-  if n_elements(image_window_name) gt 0 then begin
-    update_tags.add, 'image_window_name'
-    update_values.add, image_window_name
-  endif
-  if n_elements(image_window_frac_size) gt 0 then begin
-    if image_window_frac_size gt 1 or image_window_frac_size lt 0 then begin
-      print, 'image_window_frac_size must be a value between 0 and 1, using default values.'
-      undefine, image_window_frac_size
-    endif else begin
-      update_tags.add, 'image_window_frac_size'
-      update_values.add, image_window_frac_size
-    endelse
-  endif
 
   if n_elements(delta_uv_lambda) gt 0 then begin
     update_tags.add, 'delta_uv_lambda'
