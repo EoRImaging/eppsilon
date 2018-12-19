@@ -10,7 +10,7 @@ Many of these keywords are re-used in other wrappers, but since this is the prim
 
 **folder_name**: **Required** This defines what folder the data live in. For FHD, it should be the top level folder for that run (which contains folders like Metadata and Healpix). On machines where there is support for the standard folder paths (i.e. there is a relevant *_folder_locs.pro file), this can just be the short folder name. It can also be a full path.
 
-**loc_name**: This is a keyword to indicate which location the code is running on to help with defining the standard folder paths. It is detected from the hostname by default, but that apparently fails in some cases, so this keyword allows the user to specify it. Options are 'mit' or 'enterprise' (enterprise really means any of the ASU machines.)
+**loc_name**: This is a keyword to indicate which location the code is running on to help with defining the standard folder paths. It is detected from the hostname by default, but that apparently fails in some cases, so this keyword allows the user to specify it. Options are 'enterprise' (enterprise really means any of the ASU machines.)
 
 **obs_name**: This defines which sets of cubes to use within the specified folder_name. It is not required, but is useful if there are more than one run present in the folder_name. It needs to be a string that uniquely identifies the run from all other runs in the folder (For FHD, this matches the obs_name defined in FHD/fhd_core/HEALPix/integrate_healpix_cubes.pro)
 
