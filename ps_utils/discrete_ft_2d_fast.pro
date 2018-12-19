@@ -48,10 +48,7 @@ function discrete_ft_2d_fast, locations1, locations2, data, k1, k2, $
   if n_chunks gt 1 then fchunk_sizes[n_chunks-1] = count_freq_n0 - total(fchunk_sizes[0:n_chunks-2])
   fchunk_edges = [0, total(fchunk_sizes, /cumulative)]
 
-  ;; want progress reports every so often + on 3rd step
   nsteps = n_chunks
-  nprogsteps = 5
-  progress_steps = [3, round(nsteps * findgen(nprogsteps) / double(nprogsteps))]
   inner_times = fltarr(nsteps)
   step1_times = fltarr(nsteps)
   step2_times = fltarr(nsteps)
@@ -77,23 +74,6 @@ function discrete_ft_2d_fast, locations1, locations2, data, k1, k2, $
   temp = memory(/current)/1.e9
 
   for j=0, n_chunks-1 do begin
-
-     this_step = j
-     wh = where(progress_steps eq this_step, count)
-     if count gt 0 and not keyword_set(no_progress) then begin
-        print, 'progress: on step ' + number_formatter(this_step) + ' of ' + number_formatter(nsteps) + $
-               ' (~ ' + number_formatter(round(100d*this_step/(nsteps))) + '% done)'
-        if this_step gt 0 then begin
-           ave_t = mean(inner_times[0:this_step-1])
-           t_left = ave_t*(nsteps-this_step)
-           if t_left lt 60 then t_left_str = number_formatter(t_left, format='(d8.2)') + ' sec' $
-           else if t_left lt 3600 then t_left_str = number_formatter(t_left/60d, format='(d8.2)') + ' min' $
-           else t_left_str = number_formatter(t_left/3600d, format='(d8.2)') + ' hours'
-
-           print, 'peak memory used: ' + number_formatter(memory(/highwater)/1.e9, format='(d8.1)') + ' GB; ave step time: ' + $
-                  number_formatter(ave_t, format='(d8.2)') + '; approx. time remaining: ' + t_left_str
-        endif
-     endif
 
      temp=systime(1)
 
@@ -147,10 +127,14 @@ function discrete_ft_2d_fast, locations1, locations2, data, k1, k2, $
 
      temp4 = systime(1)
 
-     inner_times[this_step] = temp4 - temp
-     step1_times[this_step] = temp2-temp
-     step2_times[this_step] = temp3-temp2
-     step3_times[this_step] = temp4-temp3
+     inner_times[j] = temp4 - temp
+     step1_times[j] = temp2-temp
+     step2_times[j] = temp3-temp2
+     step3_times[j] = temp4-temp3
+
+     if not keyword_set(no_progress) then begin
+       prog_steps, j, nsteps, inner_times, progress_steps=progress_steps
+     endif
 
   endfor
 
