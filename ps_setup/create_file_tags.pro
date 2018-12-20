@@ -57,7 +57,7 @@ function create_file_tags, freq_ch_range = freq_ch_range, freq_flags = freq_flag
   if tag_exist(uvf_options, 'uv_img_clip') then begin
     uv_tag = uv_tag + '_uvimgclip' + number_formatter(uvf_options.uv_img_clip)
   endif
-  uvf_tag = uv_tag + iw_tag + fch_tag
+  uvf_tag = uv_tag + fch_tag
 
   if ps_options.std_power then kcube_tag = '_stdp' else kcube_tag = ''
   if ps_options.inverse_covar_weight then kcube_tag = kcube_tag + '_invcovar'
