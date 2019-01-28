@@ -425,7 +425,7 @@ pro kpower_1d_plots, power_savefile, multi_pos = multi_pos, $
       if n_elements(sim_noise) gt 0 and keyword_set(plot_sim_noise) then sim_noise = sim_noise[wh_keep]
       k_mid = k_mid[wh_keep]
       k_edges = k_edges[[wh_keep, max(wh_keep)+1]]
-      if keyword_set(kpar_power) then delay_edges = delay_edges[temp]
+      if keyword_set(kpar_power) then delay_edges = delay_edges[[wh_keep, max(wh_keep)+1]]
 
       wh_zero = where(power eq 0d, count_zero, complement = wh_non0, ncomplement = count_non0)
     endif
