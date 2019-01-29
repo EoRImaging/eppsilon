@@ -1323,8 +1323,6 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
     trim_max_pos = 0
   endelse
 
-  n_kz = n_elements(kz_mpc)
-
   ;; now take frequency FT
   if even_freq then begin
     ;; evenly spaced, just use fft
@@ -1384,6 +1382,8 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
         n_kx, n_ky, n_kz)
     endif
   endelse
+
+  n_kz = n_elements(kz_mpc)
 
   ;; these an and bn calculations don't match the standard
   ;; convention (they ares down by a factor of 2) but they make more sense
