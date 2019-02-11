@@ -15,6 +15,7 @@ data, weights and variance cubes which have been constructed in the following wa
   - data: visibilities gridded with the primary beam in uv-space
   - weights: ones gridded with the primary beam in uv-space
   - variances: ones gridded with the square of the primary beam in uv-space
+
 The cubes can be provided either in _uvf_ space or in image space
 (healpix or regularly gridded). eppsilon can provide the best metrics if the
 cubes are split into two separate cubes (usually by gridding the even time
