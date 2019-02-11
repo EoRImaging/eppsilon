@@ -54,18 +54,15 @@ produce PDF or PNG plots (postscript or encapsulated postscript don't require it
 Open a fresh terminal and start IDL to test the installation.
 Suggested test commands:
 
-- `print, cgHasImageMagick()`
-  - prints an error if the Coyote library is not installed, prints 0 if the
-  Coyote Library is installed but Imagemagick not installed correctly, and prints
-  1 if both are installed correctly
+- `print, cgHasImageMagick()`: prints an error if the Coyote library is not
+  installed, prints 0 if the Coyote Library is installed but Imagemagick not
+  installed correctly, and prints 1 if both are installed correctly
 
-- `astrolib`
-  - prints an error if the IDL Astronomy library is not installed correctly,
+- `astrolib`: prints an error if the IDL Astronomy library is not installed correctly,
   prints message “ASTROLIB: Astronomy Library system variables have been added”
   if it is installed correctly
 
-- `init_healpix`
- - prints an error if the HEALPix IDL library is not installed correctly
+- `init_healpix`: prints an error if the HEALPix IDL library is not installed correctly
 
  ## Community Guidelines
 Contributions to this package to add new features or address any of the
