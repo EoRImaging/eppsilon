@@ -46,7 +46,7 @@ FHD with eppsilon), the HEALPix IDL library is also required.
 ImageMagick is an optional (non-IDL) dependency, it's only needed if you want to
 produce PDF or PNG plots (postscript or encapsulated postscript don't require it).
  - [IDL astronomy library](https://idlastro.gsfc.nasa.gov/)
- - [Coyote Graphics Library](http://www.idlcoyote.com/documents/programs.php)
+ - [Coyote Graphics Library](https://github.com/idl-coyote/coyote)
  - [fhdps_utils](https://github.com/EoRImaging/fhdps_utils)
  - Optional: [HEALPix IDL Library](https://healpix.sourceforge.io/)
  - Optional: [ImageMagick](https://www.imagemagick.org/).
