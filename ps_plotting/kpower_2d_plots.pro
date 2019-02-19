@@ -1040,7 +1040,7 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, $
         ;; need more space because not just powers of 10 labels
         margin[2] = 0.2
       endif else begin
-        margin[2] = 0.07
+        margin[2] = 0.1
       endelse
     endif
   endif else margin = margin_in
@@ -1286,7 +1286,7 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, $
 
 
     xloc_delay = plot_pos[2] + 0.20 * (multi_pos_use[2]-plot_pos[2])
-    yloc_delay = plot_pos[1] - 0.2 * (plot_pos[1]-multi_pos_use[1])
+    yloc_delay = plot_pos[1] - 0.20 * (plot_pos[1]-multi_pos_use[1])
 
     xloc_note = .99*multi_pos_use[2]
     yloc_note = multi_pos_use[1] + 0.1* (plot_pos[1]-multi_pos_use[1])
