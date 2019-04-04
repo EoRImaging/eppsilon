@@ -138,7 +138,7 @@ function choose_pix_ft, file_struct, pixel_nums = pixel_nums, data_dims = data_d
     y_rot le y_range[1] and y_rot ge y_range[0], count_close, $
     ncomplement = count_far)
 
-  if n_elements(wh_close) eq 0 and count_far eq 0 then wh_close = lindgen(n_elements(x_rot))
+  if count_close eq 0 then message, 'No image pixels included in FoV cut.'
 
   n_kperp = round(max_kperp_rad / delta_kperp_rad) * 2 + 1
   kx_rad_vals = (findgen(n_kperp) - (n_kperp-1)/2) * delta_kperp_rad
