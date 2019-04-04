@@ -286,11 +286,17 @@ pro ps_image_to_uvf, file_struct, n_vis_freq, kx_rad_vals, ky_rad_vals, $
 
           if max(arr) le 1.1 then begin
             ;; beam is peak normalized to 1
-            temp = arr * rebin(reform(n_vis_freq[i, *], 1, n_freq), count_close, n_freq, /sample)
+            print, 'WARNING: It appears that this beam is from a very old run ' + $
+              'of FHD  (max of beam^2 is ~1). If that is not the case, there ' + $
+              'might be something unexpected happening'
+            temp = arr * rebin(reform(n_vis_freq[i, *], 1, n_freq), n_elements(wh_close), n_freq, /sample)
           endif else if max(arr) le file_struct.n_obs[i]*1.1 then begin
             ;; beam is peak normalized to 1 for each obs, then summed over obs so peak is ~ n_obs
+            print, 'WARNING: It appears that this beam is from an old run ' + $
+              'of FHD  (max of beam^2 is ~n_obs). If that is not the case, there ' + $
+              'might be something unexpected happening'
             temp = (arr/file_struct.n_obs[i]) * rebin(reform(n_vis_freq[i, *], 1, n_freq), $
-              count_close, n_freq, /sample)
+              n_elements(wh_close), n_freq, /sample)
           endif else begin
             ;; beam is peak normalized to 1 then multiplied by n_vis_freq for each obs & summed
             temp = arr
