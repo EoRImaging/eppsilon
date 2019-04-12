@@ -10,7 +10,8 @@ pro choose_hpx_inds, cube_file, inds_save_file, default_size_multiple = default_
   
   pixel_nums1 = getvar_savefile(cube_file, 'hpx_inds')
   nside = getvar_savefile(cube_file, 'nside')
-  frequencies = getvar_savefile(cube_file, 'frequencies')
+  obs = getvar_savefile(cube_file, ‘obs’)
+  frequencies = findgen(obs.n_freq,start=obs.freq_center-(obs.n_freq/2)*obs.freq_res,increment=obs.freq_res)
   
   z_mpc_mean = z_mpc(frequencies, hubble_param = hubble_param)
   
