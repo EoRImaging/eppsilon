@@ -44,9 +44,26 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
   z_mpc_length = max(comov_dist_los) - min(comov_dist_los) + z_mpc_delta
   kz_mpc_range =  (2.*!pi) / (z_mpc_delta)
   kz_mpc_delta = (2.*!pi) / z_mpc_length
-  ;; calculate this way to be correct for even or odd numbers of frequencies
-  min_kz = round(kz_mpc_range/kz_mpc_delta)/2*kz_mpc_delta
-  kz_mpc_orig = findgen(round(kz_mpc_range / kz_mpc_delta)) * kz_mpc_delta - min_kz
+
+  ;; need to figure out where the zero bin is (for later computations)
+  ;; The location of the zero bin also dictates what the most negative kz bin is (min_kz)
+  ;; which we use to construct the kz_mpc_orig array (and reconstruct where the zero bin is)
+  ;; The calculation depends a bit on whether we have an odd or even number of frequencies.
+  ;; The following calculation is taken directly from the IDL FFT documentation
+  int_arr = findgen((n_freq - 1)/2) + 1
+  is_n_freq_even = (n_freq mod 2) eq 0
+  if (is_n_freq_even) then begin
+    kz_integers = [0.0, int_arr, n_freq/2, -n_freq/2 + int_arr]
+  endif else begin
+    kz_integers = [0.0, int_arr, -(n_freq/2 + 1) + int_arr]
+  endelse
+  kz_integers = shift(kz_integers, -(n_freq/2 + 1))
+  if where(kz_integers eq min(kz_integers)) ne 0 then begin
+    message, 'something went very wrong with shifting!'
+  endif
+
+  min_kz = min(kz_integers)*kz_mpc_delta
+  kz_mpc_orig = findgen(round(kz_mpc_range / kz_mpc_delta)) * kz_mpc_delta + min_kz
 
   n_kz = n_elements(kz_mpc_orig)
   if n_kz ne n_freq then message, 'something has gone wrong with kz_mpc calculation.'
@@ -1252,7 +1269,7 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
   if ps_options.inverse_covar_weight then begin
 
     max_eta_val = max(sum_sigma2)
-    eta_var = shift([max_eta_val, fltarr(n_freq-1)], n_freq/2)
+    eta_var = shift([max_eta_val, fltarr(n_freq-1)], -(n_freq/2 + 1))
     covar_eta_fg = diag_matrix(eta_var)
 
     identity = diag_matrix([fltarr(n_freq)+1d])
@@ -1261,7 +1278,7 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
     undefine, identity
 
     covar_z_fg = matrix_multiply(inv_ft_matrix, $
-      matrix_multiply(shift(covar_eta_fg, n_freq/2, n_freq/2), conj(inv_ft_matrix), /btranspose))
+      matrix_multiply(shift(covar_eta_fg, -(n_freq/2 + 1), -(n_freq/2 + 1)), conj(inv_ft_matrix), /btranspose))
 
     wt_data_sum = fltarr(n_kx, n_ky, n_freq)
     wt_data_diff = fltarr(n_kx, n_ky, n_freq)
@@ -1280,7 +1297,7 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
         covar_z = diag_matrix(var_z_inst) + covar_z_fg
         inv_covar_z = la_invert(covar_z)
         inv_covar_kz = shift(matrix_multiply(ft_matrix, $
-          matrix_multiply(inv_covar_z, conj(ft_matrix), /btranspose)), n_freq/2, n_freq/2)
+          matrix_multiply(inv_covar_z, conj(ft_matrix), /btranspose)), -(n_freq/2 + 1), -(n_freq/2 + 1))
 
         inv_var = 1/var_z_inst
         wh_sigma0 = where(var_z_inst eq 0, count_sigma0)
@@ -1293,7 +1310,7 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
 
         wt_sum_sigma2[i,j,*] = diag_matrix(shift(matrix_multiply(inv_covar_z, $
           matrix_multiply(diag_matrix(var_z_inst), conj(inv_covar_z), /btranspose)), $
-          n_freq/2, n_freq/2))
+          -(n_freq/2 + 1), -(n_freq/2 + 1)))
 
       endfor
     endfor
@@ -1305,14 +1322,22 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
 
   endif
 
-  n_val = round(kz_mpc_orig / kz_mpc_delta)
+  n_val = kz_integers
   wh_pos = where(n_val gt 0, n_pos)
   wh_neg = where(n_val lt 0, n_neg)
-  kz_mpc_orig[where(n_val eq 0)] = 0
+
+  ;; this should be zero by constrction, but add a test just in case
+  if kz_mpc_orig[where(n_val eq 0)] ne 0 then begin
+    message, 'something has gone terribly wrong with calculating the kz_mpc_orig values.'
+  endif
 
   kz_mpc = kz_mpc_orig[where(n_val ge 0)]
 
-  if n_pos ne n_neg then begin
+  if is_n_freq_even then begin
+    ;; if n_freq is even, there's an extra positive mode (because there's always a zero mode.)
+    if max(abs(n_val(wh_pos))) le max(abs(n_val(wh_neg))) then begin
+      message, 'something has gone terribly wrong with calculating the kz_integers.'
+    endif
     ;; remove unmatched max k positive mode:
     trim_max_pos = 1
     n_val = n_val[0:-2]
@@ -1331,8 +1356,8 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
     sim_noise_sum_ft = fft(sim_noise_sum, dimension=3) * n_freq * z_mpc_delta
 
     ;; put k0 in middle of cube
-    data_sum_ft = shift(data_sum_ft, [0,0,n_freq/2-1])
-    sim_noise_sum_ft = shift(sim_noise_sum_ft, [0,0,n_freq/2-1])
+    data_sum_ft = shift(data_sum_ft, [0,0,-(n_freq/2 + 1)])
+    sim_noise_sum_ft = shift(sim_noise_sum_ft, [0,0,-(n_freq/2 + 1)])
 
     if trim_max_pos then begin
       ;; remove unmatched max k positive mode:
@@ -1344,7 +1369,7 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
     if nfiles eq 2 then begin
       data_diff_ft = fft(data_diff, dimension=3) * n_freq * z_mpc_delta
       ;; put k0 in middle of cube
-      data_diff_ft = shift(data_diff_ft, [0,0,n_freq/2-1])
+      data_diff_ft = shift(data_diff_ft, [0,0,-(n_freq/2 + 1)])
       if trim_max_pos then begin
         ;; remove unmatched max k positive mode:
         data_diff_ft = data_diff_ft[*, *, 0:-2]
@@ -1353,7 +1378,7 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
 
       sim_noise_diff_ft = fft(sim_noise_diff, dimension=3) * n_freq * z_mpc_delta
       ;; put k0 in middle of cube
-      sim_noise_diff_ft = shift(sim_noise_diff_ft, [0,0,n_freq/2-1])
+      sim_noise_diff_ft = shift(sim_noise_diff_ft, [0,0,-(n_freq/2 + 1)])
       if trim_max_pos then begin
         ;; remove unmatched max k positive mode:
         sim_noise_diff_ft = sim_noise_diff_ft[*, *, 0:-2]
@@ -1434,7 +1459,7 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
         if max(abs(sum_sigma2[i,j,*])) eq 0 then continue
         temp = diag_matrix(reform(sum_sigma2[i,j,*]))
         temp2 = shift(matrix_multiply(ft_matrix, $
-          matrix_multiply(temp, conj(ft_matrix), /btranspose)), n_freq/2, n_freq/2)
+          matrix_multiply(temp, conj(ft_matrix), /btranspose)), -(n_freq/2 + 1), -(n_freq/2 + 1))
 
         sigma2_ft[i,j,*] = abs(diag_matrix(temp2))
       endfor
