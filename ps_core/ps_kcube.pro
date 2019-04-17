@@ -47,7 +47,7 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
 
   ;; need to figure out where the zero bin is (for later computations)
   ;; The location of the zero bin also dictates what the most negative kz bin is (min_kz)
-  ;; which we use to construct the kz_mpc_orig array (and reconstruct where the zero bin is)
+  ;; which we use to construct the kz_mpc_orig array
   ;; The calculation depends a bit on whether we have an odd or even number of frequencies.
   ;; The following calculation is taken directly from the IDL FFT documentation
   int_arr = findgen((n_freq - 1)/2) + 1
@@ -1326,7 +1326,7 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
   wh_pos = where(n_val gt 0, n_pos)
   wh_neg = where(n_val lt 0, n_neg)
 
-  ;; this should be zero by constrction, but add a test just in case
+  ;; this should be zero by construction, but add a test just in case
   if kz_mpc_orig[where(n_val eq 0)] ne 0 then begin
     message, 'something has gone terribly wrong with calculating the kz_mpc_orig values.'
   endif
