@@ -45,7 +45,7 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
   kz_mpc_range =  (2.*!pi) / (z_mpc_delta)
   kz_mpc_delta = (2.*!pi) / z_mpc_length
   ;; calculate this way to be correct for even or odd numbers of frequencies
-  min_kz = round((kz_mpc_range/2)/kz_mpc_delta)*kz_mpc_delta
+  min_kz = round(kz_mpc_range/kz_mpc_delta)/2*kz_mpc_delta
   kz_mpc_orig = findgen(round(kz_mpc_range / kz_mpc_delta)) * kz_mpc_delta - min_kz
 
   n_kz = n_elements(kz_mpc_orig)
