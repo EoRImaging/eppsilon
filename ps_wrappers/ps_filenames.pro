@@ -110,7 +110,7 @@ function ps_filenames, folder_names, obs_names_in, dirty_folder = dirty_folder, 
           'the max of folder_names & obs_names_in'
       endif
     endif else begin
-      save_paths = folder_names + '/' + data_subdirs
+      save_paths = folder_names + path_sep() + data_subdirs
     endelse
 
     if n_elements(plot_paths) gt 0 then begin
@@ -122,14 +122,14 @@ function ps_filenames, folder_names, obs_names_in, dirty_folder = dirty_folder, 
           'the max of folder_names & obs_names_in'
       endif
     endif else begin
-      plot_paths = folder_names + '/' + data_subdirs
+      plot_paths = folder_names + path_sep() + data_subdirs
     endelse
   endif else begin
     if n_elements(save_paths) eq 0 then begin
-      save_paths = folder_names + '/' + data_subdirs
+      save_paths = folder_names + path_sep() + data_subdirs
     endif
     if n_elements(plot_paths) eq 0 then begin
-      plot_paths = folder_names + '/' + data_subdirs
+      plot_paths = folder_names + path_sep() + data_subdirs
     endif
   endelse
 
@@ -201,7 +201,7 @@ function ps_filenames, folder_names, obs_names_in, dirty_folder = dirty_folder, 
       endelse
 
       ;; then look for combined cube files in folder + data_subdir
-      cube_file_list = file_search(folder_names[i] + '/' + data_subdirs[i] + $
+      cube_file_list = file_search(folder_names[i] + path_sep() + data_subdirs[i] + $
         obs_names[i] + '*_cube.idlsave', count = n_cubefiles)
       if n_cubefiles gt 0 then begin
         if obs_names[i] eq '' then begin
@@ -221,7 +221,7 @@ function ps_filenames, folder_names, obs_names_in, dirty_folder = dirty_folder, 
           cube_files = cube_file_list
 
           if n_elements(info_files) eq 0 then begin
-            test_other_obsnames = file_search(folder_names[i] + '/' + $
+            test_other_obsnames = file_search(folder_names[i] + path_sep() + $
               data_subdirs[i] + '*_cube.idlsave', count = n_all_cubefiles)
             if n_all_cubefiles gt n_cubefiles then begin
               rts_types[i] = rts_types[i] + '_' + obs_names[i]
@@ -232,10 +232,10 @@ function ps_filenames, folder_names, obs_names_in, dirty_folder = dirty_folder, 
       endif
 
       ;; then look for original fits files
-      fits_file_list = file_search(folder_names[i] + '/' + data_subdirs[i] + $
+      fits_file_list = file_search(folder_names[i] + path_sep() + data_subdirs[i] + $
         obs_names[i] + '*_image*MHz*.fits', count = n_fitsfiles)
       if n_fitsfiles eq 0 then fits_file_list = file_search(folder_names[i] + $
-        '/' + data_subdirs[i] + obs_names[i] + '*_image*.fits', count = n_fitsfiles)
+        path_sep() + data_subdirs[i] + obs_names[i] + '*_image*.fits', count = n_fitsfiles)
       wh_cube = where(stregex(fits_file_list, 'cube', /boolean), count_cube, $
         complement = wh_orig, ncomplement = count_orig)
       if count_cube gt 0 then begin
@@ -279,11 +279,11 @@ function ps_filenames, folder_names, obs_names_in, dirty_folder = dirty_folder, 
       endif else begin
 
         if n_elements(dirty_folder) gt 0 then begin
-          dirtyfile_list = file_search(dirty_folder[i] + '/' + data_subdirs[i] + $
+          dirtyfile_list = file_search(dirty_folder[i] + path_sep() + data_subdirs[i] + $
             dirty_obsname[i] + '*_image*MHz*.fits', count = n_dirtyfiles)
 
           if n_dirtyfiles eq 0 then begin
-            dirtyfile_list = file_search(dirty_folder[i] + '/' + data_subdirs[i] + $
+            dirtyfile_list = file_search(dirty_folder[i] + path_sep() + data_subdirs[i] + $
               dirty_obsname[i] + '*_image*.fits', count = n_dirtyfiles)
           endif
           if n_dirtyfiles gt 0 then begin
@@ -308,11 +308,11 @@ function ps_filenames, folder_names, obs_names_in, dirty_folder = dirty_folder, 
         endif
 
         ;; now get weights & variance files
-        weightfile_list = file_search(folder_names[i] + '/' + data_subdirs[i] + $
+        weightfile_list = file_search(folder_names[i] + path_sep() + data_subdirs[i] + $
           obs_names[i] + '*_weights*MHz*.fits', count = n_wtfiles)
         if n_wtfiles eq 0 then begin
           weightfile_list = file_search(folder_names[i] + $
-            '/' + data_subdirs[i] + obs_names[i] + '*_weights*.fits', count = n_wtfiles)
+            path_sep() + data_subdirs[i] + obs_names[i] + '*_weights*.fits', count = n_wtfiles)
         endif
         if not keyword_set(no_wtvar_rts) then begin
           if n_wtfiles ne n_elements(fits_files) and info_files[i] eq '' then begin
@@ -320,11 +320,11 @@ function ps_filenames, folder_names, obs_names_in, dirty_folder = dirty_folder, 
           endif
         endif
 
-        variancefile_list = file_search(folder_names[i] + '/' + data_subdirs[i] + $
+        variancefile_list = file_search(folder_names[i] + path_sep() + data_subdirs[i] + $
           obs_names[i] + '*_variance*MHz*.fits', count = n_varfiles)
         if n_varfiles eq 0 then begin
           variancefile_list = file_search(folder_names[i] + $
-            '/' + data_subdirs[i] + obs_names[i] + '*_variance*.fits', count = n_varfiles)
+            path_sep() + data_subdirs[i] + obs_names[i] + '*_variance*.fits', count = n_varfiles)
         endif
         if not keyword_set(no_wtvar_rts) then begin
           if n_varfiles ne n_elements(fits_files) and info_files[i] eq '' then begin
@@ -426,7 +426,7 @@ function ps_filenames, folder_names, obs_names_in, dirty_folder = dirty_folder, 
       endelse
 
       ;; then look for cube files in folder + data_subdir
-      cube_file_list = file_search(folder_names[i] + '/' + data_subdirs[i] + $
+      cube_file_list = file_search(folder_names[i] + path_sep() + data_subdirs[i] + $
         obs_names[i] + '*_holo_[xy]*.fits', count = n_cubefiles)
       if n_cubefiles gt 0 then begin
         datafiles = cube_file_list
@@ -434,13 +434,13 @@ function ps_filenames, folder_names, obs_names_in, dirty_folder = dirty_folder, 
       endif
 
       ;; now get weights & variance files
-      weightfile_list = file_search(folder_names[i] + '/' + data_subdirs[i] + $
+      weightfile_list = file_search(folder_names[i] + path_sep() + data_subdirs[i] + $
         obs_names[i] + '*_psf_*.fits', count = n_wtfiles)
       if n_wtfiles ne n_elements(datafiles) and info_files[i] eq '' then begin
         message, 'number of weight files does not match number of datafiles'
       endif
 
-      variancefile_list = file_search(folder_names[i] + '/' + data_subdirs[i] + $
+      variancefile_list = file_search(folder_names[i] + path_sep() + data_subdirs[i] + $
         obs_names[i] + '*psfbeamsquare*.fits', count = n_varfiles)
       if n_varfiles ne n_elements(datafiles) and info_files[i] eq '' then begin
         message, 'number of variance files does not match number of datafiles'
@@ -674,9 +674,9 @@ function ps_filenames, folder_names, obs_names_in, dirty_folder = dirty_folder, 
         ;; first look for integrated cube files in folder + data_dir with names like Combined_obs_...
         ;; if n_infofile > 1 then treat the one that's been chosen as exact to avoid multiple matches
         if keyword_set(exact_obsnames) or n_infofile gt 1 then begin
-          even_file_list = file_search(folder_names[i] + '/' + data_subdirs[i] + $
+          even_file_list = file_search(folder_names[i] + path_sep() + data_subdirs[i] + $
             'Combined_obs_' + obs_names[i] + '_even*_cube*.sav', count = n_even)
-          odd_file_list = file_search(folder_names[i] + '/' + data_subdirs[i] + $
+          odd_file_list = file_search(folder_names[i] + path_sep() + data_subdirs[i] + $
             'Combined_obs_' + obs_names[i] + '_odd*_cube*.sav', count = n_odd)
           if n_even gt 0 or n_odd gt 0 then begin
             cube_file_list = [even_file_list, odd_file_list]
@@ -684,11 +684,11 @@ function ps_filenames, folder_names, obs_names_in, dirty_folder = dirty_folder, 
             if n_even eq 0 and n_odd gt 0 then cube_file_list = odd_file_list
             n_cubefiles = n_even + n_odd
           endif else begin
-            cube_file_list = file_search(folder_names[i] + '/' + data_subdirs[i] + $
+            cube_file_list = file_search(folder_names[i] + path_sep() + data_subdirs[i] + $
             'Combined_obs_' + obs_names[i] + '_cube*.sav', count = n_cubefiles)
           endelse
         endif else begin
-          cube_file_list = file_search(folder_names[i] + '/' + data_subdirs[i] + $
+          cube_file_list = file_search(folder_names[i] + path_sep() + data_subdirs[i] + $
             'Combined_obs_' + obs_names[i] + '*_cube*.sav', count = n_cubefiles)
         endelse
         if n_cubefiles gt 0 then begin
@@ -815,7 +815,7 @@ function ps_filenames, folder_names, obs_names_in, dirty_folder = dirty_folder, 
 
             datafile = cube_file_list
             if n_infofile eq 0 then begin
-              test_other_obsnames = file_search(folder_names[i] + '/' + $
+              test_other_obsnames = file_search(folder_names[i] + path_sep() + $
                 data_subdirs[i] + 'Combined_obs_' + '*_cube*.sav', count = n_all_infofile)
               if n_all_infofile gt n_infofile then begin
                 fhd_types[i] = fhd_types[i] + '_' + obs_names[i]
@@ -827,16 +827,16 @@ function ps_filenames, folder_names, obs_names_in, dirty_folder = dirty_folder, 
         endif else begin
           ;; then look for single obs cube files
           if keyword_set(exact_obsnames) then begin
-            even_file_list = file_search(folder_names[i] + '/' + data_subdirs[i] + $
+            even_file_list = file_search(folder_names[i] + path_sep() + data_subdirs[i] + $
               obs_names[i] + '_even*_cube*.sav', count = n_even)
-            odd_file_list = file_search(folder_names[i] + '/' + data_subdirs[i] + $
+            odd_file_list = file_search(folder_names[i] + path_sep() + data_subdirs[i] + $
               obs_names[i] + '_odd*_cube*.sav', count = n_odd)
             if n_even gt 0 or n_odd gt 0 then begin
               cube_file_list = [even_file_list, odd_file_list]
               n_cubefiles = n_even + n_odd
-            endif else cube_file_list = file_search(folder_names[i] + '/' + $
+            endif else cube_file_list = file_search(folder_names[i] + path_sep() + $
               data_subdirs[i] + obs_names[i] + '_cube*.sav', count = n_cubefiles)
-          endif else cube_file_list = file_search(folder_names[i] + '/' + $
+          endif else cube_file_list = file_search(folder_names[i] + path_sep() + $
             data_subdirs[i] + obs_names[i] + '*_cube*.sav', count = n_cubefiles)
           if n_cubefiles gt 0 then begin
             cube_basename = file_basename(cube_file_list)
@@ -926,7 +926,7 @@ function ps_filenames, folder_names, obs_names_in, dirty_folder = dirty_folder, 
               endelse
               datafile = cube_file_list
 
-              test_other_obsnames = file_search(folder_names[i] + '/' + $
+              test_other_obsnames = file_search(folder_names[i] + path_sep() + $
                 data_subdirs[i] + '*_cube*.sav', count = n_all_infofile)
               if n_all_infofile gt n_infofile then begin
                 fhd_types[i] = fhd_types[i] + '_' + obs_names[i]
@@ -942,20 +942,20 @@ function ps_filenames, folder_names, obs_names_in, dirty_folder = dirty_folder, 
           ;; finally look for uniformly gridded uvf files
           ;; Combined
           if keyword_set(exact_obsnames) then begin
-            even_file_list = file_search(folder_names[i] + '/' + data_subdirs[i] + $
+            even_file_list = file_search(folder_names[i] + path_sep() + data_subdirs[i] + $
               'Combined_obs_' + obs_names[i] + '_even*_uvf.sav', count = n_even)
-            odd_file_list = file_search(folder_names[i] + '/' + data_subdirs[i] + $
+            odd_file_list = file_search(folder_names[i] + path_sep() + data_subdirs[i] + $
               'Combined_obs_' + obs_names[i] + '_odd*_uvf.sav', count = n_odd)
             if n_even gt 0 or n_odd gt 0 then begin
               cube_file_list = [even_file_list, odd_file_list]
               n_cubefiles = n_even + n_odd
             endif else begin
-              cube_file_list = file_search(folder_names[i] + '/' + $
+              cube_file_list = file_search(folder_names[i] + path_sep() + $
                 data_subdirs[i] + 'Combined_obs_' + obs_names[i] + '_gridded_uvf*.sav', $
                 count = n_cubefiles)
             endelse
           endif else begin
-            cube_file_list = file_search(folder_names[i] + '/' + $
+            cube_file_list = file_search(folder_names[i] + path_sep() + $
               data_subdirs[i] + 'Combined_obs_' + obs_names[i] + '*_uvf.sav', $
               count = n_cubefiles)
           endelse
@@ -1051,7 +1051,7 @@ function ps_filenames, folder_names, obs_names_in, dirty_folder = dirty_folder, 
             uvf_input=1
 
             ;; look for beam files
-            beam_file_list = file_search(folder_names[i] + '/' + data_subdirs[i] + $
+            beam_file_list = file_search(folder_names[i] + path_sep() + data_subdirs[i] + $
               'Combined_obs_' + obs_names[i] + '*gridded*beam2*image*.sav', count = n_beamfiles)
             if n_beamfiles gt 0 then begin
               if n_elements(datafile) gt 1 then begin
@@ -1068,19 +1068,19 @@ function ps_filenames, folder_names, obs_names_in, dirty_folder = dirty_folder, 
           endif else begin
             ;; single
             if keyword_set(exact_obsnames) then begin
-              even_file_list = file_search(folder_names[i] + '/' + data_subdirs[i] + $
+              even_file_list = file_search(folder_names[i] + path_sep() + data_subdirs[i] + $
                 obs_names[i] + '_even*_uvf.sav', count = n_even)
-              odd_file_list = file_search(folder_names[i] + '/' + data_subdirs[i] + $
+              odd_file_list = file_search(folder_names[i] + path_sep() + data_subdirs[i] + $
                 obs_names[i] + '_odd*_uvf.sav', count = n_odd)
               if n_even gt 0 or n_odd gt 0 then begin
                 cube_file_list = [even_file_list, odd_file_list]
                 n_cubefiles = n_even + n_odd
               endif else begin
-                cube_file_list = file_search(folder_names[i] + '/' + $
+                cube_file_list = file_search(folder_names[i] + path_sep() + $
                   data_subdirs[i] + obs_names[i] + '_gridded_uvf.sav', count = n_cubefiles)
               endelse
             endif else begin
-              cube_file_list = file_search(folder_names[i] + '/' + $
+              cube_file_list = file_search(folder_names[i] + path_sep() + $
                 data_subdirs[i] + obs_names[i] + '*_uvf.sav', count = n_cubefiles)
             endelse
             if n_cubefiles gt 0 then begin
@@ -1175,7 +1175,7 @@ function ps_filenames, folder_names, obs_names_in, dirty_folder = dirty_folder, 
             uvf_input=1
 
             ;; look for beam files
-            beam_file_list = file_search(folder_names[i] + '/' + data_subdirs[i] + $
+            beam_file_list = file_search(folder_names[i] + path_sep() + data_subdirs[i] + $
               obs_names[i] + '*gridded*beam2*image*.sav', count = n_beamfiles)
             if n_beamfiles gt 0 then begin
               if n_elements(datafile) gt 1 then begin
