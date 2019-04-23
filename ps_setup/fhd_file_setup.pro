@@ -1104,8 +1104,10 @@ function fhd_file_setup, filename, weightfile = weightfile, $
   ;; add sw tag to general_filebase so that plotfiles havefile_tags.uvf_tag in them
   general_filebase = metadata_struct.general_filebase + file_tags.uvf_tag
 
-  subfolders = {data: 'data/', plots: 'plots/', uvf: 'uvf_cubes/', beams: 'beam_cubes/', $
-    kspace: 'kspace_cubes/', slices: 'slices/', bin_2d: '2d_binning/', bin_1d: '1d_binning/'}
+  subfolders = {data: 'data' + path_sep(), plots: 'plots' + path_sep(), $
+    uvf: 'uvf_cubes' + path_sep(), beams: 'beam_cubes' + path_sep(), $
+    kspace: 'kspace_cubes' + path_sep(), slices: 'slices' + path_sep(), $
+    bin_2d: '2d_binning' + path_sep(), bin_1d: '1d_binning' + path_sep()}
 
   uvf_path = froot + subfolders.data + subfolders.uvf
   uvf_slice_path = uvf_path + subfolders.slices

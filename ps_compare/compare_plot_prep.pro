@@ -146,11 +146,11 @@ pro compare_plot_prep, folder_names, obs_info, ps_foldernames = ps_foldernames, 
       if tag_exist(obs_info, 'diff_plot_path') then begin
         plot_options = create_plot_options(plot_options = plot_options, $
           plot_path = obs_info.diff_plot_path)
-      endif
-    endif else begin
-      plot_options = create_plot_options(plot_options = plot_options, $
-        plot_path = save_path + path_sep() + 'plots' + path_sep())
-    endelse
+      endif else begin
+        plot_options = create_plot_options(plot_options = plot_options, $
+          plot_path = save_path + 'plots' + path_sep())
+      endelse
+    endif
   endif else begin
     if n_elements(save_path) eq 0 then begin
       save_path = obs_info.save_paths[0]
