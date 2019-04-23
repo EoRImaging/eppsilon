@@ -1342,9 +1342,11 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
     trim_max_pos = 1
     n_val = n_val[0:-2]
     kz_mpc = kz_mpc[0:-2]
+    kz_mpc_orig_trim = kz_mpc_orig[0:-2]
     wh_pos = wh_pos[0:-2]
     n_pos = n_elements(wh_pos)
   endif else begin
+    kz_mpc_orig_trim = kz_mpc_orig
     trim_max_pos = 0
   endelse
 
@@ -1387,24 +1389,39 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
     endif
   endif else begin
     ;; Not evenly spaced. Do a dft
+    ;; use the kz_mpc_orig_trim to avoid the possible extra positive mode.
     print, "Uneven frequency structure found"
     print, "Performing Discrete Fourier Transform"
-    z_exp =  exp(-1.*complex(0,1)*matrix_multiply(comov_dist_los, kz_mpc_orig, /btranspose))
 
+    ;; There are 2 options for the DFT. One will get the (very nearly) the same answer
+    ;; as the FFT for regular gridding because it uses fixed conversion between delta_z and delta_f
+    ;; in some simple testing, this had a difference ratio vs the FFT (abs(diff)/abs(fft)) of ~10^-3
+    z_reg = (frequencies-frequencies[0])*z_mpc_delta/f_delta
+    z_exp_zreg = exp(-1.*complex(0,1)*matrix_multiply(z_reg, kz_mpc_orig_trim, /btranspose))
+
+    ;; This one uses the true comov_dist_los values, so it is a little more different compared to the fft
+    ;; (which run large to small so need to flip the sign of the exponent)
+    ;; in some simple testing, this had a difference ratio vs the FFT (abs(diff)/abs(fft)) of ~10^1
+    z_exp_ztrue =  exp(1.*complex(0,1)*matrix_multiply(comov_dist_los-min(comov_dist_los), kz_mpc_orig_trim, /btranspose))
+
+    ;; change this to switch to the other DFT version
+    z_exp = z_exp_ztrue
+
+    n_kz_trim = n_elements(kz_mpc_orig_trim)
 
     data_sum_ft = z_mpc_delta * $
       reform(matrix_multiply(reform(temporary(data_sum), n_kx*n_ky, n_freq), z_exp), $
-      n_kx, n_ky, n_kz)
+      n_kx, n_ky, n_kz_trim)
     sim_noise_sum_ft = z_mpc_delta * $
       reform(matrix_multiply(reform(temporary(sim_noise_sum), n_kx*n_ky, n_freq), z_exp), $
-      n_kx, n_ky, n_kz)
+      n_kx, n_ky, n_kz_trim)
     if nfiles eq 2 then begin
       data_diff_ft = z_mpc_delta * $
         reform(matrix_multiply(reform(temporary(data_diff), n_kx*n_ky, n_freq), z_exp), $
-        n_kx, n_ky, n_kz)
+        n_kx, n_ky, n_kz_trim)
       sim_noise_diff_ft  = z_mpc_delta * $
         reform(matrix_multiply(reform(temporary(sim_noise_diff), n_kx*n_ky, n_freq), z_exp), $
-        n_kx, n_ky, n_kz)
+        n_kx, n_ky, n_kz_trim)
     endif
   endelse
 
