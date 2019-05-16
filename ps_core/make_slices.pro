@@ -141,10 +141,10 @@ pro make_slices, file_struct, type=type, file_ind = file_ind, data_cube = data_c
         weights_3d = weights_cube, slice_axis = 0, slice_inds = x_slice_ind, $
         slice_savefile = xslice_savefile)
 
-      z_tot = total(total(abs(data_cube),3),1)
+      z_tot = total(total(abs(data_cube),2),1)
       wh_z_n0 = where(z_tot gt 0, count_z_n0)
       min_dist_z_n0 = min(wh_z_n0, min_loc)
-      z_slice_ind = wh_y_n0[min_loc]
+      z_slice_ind = wh_z_n0[min_loc]
 
       zslice_savefile = file_struct.xy_savefile
       zslice_power = kpower_slice(data_cube, kx_mpc, ky_mpc, kz_mpc, kperp_lambda_conv, $
