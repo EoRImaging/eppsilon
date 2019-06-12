@@ -1,7 +1,8 @@
 function create_uvf_options, uvf_options = uvf_options, $
     delta_uv_lambda = delta_uv_lambda, max_uv_lambda = max_uv_lambda, $
     full_image = full_image, uv_avg = uv_avg, uv_img_clip = uv_img_clip, $
-    dft_fchunk = dft_fchunk, no_dft_progress = no_dft_progress, return_new = return_new
+    require_radec = require_radec, dft_fchunk = dft_fchunk, $
+    no_dft_progress = no_dft_progress, return_new = return_new
 
   if keyword_set(full_image) and n_elements(delta_uv_lambda) gt 0 then begin
     message, 'full_image and delta_uv_lambda cannot both be set'
@@ -16,7 +17,11 @@ function create_uvf_options, uvf_options = uvf_options, $
     ;; default to not using full images
     if n_elements(full_image) eq 0 then full_image = 0
 
-    uvf_options = {no_dft_progress: no_dft_progress, full_image: full_image}
+    ;; default to not requiring radec
+    if n_elements(require_radec) eq 0 then require_radec = 0
+
+    uvf_options = {no_dft_progress: no_dft_progress, full_image: full_image, $
+                   require_radec: require_radec}
   endif else begin
     if n_elements(no_dft_progress) gt 0 then begin
       update_tags.add, 'no_dft_progress'

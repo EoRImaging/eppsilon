@@ -7,7 +7,7 @@ pro ps_wrapper, folder_name_in, obs_name, data_subdirs=data_subdirs, $
     casa = casa, sim = sim, save_slices = save_slices, no_binning = no_binning, $
     refresh_dft = refresh_dft, refresh_ps = refresh_ps, $
     refresh_binning = refresh_binning, refresh_info = refresh_info, $
-    refresh_beam = refresh_beam, dft_fchunk = dft_fchunk, $
+    refresh_beam = refresh_beam, dft_fchunk = dft_fchunk, require_radec = require_radec, $
     delta_uv_lambda = delta_uv_lambda, max_uv_lambda = max_uv_lambda, $
     full_image = full_image, $
     pol_inc = pol_inc, type_inc = type_inc, freq_ch_range = freq_ch_range, $
@@ -68,16 +68,31 @@ pro ps_wrapper, folder_name_in, obs_name, data_subdirs=data_subdirs, $
   endif
 
   if keyword_set(copy_master_uvf) then begin
-    ;; copy over uvf files from the ps_master folder if it exists and the uvf cubes don't exist for this run
+    ;; copy over initial files from the ps_master folder if they exist and don't exist for this run
     master_folder_test = file_test(folder_name + path_sep() + 'ps_master', /directory)
     if master_folder_test gt 0 then begin
-      master_uvf_folder = folder_name + path_sep() + 'ps_master' + path_sep() + 'data' + path_sep() + 'uvf_cubes'
+      ;; info files
+      master_ps_folder = folder_name + path_sep() + 'ps_master'
+      master_info_files = file_search(master_ps_folder + path_sep() + '*_info.idlsave')
+
+      new_ps_folder = folder_name + path_sep() + ps_foldername
+      if file_test(new_ps_folder, /directory) eq 0 then file_mkdir, new_ps_folder
+
+      filebases = file_basename(master_info_files)
+      new_files_exist = file_test(new_ps_folder + path_sep() + filebases)
+
+      if min(new_files_exist) eq 0 then begin
+        wh_copy = where(new_files_exist eq 0)
+        file_copy, master_info_files[wh_copy], new_ps_folder, /require_directory
+      endif
+
+      ;; uvf files
+      master_uvf_folder = master_ps_folder + path_sep() + 'data' + path_sep() + 'uvf_cubes'
       master_uvf_files = [file_search(master_uvf_folder + path_sep() + '*_uvf.idlsave'), $
                           file_search(master_uvf_folder + path_sep() + '*_radec.idlsave')]
 
 
-      new_uvf_folder = folder_name + path_sep() + ps_foldername + path_sep() $
-        + 'data' + path_sep() + 'uvf_cubes'
+      new_uvf_folder = new_ps_folder + path_sep() + 'data' + path_sep() + 'uvf_cubes'
       if file_test(new_uvf_folder, /directory) eq 0 then file_mkdir, new_uvf_folder
 
       filebases = file_basename(master_uvf_files)
@@ -88,11 +103,11 @@ pro ps_wrapper, folder_name_in, obs_name, data_subdirs=data_subdirs, $
         file_copy, master_uvf_files[wh_copy], new_uvf_folder, /require_directory
       endif
 
-      master_beam_folder = folder_name + path_sep() + 'ps_master' + path_sep() + 'data' + path_sep() + 'beam_cubes'
+      ;; beam files
+      master_beam_folder = master_ps_folder + 'data' + path_sep() + 'beam_cubes'
       master_beam_files = file_search(master_beam_folder + path_sep() + '*_beam2.idlsave')
 
-      new_beam_folder = folder_name + path_sep() + ps_foldername + path_sep() $
-        + 'data' + path_sep() + 'beam_cubes'
+      new_beam_folder = new_ps_folder + path_sep() + 'data' + path_sep() + 'beam_cubes'
       if file_test(new_beam_folder, /directory) eq 0 then file_mkdir, new_beam_folder
 
       filebases = file_basename(master_beam_files)
@@ -236,7 +251,7 @@ pro ps_wrapper, folder_name_in, obs_name, data_subdirs=data_subdirs, $
 
   uvf_options = create_uvf_options(delta_uv_lambda = delta_uv_lambda, $
     max_uv_lambda = max_uv_lambda, full_image = full_image, $
-    uv_avg = uv_avg, uv_img_clip = uv_img_clip, $
+    uv_avg = uv_avg, uv_img_clip = uv_img_clip, require_radec = require_radec, $
     dft_fchunk = dft_fchunk, no_dft_progress = no_dft_progress)
 
   ps_options = create_ps_options(ave_removal = ave_removal, wt_cutoffs = wt_cutoffs, $

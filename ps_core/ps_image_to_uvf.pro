@@ -32,6 +32,11 @@ pro ps_image_to_uvf, file_struct, n_vis_freq, kx_rad_vals, ky_rad_vals, $
     test_radec_uvf = file_valid(file_struct.radec_file)
     if not test_radec_uvf then test_radec_uvf = check_old_path(file_struct, 'radec_file')
 
+    test_radec_uvf_use = test_radec_uvf
+    if uvf_options.require_radec eq 0 then begin
+      test_radec_uvf_use = 1
+    endif
+
     if test_uvf eq 1 and n_elements(freq_flags) ne 0 then begin
       old_freq_mask = getvar_savefile(file_struct.uvf_savefile[i], 'freq_mask')
       if total(abs(old_freq_mask - freq_mask)) ne 0 then test_uvf = 0
@@ -126,7 +131,7 @@ pro ps_image_to_uvf, file_struct, n_vis_freq, kx_rad_vals, ky_rad_vals, $
 
     endif ;; endif limited freq range & no matching wt_uvf
 
-    if test_uvf eq 0 or test_wt_uvf eq 0 or test_beam eq 0 or test_radec_uvf eq 0 $
+    if test_uvf eq 0 or test_wt_uvf eq 0 or test_beam eq 0 or test_radec_uvf_use eq 0 $
       or refresh_options.refresh_dft or refresh_options.refresh_weight_dft $
       or refresh_options.refresh_beam then begin
 

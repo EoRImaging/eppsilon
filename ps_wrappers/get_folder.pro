@@ -28,5 +28,8 @@ function get_folder, folder_name_in, loc_name = loc_name,  rts = rts, $
     endcase
   endif
 
+;; make sure there are no path separators at the end
+folder_name = expand_path(folder_name)
+
 return, folder_name
 end
