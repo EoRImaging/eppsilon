@@ -1035,17 +1035,18 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, $
   if n_elements(margin_in) lt 4 then begin
     margin = [0.2, 0.2, 0.02, 0.1]
     if keyword_set(baseline_axis) and not keyword_set(no_title) then margin[3] = 0.15
-    if keyword_set(delay_axis) or keyword_set(cable_length_axis) then margin[2] = 0.07
+    if keyword_set(delay_axis) or keyword_set(cable_length_axis) then begin
+      if keyword_set(kpar_linear_axis) then begin
+        ;; need more space because not just powers of 10 labels
+        margin[2] = 0.2
+      endif else begin
+        margin[2] = 0.07
+      endelse
+    endif
   endif else margin = margin_in
 
   if n_elements(cb_margin_in) lt 2 then begin
     cb_margin = [0.2, 0.02]
-    ;; if units_str ne '' then begin
-    ;;    cb_margin = [0.2, 0.02]
-    ;; endif else begin
-    ;;    ;; no label on colorbar in this case
-    ;;    cb_margin = [0.1, 0.02]
-    ;; endelse
   endif else cb_margin = cb_margin_in
 
   plot_pos = [margin[0], margin[1], (1-cb_margin[1]-cb_size-cb_margin[0]-margin[2]), $
@@ -1101,6 +1102,18 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, $
   data_aspect = float(kpar_length / kperp_length)
 
   aspect_ratio =  data_aspect /plot_aspect
+
+  if keyword_set(pub) then begin
+    ;; prevent crazy aspect ratios -- impossible to make decent looking plots.
+    max_factor = 2
+    if aspect_ratio gt max_factor then begin
+      aspect_ratio = max_factor
+    endif
+    if aspect_ratio lt 1/float(max_factor) then begin
+      aspect_ratio = 1/float(max_factor)
+    endif
+  endif
+
   if aspect_ratio gt 1 then begin
     y_factor = aspect_ratio
     x_factor = 1.
@@ -1271,9 +1284,8 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, $
     xloc_lambda = plot_pos[0] - 0.15* (plot_pos[0]-multi_pos_use[0])
     yloc_lambda = plot_pos[3] + 0.15* (multi_pos_use[3]-plot_pos[3])
 
-    ;; xloc_delay = plot_pos[2] + 0.2* (multi_pos[2]-plot_pos[2])
-    ;; yloc_delay = (plot_pos[3] - plot_pos[1])/2d + plot_pos[1]
-    xloc_delay = plot_pos[2] + 0.10 * (multi_pos_use[2]-plot_pos[2])
+
+    xloc_delay = plot_pos[2] + 0.20 * (multi_pos_use[2]-plot_pos[2])
     yloc_delay = plot_pos[1] - 0.2 * (plot_pos[1]-multi_pos_use[1])
 
     xloc_note = .99*multi_pos_use[2]
@@ -1282,8 +1294,8 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, $
     xloc_lambda = plot_pos[0] - 0.1* (plot_pos[0]-0)
     yloc_lambda = plot_pos[3] + 0.1* (1-plot_pos[3])
 
-    xloc_delay = plot_pos[2] + 0.1*(1-plot_pos[2])
-    yloc_delay = plot_pos[1] +0.1*(plot_pos[1]-0)
+    xloc_delay = plot_pos[2] + 0.20*(1-plot_pos[2])
+    yloc_delay = plot_pos[1] - 0.2 * (plot_pos[1]-0)
 
     xloc_note = .99
     yloc_note = 0 + 0.1* (plot_pos[1]-0)
@@ -1384,7 +1396,7 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, $
   endelse
 
   if log_axes[0] eq 1 then xtickformat = 'exponent' else begin
-    nticks = 5
+    nticks = 4
 
     log_size = round(min(alog10(plot_kperp)))
     xtick_width = round((max(plot_kperp) - min(plot_kperp))/(nticks-1.)/(10.^log_size))*(10.^log_size)
