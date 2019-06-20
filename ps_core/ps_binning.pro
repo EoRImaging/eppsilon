@@ -6,7 +6,7 @@ pro ps_binning, file_struct, sim = sim, freq_flags = freq_flags, $
     savefile_1to2d_bin = savefile_1to2d_bin, savefile_masked_2d = savefile_masked_2d, $
     savefile_kpar_power = savefile_kpar_power, savefile_kperp_power = savefile_kperp_power, $
     savefile_k0 = savefile_k0, savefile_masked_k0 = savefile_masked_k0, $
-    bin_arr_3d = bin_arr_3d
+    bin_arr_3d = bin_arr_3d, plotfile_binning_hist = plotfile_binning_hist
 
   nfiles = n_elements(file_struct.datafile)
 
@@ -224,6 +224,11 @@ pro ps_binning, file_struct, sim = sim, freq_flags = freq_flags, $
         binning_hist_plots, power_3d, sim_noise_3d, weights_3d, bin_arr_3d, power_1d, $
           weights_1d, sim_noise_1d, window_start = 1, plotfilebase = plotfilebase_use1, $
           png = plot_options.png, eps = plot_options.eps, pdf = plot_options.pdf
+
+        ;; read in 2d stuff from files
+        power_rebin = getvar_savefile(savefile_2d[j], 'power')
+        binned_weights = getvar_savefile(savefile_2d[j], 'weights')
+        sim_noise_rebin = getvar_savefile(savefile_2d[j], 'sim_noise')
         binning_hist_plots, power_rebin, sim_noise_rebin, binned_weights, bin_1to2d, $
           power_1d, weights_1d, sim_noise_1d, window_start = !d.window+1, $
           plotfilebase = plotfilebase_use2, png = plot_options.png, $

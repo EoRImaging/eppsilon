@@ -1286,7 +1286,6 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
         plotfile_binning_hist_use = reform(plotfile_binning_hist[i,*,*], $
           n_elements(kperp_density_names), n_elements(wedge_1dbin_names))
       endif
-
       ps_binning, file_struct_arr[i], sim = sim, freq_flags = freq_flags, $
         ps_options = ps_options, binning_2d_options = binning_2d_options, $
         binning_1d_options = binning_1d_options, plot_options = plot_options, $
@@ -1296,7 +1295,7 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
         savefile_masked_k0 = savefile_k0_masked_use, $
         savefile_kpar_power = savefile_kpar_use, savefile_kperp_power = savefile_kperp_use, $
         savefile_k0 = savefile_k0_use, $
-        bin_arr_3d = bin_arr_3d
+        bin_arr_3d = bin_arr_3d, plotfile_binning_hist = plotfile_binning_hist_use
 
     endif
   endfor
