@@ -29,7 +29,13 @@ function get_folder, folder_name_in, loc_name = loc_name,  rts = rts, $
   endif
 
 ;; make sure there are no path separators at the end
-folder_name = expand_path(folder_name)
+if n_elements(folder_name) gt 1 then begin
+  for i=0, n_elements(folder_name) do begin
+    folder_name[i] = expand_path(folder_name[i])
+  endfor
+endif else begin
+  folder_name = expand_path(folder_name)
+endelse
 
 return, folder_name
 end
