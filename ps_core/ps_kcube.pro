@@ -1428,7 +1428,7 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
   n_kz = n_elements(kz_mpc)
 
   ;; these an and bn calculations don't match the standard
-  ;; convention (they ares down by a factor of 2) but they make more sense
+  ;; convention (they are down by a factor of 2) but they make more sense
   ;; and remove factors of 2 we'd otherwise have in the power
   ;; and variance calculations
   ;; note that the 0th mode will have higher noise because there's half as many
@@ -1459,6 +1459,30 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
     undefine, sim_noise_diff_ft
   endif
 
+  ;; drop pixels with less than 1/3 of the frequencies (set weights to 0)
+  wh_fewfreq = where(n_freq_contrib lt ceil(n_freq/3d), count_fewfreq)
+  if count_fewfreq gt 0 then begin
+    mask_fewfreq = n_freq_contrib * 0 + 1
+    mask_fewfreq[wh_fewfreq] = 0
+    mask_fewfreq = rebin(temporary(mask_fewfreq), n_kx, n_ky, n_kz)
+
+    a1_0 = temporary(a1_0) * mask_fewfreq[*,*,0]
+    a1_n = temporary(a1_n) * mask_fewfreq[*,*,1:*]
+    b1_n = temporary(b1_n) * mask_fewfreq[*,*,1:*]
+
+    a3_0 = temporary(a3_0) * mask_fewfreq[*,*,0]
+    a3_n = temporary(a3_n) * mask_fewfreq[*,*,1:*]
+    b3_n = temporary(b3_n) * mask_fewfreq[*,*,1:*]
+    if nfiles gt 1 then begin
+      a2_0 = temporary(a2_0) * mask_fewfreq[*,*,0]
+      a2_n = temporary(a2_n) * mask_fewfreq[*,*,1:*]
+      b2_n = temporary(b2_n) * mask_fewfreq[*,*,1:*]
+
+      a4_0 = temporary(a4_0) * mask_fewfreq[*,*,0]
+      a4_n = temporary(a4_n) * mask_fewfreq[*,*,1:*]
+      b4_n = temporary(b4_n) * mask_fewfreq[*,*,1:*]
+    endif
+  endif
 
   if ps_options.std_power then begin
     ;; comov_dist_los goes from large to small z
@@ -1520,11 +1544,31 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
       sim_noise_diff_2[*, *, 1:n_kz-1] = b4_n
     endif
 
+    if ps_options.ave_removal then begin
+
+      data_sum_1[*,*,0] = data_sum_1[*,*,0] + data_sum_mean * n_freq * z_mpc_delta
+      sim_noise_sum_1[*,*,0] = sim_noise_sum_1[*,*,0] + sim_noise_sum_mean * $
+        n_freq * z_mpc_delta
+
+      if nfiles eq 2 then begin
+        data_diff_1[*,*,0] = data_diff_1[*,*,0] + data_diff_mean * n_freq * z_mpc_delta
+        sim_noise_diff_1[*,*,0] = sim_noise_diff_1[*,*,0] + sim_noise_diff_mean * $
+          n_freq * z_mpc_delta
+      endif
+    endif
+
     sigma2_1 = fltarr(n_kx, n_ky, n_kz)
     sigma2_2 = fltarr(n_kx, n_ky, n_kz)
     sigma2_1[*, *, 0] = a5_0
     sigma2_1[*, *, 1:n_kz-1] = a5_n
     sigma2_2[*, *, 1:n_kz-1] = b5_n
+
+    ;; drop pixels with less than 1/3 of the frequencies
+    if count_fewfreq gt 0 then begin
+      sigma2_1 = temporary(sigma2_1) * mask_fewfreq
+      sigma2_2 = temporary(sigma2_2) * mask_fewfreq
+      undefine, mask_fewfreq
+    endif
 
     git, repo_path = ps_repository_dir(), result=kcube_git_hash
     git_hashes = {uvf:uvf_git_hashes, uvf_wt:uvf_wt_git_hashes, $
@@ -1549,30 +1593,6 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
 
   endif else begin
 
-    ;; drop pixels with less than 1/3 of the frequencies (set weights to 0)
-    wh_fewfreq = where(n_freq_contrib lt ceil(n_freq/3d), count_fewfreq)
-    if count_fewfreq gt 0 then begin
-      mask_fewfreq = n_freq_contrib * 0 + 1
-      mask_fewfreq[wh_fewfreq] = 0
-      mask_fewfreq = rebin(temporary(mask_fewfreq), n_kx, n_ky, n_kz)
-
-      a1_0 = temporary(a1_0) * mask_fewfreq[*,*,0]
-      a1_n = temporary(a1_n) * mask_fewfreq[*,*,1:*]
-      b1_n = temporary(b1_n) * mask_fewfreq[*,*,1:*]
-
-      a3_0 = temporary(a3_0) * mask_fewfreq[*,*,0]
-      a3_n = temporary(a3_n) * mask_fewfreq[*,*,1:*]
-      b3_n = temporary(b3_n) * mask_fewfreq[*,*,1:*]
-      if nfiles gt 1 then begin
-        a2_0 = temporary(a2_0) * mask_fewfreq[*,*,0]
-        a2_n = temporary(a2_n) * mask_fewfreq[*,*,1:*]
-        b2_n = temporary(b2_n) * mask_fewfreq[*,*,1:*]
-
-        a4_0 = temporary(a4_0) * mask_fewfreq[*,*,0]
-        a4_n = temporary(a4_n) * mask_fewfreq[*,*,1:*]
-        b4_n = temporary(b4_n) * mask_fewfreq[*,*,1:*]
-      endif
-    endif
 
     data_sum_cos = complex(fltarr(n_kx, n_ky, n_kz))
     data_sum_sin = complex(fltarr(n_kx, n_ky, n_kz))
