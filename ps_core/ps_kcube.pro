@@ -1400,9 +1400,9 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
     z_exp_zreg = exp(-1.*complex(0,1)*matrix_multiply(z_reg, kz_mpc_orig_trim, /btranspose))
 
     ;; This one uses the true comov_dist_los values, so it is a little more different compared to the fft
-    ;; (which run large to small so need to flip the sign of the exponent)
+    ;; (which run large to small)
     ;; in some simple testing, this had a difference ratio vs the FFT (abs(diff)/abs(fft)) of ~10^1
-    z_exp_ztrue =  exp(1.*complex(0,1)*matrix_multiply(comov_dist_los-min(comov_dist_los), kz_mpc_orig_trim, /btranspose))
+    z_exp_ztrue =  exp(-1.*complex(0,1)*matrix_multiply(reverse(comov_dist_los-min(comov_dist_los)), kz_mpc_orig_trim, /btranspose))
 
     ;; change this to switch to the other DFT version
     z_exp = z_exp_ztrue
