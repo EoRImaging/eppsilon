@@ -42,8 +42,8 @@ function z_mpc, frequencies, hubble_param = hubble_param, f_delta = f_delta, eve
     even_freq = 1
     
     f_delta = freq_diff[0]
-    z_mpc_delta = float(mean(comov_los_diff))
-    z_mpc_mean = float(mean(comov_dist_los))
+    z_mpc_delta = double(mean(comov_los_diff))
+    z_mpc_mean = double(mean(comov_dist_los))
     n_kz = n_freq
     
   endelse
