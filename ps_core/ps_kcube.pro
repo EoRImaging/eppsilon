@@ -1240,6 +1240,11 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
   if tag_exist(ps_options, 'spec_window_type') then begin
     window = spectral_window(n_freq, type = ps_options.spec_window_type, /periodic)
 
+    ;shift the spectral window to be consistent with the choice of center bin
+    center_freq_ind = where(kz_integers EQ 0)
+    window_max = max(window, center_window_ind)
+    if (center_freq_ind - center_window_ind) NE 0 then window = shift(window, center_freq_ind - center_window_ind)
+
     ;; this is the equivilent bandwidth reduction (approx. 2 for blackman-harris)
     norm_factor = sqrt(n_freq/total(window^2.))
 
