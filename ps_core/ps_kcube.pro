@@ -1427,6 +1427,59 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
 
   n_kz = n_elements(kz_mpc)
 
+  lomb_scargle, n_kx=n_kx, n_ky=n_ky, n_kz=n_kz, n_freq=n_freq, even_freq=even_freq, z_mpc_delta=z_mpc_delta, $
+  comov_dist_los=comov_dist_los, kz_mpc=kz_mpc_orig, sum_sigma2=sum_sigma2, contrib_n_freq=n_freq_contrib, n_val=n_val, $
+  wh_pos=wh_pos, wh_neg=wh_neg, sigma2_1=sigma2_1, sigma2_2=sigma2_2, cos_theta=cos_theta, sin_theta=sin_theta
+
+  ;; rotate cos/sin basis to be orthogonal to error distribution
+  data_sum_ft_amp = abs(data_sum_ft)
+  data_sum_ft_phase = atan(data_sum_ft,/phase)
+  data_sum_cos = data_sum_ft_amp*cos(data_sum_ft_phase)
+  data_sum_sin = data_sum_ft_amp*sin(data_sum_ft_phase)
+
+  data_sum_1 = data_sum_cos*cos_theta + data_sum_sin*sin_theta
+  data_sum_2 = (-1d)*data_sum_cos*sin_theta + data_sum_sin*cos_theta
+  data_sum_ft = data_sum_1 - complex(0,1)*data_sum_2
+  undefine, data_sum_cos, data_sum_sin, data_sum_ft_amp, data_sum_ft_phase, $
+    data_sum_1, data_sum_2
+
+  sim_noise_sum_ft_amp = abs(sim_noise_sum_ft)
+  sim_noise_sum_ft_phase = atan(sim_noise_sum_ft,/phase)
+  sim_noise_sum_cos = sim_noise_sum_ft_amp*cos(sim_noise_sum_ft_phase)
+  sim_noise_sum_sin = sim_noise_sum_ft_amp*sin(sim_noise_sum_ft_phase)
+
+  sim_noise_sum_1 = sim_noise_sum_cos*cos_theta + sim_noise_sum_sin*sin_theta
+  sim_noise_sum_2 = (-1d)*sim_noise_sum_cos*sin_theta + sim_noise_sum_sin*cos_theta
+  sim_noise_sum_ft = sim_noise_sum_1 - complex(0,1)*sim_noise_sum_2
+  undefine, sim_noise_sum_cos, sim_noise_sum_sin, sim_noise_sum_ft_amp, $
+    sim_noise_sum_ft_phase, sim_noise_sum_1, sim_noise_sum_2
+
+  if nfiles eq 2 then begin
+  
+    data_diff_ft_amp = abs(data_diff_ft)
+    data_diff_ft_phase = atan(data_diff_ft,/phase)
+    data_diff_cos = data_diff_ft_amp*cos(data_diff_ft_phase)
+    data_diff_sin = data_diff_ft_amp*sin(data_diff_ft_phase)
+  
+    data_diff_1 = data_diff_cos*cos_theta + data_diff_sin*sin_theta
+    data_diff_2 = (-1d)*data_diff_cos*sin_theta + data_diff_sin*cos_theta
+    data_diff_ft = data_diff_1 - complex(0,1)*data_diff_2
+    undefine, data_diff_cos, data_diff_sin, data_diff_ft_amp, data_diff_ft_phase, $
+      data_diff_1, data_diff_2
+
+    sim_noise_diff_ft_amp = abs(sim_noise_diff_ft)
+    sim_noise_diff_ft_phase = atan(sim_noise_diff_ft,/phase)
+    sim_noise_diff_cos = sim_noise_diff_ft_amp*cos(sim_noise_diff_ft_phase)
+    sim_noise_diff_sin = sim_noise_diff_ft_amp*sin(sim_noise_diff_ft_phase)
+
+    sim_noise_diff_1 = sim_noise_diff_cos*cos_theta + sim_noise_diff_sin*sin_theta
+    sim_noise_diff_2 = (-1d)*sim_noise_diff_cos*sin_theta + sim_noise_diff_sin*cos_theta
+    sim_noise_diff_ft = sim_noise_diff_1 - complex(0,1)*sim_noise_diff_2
+    undefine, sim_noise_diff_cos, sim_noise_diff_sin, sim_noise_diff_ft_amp, $
+      sim_noise_diff_ft_phase, sim_noise_diff_1, sim_noise_diff_2
+    
+  endif  
+
   ;; these an and bn calculations don't match the standard
   ;; convention (they ares down by a factor of 2) but they make more sense
   ;; and remove factors of 2 we'd otherwise have in the power
@@ -1613,77 +1666,22 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
       endif
     endif
 
-    ;; for new power calc, need cos2, sin2, cos*sin transforms
-    covar_cos = fltarr(n_kx, n_ky, n_kz)
-    covar_sin = fltarr(n_kx, n_ky, n_kz)
-    covar_cross = fltarr(n_kx, n_ky, n_kz)
-
-    ;; comov_dist_los goes from large to small z
-    z_relative = dindgen(n_freq)*z_mpc_delta
-    freq_kz_arr = rebin(reform(kz_mpc, 1, n_kz), n_freq, n_kz) * $
-      rebin(z_relative, n_freq, n_kz)
-
-    cos_arr = cos(freq_kz_arr)
-    sin_arr = sin(freq_kz_arr)
-
-    sum_sigma2 = reform(sum_sigma2, n_kx*n_ky, n_freq)
-    ;; doing 2 FTs so need 2 factors of z_mpc_delta.
-    ;; No multiplication by N b/c don't need to fix IDL FFT
-    covar_cos = matrix_multiply(sum_sigma2, cos_arr^2d) * (z_mpc_delta)^2.
-    covar_sin = matrix_multiply(sum_sigma2, sin_arr^2d) * (z_mpc_delta)^2.
-    covar_cross = matrix_multiply(sum_sigma2, cos_arr*sin_arr) * (z_mpc_delta)^2.
-
-    wh_0f = where(n_freq_contrib eq 0, count_0f)
-    if count_0f gt 0 then begin
-      covar_cos[wh_0f, *] = 0
-      covar_sin[wh_0f, *] = 0
-      covar_cross[wh_0f, *] = 0
-    endif
-
-    ;; reform to get back to n_kx, n_ky, n_kz dimensions
-    covar_cos = reform(covar_cos, n_kx, n_ky, n_kz)
-    covar_sin = reform(covar_sin, n_kx, n_ky, n_kz)
-    covar_cross = reform(covar_cross, n_kx, n_ky, n_kz)
-
-    ;; drop pixels with less than 1/3 of the frequencies
-    if count_fewfreq gt 0 then begin
-      covar_cos = temporary(covar_cos) * mask_fewfreq
-      covar_sin = temporary(covar_sin) * mask_fewfreq
-      covar_cross = temporary(covar_cross) * mask_fewfreq
-      undefine, mask_fewfreq
-    endif
-
-    undefine, sum_sigma2, freq_kz_arr, cos_arr, sin_arr
-
-    ;; get rotation angle to diagonalize covariance block
-    theta = atan(2.*covar_cross, covar_cos - covar_sin)/2.
-
-    cos_theta = cos(theta)
-    sin_theta = sin(theta)
-    undefine, theta
-
-    sigma2_1 = covar_cos*cos_theta^2. + 2.*covar_cross*cos_theta*sin_theta + $
-      covar_sin*sin_theta^2.
-    sigma2_2 = covar_cos*sin_theta^2. - 2.*covar_cross*cos_theta*sin_theta + $
-      covar_sin*cos_theta^2.
-
-    undefine, covar_cos, covar_sin, covar_cross
-
-    data_sum_1 = data_sum_cos*cos_theta + data_sum_sin*sin_theta
-    data_sum_2 = (-1d)*data_sum_cos*sin_theta + data_sum_sin*cos_theta
+    ;temporary resets for testing
+    data_sum_1 = data_sum_cos
+    data_sum_2 = data_sum_sin
     undefine, data_sum_cos, data_sum_sin
 
-    sim_noise_sum_1 = sim_noise_sum_cos*cos_theta + sim_noise_sum_sin*sin_theta
-    sim_noise_sum_2 = (-1d)*sim_noise_sum_cos*sin_theta + sim_noise_sum_sin*cos_theta
+    sim_noise_sum_1 = sim_noise_sum_cos
+    sim_noise_sum_2 = sim_noise_sum_sin
     undefine, sim_noise_sum_cos, sim_noise_sum_sin
 
     if nfiles eq 2 then begin
-      data_diff_1 = data_diff_cos*cos_theta + data_diff_sin*sin_theta
-      data_diff_2 = (-1d)*data_diff_cos*sin_theta + data_diff_sin*cos_theta
+      data_diff_1 = data_diff_cos
+      data_diff_2 = data_diff_sin
       undefine, data_diff_cos, data_diff_sin
 
-      sim_noise_diff_1 = sim_noise_diff_cos*cos_theta + sim_noise_diff_sin*sin_theta
-      sim_noise_diff_2 = (-1d)*sim_noise_diff_cos*sin_theta + sim_noise_diff_sin*cos_theta
+      sim_noise_diff_1 = sim_noise_diff_cos
+      sim_noise_diff_2 = sim_noise_diff_sin
       undefine, sim_noise_diff_cos, sim_noise_diff_sin
     endif
 
