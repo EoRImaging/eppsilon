@@ -2,7 +2,7 @@ pro ps_diff_wrapper, folder_names_in, obs_names_in, ps_foldernames = ps_folderna
     version_test = version_test, $
     cube_types = cube_types, pols = pols,  refresh_diff = refresh_diff, $
     spec_window_types = spec_window_types, delta_uv_lambda = delta_uv_lambda, $
-    max_uv_lambda = max_uv_lambda, full_image = full_image, $
+    max_uv_lambda = max_uv_lambda, full_image = full_image, image_clip = image_clip, $
     ave_removal = ave_removal, $
     all_type_pol = all_type_pol, freq_ch_range = freq_ch_range, $
     plot_slices = plot_slices, slice_type = slice_type, $
@@ -62,10 +62,11 @@ pro ps_diff_wrapper, folder_names_in, obs_names_in, ps_foldernames = ps_folderna
 
   if n_elements(delta_uv_lambda) gt 1 then message, 'only 1 delta_uv_lambda allowed'
 
-  if n_elements(max_uv_lambda) lt 2 and n_elements(full_image) lt 2 then begin
+  if n_elements(max_uv_lambda) lt 2 and n_elements(full_image) lt 2 $
+     and n_elements(image_clip) lt 2 then begin
 
     uvf_options0 = create_uvf_options(delta_uv_lambda = delta_uv_lambda, $
-      max_uv_lambda = max_uv_lambda, full_image = full_image)
+      max_uv_lambda = max_uv_lambda, full_image = full_image, image_clip = image_clip)
 
   endif else begin
     case n_elements(max_uv_lambda) of
@@ -91,13 +92,25 @@ pro ps_diff_wrapper, folder_names_in, obs_names_in, ps_foldernames = ps_folderna
         fi0 = full_image[0]
         fi1 = full_image[1]
       end
-      else: message, 'only 1 or 2 full_image values allowed'
+    endcase
+
+    case n_elements(image_clip) of
+        0:
+        1: begin
+          ic0 = image_clip
+          ic1 = image_clip
+        end
+        2: begin
+          ic0 = image_clip[0]
+          ic1 = image_clip[1]
+        end
+      else: message, 'only 1 or 2 image_clip values allowed'
     endcase
 
     uvf_options0 = create_uvf_options(delta_uv_lambda = delta_uv_lambda, $
-      max_uv_lambda = mul0, full_image = fi0)
+      max_uv_lambda = mul0, full_image = fi0, image_clip = ic0)
     uvf_options1 = create_uvf_options(delta_uv_lambda = delta_uv_lambda, $
-      max_uv_lambda = mul1, full_image = fi1)
+      max_uv_lambda = mul1, full_image = fi1, image_clip = ic1)
   endelse
 
   if n_elements(ave_removal) lt 2 and n_elements(wt_cutoffs) lt 2 and $
