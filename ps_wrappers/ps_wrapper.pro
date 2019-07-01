@@ -9,7 +9,7 @@ pro ps_wrapper, folder_name_in, obs_name, data_subdirs=data_subdirs, $
     refresh_binning = refresh_binning, refresh_info = refresh_info, $
     refresh_beam = refresh_beam, dft_fchunk = dft_fchunk, require_radec = require_radec, $
     delta_uv_lambda = delta_uv_lambda, max_uv_lambda = max_uv_lambda, $
-    full_image = full_image, $
+    full_image = full_image, image_clip = image_clip, $
     pol_inc = pol_inc, type_inc = type_inc, freq_ch_range = freq_ch_range, $
     freq_flags = freq_flags, freq_flag_name = freq_flag_name, $
     allow_beam_approx = allow_beam_approx, uvf_input = uvf_input, uv_avg = uv_avg, $
@@ -167,6 +167,7 @@ pro ps_wrapper, folder_name_in, obs_name, data_subdirs=data_subdirs, $
       plot_filebase = plot_filebase + '_' + obs_info.obs_names[0]
 
     note = obs_info.fhd_types[0]
+    if ps_foldername ne 'ps' then note = note + '_' + ps_foldername
     if keyword_set(uvf_input) then note = note + '_uvf'
 
     if tag_exist(obs_info, 'beam_files') then beamfiles = obs_info.beam_files
@@ -250,7 +251,7 @@ pro ps_wrapper, folder_name_in, obs_name, data_subdirs=data_subdirs, $
     refresh_binning = refresh_binning, refresh_info = refresh_info)
 
   uvf_options = create_uvf_options(delta_uv_lambda = delta_uv_lambda, $
-    max_uv_lambda = max_uv_lambda, full_image = full_image, $
+    max_uv_lambda = max_uv_lambda, full_image = full_image, image_clip = image_clip, $
     uv_avg = uv_avg, uv_img_clip = uv_img_clip, require_radec = require_radec, $
     dft_fchunk = dft_fchunk, no_dft_progress = no_dft_progress)
 

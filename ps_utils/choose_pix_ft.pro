@@ -118,20 +118,25 @@ function choose_pix_ft, file_struct, pixel_nums = pixel_nums, data_dims = data_d
     max_kperp_rad = min([max_kperp_rad, uvf_options.max_uv_lambda * (2.*!pi)])
   endif
 
-  ;; limit field of view to match calculated k-modes
-  xy_len = 2*!pi/delta_kperp_rad
+  ;; calculate the image size that corresponds to the uv spacing
+  xy_len_matched = 2*!pi/delta_kperp_rad
 
-  ;; image may be smaller than expected, may need to adjust delta_kperp_rad
-  if image_len lt xy_len then begin
-    print, 'Image FoV is smaller than expected, increasing delta kperp to match image FoV'
-    delta_kperp_rad = 2*!pi/image_len
+  ;; clip window to a square (and optionally to match delta kperp)
+  if uvf_options.image_clip and xy_len_matched lt image_len then begin
+    ;; limit field of view to match delta kperp
+    print, 'Image FoV is larger than expected given delta kperp and ' + $
+      'image_clip is set. Clipping image to match delta kperp.'
+    x_range = [-1,1]*xy_len_matched/2. + mean(x_rot)
+    y_range = [-1,1]*xy_len_matched/2. + mean(y_rot)
+  endif else begin
+
+    if image_len lt xy_len_matched then begin
+      print, 'Image FoV is smaller than expected, increasing delta kperp to match image FoV'
+      delta_kperp_rad = 2*!pi/image_len
+    endif
 
     x_range = [-1,1]*image_len/2. + mean(x_rot)
     y_range = [-1,1]*image_len/2. + mean(y_rot)
-
-  endif else begin
-    x_range = [-1,1]*xy_len/2. + mean(x_rot)
-    y_range = [-1,1]*xy_len/2. + mean(y_rot)
   endelse
 
   wh_close = where(x_rot le x_range[1] and x_rot ge x_range[0] and $

@@ -48,6 +48,9 @@ function create_file_tags, freq_ch_range = freq_ch_range, freq_flags = freq_flag
   if uvf_options.full_image then begin
     uv_tag = uv_tag + '_fullimg'
   endif
+  if not uvf_options.image_clip then begin
+    uv_tag = uv_tag + '_noimgclip'
+  endif
   if tag_exist(uvf_options, 'max_uv_lambda') then begin
     uv_tag = uv_tag + '_maxuv' + number_formatter(uvf_options.max_uv_lambda)
   endif

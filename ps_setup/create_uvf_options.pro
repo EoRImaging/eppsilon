@@ -1,6 +1,7 @@
 function create_uvf_options, uvf_options = uvf_options, $
     delta_uv_lambda = delta_uv_lambda, max_uv_lambda = max_uv_lambda, $
-    full_image = full_image, uv_avg = uv_avg, uv_img_clip = uv_img_clip, $
+    full_image = full_image, image_clip = image_clip, $
+    uv_avg = uv_avg, uv_img_clip = uv_img_clip, $
     require_radec = require_radec, dft_fchunk = dft_fchunk, $
     no_dft_progress = no_dft_progress, return_new = return_new
 
@@ -14,14 +15,17 @@ function create_uvf_options, uvf_options = uvf_options, $
     ;; default to giving dft progress reports
     if n_elements(no_dft_progress) eq 0 then no_dft_progress = 0
 
-    ;; default to not using full images
+    ;; default to not using full image to set the uv cell size
     if n_elements(full_image) eq 0 then full_image = 0
 
     ;; default to not requiring radec
     if n_elements(require_radec) eq 0 then require_radec = 0
 
+    ;; default to not clipping the image (use the full image but with the standard uv pixel size)
+    if n_elements(image_clip) eq 0 then image_clip = 0
+
     uvf_options = {no_dft_progress: no_dft_progress, full_image: full_image, $
-                   require_radec: require_radec}
+                   require_radec: require_radec, image_clip: image_clip}
   endif else begin
     if n_elements(no_dft_progress) gt 0 then begin
       update_tags.add, 'no_dft_progress'
