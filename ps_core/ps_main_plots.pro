@@ -277,6 +277,8 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
     endif
   endfor
 
+  kperp_lambda_conv = getvar_savefile(file_struct_arr[0].power_savefile, 'kperp_lambda_conv')
+
   ;; setup for saving plots
   power_tag = file_struct_arr[0].power_tag
   if tag_exist(file_struct_arr[0], 'uvf_tag') then begin
@@ -386,6 +388,36 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
     endelse
   endif
 
+  if tag_exist(plot_2d_options, 'kperp_lambda_plot_range') and $
+    not tag_exist(plot_2d_options, 'kperp_plot_range') then begin
+
+    kperp_plot_range = plot_2d_options.kperp_lambda_plot_range / kperp_lambda_conv
+
+    ;; if we're plotting in [k]=h/Mpc then need to convert from 1/Mpc
+    if plot_options.hinv then kperp_plot_range = kperp_plot_range / hubble_param
+
+    plot_2d_options = create_plot_2d_options(plot_2d_options = plot_2d_options, $
+      kperp_plot_range = kperp_plot_range)
+  endif
+
+  if not tag_exist(plot_2d_options, 'kperp_plot_range') then begin
+    if tag_exist(uvf_options, 'max_uv_lambda') gt 0 then begin
+      max_kperp_lambda = min([uvf_options.max_uv_lambda, $
+                              min(file_struct_arr.kspan/2.), $
+                              min(file_struct_arr.max_baseline_lambda)])
+    endif else begin
+      max_kperp_lambda = min([file_struct_arr.kspan/2.,file_struct_arr.max_baseline_lambda])
+    endelse
+    kperp_plot_range = [7.5/kperp_lambda_conv, max_kperp_lambda/kperp_lambda_conv]
+
+    ;; if we're plotting in [k]=h/Mpc then need to convert from 1/Mpc
+    if plot_options.hinv then kperp_plot_range = kperp_plot_range / hubble_param
+
+    plot_2d_options = create_plot_2d_options(plot_2d_options = plot_2d_options, $
+      kperp_plot_range = kperp_plot_range)
+  endif
+
+
   window_num=0
 
   ;; Now set up slice stuff
@@ -409,7 +441,6 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
 
       slice_plotfile_base = plotfile_path + file_struct_arr[0].subfolders.slices + $
         plotfile_base + '_' + plot_types.slice_type
-      slice_plotfile_end = plot_fadd + plot_options.plot_exten
       if plot_options.individual_plots then begin
 
         indv_plotfile_base = plotfile_path + file_struct_arr[0].subfolders.slices + $
@@ -1320,35 +1351,6 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
   if not tag_exist(binning_2d_options, 'kperp_bin') then begin
     binning_2d_options = create_binning_2d_options(binning_2d_options = binning_2d_options, $
       kperp_bin = kperp_bin)
-  endif
-
-  if tag_exist(plot_2d_options, 'kperp_lambda_plot_range') and $
-    not tag_exist(plot_2d_options, 'kperp_plot_range') then begin
-
-    kperp_plot_range = plot_2d_options.kperp_lambda_plot_range / kperp_lambda_conv
-
-    ;; if we're plotting in [k]=h/Mpc then need to convert from 1/Mpc
-    if plot_options.hinv then kperp_plot_range = kperp_plot_range / hubble_param
-
-    plot_2d_options = create_plot_2d_options(plot_2d_options = plot_2d_options, $
-      kperp_plot_range = kperp_plot_range)
-  endif
-
-  if not tag_exist(plot_2d_options, 'kperp_plot_range') then begin
-    if tag_exist(uvf_options, 'max_uv_lambda') gt 0 then begin
-      max_kperp_lambda = min([uvf_options.max_uv_lambda, $
-                              min(file_struct_arr.kspan/2.), $
-                              min(file_struct_arr.max_baseline_lambda)])
-    endif else begin
-      max_kperp_lambda = min([file_struct_arr.kspan/2.,file_struct_arr.max_baseline_lambda])
-    endelse
-    kperp_plot_range = [7.5/kperp_lambda_conv, max_kperp_lambda/kperp_lambda_conv]
-
-    ;; if we're plotting in [k]=h/Mpc then need to convert from 1/Mpc
-    if plot_options.hinv then kperp_plot_range = kperp_plot_range / hubble_param
-
-    plot_2d_options = create_plot_2d_options(plot_2d_options = plot_2d_options, $
-      kperp_plot_range = kperp_plot_range)
   endif
 
   if plot_options.pub then begin
