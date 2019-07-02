@@ -15,14 +15,30 @@ function create_uvf_options, uvf_options = uvf_options, $
     ;; default to giving dft progress reports
     if n_elements(no_dft_progress) eq 0 then no_dft_progress = 0
 
-    ;; default to not using full image to set the uv cell size
+    ;; Cannot set full_image with image_clip=0 error if this is the case.
+    if n_elements(full_image) eq 1 and n_elements(image_clip) eq 1 then begin
+      if full_image gt 0 and image_clip eq 0 then begin
+        message, 'If full_image is set, image_clip cannot be set to 0.'
+      endif
+    endif
+
+    ;; full_image means, use the full image with small uv pixels set by the image size
+    ;; default to not using the full image to set the uv cell size
     if n_elements(full_image) eq 0 then full_image = 0
 
     ;; default to not requiring radec
     if n_elements(require_radec) eq 0 then require_radec = 0
 
-    ;; default to not clipping the image (use the full image but with the standard uv pixel size)
-    if n_elements(image_clip) eq 0 then image_clip = 0
+    ;; image clip means clip the image size as defined by the uv pixel size
+    if n_elements(image_clip) eq 0 then begin
+      if full_image gt 0 then begin
+        ;; full_image set, so set image_clip (because the uv pixel size matches the image size)
+        image_clip = 1
+      endif else begin
+        ;; full_image turned off, default to not clipping the image (use the full image but with the standard uv pixel size)
+        image_clip = 0
+      endelse
+    endif
 
     uvf_options = {no_dft_progress: no_dft_progress, full_image: full_image, $
                    require_radec: require_radec, image_clip: image_clip}
@@ -35,6 +51,16 @@ function create_uvf_options, uvf_options = uvf_options, $
     if n_elements(full_image) gt 0 then begin
       update_tags.add, 'full_image'
       update_values.add, full_image
+    endif
+
+    if n_elements(require_radec) gt 0 then begin
+      update_tags.add, 'require_radec'
+      update_values.add, require_radec
+    endif
+
+    if n_elements(image_clip) gt 0 then begin
+      update_tags.add, 'image_clip'
+      update_values.add, image_clip
     endif
   endelse
 
@@ -67,7 +93,12 @@ function create_uvf_options, uvf_options = uvf_options, $
     new_uvf_options = update_option_struct(uvf_options, update_tags, update_values, $
       return_new = return_new)
 
-      return, new_uvf_options
+    ;; Cannot set full_image with image_clip=0 error if this is the case.
+    if new_uvf_options.full_image gt 0 and new_uvf_options.image_clip eq 0 then begin
+      message, 'If full_image is set, image_clip cannot be set to 0.'
+    endif
+
+    return, new_uvf_options
   endif else begin
     return, uvf_options
   endelse

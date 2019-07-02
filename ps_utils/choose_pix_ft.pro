@@ -86,7 +86,13 @@ function choose_pix_ft, file_struct, pixel_nums = pixel_nums, data_dims = data_d
   endif
 
   ;; figure out k values to calculate dft
-  uv_cellsize_m = 5 ;; based on calculations of beam FWHM by Aaron
+  uv_cellsize_m = 5 ;; based on calculations of beam FWHM by Aaron Ewall-Wice
+
+  ;; Cannot set full_image with image_clip=0 error if this is the case.
+  if uvf_options.full_image gt 0 and uvf_options.image_clip eq 0 then begin
+    message, 'If full_image is set, image_clip cannot be set to 0.'
+  endif
+  
   if uvf_options.full_image then begin
     ;; use the full image size.
 
