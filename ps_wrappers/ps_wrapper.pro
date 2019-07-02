@@ -104,7 +104,7 @@ pro ps_wrapper, folder_name_in, obs_name, data_subdirs=data_subdirs, $
       endif
 
       ;; beam files
-      master_beam_folder = master_ps_folder + 'data' + path_sep() + 'beam_cubes'
+      master_beam_folder = master_ps_folder + path_sep() + 'data' + path_sep() + 'beam_cubes'
       master_beam_files = file_search(master_beam_folder + path_sep() + '*_beam2.idlsave')
 
       new_beam_folder = new_ps_folder + path_sep() + 'data' + path_sep() + 'beam_cubes'
