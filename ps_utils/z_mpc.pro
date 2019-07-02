@@ -7,7 +7,7 @@ function z_mpc, frequencies, hubble_param = hubble_param, f_delta = f_delta, eve
   freq_diff = frequencies - shift(frequencies, 1)
   freq_diff = freq_diff[1:*]
   
-  z0_freq = 1420.40d ;; MHz
+  z0_freq = 1420.4057517667d ;; MHz
   redshifts = z0_freq/frequencies - 1d
   cosmology_measures, redshifts, comoving_dist_los = comov_dist_los, hubble_param = hubble_param
   

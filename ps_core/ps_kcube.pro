@@ -70,7 +70,7 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
 
   if input_units eq 'jansky' then begin
     ;; converting from Jy (in u,v,f) to mK*str (10^-26 * c^2 * 10^3/ (2*f^2*kb))
-    conv_factor = float((3e8)^2 / (2. * (frequencies*1e6)^2. * 1.38065))
+    conv_factor = double((299792458)^2 / (2. * (frequencies*1e6)^2. * 1.38065))
 
     ;; convert from mk*str to mK*Mpc^2
     conv_factor = conv_factor * z_mpc_mean^2.
