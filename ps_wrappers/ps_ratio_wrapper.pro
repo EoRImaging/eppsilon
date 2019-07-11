@@ -3,7 +3,7 @@ pro ps_ratio_wrapper, folder_names_in, obs_names_in, ps_foldernames=ps_foldernam
     all_pol_diff_ratio = all_pol_diff_ratio, freq_ch_range = freq_ch_range, $
     spec_window_types = spec_window_types, delta_uv_lambda = delta_uv_lambda, $
     full_image = full_image, image_clip = image_clip, $
-    ave_removal = ave_removal, diff_ratio = diff_ratio, $
+    ave_removal = ave_removal, std_power = std_power, diff_ratio = diff_ratio, $
     diff_range = diff_range, png = png, eps = eps, pdf = pdf, $
     data_range = data_range, $
     color_type = color_type, invert_colorbar = invert_colorbar, $
@@ -100,10 +100,11 @@ pro ps_ratio_wrapper, folder_names_in, obs_names_in, ps_foldernames=ps_foldernam
   endelse
 
   if n_elements(ave_removal) lt 2 and n_elements(wt_cutoffs) lt 2 and $
-    n_elements(wt_measures) lt 2 and n_elements(spec_window_types) lt 2 then begin
+    n_elements(wt_measures) lt 2 and n_elements(spec_window_types) lt 2 and $
+    n_elements(std_power) lt 2 then begin
 
     ps_options = create_ps_options(ave_removal = ave_removal, wt_cutoffs = wt_cutoffs, $
-      wt_measures = wt_measures, spec_window_type = spec_window_types)
+      wt_measures = wt_measures, spec_window_type = spec_window_types, std_power = std_power)
 
   endif else begin
     case n_elements(ave_removal) of
@@ -158,11 +159,24 @@ pro ps_ratio_wrapper, folder_names_in, obs_names_in, ps_foldernames=ps_foldernam
       else: message, 'only 1 or 2 spec_window_types allowed'
     endcase
 
+    case n_elements(std_power) of
+      0:
+      1: begin
+        sp0 = std_power
+        sp1 = std_power
+      end
+      2: begin
+        sp0 = std_power[0]
+        sp1 = std_power[1]
+      end
+      else: message, 'only 1 or 2 std_power values allowed'
+    endcase
+
     ps_options0 = create_ps_options(ave_removal = ar0, wt_cutoffs = wtc0, $
-      wt_measures = wtm0, spec_window_type = spw0)
+      wt_measures = wtm0, spec_window_type = spw0, std_power = sp0)
 
     ps_options1 = create_ps_options(ave_removal = ar1, wt_cutoffs = wtc1, $
-      wt_measures = wtm1, spec_window_type = spw1)
+      wt_measures = wtm1, spec_window_type = spw1, std_power = sp1)
 
     ps_options = [ps_options0, ps_options1]
   endelse
