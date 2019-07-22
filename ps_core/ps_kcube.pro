@@ -1459,121 +1459,32 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
     undefine, sim_noise_diff_ft
   endif
 
+  ;; drop pixels with less than 1/3 of the frequencies (set weights to 0)
+  wh_fewfreq = where(n_freq_contrib lt ceil(n_freq/3d), count_fewfreq)
+  if count_fewfreq gt 0 then begin
+    mask_fewfreq = n_freq_contrib * 0 + 1
+    mask_fewfreq[wh_fewfreq] = 0
+    mask_fewfreq = rebin(temporary(mask_fewfreq), n_kx, n_ky, n_kz)
 
-  if ps_options.std_power then begin
-    ;; comov_dist_los goes from large to small z
-    z_relative = dindgen(n_freq)*z_mpc_delta
-    freq_kz_arr = rebin(reform(kz_mpc_orig, 1, n_elements(kz_mpc_orig)), $
-      n_freq, n_elements(kz_mpc_orig)) * rebin(z_relative, n_freq, n_elements(kz_mpc_orig))
+    a1_0 = temporary(a1_0) * mask_fewfreq[*,*,0]
+    a1_n = temporary(a1_n) * mask_fewfreq[*,*,1:*]
+    b1_n = temporary(b1_n) * mask_fewfreq[*,*,1:*]
 
-    ;; construct FT matrix, hit sigma2 with it from both sides
-    identity = diag_matrix([fltarr(n_freq)+1.])
-    ft_matrix = fft(identity, dimension=1)*n_freq*z_mpc_delta
-
-    sigma2_ft = fltarr(n_kx, n_ky, n_freq)
-    for i=0, n_kx-1 do begin
-      for j=0, n_ky-1 do begin
-        if max(abs(sum_sigma2[i,j,*])) eq 0 then continue
-        temp = diag_matrix(reform(sum_sigma2[i,j,*]))
-        temp2 = shift(matrix_multiply(ft_matrix, $
-          matrix_multiply(temp, conj(ft_matrix), /btranspose)), -(n_freq/2 + 1), -(n_freq/2 + 1))
-
-        sigma2_ft[i,j,*] = abs(diag_matrix(temp2))
-      endfor
-    endfor
-    undefine, sum_sigma2
-
-    if trim_max_pos then begin
-      ;; remove unmatched max k positive mode:
-      sigma2_ft = sigma2_ft[*, *, 0:-2]
-    endif
-
-    a5_0 = sigma2_ft[*,*,where(n_val eq 0)]
-    a5_n = (sigma2_ft[*, *, wh_pos] + sigma2_ft[*, *, reverse(wh_neg)])/2.
-    b5_n = complex(0,1) * (sigma2_ft[*, *, wh_pos] - $
-          sigma2_ft[*, *, reverse(wh_neg)])/2.
-    undefine, sigma2_ft
-
-    data_sum_1 = complex(fltarr(n_kx, n_ky, n_kz))
-    data_sum_2 = complex(fltarr(n_kx, n_ky, n_kz))
-    data_sum_1[*, *, 0] = a1_0
-    data_sum_1[*, *, 1:n_kz-1] = a1_n
-    data_sum_2[*, *, 1:n_kz-1] = b1_n
-
-    sim_noise_sum_1 = complex(fltarr(n_kx, n_ky, n_kz))
-    sim_noise_sum_2 = complex(fltarr(n_kx, n_ky, n_kz))
-    sim_noise_sum_1[*, *, 0] = a3_0
-    sim_noise_sum_1[*, *, 1:n_kz-1] = a3_n
-    sim_noise_sum_2[*, *, 1:n_kz-1] = b3_n
-
+    a3_0 = temporary(a3_0) * mask_fewfreq[*,*,0]
+    a3_n = temporary(a3_n) * mask_fewfreq[*,*,1:*]
+    b3_n = temporary(b3_n) * mask_fewfreq[*,*,1:*]
     if nfiles gt 1 then begin
-      data_diff_1 = complex(fltarr(n_kx, n_ky, n_kz))
-      data_diff_2 = complex(fltarr(n_kx, n_ky, n_kz))
-      data_diff_1[*, *, 0] = a2_0
-      data_diff_1[*, *, 1:n_kz-1] = a2_n
-      data_diff_2[*, *, 1:n_kz-1] = b2_n
+      a2_0 = temporary(a2_0) * mask_fewfreq[*,*,0]
+      a2_n = temporary(a2_n) * mask_fewfreq[*,*,1:*]
+      b2_n = temporary(b2_n) * mask_fewfreq[*,*,1:*]
 
-      sim_noise_diff_1 = complex(fltarr(n_kx, n_ky, n_kz))
-      sim_noise_diff_2 = complex(fltarr(n_kx, n_ky, n_kz))
-      sim_noise_diff_1[*, *, 0] = a4_0
-      sim_noise_diff_1[*, *, 1:n_kz-1] = a4_n
-      sim_noise_diff_2[*, *, 1:n_kz-1] = b4_n
+      a4_0 = temporary(a4_0) * mask_fewfreq[*,*,0]
+      a4_n = temporary(a4_n) * mask_fewfreq[*,*,1:*]
+      b4_n = temporary(b4_n) * mask_fewfreq[*,*,1:*]
     endif
+  endif
 
-    sigma2_1 = fltarr(n_kx, n_ky, n_kz)
-    sigma2_2 = fltarr(n_kx, n_ky, n_kz)
-    sigma2_1[*, *, 0] = a5_0
-    sigma2_1[*, *, 1:n_kz-1] = a5_n
-    sigma2_2[*, *, 1:n_kz-1] = b5_n
-
-    git, repo_path = ps_repository_dir(), result=kcube_git_hash
-    git_hashes = {uvf:uvf_git_hashes, uvf_wt:uvf_wt_git_hashes, $
-      beam:beam_git_hashes, kcube:kcube_git_hash}
-
-    if n_elements(freq_flags) gt 0 then begin
-      save, file = file_struct.kcube_savefile, data_sum_1, data_sum_2, data_diff_1, $
-        data_diff_2, sim_noise_sum_1, sim_noise_sum_2, sim_noise_diff_1, $
-        sim_noise_diff_2, sigma2_1, sigma2_2, n_val, kx_mpc, ky_mpc, kz_mpc, $
-        kperp_lambda_conv, delay_params, hubble_param, n_freq_contrib, freq_mask, $
-        vs_name, vs_mean, t_sys_meas, window_int, git_hashes, wt_meas_ave, wt_meas_min, $
-        ave_weights, wt_ave_power_freq, ave_power_freq, wt_ave_power_uvf, ave_power_uvf
-    endif else begin
-      save, file = file_struct.kcube_savefile, data_sum_1, data_sum_2, data_diff_1, $
-        data_diff_2, sim_noise_sum_1, sim_noise_sum_2, sim_noise_diff_1, $
-        sim_noise_diff_2, sigma2_1, sigma2_2, n_val, kx_mpc, ky_mpc, kz_mpc, $
-        kperp_lambda_conv, delay_params, hubble_param, n_freq_contrib, $
-        vs_name, vs_mean, t_sys_meas, window_int, git_hashes, wt_meas_ave, $
-        wt_meas_min, ave_weights, wt_ave_power_freq, ave_power_freq, wt_ave_power_uvf, $
-        ave_power_uvf
-    endelse
-
-  endif else begin
-
-    ;; drop pixels with less than 1/3 of the frequencies (set weights to 0)
-    wh_fewfreq = where(n_freq_contrib lt ceil(n_freq/3d), count_fewfreq)
-    if count_fewfreq gt 0 then begin
-      mask_fewfreq = n_freq_contrib * 0 + 1
-      mask_fewfreq[wh_fewfreq] = 0
-      mask_fewfreq = rebin(temporary(mask_fewfreq), n_kx, n_ky, n_kz)
-
-      a1_0 = temporary(a1_0) * mask_fewfreq[*,*,0]
-      a1_n = temporary(a1_n) * mask_fewfreq[*,*,1:*]
-      b1_n = temporary(b1_n) * mask_fewfreq[*,*,1:*]
-
-      a3_0 = temporary(a3_0) * mask_fewfreq[*,*,0]
-      a3_n = temporary(a3_n) * mask_fewfreq[*,*,1:*]
-      b3_n = temporary(b3_n) * mask_fewfreq[*,*,1:*]
-      if nfiles gt 1 then begin
-        a2_0 = temporary(a2_0) * mask_fewfreq[*,*,0]
-        a2_n = temporary(a2_n) * mask_fewfreq[*,*,1:*]
-        b2_n = temporary(b2_n) * mask_fewfreq[*,*,1:*]
-
-        a4_0 = temporary(a4_0) * mask_fewfreq[*,*,0]
-        a4_n = temporary(a4_n) * mask_fewfreq[*,*,1:*]
-        b4_n = temporary(b4_n) * mask_fewfreq[*,*,1:*]
-      endif
-    endif
-
+<<<<<<< HEAD
     data_sum_cos = dcomplex(fltarr(n_kx, n_ky, n_kz))
     data_sum_sin = dcomplex(fltarr(n_kx, n_ky, n_kz))
     data_sum_cos[*, *, 0] = a1_0
@@ -1599,113 +1510,145 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
       sim_noise_diff_cos[*, *, 1:n_kz-1] = a4_n
       sim_noise_diff_sin[*, *, 1:n_kz-1] = b4_n
     endif
+=======
+  data_sum_cos = complex(fltarr(n_kx, n_ky, n_kz))
+  data_sum_sin = complex(fltarr(n_kx, n_ky, n_kz))
+  data_sum_cos[*, *, 0] = a1_0
+  data_sum_cos[*, *, 1:n_kz-1] = a1_n
+  data_sum_sin[*, *, 1:n_kz-1] = b1_n
 
-    if ps_options.ave_removal then begin
+  sim_noise_sum_cos = complex(fltarr(n_kx, n_ky, n_kz))
+  sim_noise_sum_sin = complex(fltarr(n_kx, n_ky, n_kz))
+  sim_noise_sum_cos[*, *, 0] = a3_0
+  sim_noise_sum_cos[*, *, 1:n_kz-1] = a3_n
+  sim_noise_sum_sin[*, *, 1:n_kz-1] = b3_n
 
-      data_sum_cos[*,*,0] = data_sum_cos[*,*,0] + data_sum_mean * n_freq * z_mpc_delta
-      sim_noise_sum_cos[*,*,0] = sim_noise_sum_cos[*,*,0] + sim_noise_sum_mean * $
-        n_freq * z_mpc_delta
+  if nfiles gt 1 then begin
+    data_diff_cos = complex(fltarr(n_kx, n_ky, n_kz))
+    data_diff_sin = complex(fltarr(n_kx, n_ky, n_kz))
+    data_diff_cos[*, *, 0] = a2_0
+    data_diff_cos[*, *, 1:n_kz-1] = a2_n
+    data_diff_sin[*, *, 1:n_kz-1] = b2_n
 
-      if nfiles eq 2 then begin
-        data_diff_cos[*,*,0] = data_diff_cos[*,*,0] + data_diff_mean * n_freq * z_mpc_delta
-        sim_noise_diff_cos[*,*,0] = sim_noise_diff_cos[*,*,0] + sim_noise_diff_mean * $
-          n_freq * z_mpc_delta
-      endif
-    endif
+    sim_noise_diff_cos = complex(fltarr(n_kx, n_ky, n_kz))
+    sim_noise_diff_sin = complex(fltarr(n_kx, n_ky, n_kz))
+    sim_noise_diff_cos[*, *, 0] = a4_0
+    sim_noise_diff_cos[*, *, 1:n_kz-1] = a4_n
+    sim_noise_diff_sin[*, *, 1:n_kz-1] = b4_n
+  endif
+>>>>>>> rework the std_power implementation: just don't rotate between sin & cos
 
-    ;; for new power calc, need cos2, sin2, cos*sin transforms
-    covar_cos = fltarr(n_kx, n_ky, n_kz)
-    covar_sin = fltarr(n_kx, n_ky, n_kz)
-    covar_cross = fltarr(n_kx, n_ky, n_kz)
+  if ps_options.ave_removal then begin
 
-    ;; comov_dist_los goes from large to small z
-    z_relative = dindgen(n_freq)*z_mpc_delta
-    freq_kz_arr = rebin(reform(kz_mpc, 1, n_kz), n_freq, n_kz) * $
-      rebin(z_relative, n_freq, n_kz)
-
-    cos_arr = cos(freq_kz_arr)
-    sin_arr = sin(freq_kz_arr)
-
-    sum_sigma2 = reform(sum_sigma2, n_kx*n_ky, n_freq)
-    ;; doing 2 FTs so need 2 factors of z_mpc_delta.
-    ;; No multiplication by N b/c don't need to fix IDL FFT
-    covar_cos = matrix_multiply(sum_sigma2, cos_arr^2d) * (z_mpc_delta)^2.
-    covar_sin = matrix_multiply(sum_sigma2, sin_arr^2d) * (z_mpc_delta)^2.
-    covar_cross = matrix_multiply(sum_sigma2, cos_arr*sin_arr) * (z_mpc_delta)^2.
-
-    wh_0f = where(n_freq_contrib eq 0, count_0f)
-    if count_0f gt 0 then begin
-      covar_cos[wh_0f, *] = 0
-      covar_sin[wh_0f, *] = 0
-      covar_cross[wh_0f, *] = 0
-    endif
-
-    ;; reform to get back to n_kx, n_ky, n_kz dimensions
-    covar_cos = reform(covar_cos, n_kx, n_ky, n_kz)
-    covar_sin = reform(covar_sin, n_kx, n_ky, n_kz)
-    covar_cross = reform(covar_cross, n_kx, n_ky, n_kz)
-
-    ;; drop pixels with less than 1/3 of the frequencies
-    if count_fewfreq gt 0 then begin
-      covar_cos = temporary(covar_cos) * mask_fewfreq
-      covar_sin = temporary(covar_sin) * mask_fewfreq
-      covar_cross = temporary(covar_cross) * mask_fewfreq
-      undefine, mask_fewfreq
-    endif
-
-    undefine, sum_sigma2, freq_kz_arr, cos_arr, sin_arr
-
-    ;; get rotation angle to diagonalize covariance block
-    theta = atan(2.*covar_cross, covar_cos - covar_sin)/2.
-
-    cos_theta = cos(theta)
-    sin_theta = sin(theta)
-    undefine, theta
-
-    sigma2_1 = covar_cos*cos_theta^2. + 2.*covar_cross*cos_theta*sin_theta + $
-      covar_sin*sin_theta^2.
-    sigma2_2 = covar_cos*sin_theta^2. - 2.*covar_cross*cos_theta*sin_theta + $
-      covar_sin*cos_theta^2.
-
-    undefine, covar_cos, covar_sin, covar_cross
-
-    data_sum_1 = data_sum_cos*cos_theta + data_sum_sin*sin_theta
-    data_sum_2 = (-1d)*data_sum_cos*sin_theta + data_sum_sin*cos_theta
-    undefine, data_sum_cos, data_sum_sin
-
-    sim_noise_sum_1 = sim_noise_sum_cos*cos_theta + sim_noise_sum_sin*sin_theta
-    sim_noise_sum_2 = (-1d)*sim_noise_sum_cos*sin_theta + sim_noise_sum_sin*cos_theta
-    undefine, sim_noise_sum_cos, sim_noise_sum_sin
+    data_sum_cos[*,*,0] = data_sum_cos[*,*,0] + data_sum_mean * n_freq * z_mpc_delta
+    sim_noise_sum_cos[*,*,0] = sim_noise_sum_cos[*,*,0] + sim_noise_sum_mean * $
+      n_freq * z_mpc_delta
 
     if nfiles eq 2 then begin
-      data_diff_1 = data_diff_cos*cos_theta + data_diff_sin*sin_theta
-      data_diff_2 = (-1d)*data_diff_cos*sin_theta + data_diff_sin*cos_theta
-      undefine, data_diff_cos, data_diff_sin
-
-      sim_noise_diff_1 = sim_noise_diff_cos*cos_theta + sim_noise_diff_sin*sin_theta
-      sim_noise_diff_2 = (-1d)*sim_noise_diff_cos*sin_theta + sim_noise_diff_sin*cos_theta
-      undefine, sim_noise_diff_cos, sim_noise_diff_sin
+      data_diff_cos[*,*,0] = data_diff_cos[*,*,0] + data_diff_mean * n_freq * z_mpc_delta
+      sim_noise_diff_cos[*,*,0] = sim_noise_diff_cos[*,*,0] + sim_noise_diff_mean * $
+        n_freq * z_mpc_delta
     endif
+  endif
 
-    git, repo_path = ps_repository_dir(), result=kcube_git_hash
-    git_hashes = {uvf:uvf_git_hashes, uvf_wt:uvf_wt_git_hashes, beam:beam_git_hashes, $
-      kcube:kcube_git_hash}
+  ;; for new power calc, need cos2, sin2, cos*sin transforms
+  covar_cos = fltarr(n_kx, n_ky, n_kz)
+  covar_sin = fltarr(n_kx, n_ky, n_kz)
+  covar_cross = fltarr(n_kx, n_ky, n_kz)
 
-    if n_elements(freq_flags) gt 0 then begin
-      save, file = file_struct.kcube_savefile, data_sum_1, data_sum_2, data_diff_1, $
-        data_diff_2, sigma2_1, sigma2_2, sim_noise_sum_1, sim_noise_sum_2, $
-        sim_noise_diff_1, sim_noise_diff_2, kx_mpc, ky_mpc, kz_mpc, kperp_lambda_conv, $
-        delay_params, hubble_param, n_freq_contrib, freq_mask, vs_name, vs_mean, $
-        t_sys_meas, window_int, git_hashes, wt_meas_ave, wt_meas_min, ave_weights, $
-        wt_ave_power_freq, ave_power_freq, wt_ave_power_uvf, ave_power_uvf
-    endif else begin
-      save, file = file_struct.kcube_savefile, data_sum_1, data_sum_2, data_diff_1, $
-        data_diff_2, sigma2_1, sigma2_2, sim_noise_sum_1, sim_noise_sum_2, $
-        sim_noise_diff_1, sim_noise_diff_2, kx_mpc, ky_mpc, kz_mpc, kperp_lambda_conv, $
-        delay_params, hubble_param, n_freq_contrib, vs_name, vs_mean, t_sys_meas, $
-        window_int, git_hashes, wt_meas_ave, wt_meas_min, ave_weights, $
-        wt_ave_power_freq, ave_power_freq, wt_ave_power_uvf, ave_power_uvf
-    endelse
+  ;; comov_dist_los goes from large to small z
+  z_relative = dindgen(n_freq)*z_mpc_delta
+  freq_kz_arr = rebin(reform(kz_mpc, 1, n_kz), n_freq, n_kz) * $
+    rebin(z_relative, n_freq, n_kz)
+
+  cos_arr = cos(freq_kz_arr)
+  sin_arr = sin(freq_kz_arr)
+
+  sum_sigma2 = reform(sum_sigma2, n_kx*n_ky, n_freq)
+  ;; doing 2 FTs so need 2 factors of z_mpc_delta.
+  ;; No multiplication by N b/c don't need to fix IDL FFT
+  covar_cos = matrix_multiply(sum_sigma2, cos_arr^2d) * (z_mpc_delta)^2.
+  covar_sin = matrix_multiply(sum_sigma2, sin_arr^2d) * (z_mpc_delta)^2.
+  covar_cross = matrix_multiply(sum_sigma2, cos_arr*sin_arr) * (z_mpc_delta)^2.
+
+  wh_0f = where(n_freq_contrib eq 0, count_0f)
+  if count_0f gt 0 then begin
+    covar_cos[wh_0f, *] = 0
+    covar_sin[wh_0f, *] = 0
+    covar_cross[wh_0f, *] = 0
+  endif
+
+  ;; reform to get back to n_kx, n_ky, n_kz dimensions
+  covar_cos = reform(covar_cos, n_kx, n_ky, n_kz)
+  covar_sin = reform(covar_sin, n_kx, n_ky, n_kz)
+  covar_cross = reform(covar_cross, n_kx, n_ky, n_kz)
+
+  ;; drop pixels with less than 1/3 of the frequencies
+  if count_fewfreq gt 0 then begin
+    covar_cos = temporary(covar_cos) * mask_fewfreq
+    covar_sin = temporary(covar_sin) * mask_fewfreq
+    covar_cross = temporary(covar_cross) * mask_fewfreq
+    undefine, mask_fewfreq
+  endif
+
+  undefine, sum_sigma2, freq_kz_arr, cos_arr, sin_arr
+
+  if ps_options.std_power then begin
+    ;; standard power means no rotation between sine & cosine modes
+    theta = fltarr(n_elements(covar_cos))
+  endif else begin
+    ;; get rotation angle to diagonalize covariance block
+    theta = atan(2.*covar_cross, covar_cos - covar_sin)/2.
   endelse
+
+  cos_theta = cos(theta)
+  sin_theta = sin(theta)
+  undefine, theta
+
+  sigma2_1 = covar_cos*cos_theta^2. + 2.*covar_cross*cos_theta*sin_theta + $
+    covar_sin*sin_theta^2.
+  sigma2_2 = covar_cos*sin_theta^2. - 2.*covar_cross*cos_theta*sin_theta + $
+    covar_sin*cos_theta^2.
+
+  undefine, covar_cos, covar_sin, covar_cross
+
+  data_sum_1 = data_sum_cos*cos_theta + data_sum_sin*sin_theta
+  data_sum_2 = (-1d)*data_sum_cos*sin_theta + data_sum_sin*cos_theta
+  undefine, data_sum_cos, data_sum_sin
+
+  sim_noise_sum_1 = sim_noise_sum_cos*cos_theta + sim_noise_sum_sin*sin_theta
+  sim_noise_sum_2 = (-1d)*sim_noise_sum_cos*sin_theta + sim_noise_sum_sin*cos_theta
+  undefine, sim_noise_sum_cos, sim_noise_sum_sin
+
+  if nfiles eq 2 then begin
+    data_diff_1 = data_diff_cos*cos_theta + data_diff_sin*sin_theta
+    data_diff_2 = (-1d)*data_diff_cos*sin_theta + data_diff_sin*cos_theta
+    undefine, data_diff_cos, data_diff_sin
+
+    sim_noise_diff_1 = sim_noise_diff_cos*cos_theta + sim_noise_diff_sin*sin_theta
+    sim_noise_diff_2 = (-1d)*sim_noise_diff_cos*sin_theta + sim_noise_diff_sin*cos_theta
+    undefine, sim_noise_diff_cos, sim_noise_diff_sin
+  endif
+
+  git, repo_path = ps_repository_dir(), result=kcube_git_hash
+  git_hashes = {uvf:uvf_git_hashes, uvf_wt:uvf_wt_git_hashes, beam:beam_git_hashes, $
+    kcube:kcube_git_hash}
+
+  if n_elements(freq_flags) gt 0 then begin
+    save, file = file_struct.kcube_savefile, data_sum_1, data_sum_2, data_diff_1, $
+      data_diff_2, sigma2_1, sigma2_2, sim_noise_sum_1, sim_noise_sum_2, $
+      sim_noise_diff_1, sim_noise_diff_2, kx_mpc, ky_mpc, kz_mpc, kperp_lambda_conv, $
+      delay_params, hubble_param, n_freq_contrib, freq_mask, vs_name, vs_mean, $
+      t_sys_meas, window_int, git_hashes, wt_meas_ave, wt_meas_min, ave_weights, $
+      wt_ave_power_freq, ave_power_freq, wt_ave_power_uvf, ave_power_uvf
+  endif else begin
+    save, file = file_struct.kcube_savefile, data_sum_1, data_sum_2, data_diff_1, $
+      data_diff_2, sigma2_1, sigma2_2, sim_noise_sum_1, sim_noise_sum_2, $
+      sim_noise_diff_1, sim_noise_diff_2, kx_mpc, ky_mpc, kz_mpc, kperp_lambda_conv, $
+      delay_params, hubble_param, n_freq_contrib, vs_name, vs_mean, t_sys_meas, $
+      window_int, git_hashes, wt_meas_ave, wt_meas_min, ave_weights, $
+      wt_ave_power_freq, ave_power_freq, wt_ave_power_uvf, ave_power_uvf
+  endelse
+
 
 end
