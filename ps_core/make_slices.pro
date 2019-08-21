@@ -10,6 +10,14 @@ pro make_slices, file_struct, type=type, file_ind = file_ind, data_cube = data_c
       uf_tot = total(total(abs(weights_cube),3),1)
       wh_uf_n0 = where(uf_tot gt 0, count_uf_n0)
       if count_uf_n0 eq 0 then message, 'uvf weights appear to be entirely zero'
+
+      uf_tot_data = total(total(abs(data_cube),3),2)
+      wh_uf_n0_data = where(uf_tot_data gt 0, count_uf_n0_data)
+      if count_uf_n0_data eq 0 then message, 'uvf data appear to be entirely zero'
+
+      uf_mask = (uf_tot gt 0) + (uf_tot_data gt 0)
+      uf_wh_intersect = where(uf_mask gt 1, count_vf_wh_intersect)
+      if count_uf_wh_intersect eq 0 then message 'No v with both nonzero weights and data'
       min_dist_uf_n0 = min(wh_uf_n0, min_loc)
       uf_slice_ind = wh_uf_n0[min_loc]
 
@@ -29,6 +37,17 @@ pro make_slices, file_struct, type=type, file_ind = file_ind, data_cube = data_c
       vf_tot = total(total(abs(weights_cube),3),2)
       wh_vf_n0 = where(vf_tot gt 0, count_vf_n0)
       if count_vf_n0 eq 0 then message, 'uvf weights appear to be entirely zero'
+
+      vf_tot_data = total(total(abs(data_cube),3),2)
+      wh_vf_n0_data = where(vf_tot_data gt 0, count_vf_n0_data)
+      if count_vf_n0_data eq 0 then message, 'uvf data appear to be entirely zero'
+
+      vf_mask = (vf_tot gt 0) + (vf_tot_data gt 0)
+      vf_wh_intersect = where(vf_mask gt 1, count_vf_wh_intersect)
+      if count_vf_wh_intersect eq 0 then message 'No u with both nonzero weights and data'
+      min_dist_vf_n0 = min(wh_vf_n0, min_loc)
+      vf_slice_ind = wh_vf_n0[min_loc]
+
       n_kx = n_elements(kx_mpc)
       min_dist_vf_n0 = min(abs(n_kx/2-wh_vf_n0), min_loc)
       vf_slice_ind = wh_vf_n0[min_loc]
@@ -51,6 +70,14 @@ pro make_slices, file_struct, type=type, file_ind = file_ind, data_cube = data_c
       uv_tot = total(total(abs(weights_cube),2),1)
       wh_uv_n0 = where(uv_tot gt 0, count_uv_n0)
       if count_uv_n0 eq 0 then message, 'uvf weights appear to be entirely zero'
+
+      uv_tot_data = total(total(abs(data_cube),2),1)
+      wh_uv_n0_data = where(uv_tot_data gt 0, count_uv_n0_data)
+      if count_uv_n0_data eq 0 then message, 'uvf data appear to be entirely zero'
+
+      uv_mask = (uv_tot gt 0) + (uv_tot_data gt 0)
+      uv_wh_intersect = where(uv_mask gt 1, count_uv_wh_intersect)
+      if count_uv_wh_intersect eq 0 then message 'No frequency with both nonzero weights and data'
       min_dist_uv_n0 = min(wh_uv_n0, min_loc)
       uv_slice_ind = wh_uv_n0[min_loc]
 
