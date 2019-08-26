@@ -16,10 +16,10 @@ pro make_slices, file_struct, type=type, file_ind = file_ind, data_cube = data_c
       if count_uf_n0_data eq 0 then message, 'uvf data appear to be entirely zero'
 
       uf_mask = (uf_tot gt 0) + (uf_tot_data gt 0)
-      uf_wh_intersect = where(uf_mask gt 1, count_vf_wh_intersect)
-      if count_uf_wh_intersect eq 0 then message 'No v with both nonzero weights and data'
-      min_dist_uf_n0 = min(wh_uf_n0, min_loc)
-      uf_slice_ind = wh_uf_n0[min_loc]
+      uf_wh_intersect = where(uf_mask gt 1, count_uf_wh_intersect)
+      if count_uf_wh_intersect eq 0 then message, 'No v with both nonzero weights and data'
+      min_dist_uf_intersect = min(uf_wh_intersect, min_loc)
+      uf_slice_ind = uf_wh_intersect[min_loc]
 
       uf_slice = uvf_slice(data_cube, kx_mpc, ky_mpc, frequencies, kperp_lambda_conv, $
         delay_params, hubble_param, slice_axis = 1, slice_inds = uf_slice_ind, $
@@ -44,13 +44,9 @@ pro make_slices, file_struct, type=type, file_ind = file_ind, data_cube = data_c
 
       vf_mask = (vf_tot gt 0) + (vf_tot_data gt 0)
       vf_wh_intersect = where(vf_mask gt 1, count_vf_wh_intersect)
-      if count_vf_wh_intersect eq 0 then message 'No u with both nonzero weights and data'
-      min_dist_vf_n0 = min(wh_vf_n0, min_loc)
-      vf_slice_ind = wh_vf_n0[min_loc]
-
-      n_kx = n_elements(kx_mpc)
-      min_dist_vf_n0 = min(abs(n_kx/2-wh_vf_n0), min_loc)
-      vf_slice_ind = wh_vf_n0[min_loc]
+      if count_vf_wh_intersect eq 0 then message, 'No u with both nonzero weights and data'
+      min_dist_vf_intersect = min(vf_wh_intersect, min_loc)
+      vf_slice_ind = vf_wh_intersect[min_loc]
 
       vf_slice = uvf_slice(data_cube, kx_mpc, ky_mpc, frequencies, kperp_lambda_conv, $
         delay_params, hubble_param, slice_axis = 0, slice_inds = vf_slice_ind, $
@@ -77,9 +73,9 @@ pro make_slices, file_struct, type=type, file_ind = file_ind, data_cube = data_c
 
       uv_mask = (uv_tot gt 0) + (uv_tot_data gt 0)
       uv_wh_intersect = where(uv_mask gt 1, count_uv_wh_intersect)
-      if count_uv_wh_intersect eq 0 then message 'No frequency with both nonzero weights and data'
-      min_dist_uv_n0 = min(wh_uv_n0, min_loc)
-      uv_slice_ind = wh_uv_n0[min_loc]
+      if count_uv_wh_intersect eq 0 then message, 'No frequency with both nonzero weights and data'
+      min_dist_uv_intersect = min(uv_wh_intersect, min_loc)
+      uv_slice_ind = uv_wh_intersect[min_loc]
 
       uv_slice = uvf_slice(data_cube, kx_mpc, ky_mpc, frequencies, kperp_lambda_conv, $
         delay_params, hubble_param, slice_axis = 2, slice_inds = uv_slice_ind, $
