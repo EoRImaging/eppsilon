@@ -1657,7 +1657,7 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
 
     ;; get rotation angle to diagonalize covariance block
     theta = atan(2.*covar_cross, covar_cos - covar_sin)/2.
-theta[*,*,*]=0.
+
     cos_theta = cos(theta)
     sin_theta = sin(theta)
     undefine, theta
