@@ -1567,6 +1567,8 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
 
   if ps_options.std_power then begin
     ;; standard power means no rotation between sine & cosine modes
+    print, 'WARNING: using the standard power turns off the Lomb-Scargle ' $
+      + 'rotation, which can result in power gain or loss.'
     theta = fltarr(n_elements(covar_cos))
   endif else begin
     ;; get rotation angle to diagonalize covariance block
