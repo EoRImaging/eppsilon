@@ -2,7 +2,7 @@ function create_ps_options, ps_options = ps_options, $
     ave_removal = ave_removal, wt_cutoffs = wt_cutoffs, $
     wt_measures = wt_measures, spec_window_type = spec_window_type, $
     no_spec_window = no_spec_window, allow_beam_approx = allow_beam_approx, $
-    std_power = std_power, no_wtd_avg = no_wtd_avg, $
+    dft_z_use = dft_z_use, std_power = std_power, no_wtd_avg = no_wtd_avg, $
     inverse_covar_weight = inverse_covar_weight, return_new = return_new
 
   ;; if inverse covariance weighted don't use spectral window
@@ -19,6 +19,10 @@ function create_ps_options, ps_options = ps_options, $
 
     ;; default to not turning off spectral windowing
     if n_elements(no_spec_window) eq 0 then no_spec_window = 0
+
+    ;; default to using the true z's if frequencies aren't evenly spaced
+    ;; NOTE not sure this is the best choice but it is what is already in the code
+    if n_elements(dft_z_use) eq 0 then dft_z_use = 'true'
 
     ;; default to Lomb-Scargle power calc
     if n_elements(std_power) eq 0 then std_power = 0
@@ -74,6 +78,15 @@ function create_ps_options, ps_options = ps_options, $
   if n_elements(spec_window_type) gt 0 then begin
     update_tags.add, 'spec_window_type'
     update_values.add, spec_window_type
+  endif
+
+  if n_elements(dft_z_use) gt 0 then begin
+    wh_val = where(['true', 'regular'] eq dft_z_use, count_whval)
+    if count_whval eq 0 then begin
+      message, 'dft_z_use must be one of "true" or "regular".'
+    endif
+    update_tags.add, 'dft_z_use'
+    update_values.add, dft_z_use
   endif
 
   if n_elements(update_tags) gt 0 or keyword_set(return_new) then begin

@@ -13,7 +13,7 @@ pro ps_wrapper, folder_name_in, obs_name, data_subdirs=data_subdirs, $
     pol_inc = pol_inc, type_inc = type_inc, freq_ch_range = freq_ch_range, $
     freq_flags = freq_flags, freq_flag_name = freq_flag_name, $
     allow_beam_approx = allow_beam_approx, uvf_input = uvf_input, uv_avg = uv_avg, $
-    uv_img_clip = uv_img_clip, std_power = std_power, $
+    uv_img_clip = uv_img_clip, dft_z_use = dft_z_use, std_power = std_power, $
     inverse_covar_weight = inverse_covar_weight, ave_removal = ave_removal, $
     no_wtd_avg = no_wtd_avg, norm_rts_with_fhd = norm_rts_with_fhd, $
     use_weight_cutoff_sim = use_weight_cutoff_sim, $
@@ -258,7 +258,7 @@ pro ps_wrapper, folder_name_in, obs_name, data_subdirs=data_subdirs, $
   ps_options = create_ps_options(ave_removal = ave_removal, wt_cutoffs = wt_cutoffs, $
     wt_measures = wt_measures, spec_window_type = spec_window_type, $
     no_spec_window = no_spec_window, allow_beam_approx = allow_beam_approx, $
-    std_power = std_power, no_wtd_avg = no_wtd_avg, $
+    dft_z_use = dft_z_use, std_power = std_power, no_wtd_avg = no_wtd_avg, $
     inverse_covar_weight = inverse_covar_weight)
 
   binning_2d_options = create_binning_2d_options(no_kzero = no_kzero, $
