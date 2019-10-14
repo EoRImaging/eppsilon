@@ -1546,11 +1546,11 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
       rebin(z_relative, n_freq, n_kz)
   endif else begin
     ;; unevenly spaced frequencies. Need to match what is done above
-    freq_kz_arr_true = rebin(reform(kz_mpc_orig_trim, 1, n_kz), n_freq, n_kz) * $
+    freq_kz_arr_reg = rebin(reform(kz_mpc_orig_trim, 1, n_kz), n_freq, n_kz) * $
       rebin(z_reg, n_freq, n_kz)
 
-    freq_kz_arr_reg = rebin(reform(kz_mpc_orig_trim, 1, n_kz), n_freq, n_kz) * $
-      rebin(comov_dist_los-min(comov_dist_los), n_freq, n_kz)
+    freq_kz_arr_true = rebin(reform(kz_mpc_orig_trim, 1, n_kz), n_freq, n_kz) * $
+      rebin(reverse(comov_dist_los-min(comov_dist_los), n_freq, n_kz)
 
     case ps_options.dft_z_use of:
       'true': freq_kz_arr = freq_kz_arr_true
