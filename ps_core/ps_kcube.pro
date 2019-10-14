@@ -1484,33 +1484,6 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
     endif
   endif
 
-<<<<<<< HEAD
-    data_sum_cos = dcomplex(fltarr(n_kx, n_ky, n_kz))
-    data_sum_sin = dcomplex(fltarr(n_kx, n_ky, n_kz))
-    data_sum_cos[*, *, 0] = a1_0
-    data_sum_cos[*, *, 1:n_kz-1] = a1_n
-    data_sum_sin[*, *, 1:n_kz-1] = b1_n
-
-    sim_noise_sum_cos = dcomplex(fltarr(n_kx, n_ky, n_kz))
-    sim_noise_sum_sin = dcomplex(fltarr(n_kx, n_ky, n_kz))
-    sim_noise_sum_cos[*, *, 0] = a3_0
-    sim_noise_sum_cos[*, *, 1:n_kz-1] = a3_n
-    sim_noise_sum_sin[*, *, 1:n_kz-1] = b3_n
-
-    if nfiles gt 1 then begin
-      data_diff_cos = dcomplex(fltarr(n_kx, n_ky, n_kz))
-      data_diff_sin = dcomplex(fltarr(n_kx, n_ky, n_kz))
-      data_diff_cos[*, *, 0] = a2_0
-      data_diff_cos[*, *, 1:n_kz-1] = a2_n
-      data_diff_sin[*, *, 1:n_kz-1] = b2_n
-
-      sim_noise_diff_cos = dcomplex(fltarr(n_kx, n_ky, n_kz))
-      sim_noise_diff_sin = dcomplex(fltarr(n_kx, n_ky, n_kz))
-      sim_noise_diff_cos[*, *, 0] = a4_0
-      sim_noise_diff_cos[*, *, 1:n_kz-1] = a4_n
-      sim_noise_diff_sin[*, *, 1:n_kz-1] = b4_n
-    endif
-=======
   data_sum_cos = complex(fltarr(n_kx, n_ky, n_kz))
   data_sum_sin = complex(fltarr(n_kx, n_ky, n_kz))
   data_sum_cos[*, *, 0] = a1_0
@@ -1536,7 +1509,6 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
     sim_noise_diff_cos[*, *, 1:n_kz-1] = a4_n
     sim_noise_diff_sin[*, *, 1:n_kz-1] = b4_n
   endif
->>>>>>> rework the std_power implementation: just don't rotate between sin & cos
 
   if ps_options.ave_removal then begin
 
@@ -1598,20 +1570,7 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
     theta = fltarr(n_elements(covar_cos))
   endif else begin
     ;; get rotation angle to diagonalize covariance block
-    ;; There is a numerical issue where the denominator is near zero.
-    ;; If the numerator is near zero, theta should be zero (no matter what the denom is)
-    ;; If the numerator is not near zero and the denominator is near zero, theta should be pi/4
-    ;; We test these cases explicitly and set theta to the correct values
-    zeroish_thresh = 1e-8
-    wh_num_zeroish = where(abs(covar_cross) lt zeroish_thresh, count_num_zeroish)
-    denominator = covar_cos - covar_sin
-    wh_denom_zeroish = where(abs(denominator) lt zeroish_thresh, count_denom_zeroish)
-
-    ;; use atan with a single argument because it should be between -pi/2 and pi/2 not -pi and pi
-    theta = atan(2.*covar_cross/denominator)/2.
-
-    if count_denom_zeroish gt 0 then theta[wh_denom_zeroish] = !dpi / 2.
-    if count_num_zeroish gt 0 then theta[wh_num_zeroish] = 0.
+    theta = atan(2.*covar_cross, covar_cos - covar_sin)/2.
   endelse
 
   cos_theta = cos(theta)
