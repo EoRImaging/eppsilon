@@ -1484,27 +1484,27 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
     endif
   endif
 
-  data_sum_cos = complex(fltarr(n_kx, n_ky, n_kz))
-  data_sum_sin = complex(fltarr(n_kx, n_ky, n_kz))
+  data_sum_cos = dcomplex(fltarr(n_kx, n_ky, n_kz))
+  data_sum_sin = dcomplex(fltarr(n_kx, n_ky, n_kz))
   data_sum_cos[*, *, 0] = a1_0
   data_sum_cos[*, *, 1:n_kz-1] = a1_n
   data_sum_sin[*, *, 1:n_kz-1] = b1_n
 
-  sim_noise_sum_cos = complex(fltarr(n_kx, n_ky, n_kz))
-  sim_noise_sum_sin = complex(fltarr(n_kx, n_ky, n_kz))
+  sim_noise_sum_cos = dcomplex(fltarr(n_kx, n_ky, n_kz))
+  sim_noise_sum_sin = dcomplex(fltarr(n_kx, n_ky, n_kz))
   sim_noise_sum_cos[*, *, 0] = a3_0
   sim_noise_sum_cos[*, *, 1:n_kz-1] = a3_n
   sim_noise_sum_sin[*, *, 1:n_kz-1] = b3_n
 
   if nfiles gt 1 then begin
-    data_diff_cos = complex(fltarr(n_kx, n_ky, n_kz))
-    data_diff_sin = complex(fltarr(n_kx, n_ky, n_kz))
+    data_diff_cos = dcomplex(fltarr(n_kx, n_ky, n_kz))
+    data_diff_sin = dcomplex(fltarr(n_kx, n_ky, n_kz))
     data_diff_cos[*, *, 0] = a2_0
     data_diff_cos[*, *, 1:n_kz-1] = a2_n
     data_diff_sin[*, *, 1:n_kz-1] = b2_n
 
-    sim_noise_diff_cos = complex(fltarr(n_kx, n_ky, n_kz))
-    sim_noise_diff_sin = complex(fltarr(n_kx, n_ky, n_kz))
+    sim_noise_diff_cos = dcomplex(fltarr(n_kx, n_ky, n_kz))
+    sim_noise_diff_sin = dcomplex(fltarr(n_kx, n_ky, n_kz))
     sim_noise_diff_cos[*, *, 0] = a4_0
     sim_noise_diff_cos[*, *, 1:n_kz-1] = a4_n
     sim_noise_diff_sin[*, *, 1:n_kz-1] = b4_n
