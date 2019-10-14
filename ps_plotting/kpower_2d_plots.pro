@@ -293,7 +293,7 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, $
 
   endif else if n_elements(power_savefile) gt 0 then begin
     restore, power_savefile
-    if n_elements(noise) then begin
+    if n_elements(noise) GT 0 then begin
       ;; backwards compatibility: noise_meas used to just be called noise
       noise_meas = noise
       undefine, noise
