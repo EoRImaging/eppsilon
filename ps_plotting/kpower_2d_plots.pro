@@ -291,7 +291,14 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, $
 
     plot_type = 'power_ratio'
 
-  endif else if n_elements(power_savefile) gt 0 then restore, power_savefile
+  endif else if n_elements(power_savefile) gt 0 then begin
+    restore, power_savefile
+    if n_elements(noise) then begin
+      ;; backwards compatibility: noise_meas used to just be called noise
+      noise_meas = noise
+      undefine, noise
+    endif
+  endelse
 
   if keyword_set(snr) then begin
     if n_elements(weights) eq 0 then message, 'weights is undefined'
@@ -322,8 +329,8 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, $
 
   if keyword_set(plot_noise) then begin
     if n_elements(noise) eq 0 then message, 'noise is undefined'
-    power_use = noise
-    plot_type = 'noise'
+    power_use = noise_meas
+    plot_type = 'noise_meas'
   endif
 
   if keyword_set(plot_sim_noise) then begin
@@ -339,9 +346,9 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, $
   endif
 
   if keyword_set(nnr) then begin
-    if n_elements(noise) eq 0 then message, 'noise is undefined in this file'
+    if n_elements(noise_meas) eq 0 then message, 'noise_meas is undefined'
     if n_elements(noise_expval) eq 0 then message, 'noise_expval is undefined'
-    power_use = noise / noise_expval
+    power_use = noise_meas / noise_expval
     wh_err0 = where(noise_expval eq 0, count_err0)
     if count_err0 gt 0 then power_use[wh_err0] = 0
 
