@@ -1570,7 +1570,20 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
     theta = fltarr(n_elements(covar_cos))
   endif else begin
     ;; get rotation angle to diagonalize covariance block
-    theta = atan(2.*covar_cross, covar_cos - covar_sin)/2.
+    ;; There is a numerical issue where the denominator is near zero.
+    ;; If the numerator is near zero, theta should be zero (no matter what the denom is)
+    ;; If the numerator is not near zero and the denominator is near zero, theta should be pi/4
+    ;; We test these cases explicitly and set theta to the correct values
+    zeroish_thresh = 1e-8
+    wh_num_zeroish = where(abs(covar_cross) lt zeroish_thresh, count_num_zeroish)
+    denominator = covar_cos - covar_sin
+    wh_denom_zeroish = where(abs(denominator) lt zeroish_thresh, count_denom_zeroish)
+
+    ;; use atan with a single argument because it should be between -pi/2 and pi/2 not -pi and pi
+    theta = atan(2.*covar_cross/denominator)/2.
+
+    if count_denom_zeroish gt 0 then theta[wh_denom_zeroish] = !dpi / 2.
+    if count_num_zeroish gt 0 then theta[wh_num_zeroish] = 0.
   endelse
 
   cos_theta = cos(theta)
