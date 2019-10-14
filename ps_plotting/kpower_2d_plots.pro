@@ -328,7 +328,7 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, $
   endif
 
   if keyword_set(plot_noise) then begin
-    if n_elements(noise) eq 0 then message, 'noise is undefined'
+    if n_elements(noise_meas) eq 0 then message, 'noise is undefined'
     power_use = noise_meas
     plot_type = 'noise_meas'
   endif
