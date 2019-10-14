@@ -524,7 +524,7 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, $
       plot_title = 'SNR (' + textoidl('P_k/\sigma', font = font) + ')'
       if pub then plotfile_add = '_2dsnr' + plot_exten
     end
-    'noise': begin
+    'noise_meas': begin
       if keyword_set(hinv) then begin
         power_use = power_use * (hubble_param)^3d
         units_str = textoidl(' (mK^2 !8h!X^{-3} Mpc^3)', font = font)
