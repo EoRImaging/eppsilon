@@ -22,6 +22,9 @@ function create_ps_options, ps_options = ps_options, $
 
     ;; default to using the true z's if frequencies aren't evenly spaced
     ;; NOTE not sure this is the best choice but it is what is already in the code
+    ;; NOTE this isn't currently used to update filenames. It probably should
+    ;; but then we'd need to move the code that checks for even freq. sampling
+    ;; upstream
     if n_elements(dft_z_use) eq 0 then dft_z_use = 'true'
 
     ;; default to Lomb-Scargle power calc
