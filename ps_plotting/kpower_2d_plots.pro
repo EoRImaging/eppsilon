@@ -298,7 +298,7 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, $
       noise_meas = noise
       undefine, noise
     endif
-  endelse
+  endif
 
   if keyword_set(snr) then begin
     if n_elements(weights) eq 0 then message, 'weights is undefined'
