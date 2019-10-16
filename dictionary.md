@@ -187,75 +187,25 @@ suppress the printing of progress report statements during the DFT.
 
 ## Power spectrum calculation keywords:
 
-**ave_removal**: This is a flag (valid values are 0/1, default=1) indicating
-that the average along the frequency axis of the cubes should be removed before
-the frequency Fourier Transform and then added back in to the k_parallel=0
-mode. This has been well tested and substantially reduces the bleed of the flat
-spectrum foregrounds into the window.
+**ave_removal**: This is a flag (valid values are 0/1, default=1) indicating that the average along the frequency axis of the cubes should be removed before the frequency Fourier Transform and then added back in to the k_parallel=0 mode. This has been well tested and substantially reduces the bleed of the flat spectrum foregrounds into the window.
 
-**wt_cutoffs**: This is a keyword to support a very subtle power spectrum
-normalization issue identified by Adrian Liu and quantified for MWA with
-simulations. It turns out that when baselines substantially overlap there is a
-suppression of the power of stochastic fields (like the EoR). We measure this
-overlap using the weights cube and we found through simulations that for MWA
-antennas, above a certain weight value the power suppression asymptotes to a
-factor of 0.5. A conservative weight value to use to be sure we are in that
-regime is a weight value of 1, and if we throw away bins below that value we
-lose very little sensitivity with the MWA. The wt_cutoffs keyword is the
-weights value to use for the cutoff value (it is calculated in uvf space, so it
-applies to all kz values for a given kx,ky pixel). It is defaulted to 1.0 and
-is only used during the binnning to 1D or 2D power spectra (for 2D, it is used
-to normalize areas of the ps properly but lower values are not thrown out, for
-1D, pixels with lower values are excluded and the power spectrum is
-normalized by a factor of 2). To turn this normalization correction off, set
-wt_cutoffs=0.
+**wt_cutoffs**: This is a keyword to support a very subtle power spectrum normalization issue identified by Adrian Liu and quantified for MWA with simulations. It turns out that when baselines substantially overlap there is a suppression of the power of stochastic fields (like the EoR). We measure this overlap using the weights cube and we found through simulations that for MWA antennas, above a certain weight value the power suppression asymptotes to a factor of 0.5. A conservative weight value to use to be sure we are in that regime is a weight value of 1, and if we throw away bins below that value we lose very little sensitivity with the MWA. The wt_cutoffs keyword is the weights value to use for the cutoff value (it is calculated in uvf space, so it applies to all kz values for a given kx,ky pixel). It is defaulted to 1.0 and is only used during the binnning to 1D or 2D power spectra (for 2D, it is used to normalize areas of the ps properly but lower values are not thrown out, for 1D, pixels with lower values are excluded and the power spectrum is normalized by a factor of 2). To turn this normalization correction off, set wt_cutoffs=0.
 
-**wt_measures**: See the description for wt_cutoffs to get the full context.
-This keyword defines how the weight value for the power normalization is
-quantified in the uv plane given a uvf cube. Options are 'min' (minimum value
-along frequency axis) and 'ave' (average value along frequency axis), default
-is 'min'. We don't see much change between 'min' and 'ave', but 'min' is more
-conservative.
+**wt_measures**: See the description for wt_cutoffs to get the full context. This keyword defines how the weight value for the power normalization is quantified in the uv plane given a uvf cube. Options are 'min' (minimum value along frequency axis) and 'ave' (average value along frequency axis), default is 'min'. We don't see much change between 'min' and 'ave', but 'min' is more conservative.
 
-**spec_window_type**: Name of spectral window to apply in the frequency
-direction before Fourier Transforming. Default is 'Blackman-Harris'. Full set
-of options is: ['Hann', 'Hamming', 'Blackman', 'Nutall', 'Blackman-Nutall',
-'Blackman-Harris', 'Blackman-Harris^2'].
+**spec_window_type**: Name of spectral window to apply in the frequency direction before Fourier Transforming. Default is 'Blackman-Harris'. Full set of options is: ['Hann', 'Hamming', 'Blackman', 'Nutall', 'Blackman-Nutall', 'Blackman-Harris', 'Blackman-Harris^2'].
 
-**no_spec_window**: This is a flag (valid values are 0/1, default=0) indicating
-that no spectral window should be applied (see spec_window_type keyword).
+**no_spec_window**: This is a flag (valid values are 0/1, default=0) indicating that no spectral window should be applied (see spec_window_type keyword).
 
-**dft_z_use**: This controls what z values to use in the frequency DFT. This
-only applies if the frequency channels are not evenly spaced (in which case we
-do a DFT rather than an FFT). The two options are 'true' or 'regular':
-'true' uses the actual z values,  'regular'  uses regularly spaced z values
-which matches what would happen with an FFT over regularly spaced frequency
-channels (which are not regularly spaced in z). The default is 'true'.
+**allow_beam_approx**: This is a flag (valid values are 0/1, default=0) indicating that a less good beam integral approximation should be used if the beam_integral is not present or is zero in the obs structure. If this keyword is not set and the beam_integral is not present or is zero, eppsilon will fail fairly quickly. If this keyword is set and the beam_integral is not present or is zero, eppsilon will print a warning but continue using a less good approximation.
 
-**allow_beam_approx**: This is a flag (valid values are 0/1, default=0)
-indicating that a less good beam integral approximation should be used if the
-beam_integral is not present or is zero in the obs structure. If this keyword
-is not set and the beam_integral is not present or is zero, eppsilon will fail
-fairly quickly. If this keyword is set and the beam_integral is not present or
-is zero, eppsilon will print a warning but continue using a less good
-approximation.
+**dft_z_use**: This controls what z values to use in the frequency DFT. This only applies if the frequency channels are not evenly spaced (in which case we do a DFT rather than an FFT). The two options are 'true' or 'regular', the default is 'true' which uses the actual z values. The 'regular' option uses regularly spaced z values which matches what would happen with an FFT over regularly spaced frequency channels (which are not regularly spaced in z).
 
-**std_power**: A rarely used testing/exploration flag (valid values are 0/1,
-default=0) indicating that the power should be calculated using the sine and
-cosine terms of the FFT along the frequency axis, rather than the
-Lomb-Scargle components.
+**std_power**: A rarely used testing/exploration flag (valid values are 0/1, default=0) indicating that the power should be calculated using the sine and cosine terms of the FFT along the frequency axis, rather than the Lomb-Scargle components.
 
-**no_wtd_avg**: A rarely used testing/exploration flag (valid values are 0/1,
-default=0) indicating that the power should be calculated as the sum of the
-square of the two Fourier Transform components (either Lomb-Scargle components
-or sine/cosine components if the std_power flag is set), rather than as a
-variance weighted sum of the square of the components.
+**no_wtd_avg**: A rarely used testing/exploration flag (valid values are 0/1, default=0) indicating that the power should be calculated as the sum of the square of the two Fourier Transform components (either Lomb-Scargle components or sine/cosine components if the std_power flag is set), rather than as a variance weighted sum of the square of the components.
 
-**inverse_covar_weight**: *This is very much under development and is not yet
-trustworthy.* A rarely used testing/exploration flag (valid values are 0/1,
-default=0) that constructs a frequency covariance matrix assuming flat spectrum
-foregrounds, transforms it to k_parallel and uses it to weight the power
-spectra.
+**inverse_covar_weight**: *This is very much under development and is not yet trustworthy.* A rarely used testing/exploration flag (valid values are 0/1, default=0) that constructs a frequency covariance matrix assuming flat spectrum foregrounds, transforms it to k_parallel and uses it to weight the power spectra.
 
 
 ## Power spectrum binning keywords:
