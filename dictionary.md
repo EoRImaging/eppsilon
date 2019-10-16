@@ -155,6 +155,7 @@ These flags (all default=0) tell the code to redo parts of the analysis that wou
 
 **kpar_range_kperppower**: This is a 2D vector giving the range of k_parallel values to include in the 1D k_perpendicular power binning (resulting in a 1D power as a function k_perpendicular rather than k).
 
+**kperp_density_norm_diagnostic_1d**: This is a flag (valid values are 0/1, default=0) indicating that low weight uv pixels should be included in the 1D binning, but with the appropriate density normalization corrections applied.
 
 ## Outputs keywords and options:
 

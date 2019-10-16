@@ -6,13 +6,21 @@ function create_binning_1d_options, binning_1d_options = binning_1d_options, $
     kx_range_1dave = kx_range_1dave, kx_range_lambda_1dave = kx_range_lambda_1dave, $
     ky_range_1dave = ky_range_1dave, ky_range_lambda_1dave = ky_range_lambda_1dave, $
     kperp_range_lambda_kparpower = kperp_range_lambda_kparpower, $
-    kpar_range_kperppower = kpar_range_kperppower, return_new = return_new
+    kpar_range_kperppower = kpar_range_kperppower, $
+    kperp_density_norm_diagnostic = kperp_density_norm_diagnostic, $
+    return_new = return_new
 
   update_tags = list()
   update_values = list()
   if n_elements(binning_1d_options) eq 0 then begin
     ;; default to linear bins
     if n_elements(log_k) eq 0 then log_k = 0
+
+    ;; default to not using kperp_density_norm_diagnostic
+    ;; which keeps around low density voxels but normalizes things properly
+    if n_elements(kperp_density_norm_diagnostic) eq 0 then begin
+      kperp_density_norm_diagnostic = 0
+    endif
 
     binning_1d_options = {log_k: log_k}
   endif else begin
@@ -144,6 +152,11 @@ function create_binning_1d_options, binning_1d_options = binning_1d_options, $
     endif
     update_tags.add, 'kpar_range_kperppower'
     update_values.add, kpar_range_kperppower
+  endif
+
+  if n_elements(kperp_density_norm_diagnostic) gt 0 then begin
+    update_tags.add, 'kperp_density_norm_diagnostic'
+    update_values.add, kperp_density_norm_diagnostic
   endif
 
   if isa(remove_tags) gt 0 then begin

@@ -38,6 +38,7 @@ pro ps_wrapper, folder_name_in, obs_name, data_subdirs=data_subdirs, $
     ky_range_lambda_1dave = ky_range_lambda_1dave, $
     kperp_range_lambda_kparpower = kperp_range_lambda_kparpower, $
     kpar_range_kperppower = kpar_range_kperppower, $
+    kperp_density_norm_diagnostic_1d = kperp_density_norm_diagnostic_1d, $
     kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, $
     kperp_plot_range = kperp_plot_range, kperp_lambda_plot_range = kperp_lambda_plot_range, $
     kpar_plot_range = kpar_plot_range, baseline_axis = baseline_axis, $
@@ -272,7 +273,8 @@ pro ps_wrapper, folder_name_in, obs_name, data_subdirs=data_subdirs, $
     kx_range_lambda_1dave = kx_range_lambda_1dave, ky_range_1dave = ky_range_1dave, $
     ky_range_lambda_1dave = ky_range_lambda_1dave, $
     kperp_range_lambda_kparpower = kperp_range_lambda_kparpower, $
-    kpar_range_kperppower = kpar_range_kperppower)
+    kpar_range_kperppower = kpar_range_kperppower, $
+    kperp_density_norm_diagnostic = kperp_density_norm_diagnostic_1d)
 
   plot_options = create_plot_options(hinv = hinv, plot_path = plot_path, $
     plot_filebase = plot_filebase, note = note, individual_plots = individual_plots, $

@@ -125,6 +125,7 @@ pro ps_binning, file_struct, sim = sim, freq_flags = freq_flags, $
         bin_arr_3d = bin_arr_3d, noise_frac_3d = noise_frac_3d, $
         wedge_amp = wedge_amp_use, kperp_density_measure = wt_meas_use, $
         kperp_density_cutoff = wt_cutoff_use, $
+        kperp_density_norm_diagnostic = binning_1d_options.kperp_density_norm_diagnostic, $
         binning_1d_options = binning_1d_options, plot_options = plot_options, $
         hubble_param = hubble_param, kperp_lambda_conv)
 
@@ -134,6 +135,7 @@ pro ps_binning, file_struct, sim = sim, freq_flags = freq_flags, $
         bin_arr_3d = bin_arr_3d, var_power_1d = var_power_1d, mean_var_1d = mean_var_1d, $
         noise_frac_3d = noise_frac_3d, wedge_amp = wedge_amp_use, $
         kperp_density_measure = wt_meas_use, kperp_density_cutoff = wt_cutoff_use, $
+        kperp_density_norm_diagnostic = binning_1d_options.kperp_density_norm_diagnostic, $
         binning_1d_options = binning_1d_options, plot_options = plot_options, $
         hubble_param = hubble_param, kperp_lambda_conv)
 
@@ -144,6 +146,7 @@ pro ps_binning, file_struct, sim = sim, freq_flags = freq_flags, $
         mean_var_1d = new_mean_var_1d, noise_frac_3d = noise_frac_3d, $
         wedge_amp = wedge_amp_use, $
         kperp_density_measure = wt_meas_use, kperp_density_cutoff = wt_cutoff_use, $
+        kperp_density_norm_diagnostic = binning_1d_options.kperp_density_norm_diagnostic, $
         binning_1d_options = binning_1d_options, plot_options = plot_options, $
         hubble_param = hubble_param, kperp_lambda_conv)
 
@@ -153,6 +156,7 @@ pro ps_binning, file_struct, sim = sim, freq_flags = freq_flags, $
           binned_noise_expval = noise_expval_1d, binned_weights = weights_1d, $
           bin_arr_3d = bin_arr_3d, wedge_amp = wedge_amp_use, $
           kperp_density_measure = wt_meas_use, kperp_density_cutoff = wt_cutoff_use, $
+          kperp_density_norm_diagnostic = binning_1d_options.kperp_density_norm_diagnostic, $
           binning_1d_options = binning_1d_options, plot_options = plot_options, $
           hubble_param = hubble_param, kperp_lambda_conv)
 
@@ -161,6 +165,7 @@ pro ps_binning, file_struct, sim = sim, freq_flags = freq_flags, $
           binned_noise_expval = noise_expval_1d, binned_weights = weights_1d, $
           bin_arr_3d = bin_arr_3d, wedge_amp = wedge_amp_use, $
           kperp_density_measure = wt_meas_use, kperp_density_cutoff = wt_cutoff_use, $
+          kperp_density_norm_diagnostic = binning_1d_options.kperp_density_norm_diagnostic, $
           binning_1d_options = binning_1d_options, plot_options = plot_options, $
           hubble_param = hubble_param, kperp_lambda_conv)
       endif
@@ -305,6 +310,7 @@ pro ps_binning, file_struct, sim = sim, freq_flags = freq_flags, $
       binned_noise_expval = noise_expval_kpar, binned_weights = weights_1d, $
       bin_arr_3d = bin_arr_3d, /kpar_power, $
       kperp_density_measure = wt_meas_use, kperp_density_cutoff = wt_cutoff_use, $
+      kperp_density_norm_diagnostic = binning_1d_options.kperp_density_norm_diagnostic, $
       binning_1d_options = kpar_binning_1d_options, plot_options = plot_options, $
       hubble_param = hubble_param, kperp_lambda_conv)
 
@@ -314,6 +320,7 @@ pro ps_binning, file_struct, sim = sim, freq_flags = freq_flags, $
       var_power_1d = var_power_1d, mean_var_1d = mean_var_1d, $
       bin_arr_3d = bin_arr_3d, /kpar_power, $
       kperp_density_measure = wt_meas_use, kperp_density_cutoff = wt_cutoff_use, $
+      kperp_density_norm_diagnostic = binning_1d_options.kperp_density_norm_diagnostic, $
       binning_1d_options = kpar_binning_1d_options, plot_options = plot_options, $
       hubble_param = hubble_param, kperp_lambda_conv)
 
@@ -323,6 +330,7 @@ pro ps_binning, file_struct, sim = sim, freq_flags = freq_flags, $
         binned_noise_expval = noise_expval_kpar, binned_weights = weights_1d, $
         bin_arr_3d = bin_arr_3d, /kpar_power, $
         kperp_density_measure = wt_meas_use, kperp_density_cutoff = wt_cutoff_use, $
+        kperp_density_norm_diagnostic = binning_1d_options.kperp_density_norm_diagnostic, $
         binning_1d_options = kpar_binning_1d_options, plot_options = plot_options, $
         hubble_param = hubble_param, kperp_lambda_conv)
 
@@ -331,6 +339,7 @@ pro ps_binning, file_struct, sim = sim, freq_flags = freq_flags, $
         binned_noise_expval = noise_expval_kpar, binned_weights = weights_1d, $
         bin_arr_3d = bin_arr_3d, /kpar_power, $
         kperp_density_measure = wt_meas_use, kperp_density_cutoff = wt_cutoff_use, $
+        kperp_density_norm_diagnostic = binning_1d_options.kperp_density_norm_diagnostic, $
         binning_1d_options = kpar_binning_1d_options, plot_options = plot_options, $
         hubble_param = hubble_param, kperp_lambda_conv)
     endif
@@ -400,6 +409,7 @@ pro ps_binning, file_struct, sim = sim, freq_flags = freq_flags, $
       binned_noise_expval = noise_expval_kperp, binned_weights = weights_1d, $
       bin_arr_3d = bin_arr_3d, /kperp_power, $
       kperp_density_measure = wt_meas_use, kperp_density_cutoff = wt_cutoff_use, $
+      kperp_density_norm_diagnostic = binning_1d_options.kperp_density_norm_diagnostic, $
       binning_1d_options = kperp_binning_1d_options, plot_options = plot_options, $
       hubble_param = hubble_param, kperp_lambda_conv)
 
@@ -409,6 +419,7 @@ pro ps_binning, file_struct, sim = sim, freq_flags = freq_flags, $
       var_power_1d = var_power_1d, mean_var_1d = mean_var_1d, $
       bin_arr_3d = bin_arr_3d, /kperp_power, $
       kperp_density_measure = wt_meas_use, kperp_density_cutoff = wt_cutoff_use, $
+      kperp_density_norm_diagnostic = binning_1d_options.kperp_density_norm_diagnostic, $
       binning_1d_options = kperp_binning_1d_options, plot_options = plot_options, $
       hubble_param = hubble_param, kperp_lambda_conv)
 
@@ -418,6 +429,7 @@ pro ps_binning, file_struct, sim = sim, freq_flags = freq_flags, $
         binned_noise_expval = noise_expval_kperp, binned_weights = weights_1d, $
         bin_arr_3d = bin_arr_3d, /kperp_power, $
         kperp_density_measure = wt_meas_use, kperp_density_cutoff = wt_cutoff_use, $
+        kperp_density_norm_diagnostic = binning_1d_options.kperp_density_norm_diagnostic, $
         binning_1d_options = kperp_binning_1d_options, plot_options = plot_options, $
         hubble_param = hubble_param, kperp_lambda_conv)
 
@@ -426,6 +438,7 @@ pro ps_binning, file_struct, sim = sim, freq_flags = freq_flags, $
         binned_noise_expval = noise_expval_kperp, binned_weights = weights_1d, $
         bin_arr_3d = bin_arr_3d, /kperp_power, $
         kperp_density_measure = wt_meas_use, kperp_density_cutoff = wt_cutoff_use, $
+        kperp_density_norm_diagnostic = binning_1d_options.kperp_density_norm_diagnostic, $
         binning_1d_options = kperp_binning_1d_options, plot_options = plot_options, $
         hubble_param = hubble_param, kperp_lambda_conv)
     endif
