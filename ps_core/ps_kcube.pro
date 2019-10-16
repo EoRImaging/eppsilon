@@ -52,12 +52,13 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
   ;; The following calculation is taken directly from the IDL FFT documentation
   int_arr = findgen((n_freq - 1)/2) + 1
   is_n_freq_even = (n_freq mod 2) eq 0
+  fft_shift_val = -(n_freq/2 + 1)
   if (is_n_freq_even) then begin
     kz_integers = [0.0, int_arr, n_freq/2, -n_freq/2 + int_arr]
   endif else begin
-    kz_integers = [0.0, int_arr, -(n_freq/2 + 1) + int_arr]
+    kz_integers = [0.0, int_arr, fft_shift_val + int_arr]
   endelse
-  kz_integers = shift(kz_integers, -(n_freq/2 + 1))
+  kz_integers = shift(kz_integers, fft_shift_val)
   if where(kz_integers eq min(kz_integers)) ne 0 then begin
     message, 'something went very wrong with shifting!'
   endif
@@ -1269,7 +1270,7 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
   if ps_options.inverse_covar_weight then begin
 
     max_eta_val = max(sum_sigma2)
-    eta_var = shift([max_eta_val, fltarr(n_freq-1)], -(n_freq/2 + 1))
+    eta_var = shift([max_eta_val, fltarr(n_freq-1)], fft_shift_val)
     covar_eta_fg = diag_matrix(eta_var)
 
     identity = diag_matrix([fltarr(n_freq)+1d])
@@ -1278,7 +1279,7 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
     undefine, identity
 
     covar_z_fg = matrix_multiply(inv_ft_matrix, $
-      matrix_multiply(shift(covar_eta_fg, -(n_freq/2 + 1), -(n_freq/2 + 1)), conj(inv_ft_matrix), /btranspose))
+      matrix_multiply(shift(covar_eta_fg, fft_shift_val, fft_shift_val), conj(inv_ft_matrix), /btranspose))
 
     wt_data_sum = fltarr(n_kx, n_ky, n_freq)
     wt_data_diff = fltarr(n_kx, n_ky, n_freq)
@@ -1297,7 +1298,7 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
         covar_z = diag_matrix(var_z_inst) + covar_z_fg
         inv_covar_z = la_invert(covar_z)
         inv_covar_kz = shift(matrix_multiply(ft_matrix, $
-          matrix_multiply(inv_covar_z, conj(ft_matrix), /btranspose)), -(n_freq/2 + 1), -(n_freq/2 + 1))
+          matrix_multiply(inv_covar_z, conj(ft_matrix), /btranspose)), fft_shift_val, fft_shift_val)
 
         inv_var = 1/var_z_inst
         wh_sigma0 = where(var_z_inst eq 0, count_sigma0)
@@ -1310,7 +1311,7 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
 
         wt_sum_sigma2[i,j,*] = diag_matrix(shift(matrix_multiply(inv_covar_z, $
           matrix_multiply(diag_matrix(var_z_inst), conj(inv_covar_z), /btranspose)), $
-          -(n_freq/2 + 1), -(n_freq/2 + 1)))
+          fft_shift_val, fft_shift_val))
 
       endfor
     endfor
@@ -1358,8 +1359,8 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
     sim_noise_sum_ft = fft(sim_noise_sum, dimension=3) * n_freq * z_mpc_delta
 
     ;; put k0 in middle of cube
-    data_sum_ft = shift(data_sum_ft, [0,0,-(n_freq/2 + 1)])
-    sim_noise_sum_ft = shift(sim_noise_sum_ft, [0,0,-(n_freq/2 + 1)])
+    data_sum_ft = shift(data_sum_ft, [0,0,fft_shift_val])
+    sim_noise_sum_ft = shift(sim_noise_sum_ft, [0,0,fft_shift_val])
 
     if trim_max_pos then begin
       ;; remove unmatched max k positive mode:
@@ -1371,7 +1372,7 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
     if nfiles eq 2 then begin
       data_diff_ft = fft(data_diff, dimension=3) * n_freq * z_mpc_delta
       ;; put k0 in middle of cube
-      data_diff_ft = shift(data_diff_ft, [0,0,-(n_freq/2 + 1)])
+      data_diff_ft = shift(data_diff_ft, [0,0,fft_shift_val])
       if trim_max_pos then begin
         ;; remove unmatched max k positive mode:
         data_diff_ft = data_diff_ft[*, *, 0:-2]
@@ -1380,7 +1381,7 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
 
       sim_noise_diff_ft = fft(sim_noise_diff, dimension=3) * n_freq * z_mpc_delta
       ;; put k0 in middle of cube
-      sim_noise_diff_ft = shift(sim_noise_diff_ft, [0,0,-(n_freq/2 + 1)])
+      sim_noise_diff_ft = shift(sim_noise_diff_ft, [0,0,fft_shift_val])
       if trim_max_pos then begin
         ;; remove unmatched max k positive mode:
         sim_noise_diff_ft = sim_noise_diff_ft[*, *, 0:-2]
