@@ -225,6 +225,13 @@ of options is: ['Hann', 'Hamming', 'Blackman', 'Nutall', 'Blackman-Nutall',
 **no_spec_window**: This is a flag (valid values are 0/1, default=0) indicating
 that no spectral window should be applied (see spec_window_type keyword).
 
+**dft_z_use**: This controls what z values to use in the frequency DFT. This
+only applies if the frequency channels are not evenly spaced (in which case we
+do a DFT rather than an FFT). The two options are 'true' or 'regular':
+'true' uses the actual z values,  'regular'  uses regularly spaced z values
+which matches what would happen with an FFT over regularly spaced frequency
+channels (which are not regularly spaced in z). The default is 'true'.
+
 **allow_beam_approx**: This is a flag (valid values are 0/1, default=0)
 indicating that a less good beam integral approximation should be used if the
 beam_integral is not present or is zero in the obs structure. If this keyword
