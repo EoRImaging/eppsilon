@@ -1017,6 +1017,16 @@ function fhd_file_setup, filename, weightfile = weightfile, $
       frequencies = freq / 1e6 ;; in MHz
     endelse
 
+    ;; check frequency spacing to determine if a frequency DFT is required.
+    if not ps_options.freq_dft then begin
+      freq_diff = frequencies - shift(frequencies, 1)
+      freq_diff = freq_diff[1:*]
+      if max(abs(freq_diff-freq_diff[0])) gt 1e-12 then begin
+        ps_options = create_ps_options(ps_options = ps_options, $
+          freq_dft = 1)
+      endif
+    endif
+
     metadata_struct = {datafile: datafile, weightfile: weightfile, $
       variancefile:variancefile, cube_varname:cube_varname, $
       weight_varname:weight_varname, variance_varname:variance_varname, $

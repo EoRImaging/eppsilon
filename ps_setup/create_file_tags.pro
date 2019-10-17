@@ -63,6 +63,11 @@ function create_file_tags, freq_ch_range = freq_ch_range, freq_flags = freq_flag
   uvf_tag = uv_tag + fch_tag
 
   if ps_options.std_power then kcube_tag = '_stdp' else kcube_tag = ''
+  if ps_options.freq_dft then begin
+    kcube_tag = kcube_tag + '_dft'
+    ;; add a tag for using the regularly spaced approximate z rather than true z
+    if ps_options.dft_z_use eq 'regular' then kcube_tag = kcube_tag + 'reg'
+  endif
   if ps_options.inverse_covar_weight then kcube_tag = kcube_tag + '_invcovar'
   if ps_options.ave_removal then kcube_tag = kcube_tag + '_averemove'
   kcube_tag = kcube_tag + sw_tag

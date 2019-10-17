@@ -33,7 +33,7 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
   n_freq = n_elements(frequencies)
 
   z_mpc_mean = z_mpc(frequencies, hubble_param = hubble_param, f_delta = f_delta, $
-    even_freq = even_freq, redshifts = redshifts, comov_dist_los = comov_dist_los, $
+    redshifts = redshifts, comov_dist_los = comov_dist_los, $
     z_mpc_delta = z_mpc_delta)
 
   kperp_lambda_conv = z_mpc_mean / (2.*!pi)
@@ -1364,8 +1364,8 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
   endelse
 
   ;; now take frequency FT
-  if even_freq then begin
-    ;; evenly spaced, just use fft
+  if not ps_options.force_dft then begin
+    ;; evenly spaced and dft not requested, just use fft
     print, "Using FFT for evenly spaced frequencies"
     data_sum_ft = fft(data_sum, dimension=3) * n_freq * z_mpc_delta
     sim_noise_sum_ft = fft(sim_noise_sum, dimension=3) * n_freq * z_mpc_delta
@@ -1401,7 +1401,7 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
       undefine, sim_noise_diff
     endif
   endif else begin
-    ;; Not evenly spaced. Do a dft
+    ;; Not evenly spaced or DFT requested.
     ;; use the kz_mpc_orig_trim to avoid the possible extra positive mode.
     print, "Uneven frequency structure found"
     print, "Performing Discrete Fourier Transform"
@@ -1543,7 +1543,7 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
   covar_sin = fltarr(n_kx, n_ky, n_kz)
   covar_cross = fltarr(n_kx, n_ky, n_kz)
 
-  if even_freq then begin
+  if not ps_options.force_dft then begin
     ;; comov_dist_los goes from large to small z
     z_relative = dindgen(n_freq)*z_mpc_delta
     freq_kz_arr = rebin(reform(kz_mpc, 1, n_kz), n_freq, n_kz) * $
