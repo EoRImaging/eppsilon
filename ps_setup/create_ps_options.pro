@@ -2,7 +2,8 @@ function create_ps_options, ps_options = ps_options, $
     ave_removal = ave_removal, wt_cutoffs = wt_cutoffs, $
     wt_measures = wt_measures, spec_window_type = spec_window_type, $
     no_spec_window = no_spec_window, allow_beam_approx = allow_beam_approx, $
-    dft_z_use = dft_z_use, std_power = std_power, no_wtd_avg = no_wtd_avg, $
+    freq_dft = freq_dft, dft_z_use = dft_z_use, $
+    std_power = std_power, no_wtd_avg = no_wtd_avg, $
     inverse_covar_weight = inverse_covar_weight, return_new = return_new
 
   ;; if inverse covariance weighted don't use spectral window
@@ -20,7 +21,10 @@ function create_ps_options, ps_options = ps_options, $
     ;; default to not turning off spectral windowing
     if n_elements(no_spec_window) eq 0 then no_spec_window = 0
 
-    ;; default to using the true z's if frequencies aren't evenly spaced
+    ;; Default to using a frequency DFT.
+    if n_elements(freq_dft) then freq_dft = 1
+
+    ;; default to using the true z's if using a DFT
     if n_elements(dft_z_use) eq 0 then dft_z_use = 'true'
 
     ;; default to Lomb-Scargle power calc
@@ -81,6 +85,11 @@ function create_ps_options, ps_options = ps_options, $
   if n_elements(spec_window_type) gt 0 then begin
     update_tags.add, 'spec_window_type'
     update_values.add, spec_window_type
+  endif
+
+  if n_elements(freq_dft) gt 0 then begin
+    update_tags.add, 'freq_dft'
+    update_values.add, freq_dft
   endif
 
   if n_elements(dft_z_use) gt 0 then begin

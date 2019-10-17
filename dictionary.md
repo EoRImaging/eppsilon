@@ -199,7 +199,9 @@ suppress the printing of progress report statements during the DFT.
 
 **allow_beam_approx**: This is a flag (valid values are 0/1, default=0) indicating that a less good beam integral approximation should be used if the beam_integral is not present or is zero in the obs structure. If this keyword is not set and the beam_integral is not present or is zero, eppsilon will fail fairly quickly. If this keyword is set and the beam_integral is not present or is zero, eppsilon will print a warning but continue using a less good approximation.
 
-**dft_z_use**: This controls what z values to use in the frequency DFT. This only applies if the frequency channels are not evenly spaced (in which case we do a DFT rather than an FFT). The two options are 'true' or 'regular', the default is 'true' which uses the actual z values. The 'regular' option uses regularly spaced z values which matches what would happen with an FFT over regularly spaced frequency channels (which are not regularly spaced in z).
+**freq_dft**: This is a flag (valid values are 0/1, default=1) that specifies a DFT rather than an FFT for the frequency transform. Using a DFT allows for using the true z values because they are generally unevenly spaced (even if the frequencies are evenly spaced). If the frequencies are unevenly spaced a DFT is forced no matter what.
+
+**dft_z_use**: This controls what z values to use in the frequency DFT. This only applies if the frequency channels are not evenly spaced or if freq_dft is set. The two options are 'true' or 'regular', the default is 'true' which uses the actual z values. The 'regular' option uses regularly spaced z values which matches what would happen with an FFT over regularly spaced frequency channels (which are not regularly spaced in z).
 
 **std_power**: A rarely used testing/exploration flag (valid values are 0/1, default=0) indicating that the power should be calculated using the sine and cosine terms of the FFT along the frequency axis, rather than the Lomb-Scargle components.
 
