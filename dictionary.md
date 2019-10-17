@@ -160,7 +160,11 @@ set based on the image size. This results in small uv pixels that are more
 highly correlated (which conflicts with some of eppsilon's error propagation
 assumptions). The larger number of uv pixels also significantly slows down the
 DFT from HEALPix to uv space. This keyword cannot be set if **delta_uv_lambda**
-is set or if **uv_img_clip** is set.
+is set or if **image_clip** is set.
+
+**image_clip**: This is a flag (valid values are 0/1, default=0) to clip the
+image used in the DFT to match the minimum size based on the uv pixel size.
+Set this keyword to replicate the old small image size we used to use.
 
 **uv_avg**: A rarely used testing/exploration keyword that is only used if the
 uvf_input flag is set. This is a factor by which to average up pixels in the uv
