@@ -1239,7 +1239,7 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
 
   ;; apply spectral windowing function if desired
   if tag_exist(ps_options, 'spec_window_type') then begin
-    window = spectral_window(n_freq, type = ps_options.spec_window_type, /periodic)
+    window = spectral_window(n_freq, type = ps_options.spec_window_type)
 
     ;; this is the equivilent bandwidth reduction (approx. 2 for blackman-harris)
     norm_factor = sqrt(n_freq/total(window^2.))
