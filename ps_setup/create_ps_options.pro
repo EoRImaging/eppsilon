@@ -22,7 +22,7 @@ function create_ps_options, ps_options = ps_options, $
     if n_elements(no_spec_window) eq 0 then no_spec_window = 0
 
     ;; Default to using a frequency DFT.
-    if n_elements(freq_dft) then freq_dft = 1
+    if n_elements(freq_dft) eq 0 then freq_dft = 1
 
     ;; default to using the true z's if using a DFT
     if n_elements(dft_z_use) eq 0 then dft_z_use = 'true'

@@ -1364,7 +1364,7 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
   endelse
 
   ;; now take frequency FT
-  if not ps_options.force_dft then begin
+  if not ps_options.freq_dft then begin
     ;; evenly spaced and dft not requested, just use fft
     print, "Using FFT for evenly spaced frequencies"
     data_sum_ft = fft(data_sum, dimension=3) * n_freq * z_mpc_delta
@@ -1417,7 +1417,7 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
     ;; in some simple testing, this had a difference ratio vs the FFT (abs(diff)/abs(fft)) of ~10^1
     z_exp_ztrue =  exp(-1.*complex(0,1)*matrix_multiply(reverse(comov_dist_los-min(comov_dist_los)), kz_mpc_orig_trim, /btranspose))
 
-    case ps_options.dft_z_use of:
+    case ps_options.dft_z_use of
       'true': z_exp = z_exp_ztrue
       'regular': z_exp = z_exp_zreg
     endcase
@@ -1543,7 +1543,7 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
   covar_sin = fltarr(n_kx, n_ky, n_kz)
   covar_cross = fltarr(n_kx, n_ky, n_kz)
 
-  if not ps_options.force_dft then begin
+  if not ps_options.freq_dft then begin
     ;; comov_dist_los goes from large to small z
     z_relative = dindgen(n_freq)*z_mpc_delta
     freq_kz_arr = rebin(reform(kz_mpc, 1, n_kz), n_freq, n_kz) * $
@@ -1556,7 +1556,7 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
     freq_kz_arr_true = rebin(reform(kz_mpc, 1, n_kz), n_freq, n_kz) * $
       rebin(reverse(comov_dist_los-min(comov_dist_los)), n_freq, n_kz)
 
-    case ps_options.dft_z_use of:
+    case ps_options.dft_z_use of
       'true': freq_kz_arr = freq_kz_arr_true
       'regular': freq_kz_arr = freq_kz_arr_reg
     endcase

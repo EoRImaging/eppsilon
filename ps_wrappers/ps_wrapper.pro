@@ -13,7 +13,7 @@ pro ps_wrapper, folder_name_in, obs_name, data_subdirs=data_subdirs, $
     pol_inc = pol_inc, type_inc = type_inc, freq_ch_range = freq_ch_range, $
     freq_flags = freq_flags, freq_flag_name = freq_flag_name, $
     allow_beam_approx = allow_beam_approx, uvf_input = uvf_input, uv_avg = uv_avg, $
-    uv_img_clip = uv_img_clip, freq_dft = freq_dft, dft_z_use = dft_z_use,
+    uv_img_clip = uv_img_clip, freq_dft = freq_dft, dft_z_use = dft_z_use, $
     std_power = std_power, $
     inverse_covar_weight = inverse_covar_weight, ave_removal = ave_removal, $
     no_wtd_avg = no_wtd_avg, norm_rts_with_fhd = norm_rts_with_fhd, $
