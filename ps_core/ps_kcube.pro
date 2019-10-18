@@ -1239,6 +1239,8 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
 
   ;; apply spectral windowing function if desired
   if tag_exist(ps_options, 'spec_window_type') then begin
+    ;; set the periodic keyword in the call below to get an asymmetric
+    ;; rather than a symmetric window.
     window = spectral_window(n_freq, type = ps_options.spec_window_type)
 
     ;; this is the equivilent bandwidth reduction (approx. 2 for blackman-harris)
