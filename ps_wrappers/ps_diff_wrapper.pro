@@ -1,9 +1,10 @@
-pro ps_diff_wrapper, folder_names_in, obs_names_in, ps_foldernames = ps_foldernames, $
-    version_test = version_test, $
+pro ps_diff_wrapper, folder_names_in, obs_names_in, $
+    ps_foldernames = ps_foldernames, version_test = version_test, $
     cube_types = cube_types, pols = pols,  refresh_diff = refresh_diff, $
     spec_window_types = spec_window_types, delta_uv_lambda = delta_uv_lambda, $
-    max_uv_lambda = max_uv_lambda, full_image = full_image, image_clip = image_clip, $
-    ave_removal = ave_removal, std_power = std_power, $
+    max_uv_lambda = max_uv_lambda, full_image = full_image, $
+    image_clip = image_clip, ave_removal = ave_removal, $
+    freq_dft = freq_dft, dft_z_use = dft_z_use, std_power = std_power, $
     all_type_pol = all_type_pol, freq_ch_range = freq_ch_range, $
     plot_slices = plot_slices, slice_type = slice_type, $
     png = png, eps = eps, pdf = pdf, data_range = data_range, data_min_abs = data_min_abs, $
@@ -115,10 +116,14 @@ pro ps_diff_wrapper, folder_names_in, obs_names_in, ps_foldernames = ps_folderna
 
   if n_elements(ave_removal) lt 2 and n_elements(wt_cutoffs) lt 2 and $
     n_elements(wt_measures) lt 2 and n_elements(spec_window_types) lt 2 and $
+    n_elements(freq_dft) lt 2 and n_elements(dft_z_use) lt 2 and $
     n_elements(std_power) lt 2 then begin
 
-    ps_options = create_ps_options(ave_removal = ave_removal, wt_cutoffs = wt_cutoffs, $
-      wt_measures = wt_measures, spec_window_type = spec_window_types, std_power = std_power)
+    ps_options = create_ps_options(ave_removal = ave_removal, $
+    wt_cutoffs = wt_cutoffs, wt_measures = wt_measures, $
+    spec_window_type = spec_window_types, $
+    freq_dft = freq_dft, dft_z_use = dft_z_use, $
+    std_power = std_power)
 
   endif else begin
     case n_elements(ave_removal) of
@@ -173,6 +178,32 @@ pro ps_diff_wrapper, folder_names_in, obs_names_in, ps_foldernames = ps_folderna
       else: message, 'only 1 or 2 spec_window_types allowed'
     endcase
 
+    case n_elements(freq_dft) of
+      0:
+      1: begin
+        dft0 = freq_dft
+        dft1 = freq_dft
+      end
+      2: begin
+        dft0 = freq_dft[0]
+        dft1 = freq_dft[1]
+      end
+      else: message, 'only 1 or 2 freq_dft values allowed'
+    endcase
+
+    case n_elements(dft_z_use) of
+      0:
+      1: begin
+        dftz0 = dft_z_use
+        dftz1 = dft_z_use
+      end
+      2: begin
+        dftz0 = dft_z_use[0]
+        dftz1 = dft_z_use[1]
+      end
+      else: message, 'only 1 or 2 dft_z_use values allowed'
+    endcase
+
     case n_elements(std_power) of
       0:
       1: begin
@@ -187,10 +218,12 @@ pro ps_diff_wrapper, folder_names_in, obs_names_in, ps_foldernames = ps_folderna
     endcase
 
     ps_options0 = create_ps_options(ave_removal = ar0, wt_cutoffs = wtc0, $
-      wt_measures = wtm0, spec_window_type = spw0, std_power = sp0)
+      wt_measures = wtm0, spec_window_type = spw0, freq_dft = dft0, $
+      dft_z_use = dftz0, std_power = sp0)
 
     ps_options1 = create_ps_options(ave_removal = ar1, wt_cutoffs = wtc1, $
-      wt_measures = wtm1, spec_window_type = spw1, std_power = sp1)
+      wt_measures = wtm1, spec_window_type = spw1, freq_dft = dft1, $
+      dft_z_use = dftz1, std_power = sp1)
 
     ps_options = [ps_options0, ps_options1]
   endelse
