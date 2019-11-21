@@ -260,7 +260,7 @@ pro ps_power, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
 
   if n_elements(freq_flags) ne 0 then begin
     save, file = file_struct.power_savefile, power_3d, noise_3d, sim_noise_3d, $
-      sim_noise_diff_3d, noise_expval_3d, diff_weights_3d, $
+      sim_noise_diff_3d, noise_expval_3d, weights_3d, diff_weights_3d, $
       kx_mpc, ky_mpc, kz_mpc, kperp_lambda_conv, delay_params, hubble_param, $
       n_freq_contrib, freq_mask, vs_name, vs_mean, t_sys_meas, window_int, $
       git_hashes, wt_meas_ave, wt_meas_min, ave_weights, wt_ave_power_freq, $
