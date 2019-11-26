@@ -747,7 +747,11 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
       dirty_size = size(dirty_cube1)
       if dirty_size[n_elements(dirty_size)-2] eq 10 then begin
         ;; dirty cube is a pointer
-        dims2 = size(*dirty_cube1[0], /dimension)
+        ;; handle null frequency pointers carefully
+        for ind_i=0, product(dirty_size[1:dirty_size[0]]) - 1 do begin
+          dims2 = size(*dirty_cube1[ind_i], /dimension)
+          if total(dims2) NE 0 then break
+        endfor
         temp = complex(fltarr([dims2, n_freq]))
         temp_m = complex(fltarr([dims2, n_freq]))
         if nfiles eq 2 then begin
@@ -755,11 +759,15 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
           temp_m2 = complex(fltarr([dims2, n_freq]))
         endif
         for i = 0, n_freq-1 do begin
-          temp[*,*,i] = *dirty_cube1[file_struct.pol_index, i]
-          temp_m[*,*,i] = *model_cube1[file_struct.pol_index, i]
+          if *dirty_cube1[file_struct.pol_index, i] NE !NULL then $
+            temp[*,*,i] = *dirty_cube1[file_struct.pol_index, i]
+          if *model_cube1[file_struct.pol_index, i] NE !NULL then $
+            temp_m[*,*,i] = *model_cube1[file_struct.pol_index, i]
           if nfiles eq 2 then begin
-            temp2[*,*,i] = *dirty_cube2[file_struct.pol_index, i]
-            temp_m2[*,*,i] = *model_cube2[file_struct.pol_index, i]
+            if *dirty_cube2[file_struct.pol_index, i] NE !NULL then $
+              temp2[*,*,i] = *dirty_cube2[file_struct.pol_index, i]
+            if *model_cube2[file_struct.pol_index, i] NE !NULL then $
+              temp_m2[*,*,i] = *model_cube2[file_struct.pol_index, i]
           endif
         endfor
         undefine_fhd, dirty_cube1, model_cube1, dirty_cube2, model_cube2
