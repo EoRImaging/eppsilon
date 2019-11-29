@@ -512,13 +512,6 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
           endelse
         endelse
 
-        ;; fix known units bug in some early runs
-        if max(ave_beam_int) lt 0.01 then begin
-          ave_beam_int = ave_beam_int / (file_struct.kpix)^4.
-        endif else if max(ave_beam_int) lt 0.03 then begin
-          ave_beam_int = ave_beam_int / (file_struct.kpix)^2.
-        endif
-
         ;; convert rad -> Mpc^2, multiply by depth in Mpc
         window_int_beam_obs = ave_beam_int * z_mpc_mean^2. * (z_mpc_delta * n_freq)
       endif
@@ -694,15 +687,6 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
             ave_beam_int = total(file_struct.beam_int * file_struct.n_vis_freq) / $
               total(file_struct.n_vis_freq)
           endelse
-        endelse
-
-        ;; fix known units bug in some early runs
-        if max(ave_beam_int) lt 0.01 then begin
-          ave_beam_int = ave_beam_int / (file_struct.kpix)^4.
-        endif else begin
-          if max(ave_beam_int) lt 0.03 then begin
-            ave_beam_int = ave_beam_int / (file_struct.kpix)^2.
-          endif
         endelse
 
         ;; convert rad -> Mpc^2, multiply by depth in Mpc
