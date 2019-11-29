@@ -495,11 +495,21 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
 
       if tag_exist(file_struct, 'beam_int') then begin
         if nfiles eq 2 then begin
-          ave_beam_int = total(file_struct.beam_int * file_struct.n_vis_freq, 2) $
-            / total(file_struct.n_vis_freq, 2)
+          if n_elements(freq_ch_range) ne 0 then begin
+            ave_beam_int = total(file_struct.beam_int[*,freq_ch_range] * file_struct.n_vis_freq[*,freq_ch_range], 2) $
+              / total(file_struct.n_vis_freq[*,freq_ch_range], 2)
+          endif else begin
+            ave_beam_int = total(file_struct.beam_int * file_struct.n_vis_freq, 2) $
+              / total(file_struct.n_vis_freq, 2)
+          endelse
         endif else begin
-          ave_beam_int = total(file_struct.beam_int * file_struct.n_vis_freq) $
-            / total(file_struct.n_vis_freq)
+          if n_elements(freq_ch_range) ne 0 then begin
+            ave_beam_int = total(file_struct.beam_int[freq_ch_range] * file_struct.n_vis_freq[freq_ch_range]) $
+              / total(file_struct.n_vis_freq[freq_ch_range])
+          endif else begin
+            ave_beam_int = total(file_struct.beam_int * file_struct.n_vis_freq) $
+              / total(file_struct.n_vis_freq)
+          endelse
         endelse
 
         ;; fix known units bug in some early runs
@@ -669,11 +679,21 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
 
       if tag_exist(file_struct, 'beam_int') then begin
         if nfiles eq 2 then begin
-          ave_beam_int = total(file_struct.beam_int * file_struct.n_vis_freq, 2) / $
-            total(file_struct.n_vis_freq, 2)
+          if N_elements(freq_ch_range) ne 0 then begin
+            ave_beam_int = total(file_struct.beam_int[*, freq_ch_range] * file_struct.n_vis_freq[*, freq_ch_range], 2) / $
+              total(file_struct.n_vis_freq[*, freq_ch_range], 2)
+          endif else begin
+            ave_beam_int = total(file_struct.beam_int * file_struct.n_vis_freq, 2) / $
+              total(file_struct.n_vis_freq, 2)
+          endelse
         endif else begin
-          ave_beam_int = total(file_struct.beam_int * file_struct.n_vis_freq) / $
-            total(file_struct.n_vis_freq)
+          if N_elements(freq_ch_range) ne 0 then begin
+            ave_beam_int = total(file_struct.beam_int[freq_ch_range] * file_struct.n_vis_freq[freq_ch_range]) / $
+              total(file_struct.n_vis_freq[freq_ch_range])
+          endif else begin
+            ave_beam_int = total(file_struct.beam_int * file_struct.n_vis_freq) / $
+              total(file_struct.n_vis_freq)
+          endelse
         endelse
 
         ;; fix known units bug in some early runs
