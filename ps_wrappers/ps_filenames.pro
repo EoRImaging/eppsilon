@@ -693,7 +693,7 @@ function ps_filenames, folder_names, obs_names_in, dirty_folder = dirty_folder, 
         endelse
         if n_cubefiles gt 0 then begin
           cube_basename = file_basename(cube_file_list)
-          pol_exist = stregex(cube_basename, '[xy][xy]', /boolean, /fold_case)
+          pol_exist = stregex(cube_basename, 'cube[xy][xy].sav', /boolean, /fold_case)
 
           if obs_names[i] eq '' then begin
             obs_name_arr = strarr(n_cubefiles)
@@ -717,7 +717,7 @@ function ps_filenames, folder_names, obs_names_in, dirty_folder = dirty_folder, 
               if min(pol_exist[wh_first]) eq 0 then begin
                 message, 'some files with first obs_name have pol identifiers and some do not'
               endif
-              pols = stregex(cube_basename[wh_first], '[xy][xy]', /extract, /fold_case)
+              pols = stregex(cube_basename[wh_first], 'cube[xy][xy].sav', /extract, /fold_case)
 
               pols_inc = pols[0]
               pol_num = intarr(count_first)
@@ -753,7 +753,7 @@ function ps_filenames, folder_names, obs_names_in, dirty_folder = dirty_folder, 
               if min(pol_exist) eq 0 then begin
                 message, 'some files with given obs_name have pol identifiers and some do not'
               endif
-              pols = stregex(cube_basename, '[xy][xy]', /extract, /fold_case)
+              pols = stregex(cube_basename, 'cube[xy][xy].sav', /extract, /fold_case)
 
               pols_inc = pols[0]
               pol_num = intarr(n_cubefiles)
@@ -840,7 +840,7 @@ function ps_filenames, folder_names, obs_names_in, dirty_folder = dirty_folder, 
             data_subdirs[i] + obs_names[i] + '*_cube*.sav', count = n_cubefiles)
           if n_cubefiles gt 0 then begin
             cube_basename = file_basename(cube_file_list)
-            pol_exist = stregex(cube_basename, '[xy][xy]', /boolean, /fold_case)
+            pol_exist = stregex(cube_basename, 'cube[xy][xy].sav', /boolean, /fold_case)
             if obs_names[i] eq '' then begin
               obs_name_arr = strarr(n_cubefiles)
               for j=0, n_cubefiles-1 do begin
@@ -862,7 +862,7 @@ function ps_filenames, folder_names, obs_names_in, dirty_folder = dirty_folder, 
                 if min(pol_exist[wh_first]) eq 0 then begin
                   message, 'some files with first obs_name have pol identifiers and some do not'
                 endif
-                pols = stregex(cube_basename[wh_first], '[xy][xy]', /extract, /fold_case)
+                pols = stregex(cube_basename[wh_first], 'cube[xy][xy].sav', /extract, /fold_case)
 
                 pols_inc = pols[0]
                 pol_num = intarr(count_first)
@@ -901,7 +901,7 @@ function ps_filenames, folder_names, obs_names_in, dirty_folder = dirty_folder, 
                 if min(pol_exist) eq 0 then begin
                   message, 'some files with given obs_name have pol identifiers and some do not'
                 endif
-                pols = stregex(cube_basename, '[xy][xy]', /extract, /fold_case)
+                pols = stregex(cube_basename, 'cube[xy][xy].sav', /extract, /fold_case)
 
                 pols_inc = pols[0]
                 pol_num = intarr(n_cubefiles)
@@ -961,7 +961,7 @@ function ps_filenames, folder_names, obs_names_in, dirty_folder = dirty_folder, 
           endelse
           if n_cubefiles gt 0 then begin
             cube_basename = file_basename(cube_file_list)
-            pol_exist = stregex(cube_basename, '[xy][xy]', /boolean, /fold_case)
+            pol_exist = stregex(cube_basename, 'cube[xy][xy].sav', /boolean, /fold_case)
 
             if obs_names[i] eq '' then begin
               obs_name_arr = strarr(n_cubefiles)
@@ -985,7 +985,7 @@ function ps_filenames, folder_names, obs_names_in, dirty_folder = dirty_folder, 
                 if min(pol_exist[wh_first]) eq 0 then begin
                   message, 'some files with first obs_name have pol identifiers and some do not'
                 endif
-                pols = stregex(cube_basename[wh_first], '[xy][xy]', /extract, /fold_case)
+                pols = stregex(cube_basename[wh_first], 'cube[xy][xy].sav', /extract, /fold_case)
 
                 pols_inc = pols[0]
                 pol_num = intarr(count_first)
@@ -1020,7 +1020,7 @@ function ps_filenames, folder_names, obs_names_in, dirty_folder = dirty_folder, 
                 if min(pol_exist) eq 0 then begin
                   message, 'some files with given obs_name have pol identifiers and some do not'
                 endif
-                pols = stregex(cube_basename, '[xy][xy]', /extract, /fold_case)
+                pols = stregex(cube_basename, 'cube[xy][xy].sav', /extract, /fold_case)
 
                 pols_inc = pols[0]
                 pol_num = intarr(n_cubefiles)
@@ -1085,7 +1085,7 @@ function ps_filenames, folder_names, obs_names_in, dirty_folder = dirty_folder, 
             endelse
             if n_cubefiles gt 0 then begin
               cube_basename = file_basename(cube_file_list)
-              pol_exist = stregex(cube_basename, '[xy][xy]', /boolean, /fold_case)
+              pol_exist = stregex(cube_basename, 'cube[xy][xy].sav', /boolean, /fold_case)
               if obs_names[i] eq '' then begin
                 obs_name_arr = strarr(n_cubefiles)
                 for j=0, n_cubefiles-1 do begin
@@ -1105,7 +1105,7 @@ function ps_filenames, folder_names, obs_names_in, dirty_folder = dirty_folder, 
                   if min(pol_exist[wh_first]) eq 0 then begin
                     message, 'some files with first obs_name have pol identifiers and some do not'
                   endif
-                  pols = stregex(cube_basename[wh_first], '[xy][xy]', /extract, /fold_case)
+                  pols = stregex(cube_basename[wh_first], 'cube[xy][xy].sav', /extract, /fold_case)
 
                   pols_inc = pols[0]
                   pol_num = intarr(count_first)
@@ -1144,7 +1144,7 @@ function ps_filenames, folder_names, obs_names_in, dirty_folder = dirty_folder, 
                   if min(pol_exist) eq 0 then begin
                     message, 'some files with given obs_name have pol identifiers and some do not'
                   endif
-                  pols = stregex(cube_basename, '[xy][xy]', /extract, /fold_case)
+                  pols = stregex(cube_basename, 'cube[xy][xy].sav', /extract, /fold_case)
 
                   pols_inc = pols[0]
                   pol_num = intarr(n_cubefiles)
