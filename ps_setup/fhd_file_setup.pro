@@ -1100,6 +1100,9 @@ function fhd_file_setup, filename, weightfile = weightfile, $
         file_label[pol_i, *]
     endfor
   endfor
+  if n_elements(size(uvf_savefilebase, /dim)) ne 3 then begin
+    uvf_savefilebase = reform(uvf_savefilebase, [npol, nfiles, ntypes])
+  endif
 
   ;; add sw tag to general_filebase so that plotfiles havefile_tags.uvf_tag in them
   general_filebase = metadata_struct.general_filebase + file_tags.uvf_tag
