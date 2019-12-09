@@ -1,7 +1,10 @@
-pro compare_plot_prep, folder_names, obs_info, ps_foldernames = ps_foldernames, $
+pro compare_plot_prep, folder_names, obs_info, $
     cube_types, pols, comp_type, compare_files, $
-    uvf_options0 = uvf_options0, uvf_options1 = uvf_options1, ps_options = ps_options, $
+    ps_foldernames = ps_foldernames, $
+    uvf_options0 = uvf_options0, uvf_options1 = uvf_options1, $
+    ps_options = ps_options, $
     plot_options = plot_options, plot_2d_options = plot_2d_options, $
+    binning_1d_options = binning_1d_options, $
     plot_slices = plot_slices, slice_type = slice_type, fadd_2dbin = fadd_2dbin, $
     freq_ch_range = freq_ch_range, $
     plot_filebase = plot_filebase, save_path = save_path, savefilebase = savefilebase, $
@@ -425,7 +428,6 @@ pro compare_plot_prep, folder_names, obs_info, ps_foldernames = ps_foldernames, 
     endelse
   endif
 
-
   if keyword_set(plot_2d_options.plot_wedge_line) then begin
     z0_freq = 1420.40 ;; MHz
 
@@ -439,22 +441,58 @@ pro compare_plot_prep, folder_names, obs_info, ps_foldernames = ps_foldernames, 
     mean_redshift = mean(redshifts)
 
     cosmology_measures, mean_redshift, wedge_factor = wedge_factor
-    ;; assume 20 degrees from pointing center to first null
-    source_dist = 20d * !dpi / 180d
-    fov_amp = wedge_factor * source_dist
+    if tag_exist(binning_1d_options, 'wedge_angles') then begin
+      if min(binning_1d_options.wedge_angles) le 0 or $
+          max(binning_1d_options.wedge_angles) ge 180 then begin
+        message, 'wedge_angles must be in degrees and between 0 & 180'
+      endif
+      wedge_amps = [wedge_factor * (binning_1d_options.wedge_angles*!dpi / 180d)]
 
-    ;; calculate angular distance to horizon
-    max_theta = max([file_struct_arr1[0].max_theta, file_struct_arr2[0].max_theta])
-    horizon_amp = wedge_factor * ((max_theta+90d) * !dpi / 180d)
+      if tag_exist(binning_1d_options, 'wedge_names') then begin
+        if n_elements(binning_1d_options.wedge_names) ne n_elements(binning_1d_options.wedge_angles) then begin
+          message, 'number of wedge_names must match number of wedge_angles'
+        endif
+      endif else begin
+        wedge_names = [number_formatter(binning_1d_options.wedge_angles) + 'deg']
+        binning_1d_options = create_binning_1d_options(binning_1d_options = binning_1d_options, $
+          wedge_names = wedge_names)
+      endelse
+      binning_1d_options = create_binning_1d_options(binning_1d_options = binning_1d_options, $
+        wedge_amps = wedge_amps)
+    endif else begin
+      ;; use standard angles for MWA
+      ;; assume 20 degrees from pointing center to first null
+      source_dist = 20d * !dpi / 180d
+      fov_amp = wedge_factor * source_dist
 
-    wedge_amp = [fov_amp, horizon_amp]
+      ;; calculate angular distance to horizon
+      max_theta = max([file_struct_arr1[0].max_theta, file_struct_arr2[0].max_theta])
+      horizon_amp = wedge_factor * ((max_theta+90d) * !dpi / 180d)
 
-    wedge_1dbin_names = ['', '_no_fov_wedge', '_no_horizon_wedge']
+      wedge_amps = [fov_amp, horizon_amp]
+      wedge_names = ['fov', 'horizon']
+      binning_1d_options = create_binning_1d_options(binning_1d_options = binning_1d_options, $
+        wedge_amps = wedge_amps, wedge_names = wedge_names)
+    endelse
+
+    if tag_exist(binning_1d_options, 'coarse_harm_width') then begin
+      harm_freq = 1.28
+
+      bandwidth = max(freq_use) - min(freq_use) + freq_use[1] - freq_use[0]
+      coarse_harm0 = round(bandwidth / harm_freq)
+      binning_1d_options = create_binning_1d_options(binning_1d_options = binning_1d_options, $
+        coarse_harm0 = coarse_harm0)
+
+      cb_width_name = '_cbw' + number_formatter(binning_1d_options.coarse_harm_width)
+    endif else begin
+      cb_width_name = ''
+    endelse
+    wedge_1dbin_names = ['', '_no_' + binning_1d_options.wedge_names + '_wedge'] + cb_width_name
+
   endif else begin
-    wedge_amp = 0d
+    wedge_amps = 0d
     wedge_1dbin_names = ''
   endelse
-
 
   if comp_type eq 'diff' then begin
     mid_savefile_2d = strarr(n_slices, cube_set_dim)
@@ -708,7 +746,7 @@ pro compare_plot_prep, folder_names, obs_info, ps_foldernames = ps_foldernames, 
 
   compare_files = {input_savefile1:input_savefile1, input_savefile2:input_savefile2, $
     titles:titles, n_slices:n_slices, $
-    wedge_amp:wedge_amp, kperp_density_names:kperp_density_names, $
+    wedge_amp:wedge_amps, kperp_density_names:kperp_density_names, $
     kperp_plot_range:kperp_plot_range}
 
   if n_elements(n_cubes) gt 0 then compare_files = create_struct(compare_files, 'n_cubes', n_cubes)

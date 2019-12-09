@@ -918,7 +918,7 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
     endif else begin
       cb_width_name = ''
     endelse
-    wedge_1dbin_names = ['', '_no_' + binning_1d_options.wedge_names + '_wedge' + cb_width_name]
+    wedge_1dbin_names = ['', '_no_' + binning_1d_options.wedge_names + '_wedge'] + cb_width_name
   endif else wedge_1dbin_names = ''
 
   ;; density correction file naming for 2D & 1D files
