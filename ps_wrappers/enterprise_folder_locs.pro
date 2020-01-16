@@ -32,7 +32,7 @@ function enterprise_folder_locs, folder_names_in, rts = rts
       start_path = '/data4/MWA/'
       folder_test = file_test(folder_names[i], /directory)
       if folder_test eq 0 then begin
-        pos_aug23 = strpos(folder_names, 'FHD_Aug23')
+        pos_aug23 = strpos(folder_names[i], 'FHD_Aug23')
         if pos_aug23 gt -1 then begin
           test_name = start_path + strmid(folder_names[i], pos_aug23)
           folder_test = file_test(test_name, /directory)
