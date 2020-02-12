@@ -567,7 +567,7 @@ function rts_file_setup, filename, save_path = save_path, refresh_info = refresh
 
   if n_elements(freq_flags) ne 0 then begin
     if min(freq_flags) lt 0 or max(freq_flags) gt n_elements(metadata_struct.frequencies) then begin
-      message, 'invalid freq_ch_range'
+      message, 'invalid freq_flags'
     endif
   endif
 
