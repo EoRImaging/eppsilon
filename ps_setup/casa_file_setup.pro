@@ -254,7 +254,8 @@ function casa_file_setup, filename, pol_inc, save_path = save_path, $
   endif
 
   if n_elements(freq_flags) ne 0 then begin
-    if min(freq_flags) lt 0 or max(freq_flags) gt n_elements(metadata_struct.frequencies) then message, 'invalid freq_ch_range'
+    if min(freq_flags) lt 0 or max(freq_flags) gt n_elements(metadata_struct.frequencies) $
+      then message, 'invalid freq_flags'
   endif
 
   file_tags = create_file_tags(freq_ch_range = freq_ch_range, freq_flags = freq_flags, $

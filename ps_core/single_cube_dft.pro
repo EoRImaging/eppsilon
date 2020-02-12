@@ -157,7 +157,12 @@ pro single_cube_dft, folder_name_in, obs_name, data_subdirs=data_subdirs, $
   test_uvf = file_test(uvf_savefile) *  (1 - file_test(uvf_savefile, /zero_length))
   if test_uvf eq 1 and n_elements(freq_flags) ne 0 then begin
     old_freq_mask = getvar_savefile(file_struct.uvf_savefile[i], 'freq_mask')
-    if total(abs(old_freq_mask - freq_mask)) ne 0 then test_uvf = 0
+    if n_elements(freq_ch_range) ne 0 then begin
+      if total(abs(old_freq_mask[min(freq_ch_range):max(freq_ch_range)] - freq_mask)) ne 0 $
+        then test_uvf = 0
+    endif else begin
+      if total(abs(old_freq_mask - freq_mask)) ne 0 then test_uvf = 0
+    endelse
   endif
 
   if test_uvf eq 0 or keyword_set(refresh_dft) then begin
@@ -220,7 +225,7 @@ pro single_cube_dft, folder_name_in, obs_name, data_subdirs=data_subdirs, $
         arr = arr[*, min(freq_ch_range):max(freq_ch_range)]
       endif
       if n_elements(freq_flags) ne 0 then begin
-        arr = arr * rebin(reform(freq_mask, 1, n_elements(file_struct.frequencies)), $
+        arr = arr * rebin(reform(freq_mask, 1, n_freq), $
           size(arr, /dimension), /sample)
       endif
 
@@ -256,7 +261,7 @@ pro single_cube_dft, folder_name_in, obs_name, data_subdirs=data_subdirs, $
           arr = arr[*, min(freq_ch_range):max(freq_ch_range)]
         endif
         if n_elements(freq_flags) ne 0 then begin
-          arr = arr * rebin(reform(freq_mask, 1, n_elements(file_struct.frequencies)), $
+          arr = arr * rebin(reform(freq_mask, 1, n_freq), $
             size(arr, /dimension), /sample)
         endif
 
@@ -305,7 +310,7 @@ pro single_cube_dft, folder_name_in, obs_name, data_subdirs=data_subdirs, $
         arr = arr[*, min(freq_ch_range):max(freq_ch_range)]
       endif
       if n_elements(freq_flags) ne 0 then begin
-        arr = arr * rebin(reform(freq_mask, 1, n_elements(file_struct.frequencies)), $
+        arr = arr * rebin(reform(freq_mask, 1, n_freq), $
         size(arr, /dimension), /sample)
       endif
 

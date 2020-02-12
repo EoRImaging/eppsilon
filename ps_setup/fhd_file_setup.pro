@@ -1063,6 +1063,9 @@ function fhd_file_setup, filename, weightfile = weightfile, $
     freq_mask = intarr(n_elements(metadata_struct.frequencies)) + 1
     freq_mask[freq_flags] = 0
 
+    if n_elements(freq_ch_range) gt 0 then begin
+      freq_mask = freq_mask[min(freq_ch_range):max(freq_ch_range)]
+    endif
     wh_freq_use = where(freq_mask gt 0, count_freq_use)
     if count_freq_use lt 3 then message, 'Too many frequencies flagged'
 

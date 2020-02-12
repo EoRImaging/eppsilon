@@ -6,7 +6,9 @@ pro ps_image_to_uvf, file_struct, n_vis_freq, kx_rad_vals, ky_rad_vals, $
   nfiles = n_elements(file_struct.datafile)
   if n_elements(freq_flags) ne 0 then freq_mask = file_struct.freq_mask
 
-  n_freq = n_elements(file_struct.frequencies)
+  if n_elements(freq_ch_range) ne 0 then begin
+    n_freq = n_elements(file_struct.frequencies[min(freq_ch_range):max(freq_ch_range)])
+  endif else n_freq = n_elements(file_struct.frequencies)
 
   datavar = strupcase(file_struct.datavar)
   if datavar eq '' then begin
@@ -37,14 +39,15 @@ pro ps_image_to_uvf, file_struct, n_vis_freq, kx_rad_vals, ky_rad_vals, $
       test_radec_uvf_use = 1
     endif
 
-    if test_uvf eq 1 and n_elements(freq_flags) ne 0 then begin
-      old_freq_mask = getvar_savefile(file_struct.uvf_savefile[i], 'freq_mask')
-      if total(abs(old_freq_mask - freq_mask)) ne 0 then test_uvf = 0
-    endif
-
-    if test_wt_uvf eq 1 and n_elements(freq_flags) ne 0 then begin
-      old_freq_mask = getvar_savefile(file_struct.uvf_savefile[i], 'freq_mask')
-      if total(abs(old_freq_mask - freq_mask)) ne 0 then test_uvf = 0
+    if (test_uvf eq 1 or test_wt_uvf eq 1) and n_elements(freq_flags) ne 0 then begin
+      if test_uvf eq 1 then old_freq_mask = getvar_savefile(file_struct.uvf_savefile[i], 'freq_mask')
+      if test_wt_uvf eq 1 then old_freq_mask = getvar_savefile(file_struct.uvf_weight_savefile[i], 'freq_mask')
+      if n_elements(freq_ch_range) ne 0 then begin
+        if total(abs(old_freq_mask[min(freq_ch_range):max(freq_ch_range)] - freq_mask)) ne 0 $
+          then test_uvf = 0
+      endif else begin
+        if total(abs(old_freq_mask - freq_mask)) ne 0 then test_uvf = 0
+      endelse
     endif
 
     if test_uvf eq 0 and not refresh_options.refresh_dft and $
@@ -57,6 +60,7 @@ pro ps_image_to_uvf, file_struct, n_vis_freq, kx_rad_vals, ky_rad_vals, $
       endif
       if n_elements(freq_flags) ne 0 then begin
         full_uvf_file = strjoin(strsplit(full_uvf_file, '_flag[a-z0-9]+', /regex, /extract))
+        full_uvf_file = strjoin(strsplit(full_uvf_file, '_flag+', /regex, /extract))
       endif
       test_full_uvf = file_valid(full_uvf_file)
       if not test_full_uvf then test_full_uvf = check_old_path(file_struct, 'uvf_savefile', index=i)
@@ -64,12 +68,12 @@ pro ps_image_to_uvf, file_struct, n_vis_freq, kx_rad_vals, ky_rad_vals, $
       if test_full_uvf eq 1 then begin
         restore, full_uvf_file
 
+        if n_elements(freq_ch_range) ne 0 then begin
+          data_cube = data_cube[*, *, min(freq_ch_range):max(freq_ch_range)]
+        endif
         if n_elements(freq_flags) ne 0 then begin
           data_cube = data_cube * rebin(reform(freq_mask, 1, 1, n_freq), $
             size(data_cube, /dimension), /sample)
-        endif
-        if n_elements(freq_ch_range) ne 0 then begin
-          data_cube = data_cube[*, *, min(freq_ch_range):max(freq_ch_range)]
         endif
 
         if n_elements(freq_flags) gt 0 then begin
@@ -98,6 +102,8 @@ pro ps_image_to_uvf, file_struct, n_vis_freq, kx_rad_vals, ky_rad_vals, $
       if n_elements(freq_flags) ne 0 then begin
         full_uvf_wt_file = strjoin(strsplit(full_uvf_wt_file, '_flag[a-z0-9]+', $
           /regex, /extract))
+        full_uvf_wt_file = strjoin(strsplit(full_uvf_wt_file, '_flag+', $
+          /regex, /extract))
       endif
       test_full_wt_uvf = file_valid(full_uvf_wt_file)
       if not test_full_wt_uvf then test_full_wt_uvf = check_old_path(file_struct, 'uvf_weight_savefile', index=i)
@@ -105,16 +111,15 @@ pro ps_image_to_uvf, file_struct, n_vis_freq, kx_rad_vals, ky_rad_vals, $
       if test_full_wt_uvf eq 1 then begin
         restore, full_uvf_wt_file
 
+        if n_elements(freq_ch_range) ne 0 then begin
+          weights_cube = weights_cube[*, *, min(freq_ch_range):max(freq_ch_range)]
+          variance_cube = variance_cube[*, *, min(freq_ch_range):max(freq_ch_range)]
+        endif
         if n_elements(freq_flags) ne 0 then begin
           flag_arr = rebin(reform(freq_mask, 1, 1, n_freq), $
             size(weights_cube, /dimension), /sample)
           weights_cube = weights_cube * flag_arr
           variance_cube = variance_cube * flag_arr
-        endif
-
-        if n_elements(freq_ch_range) ne 0 then begin
-          weights_cube = weights_cube[*, *, min(freq_ch_range):max(freq_ch_range)]
-          variance_cube = variance_cube[*, *, min(freq_ch_range):max(freq_ch_range)]
         endif
 
         if n_elements(freq_flags) gt 0 then begin
@@ -205,6 +210,10 @@ pro ps_image_to_uvf, file_struct, n_vis_freq, kx_rad_vals, ky_rad_vals, $
         if n_elements(freq_flags) ne 0 then begin
           dirty_freq_mask = getvar_savefile(input_uvf_files[i,0], 'freq_mask')
           model_freq_mask = getvar_savefile(input_uvf_files[i,1], 'freq_mask')
+          if n_elements(freq_ch_range) ne 0 then begin
+            dirty_freq_mask = dirty_freq_mask[min(freq_ch_range):max(freq_ch_range)]
+            model_freq_mask = model_freq_mask[min(freq_ch_range):max(freq_ch_range)]
+          endif
           if total(abs(dirty_freq_mask - freq_mask)) ne 0 then begin
             message, 'freq_mask of dirty file does not match current freq_mask'
           endif
