@@ -59,7 +59,6 @@ pro ps_image_to_uvf, file_struct, n_vis_freq, kx_rad_vals, ky_rad_vals, $
         full_uvf_file = strjoin(strsplit(full_uvf_file, '_ch[0-9]+-[0-9]+', /regex, /extract))
       endif
       if n_elements(freq_flags) ne 0 then begin
-        full_uvf_file = strjoin(strsplit(full_uvf_file, '_flag[a-z0-9]+', /regex, /extract))
         full_uvf_file = strjoin(strsplit(full_uvf_file, '_flag+', /regex, /extract))
       endif
       test_full_uvf = file_valid(full_uvf_file)
@@ -100,8 +99,6 @@ pro ps_image_to_uvf, file_struct, n_vis_freq, kx_rad_vals, ky_rad_vals, $
           /regex, /extract))
       endif
       if n_elements(freq_flags) ne 0 then begin
-        full_uvf_wt_file = strjoin(strsplit(full_uvf_wt_file, '_flag[a-z0-9]+', $
-          /regex, /extract))
         full_uvf_wt_file = strjoin(strsplit(full_uvf_wt_file, '_flag+', $
           /regex, /extract))
       endif
