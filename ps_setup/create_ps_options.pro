@@ -45,7 +45,7 @@ function create_ps_options, ps_options = ps_options, $
     endif
 
     ps_options = {ave_removal: ave_removal, std_power: std_power, no_wtd_avg: no_wtd_avg, $
-      inverse_covar_weight:inverse_covar_weight}
+      inverse_covar_weight:inverse_covar_weight, allow_beam_approx:allow_beam_approx}
 
   endif else begin
     if n_elements(ave_removal) gt 0 then begin
@@ -59,6 +59,10 @@ function create_ps_options, ps_options = ps_options, $
     if n_elements(inverse_covar_weight) gt 0 then begin
       update_tags.add, 'inverse_covar_weight'
       update_values.add, inverse_covar_weight
+    endif
+    if n_elements(allow_beam_approx) gt 0 then begin
+      update_tags.add, 'allow_beam_approx'
+      update_values.add, allow_beam_approx
     endif
   endelse
 
