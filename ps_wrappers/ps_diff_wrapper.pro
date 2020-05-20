@@ -76,7 +76,7 @@ pro ps_diff_wrapper, folder_names_in, obs_names_in, ps_foldernames = ps_folderna
         mul1 = max_uv_lambda
       end
       2: begin
-        mul0 = max_u_lambda[0]
+        mul0 = max_uv_lambda[0]
         mul1 = max_uv_lambda[1]
       end
       else: message, 'only 1 or 2 max_uv_lambda values allowed'
