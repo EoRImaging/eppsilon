@@ -4,6 +4,7 @@ function kspace_rebinning_1d, power, k1_mpc, k2_mpc, k3_mpc, k_edges_mpc, $
     nbins_1d = bin_hist, var_power_1d = var_power_1d, mean_var_1d = mean_var_1d, $
     bin_arr_3d = bin_arr_3d, noise_frac_3d = noise_frac_3d, edge_on_grid = edge_on_grid, $
     match_datta = match_datta, kpar_power = kpar_power, kperp_power = kperp_power, $
+    kperp_density_norm_diagnostic = kperp_density_norm_diagnostic, $
     kperp_density_measure = kperp_density_measure, kperp_density_cutoff = kperp_density_cutoff, $
     binning_1d_options = binning_1d_options, plot_options = plot_options, $
     hubble_param = hubble_param, kperp_lambda_conv
@@ -264,13 +265,32 @@ function kspace_rebinning_1d, power, k1_mpc, k2_mpc, k3_mpc, k_edges_mpc, $
       if count_kperp_dense eq 0 then begin
         print, 'no kperp values exceed kperp_density_cutoff, using full volume'
       endif else begin
-        bin_arr_3d = reform(bin_arr_3d, n_kx*n_ky, n_kz)
-        bin_arr_3d[wh_sparse, *] = 0
-        bin_arr_3d = reform(bin_arr_3d, n_kx, n_ky, n_kz)
+        if keyword_set(kperp_density_norm_diagnostic) then begin
+          ;; don't cut out low density regions, but do apply normalization factor to dense regions
+          power_use = reform(power_use, n_kx*n_ky, n_kz)
+          power_use[wh_kperp_dense, *] = power_use[wh_kperp_dense, *]/0.5
+          power_use = reform(power_use, n_kx, n_ky, n_kz)
 
-        power_use = power_use/0.5
-        if n_elements(noise_expval_use) gt 0 then noise_expval_use = noise_expval_use/0.5
-        if n_elements(weights_use) gt 0 then weights_use = weights_use*0.5^2.
+          if n_elements(noise_expval_use) gt 0 then begin
+            noise_expval_use = reform(noise_expval_use, n_kx*n_ky, n_kz)
+            noise_expval_use[wh_kperp_dense, *] = noise_expval_use[wh_kperp_dense, *]/0.5
+            noise_expval_use = reform(noise_expval_use, n_kx, n_ky, n_kz)
+          endif
+          if n_elements(weights_use) gt 0 then begin
+            weights_use = reform(weights_use, n_kx*n_ky, n_kz)
+            weights_use[wh_kperp_dense, *] = weights_use[wh_kperp_dense, *]/0.5
+            weights_use = reform(weights_use, n_kx, n_ky, n_kz)
+          endif
+        endif else begin
+          ;; cut out the low density regions and apply normalization to the rest
+          bin_arr_3d = reform(bin_arr_3d, n_kx*n_ky, n_kz)
+          bin_arr_3d[wh_sparse, *] = 0
+          bin_arr_3d = reform(bin_arr_3d, n_kx, n_ky, n_kz)
+
+          power_use = power_use/0.5
+          if n_elements(noise_expval_use) gt 0 then noise_expval_use = noise_expval_use/0.5
+          if n_elements(weights_use) gt 0 then weights_use = weights_use*0.5^2.
+        endelse
       endelse
     endif
     if max(bin_arr_3d) eq 0 then begin

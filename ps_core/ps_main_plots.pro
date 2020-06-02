@@ -759,6 +759,7 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
 
   fadd_1dbin = ''
   if binning_1d_options.log_k then fadd_1dbin = fadd_1dbin + '_logk'
+  if binning_1d_options.kperp_density_norm_diagnostic then fadd_1dbin = fadd_1dbin + '_dennorm'
 
   fadd_kpar_1d = fadd_1dbin
   fadd_kperp_1d = fadd_1dbin
