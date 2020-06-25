@@ -36,14 +36,14 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
     redshifts = redshifts, comov_dist_los = comov_dist_los, $
     z_mpc_delta = z_mpc_delta)
 
-  kperp_lambda_conv = z_mpc_mean / (2.*!pi)
+  kperp_lambda_conv = z_mpc_mean / (2.*!dpi)
   delay_delta = 1e9/(n_freq*f_delta*1e6) ;; equivilent delay bin size for kparallel
   delay_max = delay_delta * n_freq/2.    ;; factor of 2 b/c of neg/positive
   delay_params = [delay_delta, delay_max]
 
   z_mpc_length = max(comov_dist_los) - min(comov_dist_los) + z_mpc_delta
-  kz_mpc_range =  (2.*!pi) / (z_mpc_delta)
-  kz_mpc_delta = (2.*!pi) / z_mpc_length
+  kz_mpc_range =  (2.*!dpi) / (z_mpc_delta)
+  kz_mpc_delta = (2.*!dpi) / z_mpc_length
 
   ;; need to figure out where the zero bin is (for later computations)
   ;; The location of the zero bin also dictates what the most negative kz bin is (min_kz)

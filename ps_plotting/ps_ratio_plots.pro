@@ -125,8 +125,8 @@ pro ps_ratio_plots, folder_names, obs_info, cube_types, pols, ps_foldernames=ps_
         hubble_param2 = getvar_savefile(compare_files.input_savefile1[slice_i, 2*i+1], 'hubble_param')
         hubble_param3 = getvar_savefile(compare_files.input_savefile2[slice_i, 2*i], 'hubble_param')
         hubble_param4 = getvar_savefile(compare_files.input_savefile2[slice_i, 2*i+1], 'hubble_param')
-        if abs(hubble_param - hubble_param2) ne 0  or  abs(hubble_param - hubble_param4) ne 0 or $
-          abs(hubble_param - hubble_param4) ne 0 then message, 'hubble_param do not match in savefiles'
+        if abs(hubble_param - hubble_param2) gt 1.0e-5  or  abs(hubble_param - hubble_param3) gt 1.0e-5 or $
+          abs(hubble_param - hubble_param4) gt 1.0e-5 then message, 'hubble_param do not match in savefiles'
 
         power1a = getvar_savefile(compare_files.input_savefile1[slice_i, 2*i], 'power')
         power2a = getvar_savefile(compare_files.input_savefile1[slice_i, 2*i+1], 'power')
