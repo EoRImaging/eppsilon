@@ -31,7 +31,7 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
       uvf_input = uvf_input, savefilebase = savefilebase, save_path = save_path, $
       freq_ch_range = freq_ch_range, freq_flags = freq_flags, freq_flag_name = freq_flag_name, $
       refresh_info = refresh_options.refresh_info, uvf_options = uvf_options, $
-      ps_options = ps_options)
+      ps_options = ps_options, pol_inc=pol_inc)
   endelse
   time1 = systime(1)
   print, 'file setup time: ' + number_formatter(time1-time0)
