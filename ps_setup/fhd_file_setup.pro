@@ -632,7 +632,7 @@ function fhd_file_setup, filename, weightfile = weightfile, $
               if data_size[0] ne 2 then begin
                 message, 'Data are in a pointer array, format unknown'
               endif
-              if data_size[1] ne npol then begin
+              if data_size[1] lt npol then begin
                 message, 'Data are in a pointer array, format unknown'
               endif
               data = getvar_savefile(datafile[pol_i, file_i], cube_varname[type_i, pol_i])
