@@ -6,7 +6,7 @@ function fhd_file_setup, filename, weightfile = weightfile, $
     freq_flag_name = freq_flag_name, $
     save_path = save_path, savefilebase = savefilebase_in, $
     uvf_input = uvf_input, sim = sim, refresh_info = refresh_info, $
-    uvf_options = uvf_options, ps_options = ps_options
+    uvf_options = uvf_options, ps_options = ps_options, pol_inc=pol_inc
 
   ;; check to see if filename is an info file
   wh_info = strpos(filename, '_info.idlsave')
@@ -148,7 +148,7 @@ function fhd_file_setup, filename, weightfile = weightfile, $
     endif else begin
       ;; no pol identifiers
       if n_elements(pol_inc) eq 0 then pol_inc = ['xx', 'yy']
-      pol_enum = ['xx', 'yy']
+      pol_enum = ['xx', 'yy', 'xy', 'yx']
       npol = n_elements(pol_inc)
       pol_num = intarr(npol)
       for i=0, npol-1 do begin
