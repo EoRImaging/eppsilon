@@ -1403,7 +1403,7 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
   endif else begin
     ;; Not evenly spaced or DFT requested.
     ;; use the kz_mpc_orig_trim to avoid the possible extra positive mode.
-    print, "Uneven frequency structure found"
+    print, "Uneven frequency structure found or DFT requested (default)"
     print, "Performing Discrete Fourier Transform"
 
     ;; There are 2 options for the DFT. One will get the (very nearly) the same answer
