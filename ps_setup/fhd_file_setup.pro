@@ -685,7 +685,7 @@ function fhd_file_setup, filename, weightfile = weightfile, $
           if wt_size[0] ne 2 then begin
             message, 'Weights are in a pointer array, format unknown'
           endif
-          if wt_size[1] ne npol then begin
+          if wt_size[1] lt npol then begin
             message, 'Weights are in a pointer array, format unknown'
           endif
           weights = getvar_savefile(weightfile[pol_i, file_i], weight_varname[pol_i])
