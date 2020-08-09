@@ -26,11 +26,9 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
 
   if n_elements(freq_flags) ne 0 then freq_mask = file_struct.freq_mask
 
-  if n_elements(freq_ch_range) ne 0 then begin
-    n_freq_orig = n_elements(frequencies)
-    frequencies = frequencies[min(freq_ch_range):max(freq_ch_range)]
-  endif
-  n_freq = n_elements(frequencies)
+  n_freq_orig = n_elements(frequencies) ;Read-in number of frequencies
+  if n_elements(freq_ch_range) ne 0 then frequencies = frequencies[min(freq_ch_range):max(freq_ch_range)]
+  n_freq = n_elements(frequencies) ;Selected number of frequencies
 
   z_mpc_mean = z_mpc(frequencies, hubble_param = hubble_param, f_delta = f_delta, $
     redshifts = redshifts, comov_dist_los = comov_dist_los, $
@@ -179,9 +177,9 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
     if healpix then begin
       ;; Angular resolution is given in Healpix paper in units of arcminutes,
       ;; need to convert to radians
-      ang_resolution = sqrt(3./!pi) * 3600./file_struct.nside * (1./60.) * (!pi/180.)
+      ang_resolution = sqrt(3./!dpi) * 3600./file_struct.nside * (1./60.) * (!dpi/180d)
       pix_area_rad = ang_resolution^2. ;; by definition of ang. resolution in Healpix paper
-    endif else pix_area_rad = (abs(file_struct.degpix) * !pi / 180d)^2.
+    endif else pix_area_rad = (abs(file_struct.degpix) * !dpi / 180d)^2.
 
     pix_area_mpc = pix_area_rad * z_mpc_mean^2.
 
@@ -238,9 +236,9 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
         iter = iter+1
       endwhile
 
-      temp = complex(fltarr([dims2, n_freq]))
-      if nfiles eq 2 then temp2 = complex(fltarr([dims2, n_freq]))
-      for i = 0, n_freq-1 do begin
+      temp = dcomplex(dblarr([dims2, n_freq_orig]))
+      if nfiles eq 2 then temp2 = dcomplex(dblarr([dims2, n_freq_orig]))
+      for i = 0, n_freq_orig-1 do begin
         foo = *weights_cube1[file_struct.pol_index, i]
         if foo ne !null then begin
           temp[*,*,i] = temporary(foo)
@@ -254,6 +252,19 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
 
     endif else dims2 = size(weights_cube1, /dimension)
 
+    if n_elements(freq_ch_range) ne 0 then begin
+      weights_cube1 = weights_cube1[*, *, min(freq_ch_range):max(freq_ch_range)]
+      if nfiles eq 2 then begin
+        weights_cube2 = weights_cube2[*, *, min(freq_ch_range):max(freq_ch_range)]
+      endif
+    endif
+    if n_elements(freq_flags) ne 0 then begin
+      flag_arr = rebin(reform(freq_mask, 1, 1, n_elements(file_struct.frequencies)), $
+        size(weights_cube1,/dimension), /sample)
+      weights_cube1 = weights_cube1 * flag_arr
+      if nfiles eq 2 then weights_cube2 = weights_cube2 * flag_arr
+    endif
+
     if max(abs(weights_cube1)) eq 0 then begin
       message, 'weights cube is entirely zero.'
     endif
@@ -262,14 +273,14 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
     endif
 
     n_kx = dims2[0]
-    if abs(file_struct.kpix-1/(n_kx[0] * (abs(file_struct.degpix) * !pi / 180d)))/file_struct.kpix gt 1e-4 then begin
+    if abs(file_struct.kpix-1/(n_kx[0] * (abs(file_struct.degpix) * !dpi / 180d)))/file_struct.kpix gt 1e-4 then begin
       message, 'Something has gone wrong with calculating uv pixel size'
     endif
-    kx_mpc_delta = (2.*!pi)*file_struct.kpix / z_mpc_mean
+    kx_mpc_delta = (2.*!dpi)*file_struct.kpix / z_mpc_mean
     kx_mpc = (dindgen(n_kx)-n_kx/2) * kx_mpc_delta
 
     n_ky = dims2[1]
-    ky_mpc_delta = (2.*!pi)*file_struct.kpix / z_mpc_mean
+    ky_mpc_delta = (2.*!dpi)*file_struct.kpix / z_mpc_mean
     ky_mpc = (dindgen(n_ky)-n_ky/2) * kx_mpc_delta
 
     ave_weights = total(total(abs(weights_cube1),2),1)/(n_kx*n_ky)
@@ -277,7 +288,7 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
       ave_weights = transpose([[ave_weights], [total(total(abs(weights_cube2),2),1)/(n_kx*n_ky)]])
     endif
 
-    pix_area_rad = (!dtor*file_struct.degpix)^2.
+    pix_area_rad = ((!dpi/180.)*file_struct.degpix)^2.
     pix_area_mpc = pix_area_rad * z_mpc_mean^2.
 
     ;; get beam sorted out
@@ -295,6 +306,17 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
           obs_beam = getvar_savefile(file_struct.beamfile[i], obs_struct_name)
           nfvis_beam = obs_beam.nf_vis
           undefine_fhd, obs_beam
+
+          if n_elements(freq_ch_range) ne 0 then begin
+            nfvis_beam = nfvis_beam[min(freq_ch_range):max(freq_ch_range)]
+            arr = arr[*,*,min(freq_ch_range):max(freq_ch_range)]
+          endif
+          if n_elements(freq_flags) ne 0 then begin
+            nfvis_beam = nfvis_beam*freq_mask
+            flag_arr = rebin(reform(freq_mask, 1, 1, n_elements(file_struct.frequencies)), $
+              size(arr,/dimension), /sample)
+            arr = arr * flag_arr
+          endif
 
           if max(arr) le 1.1 then begin
             ;; beam is peak normalized to 1
@@ -322,9 +344,9 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
 
     if tag_exist(uvf_options, 'uv_avg') then begin
       nkx_new = floor(n_kx / uvf_options.uv_avg)
-      temp = complex(fltarr(nkx_new, n_ky, n_freq))
-      if nfiles eq 2 then temp2 = complex(fltarr(nkx_new, n_ky, n_freq))
-      temp_kx = fltarr(nkx_new)
+      temp = dcomplex(dblarr(nkx_new, n_ky, n_freq))
+      if nfiles eq 2 then temp2 = dcomplex(dblarr(nkx_new, n_ky, n_freq))
+      temp_kx = dblarr(nkx_new)
       for i=0, nkx_new-1 do begin
         temp[i,*,*] = total(weights_cube1[i*uvf_options.uv_avg:(i+1)*uvf_options.uv_avg-1,*,*], 1) / uvf_options.uv_avg
         if nfiles eq 2 then begin
@@ -334,9 +356,9 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
       endfor
 
       nky_new = floor(n_ky / uvf_options.uv_avg)
-      temp3 = complex(fltarr(nkx_new, nky_new, n_freq))
-      if nfiles eq 2 then temp4 = complex(fltarr(nkx_new, nky_new, n_freq))
-      temp_ky = fltarr(nky_new)
+      temp3 = dcomplex(dblarr(nkx_new, nky_new, n_freq))
+      if nfiles eq 2 then temp4 = dcomplex(dblarr(nkx_new, nky_new, n_freq))
+      temp_ky = dblarr(nky_new)
       for i=0, nky_new-1 do begin
         temp3[*,i,*] = total(temp[*,i*uvf_options.uv_avg:(i+1)*uvf_options.uv_avg-1,*], 2) / uvf_options.uv_avg
         if nfiles eq 2 then temp4[*,i,*] = total(temp2[*,i*uvf_options.uv_avg:(i+1)*uvf_options.uv_avg-1,*], 2) / uvf_options.uv_avg
@@ -397,19 +419,6 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
       if nfiles eq 2 then if max(abs(weights_cube2)) eq 0 then begin
         message, 'weights cube is entirely zero.'
       endif
-    endif
-
-    if n_elements(freq_ch_range) ne 0 then begin
-      weights_cube1 = weights_cube1[*, *, min(freq_ch_range):max(freq_ch_range)]
-      if nfiles eq 2 then begin
-        weights_cube2 = weights_cube2[*, *, min(freq_ch_range):max(freq_ch_range)]
-      endif
-    endif
-    if n_elements(freq_flags) ne 0 then begin
-      flag_arr = rebin(reform(freq_mask, 1, 1, n_freq), $
-        size(weights_cube1,/dimension), /sample)
-      weights_cube1 = weights_cube1 * flag_arr
-      if nfiles eq 2 then weights_cube2 = weights_cube2 * flag_arr
     endif
 
     ;; need to cut uvf cubes in half because image is real -- we'll cut negative ky
@@ -534,9 +543,9 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
           dims2 = size(*variance_cube1[iter], /dimension)
           iter = iter+1
         endwhile
-        temp = complex(fltarr([dims2, n_freq]))
-        if nfiles eq 2 then temp2 = complex(fltarr([dims2, n_freq]))
-        for i = 0, n_freq-1 do begin
+        temp = dcomplex(dblarr([dims2, n_freq_orig]))
+        if nfiles eq 2 then temp2 = dcomplex(dblarr([dims2, n_freq_orig]))
+        for i = 0, n_freq_orig-1 do begin
           foo = *variance_cube1[file_struct.pol_index, i]
           if foo ne !null then begin
             temp[*,*,i] = foo
@@ -549,21 +558,34 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
         if nfiles eq 2 then variance_cube2 = temporary(temp2)
       endif
 
+      if n_elements(freq_ch_range) ne 0 then begin
+        variance_cube1 = variance_cube1[*, *, min(freq_ch_range):max(freq_ch_range)]
+        if nfiles eq 2 then begin
+          variance_cube2 = variance_cube2[*, *, min(freq_ch_range):max(freq_ch_range)]
+        endif
+      endif
+      if n_elements(freq_flags) ne 0 then begin
+        flag_arr = rebin(reform(freq_mask, 1, 1, n_elements(file_struct.frequencies)), $
+          size(variance_cube1,/dimension), /sample)
+        variance_cube1 = variance_cube1 * flag_arr
+        if nfiles eq 2 then variance_cube2 = variance_cube2 * flag_arr
+      endif
+
       if max(abs(variance_cube1)) eq 0 then message, 'variance cube is entirely zero.'
       if nfiles eq 2 then if max(abs(variance_cube2)) eq 0 then begin
         message, 'variance cube is entirely zero.'
       endif
 
       if tag_exist(uvf_options, 'uv_avg') then begin
-        temp = complex(fltarr(nkx_new, dims2[1], n_freq))
-        if nfiles eq 2 then temp2 = complex(fltarr(nkx_new, dims2[1], n_freq))
+        temp = dcomplex(dblarr(nkx_new, dims2[1], n_freq))
+        if nfiles eq 2 then temp2 = dcomplex(dblarr(nkx_new, dims2[1], n_freq))
         for i=0, nkx_new-1 do begin
           temp[i,*,*] = total(variance_cube1[i*uvf_options.uv_avg:(i+1)*uvf_options.uv_avg-1,*,*], 1) / uvf_options.uv_avg
           if nfiles eq 2 then temp2[i,*,*] = total(variance_cube2[i*uvf_options.uv_avg:(i+1)*uvf_options.uv_avg-1,*,*], 1) / uvf_options.uv_avg
         endfor
 
-        temp3 = complex(fltarr(nkx_new, nky_new, n_freq))
-        if nfiles eq 2 then temp4 = complex(fltarr(nkx_new, nky_new, n_freq))
+        temp3 = dcomplex(dblarr(nkx_new, nky_new, n_freq))
+        if nfiles eq 2 then temp4 = dcomplex(dblarr(nkx_new, nky_new, n_freq))
         for i=0, nky_new-1 do begin
           temp3[*,i,*] = total(temp[*,i*uvf_options.uv_avg:(i+1)*uvf_options.uv_avg-1,*], 2) / uvf_options.uv_avg
           if nfiles eq 2 then temp4[*,i,*] = total(temp2[*,i*uvf_options.uv_avg:(i+1)*uvf_options.uv_avg-1,*], 2) / uvf_options.uv_avg
@@ -615,17 +637,6 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
       variance_cube1 = variance_cube1[*, n_ky/2:n_ky-1,*]
       if nfiles eq 2 then variance_cube2 = variance_cube2[*, n_ky/2:n_ky-1,*]
 
-      if n_elements(freq_ch_range) ne 0 then begin
-        variance_cube1 = variance_cube1[*, *, min(freq_ch_range):max(freq_ch_range)]
-        if nfiles eq 2 then variance_cube2 = variance_cube2[*, *, min(freq_ch_range):max(freq_ch_range)]
-      endif
-      if n_elements(freq_flags) ne 0 then begin
-        flag_arr = rebin(reform(freq_mask, 1, 1, n_freq), $
-          size(variance_cube1,/dimension), /sample)
-        variance_cube1 = variance_cube1 * flag_arr
-        if nfiles eq 2 then variance_cube2 = variance_cube2 * flag_arr
-      endif
-
       ;; Also need to drop 1/2 of ky=0 line -- drop ky=0, kx<0
       variance_cube1[0:n_kx/2-1, 0, *] = 0
       if nfiles eq 2 then variance_cube2[0:n_kx/2-1, 0, *] = 0
@@ -671,6 +682,30 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
       endif else beam_git_hashes = ''
 
       if tag_exist(file_struct, 'beam_int') then begin
+        beam_int = file_struct.beam_int
+        n_vis_freq = file_struct.n_vis_freq 
+
+        if n_elements(freq_ch_range) ne 0 then begin
+          if nfiles eq 2 then begin
+            beam_int = beam_int[*,min(freq_ch_range):max(freq_ch_range)]
+            n_vis_freq = n_vis_freq[*,min(freq_ch_range):max(freq_ch_range)]
+          endif else begin
+            beam_int = beam_int[min(freq_ch_range):max(freq_ch_range)]
+            n_vis_freq = n_vis_freq[min(freq_ch_range):max(freq_ch_range)]
+          endelse
+        endif
+        if n_elements(freq_flags) ne 0 then begin
+          if nfiles eq 2 then begin
+            flag_arr = rebin(reform(freq_mask, 1, n_elements(file_struct.frequencies)), $
+              size(beam_int,/dimension), /sample)
+            beam_int = beam_int*flag_arr
+            n_vis_freq = n_vis_freq*flag_arr
+          endif else begin
+            beam_int = beam_int*freq_mask
+            n_vis_freq = n_vis_freq*freq_mask
+          endelse
+        endif
+
         if nfiles eq 2 then begin
           if N_elements(freq_ch_range) ne 0 then begin
             ave_beam_int = total(file_struct.beam_int[*, freq_ch_range] * file_struct.n_vis_freq[*, freq_ch_range], 2) / $
@@ -756,13 +791,13 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
           dims2 = size(*dirty_cube1[ind_i], /dimension)
           if total(dims2) NE 0 then break
         endfor
-        temp = complex(fltarr([dims2, n_freq]))
-        temp_m = complex(fltarr([dims2, n_freq]))
+        temp = dcomplex(dblarr([dims2, n_freq_orig]))
+        temp_m = dcomplex(dblarr([dims2, n_freq_orig]))
         if nfiles eq 2 then begin
-          temp2 = complex(fltarr([dims2, n_freq]))
-          temp_m2 = complex(fltarr([dims2, n_freq]))
+          temp2 = dcomplex(dblarr([dims2, n_freq_orig]))
+          temp_m2 = dcomplex(dblarr([dims2, n_freq_orig]))
         endif
-        for i = 0, n_freq-1 do begin
+        for i = 0, n_freq_orig-1 do begin
           if *dirty_cube1[file_struct.pol_index, i] NE !NULL then $
             temp[*,*,i] = *dirty_cube1[file_struct.pol_index, i]
           if *model_cube1[file_struct.pol_index, i] NE !NULL then $
@@ -781,6 +816,25 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
         if nfiles eq 2 then begin
           dirty_cube2 = temporary(temp2)
           model_cube2 = temporary(temp_m2)
+        endif
+      endif
+
+      if n_elements(freq_ch_range) ne 0 then begin
+        dirty_cube1 = dirty_cube1[*, *, min(freq_ch_range):max(freq_ch_range)]
+        model_cube1 = model_cube1[*, *, min(freq_ch_range):max(freq_ch_range)]
+        if nfiles eq 2 then begin
+          dirty_cube2 = dirty_cube2[*, *, min(freq_ch_range):max(freq_ch_range)]
+          model_cube2 = model_cube2[*, *, min(freq_ch_range):max(freq_ch_range)]
+        endif
+      endif
+      if n_elements(freq_flags) ne 0 then begin
+        flag_arr = rebin(reform(freq_mask, 1, 1, n_elements(file_struct.frequencies)), $
+          size(dirty_cube1,/dimension), /sample)
+        dirty_cube1 = dirty_cube1 * flag_arr
+        model_cube1 = model_cube1 * flag_arr
+        if nfiles eq 2 then begin
+          dirty_cube2 = dirty_cube2 * flag_arr
+          model_cube2 = model_cube2 * flag_arr
         endif
       endif
 
@@ -822,9 +876,9 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
           iter = iter+1
         endwhile
 
-        temp = complex(fltarr([dims2, n_freq]))
-        if nfiles eq 2 then temp2 = complex(fltarr([dims2, n_freq]))
-        for i = 0, n_freq-1 do begin
+        temp = dcomplex(dblarr([dims2, n_freq_orig]))
+        if nfiles eq 2 then temp2 = dcomplex(dblarr([dims2, n_freq_orig]))
+        for i = 0, n_freq_orig-1 do begin
           foo = *data_cube1[file_struct.pol_index, i]
           if foo ne !null then begin
             temp[*,*,i] = foo
@@ -837,14 +891,27 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
         if nfiles eq 2 then data_cube2 = temporary(temp2)
       endif
 
+      if n_elements(freq_ch_range) ne 0 then begin
+        data_cube1 = data_cube1[*, *, min(freq_ch_range):max(freq_ch_range)]
+        if nfiles eq 2 then begin
+          data_cube2 = data_cube2[*, *, min(freq_ch_range):max(freq_ch_range)]
+        endif
+      endif
+      if n_elements(freq_flags) ne 0 then begin
+        flag_arr = rebin(reform(freq_mask, 1, 1, n_elements(file_struct.frequencies)), $
+          size(data_cube1,/dimension), /sample)
+        data_cube1 = data_cube1 * flag_arr
+        if nfiles eq 2 then data_cube2 = data_cube2 * flag_arr
+      endif
+
       if max(abs(data_cube1)) eq 0 then message, 'data cube is entirely zero.'
       if nfiles eq 2 then if max(abs(data_cube2)) eq 0 then message, 'data cube is entirely zero.'
 
     endelse
 
     if tag_exist(uvf_options, 'uv_avg') then begin
-      temp = complex(fltarr(nkx_new, dims2[1], n_freq))
-      if nfiles eq 2 then temp2 = complex(fltarr(nkx_new, dims2[1], n_freq))
+      temp = dcomplex(dblarr(nkx_new, dims2[1], n_freq))
+      if nfiles eq 2 then temp2 = dcomplex(dblarr(nkx_new, dims2[1], n_freq))
       for i=0, nkx_new-1 do begin
         temp[i, *, *] = total(data_cube1[i * uvf_options.uv_avg:(i+1) * uvf_options.uv_avg-1, *, *], 1) / $
           uvf_options.uv_avg
@@ -854,8 +921,8 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
         endif
       endfor
 
-      temp3 = complex(fltarr(nkx_new, nky_new, n_freq))
-      if nfiles eq 2 then temp4 = complex(fltarr(nkx_new, nky_new, n_freq))
+      temp3 = dcomplex(dblarr(nkx_new, nky_new, n_freq))
+      if nfiles eq 2 then temp4 = dcomplex(dblarr(nkx_new, nky_new, n_freq))
       for i=0, nky_new-1 do begin
         temp3[*,i,*] = total(temp[*,i*uvf_options.uv_avg:(i+1)*uvf_options.uv_avg-1,*], 2) / $
           uvf_options.uv_avg
@@ -903,16 +970,6 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
     ;; need to cut uvf cubes in half because image is real -- we'll cut negative ky
     data_cube1 = data_cube1[*, n_ky/2:n_ky-1,*]
     if nfiles eq 2 then data_cube2 = data_cube2[*, n_ky/2:n_ky-1,*]
-
-    if n_elements(freq_ch_range) ne 0 then begin
-      data_cube1 = data_cube1[*, *, min(freq_ch_range):max(freq_ch_range)]
-      if nfiles eq 2 then data_cube2 = data_cube2[*, *, min(freq_ch_range):max(freq_ch_range)]
-    endif
-    if n_elements(freq_flags) ne 0 then begin
-      flag_arr = rebin(reform(freq_mask, 1, 1, n_freq), size(data_cube1,/dimension), /sample)
-      data_cube1 = data_cube1 * flag_arr
-      if nfiles eq 2 then data_cube2 = data_cube2 * flag_arr
-    endif
 
     ky_mpc = ky_mpc[n_ky/2:n_ky-1]
     n_ky = n_elements(ky_mpc)
@@ -1067,9 +1124,9 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
     if (n_elements(window_int) eq 0 or min(window_int) eq 0) then window_int = window_int_k
   endif else begin
 
-    window_int_k = window_int * (z_mpc_delta * n_freq) * (2.*!pi)^2. / $
+    window_int_k = window_int * (z_mpc_delta * n_freq) * (2.*!dpi)^2. / $
       (kx_mpc_delta * ky_mpc_delta)
-    print, 'var_cube multiplier: ', (z_mpc_delta * n_freq) * (2.*!pi)^2. / $
+    print, 'var_cube multiplier: ', (z_mpc_delta * n_freq) * (2.*!dpi)^2. / $
       (kx_mpc_delta * ky_mpc_delta)
     print, 'window integral from variances: ' + number_formatter(window_int_k[0], $
       format='(e10.4)')
@@ -1128,10 +1185,10 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
 
   ;; make simulated noise cubes
   sim_noise1 = randomn(seed, n_kx, n_ky, n_kz) * sqrt(sigma2_cube1) + $
-    complex(0,1) * randomn(seed, n_kx, n_ky, n_kz) * sqrt(sigma2_cube1)
+    dcomplex(0,1) * randomn(seed, n_kx, n_ky, n_kz) * sqrt(sigma2_cube1)
   if nfiles eq 2 then begin
     sim_noise2 = randomn(seed, n_kx, n_ky, n_kz) * sqrt(sigma2_cube2) + $
-      complex(0,1) * randomn(seed, n_kx, n_ky, n_kz) * sqrt(sigma2_cube2)
+      dcomplex(0,1) * randomn(seed, n_kx, n_ky, n_kz) * sqrt(sigma2_cube2)
   endif
 
   if nfiles eq 2 then begin
@@ -1233,19 +1290,19 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
 
     data_sum_mean = mean(data_sum, dimension=3)
     data_sum = data_sum - (rebin(real_part(data_sum_mean), n_kx, n_ky, n_freq, /sample) + $
-      complex(0,1)*rebin(imaginary(data_sum_mean), n_kx, n_ky, n_freq, /sample))
+      dcomplex(0,1)*rebin(imaginary(data_sum_mean), n_kx, n_ky, n_freq, /sample))
 
     sim_noise_sum_mean = mean(sim_noise_sum, dimension=3)
     sim_noise_sum = sim_noise_sum - (rebin(real_part(sim_noise_sum_mean), n_kx, n_ky, n_freq, /sample) + $
-      complex(0,1)*rebin(imaginary(sim_noise_sum_mean), n_kx, n_ky, n_freq, /sample))
+      dcomplex(0,1)*rebin(imaginary(sim_noise_sum_mean), n_kx, n_ky, n_freq, /sample))
     if nfiles eq 2 then begin
       data_diff_mean = mean(data_diff, dimension=3)
       data_diff = data_diff - (rebin(real_part(data_diff_mean), n_kx, n_ky, n_freq, /sample) + $
-        complex(0,1)*rebin(imaginary(data_diff_mean), n_kx, n_ky, n_freq, /sample))
+        dcomplex(0,1)*rebin(imaginary(data_diff_mean), n_kx, n_ky, n_freq, /sample))
 
       sim_noise_diff_mean = mean(sim_noise_diff, dimension=3)
       sim_noise_diff = sim_noise_diff - (rebin(real_part(sim_noise_diff_mean), n_kx, n_ky, n_freq, /sample) + $
-        complex(0,1)*rebin(imaginary(sim_noise_diff_mean), n_kx, n_ky, n_freq, /sample))
+        dcomplex(0,1)*rebin(imaginary(sim_noise_diff_mean), n_kx, n_ky, n_freq, /sample))
     endif
   endif
 
@@ -1410,12 +1467,12 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
     ;; as the FFT for regular gridding because it uses fixed conversion between delta_z and delta_f
     ;; in some simple testing, this had a difference ratio vs the FFT (abs(diff)/abs(fft)) of ~10^-3
     z_reg = (frequencies-frequencies[0])*z_mpc_delta/f_delta
-    z_exp_zreg = exp(-1.*complex(0,1)*matrix_multiply(z_reg, kz_mpc_orig_trim, /btranspose))
+    z_exp_zreg = exp(-1.*dcomplex(0,1)*matrix_multiply(z_reg, kz_mpc_orig_trim, /btranspose))
 
     ;; This one uses the true comov_dist_los values, so it is a little more different compared to the fft
     ;; (which run large to small)
     ;; in some simple testing, this had a difference ratio vs the FFT (abs(diff)/abs(fft)) of ~10^1
-    z_exp_ztrue =  exp(-1.*complex(0,1)*matrix_multiply(reverse(comov_dist_los-min(comov_dist_los)), kz_mpc_orig_trim, /btranspose))
+    z_exp_ztrue =  exp(-1.*dcomplex(0,1)*matrix_multiply(reverse(comov_dist_los-min(comov_dist_los)), kz_mpc_orig_trim, /btranspose))
 
     case ps_options.dft_z_use of
       'true': z_exp = z_exp_ztrue
@@ -1450,26 +1507,26 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
   ;; measurements going into it
   a1_0 = data_sum_ft[*,*,where(n_val eq 0)]
   a1_n = (data_sum_ft[*, *, wh_pos] + data_sum_ft[*, *, reverse(wh_neg)])/2.
-  b1_n = complex(0,1) * (data_sum_ft[*, *, wh_pos] - $
+  b1_n = dcomplex(0,1) * (data_sum_ft[*, *, wh_pos] - $
         data_sum_ft[*, *, reverse(wh_neg)])/2.
   undefine, data_sum_ft
 
   a3_0 = sim_noise_sum_ft[*,*,where(n_val eq 0)]
   a3_n = (sim_noise_sum_ft[*, *, wh_pos] + sim_noise_sum_ft[*, *, reverse(wh_neg)])/2.
-  b3_n = complex(0,1) * (sim_noise_sum_ft[*, *, wh_pos] - $
+  b3_n = dcomplex(0,1) * (sim_noise_sum_ft[*, *, wh_pos] - $
         sim_noise_sum_ft[*, *, reverse(wh_neg)])/2.
   undefine, sim_noise_sum_ft
 
   if nfiles gt 1 then begin
     a2_0 = data_diff_ft[*,*,where(n_val eq 0)]
     a2_n = (data_diff_ft[*, *, wh_pos] + data_diff_ft[*, *, reverse(wh_neg)])/2.
-    b2_n = complex(0,1) * (data_diff_ft[*, *, wh_pos] - $
+    b2_n = dcomplex(0,1) * (data_diff_ft[*, *, wh_pos] - $
           data_diff_ft[*, *, reverse(wh_neg)])/2.
     undefine, data_diff_ft
 
     a4_0 = sim_noise_diff_ft[*,*,where(n_val eq 0)]
     a4_n = (sim_noise_diff_ft[*, *, wh_pos] + sim_noise_diff_ft[*, *, reverse(wh_neg)])/2.
-    b4_n = complex(0,1) * (sim_noise_diff_ft[*, *, wh_pos] - $
+    b4_n = dcomplex(0,1) * (sim_noise_diff_ft[*, *, wh_pos] - $
           sim_noise_diff_ft[*, *, reverse(wh_neg)])/2.
     undefine, sim_noise_diff_ft
   endif
@@ -1499,27 +1556,27 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
     endif
   endif
 
-  data_sum_cos = dcomplex(fltarr(n_kx, n_ky, n_kz))
-  data_sum_sin = dcomplex(fltarr(n_kx, n_ky, n_kz))
+  data_sum_cos = dcomplex(dblarr(n_kx, n_ky, n_kz))
+  data_sum_sin = dcomplex(dblarr(n_kx, n_ky, n_kz))
   data_sum_cos[*, *, 0] = a1_0
   data_sum_cos[*, *, 1:n_kz-1] = a1_n
   data_sum_sin[*, *, 1:n_kz-1] = b1_n
 
-  sim_noise_sum_cos = dcomplex(fltarr(n_kx, n_ky, n_kz))
-  sim_noise_sum_sin = dcomplex(fltarr(n_kx, n_ky, n_kz))
+  sim_noise_sum_cos = dcomplex(dblarr(n_kx, n_ky, n_kz))
+  sim_noise_sum_sin = dcomplex(dblarr(n_kx, n_ky, n_kz))
   sim_noise_sum_cos[*, *, 0] = a3_0
   sim_noise_sum_cos[*, *, 1:n_kz-1] = a3_n
   sim_noise_sum_sin[*, *, 1:n_kz-1] = b3_n
 
   if nfiles gt 1 then begin
-    data_diff_cos = dcomplex(fltarr(n_kx, n_ky, n_kz))
-    data_diff_sin = dcomplex(fltarr(n_kx, n_ky, n_kz))
+    data_diff_cos = dcomplex(dblarr(n_kx, n_ky, n_kz))
+    data_diff_sin = dcomplex(dblarr(n_kx, n_ky, n_kz))
     data_diff_cos[*, *, 0] = a2_0
     data_diff_cos[*, *, 1:n_kz-1] = a2_n
     data_diff_sin[*, *, 1:n_kz-1] = b2_n
 
-    sim_noise_diff_cos = dcomplex(fltarr(n_kx, n_ky, n_kz))
-    sim_noise_diff_sin = dcomplex(fltarr(n_kx, n_ky, n_kz))
+    sim_noise_diff_cos = dcomplex(dblarr(n_kx, n_ky, n_kz))
+    sim_noise_diff_sin = dcomplex(dblarr(n_kx, n_ky, n_kz))
     sim_noise_diff_cos[*, *, 0] = a4_0
     sim_noise_diff_cos[*, *, 1:n_kz-1] = a4_n
     sim_noise_diff_sin[*, *, 1:n_kz-1] = b4_n
@@ -1539,9 +1596,9 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
   endif
 
   ;; for new power calc, need cos2, sin2, cos*sin transforms
-  covar_cos = fltarr(n_kx, n_ky, n_kz)
-  covar_sin = fltarr(n_kx, n_ky, n_kz)
-  covar_cross = fltarr(n_kx, n_ky, n_kz)
+  covar_cos = dblarr(n_kx, n_ky, n_kz)
+  covar_sin = dblarr(n_kx, n_ky, n_kz)
+  covar_cross = dblarr(n_kx, n_ky, n_kz)
 
   if not ps_options.freq_dft then begin
     ;; comov_dist_los goes from large to small z
