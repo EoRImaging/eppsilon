@@ -725,7 +725,7 @@ function fhd_file_setup, filename, weightfile = weightfile, $
             if var_size[0] ne 2 then begin
               message, 'Variance are in a pointer array, format unknown'
             endif
-            if var_size[1] ne npol then begin
+            if var_size[1] lt npol then begin
               message, 'Variance are in a pointer array, format unknown'
             endif
             variance = getvar_savefile(variancefile[pol_i, file_i], variance_varname[pol_i])
