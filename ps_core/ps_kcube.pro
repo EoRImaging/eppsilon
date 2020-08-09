@@ -259,7 +259,7 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
       endif
     endif
     if n_elements(freq_flags) ne 0 then begin
-      flag_arr = rebin(reform(freq_mask, 1, 1, n_elements(file_struct.frequencies)), $
+      flag_arr = rebin(reform(freq_mask, 1, 1, n_freq), $
         size(weights_cube1,/dimension), /sample)
       weights_cube1 = weights_cube1 * flag_arr
       if nfiles eq 2 then weights_cube2 = weights_cube2 * flag_arr
@@ -313,7 +313,7 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
           endif
           if n_elements(freq_flags) ne 0 then begin
             nfvis_beam = nfvis_beam*freq_mask
-            flag_arr = rebin(reform(freq_mask, 1, 1, n_elements(file_struct.frequencies)), $
+            flag_arr = rebin(reform(freq_mask, 1, 1, n_freq), $
               size(arr,/dimension), /sample)
             arr = arr * flag_arr
           endif
@@ -565,7 +565,7 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
         endif
       endif
       if n_elements(freq_flags) ne 0 then begin
-        flag_arr = rebin(reform(freq_mask, 1, 1, n_elements(file_struct.frequencies)), $
+        flag_arr = rebin(reform(freq_mask, 1, 1, n_freq), $
           size(variance_cube1,/dimension), /sample)
         variance_cube1 = variance_cube1 * flag_arr
         if nfiles eq 2 then variance_cube2 = variance_cube2 * flag_arr
@@ -696,7 +696,7 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
         endif
         if n_elements(freq_flags) ne 0 then begin
           if nfiles eq 2 then begin
-            flag_arr = rebin(reform(freq_mask, 1, n_elements(file_struct.frequencies)), $
+            flag_arr = rebin(reform(freq_mask, 1, n_freq), $
               size(beam_int,/dimension), /sample)
             beam_int = beam_int*flag_arr
             n_vis_freq = n_vis_freq*flag_arr
@@ -828,7 +828,7 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
         endif
       endif
       if n_elements(freq_flags) ne 0 then begin
-        flag_arr = rebin(reform(freq_mask, 1, 1, n_elements(file_struct.frequencies)), $
+        flag_arr = rebin(reform(freq_mask, 1, 1, n_freq), $
           size(dirty_cube1,/dimension), /sample)
         dirty_cube1 = dirty_cube1 * flag_arr
         model_cube1 = model_cube1 * flag_arr
@@ -898,7 +898,7 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
         endif
       endif
       if n_elements(freq_flags) ne 0 then begin
-        flag_arr = rebin(reform(freq_mask, 1, 1, n_elements(file_struct.frequencies)), $
+        flag_arr = rebin(reform(freq_mask, 1, 1, n_freq), $
           size(data_cube1,/dimension), /sample)
         data_cube1 = data_cube1 * flag_arr
         if nfiles eq 2 then data_cube2 = data_cube2 * flag_arr
