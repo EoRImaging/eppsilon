@@ -42,12 +42,7 @@ pro ps_image_to_uvf, file_struct, n_vis_freq, kx_rad_vals, ky_rad_vals, $
     if (test_uvf eq 1 or test_wt_uvf eq 1) and n_elements(freq_flags) ne 0 then begin
       if test_uvf eq 1 then old_freq_mask = getvar_savefile(file_struct.uvf_savefile[i], 'freq_mask')
       if test_wt_uvf eq 1 then old_freq_mask = getvar_savefile(file_struct.uvf_weight_savefile[i], 'freq_mask')
-      if n_elements(freq_ch_range) ne 0 then begin
-        if total(abs(old_freq_mask[min(freq_ch_range):max(freq_ch_range)] - freq_mask)) ne 0 $
-          then test_uvf = 0
-      endif else begin
-        if total(abs(old_freq_mask - freq_mask)) ne 0 then test_uvf = 0
-      endelse
+      if total(abs(old_freq_mask - freq_mask)) ne 0 then test_uvf = 0
     endif
 
     if test_uvf eq 0 and not refresh_options.refresh_dft and $
