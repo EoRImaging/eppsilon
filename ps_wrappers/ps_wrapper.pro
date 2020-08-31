@@ -132,9 +132,12 @@ pro ps_wrapper, folder_name_in, obs_name, data_subdirs=data_subdirs, $
 
     if tag_exist(obs_info, 'dirtyfiles') then dirtyfiles = obs_info.dirtyfiles.(0)
 
-    if obs_info.info_files[0] ne '' then datafile = obs_info.info_files[0] else begin
-
-      if obs_info.cube_files.(0)[0] ne '' then datafile = obs_info.cube_files.(0) else begin
+    if obs_info.info_files[0] ne '' then begin
+      datafile = obs_info.info_files[0]
+    endif else begin
+      if obs_info.cube_files.(0)[0] ne '' then begin
+        datafile = obs_info.cube_files.(0)
+      endif else begin
         datafile = rts_fits2idlcube(obs_info.datafiles.(0), obs_info.weightfiles.(0), $
           obs_info.variancefiles.(0), dirtyfiles = dirtyfiles, pol_inc = pol_inc, $
           save_path = obs_info.folder_names[0]+path_sep(), $

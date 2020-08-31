@@ -218,52 +218,15 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
   endif else begin
     ;; uvf_input
 
-    weights_cube1 = getvar_savefile(file_struct.weightfile[0], file_struct.weightvar)
+    weights_cube1 = get_cube_uvf_input(file_struct.weightfile[0], $
+      file_struct.weightvar, n_freq, file_struct.pol_index)
+
     if nfiles eq 2 then begin
-      weights_cube2 = getvar_savefile(file_struct.weightfile[1], file_struct.weightvar)
+      weights_cube2 = get_cube_uvf_input(file_struct.weightfile[1], $
+        file_struct.weightvar, n_freq, file_struct.pol_index)
     endif
 
     uvf_wt_git_hashes = strarr(nfiles)
-
-    wt_size = size(weights_cube1)
-    if wt_size[n_elements(wt_size)-2] eq 10 then begin
-      ;; weights cube is a pointer
-      dims2 = size(*weights_cube1[0], /dimension)
-      iter=1
-      while min(dims2) eq 0 and iter lt wt_size[2] do begin
-        print, 'warning: some frequency slices have null pointers'
-        dims2 = size(*weights_cube1[iter], /dimension)
-        iter = iter+1
-      endwhile
-
-      temp = dcomplex(dblarr([dims2, n_freq_orig]))
-      if nfiles eq 2 then temp2 = dcomplex(dblarr([dims2, n_freq_orig]))
-      for i = 0, n_freq_orig-1 do begin
-        foo = *weights_cube1[file_struct.pol_index, i]
-        if foo ne !null then begin
-          temp[*,*,i] = temporary(foo)
-          if nfiles eq 2 then temp2[*,*,i] = *weights_cube2[file_struct.pol_index, i]
-        endif
-      endfor
-      undefine_fhd, weights_cube1, weights_cube2
-
-      weights_cube1 = temporary(temp)
-      if nfiles eq 2 then weights_cube2 = temporary(temp2)
-
-    endif else dims2 = size(weights_cube1, /dimension)
-
-    if n_elements(freq_ch_range) ne 0 then begin
-      weights_cube1 = weights_cube1[*, *, min(freq_ch_range):max(freq_ch_range)]
-      if nfiles eq 2 then begin
-        weights_cube2 = weights_cube2[*, *, min(freq_ch_range):max(freq_ch_range)]
-      endif
-    endif
-    if n_elements(freq_flags) ne 0 then begin
-      flag_arr = rebin(reform(freq_mask, 1, 1, n_freq), $
-        size(weights_cube1,/dimension), /sample)
-      weights_cube1 = weights_cube1 * flag_arr
-      if nfiles eq 2 then weights_cube2 = weights_cube2 * flag_arr
-    endif
 
     if max(abs(weights_cube1)) eq 0 then begin
       message, 'weights cube is entirely zero.'
@@ -272,6 +235,7 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
       message, 'weights cube is entirely zero.'
     endif
 
+    dims2 = size(weights_cube1, /dimension)
     n_kx = dims2[0]
     if abs(file_struct.kpix-1/(n_kx[0] * (abs(file_struct.degpix) * !dpi / 180d)))/file_struct.kpix gt 1e-4 then begin
       message, 'Something has gone wrong with calculating uv pixel size'
@@ -528,34 +492,13 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
 
     endif else begin
       ;; uvf_input
-      variance_cube1 = getvar_savefile(file_struct.variancefile[0], file_struct.variancevar)
+
+      variance_cube1 = get_cube_uvf_input(file_struct.variancefile[0], $
+        file_struct.variancevar, n_freq, file_struct.pol_index)
+
       if nfiles eq 2 then begin
-        variance_cube2 = getvar_savefile(file_struct.variancefile[1], file_struct.variancevar)
-      endif
-
-      var_size = size(variance_cube1)
-      if var_size[n_elements(var_size)-2] eq 10 then begin
-        ;; variance cube is a pointer
-        dims2 = size(*variance_cube1[0], /dimension)
-        iter=1
-        while min(dims2) eq 0 and iter lt var_size[2] do begin
-          print, 'warning: some frequency slices have null pointers'
-          dims2 = size(*variance_cube1[iter], /dimension)
-          iter = iter+1
-        endwhile
-        temp = dcomplex(dblarr([dims2, n_freq_orig]))
-        if nfiles eq 2 then temp2 = dcomplex(dblarr([dims2, n_freq_orig]))
-        for i = 0, n_freq_orig-1 do begin
-          foo = *variance_cube1[file_struct.pol_index, i]
-          if foo ne !null then begin
-            temp[*,*,i] = foo
-            if nfiles eq 2 then temp2[*,*,i] = *variance_cube2[file_struct.pol_index, i]
-          endif
-        endfor
-        undefine_fhd, variance_cube1, variance_cube2
-
-        variance_cube1 = temporary(temp)
-        if nfiles eq 2 then variance_cube2 = temporary(temp2)
+        variance_cube2 = get_cube_uvf_input(file_struct.variancefile[1], $
+          file_struct.variancevar, n_freq, file_struct.pol_index)
       endif
 
       if n_elements(freq_ch_range) ne 0 then begin
@@ -776,70 +719,18 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
     if datavar eq '' then begin
       ;; working with a 'derived' cube (ie residual cube) that is constructed from other cubes
       ;; need to cut uvf cubes in half because image is real -- we'll cut negative ky
-      dirty_cube1 = getvar_savefile(input_uvf_files[0,0], input_uvf_varname[0,0])
-      model_cube1 = getvar_savefile(input_uvf_files[0,1], input_uvf_varname[0,1])
+      dirty_cube1 = get_cube_uvf_input(input_uvf_files[0,0], $
+        input_uvf_varname[0,0], n_freq, file_struct.pol_index)
+      model_cube1 = get_cube_uvf_input(input_uvf_files[0,1], $
+        input_uvf_varname[0,1], n_freq, file_struct.pol_index)
       if nfiles eq 2 then begin
-        dirty_cube2 = getvar_savefile(input_uvf_files[1,0], input_uvf_varname[1,0])
-        model_cube2 = getvar_savefile(input_uvf_files[1,1], input_uvf_varname[1,1])
-      endif
-
-      dirty_size = size(dirty_cube1)
-      if dirty_size[n_elements(dirty_size)-2] eq 10 then begin
-        ;; dirty cube is a pointer
-        ;; handle null frequency pointers carefully
-        for ind_i=0, product(dirty_size[1:dirty_size[0]]) - 1 do begin
-          dims2 = size(*dirty_cube1[ind_i], /dimension)
-          if total(dims2) NE 0 then break
-        endfor
-        temp = dcomplex(dblarr([dims2, n_freq_orig]))
-        temp_m = dcomplex(dblarr([dims2, n_freq_orig]))
-        if nfiles eq 2 then begin
-          temp2 = dcomplex(dblarr([dims2, n_freq_orig]))
-          temp_m2 = dcomplex(dblarr([dims2, n_freq_orig]))
-        endif
-        for i = 0, n_freq_orig-1 do begin
-          if *dirty_cube1[file_struct.pol_index, i] NE !NULL then $
-            temp[*,*,i] = *dirty_cube1[file_struct.pol_index, i]
-          if *model_cube1[file_struct.pol_index, i] NE !NULL then $
-            temp_m[*,*,i] = *model_cube1[file_struct.pol_index, i]
-          if nfiles eq 2 then begin
-            if *dirty_cube2[file_struct.pol_index, i] NE !NULL then $
-              temp2[*,*,i] = *dirty_cube2[file_struct.pol_index, i]
-            if *model_cube2[file_struct.pol_index, i] NE !NULL then $
-              temp_m2[*,*,i] = *model_cube2[file_struct.pol_index, i]
-          endif
-        endfor
-        undefine_fhd, dirty_cube1, model_cube1, dirty_cube2, model_cube2
-
-        dirty_cube1 = temporary(temp)
-        model_cube1 = temporary(temp_m)
-        if nfiles eq 2 then begin
-          dirty_cube2 = temporary(temp2)
-          model_cube2 = temporary(temp_m2)
-        endif
-      endif
-
-      if n_elements(freq_ch_range) ne 0 then begin
-        dirty_cube1 = dirty_cube1[*, *, min(freq_ch_range):max(freq_ch_range)]
-        model_cube1 = model_cube1[*, *, min(freq_ch_range):max(freq_ch_range)]
-        if nfiles eq 2 then begin
-          dirty_cube2 = dirty_cube2[*, *, min(freq_ch_range):max(freq_ch_range)]
-          model_cube2 = model_cube2[*, *, min(freq_ch_range):max(freq_ch_range)]
-        endif
-      endif
-      if n_elements(freq_flags) ne 0 then begin
-        flag_arr = rebin(reform(freq_mask, 1, 1, n_freq), $
-          size(dirty_cube1,/dimension), /sample)
-        dirty_cube1 = dirty_cube1 * flag_arr
-        model_cube1 = model_cube1 * flag_arr
-        if nfiles eq 2 then begin
-          dirty_cube2 = dirty_cube2 * flag_arr
-          model_cube2 = model_cube2 * flag_arr
-        endif
+        dirty_cube2 = get_cube_uvf_input(input_uvf_files[1,0], $
+          input_uvf_varname[1,0], n_freq, file_struct.pol_index)
+        model_cube2 = get_cube_uvf_input(input_uvf_files[1,1], $
+          input_uvf_varname[1,1], n_freq, file_struct.pol_index)
       endif
 
       data_cube1 = temporary(dirty_cube1) - temporary(model_cube1)
-
       if nfiles eq 2 then begin
         data_cube2 = temporary(dirty_cube2) - temporary(model_cube2)
       endif
@@ -858,51 +749,14 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
       endif else uvf_git_hashes = strarr(nfiles)
 
     endif else begin
-      data_cube1 = getvar_savefile(file_struct.datafile[0], file_struct.datavar)
+      data_cube1 = get_cube_uvf_input(file_struct.datafile[0], $
+        file_struct.datavar, n_freq, file_struct.pol_index)
       if nfiles eq 2 then begin
-        data_cube2 = getvar_savefile(file_struct.datafile[1], file_struct.datavar)
+        data_cube2 = get_cube_uvf_input(file_struct.datafile[1], $
+          file_struct.datavar, n_freq, file_struct.pol_index)
       endif
 
       uvf_git_hashes = strarr(nfiles)
-
-      data_size = size(data_cube1)
-      if data_size[n_elements(data_size)-2] eq 10 then begin
-        ;; data cube is a pointer
-        dims2 = size(*data_cube1[0], /dimension)
-        iter=1
-        while min(dims2) eq 0 and iter lt data_size[2] do begin
-          print, 'warning: some frequency slices have null pointers'
-          dims2 = size(*data_cube1[iter], /dimension)
-          iter = iter+1
-        endwhile
-
-        temp = dcomplex(dblarr([dims2, n_freq_orig]))
-        if nfiles eq 2 then temp2 = dcomplex(dblarr([dims2, n_freq_orig]))
-        for i = 0, n_freq_orig-1 do begin
-          foo = *data_cube1[file_struct.pol_index, i]
-          if foo ne !null then begin
-            temp[*,*,i] = foo
-            if nfiles eq 2 then temp2[*,*,i] = *data_cube2[file_struct.pol_index, i]
-          endif
-        endfor
-        undefine_fhd, data_cube1, data_cube2
-
-        data_cube1 = temporary(temp)
-        if nfiles eq 2 then data_cube2 = temporary(temp2)
-      endif
-
-      if n_elements(freq_ch_range) ne 0 then begin
-        data_cube1 = data_cube1[*, *, min(freq_ch_range):max(freq_ch_range)]
-        if nfiles eq 2 then begin
-          data_cube2 = data_cube2[*, *, min(freq_ch_range):max(freq_ch_range)]
-        endif
-      endif
-      if n_elements(freq_flags) ne 0 then begin
-        flag_arr = rebin(reform(freq_mask, 1, 1, n_freq), $
-          size(data_cube1,/dimension), /sample)
-        data_cube1 = data_cube1 * flag_arr
-        if nfiles eq 2 then data_cube2 = data_cube2 * flag_arr
-      endif
 
       if max(abs(data_cube1)) eq 0 then message, 'data cube is entirely zero.'
       if nfiles eq 2 then if max(abs(data_cube2)) eq 0 then message, 'data cube is entirely zero.'
