@@ -358,10 +358,10 @@ function fhd_file_setup, filename, weightfile = weightfile, $
       if n_elements(model_varname) ne npol then begin
         if n_elements(model_varname) eq 1 then begin
           model_varname = replicate(model_varname, npol)
-        endif
-      endif else begin
-        message, 'modelvar must be a scalar or have the same number of elements as pol_inc'
-      endelse
+        endif else begin
+          message, 'modelvar must be a scalar or have the same number of elements as pol_inc'
+        endelse
+      endif
 
       type_inc = ['model']
       if npol gt 1 then begin

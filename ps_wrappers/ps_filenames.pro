@@ -507,10 +507,8 @@ function ps_filenames, folder_names, obs_names_in, dirty_folder = dirty_folder, 
 
       if keyword_set(uvf_input) then begin
         uvf_info_tag = '_uvf'
-        endobsname_tag_use = hpx_endobsname_tag
       endif else begin
         uvf_info_tag = ''
-        endobsname_tag_use = uvf_endobsname_tag
       endelse
 
       ;; first look for integrated info files in save_paths with names like Combined_obs_...
@@ -519,12 +517,12 @@ function ps_filenames, folder_names, obs_names_in, dirty_folder = dirty_folder, 
           hpx_info_file = file_search(save_paths[i] +  'Combined_obs_' + $
             obs_names[i] + hpx_endobsname_tag + '*info*', count = n_hpx)
           uvf_info_file = file_search(save_paths[i] +  'Combined_obs_' + $
-            obs_names[i] + uvf_endobsname_tag + uvf_info_tag + '*info*', count = n_uvf)
+            obs_names[i] + uvf_endobsname_tag + '*' + uvf_info_tag + '_info*', count = n_uvf)
         endif else begin
           hpx_info_file = file_search(save_paths[i] +  'Combined_obs_' + $
             obs_names[i] + '*' + hpx_endobsname_tag + '*info*', count = n_hpx)
           uvf_info_file = file_search(save_paths[i] +  'Combined_obs_' + $
-            obs_names[i] + '*' + uvf_endobsname_tag + uvf_info_tag + '*info*', count = n_uvf)
+            obs_names[i] + '*' + uvf_endobsname_tag + '*' + uvf_info_tag + '_info*', count = n_uvf)
         endelse
 
         if keyword_set(uvf_input) then begin
