@@ -1,7 +1,7 @@
 function get_cube_uvf_input, savefile, varname, n_freq, pol_index
 
   cube = getvar_savefile(savefile, varname)
-  if cube eq 0 then begin
+  if size(cube, /n_dim) eq 0 then begin
     message, string(savefile) + ' not found. Verify path on filesystem.'
   endif
 
