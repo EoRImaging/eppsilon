@@ -1052,9 +1052,14 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
     if total(abs(sigma2_cube1)) le 0 then message, 'sigma2 cube is all zero'
   endelse
 
-
-  wt_meas_ave = total(abs(weights_cube1), 3)/n_freq
-  wt_meas_min = min(abs(weights_cube1), dimension=3)
+  if n_elements(freq_flags) GT 0 then begin
+    defined_freq_inds = where(freq_mask EQ 1)
+    wt_meas_ave = total(abs(weights_cube1[*,*,defined_freq_inds]), 3)/n_freq
+    wt_meas_min = min(abs(weights_cube1[*,*,defined_freq_inds]), dimension=3)
+  endif else begin
+    wt_meas_ave = total(abs(weights_cube1), 3)/n_freq
+    wt_meas_min = min(abs(weights_cube1), dimension=3)
+  endelse
 
   ;; divide data by weights
   data_cube1 = data_cube1 / weights_cube1

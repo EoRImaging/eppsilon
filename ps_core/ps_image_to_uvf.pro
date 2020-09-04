@@ -202,10 +202,6 @@ pro ps_image_to_uvf, file_struct, n_vis_freq, kx_rad_vals, ky_rad_vals, $
         if n_elements(freq_flags) ne 0 then begin
           dirty_freq_mask = getvar_savefile(input_uvf_files[i,0], 'freq_mask')
           model_freq_mask = getvar_savefile(input_uvf_files[i,1], 'freq_mask')
-          if n_elements(freq_ch_range) ne 0 then begin
-            dirty_freq_mask = dirty_freq_mask[min(freq_ch_range):max(freq_ch_range)]
-            model_freq_mask = model_freq_mask[min(freq_ch_range):max(freq_ch_range)]
-          endif
           if total(abs(dirty_freq_mask - freq_mask)) ne 0 then begin
             message, 'freq_mask of dirty file does not match current freq_mask'
           endif
