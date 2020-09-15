@@ -339,7 +339,9 @@ function kspace_rebinning_1d, power, k1_mpc, k2_mpc, k3_mpc, k_edges_mpc, $
 
           ;;Set 0 mode to bottom value so it doesn't get left out.
           wh_k0 = where(temp eq 0, n_k0)
-          if n_k0 gt 1 then stop
+          if n_k0 gt 1 and not keyword_set(kperp_power) and not keyword_set(kpar_power) then begin
+            message, "something has gone very wrong with finding the zero bins"
+          endif
           if n_k0 gt 0 then temp[wh_k0] = 10^k_min
 
         endelse
