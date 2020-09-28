@@ -413,8 +413,6 @@ pro ps_image_to_uvf, file_struct, n_vis_freq, kx_rad_vals, ky_rad_vals, $
 
         endif
 
-        pix_window = fltarr(n_elements(wh_close), n_freq) + 1.
-
         if test_uvf eq 0 or refresh_options.refresh_dft then begin
 
           print, 'calculating DFT for ' + file_struct.datavar + ' in ' + file_struct.datafile[i]
@@ -441,7 +439,7 @@ pro ps_image_to_uvf, file_struct, n_vis_freq, kx_rad_vals, ky_rad_vals, $
           if not healpix then arr = reform(arr, dims[0]*dims[1], n_freq)
 
           if n_elements(wh_close) ne n_elements(pixel_nums) then begin
-            arr = arr[wh_close, *] * pix_window
+            arr = arr[wh_close, *]
           endif
           if n_elements(freq_ch_range) ne 0 then begin
             arr = arr[*, min(freq_ch_range):max(freq_ch_range)]
@@ -494,7 +492,7 @@ pro ps_image_to_uvf, file_struct, n_vis_freq, kx_rad_vals, ky_rad_vals, $
           if not healpix then arr = reform(arr, dims[0]*dims[1], n_freq)
 
           if n_elements(wh_close) ne n_elements(pixel_nums) then begin
-            arr = arr[wh_close, *] * pix_window
+            arr = arr[wh_close, *]
           endif
           if n_elements(freq_ch_range) ne 0 then begin
             arr = arr[*, min(freq_ch_range):max(freq_ch_range)]
@@ -537,7 +535,7 @@ pro ps_image_to_uvf, file_struct, n_vis_freq, kx_rad_vals, ky_rad_vals, $
             endif
 
             if n_elements(wh_close) ne n_elements(pixel_nums) then begin
-              arr = arr[wh_close, *] * pix_window^2.
+              arr = arr[wh_close, *]
             endif
             if n_elements(freq_ch_range) ne 0 then begin
               arr = arr[*, min(freq_ch_range):max(freq_ch_range)]
@@ -563,7 +561,7 @@ pro ps_image_to_uvf, file_struct, n_vis_freq, kx_rad_vals, ky_rad_vals, $
             save, file = file_struct.uvf_weight_savefile[i], kx_rad_vals, $
               ky_rad_vals, weights_cube, variance_cube, uvf_wt_git_hash
           endelse
-          undefine, new_pix_vec, pix_window, weights_cube, variance_cube, uvf_wt_git_hash
+          undefine, new_pix_vec, weights_cube, variance_cube, uvf_wt_git_hash
         endif
       endelse
     endif else begin
