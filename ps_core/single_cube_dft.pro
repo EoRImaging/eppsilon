@@ -191,8 +191,6 @@ pro single_cube_dft, folder_name_in, obs_name, data_subdirs=data_subdirs, $
     kx_rad_vals = pix_ft_struct.kx_rad_vals
     ky_rad_vals = pix_ft_struct.ky_rad_vals
 
-    pix_window = fltarr(n_elements(wh_close), n_freq) + 1.
-
     git, repo_path = ps_repository_dir(), result = this_run_git_hash
 
     uvf_git_hash = this_run_git_hash
@@ -219,7 +217,7 @@ pro single_cube_dft, folder_name_in, obs_name, data_subdirs=data_subdirs, $
       if not healpix then arr = reform(arr, dims[0]*dims[1], n_freq)
 
       if n_elements(wh_close) ne n_elements(pixel_nums) then begin
-        arr = arr[wh_close, *] * pix_window
+        arr = arr[wh_close, *]
       endif
       if n_elements(freq_ch_range) ne 0 then begin
         arr = arr[*, min(freq_ch_range):max(freq_ch_range)]
@@ -255,7 +253,7 @@ pro single_cube_dft, folder_name_in, obs_name, data_subdirs=data_subdirs, $
         if not healpix then arr = reform(arr, dims[0]*dims[1], n_freq)
 
         if n_elements(wh_close) ne n_elements(pixel_nums) then begin
-          arr = arr[wh_close, *] * pix_window^2.
+          arr = arr[wh_close, *]
         endif
         if n_elements(freq_ch_range) ne 0 then begin
           arr = arr[*, min(freq_ch_range):max(freq_ch_range)]
@@ -304,7 +302,7 @@ pro single_cube_dft, folder_name_in, obs_name, data_subdirs=data_subdirs, $
       if not healpix then arr = reform(arr, dims[0]*dims[1], n_freq)
 
       if n_elements(wh_close) ne n_elements(pixel_nums) then begin
-        arr = arr[wh_close, *] * pix_window
+        arr = arr[wh_close, *]
       endif
       if n_elements(freq_ch_range) ne 0 then begin
         arr = arr[*, min(freq_ch_range):max(freq_ch_range)]
