@@ -27,6 +27,55 @@ function fhd_file_setup, filename, weightfile = weightfile, $
       refresh_info = 1
     endif
 
+    if keyword_set(uvf_input) then begin
+      ; check for file existence
+      datafile = metadata_struct.datafile
+      weightfile = metadata_struct.weightfile
+      variancefile = metadata_struct.variancefile
+      datafile_test = file_test(datafile)
+      if min(datafile_test) eq 0 then begin
+        ;; can't find datafile. try some other potential folders
+        if n_elements(save_path) ne 0 then begin
+          datafile_trial = save_path + file_basename(datafile)
+          datafile_test = file_test(datafile_trial)
+        endif
+
+        if min(datafile_test) eq 0 then begin
+          datafile_trial = file_dirname(info_file, /mark_directory) + $
+            file_basename(datafile)
+          datafile_test = file_test(datafile_trial)
+        endif
+
+        if min(datafile_test) eq 0 then begin
+          datafile_trial = file_dirname(file_dirname(info_file), /mark_directory) + $
+            file_basename(datafile)
+          datafile_test = file_test(datafile_trial)
+        endif
+
+        if min(datafile_test) gt 0 then begin
+          metadata_struct.datafile = datafile_trial
+          if min(weightfile eq datafile) gt 0 then begin
+            metadata_struct.weightfile = datafile_trial
+          endif else begin
+            weightfile_trial = file_dirname(datafile_trial, /mark_directory) + file_basename(weightfile)
+            if file_test(weightfile_trial) gt 0 then begin
+              metadata_struct.weightfile = weightfile_trial
+            endif
+          endelse
+          if min(variancefile eq datafile) gt 0 then begin
+            metadata_struct.variancefile = datafile_trial
+          endif else begin
+            variancefile_trial = file_dirname(datafile_trial, /mark_directory) + file_basename(variancefile)
+            if file_test(variancefile_trial) gt 0 then begin
+              metadata_struct.variancefile = variancefile_trial
+            endif
+          endelse
+        endif
+
+      endif
+
+    endif
+
     if keyword_set(refresh_info) then begin
       if n_elements(metadata_struct) gt 0 then begin
         datafile = metadata_struct.datafile
