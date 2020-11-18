@@ -45,7 +45,8 @@ pro ps_wrapper, folder_name_in, obs_name, data_subdirs=data_subdirs, $
     delay_axis = delay_axis, cable_length_axis = cable_length_axis, hinv = hinv, $
     plot_wedge_line = plot_wedge_line, wedge_angles = wedge_angles, wedge_names = wedge_names, $
     coarse_harm_width = coarse_harm_width, plot_eor_1d = plot_eor_1d, $
-    plot_flat_1d = plot_flat_1d, no_text_1d = no_text_1d, save_path = save_path, $
+    plot_flat_1d = plot_flat_1d, flat_1d_power = flat_1d_power, no_text_1d = no_text_1d, $
+    save_path = save_path, $
     savefilebase = savefilebase, plot_path = plot_path, plot_filebase = plot_filebase, $
     individual_plots = individual_plots, plot_binning_hist = plot_binning_hist, $
     note = note, png = png, eps = eps, pdf = pdf, cube_power_info = cube_power_info, $
@@ -299,7 +300,7 @@ pro ps_wrapper, folder_name_in, obs_name, data_subdirs=data_subdirs, $
   plot_1d_options = create_plot_1d_options(range_1d = range_1d, $
     plot_1d_delta = plot_1d_delta, plot_1d_error_bars = plot_1d_error_bars, $
     plot_1d_nsigma = plot_1d_nsigma, plot_eor_1d = plot_eor_1d, $
-    plot_flat_1d = plot_flat_1d, no_text_1d = no_text_1d)
+    plot_flat_1d = plot_flat_1d, flat_1d_power = flat_1d_power, no_text_1d = no_text_1d)
 
   ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
     type_inc = type_inc, freq_ch_range = freq_ch_range, freq_flags = freq_flags, $

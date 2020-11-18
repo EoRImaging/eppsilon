@@ -2,7 +2,7 @@ function create_plot_1d_options, plot_1d_options = plot_1d_options, $
     range_1d = range_1d, plot_1d_delta = plot_1d_delta, $
     plot_1d_error_bars = plot_1d_error_bars, plot_1d_nsigma = plot_1d_nsigma, $
     plot_eor_1d = plot_eor_1d, plot_flat_1d = plot_flat_1d, $
-    no_text_1d = no_text_1d, return_new = return_new
+    flat_1d_power = flat_1d_power, no_text_1d = no_text_1d, return_new = return_new
 
   update_tags = list()
   update_values = list()
@@ -10,7 +10,7 @@ function create_plot_1d_options, plot_1d_options = plot_1d_options, $
     ;; default to power not delta
     if n_elements(plot_1d_delta) eq 0 then plot_1d_delta = 0
 
-    ;; default to plotting thermal nose line, not error bars
+    ;; default to plotting thermal noise line, not error bars
     if n_elements(plot_1d_error_bars) eq 0 then plot_1d_error_bars=0
 
     ;; default to not plotting eor or flat power line
@@ -45,6 +45,10 @@ function create_plot_1d_options, plot_1d_options = plot_1d_options, $
     endif
   endelse
 
+  if n_elements(flat_1d_power) gt 0 then begin
+    update_tags.add, 'flat_1d_power'
+    update_values.add, flat_1d_power
+  endif
   if n_elements(range_1d) gt 0 then begin
     if n_elements(range_1d) ne 2 then begin
       message, 'range_1d must be a 2 element vector'

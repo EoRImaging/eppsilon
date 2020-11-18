@@ -1603,9 +1603,19 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
       ;; make sure file_path has a path separator at the end
       pos = strpos(file_path, path_sep(), /reverse_search)
       if pos+1-strlen(file_path) lt 0 then file_path = file_path + path_sep()
+      file_path = file_path + 'simulation' + path_sep()
 
       eor_file_1d = file_path + 'eor_power_1d.idlsave'
       flat_file_1d = file_path + 'flat_power_1d.idlsave'
+
+      if tag_exist(plot_1d_options, 'flat_1d_power') then begin
+        ; make a file with this power level
+        k_centers = getvar_savefile(flat_file_1d, 'k_centers')
+        power = dblarr(n_elements(k_centers)) + plot_1d_options.flat_1d_power
+        flat_file_1d = file_struct_arr[0].savefile_froot + 'flat_power_1d.idlsave'
+        save, file=flat_file_1d, k_centers, power
+
+      endif 
 
       flat_power = mean(getvar_savefile(flat_file_1d, 'power'))
       cube_power_info = create_struct(cube_power_info, 'flat_power', flat_power)
