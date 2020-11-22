@@ -319,6 +319,7 @@ pro compare_plot_prep, folder_names, obs_info, $
         diff_power_tags[n_elements(diff_power_tags)-1] + density_tags[n_wtcuts-1]
     endelse
   endelse
+  plot_filebase = plot_filebase[0]
 
   save_paths = save_path + file_struct_arr1[0].subfolders.data + ['', $
     file_struct_arr1[0].subfolders.kspace + ['', file_struct_arr1[0].subfolders.slices], $
@@ -723,7 +724,7 @@ pro compare_plot_prep, folder_names, obs_info, $
 
           if comp_type eq 'diff' and cube_i eq 0 then begin
             plotfiles_1d = plot_options.plot_path + file_struct_arr1[0].subfolders.bin_1d + $
-              plot_filebase + ['', wedge_1dbin_names] + '_1dkpower' + plot_options.plot_exten
+              plot_filebase + wedge_1dbin_names + '_1dkpower' + plot_options.plot_exten
           endif
         endelse
       endif
