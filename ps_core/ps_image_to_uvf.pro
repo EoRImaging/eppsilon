@@ -31,7 +31,7 @@ pro ps_image_to_uvf, file_struct, n_vis_freq, kx_rad_vals, ky_rad_vals, $
       if not test_beam then test_beam = check_old_path(file_struct, 'beam_savefile', index=i)
     endif else test_beam = 1
 
-    if test_beam eq 0 then print("beam_cube files not present under data/beam_cubes")
+    if test_beam eq 0 then print, "beam_cube files not present under data/beam_cubes"
 
     test_radec_uvf = file_valid(file_struct.radec_file)
     if not test_radec_uvf then test_radec_uvf = check_old_path(file_struct, 'radec_file')

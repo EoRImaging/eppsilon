@@ -1,17 +1,25 @@
-pro ps_ratio_wrapper, folder_names_in, obs_names_in, ps_foldernames=ps_foldernames, $
-    exact_obsnames = exact_obsnames, version_test = version_test, $
-    cube_types = cube_types,  pols = pols, $
-    all_pol_diff_ratio = all_pol_diff_ratio, freq_ch_range = freq_ch_range, $
+pro ps_comp1d_wrapper, folder_names_in, obs_names_in, $
+    ps_foldernames = ps_foldernames, version_test = version_test, $
+    cube_types = cube_types, pols = pols, $
     spec_window_types = spec_window_types, delta_uv_lambda = delta_uv_lambda, $
-    full_image = full_image, image_clip = image_clip, $
-    ave_removal = ave_removal, std_power = std_power, diff_ratio = diff_ratio, $
-    diff_range = diff_range, png = png, eps = eps, pdf = pdf, $
-    data_range = data_range, $
-    color_type = color_type, invert_colorbar = invert_colorbar, $
-    kperp_linear_axis = kperp_linear_axis, $
-    kpar_linear_axis = kpar_linear_axis, sim = sim, wt_cutoffs = wt_cutoffs, $
+    max_uv_lambda = max_uv_lambda, full_image = full_image, $
+    image_clip = image_clip, ave_removal = ave_removal, $
+    freq_dft = freq_dft, dft_z_use = dft_z_use, std_power = std_power, $
+    all_type_pol = all_type_pol, freq_ch_range = freq_ch_range, $
+    png = png, eps = eps, pdf = pdf, data_range = data_range, data_min_abs = data_min_abs, $
+    sim = sim, wt_cutoffs = wt_cutoffs, $
     wt_measures = wt_measures, window_num = window_num, $
-    uvf_input = uvf_input, diff_save_path = diff_save_path, plot_path = diff_plot_path
+    diff_save_path = diff_save_path, exact_obsnames = exact_obsnames, $
+    uvf_input = uvf_input, plot_path = diff_plot_path, $
+    wedge_angles = wedge_angles, wedge_names = wedge_names, $
+    coarse_harm_width = coarse_harm_width, $
+    log_k1d = log_k1d, k1d_bin = k1d_bin, $
+    kpar_range_1dave = kpar_range_1dave, kperp_range_1dave = kperp_range_1dave, $
+    kperp_range_lambda_1dave = kperp_range_lambda_1dave, kx_range_1dave = kx_range_1dave, $
+    kx_range_lambda_1dave = kx_range_lambda_1dave, ky_range_1dave = ky_range_1dave, $
+    ky_range_lambda_1dave = ky_range_lambda_1dave, $
+    kperp_range_lambda_kparpower = kperp_range_lambda_kparpower, $
+    kpar_range_kperppower = kpar_range_kperppower
 
   if n_elements(folder_names_in) gt 2 then message, 'only 1 or 2 folder_names allowed'
   if n_elements(folder_names_in) eq 0 then message, 'at least 1 folder name must be specified'
@@ -32,6 +40,21 @@ pro ps_ratio_wrapper, folder_names_in, obs_names_in, ps_foldernames=ps_foldernam
     save_paths = save_paths, plot_paths = plot_paths, refresh_info = refresh_info, $
     no_wtvar_rts = no_wtvar_rts)
 
+  if n_elements(set_krange_1dave) eq 0 and not keyword_set(sim) then begin
+      ;; set some default kperp & kpar ranges for 1d averaging
+    if n_elements(kperp_range_lambda_1dave) eq 0 then kperp_range_lambda_1dave = [10,50]
+  endif
+
+  binning_1d_options = create_binning_1d_options(wedge_angles = wedge_angles, $
+    wedge_names = wedge_names, $
+    coarse_harm_width = coarse_harm_width, log_k = log_k1d, k_bin = k1d_bin, $
+    kpar_range_1dave = kpar_range_1dave, kperp_range_1dave = kperp_range_1dave, $
+    kperp_range_lambda_1dave = kperp_range_lambda_1dave, kx_range_1dave = kx_range_1dave, $
+    kx_range_lambda_1dave = kx_range_lambda_1dave, ky_range_1dave = ky_range_1dave, $
+    ky_range_lambda_1dave = ky_range_lambda_1dave, $
+    kperp_range_lambda_kparpower = kperp_range_lambda_kparpower, $
+    kpar_range_kperppower = kpar_range_kperppower)
+
   if n_elements(diff_plot_path) eq 0 then begin
     if n_elements(diff_save_path) gt 0 then begin
       diff_plot_path = diff_save_path + path_sep() + 'plots' + path_sep()
@@ -40,17 +63,6 @@ pro ps_ratio_wrapper, folder_names_in, obs_names_in, ps_foldernames=ps_foldernam
 
   wh_noinfo = where(obs_info.info_files eq '', count_noinfo)
   if count_noinfo gt 0 then message, 'Info files are not all present'
-
-  if n_elements(data_range) eq 0 then begin
-    if n_elements(color_type) gt 0 then begin
-      if color_type eq 'linear' then begin
-        data_range = [0, 1.2]
-      endif
-    endif
-    if n_elements(data_range) eq 0 then begin
-      data_range = [1e-3, 1e1]
-    endif
-  endif
 
   if n_elements(delta_uv_lambda) gt 1 then message, 'only 1 delta_uv_lambda allowed'
 
@@ -68,7 +80,7 @@ pro ps_ratio_wrapper, folder_names_in, obs_names_in, ps_foldernames=ps_foldernam
         mul1 = max_uv_lambda
       end
       2: begin
-        mul0 = max_u_lambda[0]
+        mul0 = max_uv_lambda[0]
         mul1 = max_uv_lambda[1]
       end
       else: message, 'only 1 or 2 max_uv_lambda values allowed'
@@ -84,7 +96,6 @@ pro ps_ratio_wrapper, folder_names_in, obs_names_in, ps_foldernames=ps_foldernam
         fi0 = full_image[0]
         fi1 = full_image[1]
       end
-      else: message, 'only 1 or 2 full_image values allowed'
     endcase
 
     case n_elements(image_clip) of
@@ -108,10 +119,14 @@ pro ps_ratio_wrapper, folder_names_in, obs_names_in, ps_foldernames=ps_foldernam
 
   if n_elements(ave_removal) lt 2 and n_elements(wt_cutoffs) lt 2 and $
     n_elements(wt_measures) lt 2 and n_elements(spec_window_types) lt 2 and $
+    n_elements(freq_dft) lt 2 and n_elements(dft_z_use) lt 2 and $
     n_elements(std_power) lt 2 then begin
 
-    ps_options = create_ps_options(ave_removal = ave_removal, wt_cutoffs = wt_cutoffs, $
-      wt_measures = wt_measures, spec_window_type = spec_window_types, std_power = std_power)
+    ps_options = create_ps_options(ave_removal = ave_removal, $
+    wt_cutoffs = wt_cutoffs, wt_measures = wt_measures, $
+    spec_window_type = spec_window_types, $
+    freq_dft = freq_dft, dft_z_use = dft_z_use, $
+    std_power = std_power)
 
   endif else begin
     case n_elements(ave_removal) of
@@ -166,6 +181,32 @@ pro ps_ratio_wrapper, folder_names_in, obs_names_in, ps_foldernames=ps_foldernam
       else: message, 'only 1 or 2 spec_window_types allowed'
     endcase
 
+    case n_elements(freq_dft) of
+      0:
+      1: begin
+        dft0 = freq_dft
+        dft1 = freq_dft
+      end
+      2: begin
+        dft0 = freq_dft[0]
+        dft1 = freq_dft[1]
+      end
+      else: message, 'only 1 or 2 freq_dft values allowed'
+    endcase
+
+    case n_elements(dft_z_use) of
+      0:
+      1: begin
+        dftz0 = dft_z_use
+        dftz1 = dft_z_use
+      end
+      2: begin
+        dftz0 = dft_z_use[0]
+        dftz1 = dft_z_use[1]
+      end
+      else: message, 'only 1 or 2 dft_z_use values allowed'
+    endcase
+
     case n_elements(std_power) of
       0:
       1: begin
@@ -180,10 +221,12 @@ pro ps_ratio_wrapper, folder_names_in, obs_names_in, ps_foldernames=ps_foldernam
     endcase
 
     ps_options0 = create_ps_options(ave_removal = ar0, wt_cutoffs = wtc0, $
-      wt_measures = wtm0, spec_window_type = spw0, std_power = sp0)
+      wt_measures = wtm0, spec_window_type = spw0, freq_dft = dft0, $
+      dft_z_use = dftz0, std_power = sp0)
 
     ps_options1 = create_ps_options(ave_removal = ar1, wt_cutoffs = wtc1, $
-      wt_measures = wtm1, spec_window_type = spw1, std_power = sp1)
+      wt_measures = wtm1, spec_window_type = spw1, freq_dft = dft1, $
+      dft_z_use = dftz1, std_power = sp1)
 
     ps_options = [ps_options0, ps_options1]
   endelse
@@ -191,14 +234,12 @@ pro ps_ratio_wrapper, folder_names_in, obs_names_in, ps_foldernames=ps_foldernam
   plot_options = create_plot_options(plot_path = diff_plot_path, $
     png = png, eps = eps, pdf = pdf)
 
-  plot_2d_options = create_plot_2d_options(kperp_linear_axis = kperp_linear_axis, $
-    kpar_linear_axis = kpar_linear_axis, data_range = data_range, color_type = color_type)
-
-  ps_ratio_plots, folder_names, obs_info, cube_types, ps_foldernames=ps_foldernames, $
-    pols, all_pol_diff_ratio = all_pol_diff_ratio, freq_ch_range = freq_ch_range, $
-    uvf_options0 = uvf_options0, uvf_options1 = uvf_options1, ps_options = ps_options, $
-    plot_options = plot_options, plot_2d_options = plot_2d_options, $
-    save_path = diff_save_path, plot_filebase = plot_filebase, $
-    diff_ratio = diff_ratio, diff_range = diff_range, invert_colorbar = invert_colorbar, $
+  ps_comp1d_plots, folder_names, obs_info, ps_foldernames = ps_foldernames, $
+    cube_types, pols, uvf_options0 = uvf_options0, uvf_options1 = uvf_options1, $
+    ps_options = ps_options, $
+    plot_options = plot_options, binning_1d_options = binning_1d_options, $
+    all_type_pol = all_type_pol, freq_ch_range = freq_ch_range, $
+    save_path = diff_save_path, savefilebase = savefilebase, $
     quiet = quiet, window_num = window_num
+
 end

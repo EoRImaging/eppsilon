@@ -536,10 +536,15 @@ pro kpower_1d_plots, power_savefile, multi_pos = multi_pos, $
     thick = 3
     xthick = 3
     ythick = 3
-    charsize = 2
+    if n_elements(multi_pos) gt 0 then begin
+      charsize = 1.2d * (mean(multi_size)/10000.)
+    endif else charsize = 2
     font = 1
-    if nfiles gt 3 then legend_charsize = charsize / (nfiles/3d)  else legend_charsize = 2
-
+    if n_elements(multi_pos) gt 0 then begin
+      legend_charsize = charsize
+    endif else begin
+      if nfiles gt 3 then legend_charsize = charsize / (nfiles/3d)  else legend_charsize = charsize
+    endelse
     DEVICE, /ISOLATIN1
     perp_char = '!9' + String("136B) + '!X' ;"
 

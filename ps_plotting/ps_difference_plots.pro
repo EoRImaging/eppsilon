@@ -2,7 +2,7 @@ pro ps_difference_plots, folder_names, obs_info, ps_foldernames = ps_foldernames
     cube_types, pols, all_type_pol = all_type_pol, $
     uvf_options0 = uvf_options0, uvf_options1 = uvf_options1, ps_options = ps_options, $
     plot_options = plot_options, plot_2d_options = plot_2d_options, $
-    binning_1d_options = binning_1d_options, $
+    binning_2d_options = binning_2d_options, binning_1d_options = binning_1d_options, $
     refresh_diff = refresh_diff, freq_ch_range = freq_ch_range, $
     plot_slices = plot_slices, slice_type = slice_type, $
     plot_filebase = plot_filebase, save_path = save_path, savefilebase = savefilebase, $
@@ -14,7 +14,7 @@ pro ps_difference_plots, folder_names, obs_info, ps_foldernames = ps_foldernames
     ps_foldernames = ps_foldernames, $
     uvf_options0 = uvf_options0, uvf_options1 = uvf_options1, ps_options = ps_options, $
     plot_options = plot_options, plot_2d_options = plot_2d_options, $
-    binning_1d_options = binning_1d_options, $
+    binning_2d_options = binning_2d_options, binning_1d_options = binning_1d_options, $
     plot_slices = plot_slices, slice_type = slice_type, $
     freq_ch_range = freq_ch_range, plot_filebase = plot_filebase, $
     save_path = save_path, savefilebase = savefilebase, $

@@ -4,18 +4,17 @@ pro compare_plot_prep, folder_names, obs_info, $
     uvf_options0 = uvf_options0, uvf_options1 = uvf_options1, $
     ps_options = ps_options, $
     plot_options = plot_options, plot_2d_options = plot_2d_options, $
-    binning_1d_options = binning_1d_options, $
+    binning_2d_options = binning_2d_options, binning_1d_options = binning_1d_options, $
     plot_slices = plot_slices, slice_type = slice_type, fadd_2dbin = fadd_2dbin, $
     freq_ch_range = freq_ch_range, $
     plot_filebase = plot_filebase, save_path = save_path, savefilebase = savefilebase, $
     axis_type_1d = axis_type_1d, full_compare = full_compare
 
-  comp_type_enum = ['diff', 'diff_ratio', 'ratio']
+  comp_type_enum = ['diff', 'diff_ratio', 'ratio', 'comp_1d']
   wh_comp_type = where(comp_type_enum eq comp_type, count_comp_type)
   if count_comp_type eq 0 then begin
     message, 'comp_type not recognized, must be one of: ' + strjoin(comp_type_enum, ' ,')
   endif
-  if comp_type eq 'ratio' and keyword_set(full_compare) then comp_type = 'diff_ratio'
 
   if n_elements(obs_info.info_files) gt 2 then message, 'Only 1 or 2 info_files can be used'
 
@@ -118,6 +117,7 @@ pro compare_plot_prep, folder_names, obs_info, $
       'diff': n_cubes = 1
       'ratio': n_sets=1
       'diff_ratio': n_sets=2
+      'comp_1d': n_cubes = 1
     endcase
   endif else begin
     case comp_type of
@@ -128,6 +128,7 @@ pro compare_plot_prep, folder_names, obs_info, $
 
         n_sets=4
       end
+      'comp_1d': undefine, cube_types, pols
     endcase
   endelse
 
@@ -170,6 +171,7 @@ pro compare_plot_prep, folder_names, obs_info, $
   'diff': op_str = ' minus '
   'diff_ratio': op_str = ' minus '
   'ratio': op_str = ' over '
+  'comp_1d': op_str = ' and '
   endcase
 
   uvf_options_use = uvf_options0
@@ -269,6 +271,7 @@ pro compare_plot_prep, folder_names, obs_info, $
     'diff': op_str = '_minus_'
     'diff_ratio': op_str = '_diffratio_'
     'ratio': op_str = '_over_'
+    'comp_1d': op_str = '_and_'
   endcase
 
   if keyword_set(full_compare) then begin
@@ -368,6 +371,25 @@ pro compare_plot_prep, folder_names, obs_info, $
             type_pol_str[2*i,1] + '/' + type_pol_str[2*i+1,1], 'Ratio Difference']
         endfor
       end
+      'comp_1d': begin
+        if n_elements(type_pol_str1) ne n_elements(type_pol_str2) then begin
+          message, 'all_type_pol cannot be used with these folders, they contain ' + $
+            'different number of types & pols'
+        endif
+        n_cubes = n_elements(type_pol_str1)
+
+        for i=0, n_cubes-1 do begin
+          temp = where(type_pol_str2 eq type_pol_str1[i], count_typepol)
+          if count_typepol eq 0 then begin
+            message, 'all_type_pol cannot be used with these folders, they contain '+ $
+              'different sets of types & pols'
+          endif
+        endfor
+
+        type_pol_str = [[type_pol_str1],[type_pol_str1]]
+
+        titles = type_pol_str[*, 0]
+      end
     endcase
   endif else begin
     case comp_type of
@@ -394,10 +416,21 @@ pro compare_plot_prep, folder_names, obs_info, $
 
         titles = type_pol_str[0] + '/' + type_pol_str[1]
       end
+      'comp_1d': begin
+        type_pol_str = strarr(1, 2)
+        type_pol_str[0]= cube_types[0] + '_' + pols[0]
+        type_pol_str[1] = cube_types[max_type] + '_' + pols[max_pol]
+
+        titles = type_pol_str[0] + '-' + type_pol_str[1]
+      end
     endcase
   endelse
 
-  if comp_type eq 'diff' then cube_set_dim = n_cubes else cube_set_dim = n_sets
+  if comp_type eq 'diff' or comp_type eq 'comp_1d' then begin
+    cube_set_dim = n_cubes
+  endif else begin
+    cube_set_dim = n_sets
+  endelse
   type_pol_locs = intarr(cube_set_dim, 2)
   for i=0, cube_set_dim-1 do begin
     wh_type_pol1 = where(file_struct_arr1.type_pol_str eq type_pol_str[i,0], count_type_pol)
@@ -502,8 +535,14 @@ pro compare_plot_prep, folder_names, obs_info, $
       mid_savefile_3d = strarr(n_slices, cube_set_dim)
     endif
   endif
-  input_savefile1 = strarr(n_slices, cube_set_dim)
-  input_savefile2 = strarr(n_slices, cube_set_dim)
+
+  if comp_type eq 'comp_1d' then begin
+    input_savefile1 = strarr(cube_set_dim, n_elements(wedge_1dbin_names))
+    input_savefile2 = strarr(cube_set_dim, n_elements(wedge_1dbin_names))
+  endif else begin
+    input_savefile1 = strarr(n_slices, cube_set_dim)
+    input_savefile2 = strarr(n_slices, cube_set_dim)
+  endelse
 
   if plot_options.pub then plotfiles_2d = strarr(n_slices)
 
@@ -661,8 +700,44 @@ pro compare_plot_prep, folder_names, obs_info, $
             message, 'No power file for ' + type_pol2 + ' and info_file: ' + $
               obs_info.info_files[n_elements(obs_info.info_files)-1]
           endif
-        endif else begin
 
+          binning_tags = create_binning_tags(file_struct_arr = file_struct_arr1, $
+            binning_2d_options = binning_2d_options, $
+            binning_1d_options = binning_1d_options, plot_2d_options = plot_2d_options)
+
+        endif else if comp_type eq 'comp_1d' then begin
+          bin_1d_save_path = save_path + file_struct_arr1[0].subfolders.data + $
+            file_struct_arr1[0].subfolders.bin_1d
+          bin_1d_path1 = file_struct_arr1[0].savefile_froot + file_struct_arr1[0].subfolders.data + $
+            file_struct_arr1[0].subfolders.bin_1d
+          bin_1d_path2 = file_struct_arr2[0].savefile_froot + file_struct_arr2[0].subfolders.data + $
+            file_struct_arr2[0].subfolders.bin_1d
+
+          binning_tags = create_binning_tags(file_struct_arr = file_struct_arr1, $
+            binning_2d_options = binning_2d_options, $
+            binning_1d_options = binning_1d_options, plot_2d_options = plot_2d_options)
+
+          for wedge_i=0, n_elements(wedge_1dbin_names)-1 do begin
+            input_savefile1[cube_i, wedge_i] = bin_1d_path1 + file_struct_arr1.savefilebase + $
+              file_struct_arr1[0].power_tag + kperp_density_names + wedge_1dbin_names[wedge_i] + $
+              binning_tags.fadd_1dbin + '_1dkpower.idlsave'
+
+            input_savefile2[cube_i, wedge_i] = bin_1d_path2 + file_struct_arr2.savefilebase + $
+              file_struct_arr2[0].power_tag + kperp_density_names + wedge_1dbin_names[wedge_i] + $
+              binning_tags.fadd_1dbin + '_1dkpower.idlsave'
+
+            file_test1 = file_valid(input_savefile1[cube_i, wedge_i])
+            if file_test1 eq 0 then begin
+              message, '1D input file ' + input_savefile1[cube_i, wedge_i] + ' not found'
+            endif
+
+            file_test2 = file_valid(input_savefile2[cube_i, wedge_i])
+            if file_test2 eq 0 then begin
+              message, '1D input file ' + input_savefile2[cube_i, wedge_i] + ' not found'
+            endif
+          endfor
+
+        endif else begin
           input_savefile1[slice_i, cube_i] = file_struct_arr1[type_pol_locs[cube_i, 0]].savefile_froot + $
             file_struct_arr1[type_pol_locs[cube_i, 0]].subfolders.data + $
             file_struct_arr1[type_pol_locs[cube_i, 0]].subfolders.bin_2d + $
@@ -722,15 +797,20 @@ pro compare_plot_prep, folder_names, obs_info, $
           plotfiles_2d[slice_i] = plot_options.plot_path + file_struct_arr1[0].subfolders.bin_2d + $
             plot_filebase + '_2dkpower' + plot_options.plot_exten
 
-          if comp_type eq 'diff' and cube_i eq 0 then begin
+          if (comp_type eq 'diff' or comp_type eq 'comp_1d') and cube_i eq 0 then begin
             plotfiles_1d = plot_options.plot_path + file_struct_arr1[0].subfolders.bin_1d + $
-              plot_filebase + wedge_1dbin_names + '_1dkpower' + plot_options.plot_exten
+              plot_filebase + wedge_1dbin_names + binning_tags.fadd_1dbin + '_1dkpower' + plot_options.plot_exten
           endif
         endelse
       endif
 
-      kperp_lambda_conv = getvar_savefile(input_savefile1[slice_i, cube_i], 'kperp_lambda_conv')
-      hubble_param = getvar_savefile(input_savefile1[slice_i, cube_i], 'hubble_param')
+      if comp_type eq 'comp_1d' then begin
+        kperp_lambda_conv = getvar_savefile(input_savefile1[cube_i, 0], 'kperp_lambda_conv')
+        hubble_param = getvar_savefile(input_savefile1[cube_i, 0], 'hubble_param')
+      endif else begin
+        kperp_lambda_conv = getvar_savefile(input_savefile1[slice_i, cube_i], 'kperp_lambda_conv')
+        hubble_param = getvar_savefile(input_savefile1[slice_i, cube_i], 'hubble_param')
+      endelse
       if not tag_exist(plot_2d_options, 'kperp_plot_range') then begin
         kperp_plot_range = [5./kperp_lambda_conv, min([file_struct_arr1.kspan/2., $
           file_struct_arr1.max_baseline_lambda])/kperp_lambda_conv]
@@ -747,7 +827,7 @@ pro compare_plot_prep, folder_names, obs_info, $
 
   compare_files = {input_savefile1:input_savefile1, input_savefile2:input_savefile2, $
     titles:titles, n_slices:n_slices, $
-    wedge_amp:wedge_amps, kperp_density_names:kperp_density_names, $
+    wedge_amp:wedge_amps, wedge_1dbin_names:wedge_1dbin_names, kperp_density_names:kperp_density_names, $
     kperp_plot_range:kperp_plot_range}
 
   if n_elements(n_cubes) gt 0 then compare_files = create_struct(compare_files, 'n_cubes', n_cubes)
@@ -755,7 +835,7 @@ pro compare_plot_prep, folder_names, obs_info, $
 
   if plot_options.pub then begin
     compare_files = create_struct(compare_files, 'plotfiles_2d', plotfiles_2d)
-    if comp_type eq 'diff' then begin
+    if comp_type eq 'diff' or comp_type eq 'comp_1d' then begin
       compare_files = create_struct(compare_files, 'plotfiles_1d', plotfiles_1d)
     endif
   endif
