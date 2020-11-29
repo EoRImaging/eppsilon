@@ -132,7 +132,7 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
     message, 'number of cubes does not match expected value'
   endif
 
-  if tag_exist(file_struct_arr[0], 'nside') ne 0 then healpix = 1 else healpix = 0
+  if tag_exist(file_struct_arr[0], 'nside') then healpix = 1 else healpix = 0
 
   if tag_exist(file_struct_arr, 'uvf_savefile') then uvf_input = 0 else uvf_input = 1
 
@@ -296,8 +296,12 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
     endif
   endfor
 
+  binning_tags = create_binning_tags(file_struct_arr = file_struct_arr, $
+    binning_2d_options = binning_2d_options, binning_1d_options = binning_1d_options,
+    plot_2d_options = plot_2d_options)
+
   if plot_options.pub then begin
-    if tag_exist(plot_options, 'plot_path') ne 0 then begin
+    if tag_exist(plot_options, 'plot_path') then begin
       plotfile_path = plot_options.plot_path
     endif else begin
       plotfile_path = file_struct_arr[0].savefile_froot + file_struct_arr[0].subfolders.plots
@@ -331,20 +335,7 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
       plotfile_base_wt = plotfile_base
     endelse
 
-    plot_fadd_2d = ''
-    plot_fadd_kslice = ''
-    if plot_2d_options.kperp_linear_axis and plot_2d_options.kpar_linear_axis then begin
-      plot_fadd_2d = plot_fadd_2d + '_linaxes'
-    endif else begin
-      if plot_2d_options.kperp_linear_axis then begin
-        plot_fadd_2d = plot_fadd_2d + '_kperplinaxis'
-        ;; Right now, if kperp_linear_axis is set, the power slices will all have linear axes
-        ;; basically kpar_linear_axis is ignored for slice plots.
-        ;; uvf slice plots always have linear axes
-        plot_fadd_kslice = '_linaxes'
-      endif
-      if plot_2d_options.kpar_linear_axis then plot_fadd_2d = plot_fadd_2d + '_kparlinaxis'
-    endelse
+
   endif
 
   ;; do this here because power slice plots need it.
@@ -460,9 +451,9 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
               uv_slice_plotfile = indv_plotfile_base + '_uv_plane' + plot_options.plot_exten
           endelse
         endif else begin
-          uf_slice_plotfile = slice_plotfile_base + '_xz_plane' + plot_fadd_kslice + plot_options.plot_exten
-          vf_slice_plotfile = slice_plotfile_base + '_yz_plane' + plot_fadd_kslice + plot_options.plot_exten
-          uv_slice_plotfile = slice_plotfile_base + '_xy_plane' + plot_fadd_kslice + plot_options.plot_exten
+          uf_slice_plotfile = slice_plotfile_base + '_xz_plane' + binning_tags.plot_fadd_kslice + plot_options.plot_exten
+          vf_slice_plotfile = slice_plotfile_base + '_yz_plane' + binning_tags.plot_fadd_kslice + plot_options.plot_exten
+          uv_slice_plotfile = slice_plotfile_base + '_xy_plane' + binning_tags.plot_fadd_kslice + plot_options.plot_exten
         endelse
       endif else begin
         if slice_space eq 'uvf' then begin
@@ -470,9 +461,9 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
           vf_slice_plotfile = slice_plotfile_base + '_vf_plane' + plot_options.plot_exten
           uv_slice_plotfile = slice_plotfile_base + '_uv_plane' + plot_options.plot_exten
         endif else begin
-          uf_slice_plotfile = slice_plotfile_base + '_xz_plane' + plot_fadd_kslice + plot_options.plot_exten
-          vf_slice_plotfile = slice_plotfile_base + '_yz_plane' + plot_fadd_kslice + plot_options.plot_exten
-          uv_slice_plotfile = slice_plotfile_base + '_xy_plane' + plot_fadd_kslice + plot_options.plot_exten
+          uf_slice_plotfile = slice_plotfile_base + '_xz_plane' + binning_tags.plot_fadd_kslice + plot_options.plot_exten
+          vf_slice_plotfile = slice_plotfile_base + '_yz_plane' + binning_tags.plot_fadd_kslice + plot_options.plot_exten
+          uv_slice_plotfile = slice_plotfile_base + '_xy_plane' + binning_tags.plot_fadd_kslice + plot_options.plot_exten
         endelse
       endelse
 
@@ -752,166 +743,6 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
       coarse_harm0 = coarse_harm0)
   endif
 
-  fadd_2dbin = ''
-  if binning_2d_options.no_kzero then fadd_2dbin = fadd_2dbin + '_nok0'
-  if binning_2d_options.log_kpar then fadd_2dbin = fadd_2dbin + '_logkpar'
-  if binning_2d_options.log_kperp then fadd_2dbin = fadd_2dbin + '_logkperp'
-
-  fadd_1dbin = ''
-  if binning_1d_options.log_k then fadd_1dbin = fadd_1dbin + '_logk'
-
-  fadd_kpar_1d = fadd_1dbin
-  fadd_kperp_1d = fadd_1dbin
-
-  fadd_1dmask = ''
-  if tag_exist(binning_1d_options, 'kperp_range_1dave') then begin
-    fadd_1dmask = fadd_1dmask + '_kperp' + $
-      number_formatter(binning_1d_options.kperp_range_1dave[0]) + '-' + $
-      number_formatter(binning_1d_options.kperp_range_1dave[1])
-    note_1d = 'kperp: [' + $
-      number_formatter(binning_1d_options.kperp_range_1dave[0]) + ',' + $
-      number_formatter(binning_1d_options.kperp_range_1dave[1]) + ']'
-
-    ;; if we're plotting in [k]=h/Mpc then assume these numbers are in h/Mpc.
-    ;; Convert to 1/Mpc for internal code usage
-    if plot_options.hinv then begin
-      kperp_range_1d_use = binning_1d_options.kperp_range_1dave * hubble_param
-    endif else begin
-      kperp_range_1d_use = binning_1d_options.kperp_range_1dave
-    endelse
-  endif else begin
-    if tag_exist(binning_1d_options, 'kperp_range_lambda_1dave') then begin
-      fadd_1dmask = fadd_1dmask + '_kperplambda' + $
-        number_formatter(binning_1d_options.kperp_range_lambda_1dave[0]) + '-' + $
-        number_formatter(binning_1d_options.kperp_range_lambda_1dave[1])
-      note_1d = 'kperp: [' + $
-        number_formatter(binning_1d_options.kperp_range_lambda_1dave[0]) + ',' + $
-        number_formatter(binning_1d_options.kperp_range_lambda_1dave[1]) + ']'
-    endif else begin
-        ;; if no range set default to same range as is used in 2D plots
-        kperp_range_lambda_1dave = [5., min([file_struct_arr.kspan/2., $
-          file_struct_arr.max_baseline_lambda])]
-        binning_1d_options = create_binning_1d_options(binning_1d_options = binning_1d_options, $
-          kperp_range_lambda_1dave = kperp_range_lambda_1dave)
-    endelse
-  endelse
-
-  if tag_exist(binning_1d_options, 'kx_range_1dave') then begin
-    fadd_1dmask = fadd_1dmask + '_kx' + $
-      number_formatter(binning_1d_options.kx_range_1dave[0]) + '-' + $
-      number_formatter(binning_1d_options.kx_range_1dave[1])
-    note_1d = 'kx: [' + $
-      number_formatter(binning_1d_options.kx_range_1dave[0]) + ',' + $
-      number_formatter(binning_1d_options.kx_range_1dave[1]) + ']'
-
-    ;; if we're plotting in [k]=h/Mpc then assume these numbers are in h/Mpc.
-    ;; Convert to 1/Mpc for internal code usage
-    if plot_options.hinv then begin
-      kx_range_1d_use = binning_1d_options.kx_range_1dave * hubble_param
-    endif else begin
-      kx_range_1d_use = binning_1d_options.kx_range_1dave
-    endelse
-  endif else begin
-    if tag_exist(binning_1d_options, 'kx_range_lambda_1dave') then begin
-      fadd_1dmask = fadd_1dmask + '_kxlambda' + $
-        number_formatter(binning_1d_options.kx_range_lambda_1dave[0]) + '-' + $
-        number_formatter(binning_1d_options.kx_range_lambda_1dave[1])
-      note_1d = 'kx: [' + $
-        number_formatter(binning_1d_options.kx_range_lambda_1dave[0]) + ',' + $
-        number_formatter(binning_1d_options.kx_range_lambda_1dave[1]) + ']'
-    endif
-  endelse
-
-  if tag_exist(binning_1d_options, 'ky_range_1dave') then begin
-    fadd_1dmask = fadd_1dmask + '_ky' + $
-      number_formatter(binning_1d_options.ky_range_1dave[0]) + '-' + $
-      number_formatter(binning_1d_options.ky_range_1dave[1])
-    note_1d = 'ky: [' + $
-      number_formatter(binning_1d_options.ky_range_1dave[0]) + ',' + $
-      number_formatter(binning_1d_options.ky_range_1dave[1]) + ']'
-
-    ;; if we're plotting in [k]=h/Mpc then assume these numbers are in h/Mpc.
-    ;; Convert to 1/Mpc for internal code usage
-    if plot_options.hinv then begin
-      ky_range_1d_use = binning_1d_options.ky_range_1dave * hubble_param
-    endif else begin
-      ky_range_1d_use = binning_1d_options.ky_range_1dave
-    endelse
-
-  endif else begin
-    if tag_exist(binning_1d_options, 'ky_range_lambda_1dave') then begin
-      fadd_1dmask = fadd_1dmask + '_kylambda' + $
-        number_formatter(binning_1d_options.ky_range_lambda_1dave[0]) + '-' + $
-        number_formatter(binning_1d_options.ky_range_lambda_1dave[1])
-      note_1d = 'ky: [' + $
-        number_formatter(binning_1d_options.ky_range_lambda_1dave[0]) + ',' + $
-        number_formatter(binning_1d_options.ky_range_lambda_1dave[1]) + ']'
-    endif
-  endelse
-
-  if tag_exist(binning_1d_options, 'kperp_range_lambda_kparpower') then begin
-    fadd_kpar_1d = fadd_kpar_1d + '_kperplambda' + $
-      number_formatter(binning_1d_options.kperp_range_lambda_kparpower[0]) + '-' + $
-      number_formatter(binning_1d_options.kperp_range_lambda_kparpower[1])
-    note_kpar_1d = 'kperp: [' + $
-      number_formatter(binning_1d_options.kperp_range_lambda_kparpower[0]) + ',' + $
-      number_formatter(binning_1d_options.kperp_range_lambda_kparpower[1]) + ']'
-  endif else begin
-    fadd_kpar_1d = fadd_1dbin + fadd_1dmask
-    if n_elements(note_1d) gt 0 then note_kpar_1d = note_1d
-
-    if tag_exist(binning_1d_options, 'kperp_range_lambda_1dave') then begin
-      binning_1d_options = create_binning_1d_options(binning_1d_options = binning_1d_options, $
-        kperp_range_lambda_kparpower = binning_1d_options.kperp_range_lambda_1dave)
-    endif
-  endelse
-
-  if tag_exist(binning_1d_options, 'kpar_range_1dave') then begin
-    fadd_1dmask = fadd_1dmask + '_kpar' + $
-      number_formatter(binning_1d_options.kpar_range_1dave[0]) + '-' + $
-      number_formatter(binning_1d_options.kpar_range_1dave[1])
-    if n_elements(note_1d) eq 0 then begin
-      note_1d=''
-    endif else begin
-      note_1d = note_1d + '; '
-    endelse
-    note_1d = note_1d + 'kpar: [' + $
-      number_formatter(binning_1d_options.kpar_range_1dave[0]) + ',' + $
-      number_formatter(binning_1d_options.kpar_range_1dave[1]) + ']'
-
-    ;; if we're plotting in [k]=h/Mpc then assume these numbers are in h/Mpc.
-    ;; Convert to 1/Mpc for internal code usage
-    if plot_options.hinv then begin
-      kpar_range_1d_use = binning_1d_options.kpar_range_1dave * hubble_param
-    endif else begin
-      kpar_range_1d_use = binning_1d_options.kpar_range_1dave
-    endelse
-  endif
-
-  if not tag_exist(binning_1d_options, 'kpar_range_kperppower') and $
-      tag_exist(binning_1d_options, 'kpar_range_1dave') then begin
-      binning_1d_options = create_binning_1d_options(binning_1d_options = binning_1d_options, $
-        kpar_range_kperppower = kpar_range_1dave)
-  endif
-
-  if tag_exist(binning_1d_options, 'kpar_range_kperppower') then begin
-    fadd_kperp_1d = fadd_kperp_1d + '_kpar' + $
-      number_formatter(binning_1d_options.kpar_range_kperppower[0]) + '-' + $
-      number_formatter(binning_1d_options.kpar_range_kperppower[1])
-    note_kperp_1d = 'kpar: [' + $
-      number_formatter(binning_1d_options.kpar_range_kperppower[0]) + ',' + $
-      number_formatter(binning_1d_options.kpar_range_kperppower[1]) + ']'
-
-    ;; if we're plotting in [k]=h/Mpc then assume these numbers are in h/Mpc.
-    ;; Convert to 1/Mpc for internal code usage
-    if plot_options.hinv then begin
-      kpar_range_kperppower_use = binning_1d_options.kpar_range_kperppower * hubble_param
-    endif else begin
-      kpar_range_kperppower_use = binning_1d_options.kpar_range_kperppower
-    endelse
-  endif
-  fadd_1dbin = fadd_1dbin + fadd_1dmask
-
   if plot_2d_options.plot_wedge_line then begin
     if tag_exist(binning_1d_options, 'coarse_harm_width') then begin
       cb_width_name = '_cbw' + number_formatter(binning_1d_options.coarse_harm_width)
@@ -940,7 +771,7 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
     file_struct_arr[0].subfolders.bin_2d
   for j=0, n_elements(kperp_density_names)-1 do begin
     savefiles_2d[*,j] = bin_2d_path + file_struct_arr.savefilebase + $
-      power_tag + fadd_2dbin + kperp_density_names[j] + '_2dkpower.idlsave'
+      power_tag + binning_tags.fadd_2dbin + kperp_density_names[j] + '_2dkpower.idlsave'
   endfor
   test_save_2d = file_valid(savefiles_2d)
 
@@ -954,14 +785,14 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
   for i=0, n_elements(wedge_1dbin_names)-1 do begin
     for j=0, n_elements(kperp_density_names)-1 do begin
       savefiles_1d[*,j,i] = bin_1d_path + file_struct_arr.savefilebase + $
-        power_tag + kperp_density_names[j] + wedge_1dbin_names[i] + fadd_1dbin + $
+        power_tag + kperp_density_names[j] + wedge_1dbin_names[i] + binning_tags.fadd_1dbin + $
         '_1dkpower.idlsave'
       savefiles_1to2d_bin[*,j,i] = bin_2d_path + 'from_1d/' + $
-        file_struct_arr.savefilebase + power_tag + fadd_2dbin + kperp_density_names[j] + $
-        wedge_1dbin_names[i] + fadd_1dbin + '_1to2d_bin.idlsave'
+        file_struct_arr.savefilebase + power_tag + binning_tags.fadd_2dbin + kperp_density_names[j] + $
+        wedge_1dbin_names[i] + binning_tags.fadd_1dbin + '_1to2d_bin.idlsave'
       savefiles_2d_masked[*,j, i] = bin_2d_path + 'from_1d/' + $
-        file_struct_arr.savefilebase + power_tag + fadd_2dbin + kperp_density_names[j] + $
-        wedge_1dbin_names[i] + fadd_1dmask + '_2dkpower_1dmask.idlsave'
+        file_struct_arr.savefilebase + power_tag + binning_tags.fadd_2dbin + kperp_density_names[j] + $
+        wedge_1dbin_names[i] + binning_tags.fadd_1dmask + '_2dkpower_1dmask.idlsave'
     endfor
   endfor
   test_save_1d = file_valid(savefiles_1d)
@@ -971,14 +802,14 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
   savefiles_kpar_1d = strarr(n_cubes, n_elements(kperp_density_names))
   for j=0, n_elements(kperp_density_names)-1 do begin
     savefiles_kpar_1d[*,j] = bin_1d_path + file_struct_arr.savefilebase + $
-      power_tag + kperp_density_names[j] + fadd_kpar_1d + '_kpar_power.idlsave'
+      power_tag + kperp_density_names[j] + binning_tags.fadd_kpar_1d + '_kpar_power.idlsave'
   endfor
   if plot_types.plot_kpar_power then test_save_kpar = file_valid(savefiles_kpar_1d)
 
   savefiles_kperp_1d = strarr(n_cubes, n_elements(kperp_density_names))
   for j=0, n_elements(kperp_density_names)-1 do begin
     savefiles_kperp_1d[*,j] = bin_1d_path + file_struct_arr.savefilebase + $
-      power_tag + kperp_density_names[j] + fadd_kperp_1d + '_kperp_power.idlsave'
+      power_tag + kperp_density_names[j] + binning_tags.fadd_kperp_1d + '_kperp_power.idlsave'
   endfor
   if plot_types.plot_kperp_power then test_save_kperp = file_valid(savefiles_kperp_1d)
 
@@ -987,11 +818,11 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
     n_elements(wedge_1dbin_names))
   for j=0, n_elements(kperp_density_names)-1 do begin
     savefiles_k0[*,j] = bin_1d_path + file_struct_arr.savefilebase + $
-      power_tag + fadd_2dbin + kperp_density_names[j]+ '_k0power.idlsave'
+      power_tag + binning_tags.fadd_2dbin + kperp_density_names[j]+ '_k0power.idlsave'
     for i=0, n_elements(wedge_1dbin_names)-1 do begin
       savefiles_k0_masked[*,j,i] = bin_1d_path + $
-        file_struct_arr.savefilebase + power_tag + fadd_2dbin + kperp_density_names[j] + $
-        wedge_1dbin_names[i] + fadd_1dmask + '_k0power_1dmask.idlsave'
+        file_struct_arr.savefilebase + power_tag + binning_tags.fadd_2dbin + kperp_density_names[j] + $
+        wedge_1dbin_names[i] + binning_tags.fadd_1dmask + '_k0power_1dmask.idlsave'
     endfor
   endfor
   if plot_types.plot_k0_power then test_save_k0 = file_valid(savefiles_k0)
@@ -1017,7 +848,7 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
       for i=0, n_elements(wedge_1dbin_names)-1 do begin
         for j=0, n_elements(kperp_density_names)-1 do begin
           plotfile_binning_hist[*,j,i] = bin_hist_plot_path + file_struct_arr.savefilebase + $
-            power_tag + kperp_density_names[j] + wedge_1dbin_names[i] + fadd_1dbin
+            power_tag + kperp_density_names[j] + wedge_1dbin_names[i] + binning_tags.fadd_1dbin
         endfor
       endfor
     endif else begin
@@ -1028,7 +859,7 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
         for j=0, n_elements(kperp_density_names)-1 do begin
           plotfile_binning_hist[*,j,i] = bin_hist_plot_path + plot_options.plot_filebase + $
             uvf_tag + file_struct_arr.file_label + power_tag + kperp_density_names[j] + $
-            wedge_1dbin_names[i] + fadd_1dbin
+            wedge_1dbin_names[i] + binning_tags.fadd_1dbin
         endfor
       endfor
     endelse
@@ -1071,7 +902,7 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
     ;; if binsizes are specified, check that binsize is right
     if (tag_exist(binning_2d_options, 'kperp_bin') or $
         tag_exist(binning_2d_options, 'kpar_bin')) and test_2d gt 0 then begin
-      if tag_exist(binning_2d_options, 'kpar_bin') ne 0 then begin
+      if tag_exist(binning_2d_options, 'kpar_bin') then begin
         kpar_bin_file = fltarr(n_elements(savefile_2d_use))
         for j=0, n_elements(savefile_2d_use)-1 do begin
           kpar_bin_file[j] = getvar_savefile(savefile_2d_use[j], 'kpar_bin')
@@ -1090,7 +921,7 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
         endfor
         if max(abs(binning_2d_options.kpar_bin - kpar_bin_file)) gt 0. then test_mask=0
       endif
-      if tag_exist(binning_2d_options, 'kperp_bin') ne 0 then begin
+      if tag_exist(binning_2d_options, 'kperp_bin') then begin
         kperp_bin_file = fltarr(n_elements(savefile_2d_use))
         for j=0, n_elements(savefile_2d_use)-1 do begin
           kperp_bin_file[j] = getvar_savefile(savefile_2d_use[j], 'kperp_bin')
@@ -1112,7 +943,7 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
     endif
 
     if plot_types.plot_k0_power then begin
-      if test_k0 gt 0 and tag_exist(binning_2d_options, 'kperp_bin') ne 0 then begin
+      if test_k0 gt 0 and tag_exist(binning_2d_options, 'kperp_bin') then begin
         kperp_bin_file = fltarr(n_elements(savefile_k0_use))
         for j=0, n_elements(savefile_k0_use) do begin
           kperp_bin_file[j] = getvar_savefile(savefile_k0_use[j], 'k_bin')
@@ -1120,7 +951,7 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
         if max(abs(binning_2d_options.kperp_bin - kperp_bin_file)) gt 0. then test_k0=0
       endif
 
-      if test_k0_masked gt 0 and tag_exist(binning_2d_options, 'kperp_bin') ne 0 then begin
+      if test_k0_masked gt 0 and tag_exist(binning_2d_options, 'kperp_bin') then begin
         kperp_bin_file = fltarr(n_elements(savefile_k0_masked_use))
         for j=0, n_elements(savefile_k0_masked_use) do begin
           kperp_bin_file[j] = getvar_savefile(savefile_k0_masked_use[j], 'k_bin')
@@ -1129,7 +960,7 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
       endif
     endif
 
-    if tag_exist(binning_1d_options, 'k_bin') ne 0 and test_1d gt 0 then begin
+    if tag_exist(binning_1d_options, 'k_bin') and test_1d gt 0 then begin
       k_bin_file = fltarr(n_elements(savefile_1d_use))
       for j=0, n_elements(savefile_1d_use)-1 do begin
         k_bin_file[j] = getvar_savefile(savefile_1d_use[j], 'k_bin')
@@ -1167,9 +998,9 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
       endfor
     endif
 
-    if test_1d gt 0 and (n_elements(kperp_range_1d_use) gt 0 or $
-      tag_exist(binning_1d_options, 'kperp_range_lambda_1dave') gt 0 or $
-        n_elements(kpar_range_1d_use) gt 0) then begin
+    if test_1d gt 0 and (tag_exist(binning_tags, 'kperp_range_1d_use') or $
+      tag_exist(binning_1d_options, 'kperp_range_lambda_1dave') or $
+        tag_exist(binning_tags, 'kpar_range_1d_use')) then begin
 
       ;; check that 1d binning was over correct ranges
       kperp_range_used = fltarr(2, n_elements(savefile_1d_use))
@@ -1180,21 +1011,21 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
         kperp_range_lambda_used[*,j] = getvar_savefile(savefile_1d_use[j], 'kperp_range_lambda')
         kpar_range_used[*,j] = getvar_savefile(savefile_1d_use[j], 'kpar_range')
       endfor
-      if n_elements(kperp_range_1d_use) gt 0 then begin
-        if max(abs(1.-kperp_range_used/rebin(kperp_range_1d_use, 2, $
+      if tag_exist(binning_tags, 'kperp_range_1d_use') then begin
+        if max(abs(1.-kperp_range_used/rebin(binning_tags.kperp_range_1d_use, 2, $
           n_elements(savefile_1d_use)))) gt 1e-6 then begin
           test_1d = 0
         endif
       endif
-      if tag_exist(binning_1d_options, 'kperp_range_lambda_1dave') gt 0 then begin
+      if tag_exist(binning_1d_options, 'kperp_range_lambda_1dave') then begin
         if max(abs(1.-kperp_range_lambda_used / $
                rebin(binning_1d_options.kperp_range_lambda_1dave, 2, $
                      n_elements(savefile_1d_use)))) gt 1e-6 then begin
           test_1d = 0
         endif
       endif
-      if n_elements(kpar_range_1d_use) gt 0 then begin
-        if max(abs(1.-kpar_range_used/rebin(kpar_range_1d_use, 2, $
+      if tag_exist(binning_tags, 'kpar_range_1d_use') then begin
+        if max(abs(1.-kpar_range_used/rebin(binning_tags.kpar_range_1d_use, 2, $
                                             n_elements(savefile_1d_use)))) gt 1e-6 then begin
           test_1d = 0
         endif
@@ -1208,22 +1039,22 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
         kperp_range_lambda_used[*,j] = getvar_savefile(savefiles_bin_use[j], 'kperp_range_lambda')
         kpar_range_used[*,j] = getvar_savefile(savefiles_bin_use[j], 'kpar_range')
       endfor
-      if n_elements(kperp_range_1d_use) gt 0 then begin
+      if tag_exist(binning_tags, 'kperp_range_1d_use') then begin
         if max(abs(1.-kperp_range_used / $
-                   rebin(kperp_range_1d_use, 2, $
+                   rebin(binning_tags.kperp_range_1d_use, 2, $
                          n_elements(savefiles_bin_use)))) gt 1e-6 then begin
           test_bin = 0
         endif
       endif
-      if tag_exist(binning_1d_options, 'kperp_range_lambda_1dave') gt 0 then begin
+      if tag_exist(binning_1d_options, 'kperp_range_lambda_1dave') then begin
         if max(abs(1.-kperp_range_lambda_used / $
                    rebin(binning_1d_options.kperp_range_lambda_1dave, 2, $
                          n_elements(savefiles_bin_use)))) gt 1e-6 then begin
           test_bin = 0
         endif
       endif
-      if n_elements(kpar_range_1d_use) gt 0 then begin
-        if max(abs(1.-kpar_range_used / rebin(kpar_range_1d_use, 2, $
+      if tag_exist(binning_tags, 'kpar_range_1d_use') then begin
+        if max(abs(1.-kpar_range_used / rebin(binning_tags.kpar_range_1d_use, 2, $
                                               n_elements(savefiles_bin_use)))) gt 1e-6 then begin
           test_bin = 0
         endif
@@ -1237,22 +1068,22 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
         kperp_range_lambda_used[*,j] = getvar_savefile(savefiles_mask_use[j], 'kperp_range_lambda')
         kpar_range_used[*,j] = getvar_savefile(savefiles_mask_use[j], 'kpar_range')
       endfor
-      if n_elements(kperp_range_1d_use) gt 0 then begin
-        if max(abs(1.-kperp_range_used / rebin(kperp_range_1d_use, 2, $
+      if tag_exist(binning_tags, 'kperp_range_1d_use') then begin
+        if max(abs(1.-kperp_range_used / rebin(binning_tags.kperp_range_1d_use, 2, $
                                                n_elements(savefiles_mask_use)))) gt 1e-6 then begin
           test_mask = 0
         endif
       endif
-      if tag_exist(binning_1d_options, 'kperp_range_lambda_1dave') gt 0 then begin
+      if tag_exist(binning_1d_options, 'kperp_range_lambda_1dave') then begin
         if max(abs(1.-kperp_range_lambda_used / $
                    rebin(binning_1d_options.kperp_range_lambda_1dave, 2, $
                          n_elements(savefiles_mask_use)))) gt 1e-6 then begin
           test_mask = 0
         endif
       endif
-      if n_elements(kpar_range_1d_use) gt 0 then begin
+      if tag_exist(binning_tags, 'kpar_range_1d_use') then begin
         if max(abs(1.-kpar_range_used / $
-                   rebin(kpar_range_1d_use, 2, $
+                   rebin(binning_tags.kpar_range_1d_use, 2, $
                          n_elements(savefiles_mask_use)))) gt 1e-6 then begin
           test_mask = 0
         endif
@@ -1260,14 +1091,14 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
     endif
 
     if plot_types.plot_kpar_power then begin
-      if test_kpar gt 0 and (n_elements(kperp_range_1d_use) gt 0 or $
+      if test_kpar gt 0 and (tag_exist(binning_tags, 'kperp_range_1d_use') or $
         tag_exist(binning_1d_options, 'kperp_range_lambda_kparpower')) then begin
 
         ;; check that 1d binning was over correct ranges
         kperp_range_used = getvar_savefile(savefile_kpar_use, 'kperp_range')
         kperp_range_lambda_used = getvar_savefile(savefile_kpar_use, 'kperp_range_lambda')
-        if n_elements(kperp_range_1d_use) gt 0 then begin
-          if max(abs(1.-kperp_range_used/kperp_range_1d_use)) gt 1e-6 then begin
+        if tag_exist(binning_tags, 'kperp_range_1d_use') then begin
+          if max(abs(1.-kperp_range_used/binning_tags.kperp_range_1d_use)) gt 1e-6 then begin
             test_kpar = 0
           endif
         endif
@@ -1282,25 +1113,25 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
     endif
 
     if plot_types.plot_kperp_power then begin
-      if test_kperp gt 0 and n_elements(kperp_range_1d_use) gt 0 then begin
+      if test_kperp gt 0 and tag_exist(binning_tags, 'kperp_range_1d_use') then begin
         ;; check that 1d binning was over correct ranges
         kperp_range_used = getvar_savefile(savefile_kperp_use, 'kperp_range')
         kperp_range_lambda_used = getvar_savefile(savefile_kperp_use, 'kperp_range_lambda')
         kpar_range_used = getvar_savefile(savefile_kperp_use, 'kpar_range')
-        if n_elements(kperp_range_1d_use) gt 0 then begin
-          if max(abs(1-kperp_range_used/kperp_range_1d_use)) gt 1e-6 then begin
+        if tag_exist(binning_tags, 'kperp_range_1d_use') then begin
+          if max(abs(1-kperp_range_used/binning_tags.kperp_range_1d_use)) gt 1e-6 then begin
             test_kperp = 0
           endif
         endif
-        if tag_exist(binning_1d_options, 'kperp_range_lambda_1dave') gt 0 then begin
+        if tag_exist(binning_1d_options, 'kperp_range_lambda_1dave') then begin
           if max(abs(1-kperp_range_lambda_used / $
                      rebin(binning_1d_options.kperp_range_lambda_1dave, 2, $
                      n_elements(savefile_1d_use)))) gt 1e-6 then begin
             test_kperp = 0
           endif
         endif
-        if n_elements(kpar_range_1d_use) gt 0 then begin
-          if max(abs(1-kpar_range_used/kpar_range_1d_use)) gt 1e-6 then begin
+        if tag_exist(binning_tags, 'kpar_range_1d_use') then begin
+          if max(abs(1-kpar_range_used/binning_tags.kpar_range_1d_use)) gt 1e-6 then begin
             test_kperp = 0
           endif
         endif
@@ -1369,10 +1200,10 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
     plotfiles_2d_sim_snr = strarr(plotfiles_shape)
     plotfiles_2d_sim_nnr = strarr(plotfiles_shape)
     for j=0, n_elements(kperp_density_names)-1 do begin
-      this_fadd = fadd_2dbin + kperp_density_names[j]
+      this_fadd = binning_tags.fadd_2dbin + kperp_density_names[j]
       this_begin = plotfile_path_2d + plotfile_base + this_fadd
       this_begin_wt = plotfile_path_2d + plotfile_base_wt + this_fadd
-      this_end = plot_fadd_2d + plot_options.plot_exten
+      this_end = binning_tags.plot_fadd_2d + plot_options.plot_exten
 
       plotfiles_2d[*,j] = this_begin + '_2dkpower' +  this_end
       plotfiles_2d_error[*,j] = this_begin_wt + '_2derror' + this_end
@@ -1398,18 +1229,18 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
       plotfile_1d_base = plot_options.plot_filebase + uvf_tag
     endelse
     plotfile_path_1d = plotfile_path + file_struct_arr[0].subfolders.bin_1d
-    begin_1d = plotfile_path_1d + plotfile_1d_base + power_tag + wedge_1dbin_names + fadd_1dbin
+    begin_1d = plotfile_path_1d + plotfile_1d_base + power_tag + wedge_1dbin_names + binning_tags.fadd_1dbin
     plotfile_1d = begin_1d + '_1dkpower' + plot_options.plot_exten
     plotfile_1d_noise = begin_1d + '_1dnoise' + plot_options.plot_exten
     plotfile_1d_sim_noise_diff = begin_1d + '_1dsimnoisediff' + plot_options.plot_exten
     plotfile_1d_sim_noise = begin_1d + '_1dsimnoise' + plot_options.plot_exten
 
     begin_1d_axis = plotfile_path_1d + plotfile_1d_base + power_tag
-    plotfile_kpar_power = begin_1d_axis + fadd_kpar_1d + '_kpar_power' + $
+    plotfile_kpar_power = begin_1d_axis + binning_tags.fadd_kpar_1d + '_kpar_power' + $
       plot_options.plot_exten
-    plotfile_kperp_power = begin_1d_axis + fadd_kperp_1d + '_kperp_power' + $
+    plotfile_kperp_power = begin_1d_axis + binning_tags.fadd_kperp_1d + '_kperp_power' + $
       plot_options.plot_exten
-    plotfile_k0_power = begin_1d_axis + fadd_2dbin + '_k0power' + $
+    plotfile_k0_power = begin_1d_axis + binning_tags.fadd_2dbin + '_k0power' + $
       plot_options.plot_exten
   endif
 
@@ -1426,8 +1257,8 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
     if count_type_pol eq 0 then wh_2d_use = 0
 
     if plot_options.pub then begin
-      begin_1to2d = plotfile_path_2d + 'from_1d/' + plotfile_base + fadd_2dbin + $
-        fadd_1dbin + '_' + type_1to2d_use + '_' + pol_1to2d_use
+      begin_1to2d = plotfile_path_2d + 'from_1d/' + plotfile_base + binning_tags.fadd_2dbin + $
+        binning_tags.fadd_1dbin + '_' + type_1to2d_use + '_' + pol_1to2d_use
       plotfile_1to2d_heatmap =  begin_1to2d + '_1dheatmap' + plot_options.plot_exten
       plotfile_1to2d_contours = begin_1to2d + '_1dcontours' + plot_options.plot_exten
       plotfile_1to2d_noisefrac = begin_1to2d + '_1dnoisefrac' + plot_options.plot_exten
@@ -1453,10 +1284,10 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
     plotfiles_2d_sim_nnr_masked = strarr(masked_plotfiles_shape)
     for i=0, n_elements(wedge_1dbin_names)-1 do begin
       for j=0, n_elements(kperp_density_names)-1 do begin
-        this_fadd = fadd_2dbin + kperp_density_names[j] + wedge_1dbin_names[i] + $
-          fadd_1dmask
+        this_fadd = binning_tags.fadd_2dbin + kperp_density_names[j] + wedge_1dbin_names[i] + $
+          binning_tags.fadd_1dmask
         this_begin = plotfile_path_2d + 'from_1d/' + plotfile_base + this_fadd
-        this_end = plot_fadd_2d + plot_options.plot_exten
+        this_end = binning_tags.plot_fadd_2d + plot_options.plot_exten
 
         plotfiles_2d_masked[*,j,i] = this_begin + '_2dkpower' + this_end
         plotfiles_2d_error_masked[*,j,i] = this_begin +  '_2derror' + this_end
@@ -1639,6 +1470,7 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
 
       if plot_types.plot_noise_1d then begin
         window_num = window_num+1
+        if tag_exist(binning_tags, 'note_1d') then note_1d = binning_tags.note_1d
         kpower_1d_plots, file_arr, window_num = window_num, names = titles_use, $
           plot_options = plot_options, plot_1d_options = plot_1d_options, $
           plotfile = plotfile_noise_use, k_range = k_range, title = note_use + ' Ob. Noise', $
@@ -1661,6 +1493,7 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
       endif
 
       window_num = window_num+1
+      if tag_exist(binning_tags, 'note_1d') then note_1d = binning_tags.note_1d
       kpower_1d_plots, file_arr, window_num = window_num, colors = colors, $
         plot_options = plot_options, plot_1d_options = plot_1d_options, $
         names = titles_use, psyms = psyms, plotfile = plotfile_use, $
@@ -1764,6 +1597,7 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
     k_range = minmax([plot_2d_options.kperp_plot_range, binning_2d_options.kperp_bin])
 
     window_num = window_num+1
+    if tag_exist(binning_tags, 'note_1d') then note_1d = binning_tags.note_1d
     kpower_1d_plots, file_arr, window_num = window_num, colors = colors, $
       plot_options = plot_options, plot_1d_options = plot_1d_options, $
       names = titles_use, plotfile = plotfile_k0_power, k_range = k_range, $
@@ -1821,10 +1655,10 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
 
 
     ;; decide whether to make a zoom plot
-    if tag_exist(binning_1d_options, 'kperp_range_1dave') gt 0 or $
-        tag_exist(binning_1d_options, 'kperp_range_lambda_1dave') gt 0 or $
-        tag_exist(binning_1d_options, 'kpar_range_1dave') gt 0 then begin
-      if tag_exist(binning_1d_options, 'kperp_range_1dave') gt 0 then begin
+    if tag_exist(binning_1d_options, 'kperp_range_1dave') or $
+        tag_exist(binning_1d_options, 'kperp_range_lambda_1dave') or $
+        tag_exist(binning_1d_options, 'kpar_range_1dave') then begin
+      if tag_exist(binning_1d_options, 'kperp_range_1dave') then begin
         if binning_1d_options.kperp_range_1dave[0] gt plot_2d_options.kperp_plot_range[0] or $
             binning_1d_options.kperp_range_1dave[1] lt plot_2d_options.kperp_plot_range[1] then begin
           zoom = 1
@@ -1832,7 +1666,7 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
           kperp_range_zoom = [max([plot_2d_options.kperp_plot_range[0], kperp_range_zoom[0]]), min([plot_2d_options.kperp_plot_range[1], kperp_range_zoom[1]])]
         endif else kperp_range_zoom = plot_2d_options.kperp_plot_range
       endif
-      if tag_exist(binning_1d_options, 'kperp_range_lambda_1dave') gt 0 then begin
+      if tag_exist(binning_1d_options, 'kperp_range_lambda_1dave') then begin
         if plot_options.hinv then kperp_range_zoom = binning_1d_options.kperp_range_lambda_1dave / (kperp_lambda_conv * hubble_param) else $
           kperp_range_zoom = binning_1d_options.kperp_range_lambda_1dave / kperp_lambda_conv
 
@@ -1842,7 +1676,7 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
           kperp_range_zoom = [max([plot_2d_options.kperp_plot_range[0], kperp_range_zoom[0]]), min([plot_2d_options.kperp_plot_range[1], kperp_range_zoom[1]])]
         endif else kperp_range_zoom = plot_2d_options.kperp_plot_range
       endif
-      if tag_exist(binning_1d_options, 'kpar_range_1dave') gt 0 then begin
+      if tag_exist(binning_1d_options, 'kpar_range_1dave') then begin
         if binning_1d_options.kpar_range_1dave[0] gt plot_2d_options.kpar_plot_range[0] or $
             binning_1d_options.kpar_range_1dave[1] lt plot_2d_options.kpar_plot_range[1] then begin
           zoom = 1

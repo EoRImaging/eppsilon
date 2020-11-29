@@ -15,7 +15,10 @@ pro ps_diff_wrapper, folder_names_in, obs_names_in, $
     diff_save_path = diff_save_path, exact_obsnames = exact_obsnames, $
     uvf_input = uvf_input, plot_path = diff_plot_path, $
     wedge_angles = wedge_angles, wedge_names = wedge_names, $
-    coarse_harm_width = coarse_harm_width, log_k1d = log_k1d, k1d_bin = k1d_bin, $
+    coarse_harm_width = coarse_harm_width, $
+    no_kzero = no_kzero, log_kpar = log_kpar, log_kperp = log_kperp, $
+    kpar_bin = kpar_bin, kperp_bin = kperp_bin, $
+    log_k1d = log_k1d, k1d_bin = k1d_bin, $
     kpar_range_1dave = kpar_range_1dave, kperp_range_1dave = kperp_range_1dave, $
     kperp_range_lambda_1dave = kperp_range_lambda_1dave, kx_range_1dave = kx_range_1dave, $
     kx_range_lambda_1dave = kx_range_lambda_1dave, ky_range_1dave = ky_range_1dave, $
@@ -41,6 +44,9 @@ pro ps_diff_wrapper, folder_names_in, obs_names_in, $
     casa = casa, data_subdirs = data_subdirs, ps_foldernames = ps_foldernames, $
     save_paths = save_paths, plot_paths = plot_paths, refresh_info = refresh_info, $
     no_wtvar_rts = no_wtvar_rts)
+
+  binning_2d_options = create_binning_2d_options(no_kzero = no_kzero, $
+    log_kpar = log_kpar, log_kperp = log_kperp, kpar_bin = kpar_bin, kperp_bin = kperp_bin)
 
   binning_1d_options = create_binning_1d_options(wedge_angles = wedge_angles, $
     wedge_names = wedge_names, $
@@ -238,7 +244,7 @@ pro ps_diff_wrapper, folder_names_in, obs_names_in, $
     cube_types, pols, uvf_options0 = uvf_options0, uvf_options1 = uvf_options1, $
     ps_options = ps_options, $
     plot_options = plot_options, plot_2d_options = plot_2d_options, $
-    binning_1d_options = binning_1d_options, $
+    binning_2d_options = binning_2d_options, binning_1d_options = binning_1d_options, $
     all_type_pol = all_type_pol, refresh_diff = refresh_diff, freq_ch_range = freq_ch_range, $
     plot_slices = plot_slices, slice_type = slice_type, $
     save_path = diff_save_path, savefilebase = savefilebase, $
