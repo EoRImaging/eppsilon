@@ -718,12 +718,12 @@ pro compare_plot_prep, folder_names, obs_info, $
             binning_1d_options = binning_1d_options, plot_2d_options = plot_2d_options)
 
           for wedge_i=0, n_elements(wedge_1dbin_names)-1 do begin
-            input_savefile1[cube_i, wedge_i] = bin_1d_path1 + file_struct_arr1.savefilebase + $
-              file_struct_arr1[0].power_tag + kperp_density_names + wedge_1dbin_names[wedge_i] + $
+            input_savefile1[cube_i, wedge_i] = bin_1d_path1 + file_struct_arr1[cube_i].savefilebase + $
+              file_struct_arr1[cube_i].power_tag + kperp_density_names + wedge_1dbin_names[wedge_i] + $
               binning_tags.fadd_1dbin + '_1dkpower.idlsave'
 
-            input_savefile2[cube_i, wedge_i] = bin_1d_path2 + file_struct_arr2.savefilebase + $
-              file_struct_arr2[0].power_tag + kperp_density_names + wedge_1dbin_names[wedge_i] + $
+            input_savefile2[cube_i, wedge_i] = bin_1d_path2 + file_struct_arr2[cube_i].savefilebase + $
+              file_struct_arr2[cube_i].power_tag + kperp_density_names + wedge_1dbin_names[wedge_i] + $
               binning_tags.fadd_1dbin + '_1dkpower.idlsave'
 
             file_test1 = file_valid(input_savefile1[cube_i, wedge_i])
