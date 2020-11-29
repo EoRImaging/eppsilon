@@ -160,7 +160,7 @@ pro ps_difference_plots, folder_names, obs_info, ps_foldernames = ps_foldernames
           endelse
         endif
 
-        if i eq compare_files.n_cubes-1 and tag_exist(plot_options, 'note') then begin
+        if j eq compare_files.n_cubes-1 and tag_exist(plot_options, 'note') then begin
           note_use = plot_options.note
         endif else begin
           note_use = ''
@@ -168,8 +168,8 @@ pro ps_difference_plots, folder_names, obs_info, ps_foldernames = ps_foldernames
 
         kpower_1d_plots, compare_files.savefiles_1d[j,i], window_num=window_num, $
           start_multi_params = start_multi_params, multi_pos = pos_use, $
-          names=compare_files.titles[j], plot_options = plot_options, $
-          plotfile = plotfiles_use, title = note_use, yaxis_type = axis_type_1d
+          plot_options = plot_options, note=note_use, $
+          plotfile = plotfiles_use, title = compare_files.titles[j], yaxis_type = axis_type_1d
 
         if j eq 0 then begin
           positions = pos_use
@@ -179,6 +179,11 @@ pro ps_difference_plots, folder_names, obs_info, ps_foldernames = ps_foldernames
       endfor
 
     endfor
+
+      if keyword_set(plot_options.pub) and compare_files.n_cubes gt 1 then begin
+        cgps_close, png = plot_options.png, pdf = plot_options.pdf, delete_ps = delete_ps, density=600
+      endif
+
   endif
 
 end
