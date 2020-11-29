@@ -48,7 +48,7 @@ pro ps_comp1d_plots, folder_names, obs_info, ps_foldernames = ps_foldernames, $
                 note_use = ''
             endelse
 
-            input_files = [compare_files.input_savefile1[j,i], compare_files.input_savefile1[j,i]]
+            input_files = [compare_files.input_savefile1[j,i], compare_files.input_savefile2[j,i]]
             names_use = strsplit(obs_info.diff_note, '-',/extract)
 
             kpower_1d_plots, input_files, window_num=window_num, $
