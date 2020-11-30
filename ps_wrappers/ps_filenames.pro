@@ -491,8 +491,13 @@ function ps_filenames, folder_names, obs_names_in, dirty_folder = dirty_folder, 
 
       if n_elements(obs_names_in) gt 0 then begin
         if size(obs_names_in,/type) eq 7 then begin
-          obs_names[i] = obs_names_in[i]
-          obs_name_single = obs_names[i]
+          if strmatch(obs_names_in[i], 'Combined_obs*', /fold_case) then begin
+            obs_names[i] = strsplit(obs_names_in[i], 'Combined_obs_', /fold_case, /regex, /extract)
+            obs_name_single = obs_names[i]
+          endif else begin 
+            obs_names[i] = obs_names_in[i]
+            obs_name_single = obs_names[i]
+          endelse
         endif else begin
           obs_names[i] = number_formatter(obs_names_in[i])
           obs_name_single = obs_names[i]
