@@ -1,7 +1,7 @@
 pro ps_comp1d_plots, folder_names, obs_info, ps_foldernames = ps_foldernames, $
     cube_types, pols, uvf_options0 = uvf_options0, uvf_options1 = uvf_options1, $
-    ps_options = ps_options, $
-    plot_options = plot_options, binning_1d_options = binning_1d_options, $
+    ps_options = ps_options, plot_options = plot_options, $
+    binning_1d_options = binning_1d_options, names = names, $
     all_type_pol = all_type_pol, freq_ch_range = freq_ch_range, $
     plot_filebase = plot_filebase, save_path = save_path, savefilebase = savefilebase, $
     quiet = quiet, window_num = window_num
@@ -49,7 +49,12 @@ pro ps_comp1d_plots, folder_names, obs_info, ps_foldernames = ps_foldernames, $
             endelse
 
             input_files = [compare_files.input_savefile1[j,i], compare_files.input_savefile2[j,i]]
-            names_use = strsplit(obs_info.diff_note, '-',/extract)
+            if n_elements(names) gt 0 then begin
+                if n_elements(names) ne 2 then message, 'names must have two elements'
+                names_use = names
+            endif else begin
+                names_use = strsplit(obs_info.diff_note, '-',/extract)
+            endelse
 
             kpower_1d_plots, input_files, window_num=window_num, $
                 start_multi_params = start_multi_params, multi_pos = pos_use, $

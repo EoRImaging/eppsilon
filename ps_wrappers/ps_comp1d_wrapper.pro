@@ -1,6 +1,6 @@
 pro ps_comp1d_wrapper, folder_names_in, obs_names_in, $
     ps_foldernames = ps_foldernames, version_test = version_test, $
-    cube_types = cube_types, pols = pols, $
+    names = names, cube_types = cube_types, pols = pols, $
     spec_window_types = spec_window_types, delta_uv_lambda = delta_uv_lambda, $
     max_uv_lambda = max_uv_lambda, full_image = full_image, $
     image_clip = image_clip, ave_removal = ave_removal, $
@@ -236,8 +236,8 @@ pro ps_comp1d_wrapper, folder_names_in, obs_names_in, $
 
   ps_comp1d_plots, folder_names, obs_info, ps_foldernames = ps_foldernames, $
     cube_types, pols, uvf_options0 = uvf_options0, uvf_options1 = uvf_options1, $
-    ps_options = ps_options, $
-    plot_options = plot_options, binning_1d_options = binning_1d_options, $
+    ps_options = ps_options, plot_options = plot_options, $
+    binning_1d_options = binning_1d_options, names = names, $
     all_type_pol = all_type_pol, freq_ch_range = freq_ch_range, $
     save_path = diff_save_path, savefilebase = savefilebase, $
     quiet = quiet, window_num = window_num
