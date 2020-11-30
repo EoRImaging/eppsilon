@@ -1220,7 +1220,7 @@ function ps_filenames, folder_names, obs_names_in, dirty_folder = dirty_folder, 
       fhd_types:fhd_types, integrated:integrated, plot_paths:plot_paths, save_paths:save_paths}
 
     if n_filesets eq 2 then begin
-      if ps_foldernames[0] ne ps_foldernames[1] then begin
+      if (folder_names[0] eq folder_names[1]) and (ps_foldernames[0] ne ps_foldernames[1]) then begin
         nominal_savepaths = folder_names + path_sep() + ps_foldernames
       endif else begin
         nominal_savepaths = folder_names
