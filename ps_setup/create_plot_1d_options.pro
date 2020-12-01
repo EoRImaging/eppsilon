@@ -70,8 +70,17 @@ function create_plot_1d_options, plot_1d_options = plot_1d_options, $
         return_new = return_new)
     endif
 
+    if tag_exist(new_plot_1d_options, 'flat_1d_power') and new_plot_1d_options.plot_flat_1d eq 0 then begin
+      print, 'Warning: flat_1d_power is set but plot_flat_1d is not set, so no line will be plotted.'
+    endif
+
     return, new_plot_1d_options
   endif else begin
+
+    if tag_exist(plot_1d_options, 'flat_1d_power') and plot_1d_options.plot_flat_1d eq 0 then begin
+      print, 'Warning: flat_1d_power is set but plot_flat_1d is not set, so no line will be plotted.'
+    endif
+
     return, plot_1d_options
   endelse
 end
