@@ -297,7 +297,7 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
   endfor
 
   binning_tags = create_binning_tags(file_struct_arr = file_struct_arr, $
-    binning_2d_options = binning_2d_options, binning_1d_options = binning_1d_options,
+    binning_2d_options = binning_2d_options, binning_1d_options = binning_1d_options, $
     plot_2d_options = plot_2d_options)
 
   if plot_options.pub then begin
