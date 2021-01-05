@@ -863,7 +863,7 @@ function fhd_file_setup, filename, weightfile = weightfile, $
         endelse
 
         if j eq 0 then n_vis = dblarr(npol, nfiles)
-        n_vis[pol_i, file_i] = total(obs_arr.n_vis)
+        n_vis[pol_i, file_i] = total(obs_arr.n_vis,/double)
 
         if j eq 0 then n_vis_freq = dblarr(npol, nfiles, n_freq)
         n_vis_freq_arr = dblarr([n_obs[pol_i, file_i], n_freq])
