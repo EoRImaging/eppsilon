@@ -144,7 +144,9 @@ pro uvf_slice_plot, slice_savefile, uvf_slice=uvf_slice, xarr=xarr, yarr=yarr, $
   endif else begin
     if keyword_set(hinv) then begin
       xarr = xarr / hubble_param
-      yarr = yarr / hubble_param
+      if slice_axis eq 2 then begin
+        yarr = yarr / hubble_param
+      endif
     endif
 
     xdelta = xarr[1] - xarr[0]
