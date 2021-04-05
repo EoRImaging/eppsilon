@@ -1,4 +1,4 @@
-pro azure_ps_job
+pro az_ps_job
   ;wrapper for ps_wrapper to take in shell parameters from azure slurm bash script
 
   ;***Read-in typical parameters
