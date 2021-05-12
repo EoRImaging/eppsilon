@@ -238,7 +238,9 @@ pro ps_diff_wrapper, folder_names_in, obs_names_in, $
     png = png, eps = eps, pdf = pdf)
 
   plot_2d_options = create_plot_2d_options(kperp_linear_axis = kperp_linear_axis, $
-    kpar_linear_axis = kpar_linear_axis, data_range = data_range, color_type = color_type)
+    kpar_linear_axis = kpar_linear_axis, $
+    kperp_plot_range = kperp_plot_range, kperp_lambda_plot_range = kperp_lambda_plot_range, $
+    data_range = data_range, color_type = color_type)
 
   ps_difference_plots, folder_names, obs_info, ps_foldernames = ps_foldernames, $
     cube_types, pols, uvf_options0 = uvf_options0, uvf_options1 = uvf_options1, $
