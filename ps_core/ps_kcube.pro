@@ -125,13 +125,11 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
   endif
 
   if n_elements(vis_sigma_ian) gt 0 then begin
-    if max(vis_sigma_ian) gt 5. then begin
-      if n_elements(freq_ch_range) ne 0 then begin
-        vis_sigma_ian = vis_sigma_ian[min(freq_ch_range):max(freq_ch_range)]
-      endif
-      vis_sigma = vis_sigma_ian
-      vs_name = 'ian'
+    if n_elements(freq_ch_range) ne 0 then begin
+      vis_sigma_ian = vis_sigma_ian[min(freq_ch_range):max(freq_ch_range)]
     endif
+    vis_sigma = vis_sigma_ian
+    vs_name = 'ian'
   endif
 
   if n_elements(vis_sigma) eq 0 then begin
