@@ -899,7 +899,10 @@ function fhd_file_setup, filename, weightfile = weightfile, $
 
         dt_vals = dblarr(n_obs[pol_i, file_i])
         wh_timeres = where(strlowcase(obs_tags) eq 'time_res', count_timeres)
-        if count_timeres ne 0 then dt_vals = obs_arr.time_res else begin
+        if count_timeres ne 0 then begin
+          ;; use the abs in case the times are arranged in descending order
+          dt_vals = abs(obs_arr.time_res)
+        endif else begin
           for i=0, n_obs[pol_i, file_i]-1 do begin
             times = (*obs_arr[i].baseline_info).jdate
             ;; only allow time resolutions of n*.5 sec
