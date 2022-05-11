@@ -195,8 +195,19 @@ function fhd_file_setup, filename, weightfile = weightfile, $
       beamfile = temporary(temp_bm)
       pixelfile = temporary(temp_pix)
     endif else begin
-      ;; no pol identifiers
-      if n_elements(pol_inc) eq 0 then pol_inc = ['xx', 'yy']
+      ;; no pol identifiers in filenames
+      if n_elements(pol_inc) eq 0 then begin
+        void = getvar_savefile(datafile[0], names = datafile_varnames)
+        wh_weights = where(strmatch(datafile_varnames, 'weights*',/fold_case) gt 0, count_weights)
+        if count_weights eq 0 then message, 'no weights array in file'
+        if count_weights eq 1 then begin
+          ;; FHD only allows xx if one pol
+          pol_inc = ['xx']
+        endif else begin
+          ;; defaut to 'xx' and 'yy' if npol >= 2
+          pol_inc = ['xx', 'yy']
+        endelse
+      endif
       pol_enum = ['xx', 'yy', 'xy', 'yx']
       npol = n_elements(pol_inc)
       pol_num = intarr(npol)
