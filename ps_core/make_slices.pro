@@ -11,7 +11,7 @@ pro make_slices, file_struct, type=type, file_ind = file_ind, data_cube = data_c
       wh_uf_n0 = where(uf_tot gt 0, count_uf_n0)
       if count_uf_n0 eq 0 then message, 'uvf weights appear to be entirely zero'
 
-      uf_tot_data = total(total(abs(data_cube),3),2)
+      uf_tot_data = total(total(abs(data_cube),3),1)
       wh_uf_n0_data = where(uf_tot_data gt 0, count_uf_n0_data)
       if count_uf_n0_data eq 0 then message, 'uvf data appear to be entirely zero'
 
