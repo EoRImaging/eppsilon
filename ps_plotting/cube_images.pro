@@ -210,7 +210,7 @@ pro cube_images, folder_names, obs_info, nvis_norm = nvis_norm, $
   if keyword_set(rts) then pixel_varnames = strarr(n_elements(filenames)) + 'pixel_nums' $
   else pixel_varnames = strarr(n_elements(filenames)) + 'hpx_inds'
   
-  pol_exist = stregex(filenames, '[xy][xy]', /boolean, /fold_case)
+  pol_exist = stregex(file_basename(filenames), '[xy][xy]', /boolean, /fold_case)
   
   if keyword_set(png) or keyword_set(eps) or keyword_set(pdf) then pub = 1 else pub = 0
   if pub then begin
