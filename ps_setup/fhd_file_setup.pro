@@ -111,29 +111,29 @@ function fhd_file_setup, filename, weightfile = weightfile, $
     if n_elements(datafile) eq 0 then datafile = filename
 
     ;; check whether datafiles have polarization identifiers in filename
-    pol_exist = stregex(datafile, '[xy][xy]', /boolean, /fold_case)
+    pol_exist = stregex(file_basename(datafile), '[xy][xy]', /boolean, /fold_case)
     if max(pol_exist) gt 0 then begin
       wh_pol_exist = where(pol_exist gt 0, count_pol_exist, ncomplement = count_no_pol)
       if count_no_pol gt 0 then begin
         message, 'some datafiles have pol identifiers and some do not'
       endif
-      pols = strlowcase(stregex(datafile, '[xy][xy]', /extract, /fold_case))
+      pols = strlowcase(stregex(file_basename(datafile), '[xy][xy]', /extract, /fold_case))
       if n_elements(weightfile) gt 0 then begin
-        wt_pols = strlowcase(stregex(weightfile, '[xy][xy]', /extract, /fold_case))
+        wt_pols = strlowcase(stregex(file_basename(weightfile), '[xy][xy]', /extract, /fold_case))
         match, pols, wt_pols, suba, subb, count = count_pol_match
         if count_pol_match ne n_elements(pols) then begin
           message, 'weightfile polarizations must match datafile polarizations'
         endif
       endif
       if n_elements(variancefile) gt 0 then begin
-        var_pols = strlowcase(stregex(variancefile, '[xy][xy]', /extract, /fold_case))
+        var_pols = strlowcase(stregex(file_basename(variancefile), '[xy][xy]', /extract, /fold_case))
         match, pols, var_pols, suba, subb, count = count_pol_match
         if count_pol_match ne n_elements(pols) then begin
           message, 'variancefile polarizations must match datafile polarizations'
         endif
       endif
       if n_elements(beamfile) gt 0 then begin
-        bm_pols = strlowcase(stregex(beamfile, '[xy][xy]', /extract, /fold_case))
+        bm_pols = strlowcase(stregex(file_basename(beamfile), '[xy][xy]', /extract, /fold_case))
         match, pols, bm_pols, suba, subb, count = count_pol_match
         if count_pol_match ne n_elements(pols) then begin
           message, 'beamfile polarizations must match datafile polarizations'
@@ -1130,7 +1130,7 @@ function fhd_file_setup, filename, weightfile = weightfile, $
   if tag_exist(metadata_struct, 'nside') then healpix = 1 else healpix = 0
   if tag_exist(metadata_struct, 'no_var') then no_var = 1 else no_var = 0
 
-  pol_exist = stregex(metadata_struct.datafile, '[xy][xy]', /boolean, /fold_case)
+  pol_exist = stregex(file_basename(metadata_struct.datafile), '[xy][xy]', /boolean, /fold_case)
 
   if n_elements(freq_flags) ne 0 then begin
     freq_mask = intarr(n_elements(metadata_struct.frequencies)) + 1
