@@ -293,12 +293,21 @@ pro cube_images, folder_names, obs_info, nvis_norm = nvis_norm, $
       endfor
     endif else n_vis_freq_avg = nvis_freq
     cube1 = cube1 / rebin(reform(n_vis_freq_avg, 1, n_freq1), n_elements(hpx_inds1), n_freq1)
+    if min(n_vis_freq_avg) eq 0 then begin
+      cube1[*, where(n_vis_freq_avg eq 0)] = 0
+    endif
     if cube_types[0] ne 'weights' and cube_types[0] ne 'variances' and $
       cube_types[max_type] ne 'weights' and cube_types[max_type] ne 'variances' then begin
       weights1 = getvar_savefile(filenames[0], weight_varnames[0])
       weights1 = weights1 / rebin(reform(n_vis_freq_avg, 1, n_freq1), n_elements(hpx_inds1), n_freq1)
-      
-      cube1 = cube1 / rebin(reform(max(weights1, dimension=1), 1, n_freq1), n_elements(hpx_inds1), n_freq1)
+      if min(n_vis_freq_avg) eq 0 then begin
+        weights1[*, where(n_vis_freq_avg eq 0)] = 0
+      endif
+      max_wt_freq = max(weights1, dimension=1)
+      cube1 = cube1 / rebin(reform(max_wt_freq, 1, n_freq1), n_elements(hpx_inds1), n_freq1)
+      if min(max_wt_freq) eq 0 then begin
+        cube1[*, where(max_wt_freq eq 0)] = 0
+      endif
       units_str = 'Jy/beam'
     endif
   endif
@@ -329,17 +338,32 @@ pro cube_images, folder_names, obs_info, nvis_norm = nvis_norm, $
           else n_vis_freq_avg[i] = total(nvis_freq[inds_use])
         endfor
       endif else n_vis_freq_avg = nvis_freq
-      if n_elements(filenames) eq 2 then $
-        cube2 = cube2 / rebin(reform(n_vis_freq_avg, 1, n_freq2), n_elements(hpx_inds2), n_freq2) $
-      else cube2 = cube2 / rebin(reform(n_vis_freq_avg, 1, n_freq2), n_elements(hpx_inds1), n_freq2)
+      if n_elements(filenames) eq 2 then begin
+        cube2 = cube2 / rebin(reform(n_vis_freq_avg, 1, n_freq2), n_elements(hpx_inds2), n_freq2)
+      endif else begin
+        cube2 = cube2 / rebin(reform(n_vis_freq_avg, 1, n_freq2), n_elements(hpx_inds1), n_freq2)
+      endelse
+      if min(n_vis_freq_avg) eq 0 then begin
+        cube2[*, where(n_vis_freq_avg eq 0)] = 0
+      endif
+
       if cube_types[0] ne 'weights' and cube_types[0] ne 'variances' and $
         cube_types[max_type] ne 'weights' and cube_types[max_type] ne 'variances' then begin
         
         weights2 = getvar_savefile(filenames[max_file], weight_varnames[max_type])
         weights2 = weights2 / rebin(reform(n_vis_freq_avg, 1, n_freq1), n_elements(hpx_inds1), n_freq1)
-        if n_elements(filenames) eq 2 then $
-          cube2 = cube2 / rebin(reform(max(weights2, dimension=1), 1, n_freq1), n_elements(hpx_inds2), n_freq2) $
-        else cube2 = cube2 / rebin(reform(max(weights2, dimension=1), 1, n_freq1), n_elements(hpx_inds1), n_freq2)
+        if min(n_vis_freq_avg) eq 0 then begin
+          weights2[*, where(n_vis_freq_avg eq 0)] = 0
+        endif
+        max_wt_freq = max(weights2, dimension=1)
+        if n_elements(filenames) eq 2 then begin
+          cube2 = cube2 / rebin(reform(max_wt_freq, 1, n_freq1), n_elements(hpx_inds2), n_freq2)
+        endif else begin
+          cube2 = cube2 / rebin(reform(max_wt_freq, 1, n_freq1), n_elements(hpx_inds1), n_freq2)
+        endelse
+        if min(max_wt_freq) eq 0 then begin
+          cube2[*, where(max_wt_freq eq 0)] = 0
+        endif
       endif
     endif
   endif
