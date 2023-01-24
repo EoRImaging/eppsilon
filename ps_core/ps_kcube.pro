@@ -1,6 +1,6 @@
 pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
     uvf_input = uvf_input, freq_ch_range = freq_ch_range, freq_flags = freq_flags, $
-    input_units = input_units, save_slices = save_slices, $
+    input_units = input_units, save_slices = save_slices, save_sum_cube = save_sum_cube, $
     refresh_options = refresh_options, uvf_options = uvf_options, $
     ps_options = ps_options
 
@@ -26,8 +26,30 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
 
   if n_elements(freq_flags) ne 0 then freq_mask = file_struct.freq_mask
 
+  ;; update frequencies and freq_flags if averaging
+  ;; check that freq avg factor is factor of number of frequencies
+  ;; calculate new frequency centers based on ps_options.allow_uneven_freqs
+  ;; make new freq mask? only flag data if all averaged data is flagged
+
   n_freq_orig = n_elements(frequencies) ;Read-in number of frequencies
   if n_elements(freq_ch_range) ne 0 then frequencies = frequencies[min(freq_ch_range):max(freq_ch_range)]
+
+  ;; average in frequency
+  if freq_avg_factor gt 1 then begin
+    ;; check that factor divides evenly into number of frequencies
+    if n_elements(frequencies) mod freq_avg_factor ne 0 then begin
+      message "freq_avg_factor must divide evenly into number of frequencies to be averaged"
+    endif
+    if (n_elements(freq_flags) ne 0) and (allow_uneven_freqs eq 1) then begin
+      ;; compute new frequencies accounting for flagging
+      frequencies = frequencies * freq_mask
+    endif
+    avg_n_freqs = n_elements(frequencies) / freq_avg_factor
+    new_freqs = reform(frequencies, freq_avg_factor, avg_n_freqs)
+    new_freqs = mean(new_freqs, dimension=1)
+    frequencies = new_freqs
+  endif
+
   n_freq = n_elements(frequencies) ;Selected number of frequencies
 
   z_mpc_mean = z_mpc(frequencies, hubble_param = hubble_param, f_delta = f_delta, $
@@ -115,10 +137,17 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
       if n_elements(vis_sigma_adam) ne n_freq_orig then message, $
         'vis_sig file has incorrect number of frequency channels'
       vis_sigma_adam = vis_sigma_adam[min(freq_ch_range):max(freq_ch_range)]
-    endif else begin
-      if n_elements(vis_sigma_adam) ne n_freq then message, $
+    endif
+
+    if freq_avg_factor gt 1 then begin
+      new_vis_sigma_adam = reform(vis_sigma_adam, freq_avg_factor, avg_n_freqs)
+      new_vis_sigma_adam = mean(new_vis_sigma_adam, dimension=1)
+      vis_sigma_adam = new_vis_sigma_adam
+    endif
+
+    if n_elements(vis_sigma_adam) ne n_freq then message, $
         'vis_sig file has incorrect number of frequency channels'
-    endelse
+    endif
 
     wh_nan = where(finite(vis_sigma_adam) eq 0, count_nan)
     if count_nan gt 0 then vis_sigma_adam[wh_nan] = 0
@@ -127,6 +156,11 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
   if n_elements(vis_sigma_ian) gt 0 then begin
     if n_elements(freq_ch_range) ne 0 then begin
       vis_sigma_ian = vis_sigma_ian[min(freq_ch_range):max(freq_ch_range)]
+    endif
+    if freq_avg_factor gt 1 then begin
+      new_vis_sigma_ian = reform(vis_sigma_ian, freq_avg_factor, avg_n_freqs)
+      new_vis_sigma_ian = mean(new_vis_sigma_ian, dimension=1)
+      vis_sigma_ian = new_vis_sigma_ian
     endif
     vis_sigma = vis_sigma_ian
     vs_name = 'ian'
@@ -156,6 +190,12 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
     n_vis = total(n_vis_freq[*, min(freq_ch_range):max(freq_ch_range)], 2)
     n_vis_freq = n_vis_freq[*, min(freq_ch_range):max(freq_ch_range)]
   endif
+  // if freq_avg_factor gt 1 then begin
+  //   new_n_vis_freq = reform(new_n_vis_freq, freq_avg_factor, avg_n_freqs)
+  //   new_n_vis_freq = total(new_n_vis_freq, 2)
+  //   n_vis_freq = new_n_vis_freq
+  // endif
+  
 
   if healpix or not uvf_input then begin
     ps_image_to_uvf, file_struct, n_vis_freq, kx_rad_vals, ky_rad_vals, $
@@ -278,6 +318,11 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
             flag_arr = rebin(reform(freq_mask, 1, 1, n_freq), $
               size(arr,/dimension), /sample)
             arr = arr * flag_arr
+          endif
+          if freq_avg_factor gt 1 then begin
+            new_arr = reform(arr, freq_avg_factor, avg_n_freqs)
+            new_arr = mean(new_arr, dimension=1)
+            arr = new_arr
           endif
 
           if max(arr) le 1.1 then begin
@@ -487,6 +532,16 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
         variance_cube1 = variance_cube1 * flag_arr
         if nfiles eq 2 then variance_cube2 = variance_cube2 * flag_arr
       endif
+      if freq_avg_factor gt 1 then begin
+        new_vcube = reform(variance_cube1, freq_avg_factor, avg_n_freqs)
+        new_vcube = mean(new_vcube, dimension=1)
+        variance_cube1 = new_vcube
+        if nfiles eq 2 then begin
+          new_vcube = reform(variance_cube2, freq_avg_factor, avg_n_freqs)
+          new_vcube = mean(new_vcube, dimension=1)
+          variance_cube2 = new_vcube
+        endif
+      endif
 
       if max(abs(variance_cube1)) eq 0 then message, 'variance cube is entirely zero.'
       if nfiles eq 2 then if max(abs(variance_cube2)) eq 0 then begin
@@ -634,6 +689,16 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
       ave_beam_denominator = total(n_vis_freq)
       ave_beam_int = total(beam_int * n_vis_freq) / total(n_vis_freq)
     endelse
+    if freq_avg_factor gt 1 then begin
+      if nfiles eq 2 then begin
+        new_n_vis_freq = reform(new_n_vis_freq, *, freq_avg_factor, avg_n_freqs)
+        new_n_vis_freq = total(new_n_vis_freq, 3)
+        n_vis_freq = new_n_vis_freq
+      endif else begin
+        new_n_vis_freq = reform(new_n_vis_freq, freq_avg_factor, avg_n_freqs)
+        new_n_vis_freq = total(new_n_vis_freq, 2)
+        n_vis_freq = new_n_vis_freq
+    endif
 
     wh_not_finite = where(~finite(ave_beam_int), count_not_finite)
     if count_not_finite gt 0 then begin
@@ -1112,6 +1177,16 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
                   kperp_lambda_conv = kperp_lambda_conv, $
                   delay_params = delay_params, hubble_param = hubble_param
     endif
+  endif
+  
+  if ps_options.save_sum_cube then begin
+    if n_elements(freq_flags) gt 0 then begin
+      save, file = file_struct.uvf_sum_savefile, data_sum, kx_mpc, ky_mpc, frequencies, kperp_lambda_conv, $
+        delay_params, hubble_param, freq_mask
+    endif else begin
+      save, file = file_struct.uvf_sum_savefile, data_sum, kx_mpc, ky_mpc, frequencies, kperp_lambda_conv, $
+        delay_params, hubble_param
+    endelse
   endif
 
   if ps_options.ave_removal then begin

@@ -4,14 +4,16 @@ pro ps_wrapper, folder_name_in, obs_name, data_subdirs=data_subdirs, $
     ps_folder_branch = ps_folder_branch, copy_master_uvf = copy_master_uvf, $
     no_evenodd = no_evenodd, no_wtvar_rts = no_wtvar_rts, $
     set_data_ranges = set_data_ranges, beamfiles = beamfiles, rts = rts, $
-    casa = casa, sim = sim, save_slices = save_slices, no_binning = no_binning, $
-    refresh_dft = refresh_dft, refresh_ps = refresh_ps, $
+    casa = casa, sim = sim, save_slices = save_slices, save_sum_cube = save_sum_cube, $
+    no_binning = no_binning, refresh_dft = refresh_dft, refresh_ps = refresh_ps, $
     refresh_binning = refresh_binning, refresh_info = refresh_info, $
     refresh_beam = refresh_beam, dft_fchunk = dft_fchunk, require_radec = require_radec, $
     delta_uv_lambda = delta_uv_lambda, max_uv_lambda = max_uv_lambda, $
     full_image = full_image, image_clip = image_clip, $
     pol_inc = pol_inc, type_inc = type_inc, freq_ch_range = freq_ch_range, $
     freq_flags = freq_flags, freq_flag_name = freq_flag_name, $
+    freq_flag_repeat = freq_flag_repeat, $
+    freq_avg_factor = freq_avg_factor, allow_uneven_freqs = allow_uneven_freqs, $
     allow_beam_approx = allow_beam_approx, uvf_input = uvf_input, uv_avg = uv_avg, $
     uv_img_clip = uv_img_clip, freq_dft = freq_dft, dft_z_use = dft_z_use, $
     std_power = std_power, $
@@ -67,6 +69,13 @@ pro ps_wrapper, folder_name_in, obs_name, data_subdirs=data_subdirs, $
 
     if git_info.branch eq 'master' and keyword_set(copy_master_uvf) then copy_master_uvf=0
   endif
+
+  if keyword_set(freq_flag_repeat) then begin
+    ;; remake freq flag array
+    repeat_freq_flag_arr = []
+    for i = 1, freq_flag_repeat do begin
+      repeat_freq_flag_arr = [repeat_freq_flag_arr, freq_flags]
+    freq_flags = repeat_freq_flag_arr
 
   if keyword_set(copy_master_uvf) then begin
     ;; copy over initial files from the ps_master folder if they exist and don't exist for this run
@@ -262,6 +271,8 @@ pro ps_wrapper, folder_name_in, obs_name, data_subdirs=data_subdirs, $
   ps_options = create_ps_options(ave_removal = ave_removal, wt_cutoffs = wt_cutoffs, $
     wt_measures = wt_measures, spec_window_type = spec_window_type, $
     no_spec_window = no_spec_window, allow_beam_approx = allow_beam_approx, $
+    save_sum_cube = save_sum_cube, $
+    freq_avg_factor = freq_avg_factor, allow_uneven_freqs = allow_uneven_freqs, $
     freq_dft = freq_dft, dft_z_use = dft_z_use, $
     std_power = std_power, no_wtd_avg = no_wtd_avg, $
     inverse_covar_weight = inverse_covar_weight)

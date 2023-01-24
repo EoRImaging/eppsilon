@@ -1213,6 +1213,8 @@ function fhd_file_setup, filename, weightfile = weightfile, $
   vf_diff_savefile = uvf_slice_path + savefilebase + '_diff_vf_plane.idlsave'
   uv_diff_savefile = uvf_slice_path + savefilebase + '_diff_uv_plane.idlsave'
 
+  uvf_sum_savefile = uvf_path + savefilebase + '_sum_uvf.idlsave'
+
   if tag_exist(metadata_struct, 'beamfile') then begin
     beam_savefile = froot + subfolders.data + subfolders.beams + uvf_savefilebase + '_beam2.idlsave'
   endif
@@ -1308,6 +1310,7 @@ function fhd_file_setup, filename, weightfile = weightfile, $
         uf_diff_savefile:uf_diff_savefile[pol_i,type_i], $
         vf_diff_savefile:vf_diff_savefile[pol_i,type_i], $
         uv_diff_savefile:uv_diff_savefile[pol_i,type_i], $
+        uvf_sum_savefile:uvf_sum_savefile[pol_i,type_i], $
         uf_weight_savefile:reform(uf_weight_savefile[pol_i, *]), $
         vf_weight_savefile:reform(vf_weight_savefile[pol_i, *]), $
         uv_weight_savefile:reform(uv_weight_savefile[pol_i, *]), $
