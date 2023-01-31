@@ -35,10 +35,11 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
   if n_elements(freq_ch_range) ne 0 then frequencies = frequencies[min(freq_ch_range):max(freq_ch_range)]
 
   ;; average in frequency
+  freq_avg_factor = ps_options.freq_avg_factor
   if freq_avg_factor gt 1 then begin
     ;; check that factor divides evenly into number of frequencies
     if n_elements(frequencies) mod freq_avg_factor ne 0 then begin
-      message "freq_avg_factor must divide evenly into number of frequencies to be averaged"
+      message, "freq_avg_factor must divide evenly into number of frequencies to be averaged"
     endif
     if (n_elements(freq_flags) ne 0) and (allow_uneven_freqs eq 1) then begin
       ;; compute new frequencies accounting for flagging
@@ -147,7 +148,6 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
 
     if n_elements(vis_sigma_adam) ne n_freq then message, $
         'vis_sig file has incorrect number of frequency channels'
-    endif
 
     wh_nan = where(finite(vis_sigma_adam) eq 0, count_nan)
     if count_nan gt 0 then vis_sigma_adam[wh_nan] = 0
@@ -190,11 +190,11 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
     n_vis = total(n_vis_freq[*, min(freq_ch_range):max(freq_ch_range)], 2)
     n_vis_freq = n_vis_freq[*, min(freq_ch_range):max(freq_ch_range)]
   endif
-  // if freq_avg_factor gt 1 then begin
-  //   new_n_vis_freq = reform(new_n_vis_freq, freq_avg_factor, avg_n_freqs)
-  //   new_n_vis_freq = total(new_n_vis_freq, 2)
-  //   n_vis_freq = new_n_vis_freq
-  // endif
+  ;; if freq_avg_factor gt 1 then begin
+  ;;   new_n_vis_freq = reform(new_n_vis_freq, freq_avg_factor, avg_n_freqs)
+  ;;   new_n_vis_freq = total(new_n_vis_freq, 2)
+  ;;   n_vis_freq = new_n_vis_freq
+  ;; endif
   
 
   if healpix or not uvf_input then begin
@@ -691,14 +691,16 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
     endelse
     if freq_avg_factor gt 1 then begin
       if nfiles eq 2 then begin
-        new_n_vis_freq = reform(new_n_vis_freq, *, freq_avg_factor, avg_n_freqs)
+        dim = size(n_vis_freq)
+        print, dim
+        new_n_vis_freq = reform(n_vis_freq, dim[1], freq_avg_factor, avg_n_freqs)
         new_n_vis_freq = total(new_n_vis_freq, 3)
         n_vis_freq = new_n_vis_freq
       endif else begin
         new_n_vis_freq = reform(new_n_vis_freq, freq_avg_factor, avg_n_freqs)
         new_n_vis_freq = total(new_n_vis_freq, 2)
         n_vis_freq = new_n_vis_freq
-    endif
+      endelse
 
     wh_not_finite = where(~finite(ave_beam_int), count_not_finite)
     if count_not_finite gt 0 then begin

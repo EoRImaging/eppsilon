@@ -75,7 +75,9 @@ pro ps_wrapper, folder_name_in, obs_name, data_subdirs=data_subdirs, $
     repeat_freq_flag_arr = []
     for i = 1, freq_flag_repeat do begin
       repeat_freq_flag_arr = [repeat_freq_flag_arr, freq_flags]
+    endfor
     freq_flags = repeat_freq_flag_arr
+  endif
 
   if keyword_set(copy_master_uvf) then begin
     ;; copy over initial files from the ps_master folder if they exist and don't exist for this run
