@@ -7,6 +7,7 @@ pro compare_plot_prep, folder_names, obs_info, $
     binning_2d_options = binning_2d_options, binning_1d_options = binning_1d_options, $
     plot_slices = plot_slices, slice_type = slice_type, fadd_2dbin = fadd_2dbin, $
     freq_ch_range = freq_ch_range, $
+    freq_flags = freq_flags, freq_flag_name = freq_flag_name, $
     plot_filebase = plot_filebase, save_path = save_path, savefilebase = savefilebase, $
     axis_type_1d = axis_type_1d, full_compare = full_compare
 
@@ -71,10 +72,10 @@ pro compare_plot_prep, folder_names, obs_info, $
   endelse
 
   n_diffs = max([n_elements(obs_info.info_files), n_elements(cube_types), $
-    n_elements(pols), n_elements(ps_options), n_uvf_options])
+    n_elements(pols), n_elements(ps_options), n_uvf_options, n_elements(freq_flag_name)])
   if n_diffs gt 2 then begin
     message, 'only 1 or 2 each of [folder_names, ps_foldernames, ' + $
-      'obs_names, cube_types, pols, spec_window_types, wt_cutoffs, ave_removal] allowed'
+      'obs_names, cube_types, pols, spec_window_types, wt_cutoffs, ave_removal, freq_flag_name] allowed'
   endif
 
   if (n_elements(obs_info.info_files) eq 2 or n_elements(ps_options) eq 2 $
@@ -177,6 +178,7 @@ pro compare_plot_prep, folder_names, obs_info, $
   uvf_options_use = uvf_options0
   file_struct_arr1 = fhd_file_setup(obs_info.info_files[0], $
     uvf_options = uvf_options_use, ps_options = ps_options[0], $
+    freq_flags = freq_flags, freq_flag_name = freq_flag_name, $
     freq_ch_range = freq_ch_range)
   if n_elements(obs_info.info_files) eq 2 or max_ps eq 1 or max_uvf eq 1 then begin
     if max_uvf eq 1 then begin
@@ -184,6 +186,7 @@ pro compare_plot_prep, folder_names, obs_info, $
     endif
     file_struct_arr2 = fhd_file_setup(obs_info.info_files[max_file], $
     uvf_options = uvf_options_use, ps_options = ps_options[max_ps],$
+    freq_flags = freq_flags[max_file], freq_flag_name = freq_flag_name[max_file], $
     freq_ch_range = freq_ch_range)
   endif else begin
     file_struct_arr2 = file_struct_arr1

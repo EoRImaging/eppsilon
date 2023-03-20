@@ -56,7 +56,7 @@ pro ps_image_to_uvf, file_struct, n_vis_freq, kx_rad_vals, ky_rad_vals, $
         full_uvf_file = strjoin(strsplit(full_uvf_file, '_ch[0-9]+-[0-9]+', /regex, /extract))
       endif
       if n_elements(freq_flags) ne 0 then begin
-        full_uvf_file = strjoin(strsplit(full_uvf_file, '_flag+', /regex, /extract))
+        full_uvf_file = strjoin(strsplit(full_uvf_file, '_flag[a-z0-9]+', /regex, /extract))
       endif
       test_full_uvf = file_valid(full_uvf_file)
       if not test_full_uvf then test_full_uvf = check_old_path(file_struct, 'uvf_savefile', index=i)
@@ -96,7 +96,7 @@ pro ps_image_to_uvf, file_struct, n_vis_freq, kx_rad_vals, ky_rad_vals, $
           /regex, /extract))
       endif
       if n_elements(freq_flags) ne 0 then begin
-        full_uvf_wt_file = strjoin(strsplit(full_uvf_wt_file, '_flag+', $
+        full_uvf_wt_file = strjoin(strsplit(full_uvf_wt_file, '_flag[a-z0-9]+', $
           /regex, /extract))
       endif
       test_full_wt_uvf = file_valid(full_uvf_wt_file)
@@ -457,7 +457,7 @@ pro ps_image_to_uvf, file_struct, n_vis_freq, kx_rad_vals, ky_rad_vals, $
           undefine, arr
 
           uvf_git_hash = this_run_git_hash
-          if n_elements(freq_flags) then begin
+          if n_elements(freq_flags) gt 0 then begin
             save, file = file_struct.uvf_savefile[i], kx_rad_vals, ky_rad_vals, $
               data_cube, freq_mask, uvf_git_hash
           endif else begin
@@ -556,7 +556,7 @@ pro ps_image_to_uvf, file_struct, n_vis_freq, kx_rad_vals, ky_rad_vals, $
 
           uvf_wt_git_hash = this_run_git_hash
 
-          if n_elements(freq_flags) then begin
+          if n_elements(freq_flags) gt 0 then begin
             save, file = file_struct.uvf_weight_savefile[i], kx_rad_vals, $
               ky_rad_vals, weights_cube, variance_cube, freq_mask, uvf_wt_git_hash
           endif else begin

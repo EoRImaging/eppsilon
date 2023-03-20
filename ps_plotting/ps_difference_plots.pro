@@ -4,6 +4,7 @@ pro ps_difference_plots, folder_names, obs_info, ps_foldernames = ps_foldernames
     plot_options = plot_options, plot_2d_options = plot_2d_options, $
     binning_2d_options = binning_2d_options, binning_1d_options = binning_1d_options, $
     refresh_diff = refresh_diff, freq_ch_range = freq_ch_range, $
+    freq_flags = freq_flags, freq_flag_name = freq_flag_name, $
     plot_slices = plot_slices, slice_type = slice_type, $
     plot_filebase = plot_filebase, save_path = save_path, savefilebase = savefilebase, $
     data_min_abs = data_min_abs, plot_1d = plot_1d, axis_type_1d=axis_type_1d, $
@@ -17,6 +18,7 @@ pro ps_difference_plots, folder_names, obs_info, ps_foldernames = ps_foldernames
     binning_2d_options = binning_2d_options, binning_1d_options = binning_1d_options, $
     plot_slices = plot_slices, slice_type = slice_type, $
     freq_ch_range = freq_ch_range, plot_filebase = plot_filebase, $
+    freq_flags = freq_flags, freq_flag_name = freq_flag_name, $
     save_path = save_path, savefilebase = savefilebase, $
     axis_type_1d = axis_type_1d, full_compare = all_type_pol
 

@@ -13,7 +13,7 @@ pro ps_wrapper, folder_name_in, obs_name, data_subdirs=data_subdirs, $
     pol_inc = pol_inc, type_inc = type_inc, freq_ch_range = freq_ch_range, $
     freq_flags = freq_flags, freq_flag_name = freq_flag_name, $
     freq_flag_repeat = freq_flag_repeat, $
-    freq_avg_factor = freq_avg_factor, allow_uneven_freqs = allow_uneven_freqs, $
+    freq_avg_factor = freq_avg_factor, force_even_freqs = force_even_freqs, $
     allow_beam_approx = allow_beam_approx, uvf_input = uvf_input, uv_avg = uv_avg, $
     uv_img_clip = uv_img_clip, freq_dft = freq_dft, dft_z_use = dft_z_use, $
     std_power = std_power, $
@@ -274,7 +274,7 @@ pro ps_wrapper, folder_name_in, obs_name, data_subdirs=data_subdirs, $
     wt_measures = wt_measures, spec_window_type = spec_window_type, $
     no_spec_window = no_spec_window, allow_beam_approx = allow_beam_approx, $
     save_sum_cube = save_sum_cube, $
-    freq_avg_factor = freq_avg_factor, allow_uneven_freqs = allow_uneven_freqs, $
+    freq_avg_factor = freq_avg_factor, force_even_freqs = force_even_freqs, $
     freq_dft = freq_dft, dft_z_use = dft_z_use, $
     std_power = std_power, no_wtd_avg = no_wtd_avg, $
     inverse_covar_weight = inverse_covar_weight)

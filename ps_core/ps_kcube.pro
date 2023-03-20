@@ -28,7 +28,7 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
 
   ;; update frequencies and freq_flags if averaging
   ;; check that freq avg factor is factor of number of frequencies
-  ;; calculate new frequency centers based on ps_options.allow_uneven_freqs
+  ;; calculate new frequency centers based on ps_options.force_even_freqs
   ;; make new freq mask? only flag data if all averaged data is flagged
 
   n_freq_orig = n_elements(frequencies) ;Read-in number of frequencies
@@ -41,7 +41,7 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
     if n_elements(frequencies) mod freq_avg_factor ne 0 then begin
       message, "freq_avg_factor must divide evenly into number of frequencies to be averaged"
     endif
-    if (n_elements(freq_flags) ne 0) and (allow_uneven_freqs eq 1) then begin
+    if (n_elements(freq_flags) ne 0) and (force_even_freqs eq 0) then begin
       ;; compute new frequencies accounting for flagging
       frequencies = frequencies * freq_mask
     endif

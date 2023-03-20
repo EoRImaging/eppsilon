@@ -1152,7 +1152,7 @@ function fhd_file_setup, filename, weightfile = weightfile, $
     endif
   endif
 
-  file_tags = create_file_tags(freq_ch_range = freq_ch_range, freq_flags = freq_flags, $
+  file_tags = create_file_tags(freq_ch_range = freq_ch_range, $
     freq_flag_name = freq_flag_name, uvf_options = uvf_options, ps_options = ps_options)
 
   wt_file_label = '_weights_' + strlowcase(metadata_struct.pol_inc)

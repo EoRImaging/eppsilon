@@ -3,7 +3,7 @@ function create_ps_options, ps_options = ps_options, $
     wt_measures = wt_measures, spec_window_type = spec_window_type, $
     no_spec_window = no_spec_window, allow_beam_approx = allow_beam_approx, $
     save_sum_cube = save_sum_cube, $
-    freq_avg_factor = freq_avg_factor, allow_uneven_freqs = allow_uneven_freqs, $
+    freq_avg_factor = freq_avg_factor, force_even_freqs = force_even_freqs, $
     freq_dft = freq_dft, dft_z_use = dft_z_use, $
     std_power = std_power, no_wtd_avg = no_wtd_avg, $
     inverse_covar_weight = inverse_covar_weight, return_new = return_new
@@ -30,13 +30,13 @@ function create_ps_options, ps_options = ps_options, $
     if n_elements(freq_avg_factor) eq 0 then freq_avg_factor = 1
 
     ;; default to allowing uneven frequency spacing
-    if n_elements(allow_uneven_freqs) eq 0 then allow_uneven_freqs = 1
+    if n_elements(force_even_freqs) eq 0 then force_even_freqs = 0
 
     ;; Default to using a frequency DFT.
     if n_elements(freq_dft) eq 0 then freq_dft = 1
 
     ;; force a frequency dft if uneven frequency spacing is allowed
-    if allow_uneven_freqs eq 1 then freq_dft = 1
+    if force_even_freqs eq 0 then freq_dft = 1
 
     ;; default to using the true z's if using a DFT
     if n_elements(dft_z_use) eq 0 then dft_z_use = 'true'
@@ -111,9 +111,9 @@ function create_ps_options, ps_options = ps_options, $
     update_values.add, freq_avg_factor
   endif
 
-  if n_elements(allow_uneven_freqs) gt 0 then begin
-    update_tags.add, 'allow_uneven_freqs'
-    update_values.add, allow_uneven_freqs
+  if n_elements(force_even_freqs) gt 0 then begin
+    update_tags.add, 'force_even_freqs'
+    update_values.add, force_even_freqs
   endif
 
   if n_elements(freq_dft) gt 0 then begin

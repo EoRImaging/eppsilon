@@ -30,13 +30,12 @@ function create_file_tags, freq_ch_range = freq_ch_range, freq_flags = freq_flag
       number_formatter(max(freq_ch_range))
   endif else fch_tag = ''
 
-  if n_elements(freq_flags) ne 0 then begin
-    if n_elements(freq_flag_name) eq 0 then begin
-      freq_flag_name = ''
-    endif else begin
-      if size(freq_flag_name, /type) ne 7 then freq_flag_name = number_formatter(freq_flag_name)
-    endelse
-    flag_tag = '_flag' + freq_flag_name
+  if n_elements(freq_flag_name) eq 0 then begin
+    freq_flag_name = ''
+  endif else begin
+    if size(freq_flag_name, /type) ne 7 then freq_flag_name = number_formatter(freq_flag_name)
+  endelse
+  flag_tag = '_flag' + freq_flag_name
   endif else flag_tag = ''
   fch_tag = fch_tag + flag_tag
 
@@ -65,10 +64,10 @@ function create_file_tags, freq_ch_range = freq_ch_range, freq_flags = freq_flag
 
   if ps_options.std_power then kcube_tag = '_stdp' else kcube_tag = ''
 
-  if ps_options.freq_avg_factor then begin
+  if ps_options.freq_avg_factor gt 1 then begin
     kcube_tag = kcube_tag + '_freqave' + number_formatter(ps_options.freq_avg_factor)
   endif
-  if ps_options.allow_uneven_freqs then kcube_tag = kcube_tag + '_unevenfreqs'
+  if ps_options.force_even_freqs then kcube_tag = kcube_tag + '_evenfreqs'
 
   if ps_options.freq_dft then begin
     kcube_tag = kcube_tag + '_dft'

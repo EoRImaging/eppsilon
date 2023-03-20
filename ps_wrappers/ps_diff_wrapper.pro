@@ -6,6 +6,9 @@ pro ps_diff_wrapper, folder_names_in, obs_names_in, $
     image_clip = image_clip, ave_removal = ave_removal, $
     freq_dft = freq_dft, dft_z_use = dft_z_use, std_power = std_power, $
     all_type_pol = all_type_pol, freq_ch_range = freq_ch_range, $
+    freq_flags = freq_flags, freq_flag_name = freq_flag_name, $
+    freq_flag_repeat = freq_flag_repeat, $
+    freq_avg_factor = freq_avg_factor, force_even_freqs = force_even_freqs, $
     plot_slices = plot_slices, slice_type = slice_type, $
     png = png, eps = eps, pdf = pdf, data_range = data_range, data_min_abs = data_min_abs, $
     kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, sim = sim, $
@@ -31,6 +34,10 @@ pro ps_diff_wrapper, folder_names_in, obs_names_in, $
   if n_elements(folder_names_in) eq 0 then message, 'at least 1 folder name must be specified'
   if n_elements(obs_names_in) gt 2 then message, 'only 1 or 2 obs_names_in allowed'
 
+  if n_elements(freq_flags) gt 2 then message 'only 1 or 2 freq_flags allowed'
+  if n_elements(freq_flag_name) gt 2 then message 'only 1 or 2 freq_flag_name allowed'
+  if n_elements(freq_flag_name) eq 1 then freq_flag_name = [freq_flag_name, freq_flag_name]
+  
   folder_names = get_folder(folder_names_in, loc_name = loc_name,  rts = rts, $
     dirty_folder = dirty_folder)
 
@@ -124,12 +131,14 @@ pro ps_diff_wrapper, folder_names_in, obs_names_in, $
   if n_elements(ave_removal) lt 2 and n_elements(wt_cutoffs) lt 2 and $
     n_elements(wt_measures) lt 2 and n_elements(spec_window_types) lt 2 and $
     n_elements(freq_dft) lt 2 and n_elements(dft_z_use) lt 2 and $
+    n_elements(freq_avg_factor) lt 2 and n_elements(force_even_freqs) lt 2 and $
     n_elements(std_power) lt 2 then begin
 
     ps_options = create_ps_options(ave_removal = ave_removal, $
     wt_cutoffs = wt_cutoffs, wt_measures = wt_measures, $
     spec_window_type = spec_window_types, $
     freq_dft = freq_dft, dft_z_use = dft_z_use, $
+    freq_avg_factor = freq_avg_factor, force_even_freqs = force_even_freqs, $
     std_power = std_power)
 
   endif else begin
@@ -198,6 +207,32 @@ pro ps_diff_wrapper, folder_names_in, obs_names_in, $
       else: message, 'only 1 or 2 freq_dft values allowed'
     endcase
 
+    case n_elements(freq_avg_factor) of
+      0:
+      1: begin
+        fa0 = freq_avg_factor
+        fa1 = freq_avg_factor
+      end
+      2: begin
+        fa0 = freq_avg_factor[0]
+        fa1 = freq_avg_factor[1]
+      end
+      else: message, 'only 1 or 2 freq_avg_factor values allowed'
+    endcase
+
+    case n_elements(force_even_freqs) of
+      0:
+      1: begin
+        ef0 = force_even_freqs
+        ef1 = force_even_freqs
+      end
+      2: begin
+        ef0 = force_even_freqs[0]
+        ef1 = force_even_freqs[1]
+      end
+      else: message, 'only 1 or 2 force_even_freqs values allowed'
+    endcase
+
     case n_elements(dft_z_use) of
       0:
       1: begin
@@ -226,10 +261,12 @@ pro ps_diff_wrapper, folder_names_in, obs_names_in, $
 
     ps_options0 = create_ps_options(ave_removal = ar0, wt_cutoffs = wtc0, $
       wt_measures = wtm0, spec_window_type = spw0, freq_dft = dft0, $
+      freq_avg_factor = fa0, force_even_freqs = ef0, $
       dft_z_use = dftz0, std_power = sp0)
 
     ps_options1 = create_ps_options(ave_removal = ar1, wt_cutoffs = wtc1, $
       wt_measures = wtm1, spec_window_type = spw1, freq_dft = dft1, $
+      freq_avg_factor = fa1, force_even_freqs = ef1, $
       dft_z_use = dftz1, std_power = sp1)
 
     ps_options = [ps_options0, ps_options1]
@@ -249,6 +286,7 @@ pro ps_diff_wrapper, folder_names_in, obs_names_in, $
     plot_options = plot_options, plot_2d_options = plot_2d_options, $
     binning_2d_options = binning_2d_options, binning_1d_options = binning_1d_options, $
     all_type_pol = all_type_pol, refresh_diff = refresh_diff, freq_ch_range = freq_ch_range, $
+    freq_flags = freq_flags, freq_flag_name = freq_flag_name, $
     plot_slices = plot_slices, slice_type = slice_type, $
     save_path = diff_save_path, savefilebase = savefilebase, $
     plot_1d = plot_1d, axis_type_1d = axis_type_1d, $

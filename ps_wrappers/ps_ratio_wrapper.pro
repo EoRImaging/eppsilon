@@ -2,6 +2,9 @@ pro ps_ratio_wrapper, folder_names_in, obs_names_in, ps_foldernames=ps_foldernam
     exact_obsnames = exact_obsnames, version_test = version_test, $
     cube_types = cube_types,  pols = pols, $
     all_pol_diff_ratio = all_pol_diff_ratio, freq_ch_range = freq_ch_range, $
+    freq_flags = freq_flags, freq_flag_name = freq_flag_name, $
+    freq_flag_repeat = freq_flag_repeat, $
+    freq_avg_factor = freq_avg_factor, force_even_freqs = force_even_freqs, $
     spec_window_types = spec_window_types, delta_uv_lambda = delta_uv_lambda, $
     full_image = full_image, image_clip = image_clip, $
     ave_removal = ave_removal, std_power = std_power, diff_ratio = diff_ratio, $
@@ -16,6 +19,10 @@ pro ps_ratio_wrapper, folder_names_in, obs_names_in, ps_foldernames=ps_foldernam
   if n_elements(folder_names_in) gt 2 then message, 'only 1 or 2 folder_names allowed'
   if n_elements(folder_names_in) eq 0 then message, 'at least 1 folder name must be specified'
   if n_elements(obs_names_in) gt 2 then message, 'only 1 or 2 obs_names_in allowed'
+
+  freq_flags = freq_flags, freq_flag_name = freq_flag_name, $
+  freq_flag_repeat = freq_flag_repeat, $
+  freq_avg_factor = freq_avg_factor, force_even_freqs = force_even_freqs, $
 
   folder_names = get_folder(folder_names_in, loc_name = loc_name,  rts = rts, $
     dirty_folder = dirty_folder)
