@@ -959,7 +959,7 @@ function fhd_file_setup, filename, weightfile = weightfile, $
             if min(beam_int_arr) eq 0 then begin
               message, 'some beam_integrals are null, others are not.'
             endif
-            wh_not_finite = where(~finite(beam_int_arr), count=count_not_finite)
+            wh_not_finite = where(finite(beam_int_arr) lt 1, count_not_finite)
             if count_not_finite gt 0 then begin
               message, 'some beam_integrals in obs_arr are not finite'
             endif
