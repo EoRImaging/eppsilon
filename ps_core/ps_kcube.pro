@@ -611,6 +611,14 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
       message, 'some beam_integrals (combine across obs) are not finite'
     endif
 
+    if min(abs(beam_int)) eq 0 then begin
+      message, 'some beam_integrals (combine across obs) are zero'
+    endif
+
+    if min(abs(n_vis_freq)) eq 0 then begin
+      message, 'some n_vis_freq (combine across obs) are zero'
+    endif
+
     if n_elements(freq_ch_range) ne 0 then begin
       if nfiles eq 2 then begin
         beam_int = beam_int[*,min(freq_ch_range):max(freq_ch_range)]

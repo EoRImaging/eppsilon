@@ -969,6 +969,11 @@ function fhd_file_setup, filename, weightfile = weightfile, $
               total(n_vis_freq_arr, 1)
             if count_freq_all_0 gt 0 then beam_int[pol_i, file_i, wh_freq_all_0]=0
           endelse
+          if n_elements(beam_int) gt 0 then begin
+            if min(beam_int) eq 0 then begin
+                message, 'some beam_integrals are null, others are not.'
+            endif
+          endif
         endif
 
         if tag_exist(obs_arr[0], 'vis_noise') then begin
@@ -1001,6 +1006,9 @@ function fhd_file_setup, filename, weightfile = weightfile, $
         endif
 
         n_vis_freq[pol_i, file_i, *] = total(n_vis_freq_arr, 1)
+        if min(n_vis_freq) eq 0 then begin
+            message, 'some n_vis_freq values are zero.'
+        endif
 
         undefine_fhd, obs_arr
       endif else begin
