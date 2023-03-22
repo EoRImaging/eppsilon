@@ -626,6 +626,11 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
         beam_int = file_struct.beam_int
         n_vis_freq = file_struct.n_vis_freq 
 
+        wh_not_finite = where(~finite(beam_int), count=count_not_finite)
+        if count_not_finite gt 0 then begin
+          message, 'some beam_integrals (combine across obs) are not finite'
+        endif
+
         if n_elements(freq_ch_range) ne 0 then begin
           if nfiles eq 2 then begin
             beam_int = beam_int[*,min(freq_ch_range):max(freq_ch_range)]
@@ -664,6 +669,11 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
               total(file_struct.n_vis_freq)
           endelse
         endelse
+
+        wh_not_finite = where(~finite(ave_beam_int), count=count_not_finite)
+        if count_not_finite gt 0 then begin
+          message, 'some frequency averaged beam integrals are not finite'
+        endif
 
         ;; convert rad -> Mpc^2, multiply by depth in Mpc
         window_int_beam_obs = ave_beam_int * z_mpc_mean^2. * (z_mpc_delta * n_freq)
@@ -958,6 +968,12 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
     if tag_exist(file_struct, 'beam_int') then begin
       window_int = window_int_beam_obs
     endif
+
+    wh_not_finite = where(~finite(window_int), count=count_not_finite)
+    if count_not_finite gt 0 then begin
+      message, 'some window integrals are not finite'
+    endif
+
 
     if (n_elements(window_int) eq 0 or min(window_int) eq 0) then begin
       if ps_options.allow_beam_approx then begin
