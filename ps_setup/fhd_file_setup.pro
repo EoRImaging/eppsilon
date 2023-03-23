@@ -971,7 +971,7 @@ function fhd_file_setup, filename, weightfile = weightfile, $
           endelse
           if n_elements(beam_int) gt 0 then begin
             if min(beam_int) eq 0 then begin
-                message, 'some beam_integrals are null, others are not.'
+                message, 'some beam_integrals (combined across obs) are null, others are not.'
             endif
           endif
         endif
@@ -1059,35 +1059,44 @@ function fhd_file_setup, filename, weightfile = weightfile, $
         frequencies[i] = mean(freq[i*n_avg:i*n_avg+(n_avg-1)]) / 1e6 ;; in MHz
 
         inds_arr = indgen(n_freq)
-        if n_elements(vis_noise) gt 0 then begin
-          inds_use = inds_arr[i*n_avg:i*n_avg+(n_avg-1)]
-          wh_zero = where(total(total(n_vis_freq[*,*,inds_use],2),1) eq 0, $
-            count_zero, complement = wh_gt0, ncomplement = count_gt0)
+        
+        inds_use = inds_arr[i*n_avg:i*n_avg+(n_avg-1)]
+        wh_zero = where(total(total(n_vis_freq[*,*,inds_use],2),1) eq 0, $
+          count_zero, complement = wh_gt0, ncomplement = count_gt0)
 
-          if count_gt0 eq 0 then continue
+        if count_gt0 eq 0 then continue
 
-          if count_zero gt 0 then inds_use = inds_use[wh_gt0]
+        if count_zero gt 0 then inds_use = inds_use[wh_gt0]
 
-          if count_gt0 eq 1 then begin
-            vis_noise_avg[*,*,i] = vis_noise[*,*,inds_use]
-            if n_elements(beam_int) gt 0 then beam_int_avg[*,*,i] = beam_int[*,*,inds_use]
-            n_vis_freq_avg[*,*,i] = n_vis_freq[*,*,inds_use]
-          endif else begin
+        if count_gt0 eq 1 then begin
+          if n_elements(vis_noise) gt 0 then vis_noise_avg[*,*,i] = vis_noise[*,*,inds_use]
+          if n_elements(beam_int) gt 0 then beam_int_avg[*,*,i] = beam_int[*,*,inds_use]
+          n_vis_freq_avg[*,*,i] = n_vis_freq[*,*,inds_use]
+        endif else begin
+          if n_elements(vis_noise) gt 0 then begin
             vis_noise_avg[*,*,i] = sqrt(total(vis_noise[*,*,inds_use]^2.*n_vis_freq[*,*,inds_use], 3) / $
               total(n_vis_freq[*,*,inds_use],3))
-            if n_elements(beam_int) gt 0 then begin
-              beam_int_avg[*,*,i] = total(beam_int[*,*,inds_use]*n_vis_freq[*,*,inds_use], 3) / $
-                total(n_vis_freq[*,*,inds_use],3)
-            endif
-            n_vis_freq_avg[*,*,i] = total(n_vis_freq[*,*,inds_use], 3)
-          endelse
+          endif
+          if n_elements(beam_int) gt 0 then begin
+            beam_int_avg[*,*,i] = total(beam_int[*,*,inds_use]*n_vis_freq[*,*,inds_use], 3) / $
+              total(n_vis_freq[*,*,inds_use],3)
+          endif
+          n_vis_freq_avg[*,*,i] = total(n_vis_freq[*,*,inds_use], 3)
+        endelse
 
-        endif
       endfor
       if n_elements(vis_noise) gt 0 then vis_noise = vis_noise_avg
       if n_elements(beam_int) gt 0 then beam_int = beam_int_avg
 
       n_vis_freq = n_vis_freq_avg
+      if min(abs(beam_int)) eq 0 then begin
+        message, 'some beam_integrals after accounting for FHD freq averaging are zero'
+      endif
+
+      if min(abs(n_vis_freq)) eq 0 then begin
+        message, 'some n_vis_freq after accounting for FHD freq averaging are zero'
+      endif
+
     endif else begin
       frequencies = freq / 1e6 ;; in MHz
     endelse
