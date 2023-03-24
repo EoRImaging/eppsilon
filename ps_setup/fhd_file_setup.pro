@@ -959,21 +959,12 @@ function fhd_file_setup, filename, weightfile = weightfile, $
             if min(beam_int_arr) eq 0 then begin
               message, 'some beam_integrals are null, others are not.'
             endif
-            wh_not_finite = where(finite(beam_int_arr) lt 1, count_not_finite)
-            if count_not_finite gt 0 then begin
-              message, 'some beam_integrals in obs_arr are not finite'
-            endif
 
             wh_freq_all_0 = where(total(n_vis_freq_arr, 1) eq 0, count_freq_all_0)
             beam_int[pol_i, file_i, *] = total(beam_int_arr * n_vis_freq_arr, 1) / $
               total(n_vis_freq_arr, 1)
             if count_freq_all_0 gt 0 then beam_int[pol_i, file_i, wh_freq_all_0]=0
           endelse
-          if n_elements(beam_int) gt 0 then begin
-            if min(abs(beam_int)) eq 0 then begin
-                message, 'some beam_integrals (combined across obs) are null, others are not.'
-            endif
-          endif
         endif
 
         if tag_exist(obs_arr[0], 'vis_noise') then begin
@@ -1008,10 +999,6 @@ function fhd_file_setup, filename, weightfile = weightfile, $
         endif
 
         n_vis_freq[pol_i, file_i, *] = total(n_vis_freq_arr, 1)
-        if min(n_vis_freq) eq 0 then begin
-            message, 'some n_vis_freq values are zero.'
-        endif
-
         undefine_fhd, obs_arr
       endif else begin
         message, 'no obs or obs_arr in datafile'
@@ -1091,14 +1078,6 @@ function fhd_file_setup, filename, weightfile = weightfile, $
       if n_elements(beam_int) gt 0 then beam_int = beam_int_avg
 
       n_vis_freq = n_vis_freq_avg
-      if min(abs(beam_int)) eq 0 then begin
-        message, 'some beam_integrals after accounting for FHD freq averaging are zero'
-      endif
-
-      if min(abs(n_vis_freq)) eq 0 then begin
-        message, 'some n_vis_freq after accounting for FHD freq averaging are zero'
-      endif
-
     endif else begin
       frequencies = freq / 1e6 ;; in MHz
     endelse
