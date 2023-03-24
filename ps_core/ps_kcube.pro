@@ -606,19 +606,6 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
     beam_int = file_struct.beam_int
     n_vis_freq = file_struct.n_vis_freq 
 
-    wh_not_finite = where(~finite(beam_int), count_not_finite)
-    if count_not_finite gt 0 then begin
-      message, 'some beam_integrals (combine across obs) are not finite'
-    endif
-
-    if min(abs(beam_int)) eq 0 then begin
-      message, 'some beam_integrals (combine across obs) are zero'
-    endif
-
-    if min(abs(n_vis_freq)) eq 0 then begin
-      message, 'some n_vis_freq (combine across obs) are zero'
-    endif
-
     if n_elements(freq_ch_range) ne 0 then begin
       if nfiles eq 2 then begin
         beam_int = beam_int[*,min(freq_ch_range):max(freq_ch_range)]
@@ -650,10 +637,6 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
 
     wh_not_finite = where(~finite(ave_beam_int), count_not_finite)
     if count_not_finite gt 0 then begin
-      print, "beam_int min/max: " + number_formatter(minmax(beam_int))
-      print, "n_vis_freq min/max: " + number_formatter(minmax(n_vis_freq))
-      print, "beam_int weighted sum: " + number_formatter(ave_beam_numerator)
-      print, "total n_vis: " + number_formatter(ave_beam_denominator)
       message, 'some frequency averaged beam integrals are not finite'
     endif
     ;; convert rad -> Mpc^2, multiply by depth in Mpc
