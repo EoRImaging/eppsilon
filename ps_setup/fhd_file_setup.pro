@@ -977,32 +977,34 @@ function fhd_file_setup, filename, weightfile = weightfile, $
         endif
 
         if tag_exist(obs_arr[0], 'vis_noise') then begin
-          vis_noise_arr = fltarr([n_obs[pol_i, file_i], n_freq])
+          if obs_arr.vis_noise(pol_i) ne !Null then begin
+            vis_noise_arr = fltarr([n_obs[pol_i, file_i], n_freq])
 
-          noise_dims = size(*obs_arr[0].vis_noise, /dimension)
+            noise_dims = size(*obs_arr[0].vis_noise, /dimension)
 
-          if noise_dims[0] lt npol or noise_dims[1] ne n_freq then begin
-            if min(pol_exist) eq 1 and n_elements(*obs_arr[0].vis_noise) eq n_freq then begin
-              for i=0, n_obs[pol_i, file_i]-1 do begin
-                vis_noise_arr[i, *] = (*obs_arr[i].vis_noise)
-              endfor
+            if noise_dims[0] lt npol or noise_dims[1] ne n_freq then begin
+              if min(pol_exist) eq 1 and n_elements(*obs_arr[0].vis_noise) eq n_freq then begin
+                for i=0, n_obs[pol_i, file_i]-1 do begin
+                  vis_noise_arr[i, *] = (*obs_arr[i].vis_noise)
+                endfor
+              endif else begin
+                message, 'vis_noise dimensions do not match npol, n_freq'
+              endelse
             endif else begin
-              message, 'vis_noise dimensions do not match npol, n_freq'
+              wh_pol = where(strmatch(obs_arr[0].pol_names, pol_inc[pol_i], /fold_case), count)
+              if count ne 1 then begin
+                message, 'pol can not be uniquely identified in obs_arr.pol_names'
+              endif
+              for i=0, n_obs[pol_i, file_i]-1 do vis_noise_arr[i, *] = (*obs_arr[i].vis_noise)[wh_pol,*]
             endelse
-          endif else begin
-            wh_pol = where(strmatch(obs_arr[0].pol_names, pol_inc[pol_i], /fold_case), count)
-            if count ne 1 then begin
-              message, 'pol can not be uniquely identified in obs_arr.pol_names'
+
+            if j eq 0 then vis_noise = fltarr(npol, nfiles, n_freq)
+
+            vis_noise[pol_i, file_i, *] = sqrt(total(vis_noise_arr^2.*n_vis_freq_arr, 1)/total(n_vis_freq_arr, 1))
+            wh_zero = where(total(n_vis_freq_arr, 1) eq 0, count_zero)
+            if count_zero gt 0 then vis_noise[*, *, wh_zero] = 0
+            undefine, wh_zero, count_zero
             endif
-            for i=0, n_obs[pol_i, file_i]-1 do vis_noise_arr[i, *] = (*obs_arr[i].vis_noise)[wh_pol,*]
-          endelse
-
-          if j eq 0 then vis_noise = fltarr(npol, nfiles, n_freq)
-
-          vis_noise[pol_i, file_i, *] = sqrt(total(vis_noise_arr^2.*n_vis_freq_arr, 1)/total(n_vis_freq_arr, 1))
-          wh_zero = where(total(n_vis_freq_arr, 1) eq 0, count_zero)
-          if count_zero gt 0 then vis_noise[*, *, wh_zero] = 0
-          undefine, wh_zero, count_zero
         endif
 
         n_vis_freq[pol_i, file_i, *] = total(n_vis_freq_arr, 1)
