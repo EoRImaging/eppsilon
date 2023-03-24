@@ -970,7 +970,7 @@ function fhd_file_setup, filename, weightfile = weightfile, $
             if count_freq_all_0 gt 0 then beam_int[pol_i, file_i, wh_freq_all_0]=0
           endelse
           if n_elements(beam_int) gt 0 then begin
-            if min(beam_int) eq 0 then begin
+            if min(abs(beam_int)) eq 0 then begin
                 message, 'some beam_integrals (combined across obs) are null, others are not.'
             endif
           endif
