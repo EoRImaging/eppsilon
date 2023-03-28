@@ -968,7 +968,7 @@ function fhd_file_setup, filename, weightfile = weightfile, $
         endif
 
         if tag_exist(obs_arr[0], 'vis_noise') then begin
-          if obs_arr.vis_noise(pol_i) ne !Null then begin
+          if obs_arr.vis_noise ne !Null then begin
             vis_noise_arr = fltarr([n_obs[pol_i, file_i], n_freq])
 
             noise_dims = size(*obs_arr[0].vis_noise, /dimension)
