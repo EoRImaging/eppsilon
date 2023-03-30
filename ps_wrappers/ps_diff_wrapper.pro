@@ -30,7 +30,7 @@ pro ps_diff_wrapper, folder_names_in, obs_names_in, $
   if n_elements(folder_names_in) gt 2 then message, 'only 1 or 2 folder_names allowed'
   if n_elements(folder_names_in) eq 0 then message, 'at least 1 folder name must be specified'
   if n_elements(obs_names_in) gt 2 then message, 'only 1 or 2 obs_names_in allowed'
-
+  
   folder_names = get_folder(folder_names_in, loc_name = loc_name,  rts = rts, $
     dirty_folder = dirty_folder)
 
@@ -46,19 +46,6 @@ pro ps_diff_wrapper, folder_names_in, obs_names_in, $
     save_paths = save_paths, plot_paths = plot_paths, refresh_info = refresh_info, $
     no_wtvar_rts = no_wtvar_rts)
 
-  binning_2d_options = create_binning_2d_options(no_kzero = no_kzero, $
-    log_kpar = log_kpar, log_kperp = log_kperp, kpar_bin = kpar_bin, kperp_bin = kperp_bin)
-
-  binning_1d_options = create_binning_1d_options(wedge_angles = wedge_angles, $
-    wedge_names = wedge_names, $
-    coarse_harm_width = coarse_harm_width, log_k = log_k1d, k_bin = k1d_bin, $
-    kpar_range_1dave = kpar_range_1dave, kperp_range_1dave = kperp_range_1dave, $
-    kperp_range_lambda_1dave = kperp_range_lambda_1dave, kx_range_1dave = kx_range_1dave, $
-    kx_range_lambda_1dave = kx_range_lambda_1dave, ky_range_1dave = ky_range_1dave, $
-    ky_range_lambda_1dave = ky_range_lambda_1dave, $
-    kperp_range_lambda_kparpower = kperp_range_lambda_kparpower, $
-    kpar_range_kperppower = kpar_range_kperppower)
-
   if n_elements(diff_plot_path) eq 0 then begin
     if n_elements(diff_save_path) gt 0 then begin
       diff_plot_path = diff_save_path + path_sep() + 'plots' + path_sep()
@@ -73,7 +60,7 @@ pro ps_diff_wrapper, folder_names_in, obs_names_in, $
   if n_elements(max_uv_lambda) lt 2 and n_elements(full_image) lt 2 $
      and n_elements(image_clip) lt 2 then begin
 
-    uvf_options0 = create_uvf_options(delta_uv_lambda = delta_uv_lambda, $
+    uvf_options = create_uvf_options(delta_uv_lambda = delta_uv_lambda, $
       max_uv_lambda = max_uv_lambda, full_image = full_image, image_clip = image_clip)
 
   endif else begin
@@ -119,6 +106,124 @@ pro ps_diff_wrapper, folder_names_in, obs_names_in, $
       max_uv_lambda = mul0, full_image = fi0, image_clip = ic0)
     uvf_options1 = create_uvf_options(delta_uv_lambda = delta_uv_lambda, $
       max_uv_lambda = mul1, full_image = fi1, image_clip = ic1)
+    
+    uvf_options = [uvf_options0, uvf_options1]
+  endelse
+
+  if size(freq_ch_range,/n_dim) lt 2 and size(freq_flags,/n_dim) lt 2 $
+    and n_elements(freq_flag_name) lt 2 and n_elements(freq_flag_repeat) lt 2 $
+    and n_elements(freq_avg_factor) lt 2 and n_elements(force_even_freqs) lt 2 then begin
+
+    freq_options = create_freq_options( $
+      freq_ch_range = freq_ch_range, $
+      freq_flags = freq_flags, $
+      freq_flag_name = freq_flag_name, $
+      freq_flag_repeat = freq_flag_repeat, $
+      freq_avg_factor = freq_avg_factor, $
+      force_even_freqs = force_even_freqs)
+  endif else begin
+
+    if n_elements(freq_ch_range) gt 0 then begin
+      case size(freq_ch_range,/n_dim) of
+        1: begin
+          fc0 = freq_ch_range
+          fc1 = freq_ch_range
+        end
+        2: begin
+          if (size(freq_ch_range,/dim))[1] ne 2 then begin
+            message, 'only 1 or 2 sets of freq_ch_range values allowed'
+          endif
+          fc0 = freq_ch_range[*, 0]
+          fc1 = freq_ch_range[*, 1]
+        end
+        else: message, 'only 1 or 2 sets of freq_ch_range values allowed'
+      endcase
+    endif
+    if n_elements(freq_flags) gt 0 then begin
+      case size(freq_flags,/n_dim) of
+        1: begin
+          ff0 = freq_flags
+          ff1 = freq_flags
+        end
+        2: begin
+          if (size(freq_flags,/dim))[1] ne 2 then begin
+            message, 'only 1 or 2 sets of freq_ch_range values allowed'
+          endif
+          ff0 = freq_flags[*, 0]
+          ff1 = freq_flags[*, 1]
+        end
+        else: message, 'only 1 or 2 sets of freq_flags values allowed'
+      endcase
+    endif
+    case n_elements(freq_flag_name) of
+      0:
+      1: begin
+        fn0 = freq_flag_name
+        fn1 = freq_flag_name
+      end
+      2: begin
+        fn0 = freq_flag_name[0]
+        fn1 = freq_flag_name[1]
+      end
+      else: message, 'only 1 or 2 freq_flag_name values allowed'
+    endcase
+
+    case n_elements(freq_flag_repeat) of
+      0:
+      1: begin
+        fr0 = freq_flag_repeat
+        fr1 = freq_flag_repeat
+      end
+      2: begin
+        fr0 = freq_flag_repeat[0]
+        fr1 = freq_flag_repeat[1]
+      end
+      else: message, 'only 1 or 2 freq_flag_repeat values allowed'
+    endcase
+
+    case n_elements(freq_avg_factor) of
+      0:
+      1: begin
+        fa0 = freq_avg_factor
+        fa1 = freq_avg_factor
+      end
+      2: begin
+        fa0 = freq_avg_factor[0]
+        fa1 = freq_avg_factor[1]
+      end
+      else: message, 'only 1 or 2 freq_avg_factor values allowed'
+    endcase
+
+    case n_elements(force_even_freqs) of
+      0:
+      1: begin
+        ef0 = force_even_freqs
+        ef1 = force_even_freqs
+      end
+      2: begin
+        ef0 = force_even_freqs[0]
+        ef1 = force_even_freqs[1]
+      end
+      else: message, 'only 1 or 2 force_even_freqs values allowed'
+    endcase
+
+    freq_options1 = create_freq_options( $
+      freq_ch_range = fc0, $
+      freq_flags = ff0, $
+      freq_flag_name = fn0, $
+      freq_flag_repeat = fr0, $
+      freq_avg_factor = fa0, $
+      force_even_freqs = ef0)
+
+    freq_options2 = create_freq_options( $
+      freq_ch_range = fc1, $
+      freq_flags = ff1, $
+      freq_flag_name = fn1, $
+      freq_flag_repeat = fr1, $
+      freq_avg_factor = fa1, $
+      force_even_freqs = ef1)
+
+    freq_options = [freq_options1, freq_options2]
   endelse
 
   if n_elements(ave_removal) lt 2 and n_elements(wt_cutoffs) lt 2 and $
@@ -235,6 +340,19 @@ pro ps_diff_wrapper, folder_names_in, obs_names_in, $
     ps_options = [ps_options0, ps_options1]
   endelse
 
+  binning_2d_options = create_binning_2d_options(no_kzero = no_kzero, $
+    log_kpar = log_kpar, log_kperp = log_kperp, kpar_bin = kpar_bin, kperp_bin = kperp_bin)
+
+  binning_1d_options = create_binning_1d_options(wedge_angles = wedge_angles, $
+    wedge_names = wedge_names, $
+    coarse_harm_width = coarse_harm_width, log_k = log_k1d, k_bin = k1d_bin, $
+    kpar_range_1dave = kpar_range_1dave, kperp_range_1dave = kperp_range_1dave, $
+    kperp_range_lambda_1dave = kperp_range_lambda_1dave, kx_range_1dave = kx_range_1dave, $
+    kx_range_lambda_1dave = kx_range_lambda_1dave, ky_range_1dave = ky_range_1dave, $
+    ky_range_lambda_1dave = ky_range_lambda_1dave, $
+    kperp_range_lambda_kparpower = kperp_range_lambda_kparpower, $
+    kpar_range_kperppower = kpar_range_kperppower)
+
   plot_options = create_plot_options(plot_path = diff_plot_path, $
     png = png, eps = eps, pdf = pdf)
 
@@ -244,11 +362,11 @@ pro ps_diff_wrapper, folder_names_in, obs_names_in, $
     data_range = data_range, color_type = color_type)
 
   ps_difference_plots, folder_names, obs_info, ps_foldernames = ps_foldernames, $
-    cube_types, pols, uvf_options0 = uvf_options0, uvf_options1 = uvf_options1, $
+    cube_types, pols, uvf_options = uvf_options, freq_options = freq_options, $
     ps_options = ps_options, $
-    plot_options = plot_options, plot_2d_options = plot_2d_options, $
     binning_2d_options = binning_2d_options, binning_1d_options = binning_1d_options, $
-    all_type_pol = all_type_pol, refresh_diff = refresh_diff, freq_ch_range = freq_ch_range, $
+    plot_options = plot_options, plot_2d_options = plot_2d_options, $
+    all_type_pol = all_type_pol, refresh_diff = refresh_diff, $
     plot_slices = plot_slices, slice_type = slice_type, $
     save_path = diff_save_path, savefilebase = savefilebase, $
     plot_1d = plot_1d, axis_type_1d = axis_type_1d, $

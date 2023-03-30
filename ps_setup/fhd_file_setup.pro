@@ -2,11 +2,10 @@ function fhd_file_setup, filename, weightfile = weightfile, $
     variancefile = variancefile, beamfile = beamfile, pixelfile = pixelfile, $
     dirtyvar = dirtyvar, modelvar = modelvar, weightvar = weightvar, $
     variancevar = variancevar, beamvar = beamvar, pixelvar = pixelvar, $
-    freq_ch_range = freq_ch_range, freq_flags = freq_flags, $
-    freq_flag_name = freq_flag_name, $
     save_path = save_path, savefilebase = savefilebase_in, $
     uvf_input = uvf_input, sim = sim, refresh_info = refresh_info, $
-    uvf_options = uvf_options, ps_options = ps_options, pol_inc=pol_inc
+    uvf_options = uvf_options, freq_options = freq_options, ps_options = ps_options, $
+    pol_inc = pol_inc
 
   ;; check to see if filename is an info file
   wh_info = strpos(filename, '_info.idlsave')
@@ -361,11 +360,10 @@ function fhd_file_setup, filename, weightfile = weightfile, $
               variancefile = variancefile, beamfile = beamfile, pixelfile = pixelfile, $
               dirtyvar = dirtyvar, modelvar = modelvar, weightvar = weightvar, $
               variancevar = variancevar, beamvar = beamvar, pixelvar = pixelvar, $
-              freq_ch_range = freq_ch_range, freq_flags = freq_flags, $
-              freq_flag_name = freq_flag_name, $
               save_path = save_path, savefilebase = savefilebase_in, $
               uvf_input = uvf_input, sim = sim, refresh_info = refresh_info, $
-              uvf_options = uvf_options, ps_options = ps_options)
+              uvf_options = uvf_options, freq_options = freq_options, ps_options = ps_options, $
+              pol_inc = pol_inc)
 
           return, file_struct_arr
         endif
@@ -1134,26 +1132,46 @@ function fhd_file_setup, filename, weightfile = weightfile, $
 
   pol_exist = stregex(file_basename(metadata_struct.datafile), '[xy][xy]', /boolean, /fold_case)
 
-  if n_elements(freq_flags) ne 0 then begin
+  if tag_exist(freq_options, 'freq_flags') then begin
     freq_mask = intarr(n_elements(metadata_struct.frequencies)) + 1
-    freq_mask[freq_flags] = 0
+    if n_elements(freq_options.freq_flags) eq n_elements(metadata_struct.frequencies) then begin
+      freq_mask = ~freq_options.freq_flags
+    endif else begin
+      freq_mask[freq_options.freq_flags] = 0
+    endelse
 
-    if n_elements(freq_ch_range) gt 0 then begin
-      freq_mask = freq_mask[min(freq_ch_range):max(freq_ch_range)]
-    endif
     wh_freq_use = where(freq_mask gt 0, count_freq_use)
     if count_freq_use lt 3 then message, 'Too many frequencies flagged'
 
+    if min(freq_options.freq_flags) lt 0 or max(freq_options.freq_flags) gt n_elements(metadata_struct.frequencies) then begin
+      message, 'invalid freq_flags'
+    endif
+
+    freq_options = create_freq_options(freq_options = freq_options, freq_mask = freq_mask)
+
   endif
 
-  if n_elements(freq_flags) ne 0 then begin
-    if min(freq_flags) lt 0 or max(freq_flags) gt n_elements(metadata_struct.frequencies) then begin
-      message, 'invalid freq_flags'
+  if tag_exist(freq_options, 'freq_ch_range') then begin
+    if min(freq_options.freq_ch_range) lt 0 $
+      or max(freq_options.freq_ch_range) gt n_elements(metadata_struct.frequencies)-1 then begin
+      message, 'invalid freq_ch_range'
+    endif
+    if freq_options.freq_ch_range[1]-freq_options.freq_ch_range[0]+1 lt 3 then begin
+      message, 'freq_ch_range does not have enough frequencies'
+    endif
+
+    if tag_exist(freq_options, 'freq_flags') then begin
+      freq_mask_clipped = freq_mask[freq_options.freq_ch_range[0]:freq_options.freq_ch_range[1]]
+      wh_freq_use = where(freq_mask_clipped gt 0, count_freq_use)
+      if count_freq_use lt 3 then begin
+        message, 'Too few unflagged frequencies in freq_ch_range '
+      endif
     endif
   endif
 
-  file_tags = create_file_tags(freq_ch_range = freq_ch_range, freq_flags = freq_flags, $
-    freq_flag_name = freq_flag_name, uvf_options = uvf_options, ps_options = ps_options)
+  file_tags = create_file_tags( $
+    uvf_options = uvf_options, freq_options = freq_options, ps_options = ps_options $
+  )
 
   wt_file_label = '_weights_' + strlowcase(metadata_struct.pol_inc)
   file_label = strarr(npol, ntypes)
@@ -1161,29 +1179,33 @@ function fhd_file_setup, filename, weightfile = weightfile, $
     file_label[i,*] = '_' + strlowcase(metadata_struct.type_inc) + '_' + $
       strlowcase(metadata_struct.pol_inc[i])
   endfor
-  savefilebase = metadata_struct.general_filebase + file_tags.uvf_tag + file_label
+  savefilebase = metadata_struct.general_filebase + file_tags.uvf_tag + file_tags.freq_tag + file_label
 
+  uvf_full_savefilebase = strarr(npol, nfiles, ntypes)
   uvf_savefilebase = strarr(npol, nfiles, ntypes)
   uvf_label = strarr(npol, nfiles, ntypes)
   for pol_i=0, npol-1 do begin
     for file_i=0, nfiles-1 do begin
       if max(pol_exist) eq 1 then begin
-        uvf_savefilebase[pol_i, file_i,*] = cgRootName(metadata_struct.datafile[pol_i, file_i]) + $
-          file_tags.uvf_tag + '_' + metadata_struct.type_inc
-        endif else begin
-          uvf_savefilebase[pol_i, file_i,*] = cgRootName(metadata_struct.datafile[pol_i, file_i]) + $
-            file_tags.uvf_tag + file_label[pol_i, *]
-        endelse
+        this_base = cgRootName(metadata_struct.datafile[pol_i, file_i]) + file_tags.uvf_tag
+        uvf_savefilebase[pol_i, file_i,*] = this_base + file_tags.freq_tag + '_' + metadata_struct.type_inc
+        uvf_full_savefilebase[pol_i, file_i,*] = this_base + '_' + metadata_struct.type_inc
+      endif else begin
+        this_base = cgRootName(metadata_struct.datafile[pol_i, file_i]) +  file_tags.uvf_tag
+        uvf_savefilebase[pol_i, file_i,*] = this_base + file_tags.freq_tag + file_label[pol_i, *]
+        uvf_full_savefilebase[pol_i, file_i,*] = this_base + file_label[pol_i, *]
+      endelse
       uvf_label[pol_i, file_i,*] = metadata_struct.infile_label[file_i] + '_' + $
         file_label[pol_i, *]
     endfor
   endfor
   if n_elements(size(uvf_savefilebase, /dim)) ne 3 then begin
+    uvf_full_savefilebase = reform(uvf_full_savefilebase, [npol, nfiles, ntypes])
     uvf_savefilebase = reform(uvf_savefilebase, [npol, nfiles, ntypes])
   endif
 
-  ;; add sw tag to general_filebase so that plotfiles havefile_tags.uvf_tag in them
-  general_filebase = metadata_struct.general_filebase + file_tags.uvf_tag
+  ;; add uvf_tag & freq_tag to general_filebase so that plotfiles have them
+  general_filebase = metadata_struct.general_filebase + file_tags.uvf_tag + file_tags.freq_tag
 
   subfolders = {data: 'data' + path_sep(), plots: 'plots' + path_sep(), $
     uvf: 'uvf_cubes' + path_sep(), beams: 'beam_cubes' + path_sep(), $
@@ -1197,6 +1219,7 @@ function fhd_file_setup, filename, weightfile = weightfile, $
   radec_file = uvf_path + metadata_struct.general_filebase + $
     '_radec.idlsave'
 
+  uvf_full_savefile = uvf_path + uvf_full_savefilebase + '_uvf.idlsave'
   uvf_savefile = uvf_path + uvf_savefilebase + '_uvf.idlsave'
   uf_savefile = uvf_slice_path + uvf_savefilebase + '_uf_plane.idlsave'
   vf_savefile = uvf_slice_path + uvf_savefilebase + '_vf_plane.idlsave'
@@ -1216,6 +1239,15 @@ function fhd_file_setup, filename, weightfile = weightfile, $
 
   if tag_exist(metadata_struct, 'beamfile') then begin
     beam_savefile = froot + subfolders.data + subfolders.beams + uvf_savefilebase + '_beam2.idlsave'
+    beam_full_savefile = froot + subfolders.data + subfolders.beams + uvf_full_savefilebase + '_beam2.idlsave'
+
+    if file_tags.freq_tag ne '' and tag_exist(freq_options, "freq_ch_range") eq 0 $
+    and tag_exist(freq_options, "freq_flags") eq 0 then begin
+      ;; If the only freq option is freq_avg_factor then the freq-averaged beam is
+      ;; the same as the full beam
+      beam_savefile = beam_full_savefile
+    endif
+
   endif
 
   kspace_path = froot + subfolders.data + subfolders.kspace
@@ -1229,16 +1261,21 @@ function fhd_file_setup, filename, weightfile = weightfile, $
   power_savefile = kspace_path + savefilebase + file_tags.power_tag + '_power.idlsave'
   fits_power_savefile = kspace_path + savefilebase + file_tags.power_tag + '_power.fits'
 
+  weight_full_savefilebase = strarr(npol, nfiles)
   weight_savefilebase = strarr(npol, nfiles)
   for pol_i=0, npol-1 do begin
     for file_i=0, nfiles-1 do begin
       if max(pol_exist) eq 1 then begin
-        weight_savefilebase[pol_i, file_i] = cgRootName(metadata_struct.weightfile[pol_i, file_i]) + $
-          file_tags.uvf_tag + '_weights'
-        endif else begin
-          weight_savefilebase[pol_i, file_i] = cgRootName(metadata_struct.weightfile[pol_i, file_i]) + $
-            file_tags.uvf_tag + wt_file_label[pol_i]
-        endelse
+        weight_full_savefilebase[pol_i, file_i] = cgRootName(metadata_struct.weightfile[pol_i, file_i]) + $
+          file_tags.uvf_tag
+        weight_savefilebase[pol_i, file_i] = weight_full_savefilebase[pol_i, file_i] + file_tags.freq_tag + '_weights'
+        weight_full_savefilebase[pol_i, file_i] += '_weights'
+      endif else begin
+        weight_full_savefilebase[pol_i, file_i] = cgRootName(metadata_struct.weightfile[pol_i, file_i]) + $
+          file_tags.uvf_tag
+        weight_savefilebase[pol_i, file_i] = weight_full_savefilebase[pol_i, file_i] + file_tags.freq_tag + wt_file_label[pol_i]
+        weight_full_savefilebase[pol_i, file_i] += wt_file_label[pol_i]
+      endelse
     endfor
   endfor
 
@@ -1249,6 +1286,7 @@ function fhd_file_setup, filename, weightfile = weightfile, $
   endfor
 
   uvf_weight_savefile = uvf_path + weight_savefilebase + '_uvf.idlsave'
+  uvf_weight_full_savefile = uvf_path + weight_full_savefilebase + '_uvf.idlsave'
   uf_weight_savefile = uvf_slice_path + weight_savefilebase + '_uf_plane.idlsave'
   vf_weight_savefile = uvf_slice_path + weight_savefilebase + '_vf_plane.idlsave'
   uv_weight_savefile = uvf_slice_path + weight_savefilebase + '_uv_plane.idlsave'
@@ -1328,10 +1366,12 @@ function fhd_file_setup, filename, weightfile = weightfile, $
         weight_savefilebase:reform(weight_savefilebase[pol_i, *]), $
         derived_uvf_inputfiles:derived_uvf_inputfiles, $
         derived_uvf_varname:derived_uvf_varname, $
-        file_label:file_label[pol_i,type_i], $
+        file_label:file_label[pol_i,type_i], $ 
         uvf_label:reform(uvf_label[pol_i,*,type_i]), $
         wt_file_label:wt_file_label[pol_i], $
-        uvf_tag:file_tags.uvf_tag, kcube_tag:file_tags.kcube_tag, $
+        uvf_tag:file_tags.uvf_tag, $
+        freq_tag: file_tags.freq_tag, $
+        kcube_tag:file_tags.kcube_tag, $
         power_tag:file_tags.power_tag, $
         type_pol_str:metadata_struct.type_pol_str[pol_i,type_i], $
         pol_index:pol_i, type_index:type_i, pol:metadata_struct.pol_inc[pol_i], $
@@ -1340,6 +1380,12 @@ function fhd_file_setup, filename, weightfile = weightfile, $
       if tag_exist(metadata_struct, 'beamfile') then begin
         file_struct = create_struct(file_struct, 'beamfile', reform(metadata_struct.beamfile[pol_i,*]), $
           'beamvar', metadata_struct.beam_varname[pol_i], 'beam_savefile', reform(beam_savefile[pol_i, *]))
+        if file_tags.freq_tag ne '' and (tag_exist(freq_options, "freq_ch_range") $
+        or tag_exist(freq_options, "freq_flags")) then begin
+          ;; If the only freq option is freq_avg_factor then the freq-averaged beam is
+          ;; the same as the full beam
+          file_struct = create_struct(file_struct, 'beam_full_savefile', reform(beam_full_savefile[pol_i, *]))
+        endif
       endif
 
       if healpix or not keyword_set(uvf_input) then begin
@@ -1347,6 +1393,11 @@ function fhd_file_setup, filename, weightfile = weightfile, $
 
         file_struct = create_struct(file_struct, 'uvf_savefile', reform(uvf_savefile[pol_i,*,type_i]), $
           'uvf_weight_savefile', uvf_weight_savefile[pol_i,*])
+        
+        if file_tags.freq_tag ne '' then begin
+          file_struct = create_struct(file_struct, 'uvf_full_savefile', reform(uvf_full_savefile[pol_i,*,type_i]), $
+            'uvf_weight_full_savefile', uvf_weight_full_savefile[pol_i,*])
+        endif
       endif
 
       if healpix then file_struct = create_struct(file_struct, 'pixelfile', $
@@ -1354,10 +1405,6 @@ function fhd_file_setup, filename, weightfile = weightfile, $
         metadata_struct.pixel_varname[pol_i,*], 'nside', metadata_struct.nside)
 
       if no_var then file_struct = create_struct(file_struct, 'no_var', 1)
-
-      if n_elements(freq_mask) gt 0 then begin
-        file_struct = create_struct(file_struct, 'freq_mask', freq_mask)
-      endif
 
       if tag_exist(metadata_struct, 'vis_noise') gt 0 then begin
         file_struct = create_struct(file_struct, 'vis_noise', reform(metadata_struct.vis_noise[pol_i,*,*]))

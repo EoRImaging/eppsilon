@@ -1,14 +1,10 @@
 pro ps_image_to_uvf, file_struct, n_vis_freq, kx_rad_vals, ky_rad_vals, $
-    freq_ch_range = freq_ch_range, freq_flags = freq_flags, no_var = no_var, $
-    refresh_options = refresh_options, uvf_options = uvf_options
+    no_var = no_var, refresh_options = refresh_options, uvf_options = uvf_options
 
   if tag_exist(file_struct, 'nside') ne 0 then healpix = 1 else healpix = 0
   nfiles = n_elements(file_struct.datafile)
-  if n_elements(freq_flags) ne 0 then freq_mask = file_struct.freq_mask
 
-  if n_elements(freq_ch_range) ne 0 then begin
-    n_freq = n_elements(file_struct.frequencies[min(freq_ch_range):max(freq_ch_range)])
-  endif else n_freq = n_elements(file_struct.frequencies)
+  n_freq = n_elements(file_struct.frequencies)
 
   datavar = strupcase(file_struct.datavar)
   if datavar eq '' then begin
@@ -19,20 +15,34 @@ pro ps_image_to_uvf, file_struct, n_vis_freq, kx_rad_vals, ky_rad_vals, $
     input_uvf_wtfiles = file_struct.uvf_weight_savefile
   endif
 
-  for i=0, nfiles-1 do begin
-    test_uvf = file_valid(file_struct.uvf_savefile[i])
-    if not test_uvf then test_uvf = check_old_path(file_struct, 'uvf_savefile', index=i)
+  if tag_exist(file_struct, 'uvf_full_savefile') then begin
+    uvf_full_tag = '_full'
+    uvf_savefile = file_struct.uvf_full_savefile
+    uvf_weight_savefile = file_struct.uvf_weight_full_savefile
+    beam_savefile = file_struct.beam_full_savefile
+  endif else begin
+    uvf_full_tag = ''
+    uvf_savefile = file_struct.uvf_savefile
+    uvf_weight_savefile = file_struct.uvf_weight_savefile
+    beam_savefile = file_struct.beam_savefile
+  endelse
 
-    test_wt_uvf = file_valid(file_struct.uvf_weight_savefile[i])
-    if not test_wt_uvf then test_wt_uvf = check_old_path(file_struct, 'uvf_weight_savefile', index=i)
+  for i=0, nfiles-1 do begin
+    
+    test_uvf = file_valid(uvf_savefile[i])
+    if not test_uvf then test_uvf = check_old_path(file_struct, 'uvf' + uvf_full_tag + '_savefile', index=i)
+
+    test_wt_uvf = file_valid(uvf_weight_savefile[i])
+    if not test_wt_uvf then test_wt_uvf = check_old_path(file_struct, 'uvf_weight' + uvf_full_tag + '_savefile', index=i)
 
     if tag_exist(file_struct, 'beam_savefile') then begin
-      test_beam = file_valid(file_struct.beam_savefile[i])
-      if not test_beam then test_beam = check_old_path(file_struct, 'beam_savefile', index=i)
+      test_beam = file_valid(beam_savefile[i])
+      if not test_beam then test_beam = check_old_path(file_struct, 'beam' + uvf_full_tag + '_savefile', index=i)
     endif else test_beam = 1
 
-    if test_beam eq 0 then print, "beam_cube files not present under data/beam_cubes"
-
+    if test_beam eq 0 then begin
+      print, "beam_cube files not present under data/beam_cubes"
+    endif
     test_radec_uvf = file_valid(file_struct.radec_file)
     if not test_radec_uvf then test_radec_uvf = check_old_path(file_struct, 'radec_file')
 
@@ -40,95 +50,6 @@ pro ps_image_to_uvf, file_struct, n_vis_freq, kx_rad_vals, ky_rad_vals, $
     if uvf_options.require_radec eq 0 then begin
       test_radec_uvf_use = 1
     endif
-
-    if (test_uvf eq 1 or test_wt_uvf eq 1) and n_elements(freq_flags) ne 0 then begin
-      if test_uvf eq 1 then old_freq_mask = getvar_savefile(file_struct.uvf_savefile[i], 'freq_mask')
-      if test_wt_uvf eq 1 then old_freq_mask = getvar_savefile(file_struct.uvf_weight_savefile[i], 'freq_mask')
-      if total(abs(old_freq_mask - freq_mask)) ne 0 then test_uvf = 0
-    endif
-
-    if test_uvf eq 0 and not refresh_options.refresh_dft and $
-      (n_elements(freq_ch_range) ne 0 or n_elements(freq_flags) ne 0) then begin
-
-      ;; if this is a limited freq. range cube, check for the full cube to avoid redoing the DFT
-      full_uvf_file = file_struct.uvf_savefile[i]
-      if n_elements(freq_ch_range) ne 0 then begin
-        full_uvf_file = strjoin(strsplit(full_uvf_file, '_ch[0-9]+-[0-9]+', /regex, /extract))
-      endif
-      if n_elements(freq_flags) ne 0 then begin
-        full_uvf_file = strjoin(strsplit(full_uvf_file, '_flag+', /regex, /extract))
-      endif
-      test_full_uvf = file_valid(full_uvf_file)
-      if not test_full_uvf then test_full_uvf = check_old_path(file_struct, 'uvf_savefile', index=i)
-
-      if test_full_uvf eq 1 then begin
-        restore, full_uvf_file
-
-        if n_elements(freq_ch_range) ne 0 then begin
-          data_cube = data_cube[*, *, min(freq_ch_range):max(freq_ch_range)]
-        endif
-        if n_elements(freq_flags) ne 0 then begin
-          data_cube = data_cube * rebin(reform(freq_mask, 1, 1, n_freq), $
-            size(data_cube, /dimension), /sample)
-        endif
-
-        if n_elements(freq_flags) gt 0 then begin
-          save, file = file_struct.uvf_savefile[i], kx_rad_vals, ky_rad_vals, $
-            data_cube, freq_mask, uvf_git_hash
-        endif else begin
-          save, file = file_struct.uvf_savefile[i], kx_rad_vals, ky_rad_vals, $
-            data_cube, uvf_git_hash
-        endelse
-        undefine, data_cube, uvf_git_hash
-
-        test_uvf = 1
-      endif ;; endifif full uvf exists
-
-    endif ;; endif limited freq range & no matching uvf
-
-    if test_wt_uvf eq 0 and not refresh_options.refresh_weight_dft and $
-      (n_elements(freq_ch_range) ne 0 or n_elements(freq_flags) ne 0) then begin
-
-      ;; if this is a limited freq. range cube, check for the full cube to avoid redoing the DFT
-      full_uvf_wt_file = file_struct.uvf_weight_savefile[i]
-      if n_elements(freq_ch_range) ne 0 then begin
-        full_uvf_wt_file = strjoin(strsplit(full_uvf_wt_file, '_ch[0-9]+-[0-9]+', $
-          /regex, /extract))
-      endif
-      if n_elements(freq_flags) ne 0 then begin
-        full_uvf_wt_file = strjoin(strsplit(full_uvf_wt_file, '_flag+', $
-          /regex, /extract))
-      endif
-      test_full_wt_uvf = file_valid(full_uvf_wt_file)
-      if not test_full_wt_uvf then test_full_wt_uvf = check_old_path(file_struct, 'uvf_weight_savefile', index=i)
-
-      if test_full_wt_uvf eq 1 then begin
-        restore, full_uvf_wt_file
-
-        if n_elements(freq_ch_range) ne 0 then begin
-          weights_cube = weights_cube[*, *, min(freq_ch_range):max(freq_ch_range)]
-          variance_cube = variance_cube[*, *, min(freq_ch_range):max(freq_ch_range)]
-        endif
-        if n_elements(freq_flags) ne 0 then begin
-          flag_arr = rebin(reform(freq_mask, 1, 1, n_freq), $
-            size(weights_cube, /dimension), /sample)
-          weights_cube = weights_cube * flag_arr
-          variance_cube = variance_cube * flag_arr
-        endif
-
-        if n_elements(freq_flags) gt 0 then begin
-          save, file = file_struct.uvf_weight_savefile[i], kx_rad_vals, $
-            ky_rad_vals, weights_cube, variance_cube, freq_mask, uvf_wt_git_hash
-        endif else begin
-          save, file = file_struct.uvf_weight_savefile[i], kx_rad_vals, $
-            ky_rad_vals, weights_cube, variance_cube, uvf_wt_git_hash
-        endelse
-        undefine, weights_cube, variance_cube, uvf_wt_git_hash
-
-        test_wt_uvf = 1
-      endif ;; endif full wt_uvf exists
-
-    endif ;; endif limited freq range & no matching wt_uvf
 
     if test_uvf eq 0 or test_wt_uvf eq 0 or test_beam eq 0 or test_radec_uvf_use eq 0 $
       or refresh_options.refresh_dft or refresh_options.refresh_weight_dft $
@@ -144,52 +65,7 @@ pro ps_image_to_uvf, file_struct, n_vis_freq, kx_rad_vals, ky_rad_vals, $
         test_input_uvf[1] =  file_valid(input_uvf_files[i,1])
         if not test_input_uvf[0] then test_input_uvf[0] = check_old_path(file_struct, 'derived_uvf_inputfiles', index=nfiles+i)
 
-        if min(test_input_uvf) eq 1 and (n_elements(freq_ch_range) ne 0 $
-          or n_elements(freq_flags) ne 0) then begin
-
-          for j=0, 1 do begin
-            if test_input_uvf[j] eq 0 then begin
-              ;; this is a limited freq. range cube, check for the full cube to
-              ;; avoid redoing the DFT
-              full_uvf_file = input_uvf_files[i,j]
-              if n_elements(freq_ch_range) ne 0 then begin
-                full_uvf_file = strjoin(strsplit(full_uvf_file, '_ch[0-9]+-[0-9]+', $
-                  /regex, /extract))
-              endif
-              if n_elements(freq_flags) ne 0 then begin
-                full_uvf_file = strjoin(strsplit(full_uvf_file, '_flag[a-z0-9]+', $
-                  /regex, /extract))
-              endif
-              test_full_uvf = file_valid(full_uvf_file)
-              if not test_full_uvf then test_full_uvf = check_old_path(file_struct, 'derived_uvf_inputfiles', index=j*nfiles+i)
-
-              if test_full_uvf eq 1 then begin
-                restore, full_uvf_file
-
-                if n_elements(freq_flags) ne 0 then begin
-                  data_cube = data_cube * rebin(reform(freq_mask, 1, 1, n_freq), $
-                    size(data_cube, /dimension), /sample)
-                endif
-                if n_elements(freq_ch_range) ne 0 then begin
-                  data_cube = data_cube[*, *, min(freq_ch_range):max(freq_ch_range)]
-                endif
-
-                if n_elements(freq_flags) gt 0 then begin
-                  save, file = input_uvf_files[i,j], kx_rad_vals, ky_rad_vals, $
-                    data_cube, freq_mask, uvf_git_hash
-                endif else begin
-                  save, file = input_uvf_files[i,j], kx_rad_vals, ky_rad_vals, $
-                    data_cube, uvf_git_hash
-                endelse
-                undefine, data_cube, uvf_git_hash
-
-                test_uvf = 1
-
-              endif ;; endif test_full_uvf eq 1
-            endif;; endif test_input_uvf[j] eq 1
-          endfor;; end loop over 2 derived cubes
-
-        endif else if min(test_input_uvf) eq 0 then begin
+        if min(test_input_uvf) eq 0 then begin
           message, 'derived cube but input_uvf cube files do not exist'
         endif
 
@@ -200,21 +76,6 @@ pro ps_image_to_uvf, file_struct, n_vis_freq, kx_rad_vals, ky_rad_vals, $
         model_cube = getvar_savefile(input_uvf_files[i,1], input_uvf_varname[i,1])
         kx_rad_vals = getvar_savefile(input_uvf_files[i,1], 'kx_rad_vals')
         ky_rad_vals = getvar_savefile(input_uvf_files[i,1], 'ky_rad_vals')
-
-        if n_elements(freq_flags) ne 0 then begin
-          dirty_freq_mask = getvar_savefile(input_uvf_files[i,0], 'freq_mask')
-          model_freq_mask = getvar_savefile(input_uvf_files[i,1], 'freq_mask')
-          if n_elements(freq_ch_range) ne 0 then begin
-            dirty_freq_mask = dirty_freq_mask[min(freq_ch_range):max(freq_ch_range)]
-            model_freq_mask = model_freq_mask[min(freq_ch_range):max(freq_ch_range)]
-          endif
-          if total(abs(dirty_freq_mask - freq_mask)) ne 0 then begin
-            message, 'freq_mask of dirty file does not match current freq_mask'
-          endif
-          if total(abs(model_freq_mask - freq_mask)) ne 0 then begin
-            message, 'freq_mask of model file does not match current freq_mask'
-          endif
-        endif
 
         if total(abs(kx_rad_vals - kx_dirty)) ne 0 then begin
           message, 'kx_rad_vals for dirty and model cubes must match'
@@ -232,13 +93,7 @@ pro ps_image_to_uvf, file_struct, n_vis_freq, kx_rad_vals, ky_rad_vals, $
 
         data_cube = temporary(dirty_cube) - temporary(model_cube)
 
-        if n_elements(freq_flags) gt 0 then begin
-          save, file = file_struct.uvf_savefile[i], kx_rad_vals, ky_rad_vals, $
-            data_cube, freq_mask, uvf_git_hash
-        endif else begin
-          save, file = file_struct.uvf_savefile[i], kx_rad_vals, ky_rad_vals, $
-            data_cube, uvf_git_hash
-        endelse
+        save, file = uvf_savefile[i], kx_rad_vals, ky_rad_vals, data_cube, uvf_git_hash
         undefine, data_cube, uvf_git_hash
 
       endif else begin ;; endif derived cube
@@ -282,13 +137,6 @@ pro ps_image_to_uvf, file_struct, n_vis_freq, kx_rad_vals, ky_rad_vals, $
           endif
 
           if n_elements(wh_close) ne n_elements(pixel_nums) then arr = arr[wh_close, *]
-          if n_elements(freq_ch_range) ne 0 then begin
-            arr = arr[*, min(freq_ch_range):max(freq_ch_range)]
-          endif
-          if n_elements(freq_flags) ne 0 then begin
-            arr = arr * rebin(reform(freq_mask, 1, n_freq), $
-              size(arr, /dimension), /sample)
-          endif
 
           pixels = pixel_nums[wh_close]
 
@@ -316,7 +164,7 @@ pro ps_image_to_uvf, file_struct, n_vis_freq, kx_rad_vals, ky_rad_vals, $
 
           beam_git_hash = this_run_git_hash
 
-          save, file=file_struct.beam_savefile[i], avg_beam, pixels, nside, beam_git_hash
+          save, file=beam_savefile[i], avg_beam, pixels, nside, beam_git_hash
 
         endif
 
@@ -443,13 +291,6 @@ pro ps_image_to_uvf, file_struct, n_vis_freq, kx_rad_vals, ky_rad_vals, $
           if n_elements(wh_close) ne n_elements(pixel_nums) then begin
             arr = arr[wh_close, *]
           endif
-          if n_elements(freq_ch_range) ne 0 then begin
-            arr = arr[*, min(freq_ch_range):max(freq_ch_range)]
-          endif
-          if n_elements(freq_flags) ne 0 then begin
-            arr = arr * rebin(reform(freq_mask, 1, n_freq), $
-              size(arr, /dimension), /sample)
-          endif
 
           transform = discrete_ft_2D_fast(x_use, y_use, arr, kx_rad_vals, ky_rad_vals, $
             timing = ft_time, fchunk = uvf_options.dft_fchunk, no_progress = uvf_options.no_dft_progress)
@@ -457,13 +298,7 @@ pro ps_image_to_uvf, file_struct, n_vis_freq, kx_rad_vals, ky_rad_vals, $
           undefine, arr
 
           uvf_git_hash = this_run_git_hash
-          if n_elements(freq_flags) then begin
-            save, file = file_struct.uvf_savefile[i], kx_rad_vals, ky_rad_vals, $
-              data_cube, freq_mask, uvf_git_hash
-          endif else begin
-            save, file = file_struct.uvf_savefile[i], kx_rad_vals, ky_rad_vals, $
-              data_cube, uvf_git_hash
-          endelse
+          save, file = uvf_savefile[i], kx_rad_vals, ky_rad_vals, data_cube, uvf_git_hash
           undefine, data_cube, uvf_git_hash
         endif
 
@@ -495,13 +330,6 @@ pro ps_image_to_uvf, file_struct, n_vis_freq, kx_rad_vals, ky_rad_vals, $
 
           if n_elements(wh_close) ne n_elements(pixel_nums) then begin
             arr = arr[wh_close, *]
-          endif
-          if n_elements(freq_ch_range) ne 0 then begin
-            arr = arr[*, min(freq_ch_range):max(freq_ch_range)]
-          endif
-          if n_elements(freq_flags) ne 0 then begin
-            arr = arr * rebin(reform(freq_mask, 1, n_freq), $
-              size(arr, /dimension), /sample)
           endif
 
           transform = discrete_ft_2D_fast(x_use, y_use, arr, kx_rad_vals, ky_rad_vals, $
@@ -539,13 +367,6 @@ pro ps_image_to_uvf, file_struct, n_vis_freq, kx_rad_vals, ky_rad_vals, $
             if n_elements(wh_close) ne n_elements(pixel_nums) then begin
               arr = arr[wh_close, *]
             endif
-            if n_elements(freq_ch_range) ne 0 then begin
-              arr = arr[*, min(freq_ch_range):max(freq_ch_range)]
-            endif
-            if n_elements(freq_flags) ne 0 then begin
-              arr = arr * rebin(reform(freq_mask, 1, n_freq), $
-                size(arr, /dimension), /sample)
-            endif
 
             transform = discrete_ft_2D_fast(x_use, y_use, arr, kx_rad_vals, ky_rad_vals, $
               timing = ft_time, fchunk = uvf_options.dft_fchunk, no_progress = uvf_options.no_dft_progress)
@@ -556,20 +377,15 @@ pro ps_image_to_uvf, file_struct, n_vis_freq, kx_rad_vals, ky_rad_vals, $
 
           uvf_wt_git_hash = this_run_git_hash
 
-          if n_elements(freq_flags) then begin
-            save, file = file_struct.uvf_weight_savefile[i], kx_rad_vals, $
-              ky_rad_vals, weights_cube, variance_cube, freq_mask, uvf_wt_git_hash
-          endif else begin
-            save, file = file_struct.uvf_weight_savefile[i], kx_rad_vals, $
-              ky_rad_vals, weights_cube, variance_cube, uvf_wt_git_hash
-          endelse
+          save, file = uvf_weight_savefile[i], kx_rad_vals, ky_rad_vals, weights_cube, $
+            variance_cube, uvf_wt_git_hash
           undefine, new_pix_vec, weights_cube, variance_cube, uvf_wt_git_hash
         endif
       endelse
     endif else begin
 
-      kx_rad_vals = getvar_savefile(file_struct.uvf_savefile[0], 'kx_rad_vals')
-      ky_rad_vals = getvar_savefile(file_struct.uvf_savefile[0], 'ky_rad_vals')
+      kx_rad_vals = getvar_savefile(uvf_savefile[0], 'kx_rad_vals')
+      ky_rad_vals = getvar_savefile(uvf_savefile[0], 'ky_rad_vals')
     endelse
   endfor
 end
