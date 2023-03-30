@@ -51,7 +51,7 @@ pro ps_wrapper, folder_name_in, obs_name, data_subdirs=data_subdirs, $
     savefilebase = savefilebase, plot_path = plot_path, plot_filebase = plot_filebase, $
     individual_plots = individual_plots, plot_binning_hist = plot_binning_hist, $
     note = note, png = png, eps = eps, pdf = pdf, cube_power_info = cube_power_info, $
-    no_dft_progress = no_dft_progress, loc_name = loc_name, _Extra = extra
+    no_dft_progress = no_dft_progress, loc_name = loc_name
 
   if n_elements(folder_name_in) ne 1 then message, 'one folder_name must be supplied.'
 
@@ -68,15 +68,6 @@ pro ps_wrapper, folder_name_in, obs_name, data_subdirs=data_subdirs, $
     ps_foldername = 'ps_' + git_info.branch
 
     if git_info.branch eq 'master' and keyword_set(copy_master_uvf) then copy_master_uvf=0
-  endif
-
-  if keyword_set(freq_flag_repeat) then begin
-    ;; remake freq flag array
-    repeat_freq_flag_arr = []
-    for i = 1, freq_flag_repeat do begin
-      repeat_freq_flag_arr = [repeat_freq_flag_arr, freq_flags]
-    endfor
-    freq_flags = repeat_freq_flag_arr
   endif
 
   if keyword_set(copy_master_uvf) then begin
@@ -259,10 +250,13 @@ pro ps_wrapper, folder_name_in, obs_name, data_subdirs=data_subdirs, $
 
   dft_fchunk = 1
 
-  if keyword_set(plot_binning_hist) then refresh_binning = 1
+  if keyword_set(plot_binning_hist) then begin
+    refresh_binning = 1
+  endif
 
   refresh_options = create_refresh_options(refresh_dft = refresh_dft, $
     refresh_beam = refresh_beam, refresh_ps = refresh_ps, refresh_kcube = refresh_ps, $
+    refresh_freq_select_avg = refresh_ps, $
     refresh_binning = refresh_binning, refresh_info = refresh_info)
 
   uvf_options = create_uvf_options(delta_uv_lambda = delta_uv_lambda, $
@@ -270,11 +264,18 @@ pro ps_wrapper, folder_name_in, obs_name, data_subdirs=data_subdirs, $
     uv_avg = uv_avg, uv_img_clip = uv_img_clip, require_radec = require_radec, $
     dft_fchunk = dft_fchunk, no_dft_progress = no_dft_progress)
 
+  freq_options = create_freq_options( $
+    freq_ch_range = freq_ch_range, $
+    freq_flags = freq_flags, $
+    freq_flag_name = freq_flag_name, $
+    freq_flag_repeat = freq_flag_repeat, $
+    freq_avg_factor = freq_avg_factor, $
+    force_even_freqs = force_even_freqs)
+
   ps_options = create_ps_options(ave_removal = ave_removal, wt_cutoffs = wt_cutoffs, $
     wt_measures = wt_measures, spec_window_type = spec_window_type, $
     no_spec_window = no_spec_window, allow_beam_approx = allow_beam_approx, $
     save_sum_cube = save_sum_cube, $
-    freq_avg_factor = freq_avg_factor, force_even_freqs = force_even_freqs, $
     freq_dft = freq_dft, dft_z_use = dft_z_use, $
     std_power = std_power, no_wtd_avg = no_wtd_avg, $
     inverse_covar_weight = inverse_covar_weight)
@@ -318,8 +319,8 @@ pro ps_wrapper, folder_name_in, obs_name, data_subdirs=data_subdirs, $
     plot_flat_1d = plot_flat_1d, no_text_1d = no_text_1d)
 
   ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
-    type_inc = type_inc, freq_ch_range = freq_ch_range, freq_flags = freq_flags, $
-    freq_flag_name = freq_flag_name, uvf_input = uvf_input, no_evenodd = no_evenodd, $
+    type_inc = type_inc, freq_options = freq_options, $
+    uvf_input = uvf_input, no_evenodd = no_evenodd, $
     rts = rts, norm_rts_with_fhd = norm_rts_with_fhd, casa = casa, sim = sim, $
     fix_sim_input = fix_sim_input, save_path = save_path, $
     savefilebase = savefilebase, cube_power_info = cube_power_info, $
@@ -331,18 +332,24 @@ pro ps_wrapper, folder_name_in, obs_name, data_subdirs=data_subdirs, $
     plot_1d_options = plot_1d_options
 
   if not keyword_set(set_data_ranges) then begin
-    if n_elements(data_range) ne 0 then $
+    if n_elements(data_range) ne 0 then begin
       print, 'data_range used: ', number_formatter(data_range, format = '(e7.1)')
-    if n_elements(sigma_range) ne 0 then $
+    endif
+    if n_elements(sigma_range) ne 0 then begin
       print, 'sigma_range used: ', number_formatter(sigma_range, format = '(e7.1)')
-    if n_elements(nev_range) ne 0 then $
+    endif
+    if n_elements(nev_range) ne 0 then begin
       print, 'nev_range used: ', number_formatter(nev_range, format = '(e7.1)')
-    if n_elements(nnr_range) ne 0 then $
+    endif
+    if n_elements(nnr_range) ne 0 then begin
       print, 'nnr_range used: ', number_formatter(nnr_range, format = '(e7.1)')
-    if n_elements(snr_range) ne 0 then $
+    endif
+    if n_elements(snr_range) ne 0 then begin
       print, 'snr_range used: ', number_formatter(snr_range, format = '(e7.1)')
-    if n_elements(noise_range) ne 0 then $
+    endif
+    if n_elements(noise_range) ne 0 then begin
       print, 'noise_range used: ', number_formatter(noise_range, format = '(e7.1)')
+    endif
   endif
 
 end

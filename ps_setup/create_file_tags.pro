@@ -1,5 +1,4 @@
-function create_file_tags, freq_ch_range = freq_ch_range, freq_flags = freq_flags, $
-    freq_flag_name = freq_flag_name, uvf_options = uvf_options, ps_options = ps_options
+function create_file_tags, uvf_options = uvf_options, freq_options = freq_options, ps_options = ps_options
 
   window_type_list = ['Hann', 'Hamming', 'Blackman', 'Nutall', 'Blackman-Nutall', $
                       'Blackman-Harris', 'Blackman-Harris^2', 'Tukey', 'None']
@@ -20,24 +19,39 @@ function create_file_tags, freq_ch_range = freq_ch_range, freq_flags = freq_flag
         sw_tag = ''
       endelse
     endelse
-  endif else sw_tag = ''
+  endif else begin
+    sw_tag = ''
+  endelse
 
-  if n_elements(freq_ch_range) ne 0 then begin
-    if min(freq_ch_range) lt 0 or max(freq_ch_range) - min(freq_ch_range) lt 3 then begin
+  if tag_exist(freq_options, 'freq_ch_range') then begin
+    if min(freq_options.freq_ch_range) lt 0 or max(freq_options.freq_ch_range) - min(freq_options.freq_ch_range) lt 3 then begin
       message, 'invalid freq_ch_range'
     endif
-    fch_tag = '_ch' + number_formatter(min(freq_ch_range)) + '-' +$
-      number_formatter(max(freq_ch_range))
-  endif else fch_tag = ''
-
-  if n_elements(freq_flag_name) eq 0 then begin
-    freq_flag_name = ''
+    freq_tag = '_ch' + number_formatter(min(freq_options.freq_ch_range)) + '-' +$
+      number_formatter(max(freq_options.freq_ch_range))
   endif else begin
-    if size(freq_flag_name, /type) ne 7 then freq_flag_name = number_formatter(freq_flag_name)
+    freq_tag = ''
   endelse
-  flag_tag = '_flag' + freq_flag_name
-  endif else flag_tag = ''
-  fch_tag = fch_tag + flag_tag
+
+  if tag_exist(freq_options, 'freq_flags') then begin
+    if tag_exist(freq_options, 'freq_flag_name') then begin
+      if size(freq_options.freq_flag_name, /type) ne 7 then begin
+        freq_flag_name_use = number_formatter(freq_options.freq_flag_name)
+      endif else begin
+        freq_flag_name_use = freq_options.freq_flag_name
+      endelse
+    endif else begin
+      freq_flag_name_use = ''
+    endelse
+    freq_tag = freq_tag + '_flag' + freq_flag_name_use
+  endif
+
+  if freq_options.freq_avg_factor gt 1 then begin
+    freq_tag = freq_tag + '_freqave' + number_formatter(freq_options.freq_avg_factor)
+    if freq_options.force_even_freqs ne 0 then begin
+      freq_tag = freq_tag + '_evenfreqs'
+    endif
+  endif
 
   if tag_exist(uvf_options, 'delta_uv_lambda') then begin
     uv_tag = '_deluv' + number_formatter(uvf_options.delta_uv_lambda)
@@ -59,29 +73,35 @@ function create_file_tags, freq_ch_range = freq_ch_range, freq_flags = freq_flag
   if tag_exist(uvf_options, 'uv_img_clip') then begin
     uv_tag = uv_tag + '_uvimgclip' + number_formatter(uvf_options.uv_img_clip)
   endif
-  uvf_tag = uv_tag + fch_tag
+  uvf_tag = uv_tag
 
-
-  if ps_options.std_power then kcube_tag = '_stdp' else kcube_tag = ''
-
-  if ps_options.freq_avg_factor gt 1 then begin
-    kcube_tag = kcube_tag + '_freqave' + number_formatter(ps_options.freq_avg_factor)
-  endif
-  if ps_options.force_even_freqs then kcube_tag = kcube_tag + '_evenfreqs'
+  if ps_options.std_power then begin
+    kcube_tag = '_stdp'
+  endif else begin
+    kcube_tag = ''
+  endelse
 
   if ps_options.freq_dft then begin
     kcube_tag = kcube_tag + '_dft'
     ;; add a tag for using the regularly spaced approximate z rather than true z
-    if ps_options.dft_z_use eq 'regular' then kcube_tag = kcube_tag + 'reg'
+    if ps_options.dft_z_use eq 'regular' then begin
+      kcube_tag = kcube_tag + 'reg'
+    endif
   endif
-  if ps_options.inverse_covar_weight then kcube_tag = kcube_tag + '_invcovar'
-  if ps_options.ave_removal then kcube_tag = kcube_tag + '_averemove'
+  if ps_options.inverse_covar_weight then begin
+    kcube_tag = kcube_tag + '_invcovar'
+  endif
+  if ps_options.ave_removal then begin
+    kcube_tag = kcube_tag + '_averemove'
+  endif
   kcube_tag = kcube_tag + sw_tag
 
   power_tag = kcube_tag
-  if ps_options.no_wtd_avg then power_tag = power_tag + '_nowtavg'
+  if ps_options.no_wtd_avg then begin
+    power_tag = power_tag + '_nowtavg'
+  endif
 
-  file_tags = {uvf_tag: uvf_tag, kcube_tag: kcube_tag, power_tag: power_tag}
+  file_tags = {uvf_tag: uvf_tag, freq_tag:freq_tag, kcube_tag: kcube_tag, power_tag: power_tag}
 
   return, file_tags
 end

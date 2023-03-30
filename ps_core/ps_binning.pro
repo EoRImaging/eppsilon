@@ -1,4 +1,4 @@
-pro ps_binning, file_struct, sim = sim, freq_flags = freq_flags, $
+pro ps_binning, file_struct, sim = sim, freq_options = freq_options, $
     ps_options = ps_options, binning_2d_options = binning_2d_options, $
     binning_1d_options = binning_1d_options, plot_options = plot_options, $
     plot_types = plot_types, $
@@ -10,7 +10,9 @@ pro ps_binning, file_struct, sim = sim, freq_flags = freq_flags, $
 
   nfiles = n_elements(file_struct.datafile)
 
-  if n_elements(freq_flags) ne 0 then freq_mask = file_struct.freq_mask
+  if tag_exist(freq_options, 'freq_flags') then begin
+    freq_mask = freq_options.freq_mask
+  endif
 
   restore, file_struct.power_savefile
 
@@ -79,11 +81,11 @@ pro ps_binning, file_struct, sim = sim, freq_flags = freq_flags, $
 
     make_2d_files, nfiles, savefile_2d[j], savefile_k0[j], power_3D, sim_noise_3D, $
       new_noise_3d, noise_expval_3d, weights_3d, kx_mpc, ky_mpc, kz_mpc, $
-      delay_params, hubble_param, plot_options.hinv, kperp_lambda_conv, freq_mask, $
+      delay_params, hubble_param, plot_options.hinv, kperp_lambda_conv, $
       vs_name, vs_mean, t_sys_meas, window_int, git_hashes, wt_ave_power, ave_power, $
       ave_weights, wt_ave_power_freq, ave_power_freq, wt_ave_power_uvf, ave_power_uvf, $
       uv_pix_area, uv_area, noise_3D = noise_3D, sim_noise_diff_3D = sim_noise_diff_3D, $
-      wt_measure = wt_meas_use, wt_cutoff = wt_cutoff_use, freq_flags = freq_flags, $
+      wt_measure = wt_meas_use, wt_cutoff = wt_cutoff_use, freq_options = freq_options, $
       binning_2d_options = binning_2d_options
 
   endfor
@@ -271,12 +273,12 @@ pro ps_binning, file_struct, sim = sim, freq_flags = freq_flags, $
       make_2d_files, nfiles, savefile_masked_2d[j,i], savefile_masked_k0[j,i], $
         power_3D, sim_noise_3D, new_noise_3d, noise_expval_3d, mask_weights*weights_3d, $
         kx_mpc, ky_mpc, kz_mpc, delay_params, hubble_param, plot_options.hinv, kperp_lambda_conv, $
-        freq_mask, vs_name, vs_mean, t_sys_meas, window_int, git_hashes, $
+        vs_name, vs_mean, t_sys_meas, window_int, git_hashes, $
         wt_ave_power, ave_power, ave_weights, wt_ave_power_freq, ave_power_freq, $
         wt_ave_power_uvf, ave_power_uvf, uv_pix_area, uv_area, $
         masked_save_items = masked_save_items, noise_3D = noise_3D, $
         sim_noise_diff_3D = sim_noise_diff_3D, wt_measure = wt_meas_use, $
-        wt_cutoff = wt_cutoff_use, freq_flags = freq_flags, $
+        wt_cutoff = wt_cutoff_use, freq_options = freq_options, $
         binning_2d_options = binning_2d_options
 
       ;; must undefine bin_arr_3d so that a new binning is calculated on next loops.
@@ -358,7 +360,7 @@ pro ps_binning, file_struct, sim = sim, freq_flags = freq_flags, $
       kx_range_lambda = kpar_binning_1d_options.kx_range_1dave * kperp_lambda_conv
       ky_range_lambda = kpar_binning_1d_options.ky_range_1dave * kperp_lambda_conv
     endelse
-    if n_elements(freq_flags) ne 0 then begin
+    if tag_exist(freq_options, 'freq_flags') then begin
       save, file = savefile_kpar_power[j], power, noise, sim_noise, sim_noise_diff, $
         weights, noise_expval, k_edges, k_bin, kperp_lambda_conv, delay_params, $
         hubble_param, freq_mask, kperp_range, kperp_range_lambda, kx_range, $
@@ -454,7 +456,7 @@ pro ps_binning, file_struct, sim = sim, freq_flags = freq_flags, $
       ky_range_lambda = kperp_binning_1d_options.ky_range_1dave * kperp_lambda_conv
     endelse
 
-    if n_elements(freq_flags) ne 0 then begin
+    if tag_exist(freq_options, 'freq_flags') then begin
       save, file = savefile_kperp_power[j], power, noise, sim_noise, sim_noise_diff, $
         weights, noise_expval, k_edges, k_bin, kperp_lambda_conv, delay_params, $
         hubble_param, freq_mask, kperp_range, kperp_range_lambda, kx_range, $

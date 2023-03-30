@@ -1,13 +1,10 @@
 pro compare_plot_prep, folder_names, obs_info, $
     cube_types, pols, comp_type, compare_files, $
     ps_foldernames = ps_foldernames, $
-    uvf_options0 = uvf_options0, uvf_options1 = uvf_options1, $
-    ps_options = ps_options, $
+    uvf_options = uvf_options, freq_options = freq_options, ps_options = ps_options, $
     plot_options = plot_options, plot_2d_options = plot_2d_options, $
     binning_2d_options = binning_2d_options, binning_1d_options = binning_1d_options, $
     plot_slices = plot_slices, slice_type = slice_type, fadd_2dbin = fadd_2dbin, $
-    freq_ch_range = freq_ch_range, $
-    freq_flags = freq_flags, freq_flag_name = freq_flag_name, $
     plot_filebase = plot_filebase, save_path = save_path, savefilebase = savefilebase, $
     axis_type_1d = axis_type_1d, full_compare = full_compare
 
@@ -22,9 +19,9 @@ pro compare_plot_prep, folder_names, obs_info, $
   ;; density correction defaults & file naming for 2D & 1D files
   if n_elements(ps_options) eq 2 then begin
     if ps_options[0].wt_cutoffs ne ps_options[1].wt_cutoffs and $
-        abs(ps_options[1].wt_cutoffs - ps_options[1].wt_cutoffs) le 1e-3 then begin
+        abs(ps_options[1].wt_cutoffs - ps_options[0].wt_cutoffs) le 1e-3 then begin
 
-      ps_options[1].wt_cutoffs = ps_options[1].wt_cutoffs
+      ps_options[1].wt_cutoffs = ps_options[0].wt_cutoffs
     endif
 
     if (ps_options[0].wt_cutoffs ne ps_options[1].wt_cutoffs $
@@ -65,28 +62,22 @@ pro compare_plot_prep, folder_names, obs_info, $
     same_density_tag = ''
   endelse
 
-  if n_elements(uvf_options1) gt 0 then begin
-    n_uvf_options = 2
-  endif else begin
-    n_uvf_options = 1
-  endelse
-
   n_diffs = max([n_elements(obs_info.info_files), n_elements(cube_types), $
-    n_elements(pols), n_elements(ps_options), n_uvf_options, n_elements(freq_flag_name)])
+    n_elements(pols), n_elements(ps_options), n_elements(freq_options), n_elements(uvf_options)])
   if n_diffs gt 2 then begin
-    message, 'only 1 or 2 each of [folder_names, ps_foldernames, ' + $
-      'obs_names, cube_types, pols, spec_window_types, wt_cutoffs, ave_removal, freq_flag_name] allowed'
+    message, 'only 1 or 2 each of [info_files, cube_types, pols, ps_options, freq_options, uvf_options] allowed'
   endif
 
   if (n_elements(obs_info.info_files) eq 2 or n_elements(ps_options) eq 2 $
-    or n_uvf_options eq 2) and n_elements(cube_types) eq 0 $
-    and n_elements(pols) eq 0 and n_elements(full_compare) eq 0 then full_compare = 1
+        or n_elements(freq_options) eq 2or n_elements(uvf_options) eq 2) $
+    and n_elements(cube_types) eq 0 and n_elements(pols) eq 0 and n_elements(full_compare) eq 0 $
+    then begin
+      full_compare = 1
+  endif
+  if keyword_set(full_compare) and n_elements(obs_info.info_files) eq 1 and n_elements(ps_options) eq 1 $
+      and n_elements(freq_options) eq 1 and n_elements(uvf_options) eq 1 then begin
 
-  if keyword_set(full_compare) and n_elements(info_files) eq 1 and n_elements(ps_options) eq 1 $
-      and n_uvf_options eq 1 then begin
-
-    message, 'full_compare can only be set if one of [folder names, obs names, ' + $
-      'spec windows, wt_cutoffs/measures, ave_removal values, image window name/size] is length 2.'
+    message, 'full_compare can only be set if one of [info_files, ps_options, freq_options, uvf_options] is length 2.'
   endif
 
   if comp_type eq 'ratio' and keyword_set(full_compare) then comp_type = 'diff_ratio'
@@ -98,7 +89,7 @@ pro compare_plot_prep, folder_names, obs_info, $
       cube_types = 'res'
     endelse
     n_diffs = max([n_elements(obs_info.info_files), n_elements(cube_types), n_elements(pols), $
-      n_elements(ps_options), n_uvf_options])
+      n_elements(ps_options), n_elements(freq_options), n_elements(uvf_options)])
 
     if n_elements(pols) eq 0 then begin
       if n_diffs eq 1 then begin
@@ -108,16 +99,16 @@ pro compare_plot_prep, folder_names, obs_info, $
       endelse
     endif
     n_diffs = max([n_elements(obs_info.info_files), n_elements(cube_types), n_elements(pols), $
-      n_elements(ps_options), n_uvf_options])
+      n_elements(ps_options), n_elements(freq_options), n_elements(uvf_options)])
 
     if n_diffs eq 1 then begin
-      message, 'at least one of [folder_names, ps_foldernames, ' + $
-        'obs_names, cube_types, pols, spec_window_types, wt_cutoffs, ave_removal] must be a 2 element vector'
+      message, 'at least one of [info_files, cube_types, pols, ps_options, ' $
+        + 'freq_options, uvf_options] must be a 2 element vector'
     endif
     case comp_type of
       'diff': n_cubes = 1
-      'ratio': n_sets=1
-      'diff_ratio': n_sets=2
+      'ratio': n_sets = 1
+      'diff_ratio': n_sets = 2
       'comp_1d': n_cubes = 1
     endcase
   endif else begin
@@ -133,11 +124,12 @@ pro compare_plot_prep, folder_names, obs_info, $
     endcase
   endelse
 
-  max_file = n_elements(obs_info.info_files)-1
-  max_type = n_elements(cube_types)-1
-  max_pol = n_elements(pols)-1
+  max_file = n_elements(obs_info.info_files) - 1
+  max_type = n_elements(cube_types) - 1
+  max_pol = n_elements(pols) - 1
   max_ps = n_elements(ps_options) - 1
-  max_uvf = n_uvf_options - 1
+  max_freq = n_elements(freq_options) - 1
+  max_uvf = n_elements(uvf_options) - 1
 
   if n_elements(axis_type_1d) eq 0 then axis_type_1d = 'sym_log'
 
@@ -175,19 +167,23 @@ pro compare_plot_prep, folder_names, obs_info, $
   'comp_1d': op_str = ' and '
   endcase
 
-  uvf_options_use = uvf_options0
+  ;; The freq_options struct can have tags added in `fhd_file_setup`.
+  ;; But that doesn't get propagated back up because here freq_options is a struct
+  ;; array. So we need to make a copy of the struct so it can be updated, and then
+  ;; re-create the struct array from the updated structs. Sigh. 
+  freq_options_use0 = create_struct(freq_options[0])
   file_struct_arr1 = fhd_file_setup(obs_info.info_files[0], $
-    uvf_options = uvf_options_use, ps_options = ps_options[0], $
-    freq_flags = freq_flags, freq_flag_name = freq_flag_name, $
-    freq_ch_range = freq_ch_range)
-  if n_elements(obs_info.info_files) eq 2 or max_ps eq 1 or max_uvf eq 1 then begin
-    if max_uvf eq 1 then begin
-      uvf_options_use = uvf_options1
-    endif
+    uvf_options = uvf_options[0], freq_options = freq_options_use0, ps_options = ps_options[0])
+  if max_file eq 1 or max_ps eq 1 or max_freq eq 1 or max_uvf eq 1 then begin
+    freq_options_use1 = create_struct(freq_options[max_freq])
     file_struct_arr2 = fhd_file_setup(obs_info.info_files[max_file], $
-    uvf_options = uvf_options_use, ps_options = ps_options[max_ps],$
-    freq_flags = freq_flags[max_file], freq_flag_name = freq_flag_name[max_file], $
-    freq_ch_range = freq_ch_range)
+      uvf_options = uvf_options[max_uvf], freq_options = freq_options_use1, $
+      ps_options = ps_options[max_ps])
+      if max_freq eq 0 then begin
+        freq_options = [freq_options_use0]
+      endif else begin
+        freq_options = [freq_options_use0, freq_options_use1]
+      endelse
   endif else begin
     file_struct_arr2 = file_struct_arr1
   endelse
@@ -232,6 +228,27 @@ pro compare_plot_prep, folder_names, obs_info, $
     endelse
   endelse
 
+  ;; get same & different parts of freq_tag to add to plot file name
+  if n_elements(file_struct_arr2) eq 0 then begin
+    same_freq_tag = file_struct_arr1[0].freq_tag
+  endif else begin
+    if file_struct_arr1[0].freq_tag eq file_struct_arr2[0].freq_tag then begin
+      same_freq_tag = file_struct_arr1[0].freq_tag
+    endif else begin
+      tag_arr1 = strsplit(file_struct_arr1[0].freq_tag, '_',/extract)
+      tag_arr2 = strsplit(file_struct_arr2[0].freq_tag, '_',/extract)
+      match_test = strcmp(tag_arr1, tag_arr2)
+      wh_diff = where(match_test eq 0, count_diff, complement = wh_same, ncomplement = count_same)
+
+      if count_same gt 0 then begin
+        same_freq_tag = strjoin(tag_arr1[wh_same], '_')
+      endif
+      if count_diff gt 0 then begin
+        diff_freq_tags = [strjoin(tag_arr1[wh_diff], '_'), strjoin(tag_arr2[wh_diff], '_')]
+      endif
+    endelse
+  endelse
+
   ;; get same & different parts of power_tag to add to plot file name
   if n_elements(file_struct_arr2) eq 0 then begin
     same_power_tag = file_struct_arr1[0].power_tag
@@ -253,22 +270,20 @@ pro compare_plot_prep, folder_names, obs_info, $
     endelse
   endelse
 
-  if n_elements(diff_uvf_tags) gt 0 and n_elements(diff_power_tags) gt 0 then begin
-    plot_options.note = plot_options.note + diff_uvf_tags[0] + diff_power_tags[0] + $
-      op_str + diff_power_tags[1] + diff_uvf_tags[1]
-  endif else begin
-    if n_elements(diff_uvf_tags) gt 0 then begin
-      plot_options.note = plot_options.note + diff_uvf_tags[0] + op_str + diff_uvf_tags[1]
-    endif
-    if n_elements(diff_power_tags) gt 0 then begin
-      plot_options.note = plot_options.note + diff_power_tags[0] + op_str + diff_power_tags[1]
-    endif
-  endelse
-
   if n_elements(same_uvf_tag) eq 0 then same_uvf_tag = ''
+  if n_elements(same_freq_tag) eq 0 then same_freq_tag = ''
   if n_elements(same_power_tag) eq 0 then same_power_tag = ''
   if n_elements(diff_uvf_tags) eq 0 then diff_uvf_tags = ['', '']
+  if n_elements(diff_freq_tags) eq 0 then diff_freq_tags = ['', '']
   if n_elements(diff_power_tags) eq 0 then diff_power_tags = ['', '']
+
+  same_tag_parts = same_uvf_tag + same_freq_tag + same_power_tag
+  diff_tag_parts = [diff_uvf_tags[0] + diff_freq_tags[0] + diff_power_tags[0], $
+    diff_uvf_tags[1] + diff_freq_tags[1] + diff_power_tags[1]]
+
+  if max(diff_tag_parts ne ['', '']) gt 0 then begin
+      plot_options.note += diff_tag_parts[0] + op_str + diff_tag_parts[1]
+  endif
 
   case comp_type of
     'diff': op_str = '_minus_'
@@ -282,47 +297,46 @@ pro compare_plot_prep, folder_names, obs_info, $
     if n_elements(folder_names) eq 2 and $
         folder_names[0] ne folder_names[n_elements(folder_names)-1] then begin
 
-      plot_filebase = obs_info.name_same_parts + same_uvf_tag + same_power_tag + same_density_tag +'__' + $
+      plot_filebase = obs_info.name_same_parts + same_tag_parts + same_density_tag +'__' + $
         obs_info.name_diff_parts[0] + '_' + obs_info.obs_names[0] + $
-        diff_uvf_tags[0] + diff_power_tags[0] + density_tags[0] + op_str + $
+        diff_tag_parts[0] + density_tags[0] + op_str + $
         obs_info.name_diff_parts[1]  + '_' + obs_info.obs_names[1] + $
-        diff_uvf_tags[n_elements(diff_uvf_tags)-1] + $
-        diff_power_tags[n_elements(diff_power_tags)-1] + density_tags[n_wtcuts-1]
+        diff_tag_parts[1] + density_tags[n_wtcuts-1]
     endif else begin
-      plot_filebase = obs_info.folder_basenames[0] + same_uvf_tag + same_power_tag + same_density_tag + '__' + $
-        obs_info.obs_names[0] + diff_uvf_tags[0] + diff_power_tags[0] + density_tags[0] + op_str + $
-        obs_info.obs_names[max_file] + diff_uvf_tags[n_elements(diff_uvf_tags)-1] + $
-        diff_power_tags[n_elements(diff_power_tags)-1] + density_tags[n_wtcuts-1]
+      plot_filebase = obs_info.folder_basenames[0] + same_tag_parts + same_density_tag + '__' + $
+        obs_info.obs_names[0] + diff_tag_parts[0] + density_tags[0] + op_str + $
+        obs_info.obs_names[max_file] + diff_tag_parts[1] + density_tags[n_wtcuts-1]
 
     endelse
   endif else begin
 
     if n_elements(folder_names) eq 1 then begin
       if n_elements(obs_info.obs_names) gt 1 then begin
-        plot_filebase = obs_info.folder_basenames[0] + same_uvf_tag + same_power_tag + same_density_tag + $
+        plot_filebase = obs_info.folder_basenames[0] + same_tag_parts + same_density_tag + $
           '_' + obs_info.obs_names[0] + '_' + cube_types[0] + '_' + pols[0] + $
-          diff_uvf_tags[0] + diff_power_tags[0] + density_tags[0] +  op_str + $
+          diff_tag_parts[0] + density_tags[0] +  op_str + $
           obs_info.obs_names[0] + '_' + cube_types[max_type] + '_' + pols[max_pol] + $
-          diff_uvf_tags[n_elements(diff_uvf_tags)-1] + $
-          diff_power_tags[n_elements(diff_power_tags)-1] + density_tags[n_wtcuts-1]
+          diff_tag_parts[1] + density_tags[n_wtcuts-1]
       endif else begin
-        if obs_info.integrated[0] eq 0 then plot_start = obs_info.folder_basenames[0] + '_' + obs_info.obs_names[0] else plot_start = obs_info.fhd_types[0]
+        if obs_info.integrated[0] eq 0 then begin
+          plot_start = obs_info.folder_basenames[0] + '_' + obs_info.obs_names[0]
+        endif else begin
+          plot_start = obs_info.fhd_types[0]
+        endelse
 
-        plot_filebase = plot_start + same_power_tag + same_uvf_tag + same_density_tag + '_' + $
+        plot_filebase = plot_start + same_tag_parts + same_density_tag + '_' + $
           cube_types[0] + '_' + pols[0] + $
-          diff_uvf_tags[0] + diff_power_tags[0] + density_tags[0] +  op_str + $
+          diff_tag_parts[0] + density_tags[0] +  op_str + $
           cube_types[max_type] + '_' + pols[max_pol] + $
-          diff_uvf_tags[n_elements(diff_uvf_tags)-1] + $
-          diff_power_tags[n_elements(diff_power_tags)-1] + density_tags[n_wtcuts-1]
+          diff_tag_parts[1] + density_tags[n_wtcuts-1]
       endelse
     endif else begin
-      plot_filebase = obs_info.name_same_parts + same_uvf_tag + same_power_tag + $
+      plot_filebase = obs_info.name_same_parts + same_tag_parts + $
         same_density_tag + '__' + strjoin([obs_info.name_diff_parts[0], $
         cube_types[0], pols[0]], '_') + $
-        diff_uvf_tags[0] + diff_power_tags[0] + density_tags[0] +  op_str + $
+        diff_tag_parts[0] + density_tags[0] +  op_str + $
         strjoin([obs_info.name_diff_parts[1], cube_types[max_type], pols[max_pol]], '_') + $
-        diff_uvf_tags[n_elements(diff_uvf_tags)-1] + $
-        diff_power_tags[n_elements(diff_power_tags)-1] + density_tags[n_wtcuts-1]
+        diff_tag_parts[1] + density_tags[n_wtcuts-1]
     endelse
   endelse
   plot_filebase = plot_filebase[0]
@@ -468,6 +482,40 @@ pro compare_plot_prep, folder_names, obs_info, $
   if keyword_set(plot_2d_options.plot_wedge_line) then begin
     z0_freq = 1420.40 ;; MHz
 
+    if ( $
+      tag_exist(freq_options[0], 'freq_flags') $
+      or tag_exist(freq_options[0], 'freq_ch_range') $
+      or freq_options[0].freq_avg_factor gt 1 $
+    ) then begin
+      refresh_options = create_refresh_options()
+
+      ;; The freq_options struct can have tags added in `ps_freq_select_avg`.
+      ;; But that doesn't get propagated back up because here freq_options is a struct
+      ;; array. So we need to make a copy of the struct so it can be updated
+      freq_options_use0 = create_struct(freq_options[0])
+      ;; use the `file_check_only` parameter to raise errors if files don't exist or have the wrong flags
+      ps_freq_select_avg, file_struct_arr1[0], reform(file_struct_arr1[0].n_vis_freq), $
+        refresh_options = refresh_options, freq_options = freq_options_use0, $
+        ps_options = ps_options[0], /file_check_only
+
+      if max_freq eq 1 then begin
+        freq_options_use1 = create_struct(freq_options[1])
+        ;; use the `file_check_only` parameter to raise errors if files don't exist or have the wrong flags
+        ps_freq_select_avg, file_struct_arr2[0], reform(file_struct_arr2[0].n_vis_freq), $
+          refresh_options = refresh_options, freq_options = freq_options_use1, $
+          ps_options = ps_options[max_ps], /file_check_only
+        if max(abs(freq_options_use0.frequencies - freq_options_use1.frequencies)) gt 0 then begin
+          message, "frequencies do not match between compared runs"
+        endif
+      endif
+      frequencies = freq_options_use0.frequencies
+    endif else begin
+      if max(abs(file_struct_arr1[0].frequencies - file_struct_arr1[1].frequencies)) gt 0 then begin
+        message, "frequencies do not match between compared runs"
+      endif
+      frequencies = file_struct_arr1[0].frequencies
+    endelse
+
     freq_use = file_struct_arr1[0].frequencies
     if n_elements(freq_ch_range) ne 0 then begin
       if max(freq_ch_range) gt n_elements(freq_use)-1 then message, 'invalid freq_ch_range'
@@ -567,76 +615,55 @@ pro compare_plot_prep, folder_names, obs_info, $
 
         if n_elements(savefilebase) eq 0 then begin
           if n_elements(obs_info.info_files) eq 1 then begin
-            savefilebase_use = file_struct_arr1[0].general_filebase + same_uvf_tag + $
-              same_power_tag + '_' + $
-              type_pol1 + diff_uvf_tags[0] + diff_power_tags[0] + $
-              op_str + type_pol2 + diff_uvf_tags[n_elements(diff_uvf_tags)-1] + $
-              diff_power_tags[n_elements(diff_power_tags)-1]
+            savefilebase_use = file_struct_arr1[0].general_filebase + same_tag_parts + '_' + $
+              type_pol1 + diff_tag_parts[0] + op_str + type_pol2 + diff_tag_parts[1]
           endif else begin
             if count_diff eq 0 then begin
-              savefilebase_use = file_struct_arr1[0].general_filebase + same_uvf_tag + $
-                same_power_tag + '_' + type_pol1
+              savefilebase_use = file_struct_arr1[0].general_filebase + same_tag_parts + '_' + type_pol1
               if type_pol1 ne type_pol2 then begin
-                savefilebase_use = savefilebase_use + diff_uvf_tags[0] + diff_power_tags[0] + $
-                  op_str + type_pol2 + diff_uvf_tags[n_elements(diff_uvf_tags)-1] + $
-                  diff_power_tags[n_elements(diff_power_tags)-1]
+                savefilebase_use = savefilebase_use + diff_tag_parts[0] + $
+                  op_str + type_pol2 + diff_tag_parts[1]
               endif else begin
-                if max([diff_uvf_tags ne ['', ''], diff_power_tags ne ['', '']]) eq 1 then begin
-                  savefilebase_use = savefilebase_use + diff_uvf_tags[0] + diff_power_tags[0] + $
-                    op_str + diff_uvf_tags[n_elements(diff_uvf_tags)-1] + $
-                    diff_power_tags[n_elements(diff_power_tags)-1]
+                if max(diff_tag_parts ne ['', '']) gt 0 then begin
+                  savefilebase_use += diff_tag_parts[0] +  op_str + diff_tag_parts[1]
                 endif
               endelse
             endif else begin
               if count_same gt 0 then begin
                 if type_pol1 ne type_pol2 then begin
-                  savefilebase_use = strjoin(fileparts_1[wh_same], '_') + same_uvf_tag + $
-                    same_power_tag + '__' + strjoin(fileparts_1[wh_diff]) + '_' + $
-                    type_pol1 + diff_uvf_tags[0] + diff_power_tags[0] + op_str + $
-                    strjoin(fileparts_2[wh_diff]) + '_' + type_pol2 + $
-                    diff_uvf_tags[n_elements(diff_uvf_tags)-1] + $
-                    diff_power_tags[n_elements(diff_power_tags)-1]
+                  savefilebase_use = strjoin(fileparts_1[wh_same], '_') + same_tag_parts + $
+                    '__' + strjoin(fileparts_1[wh_diff]) + '_' + type_pol1 + diff_tag_parts[0] + $
+                    op_str + strjoin(fileparts_2[wh_diff]) + '_' + type_pol2 + diff_tag_parts[1]
                 endif else begin
                   savefilebase_use = strjoin(fileparts_1[wh_same], '_') + '__' + $
                     strjoin(fileparts_1[wh_diff]) + op_str + $
-                    strjoin(fileparts_2[wh_diff]) + '__' + type_pol1 + same_uvf_tag + $
-                    same_power_tag
-                  if max([diff_uvf_tags ne ['', ''], diff_power_tags ne ['', '']]) eq 1 then begin
-                    savefilebase_use = savefilebase_use + '__'  + diff_uvf_tags[0] + $
-                      diff_power_tags[0] + op_str + diff_uvf_tags[n_elements(diff_uvf_tags)-1] + $
-                      diff_power_tags[n_elements(diff_power_tags)-1]
+                    strjoin(fileparts_2[wh_diff]) + '__' + type_pol1 + same_tag_parts
+                  if max(diff_tag_parts ne ['', '']) gt 0 then begin
+                    savefilebase_use += '__'  + diff_tag_parts[0] + op_str + diff_tag_parts[1]
                   endif
                 endelse
               endif else begin
                 if type_pol1 ne type_pol2 then begin
                     savefilebase_use = file_struct_arr1[0].general_filebase + '_' + $
-                      type_pol_str[0] + same_uvf_tag + $
-                      same_power_tag + diff_uvf_tags[0] + diff_power_tags[0] + $
+                      type_pol_str[0] + same_tag_parts + $
+                      diff_tag_parts[0] + $
                       op_str + file_struct_arr2[0].general_filebase + '_' + $
-                      type_pol_str[1] + same_uvf_tag + $
-                      same_power_tag + diff_uvf_tags[n_elements(diff_uvf_tags)-1] + $
-                      diff_power_tags[n_elements(diff_power_tags)-1]
+                      type_pol_str[1] + same_tag_parts + diff_tag_parts[1]
                 endif else begin
                   savefilebase_use = file_struct_arr1[0].general_filebase + op_str + $
-                    file_struct_arr2[0].general_filebase + '__' + type_pol1 + same_uvf_tag + $
-                    same_power_tag + '__'  + diff_uvf_tags[0] + $
-                    diff_power_tags[0] + op_str + diff_uvf_tags[n_elements(diff_uvf_tags)-1] + $
-                    diff_power_tags[n_elements(diff_power_tags)-1]
+                    file_struct_arr2[0].general_filebase + '__' + type_pol1 + same_tag_parts + $
+                    '__'  + diff_tag_parts[0] + op_str + diff_tag_parts[1]
                 endelse
               endelse
             endelse
           endelse
         endif else begin
           if type_pol1 eq type_pol2 then begin
-            savefilebase_use = savefilebase + same_uvf_tag + same_power_tag + '_' + $
-              type_pol1 + '__'  + diff_uvf_tags[0] + $
-              diff_power_tags[0] + op_str + diff_uvf_tags[n_elements(diff_uvf_tags)-1] + $
-              diff_power_tags[n_elements(diff_power_tags)-1]
+            savefilebase_use = savefilebase + same_tag_parts + '_' + $
+              type_pol1 + '__'  + diff_tag_parts[0] + op_str + diff_tag_parts[1]
           endif else begin
-            savefilebase_use = savefilebase + same_uvf_tag + same_power_tag + '_' + $
-            type_pol1 + diff_uvf_tags[0] + diff_power_tags[0] + op_str + $
-            type_pol2 + diff_uvf_tags[n_elements(diff_uvf_tags)-1] + $
-            diff_power_tags[n_elements(diff_power_tags)-1]
+            savefilebase_use = savefilebase + same_tag_parts + '_' + $
+            type_pol1 + diff_tag_parts[0] + op_str + type_pol2 + diff_tag_parts[1]
           endelse
         endelse
       endif
