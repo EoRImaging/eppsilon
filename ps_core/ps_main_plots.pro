@@ -274,12 +274,8 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
 
   ;; setup for saving plots
   power_tag = file_struct_arr[0].power_tag
-  if tag_exist(file_struct_arr[0], 'uvf_tag') then begin
-    uvf_tag = file_struct_arr[0].uvf_tag
-  endif else begin
-    uvf_tag = ''
-  endelse
-
+  uvf_tag = file_struct_arr[0].uvf_tag
+  freq_tag = file_struct_arr[0].freq_tag
 
   ;; need general_filebase for 1D and weight plotfiles, make sure it doesn't have a full path
   general_filebase = file_struct_arr[0].general_filebase
@@ -314,16 +310,16 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
         plotfile_base_wt = general_filebase + '_' + $
           file_struct_arr[uniq(weight_ind, sort(weight_ind))].pol + power_tag
       endif else begin
-        plotfile_base = plot_options.plot_filebase + uvf_tag + $
+        plotfile_base = plot_options.plot_filebase + uvf_tag + freq_tag + $
           file_struct_arr.file_label + power_tag
-        plotfile_base_wt = plot_options.plot_filebase + uvf_tag + $
+        plotfile_base_wt = plot_options.plot_filebase + uvf_tag + freq_tag + $
           '_' + file_struct_arr[uniq(weight_ind, sort(weight_ind))].pol + power_tag
       endelse
     endif else begin
       if not tag_exist(plot_options, 'plot_filebase') then begin
         plotfile_base = general_filebase + power_tag
       endif else begin
-        plotfile_base = plot_options.plot_filebase + uvf_tag + power_tag
+        plotfile_base = plot_options.plot_filebase + uvf_tag + freq_tag + power_tag
       endelse
       plotfile_base_wt = plotfile_base
     endelse
@@ -862,7 +858,7 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
       for i=0, n_elements(wedge_1dbin_names)-1 do begin
         for j=0, n_elements(kperp_density_names)-1 do begin
           plotfile_binning_hist[*,j,i] = bin_hist_plot_path + plot_options.plot_filebase + $
-            uvf_tag + file_struct_arr.file_label + power_tag + kperp_density_names[j] + $
+            uvf_tag + freq_tag + file_struct_arr.file_label + power_tag + kperp_density_names[j] + $
             wedge_1dbin_names[i] + binning_tags.fadd_1dbin
         endfor
       endfor
@@ -1230,7 +1226,7 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
     if not tag_exist(plot_options, 'plot_filebase') then begin
       plotfile_1d_base = general_filebase
     endif else begin
-      plotfile_1d_base = plot_options.plot_filebase + uvf_tag
+      plotfile_1d_base = plot_options.plot_filebase + uvf_tag + freq_tag
     endelse
     plotfile_path_1d = plotfile_path + file_struct_arr[0].subfolders.bin_1d
     begin_1d = plotfile_path_1d + plotfile_1d_base + power_tag + wedge_1dbin_names + binning_tags.fadd_1dbin
