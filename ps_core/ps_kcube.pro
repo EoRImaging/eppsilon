@@ -61,7 +61,7 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
   endelse
 
   z_mpc_mean = z_mpc(frequencies, hubble_param = hubble_param, f_delta = f_delta, $
-    redshifts = redshifts, comov_dist_los = comov_dist_los, $
+    redshifts = redshifts, comov_dist_los = comov_dist_los, even_freq = even_freq, $
     z_mpc_delta = z_mpc_delta)
 
   kperp_lambda_conv = z_mpc_mean / (2.*!dpi)
@@ -95,8 +95,15 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
   kz_mpc_orig = findgen(round(kz_mpc_range / kz_mpc_delta)) * kz_mpc_delta + min_kz
 
   n_kz = n_elements(kz_mpc_orig)
-  if n_kz ne n_freq then message, 'something has gone wrong with kz_mpc calculation.'
-
+  if n_kz ne n_freq then begin
+    if not even_freq and (tag_exist(freq_options, 'freq_flags') or freq_options.freq_avg_factor gt 1) then begin
+      print, 'uneven freq spacing due to flagging and/or averaging resulted in n_kz ' $
+        + 'not equal to n_freq. n_kz: ' + number_formatter(n_kz) + ', n_freq:' $
+        + number_formatter(n_freq)
+    endif else begin
+      message, 'something has gone wrong with kz_mpc calculation.'
+    endelse
+  endif
   if input_units eq 'jansky' then begin
     ;; converting from Jy (in u,v,f) to mK*str (10^-26 * c^2 * 10^3/ (2*f^2*kb))
     conv_factor = double((299792458.)^2 / (2. * (frequencies*1e6)^2. * 1.38065))
