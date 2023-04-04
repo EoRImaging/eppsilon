@@ -62,14 +62,13 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
 
   z_mpc_mean = z_mpc(frequencies, hubble_param = hubble_param, f_delta = f_delta, $
     redshifts = redshifts, comov_dist_los = comov_dist_los, even_freq = even_freq, $
-    z_mpc_delta = z_mpc_delta)
+    z_mpc_delta = z_mpc_delta, z_mpc_length = z_mpc_length)
 
   kperp_lambda_conv = z_mpc_mean / (2.*!dpi)
   delay_delta = 1e9/(n_freq*f_delta*1e6) ;; equivilent delay bin size for kparallel
   delay_max = delay_delta * n_freq/2.    ;; factor of 2 b/c of neg/positive
   delay_params = [delay_delta, delay_max]
 
-  z_mpc_length = max(comov_dist_los) - min(comov_dist_los) + z_mpc_delta
   kz_mpc_range =  (2.*!dpi) / (z_mpc_delta)
   kz_mpc_delta = (2.*!dpi) / z_mpc_length
 
@@ -101,7 +100,9 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
         + 'not equal to n_freq. n_kz: ' + number_formatter(n_kz) + ', n_freq:' $
         + number_formatter(n_freq)
     endif else begin
-      message, 'something has gone wrong with kz_mpc calculation.'
+      message, 'something has gone wrong with kz_mpc calculation, n_kz is ' $
+        + 'not equal to n_freq. n_kz: ' + number_formatter(n_kz) + ', n_freq:' $
+        + number_formatter(n_freq)
     endelse
   endif
   if input_units eq 'jansky' then begin
