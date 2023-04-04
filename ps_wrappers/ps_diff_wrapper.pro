@@ -107,10 +107,52 @@ pro ps_diff_wrapper, folder_names_in, obs_names_in, $
     uvf_options1 = create_uvf_options(delta_uv_lambda = delta_uv_lambda, $
       max_uv_lambda = mul1, full_image = fi1, image_clip = ic1)
     
-    uvf_options = [uvf_options0, uvf_options1]
+    uvf_options = list(uvf_options0, uvf_options1)
   endelse
 
-  if size(freq_ch_range,/n_dim) lt 2 and size(freq_flags,/n_dim) lt 2 $
+  if n_elements(freq_flags) gt 0 then begin
+    if size(freq_flags, /type) eq 11 then begin
+      ;; this is a list of freq flags, should have 1 or 2 elements
+      n_freq_flags = n_elements(freq_flags)
+      if n_freq_flags gt 2 then begin
+        message, "If freq_flags are specified as a list, the number of elements gives " $
+        + "the number of sets of freq flags, which can only be 1 or 2."
+      endif
+
+      ;; if a single zero is passed in for a freq_flag set, turn it into a null so later logic works
+      for flag_ind=0, n_freq_flags-1 do begin
+        if n_elements(freq_flags[flag_ind]) eq 1 then begin
+          if freq_flags[flag_ind] eq 0 then begin
+            freq_flags[freq_ind] = !Null
+          endif
+        endif
+      endfor
+    endif else begin
+      ;; this is an array, check the dimensionality to determine number of sets
+      n_flag_dims = size(freq_flags,/n_dim)
+      if n_flag_dims gt 2 then begin
+        message, "If freq_flags are specified as an array, it can only be a 1 or 2 dimensional array."
+      endif
+      if n_flag_dims eq 2 then begin
+        n_freq_flags = (size(freq_flags,/dim))[1]
+      endif else begin
+        n_freq_flags = 1
+      endelse
+
+      if n_freq_flags gt 2 then begin
+        message, "If freq_flags are specified as an array, the second dimension gives " $
+        + "the number of sets of freq flags, which can only be 1 or 2."
+      endif
+      ;; In this case, turn it into a list for unified indexing later
+      if n_freq_flags eq 1 then begin
+        freq_flags = list(freq_flags)
+      endif else begin
+        freq_flags = list(freq_flags[*, 0], freq_flags[*, 1])
+      endelse
+    endelse
+  endif
+
+  if size(freq_ch_range,/n_dim) lt 2 and n_elements(freq_flags) lt 2 $
     and n_elements(freq_flag_name) lt 2 and n_elements(freq_flag_repeat) lt 2 $
     and n_elements(freq_avg_factor) lt 2 and n_elements(force_even_freqs) lt 2 then begin
 
@@ -140,17 +182,14 @@ pro ps_diff_wrapper, folder_names_in, obs_names_in, $
       endcase
     endif
     if n_elements(freq_flags) gt 0 then begin
-      case size(freq_flags,/n_dim) of
+      case n_elements(freq_flags) of
         1: begin
           ff0 = freq_flags
           ff1 = freq_flags
         end
         2: begin
-          if (size(freq_flags,/dim))[1] ne 2 then begin
-            message, 'only 1 or 2 sets of freq_ch_range values allowed'
-          endif
-          ff0 = freq_flags[*, 0]
-          ff1 = freq_flags[*, 1]
+          ff0 = freq_flags[0]
+          ff1 = freq_flags[1]
         end
         else: message, 'only 1 or 2 sets of freq_flags values allowed'
       endcase
@@ -223,7 +262,7 @@ pro ps_diff_wrapper, folder_names_in, obs_names_in, $
       freq_avg_factor = fa1, $
       force_even_freqs = ef1)
 
-    freq_options = [freq_options1, freq_options2]
+    freq_options = list(freq_options1, freq_options2)
   endelse
 
   if n_elements(ave_removal) lt 2 and n_elements(wt_cutoffs) lt 2 and $
@@ -337,7 +376,7 @@ pro ps_diff_wrapper, folder_names_in, obs_names_in, $
       wt_measures = wtm1, spec_window_type = spw1, freq_dft = dft1, $
       dft_z_use = dftz1, std_power = sp1)
 
-    ps_options = [ps_options0, ps_options1]
+    ps_options = list(ps_options0, ps_options1)
   endelse
 
   binning_2d_options = create_binning_2d_options(no_kzero = no_kzero, $

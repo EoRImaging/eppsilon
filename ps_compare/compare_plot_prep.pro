@@ -34,19 +34,23 @@ pro compare_plot_prep, folder_names, obs_info, $
     endif else begin
       n_wtcuts = 1
     endelse
+    wt_cutoffs = [ps_options[0].wt_cutoffs, ps_options[1].wt_cutoffs]
+    wt_measures = [ps_options[0].wt_measures, ps_options[1].wt_measures]
   endif else begin
     n_wtcuts = 1
+    wt_cutoffs = [ps_options.wt_cutoffs]
+    wt_measures = [ps_options.wt_measures]
   endelse
 
   kperp_density_names = strarr(n_wtcuts)
-  wh_cutoff0 = where(ps_options.wt_cutoffs eq 0, count_cutoff0, complement = wh_cutoff_n0, $
+  wh_cutoff0 = where(wt_cutoffs eq 0, count_cutoff0, complement = wh_cutoff_n0, $
     ncomplement = count_cutoff_n0)
-  wh_std = where(ps_options.wt_cutoffs eq 1 and ps_options.wt_measures eq 'min', count_std)
+  wh_std = where(wt_cutoffs eq 1 and wt_measures eq 'min', count_std)
 
   if count_cutoff0 gt 0 then kperp_density_names[wh_cutoff0] = '_nodensitycorr'
   if count_cutoff_n0 gt 0 then begin
-    kperp_density_names[wh_cutoff_n0] = '_kperp_density_' + ps_options[wh_cutoff_n0].wt_measures $
-      + '_gt' + number_formatter(ps_options[wh_cutoff_n0].wt_cutoffs)
+    kperp_density_names[wh_cutoff_n0] = '_kperp_density_' + wt_measures[wh_cutoff_n0] $
+      + '_gt' + number_formatter(wt_measures[wh_cutoff_n0])
   endif
   if count_std gt 0 then kperp_density_names[wh_std] = '_dencorr'
 
@@ -69,7 +73,7 @@ pro compare_plot_prep, folder_names, obs_info, $
   endif
 
   if (n_elements(obs_info.info_files) eq 2 or n_elements(ps_options) eq 2 $
-        or n_elements(freq_options) eq 2or n_elements(uvf_options) eq 2) $
+        or n_elements(freq_options) eq 2 or n_elements(uvf_options) eq 2) $
     and n_elements(cube_types) eq 0 and n_elements(pols) eq 0 and n_elements(full_compare) eq 0 $
     then begin
       full_compare = 1
@@ -168,9 +172,9 @@ pro compare_plot_prep, folder_names, obs_info, $
   endcase
 
   ;; The freq_options struct can have tags added in `fhd_file_setup`.
-  ;; But that doesn't get propagated back up because here freq_options is a struct
-  ;; array. So we need to make a copy of the struct so it can be updated, and then
-  ;; re-create the struct array from the updated structs. Sigh. 
+  ;; But that doesn't get propagated back up because here freq_options is in a list.
+  ;; So we need to make a copy of the struct so it can be updated, and then
+  ;; re-create the list from the updated structs. Sigh. 
   freq_options_use0 = create_struct(freq_options[0])
   file_struct_arr1 = fhd_file_setup(obs_info.info_files[0], $
     uvf_options = uvf_options[0], freq_options = freq_options_use0, ps_options = ps_options[0])
@@ -180,9 +184,9 @@ pro compare_plot_prep, folder_names, obs_info, $
       uvf_options = uvf_options[max_uvf], freq_options = freq_options_use1, $
       ps_options = ps_options[max_ps])
       if max_freq eq 0 then begin
-        freq_options = [freq_options_use0]
+        freq_options = list(freq_options_use0)
       endif else begin
-        freq_options = [freq_options_use0, freq_options_use1]
+        freq_options = list(freq_options_use0, freq_options_use1)
       endelse
   endif else begin
     file_struct_arr2 = file_struct_arr1
@@ -483,15 +487,15 @@ pro compare_plot_prep, folder_names, obs_info, $
     z0_freq = 1420.40 ;; MHz
 
     if ( $
-      tag_exist(freq_options[0], 'freq_flags') $
-      or tag_exist(freq_options[0], 'freq_ch_range') $
-      or freq_options[0].freq_avg_factor gt 1 $
+      tag_exist(freq_options[0], 'freq_flags') or tag_exist(freq_options[1], 'freq_flags') $
+      or tag_exist(freq_options[0], 'freq_ch_range') or tag_exist(freq_options[1], 'freq_ch_range') $
+      or freq_options[0].freq_avg_factor gt 1 or freq_options[1].freq_avg_factor gt 1 $
     ) then begin
       refresh_options = create_refresh_options()
 
       ;; The freq_options struct can have tags added in `ps_freq_select_avg`.
-      ;; But that doesn't get propagated back up because here freq_options is a struct
-      ;; array. So we need to make a copy of the struct so it can be updated
+      ;; But that doesn't get propagated back up because here freq_options is in a list
+      ;; So we need to make a copy of the struct so it can be updated
       freq_options_use0 = create_struct(freq_options[0])
       ;; use the `file_check_only` parameter to raise errors if files don't exist or have the wrong flags
       ps_freq_select_avg, file_struct_arr1[0], reform(file_struct_arr1[0].n_vis_freq), $
