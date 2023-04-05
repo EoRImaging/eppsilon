@@ -7,6 +7,7 @@ pro compare_setup_structures, folder_names_in, obs_names_in, $
     all_type_pol = all_type_pol, freq_ch_range = freq_ch_range, $
     freq_flags = freq_flags, freq_flag_name = freq_flag_name, $
     freq_flag_repeat = freq_flag_repeat, $
+    diff_plot_path = diff_plot_path, diff_save_path = diff_save_path, $
     freq_avg_factor = freq_avg_factor, force_even_freqs = force_even_freqs, $
     folder_names = folder_names, obs_info = obs_info, uvf_options = uvf_options, $
     freq_options = freq_options, ps_options = ps_options
