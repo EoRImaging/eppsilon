@@ -333,7 +333,8 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
     or freq_options.freq_avg_factor gt 1 $
   ) then begin
     ps_freq_select_avg, file_struct_arr[0], reform(file_struct_arr[0].n_vis_freq), $
-      refresh_options = refresh_options, freq_options = freq_options, ps_options = ps_options
+      refresh_options = refresh_options, freq_options = freq_options, $
+      ps_options = ps_options, /metadata_only
     frequencies = freq_options.frequencies
     n_vis_freq = freq_options.n_vis_freq
     n_vis = total(n_vis_freq, 2)

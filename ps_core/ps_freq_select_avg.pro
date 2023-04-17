@@ -1,6 +1,8 @@
 pro ps_freq_select_avg, file_struct, n_vis_freq, refresh_options = refresh_options, $
-freq_options = freq_options, ps_options = ps_options, file_check_only = file_check_only
+  freq_options = freq_options, ps_options = ps_options, $
+  metadata_only = metadata_only, file_check_only = file_check_only
 
+  if n_elements(metadata_only) eq 0 then metadata_only = 0
   if n_elements(file_check_only) eq 0 then file_check_only = 0
 
   nfiles = n_elements(file_struct.datafile) 
@@ -131,6 +133,11 @@ freq_options = freq_options, ps_options = ps_options, file_check_only = file_che
         frequencies = original_freqs, n_vis_freq = new_n_vis_freq, beam_int = beam_int)
     endelse
   endelse
+
+  if metadata_only then begin
+    ;; don't do anything with the actual data cubes
+    return
+  endif
 
   for i=0, nfiles-1 do begin
     test_uvf = file_valid(file_struct.uvf_savefile[i])
