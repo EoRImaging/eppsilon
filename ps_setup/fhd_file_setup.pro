@@ -1309,7 +1309,12 @@ function fhd_file_setup, filename, weightfile = weightfile, $
         derived_uvf_varname = strarr(nfiles,2)
       endif else begin
         if healpix or not keyword_set(uvf_input) then begin
-          derived_uvf_inputfiles = uvf_savefile[pol_i, *, 0:1]
+          ;; if there's frequency selection or averaging, we want the full files for this
+          if file_tags.freq_tag ne '' then begin
+            derived_uvf_inputfiles = uvf_full_savefile[pol_i, *, 0:1]
+          endif else begin
+            derived_uvf_inputfiles = uvf_savefile[pol_i, *, 0:1]
+          endelse
           derived_uvf_varname = strarr(nfiles, 2) + 'data_cube'
         endif else begin
           derived_uvf_inputfiles = strarr(nfiles,2)
