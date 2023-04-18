@@ -273,7 +273,8 @@ pro ps_freq_select_avg, file_struct, n_vis_freq, refresh_options = refresh_optio
 
     endif ;; endif test_wt_uvf eq 0 or refresh
 
-    if test_beam eq 0 or refresh_options.refresh_freq_select_avg then begin
+    if (test_beam eq 0 or refresh_options.refresh_freq_select_avg) $
+      and tag_exist(file_struct, "beam_full_savefile") then begin
 
       ;; check for the full cube to avoid redoing the pixel selection
       full_beam_file = file_struct.beam_full_savefile[i]
@@ -336,7 +337,7 @@ pro ps_freq_select_avg, file_struct, n_vis_freq, refresh_options = refresh_optio
 
       save, file=file_struct.beam_savefile[i], avg_beam, pixels, freq_mask, nside, beam_git_hash
 
-    endif ;; endif test_beam eq 0 or refresh
+    endif ;; endif test_beam eq 0 or refresh and dropping some freqs (otherwise can just use the full average)
 
   endfor ;; end for loop over files
 
