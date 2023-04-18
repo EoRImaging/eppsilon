@@ -19,14 +19,19 @@ pro ps_image_to_uvf, file_struct, n_vis_freq, kx_rad_vals, ky_rad_vals, $
     uvf_full_tag = '_full'
     uvf_savefile = file_struct.uvf_full_savefile
     uvf_weight_savefile = file_struct.uvf_weight_full_savefile
-    beam_savefile = file_struct.beam_full_savefile
   endif else begin
     uvf_full_tag = ''
     uvf_savefile = file_struct.uvf_savefile
     uvf_weight_savefile = file_struct.uvf_weight_savefile
-    beam_savefile = file_struct.beam_savefile
   endelse
 
+  if tag_exist(file_struct, 'beam_full_savefile') then begin
+    beam_full_tag = '_full'
+    beam_savefile = file_struct.beam_full_savefile
+  endif else begin
+    beam_full_tag = ''
+    beam_savefile = file_struct.beam_savefile
+  endelse
   for i=0, nfiles-1 do begin
     
     test_uvf = file_valid(uvf_savefile[i])
@@ -37,7 +42,7 @@ pro ps_image_to_uvf, file_struct, n_vis_freq, kx_rad_vals, ky_rad_vals, $
 
     if tag_exist(file_struct, 'beam_savefile') then begin
       test_beam = file_valid(beam_savefile[i])
-      if not test_beam then test_beam = check_old_path(file_struct, 'beam' + uvf_full_tag + '_savefile', index=i)
+      if not test_beam then test_beam = check_old_path(file_struct, 'beam' + beam_full_tag + '_savefile', index=i)
     endif else test_beam = 1
 
     if test_beam eq 0 then begin
