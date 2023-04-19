@@ -992,11 +992,11 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
   endif
 
   ;; make simulated noise cubes
-  sim_noise1 = randomn(seed, n_kx, n_ky, n_kz) * sqrt(sigma2_cube1) + $
-    dcomplex(0,1) * randomn(seed, n_kx, n_ky, n_kz) * sqrt(sigma2_cube1)
+  sim_noise1 = randomn(seed, n_kx, n_ky, n_freq) * sqrt(sigma2_cube1) + $
+    dcomplex(0,1) * randomn(seed, n_kx, n_ky, n_freq) * sqrt(sigma2_cube1)
   if nfiles eq 2 then begin
-    sim_noise2 = randomn(seed, n_kx, n_ky, n_kz) * sqrt(sigma2_cube2) + $
-      dcomplex(0,1) * randomn(seed, n_kx, n_ky, n_kz) * sqrt(sigma2_cube2)
+    sim_noise2 = randomn(seed, n_kx, n_ky, n_freq) * sqrt(sigma2_cube2) + $
+      dcomplex(0,1) * randomn(seed, n_kx, n_ky, n_freq) * sqrt(sigma2_cube2)
   endif
 
   if nfiles eq 2 then begin
@@ -1071,7 +1071,7 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
     sim_noise_sum = temporary(sim_noise1)
   endelse
 
-  mask = intarr(n_kx, n_ky, n_kz) + 1
+  mask = intarr(n_kx, n_ky, n_freq) + 1
   wh_sig0 = where(sum_sigma2 eq 0, count_sig0)
   if count_sig0 gt 0 then mask[wh_sig0] = 0
   n_freq_contrib = total(mask, 3)
