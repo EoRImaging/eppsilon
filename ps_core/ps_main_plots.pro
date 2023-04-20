@@ -946,7 +946,7 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
     if plot_types.plot_k0_power then begin
       if test_k0 gt 0 and tag_exist(binning_2d_options, 'kperp_bin') then begin
         kperp_bin_file = fltarr(n_elements(savefile_k0_use))
-        for j=0, n_elements(savefile_k0_use) do begin
+        for j=0, n_elements(savefile_k0_use)-1 do begin
           kperp_bin_file[j] = getvar_savefile(savefile_k0_use[j], 'k_bin')
         endfor
         if max(abs(binning_2d_options.kperp_bin - kperp_bin_file)) gt 0. then test_k0=0
@@ -954,7 +954,7 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
 
       if test_k0_masked gt 0 and tag_exist(binning_2d_options, 'kperp_bin') then begin
         kperp_bin_file = fltarr(n_elements(savefile_k0_masked_use))
-        for j=0, n_elements(savefile_k0_masked_use) do begin
+        for j=0, n_elements(savefile_k0_masked_use)-1 do begin
           kperp_bin_file[j] = getvar_savefile(savefile_k0_masked_use[j], 'k_bin')
         endfor
         if max(abs(binning_2d_options.kperp_bin - kperp_bin_file)) gt 0. then test_k0_masked=0
