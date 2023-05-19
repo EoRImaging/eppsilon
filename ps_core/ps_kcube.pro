@@ -159,7 +159,9 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
 
     if freq_options.freq_avg_factor gt 1 then begin
       new_vis_sigma_adam = reform(vis_sigma_adam, freq_options.freq_avg_factor, n_elements(frequencies))
-      full_n_vis_freq_temp = reform(full_n_vis_freq, freq_options.freq_avg_factor, n_elements(frequencies))
+      ;; average over the file axis for full_n_vis_freq because we use the same vis_sigma for even & odd
+      full_n_vis_freq_temp = total(full_n_vis_freq, 1)/2.
+      full_n_vis_freq_temp = reform(full_n_vis_freq_temp, freq_options.freq_avg_factor, n_elements(frequencies))
       new_vis_sigma_adam = sqrt( $
         total(new_vis_sigma_adam^2 * full_n_vis_freq_temp, 1) / total(full_n_vis_freq_temp, 1))
       vis_sigma_adam = new_vis_sigma_adam
@@ -179,6 +181,10 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
     endif
     if freq_options.freq_avg_factor gt 1 then begin
       new_vis_sigma_ian = reform(vis_sigma_ian, freq_options.freq_avg_factor, n_elements(frequencies))
+      ;; average over the file axis for full_n_vis_freq because we use the same vis_sigma for even & odd
+      ;; (we already averaged over that axis earlier)
+      full_n_vis_freq_temp = total(full_n_vis_freq, 1)/2.
+      full_n_vis_freq_temp = reform(full_n_vis_freq_temp, freq_options.freq_avg_factor, n_elements(frequencies))
       new_vis_sigma_ian = sqrt( $
         total(new_vis_sigma_ian^2 * full_n_vis_freq_temp, 1) / total(full_n_vis_freq_temp, 1))
       vis_sigma_ian = new_vis_sigma_ian
