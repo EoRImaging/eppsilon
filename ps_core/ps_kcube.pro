@@ -37,6 +37,7 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
     ps_freq_select_avg, file_struct, n_vis_freq, refresh_options = refresh_options, $
       freq_options = freq_options, ps_options = ps_options
     frequencies = freq_options.frequencies
+    full_n_vis_freq = n_vis_freq
     n_vis_freq = freq_options.n_vis_freq
   endif else begin
     frequencies = file_struct.frequencies
@@ -158,7 +159,9 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
 
     if freq_options.freq_avg_factor gt 1 then begin
       new_vis_sigma_adam = reform(vis_sigma_adam, freq_options.freq_avg_factor, n_elements(frequencies))
-      new_vis_sigma_adam = mean(new_vis_sigma_adam, dimension=1)
+      full_n_vis_freq_temp = reform(full_n_vis_freq, freq_options.freq_avg_factor, n_elements(frequencies))
+      new_vis_sigma_adam = sqrt( $
+        total(new_vis_sigma_adam^2 * full_n_vis_freq_temp, 1) / total(full_n_vis_freq_temp, 1))
       vis_sigma_adam = new_vis_sigma_adam
     endif
 
@@ -175,7 +178,8 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
     endif
     if freq_options.freq_avg_factor gt 1 then begin
       new_vis_sigma_ian = reform(vis_sigma_ian, freq_options.freq_avg_factor, n_elements(frequencies))
-      new_vis_sigma_ian = mean(new_vis_sigma_ian, dimension=1)
+      new_vis_sigma_ian = sqrt( $
+        total(new_vis_sigma_ian^2 * full_n_vis_freq_temp, 1) / total(full_n_vis_freq_temp, 1))
       vis_sigma_ian = new_vis_sigma_ian
     endif
     vis_sigma = vis_sigma_ian
