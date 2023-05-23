@@ -33,18 +33,18 @@ function create_file_tags, uvf_options = uvf_options, freq_options = freq_option
     freq_tag = ''
   endelse
 
-  if tag_exist(freq_options, 'freq_flags') then begin
-    if tag_exist(freq_options, 'freq_flag_name') then begin
-      if size(freq_options.freq_flag_name, /type) ne 7 then begin
-        freq_flag_name_use = number_formatter(freq_options.freq_flag_name)
-      endif else begin
-        freq_flag_name_use = freq_options.freq_flag_name
-      endelse
+  if tag_exist(freq_options, 'freq_flag_name') then begin
+    if size(freq_options.freq_flag_name, /type) ne 7 then begin
+      freq_flag_name_use = number_formatter(freq_options.freq_flag_name)
     endif else begin
-      freq_flag_name_use = ''
+      freq_flag_name_use = freq_options.freq_flag_name
     endelse
     freq_tag = freq_tag + '_flag' + freq_flag_name_use
-  endif
+  endif else begin
+    if tag_exist(freq_options, 'freq_flags') then begin
+      freq_tag = freq_tag + '_flag'
+    endif
+  endelse
 
   if freq_options.freq_avg_factor gt 1 then begin
     freq_tag = freq_tag + '_freqave' + number_formatter(freq_options.freq_avg_factor)

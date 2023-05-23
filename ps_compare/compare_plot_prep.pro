@@ -508,13 +508,15 @@ pro compare_plot_prep, folder_names, obs_info, $
         ps_freq_select_avg, file_struct_arr2[0], reform(file_struct_arr2[0].n_vis_freq), $
           refresh_options = refresh_options, freq_options = freq_options_use1, $
           ps_options = ps_options[max_ps], /file_check_only
-        if max(abs(freq_options_use0.frequencies - freq_options_use1.frequencies)) gt 0 then begin
+        if max(abs(freq_options_use0.frequencies - freq_options_use1.frequencies)) gt 1e-14 then begin
           message, "frequencies do not match between compared runs"
         endif
       endif
       frequencies = freq_options_use0.frequencies
     endif else begin
-      if max(abs(file_struct_arr1[0].frequencies - file_struct_arr1[1].frequencies)) gt 0 then begin
+      ;; frequencies can be slightly different depending on where in the pipeline averaging occurs
+      ;; allow for very small errors when comparing frquencies
+      if max(abs(file_struct_arr1[0].frequencies - file_struct_arr1[1].frequencies)) gt 1e-14 then begin
         message, "frequencies do not match between compared runs"
       endif
       frequencies = file_struct_arr1[0].frequencies
