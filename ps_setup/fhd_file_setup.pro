@@ -198,14 +198,32 @@ function fhd_file_setup, filename, weightfile = weightfile, $
       ;; no pol identifiers in filenames
       if n_elements(pol_inc) eq 0 then begin
         void = getvar_savefile(datafile[0], names = datafile_varnames)
-        wh_weights = where(strmatch(datafile_varnames, 'weights*',/fold_case) gt 0, count_weights)
-        if count_weights eq 0 then message, 'no weights array in file'
-        if count_weights eq 1 then begin
-          ;; FHD only allows xx if one pol
-          pol_inc = ['xx']
+        if not uvf_input then begin
+          wh_weights = where(strmatch(datafile_varnames, 'weights*',/fold_case) gt 0, count_weights)
+          if count_weights eq 0 then begin
+            message, 'no weights array in file'
+          endif
+          if count_weights eq 1 then begin
+            ;; FHD only allows xx if one pol
+            pol_inc = ['xx']
+          endif else begin
+            ;; defaut to 'xx' and 'yy' if npol >= 2
+            pol_inc = ['xx', 'yy']
+          endelse
         endif else begin
-          ;; defaut to 'xx' and 'yy' if npol >= 2
-          pol_inc = ['xx', 'yy']
+          wh_obs = where(strmatch(datafile_varnames, 'obs*',/fold_case) gt 0, count_obs)
+          if count_obs eq 1 then begin
+              obs_use = getvar_savefile(datafile[0], datafile_varnames[wh_obs[0]])
+              if obs_use.n_pol eq 1 then begin
+                pol_inc = ['xx']
+              endif else begin
+                ;; defaut to 'xx' and 'yy' if npol >= 2
+                pol_inc = ['xx', 'yy']
+              endelse
+          endif else begin
+            ;; default to just 'xx'
+            pol_inc = ['xx']
+          endelse
         endelse
       endif
       pol_enum = ['xx', 'yy', 'xy', 'yx']

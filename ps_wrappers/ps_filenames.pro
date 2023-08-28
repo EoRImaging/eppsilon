@@ -652,13 +652,9 @@ function ps_filenames, folder_names, obs_names_in, dirty_folder = dirty_folder, 
                 message, 'More than one info file found with given obs_name'
               endif
               info_files[i] = info_file
-              if stregex(info_basename[0], '[0-9]+', /boolean) then begin
-                obs_names[i] = stregex(info_basename[0], '[0-9]+', /extract)
-              endif else begin
-                end_pos = stregex(info_basename[0], hpx_endobsname_tag + '|' + $
-                  uvf_endobsname_tag)
-                obs_names[i] = strmid(info_basename[0], 0, end_pos)
-              endelse
+              end_pos = stregex(info_basename[0], hpx_endobsname_tag + '|' + $
+                uvf_endobsname_tag)
+              obs_names[i] = strmid(info_basename[0], 0, end_pos)
               test_other_obsnames = file_search(save_paths[i] + '*' + uvf_info_tag + $
                 '*info*', count = n_all_infofile)
               if n_all_infofile gt n_infofile then begin
