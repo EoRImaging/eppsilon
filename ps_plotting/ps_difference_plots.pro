@@ -1,5 +1,5 @@
 pro ps_difference_plots, folder_names, obs_info, ps_foldernames = ps_foldernames, $
-    cube_types, pols, all_type_pol = all_type_pol, $
+    cube_types, pols, all_type_pol = all_type_pol, uvf_input = uvf_input, $
     uvf_options0 = uvf_options0, uvf_options1 = uvf_options1, ps_options = ps_options, $
     plot_options = plot_options, plot_2d_options = plot_2d_options, $
     binning_2d_options = binning_2d_options, binning_1d_options = binning_1d_options, $
@@ -11,7 +11,7 @@ pro ps_difference_plots, folder_names, obs_info, ps_foldernames = ps_foldernames
     quiet = qiet, window_num = window_num
 
   compare_plot_prep, folder_names, obs_info,  cube_types, pols, 'diff', compare_files, $
-    ps_foldernames = ps_foldernames, $
+    ps_foldernames = ps_foldernames, uvf_input = uvf_input, $
     uvf_options0 = uvf_options0, uvf_options1 = uvf_options1, ps_options = ps_options, $
     plot_options = plot_options, plot_2d_options = plot_2d_options, $
     binning_2d_options = binning_2d_options, binning_1d_options = binning_1d_options, $
@@ -80,12 +80,14 @@ pro ps_difference_plots, folder_names, obs_info, ps_foldernames = ps_foldernames
               nrow = 1
             endif else begin
               nrow = 2
-              ncol = ceil(compare_files.n_cubes/nrow)
+              ncol = ceil(float(compare_files.n_cubes)/nrow)
             endelse
           endelse
           start_multi_params = {ncol:ncol, nrow:nrow, ordering:'row'}
 
-          if n_elements(window_num) eq 0 then window_num = 1
+          if n_elements(window_num) eq 0 then begin
+            window_num = 1
+          endif
         endif else begin
           pos_use = positions[*,cube_i]
 

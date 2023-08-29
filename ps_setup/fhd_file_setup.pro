@@ -363,11 +363,11 @@ function fhd_file_setup, filename, weightfile = weightfile, $
       general_filebase = savefilebase_in_base
     endelse
 
+    if keyword_set(uvf_input) then uvf_info_tag = '_uvf' else uvf_info_tag = ''
+    info_file = froot + general_filebase + uvf_info_tag + '_info.idlsave'
     if not keyword_set(refresh_info) then begin
       ;; check for pre-saved info file. If it exists, restore it and return structure.
       ;; Otherwise construct structure.
-      if keyword_set(uvf_input) then uvf_info_tag = '_uvf' else uvf_info_tag = ''
-      info_file = froot + general_filebase + uvf_info_tag + '_info.idlsave'
       info_filetest = file_test(info_file)
       if info_filetest eq 1 then begin
         ;; check if info file has the right polarizations

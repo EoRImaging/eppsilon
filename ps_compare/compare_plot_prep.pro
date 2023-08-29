@@ -1,6 +1,6 @@
 pro compare_plot_prep, folder_names, obs_info, $
     cube_types, pols, comp_type, compare_files, $
-    ps_foldernames = ps_foldernames, $
+    ps_foldernames = ps_foldernames, uvf_input = uvf_input, $
     uvf_options0 = uvf_options0, uvf_options1 = uvf_options1, $
     ps_options = ps_options, $
     plot_options = plot_options, plot_2d_options = plot_2d_options, $
@@ -176,15 +176,15 @@ pro compare_plot_prep, folder_names, obs_info, $
 
   uvf_options_use = uvf_options0
   file_struct_arr1 = fhd_file_setup(obs_info.info_files[0], $
-    uvf_options = uvf_options_use, ps_options = ps_options[0], $
-    freq_ch_range = freq_ch_range)
+    uvf_input = uvf_input, uvf_options = uvf_options_use, $
+    ps_options = ps_options[0], freq_ch_range = freq_ch_range)
   if n_elements(obs_info.info_files) eq 2 or max_ps eq 1 or max_uvf eq 1 then begin
     if max_uvf eq 1 then begin
       uvf_options_use = uvf_options1
     endif
     file_struct_arr2 = fhd_file_setup(obs_info.info_files[max_file], $
-    uvf_options = uvf_options_use, ps_options = ps_options[max_ps],$
-    freq_ch_range = freq_ch_range)
+    uvf_input = uvf_input, uvf_options = uvf_options_use, $
+    ps_options = ps_options[max_ps], freq_ch_range = freq_ch_range)
   endif else begin
     file_struct_arr2 = file_struct_arr1
   endelse

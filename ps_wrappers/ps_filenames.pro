@@ -1219,7 +1219,7 @@ function ps_filenames, folder_names, obs_names_in, dirty_folder = dirty_folder, 
       if (folder_names[0] eq folder_names[1]) and (ps_foldernames[0] ne ps_foldernames[1]) then begin
         nominal_savepaths = folder_names + path_sep() + ps_foldernames
       endif else begin
-        nominal_savepaths = folder_names
+        nominal_savepaths = folder_names + path_sep() + ps_foldernames[0]
       endelse
     endif
     if n_elements(nominal_savepaths) eq 2 then begin
