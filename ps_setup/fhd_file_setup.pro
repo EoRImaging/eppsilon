@@ -1206,6 +1206,7 @@ function fhd_file_setup, filename, weightfile = weightfile, $
   vf_raw_savefile = uvf_slice_path + uvf_savefilebase + '_vf_plane_raw.idlsave'
   uv_raw_savefile = uvf_slice_path + uvf_savefilebase + '_uv_plane_raw.idlsave'
 
+  uvf_sum_savefile = uvf_path + savefilebase + '_sum_uvf.idlsave'
   uf_sum_savefile = uvf_slice_path + savefilebase + '_sum_uf_plane.idlsave'
   vf_sum_savefile = uvf_slice_path + savefilebase + '_sum_vf_plane.idlsave'
   uv_sum_savefile = uvf_slice_path + savefilebase + '_sum_uv_plane.idlsave'
@@ -1302,6 +1303,7 @@ function fhd_file_setup, filename, weightfile = weightfile, $
         uf_raw_savefile:reform(uf_raw_savefile[pol_i,*,type_i]), $
         vf_raw_savefile:reform(vf_raw_savefile[pol_i,*,type_i]), $
         uv_raw_savefile:reform(uv_raw_savefile[pol_i,*,type_i]), $
+        uvf_sum_savefile:uvf_sum_savefile[pol_i,type_i], $
         uf_sum_savefile:uf_sum_savefile[pol_i, type_i], $
         vf_sum_savefile:vf_sum_savefile[pol_i,type_i], $
         uv_sum_savefile:uv_sum_savefile[pol_i,type_i], $

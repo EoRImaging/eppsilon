@@ -1114,6 +1114,16 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
     endif
   endif
 
+  if ps_options.save_sum_cube then begin
+    if n_elements(freq_flags) gt 0 then begin
+      save, file = file_struct.uvf_sum_savefile, data_sum, kx_mpc, ky_mpc, frequencies, kperp_lambda_conv, $
+        delay_params, hubble_param, freq_mask
+    endif else begin
+      save, file = file_struct.uvf_sum_savefile, data_sum, kx_mpc, ky_mpc, frequencies, kperp_lambda_conv, $
+        delay_params, hubble_param
+    endelse
+  endif
+
   if ps_options.ave_removal then begin
 
     data_sum_mean = mean(data_sum, dimension=3)
