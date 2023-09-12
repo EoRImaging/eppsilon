@@ -2,7 +2,7 @@ function create_ps_options, ps_options = ps_options, $
     ave_removal = ave_removal, wt_cutoffs = wt_cutoffs, $
     wt_measures = wt_measures, spec_window_type = spec_window_type, $
     no_spec_window = no_spec_window, allow_beam_approx = allow_beam_approx, $
-    freq_dft = freq_dft, dft_z_use = dft_z_use, $
+    freq_dft = freq_dft, dft_z_use = dft_z_use, save_sum_cube = save_sum_cube, $
     std_power = std_power, no_wtd_avg = no_wtd_avg, $
     inverse_covar_weight = inverse_covar_weight, return_new = return_new
 
@@ -26,6 +26,9 @@ function create_ps_options, ps_options = ps_options, $
 
     ;; default to using the true z's if using a DFT
     if n_elements(dft_z_use) eq 0 then dft_z_use = 'true'
+
+    ;; default to not saving sum cube
+    if n_elements(save_sum_cube) eq 0 then save_sum_cube = 0
 
     ;; default to Lomb-Scargle power calc
     if n_elements(std_power) eq 0 then std_power = 0
@@ -85,6 +88,11 @@ function create_ps_options, ps_options = ps_options, $
   if n_elements(spec_window_type) gt 0 then begin
     update_tags.add, 'spec_window_type'
     update_values.add, spec_window_type
+  endif
+
+  if n_elements(save_sum_cube) gt 0 then begin
+    update_tags.add, 'save_sum_cube'
+    update_values.add, save_sum_cube
   endif
 
   if n_elements(freq_dft) gt 0 then begin

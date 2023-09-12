@@ -4,8 +4,8 @@ pro ps_wrapper, folder_name_in, obs_name, data_subdirs=data_subdirs, $
     ps_folder_branch = ps_folder_branch, copy_master_uvf = copy_master_uvf, $
     no_evenodd = no_evenodd, no_wtvar_rts = no_wtvar_rts, $
     set_data_ranges = set_data_ranges, beamfiles = beamfiles, rts = rts, $
-    casa = casa, sim = sim, save_slices = save_slices, no_binning = no_binning, $
-    refresh_dft = refresh_dft, refresh_ps = refresh_ps, $
+    casa = casa, sim = sim, save_slices = save_slices, save_sum_cube = save_sum_cube, $
+    no_binning = no_binning, refresh_dft = refresh_dft, refresh_ps = refresh_ps, $
     refresh_binning = refresh_binning, refresh_info = refresh_info, $
     refresh_beam = refresh_beam, dft_fchunk = dft_fchunk, require_radec = require_radec, $
     delta_uv_lambda = delta_uv_lambda, max_uv_lambda = max_uv_lambda, $
@@ -262,7 +262,7 @@ pro ps_wrapper, folder_name_in, obs_name, data_subdirs=data_subdirs, $
   ps_options = create_ps_options(ave_removal = ave_removal, wt_cutoffs = wt_cutoffs, $
     wt_measures = wt_measures, spec_window_type = spec_window_type, $
     no_spec_window = no_spec_window, allow_beam_approx = allow_beam_approx, $
-    freq_dft = freq_dft, dft_z_use = dft_z_use, $
+    save_sum_cube = save_sum_cube, freq_dft = freq_dft, dft_z_use = dft_z_use, $
     std_power = std_power, no_wtd_avg = no_wtd_avg, $
     inverse_covar_weight = inverse_covar_weight)
 
