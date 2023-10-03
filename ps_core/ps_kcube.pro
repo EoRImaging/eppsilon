@@ -169,7 +169,6 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
 
     if n_elements(vis_sigma_adam) ne n_freq then message, $
         'vis_sig file has incorrect number of frequency channels'
-    endelse
 
     wh_nan = where(finite(vis_sigma_adam) eq 0, count_nan)
     if count_nan gt 0 then vis_sigma_adam[wh_nan] = 0

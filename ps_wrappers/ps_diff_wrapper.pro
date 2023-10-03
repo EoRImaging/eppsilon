@@ -6,6 +6,9 @@ pro ps_diff_wrapper, folder_names_in, obs_names_in, $
     image_clip = image_clip, ave_removal = ave_removal, $
     freq_dft = freq_dft, dft_z_use = dft_z_use, std_power = std_power, $
     all_type_pol = all_type_pol, freq_ch_range = freq_ch_range, $
+    freq_flags = freq_flags, freq_flag_name = freq_flag_name, $
+    freq_flag_repeat = freq_flag_repeat, $
+    freq_avg_factor = freq_avg_factor, force_even_freqs = force_even_freqs, $
     plot_slices = plot_slices, slice_type = slice_type, $
     png = png, eps = eps, pdf = pdf, data_range = data_range, data_min_abs = data_min_abs, $
     kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, sim = sim, $
