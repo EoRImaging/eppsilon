@@ -29,7 +29,8 @@ pro ps_diff_wrapper, folder_names_in, obs_names_in, $
     ky_range_lambda_1dave = ky_range_lambda_1dave, $
     kperp_range_lambda_kparpower = kperp_range_lambda_kparpower, $
     kpar_range_kperppower = kpar_range_kperppower, $
-    kperp_plot_range = kperp_plot_range, kperp_lambda_plot_range = kperp_lambda_plot_range
+    kperp_plot_range = kperp_plot_range, kperp_lambda_plot_range = kperp_lambda_plot_range, $
+    kpar_plot_range = kpar_plot_range
 
   compare_setup_structures, folder_names_in, obs_names_in, $
     ps_foldernames = ps_foldernames, version_test = version_test, $
@@ -65,6 +66,7 @@ pro ps_diff_wrapper, folder_names_in, obs_names_in, $
   plot_2d_options = create_plot_2d_options(kperp_linear_axis = kperp_linear_axis, $
     kpar_linear_axis = kpar_linear_axis, $
     kperp_plot_range = kperp_plot_range, kperp_lambda_plot_range = kperp_lambda_plot_range, $
+    kpar_plot_range = kpar_plot_range, $
     data_range = data_range, color_type = color_type)
 
   ps_difference_plots, folder_names, obs_info, ps_foldernames = ps_foldernames, $

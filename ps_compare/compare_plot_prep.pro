@@ -533,7 +533,7 @@ pro compare_plot_prep, folder_names, obs_info, $
     mean_redshift = mean(redshifts)
 
     cosmology_measures, mean_redshift, wedge_factor = wedge_factor
-    if tag_exist(binning_1d_options, 'wedge_angles') then begin 
+    if tag_exist(binning_1d_options, 'wedge_angles') then begin
       if min(binning_1d_options.wedge_angles) le 0 or $
           max(binning_1d_options.wedge_angles) ge 180 then begin
         message, 'wedge_angles must be in degrees and between 0 & 180'
@@ -871,7 +871,9 @@ pro compare_plot_prep, folder_names, obs_info, $
 
         plot_2d_options = create_plot_2d_options(plot_2d_options = plot_2d_options, $
           kperp_plot_range = kperp_plot_range)
-      endif
+      endif else begin
+        kperp_plot_range = plot_2d_options.kperp_plot_range
+      endelse
     endfor
   endfor
 
