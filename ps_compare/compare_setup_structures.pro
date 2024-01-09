@@ -6,6 +6,7 @@ pro compare_setup_structures, folder_names_in, obs_names_in, $
     freq_dft = freq_dft, dft_z_use = dft_z_use, std_power = std_power, $
     all_type_pol = all_type_pol, freq_ch_range = freq_ch_range, $
     freq_flags = freq_flags, freq_flag_name = freq_flag_name, $
+    freq_avg_bins = freq_avg_bins, freq_bin_name = freq_bin_name, $
     freq_flag_repeat = freq_flag_repeat, $
     diff_plot_path = diff_plot_path, diff_save_path = diff_save_path, $
     freq_avg_factor = freq_avg_factor, force_even_freqs = force_even_freqs, $
@@ -140,6 +141,7 @@ pro compare_setup_structures, folder_names_in, obs_names_in, $
 
   if size(freq_ch_range,/n_dim) lt 2 and n_elements(freq_flags) lt 2 $
     and n_elements(freq_flag_name) lt 2 and n_elements(freq_flag_repeat) lt 2 $
+    and n_elements(freq_avg_bins) lt 2 and n_elements(freq_bin_name) lt 2 $
     and n_elements(freq_avg_factor) lt 2 and n_elements(force_even_freqs) lt 2 then begin
 
     freq_options = create_freq_options( $
@@ -148,7 +150,9 @@ pro compare_setup_structures, folder_names_in, obs_names_in, $
       freq_flag_name = freq_flag_name, $
       freq_flag_repeat = freq_flag_repeat, $
       freq_avg_factor = freq_avg_factor, $
-      force_even_freqs = force_even_freqs)
+      force_even_freqs = force_even_freqs, $
+      freq_avg_bins = freq_avg_bins, $
+      freq_bin_name = freq_bin_name)
   endif else begin
 
     if n_elements(freq_ch_range) gt 0 then begin
@@ -232,13 +236,42 @@ pro compare_setup_structures, folder_names_in, obs_names_in, $
       else: message, 'only 1 or 2 force_even_freqs values allowed'
     endcase
 
+    case n_elements(freq_avg_bins) of
+      0:
+      1: begin
+        fb0 = freq_avg_bins
+        fb1 = freq_avg_bins
+      end
+      2: begin
+        fb0 = freq_avg_bins[0]
+        fb1 = freq_avg_bins[1]
+      end
+      else: message, 'only 1 or 2 freq_avg_bins values allowed'
+    endcase
+
+
+    case n_elements(freq_bin_name) of
+      0:
+      1: begin
+        bn0 = freq_bin_name
+        bn1 = freq_bin_name
+      end
+      2: begin
+        bn0 = freq_bin_name[0]
+        bn1 = freq_bin_name[1]
+      end
+      else: message, 'only 1 or 2 freq_bin_name values allowed'
+    endcase
+
     freq_options1 = create_freq_options( $
       freq_ch_range = fc0, $
       freq_flags = ff0, $
       freq_flag_name = fn0, $
       freq_flag_repeat = fr0, $
       freq_avg_factor = fa0, $
-      force_even_freqs = ef0)
+      force_even_freqs = ef0, $
+      freq_avg_bins = fb0, $
+      freq_bin_name = bn0)
 
     freq_options2 = create_freq_options( $
       freq_ch_range = fc1, $
@@ -246,7 +279,9 @@ pro compare_setup_structures, folder_names_in, obs_names_in, $
       freq_flag_name = fn1, $
       freq_flag_repeat = fr1, $
       freq_avg_factor = fa1, $
-      force_even_freqs = ef1)
+      force_even_freqs = ef1, $
+      freq_avg_bins = fb1, $
+      freq_bin_name = bn1)
 
     freq_options = list(freq_options1, freq_options2)
   endelse

@@ -12,8 +12,9 @@ pro ps_wrapper, folder_name_in, obs_name, data_subdirs=data_subdirs, $
     full_image = full_image, image_clip = image_clip, $
     pol_inc = pol_inc, type_inc = type_inc, freq_ch_range = freq_ch_range, $
     freq_flags = freq_flags, freq_flag_name = freq_flag_name, $
-    freq_flag_repeat = freq_flag_repeat, freq_avg_factor=freq_avg_factor, $
-    force_even_freqs = force_even_freqs, $
+    freq_flag_repeat = freq_flag_repeat, $
+    freq_avg_factor = freq_avg_factor, force_even_freqs = force_even_freqs, $
+    freq_avg_bins = freq_avg_bins, freq_bin_name = freq_bin_name, $
     allow_beam_approx = allow_beam_approx, uvf_input = uvf_input, uv_avg = uv_avg, $
     uv_img_clip = uv_img_clip, freq_dft = freq_dft, dft_z_use = dft_z_use, $
     std_power = std_power, $
@@ -270,7 +271,9 @@ pro ps_wrapper, folder_name_in, obs_name, data_subdirs=data_subdirs, $
     freq_flag_name = freq_flag_name, $
     freq_flag_repeat = freq_flag_repeat, $
     freq_avg_factor = freq_avg_factor, $
-    force_even_freqs = force_even_freqs)
+    force_even_freqs = force_even_freqs, $
+    freq_avg_bins = freq_avg_bins, $
+    freq_bin_name = freq_bin_name)
 
   ps_options = create_ps_options(ave_removal = ave_removal, wt_cutoffs = wt_cutoffs, $
     wt_measures = wt_measures, spec_window_type = spec_window_type, $

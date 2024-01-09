@@ -32,12 +32,16 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
   if ( $
     tag_exist(freq_options, 'freq_flags') $
     or tag_exist(freq_options, 'freq_ch_range') $
+    or tag_exist(freq_options, "freq_avg_bins") $
     or freq_options.freq_avg_factor gt 1 $
   ) then begin
     ps_freq_select_avg, file_struct, n_vis_freq, refresh_options = refresh_options, $
       freq_options = freq_options, ps_options = ps_options
     frequencies = freq_options.frequencies
     full_n_vis_freq = n_vis_freq
+    if tag_exist(freq_options, 'freq_flags') then begin    
+      full_n_vis_freq = full_n_vis_freq * transpose([[freq_options.freq_mask], [freq_options.freq_mask]])
+    endif 
     n_vis_freq = freq_options.n_vis_freq
   endif else begin
     frequencies = file_struct.frequencies
@@ -167,6 +171,25 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
       vis_sigma_adam = new_vis_sigma_adam
     endif
 
+    if tag_exist(freq_options, 'freq_avg_bins') then begin
+    ;; average over the file axis for full_n_vis_freq because we use the same vis_sigma for even & odd
+      full_n_vis_freq_temp = total(full_n_vis_freq, 1)/2.
+      h = histogram(freq_options.freq_avg_bins, reverse_indices=ri)
+      new_nfreq = n_elements(h)
+      new_vis_sigma_adam = dblarr(new_nfreq)
+      for fi = 0, new_nfreq - 1 do begin
+          ; ge t indices for data going into each frequency bin
+          bin_inds = ri[ri[fi] : ri[fi + 1] - 1]
+          wh_unflag = where(full_n_vis_freq_temp[bin_inds] ne 0, count_unflagged)
+          if count_unflagged gt 0 then begin
+            new_vis_sigma_adam[fi] = sqrt(total(vis_sigma_adam[bin_inds]^2 * full_n_vis_freq_temp[bin_inds]) / total(full_n_vis_freq_temp[bin_inds]))
+          endif else begin
+            new_vis_sigma_adam[fi] = 0
+          endelse
+      endfor
+      vis_sigma_adam = new_vis_sigma_adam
+    endif
+
     if n_elements(vis_sigma_adam) ne n_freq then message, $
         'vis_sig file has incorrect number of frequency channels'
 
@@ -186,6 +209,25 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
       full_n_vis_freq_temp = reform(full_n_vis_freq_temp, freq_options.freq_avg_factor, n_elements(frequencies))
       new_vis_sigma_ian = sqrt( $
         total(new_vis_sigma_ian^2 * full_n_vis_freq_temp, 1) / total(full_n_vis_freq_temp, 1))
+      vis_sigma_ian = new_vis_sigma_ian
+    endif
+    
+    if tag_exist(freq_options, 'freq_avg_bins') then begin
+    ;; average over the file axis for full_n_vis_freq because we use the same vis_sigma for even & odd
+      full_n_vis_freq_temp = total(full_n_vis_freq, 1)/2.
+      h = histogram(freq_options.freq_avg_bins, reverse_indices=ri)
+      new_nfreq = n_elements(h)
+      new_vis_sigma_ian = dblarr(new_nfreq)
+      for fi = 0, new_nfreq - 1 do begin
+          ; ge t indices for data going into each frequency bin
+          bin_inds = ri[ri[fi] : ri[fi + 1] - 1]
+          wh_unflag = where(full_n_vis_freq_temp[bin_inds] ne 0, count_unflagged)
+          if count_unflagged gt 0 then begin
+            new_vis_sigma_ian[fi] = sqrt(total(vis_sigma_ian[bin_inds]^2 * full_n_vis_freq_temp[bin_inds]) / total(full_n_vis_freq_temp[bin_inds]))
+          endif else begin
+            new_vis_sigma_ian[fi] = 0
+          endelse
+      endfor
       vis_sigma_ian = new_vis_sigma_ian
     endif
     vis_sigma = vis_sigma_ian
@@ -603,6 +645,7 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
       tag_exist(freq_options, 'freq_flags') $
       or tag_exist(freq_options, 'freq_ch_range') $
       or freq_options.freq_avg_factor gt 1 $
+      or tag_exist(freq_options, 'freq_avg_bins') $
     ) then begin
       ave_beam_int = freq_options.beam_int
     endif else begin

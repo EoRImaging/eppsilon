@@ -53,57 +53,101 @@ pro ps_freq_select_avg, file_struct, n_vis_freq, refresh_options = refresh_optio
   new_n_vis_freq_select = new_n_vis_freq
 
   ;; average in frequency
-  if freq_options.freq_avg_factor gt 1 then begin
+  if freq_options.freq_avg_factor gt 1 or tag_exist(freq_options, 'freq_avg_bins') then begin
     ;; warn about freq_ch_range also being set
     if tag_exist(freq_options, 'freq_ch_range') then begin
       print, "both freq_avg_factor and freq_ch_range are set. The values in " $
         + "freq_ch_range are being interpreted as the original channel numbers."
     endif
-    ;; check that factor divides evenly into number of frequencies
-    if n_elements(original_freqs) mod freq_options.freq_avg_factor ne 0 then begin
-      message, "freq_avg_factor must divide evenly into number of frequencies to be " $
-        + "averaged (accounting for freq_ch_range if set)."
-    endif
+    if freq_options.freq_avg_factor gt 1 then begin
+      ;; check that factor divides evenly into number of frequencies
+      if n_elements(original_freqs) mod freq_options.freq_avg_factor ne 0 then begin
+        message, "freq_avg_factor must divide evenly into number of frequencies to be " $
+          + "averaged (accounting for freq_ch_range if set)."
+      endif
 
-    avg_n_freqs = n_elements(original_freqs) / freq_options.freq_avg_factor
-    if tag_exist(freq_options, 'freq_flags') and (freq_options.force_even_freqs eq 0) then begin
-      print, "both freq_avg_factor and freq_flags are set. The values in " $
-        + "freq_flags are being interpreted as the original channel numbers."
-      ;; compute new frequencies accounting for flagging.
-      frequencies = fltarr(avg_n_freqs)
-      for fi=0, avg_n_freqs-1 do begin
-        this_inds = findgen(freq_options.freq_avg_factor) + (fi * freq_options.freq_avg_factor)
-        this_freqs = original_freqs[this_inds]
-        this_mask = original_mask[this_inds]
-        wh_unflagged = where(this_mask eq 1, count_unflagged)
-        if count_unflagged gt 0 then begin
-          ;; take the mean over unflagged channels
-          frequencies[fi] = mean(this_freqs[wh_unflagged])
-        endif else begin
-          ;; all channels are flagged, take the mean over all channels
-          frequencies[fi] = mean(this_freqs)
-        endelse
+      avg_n_freqs = n_elements(original_freqs) / freq_options.freq_avg_factor
+      if tag_exist(freq_options, 'freq_flags') and (freq_options.force_even_freqs eq 0) then begin
+        print, "both freq_avg_factor and freq_flags are set. The values in " $
+          + "freq_flags are being interpreted as the original channel numbers."
+        ;; compute new frequencies accounting for flagging.
+        frequencies = fltarr(avg_n_freqs)
+        for fi=0, avg_n_freqs-1 do begin
+          this_inds = findgen(freq_options.freq_avg_factor) + (fi * freq_options.freq_avg_factor)
+          this_freqs = original_freqs[this_inds]
+          this_mask = original_mask[this_inds]
+          wh_unflagged = where(this_mask eq 1, count_unflagged)
+          if count_unflagged gt 0 then begin
+            ;; take the mean over unflagged channels
+            frequencies[fi] = mean(this_freqs[wh_unflagged])
+          endif else begin
+            ;; all channels are flagged, take the mean over all channels
+            frequencies[fi] = mean(this_freqs)
+          endelse
+        endfor
+      endif else begin
+        ;; do a simple average of the input frequencies.
+        frequencies = reform(original_freqs, freq_options.freq_avg_factor, avg_n_freqs)
+        frequencies = mean(frequencies, dimension=1)
+      endelse
+      ;; After averaging, if there are any fully flagged frequencies they should remain flagged
+      if tag_exist(freq_options, 'freq_flags') then begin
+        new_mask = reform(original_mask, freq_options.freq_avg_factor, avg_n_freqs)
+        new_mask = max(new_mask, dimension=1)
+      endif
+      if nfiles eq 2 then begin
+        new_n_vis_freq = reform(new_n_vis_freq, nfiles, freq_options.freq_avg_factor, avg_n_freqs)
+        new_n_vis_freq = total(new_n_vis_freq, 2)
+      endif else begin
+        new_n_vis_freq = reform(new_n_vis_freq, freq_options.freq_avg_factor, avg_n_freqs)
+        new_n_vis_freq = total(new_n_vis_freq, 1)
+      endelse
+
+    endif else begin ;; averaging with frequency bins
+      if n_elements(original_freqs) ne n_elements(freq_options.freq_avg_bins) then begin
+        message, "freq_avg_bins must have length equal to number of frequencies"
+      endif
+      h = histogram(freq_options.freq_avg_bins, reverse_indices=ri)
+      if float(n_elements(h)) ne total(h ne 0) then begin
+        message, "freq_avg_bins must start at zero and be contiguous"
+      endif
+      new_nfreq = n_elements(h)
+      frequencies = fltarr(new_nfreq)
+      new_mask = fltarr(new_nfreq)
+      if nfiles eq 2 then begin
+        bin_n_vis_freq = fltarr(2,new_nfreq)
+      endif else begin
+        bin_n_vis_freq = fltarr(new_nfreq)
+      endelse
+ 
+      for fi = 0, new_nfreq - 1 do begin
+          ; ge t indices for data going into each frequency bin
+          bin_inds = ri[ri[fi] : ri[fi + 1] - 1]
+          this_freqs = original_freqs[bin_inds]
+          if tag_exist(freq_options, 'freq_flags') then begin
+            this_mask = original_mask[bin_inds]
+            wh_unflagged = where(this_mask eq 1, count_unflagged)
+            if count_unflagged gt 0 then begin
+              ;; take the mean over unflagged channels
+              frequencies[fi] = mean(this_freqs[wh_unflagged])
+              new_mask[fi] = 1
+            endif else begin
+              ;; all channels are flagged, take the mean over all channels
+              frequencies[fi] = mean(this_freqs)
+              new_mask[fi] = 0
+            endelse
+          endif else begin
+            frequencies[fi] = mean(this_freqs)
+          endelse
+          if nfiles eq 2 then begin
+            bin_n_vis_freq[*, fi] = total(new_n_vis_freq[*, bin_inds], 2)
+          endif else begin
+            bin_n_vis_freq[fi] = total(new_n_vis_freq[bin_inds])
+          endelse
       endfor
-    endif else begin
-      ;; do a simple average of the input frequencies.
-      frequencies = reform(original_freqs, freq_options.freq_avg_factor, avg_n_freqs)
-      frequencies = mean(frequencies, dimension=1)
-    endelse
-    ;; After averaging, if there are any fully flagged frequencies they should remain flagged
-    if tag_exist(freq_options, 'freq_flags') then begin
-      new_mask = reform(original_mask, freq_options.freq_avg_factor, avg_n_freqs)
-      new_mask = max(new_mask, dimension=1)
-    endif
-    if nfiles eq 2 then begin
-      new_n_vis_freq = reform(new_n_vis_freq, nfiles, freq_options.freq_avg_factor, avg_n_freqs)
-      new_n_vis_freq = total(new_n_vis_freq, 2)
-    endif else begin
-      new_n_vis_freq = reform(new_n_vis_freq, freq_options.freq_avg_factor, avg_n_freqs)
-      new_n_vis_freq = total(new_n_vis_freq, 1)
+    new_n_vis_freq = bin_n_vis_freq
     endelse
 
-    ;; require a freq_dft if the resulting frequencies are not regularly spaced
-    ;; check frequency spacing to determine if a frequency DFT is required.
     if ( $
       not ps_options.freq_dft $
       and tag_exist(freq_options, 'freq_flags') $
@@ -220,11 +264,22 @@ pro ps_freq_select_avg, file_struct, n_vis_freq, refresh_options = refresh_optio
         data_cube = total(data_cube, 3)
       endif
 
+      if tag_exist(freq_options, 'freq_avg_bins') then begin
+        data_shape = size(data_cube, /dimensions)
+        new_data_cube = dcomplexarr(data_shape[0], data_shape[1], new_nfreq)
+        for fi = 0, new_nfreq - 1 do begin 
+            ; ge t indices for data going into each frequency bin
+            bin_inds = ri[ri[fi] : ri[fi + 1] - 1]
+            new_data_cube[*, *, fi] = total(data_cube[*, *, bin_inds], 3)
+        endfor
+        data_cube = new_data_cube
+      endif
+
       if tag_exist(freq_options, 'freq_flags') then begin
-        save, file = file_struct.uvf_savefile[i], kx_rad_vals, ky_rad_vals, $
+        save, file = file_struct.uvf_savefile[i], kx_rad_vals, ky_rad_vals, frequencies, $
           data_cube, freq_mask, uvf_git_hash
       endif else begin
-        save, file = file_struct.uvf_savefile[i], kx_rad_vals, ky_rad_vals, $
+        save, file = file_struct.uvf_savefile[i], kx_rad_vals, ky_rad_vals, frequencies, $
           data_cube, uvf_git_hash
       endelse
       undefine, data_cube, uvf_git_hash
@@ -239,7 +294,7 @@ pro ps_freq_select_avg, file_struct, n_vis_freq, refresh_options = refresh_optio
       test_full_wt_uvf = file_valid(full_uvf_wt_file)
       if not test_full_wt_uvf then test_full_wt_uvf = check_old_path(file_struct, 'uvf_weight_savefile', index=i)
 
-      if test_full_uvf eq 0 then begin
+      if test_full_wt_uvf eq 0 then begin
         message, 'full uvf weight cube does not exist. expected full file: ' + full_uvf_wt_file
       endif
       restore, full_uvf_wt_file
@@ -262,12 +317,28 @@ pro ps_freq_select_avg, file_struct, n_vis_freq, refresh_options = refresh_optio
         variance_cube = total(variance_cube, 3)
       endif
 
+      if tag_exist(freq_options, 'freq_avg_bins') then begin
+        data_shape = size(weights_cube, /dimensions)
+        new_weights_cube = dcomplexarr(data_shape[0], data_shape[1], new_nfreq)
+        new_variance_cube = dblarr(data_shape[0], data_shape[1], new_nfreq)
+        for fi = 0, new_nfreq - 1 do begin
+          if ri[fi + 1] gt ri[fi] then begin
+            ; ge t indices for data going into each frequency bin
+            bin_inds = ri[ri[fi] : ri[fi + 1] - 1]
+            new_weights_cube[*, *, fi] = total(weights_cube[*, *, bin_inds], 3)
+            new_variance_cube[*, *, fi] = total(variance_cube[*, *, bin_inds], 3)
+          endif
+        endfor
+        weights_cube = new_weights_cube
+        variance_cube = new_variance_cube
+      endif
+
       if tag_exist(freq_options, 'freq_flags') then begin
         save, file = file_struct.uvf_weight_savefile[i], kx_rad_vals, $
-          ky_rad_vals, weights_cube, variance_cube, freq_mask, uvf_wt_git_hash
+          ky_rad_vals, frequencies, weights_cube, variance_cube, freq_mask, uvf_wt_git_hash
       endif else begin
         save, file = file_struct.uvf_weight_savefile[i], kx_rad_vals, $
-          ky_rad_vals, weights_cube, variance_cube, uvf_wt_git_hash
+          ky_rad_vals, frequencies, weights_cube, variance_cube, uvf_wt_git_hash
       endelse
       undefine, weights_cube, variance_cube, uvf_wt_git_hash
 

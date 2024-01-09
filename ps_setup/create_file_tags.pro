@@ -53,6 +53,10 @@ function create_file_tags, uvf_options = uvf_options, freq_options = freq_option
     endif
   endif
 
+  if tag_exist(freq_options, 'freq_bin_name') then begin
+    freq_tag = freq_tag + '_freqbin' + freq_options.freq_bin_name
+  endif
+
   if tag_exist(uvf_options, 'delta_uv_lambda') then begin
     uv_tag = '_deluv' + number_formatter(uvf_options.delta_uv_lambda)
   endif else begin

@@ -7,6 +7,8 @@ function create_freq_options, $
     freq_flag_repeat = freq_flag_repeat, $
     freq_avg_factor = freq_avg_factor, $
     force_even_freqs = force_even_freqs, $
+    freq_avg_bins = freq_avg_bins, $
+    freq_bin_name = freq_bin_name, $
     frequencies = frequencies, $
     n_vis_freq = n_vis_freq, $
     beam_int = beam_int, $
@@ -26,6 +28,7 @@ function create_freq_options, $
 
   update_tags = list()
   update_values = list()
+
   if n_elements(freq_options) eq 0 then begin
     ;; default to no averaging
     if n_elements(freq_avg_factor) eq 0 then begin
@@ -71,6 +74,22 @@ function create_freq_options, $
   if n_elements(freq_flag_name) gt 0 then begin
     update_tags.add, 'freq_flag_name'
     update_values.add, freq_flag_name
+  endif
+
+  if n_elements(freq_avg_bins) gt 0 then begin
+    if freq_options.freq_avg_factor gt 1 then begin
+      message, "freq_avg_factor and freq_avg_bins cannot both be set"
+    endif else if freq_options.force_even_freqs gt 0 then begin
+      message, "cannot use force_even_freqs with freq_avg_bins"
+    endif else begin
+      update_tags.add, 'freq_avg_bins'
+      update_values.add, freq_avg_bins
+    endelse
+  endif
+
+  if n_elements(freq_bin_name) gt 0 then begin
+    update_tags.add, 'freq_bin_name'
+    update_values.add, freq_bin_name
   endif
 
   if n_elements(frequencies) gt 0 then begin

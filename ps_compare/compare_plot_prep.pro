@@ -489,6 +489,7 @@ pro compare_plot_prep, folder_names, obs_info, $
     if ( $
       tag_exist(freq_options[0], 'freq_flags') or tag_exist(freq_options[1], 'freq_flags') $
       or tag_exist(freq_options[0], 'freq_ch_range') or tag_exist(freq_options[1], 'freq_ch_range') $
+      or tag_exist(freq_options[0], 'freq_avg_bins') or tag_exist(freq_options[1], 'freq_avg_bins') $
       or freq_options[0].freq_avg_factor gt 1 or freq_options[1].freq_avg_factor gt 1 $
     ) then begin
       refresh_options = create_refresh_options()
@@ -532,7 +533,7 @@ pro compare_plot_prep, folder_names, obs_info, $
     mean_redshift = mean(redshifts)
 
     cosmology_measures, mean_redshift, wedge_factor = wedge_factor
-    if tag_exist(binning_1d_options, 'wedge_angles') then begin
+    if tag_exist(binning_1d_options, 'wedge_angles') then begin 
       if min(binning_1d_options.wedge_angles) le 0 or $
           max(binning_1d_options.wedge_angles) ge 180 then begin
         message, 'wedge_angles must be in degrees and between 0 & 180'

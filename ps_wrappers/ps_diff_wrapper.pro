@@ -9,6 +9,7 @@ pro ps_diff_wrapper, folder_names_in, obs_names_in, $
     freq_flags = freq_flags, freq_flag_name = freq_flag_name, $
     freq_flag_repeat = freq_flag_repeat, $
     freq_avg_factor = freq_avg_factor, force_even_freqs = force_even_freqs, $
+    freq_avg_bins = freq_avg_bins, freq_bin_name = freq_bin_name, $
     plot_slices = plot_slices, slice_type = slice_type, $
     png = png, eps = eps, pdf = pdf, data_range = data_range, data_min_abs = data_min_abs, $
     kperp_linear_axis = kperp_linear_axis, kpar_linear_axis = kpar_linear_axis, sim = sim, $
@@ -40,6 +41,7 @@ pro ps_diff_wrapper, folder_names_in, obs_names_in, $
     freq_flags = freq_flags, freq_flag_name = freq_flag_name, $
     freq_flag_repeat = freq_flag_repeat, $
     freq_avg_factor = freq_avg_factor, force_even_freqs = force_even_freqs, $
+    freq_avg_bins = freq_avg_bins, freq_bin_name = freq_bin_name, $
     diff_plot_path = diff_plot_path, diff_save_path = diff_save_path, $
     folder_names = folder_names, obs_info = obs_info, uvf_options = uvf_options, $
     freq_options = freq_options, ps_options = ps_options
