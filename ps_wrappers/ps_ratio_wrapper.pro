@@ -1,6 +1,8 @@
 pro ps_ratio_wrapper, folder_names_in, obs_names_in, ps_foldernames=ps_foldernames, $
     exact_obsnames = exact_obsnames, version_test = version_test, $
     cube_types = cube_types,  pols = pols, $
+    freq_dft = freq_dft, dft_z_use = dft_z_use, $
+    kz_use = kz_use, kzuse_name = kzuse_name, $
     all_pol_diff_ratio = all_pol_diff_ratio, freq_ch_range = freq_ch_range, $
     freq_flags = freq_flags, freq_flag_name = freq_flag_name, $
     freq_flag_repeat = freq_flag_repeat, $
@@ -25,6 +27,7 @@ pro ps_ratio_wrapper, folder_names_in, obs_names_in, ps_foldernames=ps_foldernam
     max_uv_lambda = max_uv_lambda, full_image = full_image, $
     image_clip = image_clip, ave_removal = ave_removal, $
     freq_dft = freq_dft, dft_z_use = dft_z_use, std_power = std_power, $
+    kz_use = kz_use, kzuse_name = kzuse_name, $
     all_type_pol = all_type_pol, freq_ch_range = freq_ch_range, $
     freq_flags = freq_flags, freq_flag_name = freq_flag_name, $
     freq_flag_repeat = freq_flag_repeat, $

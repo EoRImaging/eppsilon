@@ -92,6 +92,14 @@ function create_file_tags, uvf_options = uvf_options, freq_options = freq_option
       kcube_tag = kcube_tag + 'reg'
     endif
   endif
+
+  if tag_exist(ps_options, 'kz_use') then begin
+    kcube_tag = kcube_tag + '_kzuse'
+    if tag_exist(ps_options, 'kzuse_name') then begin
+      kcube_tag = kcube_tag + ps_options.kzuse_name
+    endif
+  endif
+
   if ps_options.inverse_covar_weight then begin
     kcube_tag = kcube_tag + '_invcovar'
   endif

@@ -4,10 +4,11 @@ pro ps_diff_wrapper, folder_names_in, obs_names_in, $
     spec_window_types = spec_window_types, delta_uv_lambda = delta_uv_lambda, $
     max_uv_lambda = max_uv_lambda, full_image = full_image, $
     image_clip = image_clip, ave_removal = ave_removal, $
-    freq_dft = freq_dft, dft_z_use = dft_z_use, std_power = std_power, $
-    all_type_pol = all_type_pol, freq_ch_range = freq_ch_range, $
-    freq_flags = freq_flags, freq_flag_name = freq_flag_name, $
-    freq_flag_repeat = freq_flag_repeat, $
+    freq_dft = freq_dft, dft_z_use = dft_z_use, $
+    kz_use = kz_use, kzuse_name = kzuse_name, $
+    std_power = std_power, all_type_pol = all_type_pol, $
+    freq_ch_range = freq_ch_range, freq_flags = freq_flags, $
+    freq_flag_name = freq_flag_name, freq_flag_repeat = freq_flag_repeat, $
     freq_avg_factor = freq_avg_factor, force_even_freqs = force_even_freqs, $
     freq_avg_bins = freq_avg_bins, freq_bin_name = freq_bin_name, $
     plot_slices = plot_slices, slice_type = slice_type, $
@@ -38,6 +39,7 @@ pro ps_diff_wrapper, folder_names_in, obs_names_in, $
     max_uv_lambda = max_uv_lambda, full_image = full_image, $
     image_clip = image_clip, ave_removal = ave_removal, $
     freq_dft = freq_dft, dft_z_use = dft_z_use, std_power = std_power, $
+    kz_use = kz_use, kzuse_name = kzuse_name, $
     all_type_pol = all_type_pol, freq_ch_range = freq_ch_range, $
     freq_flags = freq_flags, freq_flag_name = freq_flag_name, $
     freq_flag_repeat = freq_flag_repeat, $

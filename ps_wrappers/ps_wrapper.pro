@@ -17,7 +17,7 @@ pro ps_wrapper, folder_name_in, obs_name, data_subdirs=data_subdirs, $
     freq_avg_bins = freq_avg_bins, freq_bin_name = freq_bin_name, $
     allow_beam_approx = allow_beam_approx, uvf_input = uvf_input, uv_avg = uv_avg, $
     uv_img_clip = uv_img_clip, freq_dft = freq_dft, dft_z_use = dft_z_use, $
-    std_power = std_power, $
+    kz_use = kz_use, kzuse_name = kzuse_name, std_power = std_power, $
     inverse_covar_weight = inverse_covar_weight, ave_removal = ave_removal, $
     no_wtd_avg = no_wtd_avg, norm_rts_with_fhd = norm_rts_with_fhd, $
     use_weight_cutoff_sim = use_weight_cutoff_sim, $
@@ -204,8 +204,6 @@ pro ps_wrapper, folder_name_in, obs_name, data_subdirs=data_subdirs, $
     message, 'save_slices cannot be set to 0 if plot_slices is set'
   endif
 
-  print,'datafile = ' + datafile
-
   if keyword_set(set_data_ranges) then begin
     if n_elements(range_1d) eq 0 then begin
       if keyword_set(plot_1d_delta) then begin
@@ -278,8 +276,8 @@ pro ps_wrapper, folder_name_in, obs_name, data_subdirs=data_subdirs, $
   ps_options = create_ps_options(ave_removal = ave_removal, wt_cutoffs = wt_cutoffs, $
     wt_measures = wt_measures, spec_window_type = spec_window_type, $
     no_spec_window = no_spec_window, allow_beam_approx = allow_beam_approx, $
-    save_sum_cube = save_sum_cube, $
-    freq_dft = freq_dft, dft_z_use = dft_z_use, $
+    save_sum_cube = save_sum_cube, freq_dft = freq_dft, $
+    dft_z_use = dft_z_use, kz_use = kz_use, kzuse_name = kzuse_name, $
     std_power = std_power, no_wtd_avg = no_wtd_avg, $
     inverse_covar_weight = inverse_covar_weight)
 

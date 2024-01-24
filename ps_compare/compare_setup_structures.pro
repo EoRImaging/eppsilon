@@ -4,6 +4,7 @@ pro compare_setup_structures, folder_names_in, obs_names_in, $
     max_uv_lambda = max_uv_lambda, full_image = full_image, $
     image_clip = image_clip, ave_removal = ave_removal, $
     freq_dft = freq_dft, dft_z_use = dft_z_use, std_power = std_power, $
+    kz_use = kz_use, kzuse_name = kzuse_name, $
     all_type_pol = all_type_pol, freq_ch_range = freq_ch_range, $
     freq_flags = freq_flags, freq_flag_name = freq_flag_name, $
     freq_avg_bins = freq_avg_bins, freq_bin_name = freq_bin_name, $
@@ -289,13 +290,14 @@ pro compare_setup_structures, folder_names_in, obs_names_in, $
   if n_elements(ave_removal) lt 2 and n_elements(wt_cutoffs) lt 2 and $
     n_elements(wt_measures) lt 2 and n_elements(spec_window_types) lt 2 and $
     n_elements(freq_dft) lt 2 and n_elements(dft_z_use) lt 2 and $
-    n_elements(freq_avg_factor) lt 2 and n_elements(force_even_freqs) lt 2 and $
+    n_elements(kz_use) lt 2 and n_elements(kzuse_name) lt 2 and $
     n_elements(std_power) lt 2 then begin
 
     ps_options = create_ps_options(ave_removal = ave_removal, $
     wt_cutoffs = wt_cutoffs, wt_measures = wt_measures, $
     spec_window_type = spec_window_types, $
     freq_dft = freq_dft, dft_z_use = dft_z_use, $
+    kz_use = kz_use, kzuse_name = kzuse_name, $
     std_power = std_power)
 
   endif else begin
@@ -377,6 +379,32 @@ pro compare_setup_structures, folder_names_in, obs_names_in, $
       else: message, 'only 1 or 2 dft_z_use values allowed'
     endcase
 
+    case n_elements(kz_use) of
+      0:
+      1: begin
+        kz0 = kz_use
+        kz1 = kz_use
+      end
+      2: begin
+        kz0 = kz_use[0]
+        kz1 = kz_use[1]
+      end
+      else: message, 'only 1 or 2 dft_z_use values allowed'
+    endcase
+    
+    case n_elements(kzuse_name) of
+      0:
+      1: begin
+        kzn0 = kzuse_name
+        kzn1 = kzuse_name
+      end
+      2: begin
+        kzn0 = kzuse_name[0]
+        kzn1 = kzuse_name[1]
+      end
+      else: message, 'only 1 or 2 dft_z_use values allowed'
+    endcase
+
     case n_elements(std_power) of
       0:
       1: begin
@@ -392,10 +420,12 @@ pro compare_setup_structures, folder_names_in, obs_names_in, $
 
     ps_options0 = create_ps_options(ave_removal = ar0, wt_cutoffs = wtc0, $
       wt_measures = wtm0, spec_window_type = spw0, freq_dft = dft0, $
+      kz_use = kz0, kzuse_name = kzn0, $
       dft_z_use = dftz0, std_power = sp0)
 
     ps_options1 = create_ps_options(ave_removal = ar1, wt_cutoffs = wtc1, $
       wt_measures = wtm1, spec_window_type = spw1, freq_dft = dft1, $
+      kz_use = kz1, kzuse_name = kzn1, $
       dft_z_use = dftz1, std_power = sp1)
 
     ps_options = list(ps_options0, ps_options1)

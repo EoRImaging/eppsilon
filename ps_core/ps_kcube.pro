@@ -74,19 +74,51 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
   delay_max = delay_delta * n_freq/2.    ;; factor of 2 b/c of neg/positive
   delay_params = [delay_delta, delay_max]
 
-  kz_mpc_range =  (2.*!dpi) / (z_mpc_delta)
-  kz_mpc_delta = (2.*!dpi) / z_mpc_length
+  ;; check for uneven frequencies to determine how to calculate kz values
+  freq_diff = frequencies - shift(frequencies, 1)
+  freq_diff = freq_diff[1:*]
+  if max(abs(freq_diff-freq_diff[0])) gt 1e-12 and not tag_exist(ps_options, 'kz_use') then begin
+    message, "frequencies are unevenly spaced. To calculate kz values, " $
+      + "kz_mpc_range and kz_mpc_delta must be sent in with kz_use. See dictionary " $
+      + "and UW thesis by Star for reference."
+  endif
+
+  if tag_exist(ps_options, 'kz_use') then begin
+    kz_mpc_range = double(ps_options.kz_use[0])
+    kz_mpc_delta = double(ps_options.kz_use[1])
+    n_kz = round(kz_mpc_range / kz_mpc_delta)
+    ; force frequency dft if using custom kz array
+    ps_options = create_ps_options(ps_options = ps_options, freq_dft = 1)
+    if n_kz lt 1 then begin
+      message, "n_kz is less than one. Something is wrong with kz_use input."
+    endif 
+  endif else begin
+    kz_mpc_range =  (2.*!dpi) / (z_mpc_delta)
+    kz_mpc_delta = (2.*!dpi) / z_mpc_length
+    n_kz = round(kz_mpc_range / kz_mpc_delta)
+    if n_kz ne n_freq then begin
+      message, "something has gone wrong with kz_mpc calculation, n_kz is " $
+        + "not equal to n_freq. n_kz: " + number_formatter(n_kz) + ", n_freq:" $
+        + number_formatter(n_freq)
+    endif
+  endelse
+
+  ;; for standard EOR high band calculations (averaged evenly by four): 
+  ;; kz_mpc_range = double(2.4628338337796376)
+  ;; kz_mpc_delta = double(0.012827259550935612)
+  ;; for hyperfine, kz_mpc_delta = double(0.00012827259550935612)
 
   ;; need to figure out where the zero bin is (for later computations)
   ;; The location of the zero bin also dictates what the most negative kz bin is (min_kz)
   ;; which we use to construct the kz_mpc_orig array
   ;; The calculation depends a bit on whether we have an odd or even number of frequencies.
   ;; The following calculation is taken directly from the IDL FFT documentation
-  int_arr = findgen((n_freq - 1)/2) + 1
-  is_n_freq_even = (n_freq mod 2) eq 0
-  fft_shift_val = -(n_freq/2 + 1)
-  if (is_n_freq_even) then begin
-    kz_integers = [0.0, int_arr, n_freq/2, -n_freq/2 + int_arr]
+  ;; The calculation was modified Jan 2024 to allow for n_kz not equal to n_freqs
+  int_arr = findgen((n_kz - 1)/2) + 1
+  is_n_kz_even = (n_kz mod 2) eq 0
+  fft_shift_val = -(n_kz/2 + 1)
+  if (is_n_kz_even) then begin
+    kz_integers = [0.0, int_arr, n_kz/2, -n_kz/2 + int_arr]
   endif else begin
     kz_integers = [0.0, int_arr, fft_shift_val + int_arr]
   endelse
@@ -96,20 +128,8 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
   endif
 
   min_kz = min(kz_integers)*kz_mpc_delta
-  kz_mpc_orig = findgen(round(kz_mpc_range / kz_mpc_delta)) * kz_mpc_delta + min_kz
+  kz_mpc_orig = dindgen(n_kz) * kz_mpc_delta + min_kz
 
-  n_kz = n_elements(kz_mpc_orig)
-  if n_kz ne n_freq then begin
-    if not even_freq and (tag_exist(freq_options, 'freq_flags') or freq_options.freq_avg_factor gt 1) then begin
-      print, 'uneven freq spacing due to flagging and/or averaging resulted in n_kz ' $
-        + 'not equal to n_freq. n_kz: ' + number_formatter(n_kz) + ', n_freq:' $
-        + number_formatter(n_freq)
-    endif else begin
-      message, 'something has gone wrong with kz_mpc calculation, n_kz is ' $
-        + 'not equal to n_freq. n_kz: ' + number_formatter(n_kz) + ', n_freq:' $
-        + number_formatter(n_freq)
-    endelse
-  endif
   if input_units eq 'jansky' then begin
     ;; converting from Jy (in u,v,f) to mK*str (10^-26 * c^2 * 10^3/ (2*f^2*kb))
     conv_factor = double((299792458.)^2 / (2. * (frequencies*1e6)^2. * 1.38065))
@@ -1210,7 +1230,9 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
   endif
 
   if ps_options.inverse_covar_weight then begin
-
+    if tag_exist(ps_options, 'kz_use') then begin
+      print, 'caution! Custom kz arrays have not been tested with inverse covariance weighting.'
+    endif
     max_eta_val = max(sum_sigma2)
     eta_var = shift([max_eta_val, fltarr(n_freq-1)], fft_shift_val)
     covar_eta_fg = diag_matrix(eta_var)
@@ -1271,15 +1293,17 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
 
   ;; this should be zero by construction, but add a test just in case
   if kz_mpc_orig[where(n_val eq 0)] ne 0 then begin
-    message, 'something has gone terribly wrong with calculating the kz_mpc_orig values.'
+    message, 'center kz value is not zero. Something has gone terribly wrong ' $
+      + 'with calculating the kz_mpc_orig values.'
   endif
 
   kz_mpc = kz_mpc_orig[where(n_val ge 0)]
 
-  if is_n_freq_even then begin
-    ;; if n_freq is even, there's an extra positive mode (because there's always a zero mode.)
+  if is_n_kz_even then begin
+    ;; if n_kz is even, there's an extra positive mode (because there's always a zero mode.)
     if max(abs(n_val(wh_pos))) le max(abs(n_val(wh_neg))) then begin
-      message, 'something has gone terribly wrong with calculating the kz_integers.'
+      message, 'absolute values of max and min kz_integers do not match. Something has ' $
+        + 'gone terribly wrong with calculating the kz_integers.'
     endif
     ;; remove unmatched max k positive mode:
     trim_max_pos = 1
@@ -1582,14 +1606,14 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
 
   if tag_exist(freq_options, 'freq_flags') then begin
     save, file = file_struct.kcube_savefile, data_sum_1, data_sum_2, data_diff_1, $
-      data_diff_2, sigma2_1, sigma2_2, sim_noise_sum_1, sim_noise_sum_2, $
+      data_diff_2, sigma2_1, sigma2_2, sim_noise_sum_1, sim_noise_sum_2, frequencies, $
       sim_noise_diff_1, sim_noise_diff_2, kx_mpc, ky_mpc, kz_mpc, kperp_lambda_conv, $
       delay_params, hubble_param, n_freq_contrib, freq_mask, vs_name, vs_mean, $
       t_sys_meas, window_int, git_hashes, wt_meas_ave, wt_meas_min, ave_weights, $
       wt_ave_power_freq, ave_power_freq, wt_ave_power_uvf, ave_power_uvf
   endif else begin
     save, file = file_struct.kcube_savefile, data_sum_1, data_sum_2, data_diff_1, $
-      data_diff_2, sigma2_1, sigma2_2, sim_noise_sum_1, sim_noise_sum_2, $
+      data_diff_2, sigma2_1, sigma2_2, sim_noise_sum_1, sim_noise_sum_2, frequencies, $
       sim_noise_diff_1, sim_noise_diff_2, kx_mpc, ky_mpc, kz_mpc, kperp_lambda_conv, $
       delay_params, hubble_param, n_freq_contrib, vs_name, vs_mean, t_sys_meas, $
       window_int, git_hashes, wt_meas_ave, wt_meas_min, ave_weights, $
