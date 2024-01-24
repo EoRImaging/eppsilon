@@ -2,7 +2,8 @@ function create_ps_options, ps_options = ps_options, $
     ave_removal = ave_removal, wt_cutoffs = wt_cutoffs, $
     wt_measures = wt_measures, spec_window_type = spec_window_type, $
     no_spec_window = no_spec_window, allow_beam_approx = allow_beam_approx, $
-    freq_dft = freq_dft, dft_z_use = dft_z_use, save_sum_cube = save_sum_cube, $
+    save_sum_cube = save_sum_cube, freq_dft = freq_dft, $
+    dft_z_use = dft_z_use, kz_use = kz_use, kzuse_name = kzuse_name, $
     std_power = std_power, no_wtd_avg = no_wtd_avg, $
     inverse_covar_weight = inverse_covar_weight, return_new = return_new
 
@@ -20,6 +21,9 @@ function create_ps_options, ps_options = ps_options, $
 
     ;; default to not turning off spectral windowing
     if n_elements(no_spec_window) eq 0 then no_spec_window = 0
+
+    ;; default to not saving sum cube
+    if n_elements(save_sum_cube) eq 0 then save_sum_cube = 0
 
     ;; Default to using a frequency DFT.
     if n_elements(freq_dft) eq 0 then freq_dft = 1
@@ -107,6 +111,16 @@ function create_ps_options, ps_options = ps_options, $
     endif
     update_tags.add, 'dft_z_use'
     update_values.add, dft_z_use
+  endif
+
+  if n_elements(kz_use) gt 0 then begin
+    update_tags.add, 'kz_use'
+    update_values.add, kz_use
+  endif
+
+  if n_elements(kzuse_name) gt 0 then begin
+    update_tags.add, 'kzuse_name'
+    update_values.add, kzuse_name
   endif
 
   if n_elements(update_tags) gt 0 or keyword_set(return_new) then begin

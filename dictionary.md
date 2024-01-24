@@ -11,7 +11,7 @@ label it with !Q.
 Many of these keywords are re-used in other wrappers, but since this is the
 primary eppsilon wrapper they are defined here.
 
-## input data definitions:
+## Input data definitions:
 
 **folder_name**: **Required** This defines what folder the data live in. For
 FHD, it should be the top level folder for that run (which contains folders
@@ -52,17 +52,6 @@ RTS it is ['xx', 'yy'].
 (e.g. 'dirty', 'model', 'res'). For FHD the default is all available types,
 for RTS it is ['res'].
 
-**freq_ch_range**: Specifies what range of frequency channels to calculate the
-power spectra for. Default is all available channels (this is modified if the
-  coarse_harm_width keyword is used).
-
-**freq_flags**: A list of frequency channels to flag in calculating the power
-spectrum. Errors will be generated if there are fewer than 3 unflagged
-frequencies.
-
-**freq_flag_name**: Only used if freq_flags is used. String to use in the
-output file names to identify the files with the frequency flagging applied.
-
 **uvf_input**: This is a flag (valid values are 0/1, default=0) indicating
 that the input cubes are uvf cubes, rather than image space cubes. This is only
 supported for FHD inputs and only works for single obsid cubes. This is used
@@ -72,6 +61,35 @@ most often for simulation testing & exploration.
 that only one set of files (rather than both evens and odds) are expected to be
 present. If not set, eppsilon will error fairly quickly rather than proceeding
 with just one set of files.
+
+
+## Frequencing selecting, flagging, and averaging keywords:
+
+**freq_ch_range**: Specifies what range of frequency channels to calculate the
+power spectra for. Default is all available channels (this is modified if the
+  coarse_harm_width keyword is used).
+
+**freq_flags**: A list of frequency channels to flag in calculating the power
+spectrum. Errors will be generated if there are fewer than 3 unflagged
+frequencies.
+
+**freq_flag_repeat**: Only used if freq_flags is used. Integer of number of repeats
+of freq_flags needed to generate a full flag array. (Length of freq_flags) * freq_flag_repeat
+must equal length of frequencies.
+
+**freq_flag_name**: Only used if freq_flags is used. String to use in the
+output file names to identify the files with the frequency flagging applied.
+
+**freq_avg_factor**: Integer by which to average along the frequency axis.
+
+**force_even_freqs**: Only used if freq_avg_factor is used. Forces flags to be ignored
+while averaging the frequency array, thus resulting in evenly spaced frequencies.
+
+**freq_avg_bins**: Set of integers assigning each frequency to a bin. Must have the same
+length as number of frequencies. Bins must start at zero and be contiguous.
+
+**freq_bin_name**: Only used if freq_avg_bins is set. String to use in the output file
+names to identify files which have been averaged into bins.
 
 
 ## RTS specific keywords:

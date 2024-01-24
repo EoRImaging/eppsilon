@@ -1,12 +1,14 @@
 pro ps_power, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
-    uvf_input = uvf_input, freq_ch_range = freq_ch_range, freq_flags = freq_flags, $
+    uvf_input = uvf_input, freq_options = freq_options, $
     input_units = input_units, save_slices = save_slices, $
     refresh_options = refresh_options, uvf_options = uvf_options, $
     ps_options = ps_options
 
   nfiles = n_elements(file_struct.datafile)
 
-  if n_elements(freq_flags) ne 0 then freq_mask = file_struct.freq_mask
+  if tag_exist(freq_options, 'freq_flags') then begin
+    freq_mask = freq_options.freq_mask
+  endif
 
   test_kcube = file_valid(file_struct.kcube_savefile)
   if not test_kcube then test_kcube = check_old_path(file_struct, 'kcube_savefile')
@@ -18,7 +20,7 @@ pro ps_power, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
 
   if test_kcube eq 0 or refresh_options.refresh_kcube then begin
     ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
-      uvf_input = uvf_input, freq_ch_range = freq_ch_range, freq_flags = freq_flags, $
+      uvf_input = uvf_input, freq_options = freq_options, $
       input_units = input_units, save_slices = save_slices, $
       refresh_options = refresh_options, uvf_options = uvf_options, $
       ps_options = ps_options
@@ -258,7 +260,7 @@ pro ps_power, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
       kcube:'', ps:ps_git_hash}
   endelse
 
-  if n_elements(freq_flags) ne 0 then begin
+  if tag_exist(freq_options, 'freq_flags') then begin
     save, file = file_struct.power_savefile, power_3d, noise_3d, sim_noise_3d, $
       sim_noise_diff_3d, noise_expval_3d, weights_3d, diff_weights_3d, $
       kx_mpc, ky_mpc, kz_mpc, kperp_lambda_conv, delay_params, hubble_param, $
