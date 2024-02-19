@@ -139,17 +139,18 @@ function fhd_file_setup, filename, weightfile = weightfile, $
         endif
       endif
 
-      pol_inc = pols[0]
-      pol_num = intarr(n_elements(pols))
-      for i=0, n_elements(pols)-1 do begin
-        wh_pol = where(pol_inc eq pols[i], count_pol)
-        if count_pol eq 1 then pol_num[i] = wh_pol[0] else begin
-          pol_inc = [pol_inc, pols[i]]
-          pol_num[i] = n_elements(pol_inc)-1
-        endelse
-      endfor
-
+      if n_elements(pol_inc) eq 0 then begin
+        pol_inc = pols
+      endif else begin
+        for i=0, n_elements(pol_inc)-1 do begin
+          wh_pol = where(pols eq pol_inc[i], count_pol)
+          if count_pol eq 0 then message, "pol " + pol_inc[i] + " does not have a corresponding data file."
+        endfor
+      endelse
       npol = n_elements(pol_inc)
+      pol_num = intarr(npol)
+      pol_inc = pols[pols[uniq(pols, sort(pols))]]
+
       nfiles = ceil(n_elements(datafile)/float(npol))
       if nfiles gt 2 then begin
         message, 'Only 1 or 2 datafiles supported per pol'
@@ -195,28 +196,23 @@ function fhd_file_setup, filename, weightfile = weightfile, $
       pixelfile = temporary(temp_pix)
     endif else begin
       ;; no pol identifiers in filenames
-      if n_elements(pol_inc) eq 0 then begin
-        void = getvar_savefile(datafile[0], names = datafile_varnames)
-        wh_weights = where(strmatch(datafile_varnames, 'weights*',/fold_case) gt 0, count_weights)
-        if count_weights eq 0 then message, 'no weights array in file'
-        if count_weights eq 1 then begin
-          ;; FHD only allows xx if one pol
-          pol_inc = ['xx']
-        endif else begin
-          ;; defaut to 'xx' and 'yy' if npol >= 2
-          pol_inc = ['xx', 'yy']
-        endelse
-      endif
+      void = getvar_savefile(datafile[0], names = datafile_varnames)
+      wh_weights = where(strmatch(datafile_varnames, 'weights*',/fold_case) gt 0, count_weights)
+      if count_weights eq 0 then message, 'no weights array in file'
+      ;; FHD only supports this order, e.g. if there's only one pol it must be 'xx'
       pol_enum = ['xx', 'yy', 'xy', 'yx']
+      pols = pol_enum[0:count_weights-1]
+
+      if n_elements(pol_inc) eq 0 then begin
+        pol_inc = pols
+      endif else begin
+        for i=0, n_elements(pol_inc)-1 do begin
+          wh_pol = where(pols eq pol_inc[i], count_pol)
+          if count_pol eq 0 then message, "pol " + pol_inc[i] + " does not have data in the datafile."
+        endfor
+      endelse
       npol = n_elements(pol_inc)
       pol_num = intarr(npol)
-      for i=0, npol-1 do begin
-        wh = where(pol_enum eq pol_inc[i], count)
-        if count eq 0 then begin
-          message, 'pol ' + pol_inc[i] + ' not recognized.'
-        endif
-        pol_num[i] = wh[0]
-      endfor
       pol_inc = pol_enum[pol_num[uniq(pol_num, sort(pol_num))]]
 
       nfile_dims = size(datafile, /dimension)
