@@ -197,26 +197,13 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, $
         current_dir + path_sep() + plotfile
     endif
 
-    n_ext_set = 0
-    if keyword_set(png) then n_ext_set +=1
-    if keyword_set(pdf) then n_ext_set +=1
-    if keyword_set(eps) then n_ext_set +=1
-    if n_ext_set gt 1 then begin
-      print, 'only one of eps, png, pdf keywords can be set, using png'
-      eps = 0
-      pdf = 0
-    endif
-
-    if keyword_set(png) then begin
-      plot_exten = '.png'
-      delete_ps = 1
-    endif else if keyword_set(pdf) then begin
-      plot_exten = '.pdf'
-      delete_ps = 1
-    endif else if keyword_set(eps) then begin
+    if keyword_set(eps) then begin
       plot_exten = '.eps'
       delete_ps = 0
-    endif
+    endif else begin
+      plot_exten = '.ps'
+      delete_ps = 1
+    endelse
   endif
 
 
@@ -490,13 +477,13 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, $
 
       if n_elements(color_type) eq 0 then color_type = 'log'
       plot_title = textoidl('P_k', font = font)
-      if pub then plotfile_add = '_2dkpower' + plot_exten
+      if pub then plotfile_add = '_2dkpower'
     end
     'weight': begin
       units_str = ''
       plot_title = 'Weights'
       if n_elements(color_type) eq 0 then color_type = 'log'
-      if pub then plotfile_add = '_2dweight' + plot_exten
+      if pub then plotfile_add = '_2dweight'
     end
     'sigma': begin
       if keyword_set(hinv) then begin
@@ -506,7 +493,7 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, $
 
       if n_elements(color_type) eq 0 then color_type = 'log'
       plot_title = 'Error (sigma)'
-      if pub then plotfile_add = '_2dsigma' + plot_exten
+      if pub then plotfile_add = '_2dsigma'
     end
     'exp_noise': begin
       if keyword_set(hinv) then begin
@@ -516,13 +503,13 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, $
 
       if n_elements(color_type) eq 0 then color_type = 'log'
       plot_title = 'Expected Noise'
-      if pub then plotfile_add = '_2dnoise_expval' + plot_exten
+      if pub then plotfile_add = '_2dnoise_expval'
     end
     'snr': begin
       units_str = ''
       if n_elements(color_type) eq 0 then color_type = 'log'
       plot_title = 'SNR (' + textoidl('P_k/\sigma', font = font) + ')'
-      if pub then plotfile_add = '_2dsnr' + plot_exten
+      if pub then plotfile_add = '_2dsnr'
     end
     'noise_meas': begin
       if keyword_set(hinv) then begin
@@ -532,7 +519,7 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, $
 
       if n_elements(color_type) eq 0 then color_type = 'log'
       plot_title = 'Observed Noise'
-      if pub then plotfile_add = '_2dnoise' + plot_exten
+      if pub then plotfile_add = '_2dnoise'
     end
     'sim_noise': begin
       if keyword_set(hinv) then begin
@@ -543,7 +530,7 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, $
       if n_elements(color_type) eq 0 then color_type = 'log'
       color_profile = 'abs'
       plot_title = '|Simulated Noise (cross)|'
-      if pub then plotfile_add = '_2dsimnoise' + plot_exten
+      if pub then plotfile_add = '_2dsimnoise'
     end
     'sim_noise_diff': begin
       if keyword_set(hinv) then begin
@@ -553,53 +540,54 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, $
 
       if n_elements(color_type) eq 0 then color_type = 'log'
       plot_title = 'Simulated Noise Diff'
-      if pub then plotfile_add = '_2dsimnoisediff' + plot_exten
+      if pub then plotfile_add = '_2dsimnoisediff'
     end
     'nnr': begin
       units_str = ''
       if n_elements(color_type) eq 0 then color_type = 'log'
       plot_title = 'Noise Ratio (' + textoidl('N_O/N_E', font = font) + ')'
-      if pub then plotfile_add = '_2dnnr' + plot_exten
+      if pub then plotfile_add = '_2dnnr'
     end
     'sim_snr': begin
       units_str = ''
       if n_elements(color_type) eq 0 then color_type = 'log'
       ;color_profile = 'abs'
       plot_title = '|Sim Noise SNR| (|' + textoidl('Sim Noise/\sigma', font = font) + '|)'
-      if pub then plotfile_add = '_2dsimsnr' + plot_exten
+      if pub then plotfile_add = '_2dsimsnr'
     end
     'sim_nnr': begin
       units_str = ''
       if n_elements(color_type) eq 0 then color_type = 'log'
       plot_title = 'Sim Noise diff Ratio (' + textoidl('N_{sim}/N_E', font = font) + ')'
-      if pub then plotfile_add = '_2dsimnnr' + plot_exten
+      if pub then plotfile_add = '_2dsimnnr'
     end
     'power_ratio': begin
       units_str = ''
       if n_elements(color_type) eq 0 then color_type = 'log'
       plot_title = 'Power Ratio'
-      if pub then plotfile_add = '_2dkpower' + plot_exten
+      if pub then plotfile_add = '_2dkpower'
     end
     'bin': begin
       units_str = '1D bin number * fill fraction'
       if n_elements(color_type) eq 0 then color_type = 'integer'
       plot_title = ''
-      if pub then plotfile_add = '_1to2dbin' + plot_exten
+      if pub then plotfile_add = '_1to2dbin'
     end
     'noise_frac': begin
       units_str = 'Noise fraction in 1d bin'
       if n_elements(color_type) eq 0 then color_type = 'linear'
       plot_title = ''
-      if pub then plotfile_add = '_1to2dnoisefrac' + plot_exten
+      if pub then plotfile_add = '_1to2dnoisefrac'
     end
   endcase
 
   if pub then begin
     if n_elements(plotfile) eq 0 then begin
-      plotfile = strsplit(power_savefile[0], '.idlsave', /regex, /extract) + plotfile_add
+      plotfile = strsplit(power_savefile[0], '.idlsave', /regex, /extract) + plotfile_add + plot_exten
     endif else begin
-      if strcmp(strmid(plotfile, strlen(plotfile)-4), plot_exten, /fold_case) eq 0 then begin
-        plotfile = plotfile + plot_exten
+      basename = cgRootName(plotfile, directory=directory, extension=extension)
+      if strcmp(extension, strmid(plot_exten, 1)) eq 0 then begin
+        plotfile = directory + basename + plot_exten
       endif
     endelse
   endif
@@ -1180,6 +1168,9 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, $
         ps_aspect = (y_factor * float(nrow)) / (x_factor * float(ncol))
 
         if ps_aspect lt 1 then landscape = 1 else landscape = 0
+        if (Keyword_Set(eps) and Keyword_Set(pdf) and landscape) then begin
+          print, "Warning! eps forces plots to be portrait; run without eps to get landscape pdf plots."
+        endif
         IF Keyword_Set(eps) THEN landscape = 0
         sizes = cgpswindow(LANDSCAPE=landscape, aspectRatio = ps_aspect, /sane_offsets)
 
@@ -1248,6 +1239,9 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, $
       ps_aspect = y_factor / x_factor
 
       if ps_aspect lt 1 then landscape = 1 else landscape = 0
+      if (Keyword_Set(eps) and Keyword_Set(pdf) and landscape) then begin
+        print, "Warning! eps forces plots to be portrait; run without eps to get landscape pdf plots."
+      endif
       IF Keyword_Set(eps) THEN landscape = 0
       sizes = cgpswindow(LANDSCAPE=landscape, aspectRatio = ps_aspect, /sane_offsets)
 
@@ -1574,7 +1568,14 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, $
   endif
 
   if keyword_set(pub) and n_elements(multi_pos) eq 0 then begin
-    cgps_close, png = png, pdf = pdf, delete_ps = delete_ps, density=600
+    if png then begin
+      if pdf then delete_ps_use = 0 else delete_ps_use = delete_ps
+      cgps_close, /png, delete_ps = delete_ps_use, density = 600
+    endif
+    if pdf then begin
+      if not png then cgps_close
+      cgps2pdf, plotfile, delete_ps=delete_ps
+    endif
   endif
 
   tvlct, r, g, b

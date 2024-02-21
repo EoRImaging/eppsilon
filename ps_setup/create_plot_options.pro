@@ -19,77 +19,42 @@ function create_plot_options, plot_options = plot_options, $
 
     if keyword_set(png) or keyword_set(eps) or keyword_set(pdf) then begin
       pub = 1
-
-      if (keyword_set(png) + keyword_set(eps) + keyword_set(pdf)) gt 1 then begin
-        if keyword_set(png) then begin
-          print, 'only one of eps, pdf and png can be set, using png'
-          eps = 0
-          pdf = 0
-        endif else if keyword_set(pdf) then begin
-          print, 'only one of eps, pdf and png can be set, using pdf'
-          eps = 0
-        endif
-      endif
-
-      if keyword_set(png) then begin
-        plot_exten = '.png'
-        delete_ps = 1
-      endif else if keyword_set(pdf) then begin
-        plot_exten = '.pdf'
-        delete_ps = 1
-      endif else if keyword_set(eps) then begin
+      if keyword_set(eps) then begin
         plot_exten = '.eps'
         delete_ps = 0
-      endif
+      endif else begin
+        plot_exten = '.ps'
+        delete_ps = 1
+      endelse
     endif else begin
       pub = 0
       plot_exten = ''
       delete_ps = 0
     endelse
-
     plot_options = {hinv: hinv, individual_plots: individual_plots, $
-      png: png, eps: eps, pdf:pdf, pub: pub, plot_exten: plot_exten, $
-      delete_ps: delete_ps}
+      png: png, eps: eps, pdf: pdf, pub: pub, $
+      plot_exten: plot_exten, delete_ps: delete_ps}
 
   endif else begin
 
     if keyword_set(png) or keyword_set(eps) or keyword_set(pdf) then begin
       pub = 1
 
-      if (keyword_set(png) + keyword_set(eps) + keyword_set(pdf)) gt 1 then begin
-        if keyword_set(png) then begin
-          print, 'only one of eps, pdf and png can be set, using png'
-          eps = 0
-          pdf = 0
-        endif else if keyword_set(pdf) then begin
-          print, 'only one of eps, pdf and png can be set, using pdf'
-          eps = 0
-        endif
-      endif
-
-      if keyword_set(png) then begin
-        eps = 0
-        pdf = 0
-        plot_exten = '.png'
-        delete_ps = 1
-      endif else if keyword_set(pdf) then begin
-        eps = 0
-        png = 0
-        plot_exten = '.pdf'
-        delete_ps = 1
-      endif else if keyword_set(eps) then begin
-        png = 0
-        pdf = 0
+      if keyword_set(eps) then begin
         plot_exten = '.eps'
         delete_ps = 0
-      endif
+      endif else begin
+        plot_exten = '.ps'
+        delete_ps = 1
+      endelse
     endif else begin
       ;; if the set one is turned off, turn off saving plots
-      if (n_elements(png) gt 0 and plot_options.png gt 0) or $
-          (n_elements(pdf) gt 0 and plot_options.pdf gt 0) or $
-          (n_elements(eps) gt 0 and plot_options.eps gt 0) then begin
+      if ((n_elements(png) gt 0 and plot_options.png gt 0) or plot_options.png eq 0) and $
+          ((n_elements(pdf) gt 0 and plot_options.pdf gt 0) or plot_options.pdf eq 0) and $
+          ((n_elements(eps) gt 0 and plot_options.eps gt 0) or plot_options.eps eq 0) then begin
         pub = 0
         plot_exten = ''
+        delete_ps = 0
       endif
     endelse
 

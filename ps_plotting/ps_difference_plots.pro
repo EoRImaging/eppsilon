@@ -129,8 +129,14 @@ pro ps_difference_plots, folder_names, obs_info, ps_foldernames = ps_foldernames
     undefine, positions, pos_use
 
     if plot_options.pub and compare_files.n_cubes gt 1 then begin
-      cgps_close, png = plot_options.png, pdf = plot_options.pdf, $
-        delete_ps = plot_options.delete_ps, density=600
+      if plot_options.png then begin
+        if plot_options.pdf then delete_ps_use = 0 else delete_ps_use = plot_options.delete_ps
+        cgps_close, /png, delete_ps = delete_ps_use, density = 600
+      endif
+      if plot_options.pdf then begin
+        if not plot_options.png then cgps_close
+        cgps2pdf, plotfile, delete_ps=plot_options.delete_ps
+      endif
     endif
     window_num += 1
   endfor
@@ -179,11 +185,18 @@ pro ps_difference_plots, folder_names, obs_info, ps_foldernames = ps_foldernames
 
       endfor
 
-    endfor
-
       if keyword_set(plot_options.pub) and compare_files.n_cubes gt 1 then begin
-        cgps_close, png = plot_options.png, pdf = plot_options.pdf, delete_ps = delete_ps, density=600
+        if plot_options.png then begin
+          if plot_options.pdf then delete_ps_use = 0 else delete_ps_use = plot_options.delete_ps
+          cgps_close, /png, delete_ps = delete_ps_use, density = 600
+        endif
+        if plot_options.pdf then begin
+          if not plot_options.png then cgps_close
+          cgps2pdf, plotfiles_use, delete_ps=plot_options.delete_ps
+        endif
       endif
+
+    endfor
 
   endif
 

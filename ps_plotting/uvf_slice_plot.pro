@@ -54,32 +54,22 @@ pro uvf_slice_plot, slice_savefile, uvf_slice=uvf_slice, xarr=xarr, yarr=yarr, $
       endcase
 
     endif
+
+    if keyword_set(eps) then begin
+      plot_exten = '.eps'
+      delete_ps = 0
+    endif else begin
+      plot_exten = '.ps'
+      delete_ps = 1
+    endelse
+
     if n_elements(plotfile) eq 0 and n_elements(multi_pos) eq 0 then begin
-      if keyword_set(eps) then begin
-        plotfile = 'idl_uvf_slice_plot.eps'
-      endif else begin
-        plotfile = 'idl_uvf_slice_plot'
-      endelse
+      plotfile = 'idl_uvf_slice_plot'
       cd, current = current_dir
       print, 'no filename specified for uvf_slice_plot output. Using ' + $
         current_dir + path_sep() + plotfile
     endif
 
-    if keyword_set(png) and keyword_set(eps) and keyword_set(pdf) then begin
-      print, 'only one of eps, pdf and png can be set, using png'
-      eps = 0
-    endif
-
-    if keyword_set(png) then begin
-      plot_exten = '.png'
-      delete_ps = 1
-    endif else if keyword_set(pdf) then begin
-      plot_exten = '.pdf'
-      delete_ps = 1
-    endif else if keyword_set(eps) then begin
-      plot_exten = '.eps'
-      delete_ps = 0
-    endif
   endif
 
   if n_elements(window_num) eq 0 then window_num = 1
@@ -187,26 +177,26 @@ pro uvf_slice_plot, slice_savefile, uvf_slice=uvf_slice, xarr=xarr, yarr=yarr, $
     'abs': begin
       plot_slice = abs(uvf_slice)
       cb_title = 'Magnitude'
-      if pub then plotfile_fadd = '_abs.eps'
+      if pub then plotfile_fadd = '_abs'
       if n_elements(log) eq 0 then log = 1
       if n_elements(color_profile) eq 0 then color_profile = 'log_cut'
     end
     'phase': begin
       plot_slice = atan(uvf_slice, /phase)
       cb_title = 'Phase (degrees)'
-      if pub then plotfile_fadd = '_phase.eps'
+      if pub then plotfile_fadd = '_phase'
       if n_elements(color_profile) eq 0 then color_profile = 'sym_log'
     end
     'real': begin
       plot_slice = real_part(uvf_slice)
       cb_title = 'Real Part'
-      if pub then plotfile_fadd = '_real.eps'
+      if pub then plotfile_fadd = '_real'
       if n_elements(color_profile) eq 0 then color_profile = 'sym_log'
     end
     'imaginary': begin
       plot_slice = imaginary(uvf_slice)
       cb_title = 'Imaginary Part'
-      if pub then plotfile_fadd = '_imaginary.eps'
+      if pub then plotfile_fadd = '_imaginary'
       if n_elements(color_profile) eq 0 then color_profile = 'sym_log'
     end
     'normalized': begin
@@ -215,7 +205,6 @@ pro uvf_slice_plot, slice_savefile, uvf_slice=uvf_slice, xarr=xarr, yarr=yarr, $
       endif
       plot_slice = uvf_slice / max(uvf_slice)
       cb_title = 'Peak Normalized'
-      if pub then plotfile_add = plot_exten
       if n_elements(log) eq 0 then log = 1
       if n_elements(color_profile) eq 0 then color_profile = 'log_cut'
     end
@@ -223,10 +212,11 @@ pro uvf_slice_plot, slice_savefile, uvf_slice=uvf_slice, xarr=xarr, yarr=yarr, $
 
   if pub then begin
     if n_elements(plotfile) eq 0 then begin
-      plotfile = strsplit(slice_savefile, '.idlsave', /regex, /extract) + plotfile_fadd
+      plotfile = strsplit(slice_savefile, '.idlsave', /regex, /extract) + plotfile_fadd + plot_exten
     endif else begin
-      if strcmp(strmid(plotfile, strlen(plotfile)-4), plot_exten, /fold_case) eq 0 then begin
-        plotfile = plotfile + plot_exten
+      basename = cgRootName(plotfile, directory=directory, extension=extension)
+      if strcmp(extension, strmid(plot_exten, 1)) eq 0 then begin
+        plotfile = directory + basename + plot_exten
       endif
     endelse
   endif
@@ -390,6 +380,9 @@ pro uvf_slice_plot, slice_savefile, uvf_slice=uvf_slice, xarr=xarr, yarr=yarr, $
         ps_aspect = (y_factor * float(nrow)) / (x_factor * float(ncol))
 
         if ps_aspect lt 1 then landscape = 1 else landscape = 0
+        if (Keyword_Set(eps) and Keyword_Set(pdf) and landscape) then begin
+          print, "Warning! eps forces plots to be portrait; run without eps to get landscape pdf plots."
+        endif
         IF Keyword_Set(eps) THEN landscape = 0
         sizes = cgpswindow(LANDSCAPE=landscape, aspectRatio = ps_aspect, /sane_offsets)
 
@@ -514,6 +507,9 @@ pro uvf_slice_plot, slice_savefile, uvf_slice=uvf_slice, xarr=xarr, yarr=yarr, $
       ps_aspect = y_factor / x_factor
 
       if ps_aspect lt 1 then landscape = 1 else landscape = 0
+      if (Keyword_Set(eps) and Keyword_Set(pdf) and landscape) then begin
+        print, "Warning! eps forces plots to be portrait; run without eps to get landscape pdf plots."
+      endif
       IF Keyword_Set(eps) THEN landscape = 0
       sizes = cgpswindow(LANDSCAPE=landscape, aspectRatio = ps_aspect, /sane_offsets)
 
@@ -704,7 +700,14 @@ pro uvf_slice_plot, slice_savefile, uvf_slice=uvf_slice, xarr=xarr, yarr=yarr, $
   endelse
 
   if keyword_set(pub) and n_elements(multi_pos) eq 0 then begin
-    cgps_close, png = png, pdf = pdf, delete_ps = delete_ps, density=600
+    if png then begin
+      if pdf then delete_ps_use = 0 else delete_ps_use = delete_ps
+      cgps_close, /png, delete_ps = delete_ps_use, density = 600
+    endif
+    if pdf then begin
+      if not png then cgps_close
+      cgps2pdf, plotfile, delete_ps=delete_ps
+    endif
   endif
 
   tvlct, r, g, b

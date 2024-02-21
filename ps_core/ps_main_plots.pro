@@ -636,9 +636,16 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
           undefine, start_multi_params
         endif
       endfor
+
       if plot_options.pub then begin
-        cgps_close, png = plot_options.png, pdf = plot_options.pdf, $
-          delete_ps = plot_options.delete_ps, density = 600
+        if plot_options.png then begin
+          if plot_options.pdf then delete_ps_use = 0 else delete_ps_use = plot_options.delete_ps
+          cgps_close, /png, delete_ps = delete_ps_use, density = 600
+        endif
+        if plot_options.pdf then begin
+          if not plot_options.png then cgps_close
+          cgps2pdf, uf_slice_plotfile, delete_ps=plot_options.delete_ps
+        endif
       endif
 
       window_num = window_num+1
@@ -674,9 +681,16 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
           undefine, start_multi_params
         endif
       endfor
+      
       if plot_options.pub then begin
-        cgps_close, png = plot_options.png, pdf = plot_options.pdf, $
-          delete_ps = plot_options.delete_ps, density = 600
+        if plot_options.png then begin
+          if plot_options.pdf then delete_ps_use = 0 else delete_ps_use = plot_options.delete_ps
+          cgps_close, /png, delete_ps = delete_ps_use, density = 600
+        endif
+        if plot_options.pdf then begin
+          if not plot_options.png then cgps_close
+          cgps2pdf, vf_slice_plotfile, delete_ps=plot_options.delete_ps
+        endif
       endif
 
       window_num = window_num+1
@@ -713,9 +727,16 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
         endif
       endfor
       undefine, pos_use
+
       if plot_options.pub then begin
-        cgps_close, png = plot_options.png, pdf = plot_options.pdf, $
-          delete_ps = plot_options.delete_ps, density = 600
+        if plot_options.png then begin
+          if plot_options.pdf then delete_ps_use = 0 else delete_ps_use = plot_options.delete_ps
+          cgps_close, /png, delete_ps = delete_ps_use, density = 600
+        endif
+        if plot_options.pdf then begin
+          if not plot_options.png then cgps_close
+          cgps2pdf, uv_slice_plotfile, delete_ps=plot_options.delete_ps
+        endif
       endif
 
     endelse
@@ -1643,9 +1664,16 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
       endif
     endfor
     undefine, positions, pos_use
+
     if plot_options.pub then begin
-      cgps_close, png = plot_options.png, pdf = plot_options.pdf, $
-        delete_ps = plot_options.delete_ps, density = 600
+      if plot_options.png then begin
+        if plot_options.pdf then delete_ps_use = 0 else delete_ps_use = plot_options.delete_ps
+        cgps_close, /png, delete_ps = delete_ps_use, density = 600
+      endif
+      if plot_options.pdf then begin
+        if not plot_options.png then cgps_close
+        cgps2pdf, plotfile_use, delete_ps=plot_options.delete_ps
+      endif
     endif
 
 
@@ -1719,9 +1747,16 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
       endif
     endfor
     undefine, positions, pos_use
+
     if plot_options.pub then begin
-      cgps_close, png = plot_options.png, pdf = plot_options.pdf, $
-        delete_ps = plot_options.delete_ps, density = 600
+      if plot_options.png then begin
+        if plot_options.pdf then delete_ps_use = 0 else delete_ps_use = plot_options.delete_ps
+        cgps_close, /png, delete_ps = delete_ps_use, density = 600
+      endif
+      if plot_options.pdf then begin
+        if not plot_options.png then cgps_close
+        cgps2pdf, plotfile_use, delete_ps=plot_options.delete_ps
+      endif
     endif
 
     start_multi_params = {ncol:ncol, nrow:nrow, ordering:'col'}
@@ -1761,9 +1796,16 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
       endif
     endfor
     undefine, positions, pos_use
+
     if plot_options.pub then begin
-      cgps_close, png = plot_options.png, pdf = plot_options.pdf, $
-        delete_ps = plot_options.delete_ps, density = 600
+      if plot_options.png then begin
+        if plot_options.pdf then delete_ps_use = 0 else delete_ps_use = plot_options.delete_ps
+        cgps_close, /png, delete_ps = delete_ps_use, density = 600
+      endif
+      if plot_options.pdf then begin
+        if not plot_options.png then cgps_close
+        cgps2pdf, plotfile_use, delete_ps=plot_options.delete_ps
+      endif
     endif
 
     if keyword_set(zoom) then begin
@@ -1802,9 +1844,16 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
         endif
       endfor
       undefine, positions, pos_use
+
       if plot_options.pub then begin
-        cgps_close, png = plot_options.png, pdf = plot_options.pdf, $
-          delete_ps = plot_options.delete_ps, density = 600
+        if plot_options.png then begin
+          if plot_options.pdf then delete_ps_use = 0 else delete_ps_use = plot_options.delete_ps
+          cgps_close, /png, delete_ps = delete_ps_use, density = 600
+        endif
+        if plot_options.pdf then begin
+          if not plot_options.png then cgps_close
+          cgps2pdf, plotfile_use, delete_ps=plot_options.delete_ps
+        endif
       endif
     endif
 
@@ -1876,9 +1925,16 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
       endif
     endfor
     undefine, positions, pos_use
+
     if plot_options.pub then begin
-      cgps_close, png = plot_options.png, pdf = plot_options.pdf, $
-        delete_ps = plot_options.delete_ps, density = 600
+      if plot_options.png then begin
+        if plot_options.pdf then delete_ps_use = 0 else delete_ps_use = plot_options.delete_ps
+        cgps_close, /png, delete_ps = delete_ps_use, density = 600
+      endif
+      if plot_options.pdf then begin
+        if not plot_options.png then cgps_close
+        cgps2pdf, plotfile_use, delete_ps=plot_options.delete_ps
+      endif
     endif
 
   endif

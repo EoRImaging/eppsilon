@@ -9,15 +9,9 @@ pro test_matrix_weighting, save_filebase = save_filebase, covar_use = covar_use,
     if n_elements(save_filebase) gt 0 then savefile = save_path + save_filebase $
     else savefile = save_path + 'covar_weight_test'
     
-    if keyword_set(png) and keyword_set(eps) and keyword_set(pdf) then begin
-      print, 'only one of eps, pdf and png can be set, using png'
-      eps = 0
-      png = 1
-    endif
-    
     if not keyword_set(png) and not keyword_set(pdf) and not keyword_set(eps) then png = 1
     
-    if keyword_set(png) or keyword_set(pdf) then delete_ps = 1 else if keyword_set(eps) then delete_ps = 0
+    if keyword_set(eps) then delete_ps = 1 else delete_ps = 0
     
   endif
   
@@ -248,7 +242,14 @@ pro test_matrix_weighting, save_filebase = save_filebase, covar_use = covar_use,
       ;data_range = [-1,1]*inv_covar_eta_range[1], data_min_abs = inv_covar_eta_range[0], color_profile = 'sym_log'
    
     if keyword_set(pub) then begin
-      cgps_close, png = png, pdf = pdf, delete_ps = delete_ps, density = 600
+      if png then begin
+        if pdf then delete_ps_use = 0 else delete_ps_use = delete_ps
+        cgps_close, /png, delete_ps = delete_ps_use, density = 600
+      endif
+      if pdf then begin
+        if not png then cgps_close
+        cgps2pdf, covar_savefile, delete_ps=delete_ps
+      endif
     endif
   endif
   
@@ -343,7 +344,14 @@ pro test_matrix_weighting, save_filebase = save_filebase, covar_use = covar_use,
   
   
   if keyword_set(pub) then begin
-    cgps_close, png = png, pdf = pdf, delete_ps = delete_ps, density = 600
+    if png then begin
+      if pdf then delete_ps_use = 0 else delete_ps_use = delete_ps
+      cgps_close, /png, delete_ps = delete_ps_use, density = 600
+    endif
+    if pdf then begin
+      if not png then cgps_close
+      cgps2pdf, power_savefile, delete_ps=delete_ps
+    endif
   endif
   
   print, 'peak ratios:'
