@@ -138,7 +138,14 @@ pro make_std_plots, file_struct_arr, savefiles_2d, titles, $
 
     endfor
     if plot_options.pub then begin
-      cgps_close, png = plot_options.png, pdf = plot_options.pdf, delete_ps = plot_options.delete_ps, density = 600
+      if plot_options.png then begin
+        if plot_options.pdf then delete_ps_use = 0 else delete_ps_use = plot_options.delete_ps
+        cgps_close, /png, delete_ps = delete_ps_use, density = 600
+      endif
+      if plot_options.pdf then begin
+        if not plot_options.png then cgps_close
+        cgps2pdf, plotfile_use, delete_ps=plot_options.delete_ps
+      endif
     endif
     undefine, positions, pos_use
 
@@ -189,7 +196,14 @@ pro make_std_plots, file_struct_arr, savefiles_2d, titles, $
     endfor
     undefine, positions, pos_use
     if plot_options.pub then begin
-      cgps_close, png = plot_options.png, pdf = plot_options.pdf, delete_ps = plot_options.delete_ps, density = 600
+      if plot_options.png then begin
+        if plot_options.pdf then delete_ps_use = 0 else delete_ps_use = plot_options.delete_ps
+        cgps_close, /png, delete_ps = delete_ps_use, density = 600
+      endif
+      if plot_options.pdf then begin
+        if not plot_options.png then cgps_close
+        cgps2pdf, plotfile_use, delete_ps=plot_options.delete_ps
+      endif
     endif
 
 
@@ -228,7 +242,14 @@ pro make_std_plots, file_struct_arr, savefiles_2d, titles, $
     endfor
     undefine, positions, pos_use
     if plot_options.pub then begin
-      cgps_close, png = plot_options.png, pdf = plot_options.pdf, delete_ps = plot_options.delete_ps, density = 600
+      if plot_options.png then begin
+        if plot_options.pdf then delete_ps_use = 0 else delete_ps_use = plot_options.delete_ps
+        cgps_close, /png, delete_ps = delete_ps_use, density = 600
+      endif
+      if plot_options.pdf then begin
+        if not plot_options.png then cgps_close
+        cgps2pdf, plotfile_use, delete_ps=plot_options.delete_ps
+      endif
     endif
 
     if keyword_set(plot_sim_noise) then begin
@@ -262,7 +283,14 @@ pro make_std_plots, file_struct_arr, savefiles_2d, titles, $
       endfor
       undefine, positions, pos_use
       if plot_options.pub then begin
-        cgps_close, png = plot_options.png, pdf = plot_options.pdf, delete_ps = plot_options.delete_ps, density = 600
+        if plot_options.png then begin
+          if plot_options.pdf then delete_ps_use = 0 else delete_ps_use = plot_options.delete_ps
+          cgps_close, /png, delete_ps = delete_ps_use, density = 600
+        endif
+        if plot_options.pdf then begin
+          if not plot_options.png then cgps_close
+          cgps2pdf, plotfile_use, delete_ps=plot_options.delete_ps
+        endif
       endif
 
       window_num = window_num+1
@@ -295,7 +323,14 @@ pro make_std_plots, file_struct_arr, savefiles_2d, titles, $
       endfor
       undefine, positions, pos_use
       if plot_options.pub then begin
-        cgps_close, png = plot_options.png, pdf = plot_options.pdf, delete_ps = plot_options.delete_ps, density = 600
+        if plot_options.png then begin
+          if plot_options.pdf then delete_ps_use = 0 else delete_ps_use = plot_options.delete_ps
+          cgps_close, /png, delete_ps = delete_ps_use, density = 600
+        endif
+        if plot_options.pdf then begin
+          if not plot_options.png then cgps_close
+          cgps2pdf, plotfile_use, delete_ps=plot_options.delete_ps
+        endif
       endif
     endif
 
@@ -332,7 +367,14 @@ pro make_std_plots, file_struct_arr, savefiles_2d, titles, $
       endfor
       undefine, positions, pos_use
       if plot_options.pub then begin
-        cgps_close, png = plot_options.png, pdf = plot_options.pdf, delete_ps = plot_options.delete_ps, density = 600
+        if plot_options.png then begin
+          if plot_options.pdf then delete_ps_use = 0 else delete_ps_use = plot_options.delete_ps
+          cgps_close, /png, delete_ps = delete_ps_use, density = 600
+        endif
+        if plot_options.pdf then begin
+          if not plot_options.png then cgps_close
+          cgps2pdf, plotfile_use, delete_ps=plot_options.delete_ps
+        endif
       endif
 
       if keyword_set(plot_sim_noise) then begin
@@ -367,7 +409,14 @@ pro make_std_plots, file_struct_arr, savefiles_2d, titles, $
         endfor
         undefine, positions, pos_use
         if plot_options.pub then begin
-          cgps_close, png = plot_options.png, pdf = plot_options.pdf, delete_ps = plot_options.delete_ps, density = 600
+          if plot_options.png then begin
+            if plot_options.pdf then delete_ps_use = 0 else delete_ps_use = plot_options.delete_ps
+            cgps_close, /png, delete_ps = delete_ps_use, density = 600
+          endif
+          if plot_options.pdf then begin
+            if not plot_options.png then cgps_close
+            cgps2pdf, plotfile_use, delete_ps=plot_options.delete_ps
+          endif
         endif
       endif
 
@@ -401,7 +450,14 @@ pro make_std_plots, file_struct_arr, savefiles_2d, titles, $
       endfor
       undefine, positions, pos_use
       if plot_options.pub then begin
-        cgps_close, png = plot_options.png, pdf = plot_options.pdf, delete_ps = plot_options.delete_ps, density = 600
+        if plot_options.png then begin
+          if plot_options.pdf then delete_ps_use = 0 else delete_ps_use = plot_options.delete_ps
+          cgps_close, /png, delete_ps = delete_ps_use, density = 600
+        endif
+        if plot_options.pdf then begin
+          if not plot_options.png then cgps_close
+          cgps2pdf, plotfile_use, delete_ps=plot_options.delete_ps
+        endif
       endif
 
       window_num = window_num+1
@@ -435,7 +491,14 @@ pro make_std_plots, file_struct_arr, savefiles_2d, titles, $
         endfor
         undefine, positions, pos_use
         if plot_options.pub then begin
-          cgps_close, png = plot_options.png, pdf = plot_options.pdf, delete_ps = plot_options.delete_ps, density = 600
+          if plot_options.png then begin
+            if plot_options.pdf then delete_ps_use = 0 else delete_ps_use = plot_options.delete_ps
+            cgps_close, /png, delete_ps = delete_ps_use, density = 600
+          endif
+          if plot_options.pdf then begin
+            if not plot_options.png then cgps_close
+            cgps2pdf, plotfile_use, delete_ps=plot_options.delete_ps
+          endif
         endif
       endif
 

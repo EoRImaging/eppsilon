@@ -27,26 +27,13 @@ pro binning_hist_plots, power, sim_noise, weights, mask_1dbin, power_1d, weights
       print, 'no filename specified for binning_hist_plots output. Using ' + current_dir + path_sep() + plotfilebase
     endif
 
-    n_ext_set = 0
-    if keyword_set(png) then n_ext_set +=1
-    if keyword_set(pdf) then n_ext_set +=1
-    if keyword_set(eps) then n_ext_set +=1
-    if n_ext_set gt 1 then begin
-      print, 'only one of eps, png, pdf keywords can be set, using png'
-      eps = 0
-      pdf = 0
-    endif
-
-    if keyword_set(png) then begin
-      plot_exten = '.png'
-      delete_ps = 1
-    endif else if keyword_set(pdf) then begin
-      plot_exten = '.pdf'
-      delete_ps = 1
-    endif else if keyword_set(eps) then begin
+    if keyword_set(eps) then begin
       plot_exten = '.eps'
       delete_ps = 0
-    endif
+    endif else begin
+      plot_exten = '.ps'
+      delete_ps = 1
+    endelse
   endif
 
   dims = size(power, /dimension)
@@ -74,6 +61,9 @@ pro binning_hist_plots, power, sim_noise, weights, mask_1dbin, power_1d, weights
   if pub eq 1 then begin
     ps_aspect = nrow / float(ncol)
     if ps_aspect lt 1 then landscape = 1 else landscape = 0
+    if (Keyword_Set(eps) and Keyword_Set(pdf) and landscape) then begin
+      print, "Warning! eps forces plots to be portrait; run without eps to get landscape pdf plots."
+    endif
     IF Keyword_Set(eps) THEN landscape = 0
 
     sizes = cgpswindow(LANDSCAPE=landscape, aspectRatio = ps_aspect, /sane_offsets)
@@ -91,14 +81,17 @@ pro binning_hist_plots, power, sim_noise, weights, mask_1dbin, power_1d, weights
 
     font = 1
 
-
-    plotfile_power = plotfilebase + '_power' + plot_exten
-    plotfile_ratio = plotfilebase + '_sigratio' + plot_exten
+    plotfile_power = plotfilebase + '_power'
+    plotfile_ratio = plotfilebase + '_sigratio'
     if npages gt 1 then begin
       ;; multiple pages of plots, make separate files for each
       plotfile_power = plotfile_power + '_pg' + number_formatter(indgen(npages + 1)) + plot_exten
       plotfile_ratio = plotfile_ratio + '_pg' + number_formatter(indgen(npages + 1)) + plot_exten
-    endif
+    endif else begin
+      plotfile_power += plot_exten
+      plotfile_ratio += plot_exten
+    endelse
+
   endif else begin
     charthick = 1
     thick = 1
@@ -120,7 +113,16 @@ pro binning_hist_plots, power, sim_noise, weights, mask_1dbin, power_1d, weights
       page += 1
 
       if pub eq 0 then window,window_use, xsize=ncol*300, ysize=nrow*300 else begin
-        if page gt 1 then cgps_close, png = png, pdf = pdf, delete_ps = delete_ps, density=600
+        if page gt 1 then begin
+          if png then begin
+            if pdf then delete_ps_use = 0 else delete_ps_use = delete_ps
+            cgps_close, /png, delete_ps = delete_ps_use, density = 600
+          endif
+          if pdf then begin
+            if not png then cgps_close
+            cgps2pdf, plotfile_ratio[page-2], delete_ps=delete_ps
+          endif
+        endif
 
         cgps_open, plotfile_ratio[page-1], /font, encapsulated=eps, /nomatch, inches=sizes.inches, xsize=sizes.xsize, ysize=sizes.ysize, $
           xoffset=sizes.xoffset, yoffset=sizes.yoffset, landscape = landscape
@@ -153,7 +155,17 @@ pro binning_hist_plots, power, sim_noise, weights, mask_1dbin, power_1d, weights
         charthick = charthick, charsize = legend_charsize
     endif
   endfor
-  if pub eq 1 then cgps_close, png = png, pdf = pdf, delete_ps = delete_ps, density=600
+  if pub eq 1 then begin
+    if png then begin
+      if pdf then delete_ps_use = 0 else delete_ps_use = delete_ps
+      cgps_close, /png, delete_ps = delete_ps_use, density = 600
+    endif
+    if pdf then begin
+      if not png then cgps_close
+      cgps2pdf, plotfile_ratio[page-1], delete_ps=delete_ps
+    endif
+  endif
+
 
   !p.multi=[0,ncol,nrow]
   page = 0
@@ -164,7 +176,16 @@ pro binning_hist_plots, power, sim_noise, weights, mask_1dbin, power_1d, weights
       page += 1
 
       if pub eq 0 then window,window_use, xsize=ncol*300, ysize=nrow*300 else begin
-        if page gt 1 then cgps_close, png = png, pdf = pdf, delete_ps = delete_ps, density=600
+        if page gt 1 then begin
+          if png then begin
+            if pdf then delete_ps_use = 0 else delete_ps_use = delete_ps
+            cgps_close, /png, delete_ps = delete_ps_use, density = 600
+          endif
+          if pdf then begin
+            if not png then cgps_close
+            cgps2pdf, plotfile_power[page-2], delete_ps=delete_ps
+          endif
+        endif
 
         cgps_open, plotfile_power[page-1], /font, encapsulated=eps, /nomatch, inches=sizes.inches, xsize=sizes.xsize, ysize=sizes.ysize, $
           xoffset=sizes.xoffset, yoffset=sizes.yoffset, landscape = landscape
@@ -194,7 +215,16 @@ pro binning_hist_plots, power, sim_noise, weights, mask_1dbin, power_1d, weights
         charthick = charthick, charsize = legend_charsize
     endif
   endfor
-  if pub eq 1 then cgps_close, png = png, pdf = pdf, delete_ps = delete_ps, density=600
+  if pub eq 1 then begin
+    if png then begin
+      if pdf then delete_ps_use = 0 else delete_ps_use = delete_ps
+      cgps_close, /png, delete_ps = delete_ps_use, density = 600
+    endif
+    if pdf then begin
+      if not png then cgps_close
+      cgps2pdf, plotfile_ratio[page-1], delete_ps=delete_ps
+    endif
+  endif
 
   !p.multi=0
 

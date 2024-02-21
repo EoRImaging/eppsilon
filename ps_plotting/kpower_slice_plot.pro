@@ -76,32 +76,22 @@ pro kpower_slice_plot, slice_savefile, power = power, noise = noise, $
       endcase
 
     endif
+
+    if keyword_set(eps) then begin
+      plot_exten = '.eps'
+      delete_ps = 0
+    endif else begin
+      plot_exten = '.ps'
+      delete_ps = 1
+    endelse
+
     if n_elements(plotfile) eq 0 and n_elements(multi_pos) eq 0 then begin
-      if keyword_set(eps) then begin
-        plotfile = 'idl_k' + plot_type + '_slice_plot.eps'
-      endif else begin
-        plotfile = 'idl_k' + plot_type + '_slice_plot'
-      endelse
+      plotfile = 'idl_k' + plot_type + '_slice_plot' + plot_exten
       cd, current = current_dir
       print, 'no filename specified for kpower_slice_plot output. Using ' + $
         current_dir + path_sep() + plotfile
     endif
 
-    if keyword_set(png) and keyword_set(eps) and keyword_set(pdf) then begin
-      print, 'only one of eps, pdf and png can be set, using png'
-      eps = 0
-    endif
-
-    if keyword_set(png) then begin
-      plot_exten = '.png'
-      delete_ps = 1
-    endif else if keyword_set(pdf) then begin
-      plot_exten = '.pdf'
-      delete_ps = 1
-    endif else if keyword_set(eps) then begin
-      plot_exten = '.eps'
-      delete_ps = 0
-    endif
   endif
 
   if n_elements(window_num) eq 0 then window_num = 1
@@ -319,8 +309,9 @@ pro kpower_slice_plot, slice_savefile, power = power, noise = noise, $
     if n_elements(plotfile) eq 0 then begin
       plotfile = strsplit(slice_savefile, '.idlsave', /regex, /extract) + plot_exten
     endif else begin
-      if strcmp(strmid(plotfile, strlen(plotfile)-4), plot_exten, /fold_case) eq 0 then begin
-        plotfile = plotfile + plot_exten
+      basename = cgRootName(plotfile, directory=directory, extension=extension)
+      if strcmp(extension, strmid(plot_exten, 1)) eq 0 then begin
+        plotfile = directory + basename + plot_exten
       endif
     endelse
   endif
@@ -530,6 +521,9 @@ pro kpower_slice_plot, slice_savefile, power = power, noise = noise, $
         ps_aspect = (y_factor * float(nrow)) / (x_factor * float(ncol))
 
         if ps_aspect lt 1 then landscape = 1 else landscape = 0
+        if (Keyword_Set(eps) and Keyword_Set(pdf) and landscape) then begin
+          print, "Warning! eps forces plots to be portrait; this will muck with your pdf landscape plots."
+        endif
         IF Keyword_Set(eps) THEN landscape = 0
         sizes = cgpswindow(LANDSCAPE=landscape, aspectRatio = ps_aspect, /sane_offsets)
 
@@ -653,6 +647,9 @@ pro kpower_slice_plot, slice_savefile, power = power, noise = noise, $
 
       ps_aspect = ysize / float(xsize)
       if ps_aspect lt 1 then landscape = 1 else landscape = 0
+      if (Keyword_Set(eps) and Keyword_Set(pdf) and landscape) then begin
+        print, "Warning! eps forces plots to be portrait; this will muck with your pdf landscape plots."
+      endif
       IF Keyword_Set(eps) THEN landscape = 0
       sizes = cgpswindow(LANDSCAPE=landscape, aspectRatio = ps_aspect, /sane_offsets)
 
@@ -836,7 +833,14 @@ pro kpower_slice_plot, slice_savefile, power = power, noise = noise, $
     title = units_str, charsize = charsize, font = font, oob_low = oob_low
 
   if keyword_set(pub) and n_elements(multi_pos) eq 0 then begin
-    cgps_close, png = png, pdf = pdf, delete_ps = delete_ps, density=600
+    if png then begin
+      if pdf then delete_ps_use = 0 else delete_ps_use = delete_ps
+      cgps_close, /png, delete_ps = delete_ps_use, density = 600
+    endif
+    if pdf then begin
+      if not png then cgps_close
+      cgps2pdf, plotfile, delete_ps=delete_ps
+    endif
     ;wdelete, window_num
   endif
 

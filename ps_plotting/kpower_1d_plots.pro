@@ -69,29 +69,27 @@ pro kpower_1d_plots, power_savefile, multi_pos = multi_pos, $
       endcase
 
     endif
+
+    if keyword_set(eps) then begin
+      plot_exten = '.eps'
+      delete_ps = 0
+    endif else begin
+      plot_exten = '.ps'
+      delete_ps = 1
+    endelse
+
     if n_elements(plotfile) eq 0 and n_elements(multi_pos) eq 0 then begin
-      plotfile = strsplit(power_savefile[0], '.idlsave', /regex, /extract)
+      plotfile = strsplit(power_savefile[0], '.idlsave', /regex, /extract) + plot_exten
       cd, current = current_dir
       print, 'no filename specified for kpower_1d_plots output. Using ' + current_dir + path_sep() + plotfile
     endif
 
-    if keyword_set(png) and keyword_set(eps) and keyword_set(pdf) then begin
-      print, 'only one of eps, pdf and png can be set, using png'
-      eps = 0
+    if n_elements(plotfile) gt 0 then begin
+      basename = cgRootName(plotfile, directory=directory, extension=extension)
+      if strcmp(extension, strmid(plot_exten, 1)) eq 0 then begin
+        plotfile = directory + basename + plot_exten
+      endif
     endif
-
-    if keyword_set(png) then begin
-      plot_exten = '.png'
-      delete_ps = 1
-    endif else if keyword_set(pdf) then begin
-      plot_exten = '.pdf'
-      delete_ps = 1
-    endif else if keyword_set(eps) then begin
-      plot_exten = '.eps'
-      delete_ps = 0
-    endif
-
-    if strcmp(strmid(plotfile, strlen(plotfile)-4), plot_exten, /fold_case) eq 0 then plotfile = plotfile + plot_exten
   endif
 
   if n_elements(window_num) eq 0 then window_num = 2
@@ -188,6 +186,9 @@ pro kpower_1d_plots, power_savefile, multi_pos = multi_pos, $
         ps_aspect = (y_factor * float(nrow)) / (x_factor * float(ncol))
 
         if ps_aspect lt 1 then landscape = 1 else landscape = 0
+        if (Keyword_Set(eps) and Keyword_Set(pdf) and landscape) then begin
+          print, "Warning! eps forces plots to be portrait; run without eps to get landscape pdf plots."
+        endif
         IF Keyword_Set(eps) THEN landscape = 0
         sizes = cgpswindow(LANDSCAPE=landscape, aspectRatio = ps_aspect, /sane_offsets)
 
@@ -244,6 +245,9 @@ pro kpower_1d_plots, power_savefile, multi_pos = multi_pos, $
       ps_aspect = y_factor / x_factor
 
       if ps_aspect lt 1 then landscape = 1 else landscape = 0
+      if (Keyword_Set(eps) and Keyword_Set(pdf) and landscape) then begin
+        print, "Warning! eps forces plots to be portrait; run without eps to get landscape pdf plots."
+      endif
       IF Keyword_Set(eps) THEN landscape = 0
       sizes = cgpswindow(LANDSCAPE=landscape, aspectRatio = ps_aspect, /sane_offsets)
 
@@ -740,7 +744,14 @@ pro kpower_1d_plots, power_savefile, multi_pos = multi_pos, $
   endif
 
   if keyword_set(pub) and n_elements(multi_pos) eq 0 then begin
-    cgps_close, png = png, pdf = pdf, delete_ps = delete_ps, density=600
+    if png then begin
+      if pdf then delete_ps_use = 0 else delete_ps_use = delete_ps
+      cgps_close, /png, delete_ps = delete_ps_use, density = 600
+    endif
+    if pdf then begin
+      if not png then cgps_close
+      cgps2pdf, plotfile, delete_ps=delete_ps
+    endif
   endif
 
   tvlct, r, g, b
