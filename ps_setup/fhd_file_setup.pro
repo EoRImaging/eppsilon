@@ -112,7 +112,7 @@ function fhd_file_setup, filename, weightfile = weightfile, $
     ;; check whether datafiles have polarization identifiers in filename
     pol_exist = stregex(file_basename(datafile), '[xy][xy]', /boolean, /fold_case)
     if max(pol_exist) gt 0 then begin
-      wh_pol_exist = where(pol_exist gt 0, count_pol_exist, ncomplement = count_no_pol)
+      wh_pol_exist = where(pol_exist gt 0, ncomplement = count_no_pol)
       if count_no_pol gt 0 then begin
         message, 'some datafiles have pol identifiers and some do not'
       endif
@@ -148,25 +148,35 @@ function fhd_file_setup, filename, weightfile = weightfile, $
         endfor
       endelse
       npol = n_elements(pol_inc)
-      pol_num = intarr(npol)
+      npol_total = n_elements(pols)
       pol_inc = pols[pols[uniq(pols, sort(pols))]]
 
-      nfiles = ceil(n_elements(datafile)/float(npol))
+      nfiles_pol = intarr(npol)
+      for i=0, npol-1 do begin
+        this_pol = pol_inc[i]
+        wh_pol =  where(pols eq this_pol, count_pol)
+        nfiles_pol[i] = count_pol
+      endfor
+
+      nfiles = nfiles_pol[0]
+      if npol > 0 then begin
+        nfiles_pol_diff = nfiles_pol - nfiles
+        if max(nfiles_pol_diff) > 0 or min(nfiles_pol_diff) < 0 then begin
+          message, 'The same number of files must be included per pol'
+        endif
+      endelse
+
       if nfiles gt 2 then begin
         message, 'Only 1 or 2 datafiles supported per pol'
-      endif
-      if n_elements(datafile) ne npol*nfiles then begin
-        message, 'The same number of files must be included per pol'
       endif
       temp = strarr(npol, nfiles)
       temp_wt = strarr(npol, nfiles)
       temp_var = strarr(npol, nfiles)
       temp_bm = strarr(npol, nfiles)
+      temp_pix = strarr(npol, nfiles)
       for i=0, npol-1 do begin
-        wh_pol =  where(pol_num eq i, count_pol)
-        if count_pol ne nfiles then begin
-          message, 'The same number of files must be included per pol'
-        endif
+        this_pol = pol_inc[i]
+        wh_pol =  where(pols eq this_pol, count_pol)
         temp[i,*] = datafile[wh_pol]
         if n_elements(weightfile) gt 0 then begin
           temp_wt[i,*] = weightfile[wh_pol]
