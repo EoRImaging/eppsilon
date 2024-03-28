@@ -86,7 +86,16 @@ function choose_pix_ft, file_struct, pixel_nums = pixel_nums, data_dims = data_d
   endif
 
   ;; figure out k values to calculate dft
-  uv_cellsize_m = 5 ;; based on calculations of beam FWHM by Aaron Ewall-Wice
+  if strpos(file_struct.instrument, 'mwa') ge 0 then begin
+    uv_cellsize_m = 5 ; based on calculations of beam FWHM by Aaron Ewall-Wice
+  endif else begin
+    if strpos(file_struct.instrument, 'hera') ge 0 then begin
+      default_size_meters = 10.5 ;calculated by Dara from the beam model at her central frequency
+    endif else begin
+      message, "unknown instrument: " + file_struct.instrument + ". Cannot set uv_cellsize_m"
+    end
+    
+  end
 
   ;; Cannot set full_image with image_clip=0 error if this is the case.
   if uvf_options.full_image gt 0 and uvf_options.image_clip eq 0 then begin
@@ -126,7 +135,7 @@ function choose_pix_ft, file_struct, pixel_nums = pixel_nums, data_dims = data_d
 
   ;; calculate the image size that corresponds to the uv spacing
   xy_len_matched = 2*!pi/delta_kperp_rad
-
+stop
   ;; clip window to a square (and optionally to match delta kperp)
   if uvf_options.image_clip and xy_len_matched lt image_len then begin
     ;; limit field of view to match delta kperp
@@ -144,7 +153,7 @@ function choose_pix_ft, file_struct, pixel_nums = pixel_nums, data_dims = data_d
     x_range = [-1,1]*image_len/2. + mean(x_rot)
     y_range = [-1,1]*image_len/2. + mean(y_rot)
   endelse
-
+stop
   wh_close = where(x_rot le x_range[1] and x_rot ge x_range[0] and $
     y_rot le y_range[1] and y_rot ge y_range[0], count_close, $
     ncomplement = count_far)

@@ -26,6 +26,12 @@ function fhd_file_setup, filename, weightfile = weightfile, $
       refresh_info = 1
     endif
 
+    if not tag_exist(metadata_struct, 'instrument') then begin
+      print, 'Instrument is not set in info file, assuming MWA. Set ' + $
+      'refresh_info to get the instrument from the data file'
+      metadata_struct = create_struct(metadata_struct, 'instrument', 'mwa')
+    endif
+
     if keyword_set(uvf_input) then begin
       ; check for file existence
       datafile = metadata_struct.datafile
@@ -826,6 +832,13 @@ function fhd_file_setup, filename, weightfile = weightfile, $
       if count_obs ne 0 then begin
         n_obs[pol_i, file_i] = n_elements(obs_arr)
 
+        if total(obs_arr.instrument eq obs_arr[0].instrument) ne n_obs[pol_i, file_i] then begin
+          message, 'inconsistent instrument in obs_arr'
+        endif
+        if j eq 0 then instrument = obs_arr[0].instrument else if obs_arr[0].instrument ne instrument then begin
+          message, 'instrument does not agree between datafiles'
+        endif
+
         if j eq 0 then begin
           max_baseline_lambda = max(obs_arr.max_baseline)
         endif else begin
@@ -1093,6 +1106,7 @@ function fhd_file_setup, filename, weightfile = weightfile, $
     metadata_struct = {datafile: datafile, weightfile: weightfile, $
       variancefile:variancefile, cube_varname:cube_varname, $
       weight_varname:weight_varname, variance_varname:variance_varname, $
+      instrument:instrument, $
       frequencies:frequencies, freq_resolution:freq_resolution, $
       time_resolution:time_resolution, $
       n_vis:n_vis, n_vis_freq:n_vis_freq, max_baseline_lambda:max_baseline_lambda, $
@@ -1331,6 +1345,7 @@ function fhd_file_setup, filename, weightfile = weightfile, $
         variancefile:reform(metadata_struct.variancefile[pol_i,*]), $
         datavar:data_varname, weightvar:metadata_struct.weight_varname[pol_i], $
         variancevar:metadata_struct.variance_varname[pol_i], $
+        instrument:metadata_struct.instrument, $
         frequencies:metadata_struct.frequencies, $
         freq_resolution:metadata_struct.freq_resolution, $
         time_resolution:metadata_struct.time_resolution, $
