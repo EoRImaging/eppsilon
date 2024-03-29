@@ -153,7 +153,7 @@ function choose_pix_ft, file_struct, pixel_nums = pixel_nums, data_dims = data_d
     x_range = [-1,1]*image_len/2. + mean(x_rot)
     y_range = [-1,1]*image_len/2. + mean(y_rot)
   endelse
-stop
+
   wh_close = where(x_rot le x_range[1] and x_rot ge x_range[0] and $
     y_rot le y_range[1] and y_rot ge y_range[0], count_close, $
     ncomplement = count_far)
