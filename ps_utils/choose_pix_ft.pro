@@ -90,7 +90,7 @@ function choose_pix_ft, file_struct, pixel_nums = pixel_nums, data_dims = data_d
     uv_cellsize_m = 5 ; based on calculations of beam FWHM by Aaron Ewall-Wice
   endif else begin
     if strpos(file_struct.instrument, 'hera') ge 0 then begin
-      default_size_meters = 10.5 ;calculated by Dara from the beam model at her central frequency
+      uv_cellsize_m = 10.5 ;calculated by Dara from the beam model at her central frequency
     endif else begin
       message, "unknown instrument: " + file_struct.instrument + ". Cannot set uv_cellsize_m"
     end
