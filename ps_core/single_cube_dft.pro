@@ -154,6 +154,13 @@ pro single_cube_dft, folder_name_in, obs_name, data_subdirs=data_subdirs, $
     endif
   endelse
 
+  ;; make sure save paths exist
+  save_paths = file_struct_arr[cube_ind].savefile_froot + file_struct_arr[cube_ind].subfolders.data + $
+  ['', file_struct_arr[cube_ind].subfolders.uvf + ['', file_struct_arr[cube_ind].subfolders.slices]]
+  for i = 0, n_elements(save_paths) - 1 do begin
+    if not file_test(save_paths[i], /directory) then file_mkdir, save_paths[i]
+  endfor
+
   test_uvf = file_test(uvf_savefile) *  (1 - file_test(uvf_savefile, /zero_length))
 
   if test_uvf eq 0 or keyword_set(refresh_dft) then begin
