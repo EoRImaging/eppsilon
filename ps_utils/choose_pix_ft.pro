@@ -135,7 +135,7 @@ function choose_pix_ft, file_struct, pixel_nums = pixel_nums, data_dims = data_d
 
   ;; calculate the image size that corresponds to the uv spacing
   xy_len_matched = 2*!pi/delta_kperp_rad
-stop
+
   ;; clip window to a square (and optionally to match delta kperp)
   if uvf_options.image_clip and xy_len_matched lt image_len then begin
     ;; limit field of view to match delta kperp
