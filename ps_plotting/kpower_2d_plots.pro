@@ -790,7 +790,7 @@ pro kpower_2d_plots, power_savefile, power = power, noise_meas = noise_meas, $
           bin_kperp = 10^(findgen(nkperp_image*10)*(max(kperp_log_edges) - min(kperp_log_edges))/(nkperp_image*10) + min(kperp_log_edges))
         endelse
       endif
-      if rebin_y eq 0or nkpar_image lt 15 then begin
+      if rebin_y eq 0 or nkpar_image lt 15 then begin
         bin_plot = congrid(bin_plot, nkperp_image, nkpar_image*10)
         if log_axes[1] eq 0 then begin
           bin_kpar = findgen(nkpar_image*10)*(max(kpar_edges_use) - min(kpar_edges_use))/nkpar_image + min(kpar_edges_use)
