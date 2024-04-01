@@ -98,8 +98,8 @@ pro ps_image_to_uvf, file_struct, n_vis_freq, kx_rad_vals, ky_rad_vals, $
 
         data_cube = temporary(dirty_cube) - temporary(model_cube)
 
-        freqs = file_struct.frequencies
-        save, file = uvf_savefile[i], kx_rad_vals, ky_rad_vals, freqs, data_cube, uvf_git_hash
+        frequencies = file_struct.frequencies
+        save, file = uvf_savefile[i], kx_rad_vals, ky_rad_vals, frequencies, data_cube, uvf_git_hash
         undefine, data_cube, uvf_git_hash
 
       endif else begin ;; endif derived cube
