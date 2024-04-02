@@ -941,8 +941,13 @@ function fhd_file_setup, filename, weightfile = weightfile, $
 
         if j eq 0 then n_vis_freq = dblarr(npol, nfiles, n_freq)
         n_vis_freq_arr = dblarr([n_obs[pol_i, file_i], n_freq])
-        for i=0, n_obs[pol_i, file_i]-1 do n_vis_freq_arr[i, *] = obs_arr[i].nf_vis
-
+        if size(obs_arr[0].nf_vis, /n_dim) eq 1 then begin
+          ; older style: both pols have the same nf_vis
+          for i=0, n_obs[pol_i, file_i]-1 do n_vis_freq_arr[i, *] = obs_arr[i].nf_vis
+        endif else begin
+          ; nf_vis is separate by pol
+          for i=0, n_obs[pol_i, file_i]-1 do n_vis_freq_arr[i, *] = obs_arr[i].nf_vis[pol_i, *]
+        endelse
         if tag_exist(obs_arr, 'beam_integral') or tag_exist(obs_arr, 'primary_beam_sq_area') then begin
           if j eq 0 then beam_int = fltarr(npol, nfiles, n_freq)
           beam_int_arr = fltarr([n_obs[pol_i, file_i], n_freq])
