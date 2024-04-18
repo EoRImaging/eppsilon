@@ -371,13 +371,20 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
       binning_1d_options = create_binning_1d_options(binning_1d_options = binning_1d_options, $
         wedge_amps = wedge_amps)
     endif else begin
-      ;; use standard angles for MWA
-      ;; assume 20 degrees from pointing center to first null
-      source_dist = 20d * !dpi / 180d
+      if strpos(file_struct_arr[0].instrument, 'hera') ge 0 then begin
+        ;; assume 10 degrees from zenith to first null
+        source_dist = 10d * !dpi / 180d
+        max_theta = 0d
+      endif else begin
+        ;; use standard angles for MWA
+        ;; assume 20 degrees from pointing center to first null
+        source_dist = 20d * !dpi / 180d
+        max_theta = file_struct_arr[0].max_theta
+      endelse
       fov_amp = wedge_factor * source_dist
 
       ;; calculate angular distance to horizon (can be >90 for non-zenith pointings)
-      horizon_amp = wedge_factor * ((file_struct_arr[0].max_theta+90d) * !dpi / 180d)
+      horizon_amp = wedge_factor * ((max_theta+90d) * !dpi / 180d)
 
       wedge_amps = [fov_amp, horizon_amp]
       wedge_names = ['fov', 'horizon']
