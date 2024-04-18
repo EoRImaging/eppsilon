@@ -406,7 +406,11 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
     endif else begin
       max_kperp_lambda = min([file_struct_arr.kspan/2.,file_struct_arr.max_baseline_lambda])
     endelse
-    kperp_plot_range = [7.5/kperp_lambda_conv, max_kperp_lambda/kperp_lambda_conv]
+    if strpos(file_struct_arr[0].instrument, 'hera') ge 0 then begin
+      kperp_plot_range = [10.5/kperp_lambda_conv, max_kperp_lambda/kperp_lambda_conv]
+    endif else begin
+      kperp_plot_range = [7.5/kperp_lambda_conv, max_kperp_lambda/kperp_lambda_conv]
+    endelse
 
     ;; if we're plotting in [k]=h/Mpc then need to convert from 1/Mpc
     if plot_options.hinv then kperp_plot_range = kperp_plot_range / hubble_param
