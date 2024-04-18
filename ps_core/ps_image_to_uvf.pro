@@ -304,7 +304,8 @@ pro ps_image_to_uvf, file_struct, n_vis_freq, kx_rad_vals, ky_rad_vals, $
           undefine, arr
 
           uvf_git_hash = this_run_git_hash
-          save, file = uvf_savefile[i], kx_rad_vals, ky_rad_vals, file_struct.frequencies, data_cube, uvf_git_hash
+          frequencies = file_struct.frequencies
+          save, file = uvf_savefile[i], kx_rad_vals, ky_rad_vals, frequencies, data_cube, uvf_git_hash
           undefine, data_cube, uvf_git_hash
         endif
 
@@ -383,7 +384,8 @@ pro ps_image_to_uvf, file_struct, n_vis_freq, kx_rad_vals, ky_rad_vals, $
 
           uvf_wt_git_hash = this_run_git_hash
 
-          save, file = uvf_weight_savefile[i], kx_rad_vals, ky_rad_vals, file_struct.frequencies, $
+          frequencies = file_struct.frequencies
+          save, file = uvf_weight_savefile[i], kx_rad_vals, ky_rad_vals, frequencies, $
             weights_cube, variance_cube, uvf_wt_git_hash
           undefine, new_pix_vec, weights_cube, variance_cube, uvf_wt_git_hash
         endif
