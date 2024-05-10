@@ -194,7 +194,7 @@ pro ps_power_incoherent_avg, info_files, avg_file_struct=avg_file_struct, $
     sim_noise_diff_3d = sim_noise_diff_3d_num / diff_weights_3d_use
     noise_expval_3d = noise_expval_3d_num / diff_weights_3d_use
 
-    wh_wt0 = where(weights_3d eq 0, count_wt0)
+    wh_wt0 = where(weights_3d_use eq 0, count_wt0)
     if count_wt0 ne 0 then begin
       power_3d[wh_wt0] = 0
       noise_expval_3d[wh_wt0] = 0
