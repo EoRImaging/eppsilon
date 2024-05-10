@@ -1,22 +1,67 @@
+function replace_matching_arrays, array
+
+  compile_opt idl2, logical_predicate
+  
+  all_match = 1
+  for ind=0, n_elements(array)-1 do begin
+    if array[0] ne array[ind] then all_match = 0
+  endfor
+
+  if all_match eq 1 then return, array[0]
+
+  return, array
+end
+function same_diff_combine, same_str, diff_parts, diff_counts, same_diff_separator, $
+  diff_delimiter, try_numeric_range = try_numeric_range
+
+  compile_opt idl2, logical_predicate
+
+  same_str_use = same_str
+  if same_str_use ne "" and diff_counts gt 0 then same_str_use += same_diff_separator
+
+  default_combined_str = same_str_use + strjoin(diff_parts, diff_delimiter)
+
+  if try_numeric_range gt 0 and diff_counts eq 0 then begin
+    ; either no difference or just two file sets, so probably for a diff or ratio
+    ; don't want to take min/max
+    combined_str = default_combined_str
+  endif else begin
+    on_ioerror, non_int_diff
+  
+    num_diff_parts = float(diff_parts)
+    ; if the obsnames are numbers, use the min & max
+    combined_str = same_str_use + strjoin(number_formatter(minmax(num_diff_parts)), diff_delimiter)
+
+    goto, done
+    ; otherwise use the full list
+    non_int_diff: combined_str = default_combined_str
+    done:
+  endelse
+  
+  return, combined_str
+end
+
 function ps_filenames, folder_names, obs_names_in, dirty_folder = dirty_folder, $
-    dirty_obsname = dirty_obsname, sim = sim, rts = rts, casa = casa, $
+    dirty_obsname = dirty_obsname, rts = rts, casa = casa, $
     uvf_input = uvf_input, data_subdirs = data_subdirs, $
     ps_foldernames = ps_foldernames, plot_paths = plot_paths, $
     save_paths = save_paths, refresh_info = refresh_info, $
     exact_obsnames = exact_obsnames, no_wtvar_rts = no_wtvar_rts
 
-  if n_elements(folder_names) eq 2 then begin
-    if folder_names[0] eq folder_names[1] then folder_names = folder_names[0]
-  endif
+  compile_opt idl2, logical_predicate
 
-  if n_elements(obs_names_in) eq 2 then begin
-    if obs_names_in[0] eq obs_names_in[1] then obs_names_in = obs_names_in[0]
-  endif
+  if n_elements(folder_names) gt 1 then folder_names = replace_matching_arrays(folder_names)
+
+  if n_elements(obs_names_in) gt 1 then obs_names_in = replace_matching_arrays(obs_names_in)
 
   n_filesets = max([n_elements(folder_names), n_elements(obs_names_in), n_elements(ps_foldernames)])
 
-  if n_elements(data_subdirs) eq 0 and not keyword_set(uvf_input) then begin
-    data_subdirs = 'Healpix' + path_sep()
+  if ~keyword_set(rts) and n_elements(data_subdirs) eq 0 then begin
+    if keyword_set(uvf_input) then begin
+      data_subdirs = ''
+    endif else begin
+      data_subdirs = 'Healpix' + path_sep()
+    endelse
   endif else begin
     ;; make sure there is no path separator at beginning and there is one at the end
     for i=0, n_elements(data_subdirs)-1 do begin
@@ -46,14 +91,6 @@ function ps_filenames, folder_names, obs_names_in, dirty_folder = dirty_folder, 
     dirty_obsname = ''
   endif
 
-  if not keyword_set(rts) and n_elements(data_subdirs) eq 0 then begin
-    if keyword_set(uvf_input) then begin
-      data_subdirs = ''
-    endif else begin
-      data_subdirs = 'Healpix' + path_sep()
-    endelse
-  endif
-
   if n_elements(ps_foldernames) eq 0 then ps_foldernames = 'ps'
   if n_elements(save_paths) eq 0 then begin
     save_paths = folder_names + path_sep() + ps_foldernames + path_sep()
@@ -63,20 +100,22 @@ function ps_filenames, folder_names, obs_names_in, dirty_folder = dirty_folder, 
   endif
 
   if n_filesets gt 1 then begin
+    folder_names_orig = folder_names
     if n_elements(folder_names) eq 1 then begin
       folder_names = replicate(folder_names, n_filesets)
     endif
     if n_elements(folder_names) ne n_filesets then begin
-      message, 'If both folder_names and obs_names_in are arrays, the number ' + $
-        'of elements must match'
+      message, 'If both folder_names and (obs_names_in or ps_foldernames) are ' $
+        + 'arrays, the number of elements must match'
     endif
 
+    ps_foldernames_orig = ps_foldernames
     if n_elements(ps_foldernames) eq 1 then begin
       ps_foldernames = replicate(ps_foldernames, n_filesets)
     endif
     if n_elements(ps_foldernames) ne n_filesets then begin
-      message, 'If both ps_foldernames and obs_names_in are arrays, the number ' + $
-        'of elements must match'
+      message, 'If both ps_foldernames and obs_names_in are arrays, the number ' $
+        + 'of elements must match'
     endif
 
     if n_elements(dirty_folder) eq 1 then begin
@@ -90,7 +129,8 @@ function ps_filenames, folder_names, obs_names_in, dirty_folder = dirty_folder, 
       obs_names_in = replicate(obs_names_in, n_filesets)
     endif
     if n_elements(obs_names_in) gt 0 and n_elements(obs_names_in) ne n_filesets then begin
-      message, 'If both folder_names and obs_names_in are arrays, the number of elements must match'
+      message, 'If both obs_names_in and (folder_names or ps_foldernames) are ' $
+      + 'arrays, the number of elements must match'
     endif
 
     if n_elements(data_subdirs) eq 1 then begin
@@ -98,39 +138,26 @@ function ps_filenames, folder_names, obs_names_in, dirty_folder = dirty_folder, 
     endif
     if n_elements(data_subdirs) ne n_filesets then begin
       message, 'If data_subdirs is an array, the number of elements must match ' + $
-        'the max of folder_names & obs_names_in'
+        'the max of folder_names, obs_names_in and ps_foldernames'
     endif
 
-    if n_elements(save_paths) gt 0 then begin
-      if n_elements(save_paths) eq 1 then begin
-        save_paths = replicate(save_paths, n_filesets)
-      endif
-      if n_elements(save_paths) ne n_filesets then begin
-        message, 'If save_paths is an array, the number of elements must match ' + $
-          'the max of folder_names & obs_names_in'
-      endif
-    endif else begin
-      save_paths = folder_names + path_sep() + data_subdirs
-    endelse
+    if n_elements(save_paths) eq 1 then begin
+      save_paths = replicate(save_paths, n_filesets)
+    endif
+    if n_elements(save_paths) ne n_filesets then begin
+      message, 'If save_paths is an array, the number of elements must match ' + $
+        'the max of folder_names, obs_names_in and ps_foldernames'
+    endif
 
-    if n_elements(plot_paths) gt 0 then begin
-      if n_elements(plot_paths) eq 1 then begin
-        plot_paths = replicate(plot_paths, n_filesets)
-      endif
-      if n_elements(plot_paths) ne n_filesets then begin
-        message, 'If plot_paths is an array, the number of elements must match ' + $
-          'the max of folder_names & obs_names_in'
-      endif
-    endif else begin
-      plot_paths = folder_names + path_sep() + data_subdirs
-    endelse
+    if n_elements(plot_paths) eq 1 then begin
+      plot_paths = replicate(plot_paths, n_filesets)
+    endif
+    if n_elements(plot_paths) ne n_filesets then begin
+      message, 'If plot_paths is an array, the number of elements must match ' + $
+        'the max of folder_names, obs_names_in and ps_foldernames'
+    endif
   endif else begin
-    if n_elements(save_paths) eq 0 then begin
-      save_paths = folder_names + path_sep() + data_subdirs
-    endif
-    if n_elements(plot_paths) eq 0 then begin
-      plot_paths = folder_names + path_sep() + data_subdirs
-    endif
+    plot_paths = folder_names + path_sep() + data_subdirs
   endelse
 
   ;; make sure save & plot paths end in path_sep()
@@ -172,7 +199,7 @@ function ps_filenames, folder_names, obs_names_in, dirty_folder = dirty_folder, 
       endelse
 
       ;; first look for info files in save_path
-      if not keyword_set(refresh_info) then begin
+      if ~keyword_set(refresh_info) then begin
         info_file = file_search(save_paths[i] + obs_names[i] + '*info*', $
           count = n_infofile)
         if n_infofile gt 0 then begin
@@ -236,7 +263,7 @@ function ps_filenames, folder_names, obs_names_in, dirty_folder = dirty_folder, 
         obs_names[i] + '*_image*MHz*.fits', count = n_fitsfiles)
       if n_fitsfiles eq 0 then fits_file_list = file_search(folder_names[i] + $
         path_sep() + data_subdirs[i] + obs_names[i] + '*_image*.fits', count = n_fitsfiles)
-      wh_cube = where(stregex(fits_file_list, 'cube', /boolean), count_cube, $
+      _ = where(stregex(fits_file_list, 'cube', /boolean), count_cube, $
         complement = wh_orig, ncomplement = count_orig)
       if count_cube gt 0 then begin
         if count_orig gt 0 then begin
@@ -314,7 +341,7 @@ function ps_filenames, folder_names, obs_names_in, dirty_folder = dirty_folder, 
           weightfile_list = file_search(folder_names[i] + $
             path_sep() + data_subdirs[i] + obs_names[i] + '*_weights*.fits', count = n_wtfiles)
         endif
-        if not keyword_set(no_wtvar_rts) then begin
+        if ~keyword_set(no_wtvar_rts) then begin
           if n_wtfiles ne n_elements(fits_files) and info_files[i] eq '' then begin
             message, 'number of weight files does not match number of datafiles'
           endif
@@ -326,7 +353,7 @@ function ps_filenames, folder_names, obs_names_in, dirty_folder = dirty_folder, 
           variancefile_list = file_search(folder_names[i] + $
             path_sep() + data_subdirs[i] + obs_names[i] + '*_variance*.fits', count = n_varfiles)
         endif
-        if not keyword_set(no_wtvar_rts) then begin
+        if ~keyword_set(no_wtvar_rts) then begin
           if n_varfiles ne n_elements(fits_files) and info_files[i] eq '' then begin
             message, 'number of variance files does not match number of datafiles'
           endif
@@ -408,7 +435,7 @@ function ps_filenames, folder_names, obs_names_in, dirty_folder = dirty_folder, 
       endelse
 
       ;; first look for info files in save_paths
-      if not keyword_set(refresh_info) then begin
+      if ~keyword_set(refresh_info) then begin
         info_file = file_search(save_paths[i] + obs_names[i] + '*info*', count = n_infofile)
         if n_infofile gt 0 then begin
           if obs_names[i] eq '' then begin
@@ -517,7 +544,7 @@ function ps_filenames, folder_names, obs_names_in, dirty_folder = dirty_folder, 
       endelse
 
       ;; first look for integrated info files in save_paths with names like Combined_obs_...
-      if not keyword_set(refresh_info) then begin
+      if ~keyword_set(refresh_info) then begin
         if keyword_set(exact_obsnames) then begin
           hpx_info_file = file_search(save_paths[i] +  'Combined_obs_' + $
             obs_names[i] + hpx_endobsname_tag + '*info*', count = n_hpx)
@@ -673,7 +700,7 @@ function ps_filenames, folder_names, obs_names_in, dirty_folder = dirty_folder, 
         n_infofile = 0
       endelse
 
-      if not keyword_set(uvf_input) then begin
+      if ~keyword_set(uvf_input) then begin
         ;; first look for integrated cube files in folder + data_dir with names like Combined_obs_...
         ;; if n_infofile > 1 then treat the one that's been chosen as exact to avoid multiple matches
         if keyword_set(exact_obsnames) or n_infofile gt 1 then begin
@@ -940,7 +967,7 @@ function ps_filenames, folder_names, obs_names_in, dirty_folder = dirty_folder, 
         endelse
       endif
 
-      if not (n_elements(info_file) gt 1 or not keyword_set(uvf_input)) then begin
+      if n_elements(info_file) le 1 and keyword_set(uvf_input) then begin
         if n_elements(datafile) eq 0 then begin
           ;; finally look for uniformly gridded uvf files
           ;; Combined
@@ -1219,139 +1246,81 @@ function ps_filenames, folder_names, obs_names_in, dirty_folder = dirty_folder, 
       obs_names:obs_names, info_files:info_files, cube_files:cube_files, $
       fhd_types:fhd_types, integrated:integrated, plot_paths:plot_paths, save_paths:save_paths}
 
-    if n_filesets eq 2 then begin
-      if (folder_names[0] eq folder_names[1]) and (ps_foldernames[0] ne ps_foldernames[1]) then begin
+    if n_filesets ge 2 then begin
+      if n_elements(ps_foldernames_orig) gt n_elements(folder_names_orig) then begin
         nominal_savepaths = folder_names + path_sep() + ps_foldernames
       endif else begin
         nominal_savepaths = folder_names
       endelse
     endif
-    if n_elements(nominal_savepaths) eq 2 then begin
-      folderparts_1 = strsplit(nominal_savepaths[0], path_sep(), /extract)
-      folderparts_2 = strsplit(nominal_savepaths[1], path_sep(), /extract)
-      match_test = strcmp(folderparts_1, folderparts_2)
-      wh_diff = where(match_test eq 0, count_diff, complement = wh_same, $
-        ncomplement = count_same)
+    if n_elements(nominal_savepaths) ge 2 then begin
+      
+      folder_diff_parts = get_strarray_same_diff(nominal_savepaths, path_sep(), $
+        same_str=folder_same_str, diff_count=folder_diff_count, match_arr=folder_match_arr)
+      ; Also get the same/diff sections for the last folder name in the path, split on underscores
+      lastf_diff_parts = get_strarray_same_diff(file_basename(nominal_savepaths), '_', $
+        same_str=lastf_same_str, diff_count=lastf_diff_count)
+      fhdtype_diff_parts = get_strarray_same_diff(file_basename(fhd_types), '_', $
+        same_str=fhdtype_same_str, diff_count=fhdtype_diff_count)
+      obsnames_diff_parts = get_strarray_same_diff(obs_info.obs_names, '_', $
+        same_str=obsnames_same_str, diff_count=obsnames_diff_count)
 
-      fhdtypeparts_1 = strsplit(file_basename(fhd_types[0]), '_', /extract, $
-        count = nfhdtypeparts_1)
-      fhdtypeparts_2 = strsplit(file_basename(fhd_types[1]), '_', /extract, $
-        count = nfhdtypeparts_2)
-      if nfhdtypeparts_1 ne nfhdtypeparts_2 then begin
-        if nfhdtypeparts_1 gt nfhdtypeparts_2 then begin
-          fhdtypeparts_2 = [fhdtypeparts_2, strarr(nfhdtypeparts_1-nfhdtypeparts_2)]
-        endif else begin
-          fhdtypeparts_1 = [fhdtypeparts_1, strarr(nfhdtypeparts_2-nfhdtypeparts_1)]
-        endelse
-      endif
-      match_fhdtype_test = strcmp(fhdtypeparts_1, fhdtypeparts_2)
-      wh_fhdtype_diff = where(match_fhdtype_test eq 0, count_fhdtype_diff, $
-        complement = wh_fhdtype_same, ncomplement = count_fhdtype_same)
-
-      if count_fhdtype_diff gt 0 then begin
-        if min(wh_fhdtype_diff) ge nfhdtypeparts_1 or min(wh_fhdtype_diff) ge nfhdtypeparts_2 then begin
-          wh_fhdtype_diff = [max(wh_fhdtype_same), wh_fhdtype_diff]
-          count_fhdtype_diff = count_fhdtype_diff + 1
-          if count_fhdtype_same gt 1 then begin
-            wh_fhdtype_same = wh_fhdtype_same[0:count_fhdtype_same-2]
-            count_fhdtype_same = count_fhdtype_same-1
-          endif else begin
-            count_fhdtype_same = 0
-          endelse
-        endif
-
-        str1_diff_fhdtype = strjoin(fhdtypeparts_1[wh_fhdtype_diff[where((wh_fhdtype_diff lt nfhdtypeparts_1) gt 0)]], '_')
-        str2_diff_fhdtype = strjoin(fhdtypeparts_2[wh_fhdtype_diff[where((wh_fhdtype_diff lt nfhdtypeparts_2) gt 0)]], '_')
-
-        if count_fhdtype_same gt 0 then begin
-          fhdtype_same_parts = strjoin(fhdtypeparts_1[wh_fhdtype_same], '_')
-        endif else begin
-          fhdtype_same_parts = ''
-        endelse
-        if count_fhdtype_diff eq 0 then begin
-          fhdtype_diff_parts = strarr(2)
-        endif else begin
-            fhdtype_diff_parts = [str1_diff_fhdtype, str2_diff_fhdtype]
-        endelse
-      endif
-
-      if count_diff eq 0 then begin
+      if folder_diff_count eq 0 then begin
         ;; folders are the same
-        if obs_info.obs_names[0] eq obs_info.obs_names[1] then begin
+        if obsnames_diff_count gt 0 then begin
           diff_note = obs_info.fhd_types[0]
         endif else begin
-          diff_note = nominal_savepaths[0] + ' ' + obs_info.obs_names[0] + '-' + obs_info.obs_names[1]
+          diff_note = nominal_savepaths[0] + ' ' + obsnames_same_str + ' ' + strjoin(obsnames_diff_parts, ' - ')
         endelse
         diff_save_path = nominal_savepaths[0] + path_sep()
       endif else begin
-        joint_path = strjoin(folderparts_1[wh_same], path_sep())
+        joint_path = folder_same_str
         if strmid(nominal_savepaths[0], 0,1) eq path_sep() then begin
           joint_path = path_sep() + joint_path
         endif
 
-        fnameparts_1 = strsplit(file_basename(nominal_savepaths[0]), '_', /extract, count = nfileparts_1)
-        fnameparts_2 = strsplit(file_basename(nominal_savepaths[1]), '_', /extract, count = nfileparts_2)
-        if nfileparts_1 ne nfileparts_2 then begin
-          if nfileparts_1 gt nfileparts_2 then begin
-            fnameparts_2 = [fnameparts_2, strarr(nfileparts_1-nfileparts_2)]
-          endif else begin
-            fnameparts_1 = [fnameparts_1, strarr(nfileparts_2-nfileparts_1)]
-          endelse
-        endif
-        match_name_test = strcmp(fnameparts_1, fnameparts_2)
-        wh_name_diff = where(match_name_test eq 0, count_name_diff, $
-          complement = wh_name_same, ncomplement = count_name_same)
+        try_numeric_range = 1
+        if n_filesets eq 2 then try_numeric_range=0
 
-        if count_name_diff eq 0 then begin
-          ;; same folder name, different directories
-          diff_dir = file_basename(nominal_savepaths[0]) + '_diff'
-          if count_fhdtype_diff eq 0 then  begin
-            diff_note = strjoin(folderparts_1[wh_diff], path_sep()) + ' - ' + $
-              strjoin(folderparts_2[wh_diff], path_sep()) + ' ' + file_basename(nominal_savepaths[0])
-          endif else begin
-            diff_note = strjoin(folderparts_1[wh_diff], path_sep()) + $
-              strjoin(fhdtypeparts_1[wh_fhdtype_diff], '_') + ' - ' + $
-              strjoin(folderparts_2[wh_diff], path_sep()) + $
-              strjoin(fhdtypeparts_2[wh_fhdtype_diff], '_') + ' ' + $
-              file_basename(nominal_savepaths[0])
-          endelse
+        if n_filesets eq 2 then join_str = '_minus_' else join_str = '-'
+
+        if n_elements(ps_foldernames_orig) gt 1 then begin
+          ; In this case, ps_foldername is the last folder
+          combined_ps_folder = same_diff_combine(lastf_same_str, lastf_diff_parts, $
+            lastf_diff_count, '_', join_str, try_numeric_range=try_numeric_range)
         endif else begin
-          if min(wh_name_diff) ge nfileparts_1 or min(wh_name_diff) ge nfileparts_2 then begin
-            wh_name_diff = [max(wh_name_same), wh_name_diff]
-            count_name_diff = count_name_diff + 1
-            if count_name_same gt 1 then begin
-              wh_name_same = wh_name_same[0:count_name_same-2]
-              count_name_same = count_name_same-1
-            endif else begin
-              count_name_same = 0
-            endelse
-          endif
-
-          str1_diff = strjoin(fnameparts_1[wh_name_diff[where((wh_name_diff lt nfileparts_1) gt 0)]], '_')
-          str2_diff = strjoin(fnameparts_2[wh_name_diff[where((wh_name_diff lt nfileparts_2) gt 0)]], '_')
-
-          if count_name_same gt 0 then begin
-            str_same = strjoin(fnameparts_1[wh_name_same], '_')
-            diff_dir = str_same + '__' + str1_diff + '_minus_' + str2_diff
-            diff_note = str_same + ' ' + str1_diff + ' - ' + str2_diff
-          endif else begin
-            diff_dir = str1_diff + '_minus_' + str2_diff
-            diff_note = str1_diff + ' - ' + str2_diff
-          endelse
+          combined_ps_folder = ps_foldernames_orig
         endelse
 
-        diff_save_path = joint_path + path_sep() + diff_dir + path_sep()
+        if max((total(folder_match_arr, 1))[0:-2]) eq n_filesets-1 then begin
+          ; only the last folder in the path is different (which could be ps_foldername or not)
+  
+          if n_elements(ps_foldernames_orig) gt 1 then begin
+            ; only the ps_foldernames are different
+            diff_dir = ""
+          endif else begin
+            diff_dir = lastf_same_str + '__' + strjoin(lastf_diff_parts, join_str) + path_sep()
+          endelse
 
-        if count_name_same gt 0 then begin
-          name_same_parts = strjoin(fnameparts_1[wh_name_same], '_')
+          diff_save_path = joint_path + path_sep() + diff_dir
+
+          if fhdtype_diff_count eq 0 then begin
+            diff_note = strjoin(folder_diff_parts, ' - ')
+          endif else begin
+            folder_fhdtype_diff_parts = folder_diff_parts + ' ' + fhdtype_diff_parts
+            diff_note = strjoin(folder_fhdtype_diff_parts, ' - ')
+          endelse
         endif else begin
-          name_same_parts = ''
+          ; more than just the last folder is different
+          diff_save_path = joint_path + path_sep() + strjoin(folder_diff_parts, join_str)
+
+          same_str_use = lastf_same_str
+          if same_str_use ne "" and lastf_diff_count gt 0 then same_str_use += ' '
+          diff_note = same_str_use + strjoin(lastf_diff_parts, ' - ')
         endelse
-        if count_name_diff eq 0 then begin
-          name_diff_parts = strarr(2)
-        endif else begin
-          name_diff_parts = [str1_diff, str2_diff]
-        endelse
+
+        combined_obsname = same_diff_combine(obsnames_same_str, obsnames_diff_parts, $
+          obsnames_diff_count, '_', '-', try_numeric_range=try_numeric_range)
       endelse
 
     endif
@@ -1359,22 +1328,28 @@ function ps_filenames, folder_names, obs_names_in, dirty_folder = dirty_folder, 
     if n_elements(diff_save_path) gt 0 then begin
       diff_plot_path = diff_save_path + 'plots' + path_sep()
       obs_info = create_struct(obs_info, 'diff_save_path', diff_save_path, $
-        'diff_plot_path', diff_plot_path)
+        'diff_plot_path', diff_plot_path, 'combined_ps_folder', combined_ps_folder)
     endif
     if n_elements(diff_note) gt 0 then begin
       obs_info = create_struct(obs_info, 'diff_note', diff_note)
     endif
 
-    if n_elements(name_same_parts) gt 0 then begin
-      obs_info = create_struct(obs_info, 'name_same_parts', name_same_parts, $
-        'name_diff_parts',name_diff_parts)
-      endif
+    if n_elements(obsnames_same_str) gt 0 then begin
+      obs_info = create_struct(obs_info, 'obsnames_same_parts', obsnames_same_str, $
+        'obsnames_diff_parts', obsnames_diff_parts, 'combined_obsname', combined_obsname)
+    endif
 
-    if n_elements(fhdtype_same_parts) gt 0 then begin
-      obs_info = create_struct(obs_info, 'fhdtype_same_parts', fhdtype_same_parts, $
-        'fhdtype_diff_parts',fhdtype_diff_parts)
-      endif
+    if n_elements(lastf_same_str) gt 0 then begin
+      ; different name in the struct for backwards compatibility
+      obs_info = create_struct(obs_info, 'name_same_parts', lastf_same_str, $
+        'name_diff_parts', lastf_diff_parts)
+    endif
 
+    if n_elements(fhdtype_same_str) gt 0 then begin
+      ; different name in the struct for backwards compatibility
+      obs_info = create_struct(obs_info, 'fhdtype_same_parts', fhdtype_same_str, $
+        'fhdtype_diff_parts', fhdtype_diff_parts)
+    endif
 
     if n_elements(uvf_input) gt 0 then begin
       obs_info = create_struct(obs_info, 'uvf_input', uvf_input)

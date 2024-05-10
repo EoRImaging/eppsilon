@@ -8,7 +8,7 @@ pro ps_binning, file_struct, sim = sim, freq_options = freq_options, $
     savefile_k0 = savefile_k0, savefile_masked_k0 = savefile_masked_k0, $
     bin_arr_3d = bin_arr_3d, plotfile_binning_hist = plotfile_binning_hist
 
-  nfiles = n_elements(file_struct.datafile)
+  nfiles = file_struct.nfiles
 
   if tag_exist(freq_options, 'freq_flags') then begin
     freq_mask = freq_options.freq_mask

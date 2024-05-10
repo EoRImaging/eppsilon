@@ -1,6 +1,6 @@
 pro ps_cube_images, folder_names_in, obs_names_in, exact_obsnames = exact_obsnames, $
     data_subdirs=data_subdirs, cube_types = cube_types, pols = pols, evenodd = evenodd, $
-    rts = rts, sim = sim, casa = casa, png = png, eps = eps, pdf = pdf, $
+    rts = rts, casa = casa, png = png, eps = eps, pdf = pdf, $
     slice_range = slice_range, sr2 = sr2, nvis_norm = nvis_norm, ratio = ratio, $
     diff_ratio = diff_ratio, diff_frac = diff_frac, log = log, data_range = data_range, $
     data_min_abs = data_min_abs, color_profile = color_profile, sym_color = sym_color, $

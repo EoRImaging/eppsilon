@@ -19,7 +19,7 @@
 ;
 pro ps_cube_movie, folder_names, obs_names_in, exact_obsnames = exact_obsnames, data_subdirs=data_subdirs, $
     movie_axis = movie_axis, cube_types = cube_types, pols = pols, evenodd = evenodd, $
-    rts = rts, sim = sim, casa = casa, png = png, slice_range = slice_range, sr2 = sr2, $
+    rts = rts, casa = casa, png = png, slice_range = slice_range, sr2 = sr2, $
     nvis_norm = nvis_norm, ratio = ratio, diff_ratio = diff_ratio, diff_frac = diff_frac, $
     log = log, data_range = data_range, color_profile = color_profile, sym_color = sym_color, $
     window_num = window_num, plot_as_map = plot_as_map, $
@@ -107,7 +107,7 @@ pro ps_cube_movie, folder_names, obs_names_in, exact_obsnames = exact_obsnames, 
       endelse
       
       this_obs_info = ps_filenames(folder_use, obs_use, exact_obsnames = exact_obsnames, $
-        rts = rts, sim = sim, casa = casa, $
+        rts = rts, casa = casa, $
         data_subdirs = data_subdirs, save_paths = save_paths, plot_paths = plot_paths)
         
       if i eq 0 then obs_info = [this_obs_info] else obs_info = [obs_info, this_obs_info]
@@ -116,7 +116,7 @@ pro ps_cube_movie, folder_names, obs_names_in, exact_obsnames = exact_obsnames, 
   endif else begin
   
     obs_info = ps_filenames(folder_names, obs_names_in, exact_obsnames = exact_obsnames, $
-      rts = rts, sim = sim, casa = casa, $
+      rts = rts, casa = casa, $
       data_subdirs = data_subdirs, save_paths = save_paths, plot_paths = plot_paths)
   endelse
   

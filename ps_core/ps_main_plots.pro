@@ -2,6 +2,7 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
     type_inc = type_inc, freq_options = freq_options, $
     uvf_input = uvf_input, no_evenodd = no_evenodd, $
     rts = rts, norm_rts_with_fhd = norm_rts_with_fhd, casa = casa, sim = sim, $
+    incoherent_avg = incoherent_avg, $
     fix_sim_input = fix_sim_input, save_path = save_path, $
     savefilebase = savefilebase, cube_power_info = cube_power_info, $
     input_units = input_units, save_slices = save_slices, no_binning = no_binning, $
@@ -14,21 +15,25 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
   if n_elements(savefilebase) gt 1 then message, 'savefilebase must be a scalar'
 
   time0 = systime(1)
-  if keyword_set(rts) then begin
-    file_struct_arr = rts_file_setup(datafile, savefilebase = savefilebase, $
-      save_path = save_path, use_fhd_norm = norm_rts_with_fhd, $
-      refresh_info = refresh_options.refresh_info, uvf_options = uvf_options, $
-      freq_options = freq_options, ps_options = ps_options)
-  endif else if keyword_set(casa) then begin
-    file_struct_arr = casa_file_setup(datafile, savefilebase = savefilebase, $
-      save_path = save_path, $
-      refresh_info = refresh_options.refresh_info, uvf_options = uvf_options, $
-      freq_options = freq_options, ps_options = ps_options)
+  if keyword_set(incoherent_avg) then begin
+    file_struct_arr = datafile
   endif else begin
-    file_struct_arr = fhd_file_setup(datafile, beamfile = beamfiles, sim = sim, $
-      uvf_input = uvf_input, savefilebase = savefilebase, save_path = save_path, $
-      refresh_info = refresh_options.refresh_info, uvf_options = uvf_options, $
-      freq_options = freq_options, ps_options = ps_options, pol_inc=pol_inc)
+    if keyword_set(rts) then begin
+      file_struct_arr = rts_file_setup(datafile, savefilebase = savefilebase, $
+        save_path = save_path, use_fhd_norm = norm_rts_with_fhd, $
+        refresh_info = refresh_options.refresh_info, uvf_options = uvf_options, $
+        freq_options = freq_options, ps_options = ps_options)
+    endif else if keyword_set(casa) then begin
+      file_struct_arr = casa_file_setup(datafile, savefilebase = savefilebase, $
+        save_path = save_path, $
+        refresh_info = refresh_options.refresh_info, uvf_options = uvf_options, $
+        freq_options = freq_options, ps_options = ps_options)
+    endif else begin
+      file_struct_arr = fhd_file_setup(datafile, beamfile = beamfiles, sim = sim, $
+        uvf_input = uvf_input, savefilebase = savefilebase, save_path = save_path, $
+        refresh_info = refresh_options.refresh_info, uvf_options = uvf_options, $
+        freq_options = freq_options, ps_options = ps_options, pol_inc=pol_inc)
+    endelse
   endelse
   time1 = systime(1)
   print, 'file setup time: ' + number_formatter(time1-time0)
@@ -41,15 +46,15 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
      file_struct_arr[0].subfolders.bin_2d + ['', 'from_1d/'], $
      file_struct_arr[0].subfolders.bin_1d]
   for i = 0, n_elements(save_paths) - 1 do begin
-    if not file_test(save_paths[i], /directory) then file_mkdir, save_paths[i]
+    if ~file_test(save_paths[i], /directory) then file_mkdir, save_paths[i]
   endfor
 
-  if not tag_exist(file_struct_arr, 'beam_int') and refresh_options.refresh_ps then begin
+  if ~tag_exist(file_struct_arr, 'beam_int') and refresh_options.refresh_ps then begin
     refresh_options.refresh_beam = 1
   endif
 
   nfiles = file_struct_arr[0].nfiles
-  if nfiles lt 2 and not keyword_set(no_evenodd) then begin
+  if nfiles lt 2 and ~keyword_set(no_evenodd) then begin
     message, 'Even and odd cubes are not all present. If this is expected, set no_evenodd=1'
   endif
 
@@ -145,7 +150,7 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
 
   if plot_types.plot_slices then begin
     ;; check to see if needed slices are available.
-    if not tag_exist(plot_types, 'slice_type') then begin
+    if ~tag_exist(plot_types, 'slice_type') then begin
        slice_type = 'sumdiff'
        plot_types = create_plot_types(plot_types = plot_types, slice_type = slice_type)
     endif
@@ -249,7 +254,7 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
       if total(abs(old_freq_mask - freq_mask)) ne 0 then test_power_3d = 0
     endif
 
-    if healpix or not keyword_set(uvf_input) then begin
+    if healpix or ~keyword_set(uvf_input) then begin
       weight_refresh = intarr(n_cubes)
       if refresh_options.refresh_dft then begin
         temp = weight_ind[uniq(weight_ind, sort(weight_ind))]
@@ -262,6 +267,7 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
     endif
 
     if test_power_3d eq 0 or refresh_options.refresh_ps then begin
+      if keyword_set(incoherent_avg) then message, "incoherent avg power files not found"
       ps_power, file_struct_arr[i], sim = sim, fix_sim_input = fix_sim_input, $
           uvf_input = uvf_input, freq_options = freq_options, $
           input_units = input_units, save_slices = save_slices, $
@@ -301,11 +307,11 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
        file_struct_arr[0].subfolders.bin_2d + ['', 'from_1d/'], $
        file_struct_arr[0].subfolders.bin_1d + ['', 'bin_histograms/']]
     for i = 0, n_elements(plot_paths) - 1 do begin
-      if not file_test(plot_paths[i], /directory) then file_mkdir, plot_paths[i]
+      if ~file_test(plot_paths[i], /directory) then file_mkdir, plot_paths[i]
     endfor
 
     if plot_options.individual_plots then begin
-      if not tag_exist(plot_options, 'plot_filebase') then begin
+      if ~tag_exist(plot_options, 'plot_filebase') then begin
         plotfile_base = file_struct_arr.savefilebase + power_tag
         plotfile_base_wt = general_filebase + '_' + $
           file_struct_arr[uniq(weight_ind, sort(weight_ind))].pol + power_tag
@@ -316,7 +322,7 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
           '_' + file_struct_arr[uniq(weight_ind, sort(weight_ind))].pol + power_tag
       endelse
     endif else begin
-      if not tag_exist(plot_options, 'plot_filebase') then begin
+      if ~tag_exist(plot_options, 'plot_filebase') then begin
         plotfile_base = general_filebase + power_tag
       endif else begin
         plotfile_base = plot_options.plot_filebase + uvf_tag + freq_tag + power_tag
@@ -394,7 +400,7 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
   endif
 
   if tag_exist(plot_2d_options, 'kperp_lambda_plot_range') and $
-    not tag_exist(plot_2d_options, 'kperp_plot_range') then begin
+    ~tag_exist(plot_2d_options, 'kperp_plot_range') then begin
 
     kperp_plot_range = plot_2d_options.kperp_lambda_plot_range / kperp_lambda_conv
 
@@ -405,7 +411,7 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
       kperp_plot_range = kperp_plot_range)
   endif
 
-  if not tag_exist(plot_2d_options, 'kperp_plot_range') then begin
+  if ~tag_exist(plot_2d_options, 'kperp_plot_range') then begin
     if tag_exist(uvf_options, 'max_uv_lambda') gt 0 then begin
       max_kperp_lambda = min([uvf_options.max_uv_lambda, $
                               min(file_struct_arr.kspan/2.), $
@@ -434,7 +440,7 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
 
     if slice_space eq 'uvf' then begin
       uvf_type_enum = ['abs', 'phase', 'real', 'imaginary', 'normalized']
-      if not tag_exist(plot_types, 'uvf_plot_type') then begin
+      if ~tag_exist(plot_types, 'uvf_plot_type') then begin
         uvf_plot_type = 'abs'
         plot_types = create_plot_types(plot_types = plot_types, uvf_plot_type = uvf_plot_type)
       endif
@@ -853,7 +859,7 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
 
   if plot_types.plot_binning_hist and plot_options.pub eq 1 then begin
     bin_hist_plot_path = plotfile_path + file_struct_arr[0].subfolders.bin_1d + 'bin_histograms/'
-    if not tag_exist(plot_options, 'plot_filebase') then begin
+    if ~tag_exist(plot_options, 'plot_filebase') then begin
       plotfile_binning_hist = strarr(n_cubes, n_elements(kperp_density_names), $
         n_elements(wedge_1dbin_names))
 
@@ -1184,14 +1190,15 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
   if n_elements(t_sys_meas) ne 0 then print, 'Tsys range: ', number_formatter(minmax(t_sys_meas))
   if n_elements(t_sys_meas) ne 0 then print, 'Tsys mean: ', number_formatter(mean(t_sys_meas))
 
-  if n_elements(git_hashes) ne 0 then print, 'kcube hash: ' + git_hashes.kcube
+  if n_elements(git_hashes) ne 0 and tag_exist(git_hashes, 'kcube_hash')then $
+    print, 'kcube hash: ' + git_hashes.kcube
 
-  if not tag_exist(binning_2d_options, 'kpar_bin') then begin
+  if ~tag_exist(binning_2d_options, 'kpar_bin') then begin
     binning_2d_options = create_binning_2d_options(binning_2d_options = binning_2d_options, $
       kpar_bin = kpar_bin)
   endif
 
-  if not tag_exist(binning_2d_options, 'kperp_bin') then begin
+  if ~tag_exist(binning_2d_options, 'kperp_bin') then begin
     binning_2d_options = create_binning_2d_options(binning_2d_options = binning_2d_options, $
       kperp_bin = kperp_bin)
   endif
@@ -1235,7 +1242,7 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
     endfor
 
 
-    if not tag_exist(plot_options, 'plot_filebase') then begin
+    if ~tag_exist(plot_options, 'plot_filebase') then begin
       plotfile_1d_base = general_filebase
     endif else begin
       plotfile_1d_base = plot_options.plot_filebase + uvf_tag + freq_tag

@@ -29,7 +29,7 @@ pro compare_setup_structures, folder_names_in, obs_names_in, $
   endif
 
   obs_info = ps_filenames(folder_names, obs_names_in, dirty_folder = dirty_folder, $
-    exact_obsnames = exact_obsnames, rts = rts, sim = sim,  uvf_input = uvf_input, $
+    exact_obsnames = exact_obsnames, rts = rts, uvf_input = uvf_input, $
     casa = casa, data_subdirs = data_subdirs, ps_foldernames = ps_foldernames, $
     save_paths = save_paths, plot_paths = plot_paths, refresh_info = refresh_info, $
     no_wtvar_rts = no_wtvar_rts)

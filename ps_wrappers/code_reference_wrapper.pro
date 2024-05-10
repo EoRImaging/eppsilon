@@ -29,7 +29,7 @@ pro code_reference_wrapper, folder_name, obs_range, rts = rts, casa = casa, vers
     plot_path=filepath('',root=folder_name,subdir='ps_plots')
     
     if n_elements(data_subdirs) eq 0 then data_subdirs = 'Healpix/'
-    obs_info = ps_filenames(folder_name, obs_name, rts = rts, sim = sim, casa = casa, data_subdirs = data_subdirs, save_paths = save_path, plot_paths = plot_path)
+    obs_info = ps_filenames(folder_name, obs_name, rts = rts, casa = casa, data_subdirs = data_subdirs, save_paths = save_path, plot_paths = plot_path)
         
     if obs_info.info_files[0] ne '' then datafile = obs_info.info_files[0] else datafile = obs_info.cube_files.(0)
     plot_filebase = obs_info.fhd_types[0] + '_' + obs_info.obs_names[0]
