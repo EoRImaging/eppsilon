@@ -93,6 +93,13 @@ pro ps_incoherent_avg_wrapper, folder_names_in, obs_names_in, $
     message, 'save_slices cannot be set to 0 if plot_slices is set'
   endif
 
+  if keyword_set(plot_slices) then begin
+    if n_elements(slice_type) eq 0 then slice_type = "power"
+    if slice_type ne "power" and slice_type ne "var_power" then begin
+      message, "only 'power' or 'var_power' slice_types supported after incoherent average."
+    endif
+  endif
+
   if keyword_set(uvf_input) then plot_filebase = obs_info.fhd_types[0] + '_uvf'$
     else plot_filebase = obs_info.fhd_types[0]
 
