@@ -156,9 +156,7 @@ function ps_filenames, folder_names, obs_names_in, dirty_folder = dirty_folder, 
       message, 'If plot_paths is an array, the number of elements must match ' + $
         'the max of folder_names, obs_names_in and ps_foldernames'
     endif
-  endif else begin
-    plot_paths = folder_names + path_sep() + data_subdirs
-  endelse
+  endif
 
   ;; make sure save & plot paths end in path_sep()
   pos = strpos(save_paths, path_sep(), /reverse_search)

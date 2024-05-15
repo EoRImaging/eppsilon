@@ -24,7 +24,8 @@ pro ps_wrapper, folder_name_in, obs_name, data_subdirs=data_subdirs, $
     wt_cutoffs = wt_cutoffs, wt_measures = wt_measures, fix_sim_input = fix_sim_input, $
     no_spec_window = no_spec_window, spec_window_type = spec_window_type, $
     no_kzero = no_kzero, plot_slices = plot_slices, slice_type = slice_type, $
-    uvf_plot_type = uvf_plot_type, plot_stdset = plot_stdset, plot_1to2d = plot_1to2d, $
+    uvf_plot_type = uvf_plot_type, kspace_plot_type = kspace_plot_type, $
+    plot_stdset = plot_stdset, plot_1to2d = plot_1to2d, $
     plot_2d_masked = plot_2d_masked, plot_kpar_power = plot_kpar_power, $
     plot_kperp_power = plot_kperp_power, plot_k0_power = plot_k0_power, $
     plot_noise_1d = plot_noise_1d, plot_sim_noise = plot_sim_noise, $
@@ -299,7 +300,8 @@ pro ps_wrapper, folder_name_in, obs_name, data_subdirs=data_subdirs, $
     png = png, eps = eps, pdf = pdf)
 
   plot_types = create_plot_types(plot_stdset = plot_stdset, plot_slices = plot_slices, $
-    slice_type = slice_type, uvf_plot_type = uvf_plot_type, plot_1to2d = plot_1to2d, $
+    slice_type = slice_type, uvf_plot_type = uvf_plot_type, $
+    kspace_plot_type = kspace_plot_type, plot_1to2d = plot_1to2d, $
     plot_2d_masked = plot_2d_masked, plot_kpar_power = plot_kpar_power, $
     plot_kperp_power = plot_kperp_power, plot_k0_power = plot_k0_power, $
     plot_noise_1d = plot_noise_1d, plot_sim_noise = plot_sim_noise, $

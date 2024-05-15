@@ -1,6 +1,7 @@
 function create_plot_types, plot_types = plot_types, $
     plot_stdset = plot_stdset, plot_slices = plot_slices, $
-    slice_type = slice_type, uvf_plot_type = uvf_plot_type, plot_1to2d = plot_1to2d, $
+    slice_type = slice_type, uvf_plot_type = uvf_plot_type, $
+    kspace_plot_type=kspace_plot_type, plot_1to2d = plot_1to2d, $
     plot_2d_masked = plot_2d_masked, plot_kpar_power = plot_kpar_power, $
     plot_kperp_power = plot_kperp_power, plot_k0_power = plot_k0_power, $
     plot_noise_1d = plot_noise_1d, plot_sim_noise = plot_sim_noise, $
@@ -86,6 +87,10 @@ function create_plot_types, plot_types = plot_types, $
   if n_elements(uvf_plot_type) gt 0 then begin
     update_tags.add, 'uvf_plot_type'
     update_values.add, uvf_plot_type
+  endif
+  if n_elements(kspace_plot_type) gt 0 then begin
+    update_tags.add, 'kspace_plot_type'
+    update_values.add, kspace_plot_type
   endif
 
   if n_elements(update_tags) gt 0 or keyword_set(return_new) then begin

@@ -693,7 +693,7 @@ pro kpower_slice_plot, slice_savefile, power = power, noise = noise, $
   if keyword_set(no_units) then units_str=''
 
   if n_elements(full_title) ne 0 then plot_title = full_title $
-  else plot_title = plane_name + ' plane' + units_str
+  else plot_title = plot_type + ' ' + plane_name + ' plane' + units_str
   if keyword_set(title_prefix) then plot_title = title_prefix + ' ' + plot_title
 
 
