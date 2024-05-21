@@ -385,7 +385,9 @@ pro kpower_1d_plots, power_savefile, multi_pos = multi_pos, $
 
     endif
 
-    theory_delta2 = power * k_mid^3d / (2d*!pi^2d)
+    if n_elements(theory_delta2) then begin
+      theory_delta2 = power * k_mid^3d / (2d*!pi^2d)
+    endif
     theory_delta2_sigma = sigma_val * k_mid^3d / (2d*!pi^2d)
     if n_elements(sim_noise) gt 0 and keyword_set(plot_sim_noise) then theory_delta2_sim_noise = sim_noise * k_mid^3d / (2d*!pi^2d)
 

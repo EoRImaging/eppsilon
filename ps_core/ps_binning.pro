@@ -191,11 +191,19 @@ pro ps_binning, file_struct, sim = sim, freq_options = freq_options, $
       endelse
       if i gt 0 then wedge_amp = wedge_amp_use
 
+      ; work out k_centers and delta^2
+      if binning_1d_options.log_k then begin
+        k_centers = 10^(alog10(k_edges[1:*]) - k_bin/2.)
+      endif else begin
+        k_centers = k_edges[1:*] - k_bin/2.
+      endelse
+      theory_delta2 = power * k_centers^3d / (2d*!pi^2d)
+
       ;; This generates warnings about freq_mask, coarse_harm0 and
       ;; coarse_harm_width if they aren't defined. There's not a way to
       ;; eliminate those without repeating this code a bunch of times
-      save, file = savefile_1d[j,i], power, noise, sim_noise, sim_noise_diff, $
-        weights, noise_expval, k_edges, k_bin, kperp_lambda_conv, delay_params, $
+      save, file = savefile_1d[j,i], power, theory_delta2, noise, sim_noise, sim_noise_diff, $
+        weights, noise_expval, k_edges, k_bin, k_centers, kperp_lambda_conv, delay_params, $
         hubble_param, freq_mask, wedge_amp, kperp_range, kperp_range_lambda, $
         kx_range, kx_range_lambda, ky_range, ky_range_lambda, kpar_range, $
         coarse_harm0, coarse_harm_width, window_int, git_hashes, wt_ave_power, $
@@ -205,7 +213,7 @@ pro ps_binning, file_struct, sim = sim, freq_options = freq_options, $
       textfile = strmid(savefile_1d[j,i], 0, stregex(savefile_1d[j,i], '.idlsave')) + '.txt'
       print, 'saving 1d power to ' + textfile
       save_1D_text, textfile, k_edges, power, weights, noise_expval, hubble_param, $
-        noise, sim_noise_power = sim_noise, sim_noise_diff = sim_noise_diff, $
+        noise, theory_delta2 = theory_delta2, sim_noise_power = sim_noise, sim_noise_diff = sim_noise_diff, $
         nfiles = nfiles, hinv = plot_options.hinv
 
       mask_weights = long(bin_arr_3d gt 0)
