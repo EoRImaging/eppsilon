@@ -285,6 +285,12 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
     endif
   endfor
 
+  ; define cosmology params before first use of them.
+  z0_freq = 1420.40 ;; MHz
+  redshifts = z0_freq/frequencies - 1
+  mean_redshift = mean(redshifts)
+  cosmology_measures, mean_redshift, wedge_factor = wedge_factor, hubble_param = hubble_param
+
   binning_tags = create_binning_tags(file_struct_arr = file_struct_arr, $
     binning_2d_options = binning_2d_options, binning_1d_options = binning_1d_options, $
     plot_2d_options = plot_2d_options, plot_options = plot_options, hubble_param = hubble_param)
@@ -347,11 +353,6 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
 
   ;; do this here because power slice plots need it.
   if plot_2d_options.plot_wedge_line or tag_exist(binning_1d_options, 'wedge_angles') then begin
-    z0_freq = 1420.40 ;; MHz
-    redshifts = z0_freq/frequencies - 1
-    mean_redshift = mean(redshifts)
-
-    cosmology_measures, mean_redshift, wedge_factor = wedge_factor, hubble_param = hubble_param
     if tag_exist(binning_1d_options, 'wedge_angles') then begin
       if min(binning_1d_options.wedge_angles) le 0 or $
           max(binning_1d_options.wedge_angles) ge 180 then begin
