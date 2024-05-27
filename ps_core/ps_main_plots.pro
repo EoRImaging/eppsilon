@@ -287,7 +287,7 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
 
   binning_tags = create_binning_tags(file_struct_arr = file_struct_arr, $
     binning_2d_options = binning_2d_options, binning_1d_options = binning_1d_options, $
-    plot_2d_options = plot_2d_options)
+    plot_2d_options = plot_2d_options, plot_options = plot_options, hubble_param = hubble_param)
 
   if plot_options.pub then begin
     if tag_exist(plot_options, 'plot_path') then begin

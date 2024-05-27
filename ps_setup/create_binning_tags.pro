@@ -1,6 +1,8 @@
 function create_binning_tags, file_struct_arr=file_struct_arr, $
     binning_2d_options = binning_2d_options, binning_1d_options = binning_1d_options, $
-    plot_2d_options = plot_2d_options
+    plot_2d_options = plot_2d_options, plot_options = plot_options, hubble_param = hubble_param
+
+    compile_opt idl2, logical_predicate
 
     plot_fadd_2d = ''
     plot_fadd_kslice = ''
@@ -154,7 +156,7 @@ function create_binning_tags, file_struct_arr=file_struct_arr, $
         endelse
     endif
 
-    if not tag_exist(binning_1d_options, 'kpar_range_kperppower') and $
+    if ~tag_exist(binning_1d_options, 'kpar_range_kperppower') and $
         tag_exist(binning_1d_options, 'kpar_range_1dave') then begin
 
         binning_1d_options = create_binning_1d_options(binning_1d_options = binning_1d_options, $
