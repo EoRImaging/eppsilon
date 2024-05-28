@@ -280,12 +280,30 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
   ;; need general_filebase for 1D and weight plotfiles, make sure it doesn't have a full path
   general_filebase = file_struct_arr[0].general_filebase
   for i=0, n_cubes-1 do begin
-    if file_struct_arr(i).general_filebase ne general_filebase then begin
+    if file_struct_arr[i].general_filebase ne general_filebase then begin
       message, 'general_filebase does not match between 1d savefiles'
     endif
   endfor
 
-  ; define cosmology params before first use of them.
+  if ( $
+  tag_exist(freq_options, 'freq_flags') $
+  or tag_exist(freq_options, 'freq_ch_range') $
+  or freq_options.freq_avg_factor gt 1 $
+) then begin
+  ps_freq_select_avg, file_struct_arr[0], reform(file_struct_arr[0].n_vis_freq), $
+    refresh_options = refresh_options, freq_options = freq_options, $
+    ps_options = ps_options, /metadata_only
+  frequencies = freq_options.frequencies
+  n_vis_freq = freq_options.n_vis_freq
+  n_vis = total(n_vis_freq, 2)
+endif else begin
+  frequencies = file_struct_arr[0].frequencies
+  n_vis_freq = file_struct_arr[0].n_vis_freq
+  n_vis = file_struct_arr[0].n_vis[0]
+endelse
+n_freq = n_elements(frequencies)
+
+  ; define cosmology params before first use
   z0_freq = 1420.40 ;; MHz
   redshifts = z0_freq/frequencies - 1
   mean_redshift = mean(redshifts)
@@ -332,24 +350,6 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
 
 
   endif
-
-  if ( $
-    tag_exist(freq_options, 'freq_flags') $
-    or tag_exist(freq_options, 'freq_ch_range') $
-    or freq_options.freq_avg_factor gt 1 $
-  ) then begin
-    ps_freq_select_avg, file_struct_arr[0], reform(file_struct_arr[0].n_vis_freq), $
-      refresh_options = refresh_options, freq_options = freq_options, $
-      ps_options = ps_options, /metadata_only
-    frequencies = freq_options.frequencies
-    n_vis_freq = freq_options.n_vis_freq
-    n_vis = total(n_vis_freq, 2)
-  endif else begin
-    frequencies = file_struct_arr[0].frequencies
-    n_vis_freq = file_struct_arr[0].n_vis_freq
-    n_vis = file_struct_arr[0].n_vis[0]
-  endelse
-  n_freq = n_elements(frequencies)
 
   ;; do this here because power slice plots need it.
   if plot_2d_options.plot_wedge_line or tag_exist(binning_1d_options, 'wedge_angles') then begin
