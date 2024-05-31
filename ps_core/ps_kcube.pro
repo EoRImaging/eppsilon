@@ -41,7 +41,10 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
     full_n_vis_freq = n_vis_freq
     if tag_exist(freq_options, 'freq_flags') then begin    
       full_n_vis_freq = full_n_vis_freq * transpose([[freq_options.freq_mask], [freq_options.freq_mask]])
-    endif 
+    endif
+    if tag_exist(freq_options, 'freq_ch_range') ne 0 then begin
+      full_n_vis_freq = full_n_vis_freq[*, min(freq_options.freq_ch_range):max(freq_options.freq_ch_range)] 
+    endif
     n_vis_freq = freq_options.n_vis_freq
   endif else begin
     frequencies = file_struct.frequencies
@@ -220,6 +223,7 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
   if n_elements(vis_sigma_ian) gt 0 then begin
     if tag_exist(freq_options, 'freq_ch_range') ne 0 then begin
       vis_sigma_ian = vis_sigma_ian[min(freq_options.freq_ch_range):max(freq_options.freq_ch_range)]
+
     endif
     if freq_options.freq_avg_factor gt 1 then begin
       new_vis_sigma_ian = reform(vis_sigma_ian, freq_options.freq_avg_factor, n_elements(frequencies))

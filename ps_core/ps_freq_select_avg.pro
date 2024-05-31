@@ -373,9 +373,9 @@ pro ps_freq_select_avg, file_struct, n_vis_freq, refresh_options = refresh_optio
       endif else begin
         pixels = pixel_nums
       endelse
-
+      
       if tag_exist(freq_options, 'freq_ch_range') then begin
-        beam = beam[*, *, min(freq_options.freq_ch_range):max(freq_options.freq_ch_range)]
+        beam = beam[*, min(freq_options.freq_ch_range):max(freq_options.freq_ch_range)]
       endif
 
       if max(beam) le 1.1 then begin
