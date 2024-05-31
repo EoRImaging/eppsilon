@@ -164,7 +164,7 @@ function fhd_file_setup, filename, weightfile = weightfile, $
         if max(nfiles_pol_diff) > 0 or min(nfiles_pol_diff) < 0 then begin
           message, 'The same number of files must be included per pol'
         endif
-      endelse
+      endif
 
       if nfiles gt 2 then begin
         message, 'Only 1 or 2 datafiles supported per pol'
