@@ -1,8 +1,8 @@
 pro ps_comp1d_plots, folder_names, obs_info, ps_foldernames = ps_foldernames, $
-    cube_types, pols, uvf_options0 = uvf_options0, uvf_options1 = uvf_options1, $
+    cube_types, pols, uvf_options = uvf_options, freq_options = freq_options, $
     ps_options = ps_options, plot_options = plot_options, $
     binning_1d_options = binning_1d_options, names = names, $
-    all_type_pol = all_type_pol, freq_ch_range = freq_ch_range, $
+    all_type_pol = all_type_pol, $
     plot_filebase = plot_filebase, save_path = save_path, savefilebase = savefilebase, $
     quiet = quiet, window_num = window_num
 
@@ -10,10 +10,10 @@ pro ps_comp1d_plots, folder_names, obs_info, ps_foldernames = ps_foldernames, $
 
     compare_plot_prep, folder_names, obs_info,  cube_types, pols, 'comp_1d', compare_files, $
         ps_foldernames = ps_foldernames, $
-        uvf_options0 = uvf_options0, uvf_options1 = uvf_options1, ps_options = ps_options, $
+        uvf_options = uvf_options, freq_options = freq_options, ps_options = ps_options, $
         plot_options = plot_options, plot_2d_options = plot_2d_options, $
         binning_1d_options = binning_1d_options, $
-        freq_ch_range = freq_ch_range, plot_filebase = plot_filebase, $
+        plot_filebase = plot_filebase, $
         save_path = save_path, savefilebase = savefilebase, $
         full_compare = all_type_pol
 
@@ -53,13 +53,22 @@ pro ps_comp1d_plots, folder_names, obs_info, ps_foldernames = ps_foldernames, $
                 if n_elements(names) ne 2 then message, 'names must have two elements'
                 names_use = names
             endif else begin
-                names_use = strsplit(obs_info.diff_note, '-',/extract)
+                if n_elements(folder_names) eq 2 or n_elements(ps_foldernames) eq 2 then begin
+                    names_use = strsplit(obs_info.diff_note, '-', /extract)
+                endif else begin
+                    names_use = strsplit(plot_options.note, 'and', /regex, /extract)
+                endelse
+            endelse
+            if i lt n_elements(compare_files.wedge_amp) then begin
+                wedge_name_use = binning_1d_options.wedge_names[i]
+            endif else begin
+                wedge_name_use = "no wedge cut"
             endelse
 
             kpower_1d_plots, input_files, window_num=window_num, $
                 start_multi_params = start_multi_params, multi_pos = pos_use, $
                 names=names_use, plot_options = plot_options, note = note_use, $
-                plotfile = plotfiles_use, title = compare_files.titles[j]
+                plotfile = plotfiles_use, title = compare_files.titles[j] + ' ' + wedge_name_use
 
             if j eq 0 and compare_files.n_cubes gt 1 then begin
             positions = pos_use

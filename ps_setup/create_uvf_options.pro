@@ -13,7 +13,9 @@ function create_uvf_options, uvf_options = uvf_options, $
   update_values = list()
   if n_elements(uvf_options) eq 0 then begin
     ;; default to giving dft progress reports
-    if n_elements(no_dft_progress) eq 0 then no_dft_progress = 0
+    if n_elements(no_dft_progress) eq 0 then begin
+      no_dft_progress = 0
+    endif
 
     ;; Cannot set full_image with image_clip=0 error if this is the case.
     if n_elements(full_image) eq 1 and n_elements(image_clip) eq 1 then begin
@@ -24,7 +26,9 @@ function create_uvf_options, uvf_options = uvf_options, $
 
     ;; full_image means, use the full image with small uv pixels set by the image size
     ;; default to not using the full image to set the uv cell size
-    if n_elements(full_image) eq 0 then full_image = 0
+    if n_elements(full_image) eq 0 then begin
+      full_image = 0
+    endif
 
     ;; default to not requiring radec
     if n_elements(require_radec) eq 0 then require_radec = 0

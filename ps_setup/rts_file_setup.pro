@@ -1,9 +1,7 @@
 function rts_file_setup, filename, save_path = save_path, refresh_info = refresh_info, $
-    weight_savefilebase = weight_savefilebase_in, $
-    variance_savefilebase = variance_savefilebase_in, $
-    freq_ch_range = freq_ch_range, freq_flags = freq_flags, freq_flag_name = freq_flag_name, $
+    weight_savefilebase = weight_savefilebase_in, variance_savefilebase = variance_savefilebase_in, $
     uvf_savefilebase = uvf_savefilebase_in, savefilebase = savefilebase_in, $
-    use_fhd_norm = use_fhd_norm, uvf_options = uvf_options, ps_options = ps_options
+    use_fhd_norm = use_fhd_norm, uvf_options = uvf_options, freq_options = freq_options, ps_options = ps_options
 
   ;; check to see if filename is an info file
   wh_info = strpos(filename, '_info.idlsave')
@@ -281,9 +279,8 @@ function rts_file_setup, filename, save_path = save_path, refresh_info = refresh
           file_struct_arr = rts_file_setup(info_file, save_path = save_path, refresh_info = refresh_info, $
               weight_savefilebase = weight_savefilebase_in, $
               variance_savefilebase = variance_savefilebase_in, $
-              freq_ch_range = freq_ch_range, freq_flags = freq_flags, freq_flag_name = freq_flag_name, $
               uvf_savefilebase = uvf_savefilebase_in, savefilebase = savefilebase_in, $
-              use_fhd_norm = use_fhd_norm, uvf_options = uvf_options, ps_options = ps_options)
+              use_fhd_norm = use_fhd_norm, uvf_options = uvf_options, freq_options=freq_options, ps_options = ps_options)
 
           return, file_struct_arr
         endif
@@ -556,23 +553,42 @@ function rts_file_setup, filename, save_path = save_path, refresh_info = refresh
 
   pol_exist = stregex(metadata_struct.datafile, '[xy][xy]', /boolean, /fold_case)
 
-  if n_elements(freq_flags) ne 0 then begin
+  if tag_exist(freq_options, 'freq_flags') then begin
     freq_mask = intarr(n_elements(metadata_struct.frequencies)) + 1
-    freq_mask[freq_flags] = 0
+    freq_mask[freq_options.freq_flags] = 0
 
     wh_freq_use = where(freq_mask gt 0, count_freq_use)
     if count_freq_use lt 3 then message, 'Too many frequencies flagged'
 
+    if min(freq_options.freq_flags) lt 0 or max(freq_options.freq_flags) gt n_elements(metadata_struct.frequencies) then begin
+      message, 'invalid freq_flags'
+    endif
+
+    freq_options = create_freq_options(freq_options, freq_mask = freq_mask)
+
   endif
 
-  if n_elements(freq_flags) ne 0 then begin
-    if min(freq_flags) lt 0 or max(freq_flags) gt n_elements(metadata_struct.frequencies) then begin
-      message, 'invalid freq_flags'
+  if tag_exist(freq_options, 'freq_ch_range') then begin
+    if min(freq_options.freq_ch_range) lt 0 $
+      or max(freq_options.freq_ch_range) gt n_elements(metadata_struct.frequencies)-1 then begin
+      message, 'invalid freq_ch_range'
+    endif
+    if freq_options.freq_ch_range[1]-freq_options.freq_ch_range[0]+1 lt 3 then begin
+      message, 'freq_ch_range does not have enough frequencies'
+    endif
+
+    if tag_exist(freq_options, 'freq_flags') then begin
+      freq_mask_clipped = freq_mask[freq_options.freq_ch_range[0]:freq_options.freq_ch_range[1]]
+      wh_freq_use = where(freq_mask_clipped gt 0, count_freq_use)
+      if count_freq_use lt 3 then begin
+        message, 'Too few unflagged frequencies in freq_ch_range '
+      endif
     endif
   endif
 
-  file_tags = create_file_tags(freq_ch_range = freq_ch_range, freq_flags = freq_flags, $
-    freq_flag_name = freq_flag_name, uvf_options = uvf_options, ps_options = ps_options)
+  file_tags = create_file_tags( $
+    uvf_options = uvf_options, freq_options=freq_options, ps_options = ps_options $
+  )
 
   if keyword_set(use_fhd_norm) then begin
     file_tags.kcube_tag = file_tags.kcube_tag + '_fhdnorm'
@@ -747,8 +763,6 @@ function rts_file_setup, filename, save_path = save_path, refresh_info = refresh
         metadata_struct.pixel_varname[pol_i,*], 'nside', metadata_struct.nside)
 
       if no_var then file_struct = create_struct(file_struct, 'no_var', 1)
-
-      if n_elements(freq_mask) gt 0 then file_struct = create_struct(file_struct, 'freq_mask', freq_mask)
 
       if tag_exist(metadata_struct, 'vis_noise') gt 0 then file_struct = create_struct(file_struct, 'vis_noise', reform(metadata_struct.vis_noise[pol_i,*,*]))
 

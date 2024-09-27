@@ -2,7 +2,7 @@ pro single_cube_dft, folder_name_in, obs_name, data_subdirs=data_subdirs, $
     exact_obsnames = exact_obsnames, ps_foldername = ps_foldername, $
     rts = rts, dirty_folder = dirty_folder, save_path = save_path, $
     savefilebase = savefilebase, refresh_info = refresh_info, refresh_dft = refresh_dft, $
-    freq_flags = freq_flags, freq_ch_range = freq_ch_range, cube_type = cube_type, $
+    cube_type = cube_type, $
     pol = pol, evenodd = evenodd, loc_name=loc_name, $
     delta_uv_lambda = delta_uv_lambda, max_uv_lambda = max_uv_lambda, $
     full_image = full_image
@@ -84,20 +84,20 @@ pro single_cube_dft, folder_name_in, obs_name, data_subdirs=data_subdirs, $
   ;; it doesn't matter what's in ps_options because we don't use any of the filenames
   ;; that depend on this
   ps_options = create_ps_options()
+  freq_options = create_freq_options()
 
   if keyword_set(rts) then begin
     file_struct_arr = rts_file_setup(datafile, savefilebase = savefilebase, $
       save_path = save_path,use_fhd_norm = norm_rts_with_fhd, refresh_info = refresh_info, $
-      uvf_options = uvf_options, ps_options = ps_options)
+      uvf_options = uvf_options, ps_options = ps_options, freq_options=freq_options)
   endif else if keyword_set(casa) then begin
     file_struct_arr = casa_file_setup(datafile, savefilebase = savefilebase, $
       save_path = save_path, refresh_info = refresh_info, $
-      uvf_options = uvf_options, ps_options = ps_options)
+      uvf_options = uvf_options, ps_options = ps_options, freq_options=freq_options)
   endif else begin
     file_struct_arr = fhd_file_setup(datafile, savefilebase = savefilebase, $
-      save_path = save_path, freq_ch_range = freq_ch_range, freq_flags = freq_flags, $
-      freq_flag_name = freq_flag_name, sim = sim, refresh_info = refresh_info, $
-      uvf_options = uvf_options, ps_options = ps_options)
+      save_path = save_path, sim = sim, refresh_info = refresh_info, $
+      uvf_options = uvf_options, ps_options = ps_options, freq_options=freq_options)
   endelse
 
   type_pol_str_list = file_struct_arr.type_pol_str
@@ -155,15 +155,6 @@ pro single_cube_dft, folder_name_in, obs_name, data_subdirs=data_subdirs, $
   endelse
 
   test_uvf = file_test(uvf_savefile) *  (1 - file_test(uvf_savefile, /zero_length))
-  if test_uvf eq 1 and n_elements(freq_flags) ne 0 then begin
-    old_freq_mask = getvar_savefile(file_struct.uvf_savefile[i], 'freq_mask')
-    if n_elements(freq_ch_range) ne 0 then begin
-      if total(abs(old_freq_mask[min(freq_ch_range):max(freq_ch_range)] - freq_mask)) ne 0 $
-        then test_uvf = 0
-    endif else begin
-      if total(abs(old_freq_mask - freq_mask)) ne 0 then test_uvf = 0
-    endelse
-  endif
 
   if test_uvf eq 0 or keyword_set(refresh_dft) then begin
 
@@ -172,12 +163,6 @@ pro single_cube_dft, folder_name_in, obs_name, data_subdirs=data_subdirs, $
 
     frequencies = file_struct.frequencies
 
-    if n_elements(freq_flags) ne 0 then freq_mask = file_struct.freq_mask
-
-    if n_elements(freq_ch_range) ne 0 then begin
-      n_freq_orig = n_elements(frequencies)
-      frequencies = frequencies[min(freq_ch_range):max(freq_ch_range)]
-    endif
     n_freq = n_elements(frequencies)
 
     pixel_nums = getvar_savefile(file_struct.pixelfile[0], file_struct.pixelvar[0])
@@ -219,13 +204,6 @@ pro single_cube_dft, folder_name_in, obs_name, data_subdirs=data_subdirs, $
       if n_elements(wh_close) ne n_elements(pixel_nums) then begin
         arr = arr[wh_close, *]
       endif
-      if n_elements(freq_ch_range) ne 0 then begin
-        arr = arr[*, min(freq_ch_range):max(freq_ch_range)]
-      endif
-      if n_elements(freq_flags) ne 0 then begin
-        arr = arr * rebin(reform(freq_mask, 1, n_freq), $
-          size(arr, /dimension), /sample)
-      endif
 
       transform = discrete_ft_2D_fast(x_use, y_use, arr, kx_rad_vals, ky_rad_vals, $
         timing = ft_time, fchunk = dft_fchunk, no_progress = no_dft_progress)
@@ -255,13 +233,6 @@ pro single_cube_dft, folder_name_in, obs_name, data_subdirs=data_subdirs, $
         if n_elements(wh_close) ne n_elements(pixel_nums) then begin
           arr = arr[wh_close, *]
         endif
-        if n_elements(freq_ch_range) ne 0 then begin
-          arr = arr[*, min(freq_ch_range):max(freq_ch_range)]
-        endif
-        if n_elements(freq_flags) ne 0 then begin
-          arr = arr * rebin(reform(freq_mask, 1, n_freq), $
-            size(arr, /dimension), /sample)
-        endif
 
         transform = discrete_ft_2D_fast(x_use, y_use, arr, kx_rad_vals, ky_rad_vals, $
           timing = ft_time, fchunk = dft_fchunk, no_progress = no_dft_progress)
@@ -271,13 +242,9 @@ pro single_cube_dft, folder_name_in, obs_name, data_subdirs=data_subdirs, $
         undefine, arr
       endif
 
-      if n_elements(freq_flags) then begin
-        save, file = uvf_savefile, kx_rad_vals, ky_rad_vals, weights_cube, $
-          variance_cube, freq_mask, uvf_wt_git_hash
-      endif else begin
-        save, file = uvf_savefile, kx_rad_vals, ky_rad_vals, weights_cube, $
-          variance_cube, uvf_wt_git_hash
-      endelse
+      save, file = uvf_savefile, kx_rad_vals, ky_rad_vals, weights_cube, $
+        variance_cube, uvf_wt_git_hash
+
       undefine, new_pix_vec, weights_cube, variance_cube
 
 
@@ -304,13 +271,6 @@ pro single_cube_dft, folder_name_in, obs_name, data_subdirs=data_subdirs, $
       if n_elements(wh_close) ne n_elements(pixel_nums) then begin
         arr = arr[wh_close, *]
       endif
-      if n_elements(freq_ch_range) ne 0 then begin
-        arr = arr[*, min(freq_ch_range):max(freq_ch_range)]
-      endif
-      if n_elements(freq_flags) ne 0 then begin
-        arr = arr * rebin(reform(freq_mask, 1, n_freq), $
-        size(arr, /dimension), /sample)
-      endif
 
       transform = discrete_ft_2D_fast(x_use, y_use, arr, kx_rad_vals, ky_rad_vals, $
         timing = ft_time, fchunk = dft_fchunk, no_progress = no_dft_progress)
@@ -318,11 +278,8 @@ pro single_cube_dft, folder_name_in, obs_name, data_subdirs=data_subdirs, $
       data_cube = temporary(transform)
       undefine, arr
 
-      if n_elements(freq_flags) then begin
-        save, file = uvf_savefile, kx_rad_vals, ky_rad_vals, data_cube, freq_mask, uvf_git_hash
-      endif else begin
-        save, file = uvf_savefile, kx_rad_vals, ky_rad_vals, data_cube, uvf_git_hash
-      endelse
+      save, file = uvf_savefile, kx_rad_vals, ky_rad_vals, data_cube, uvf_git_hash
+      
       undefine, data_cube
     endelse
   endif

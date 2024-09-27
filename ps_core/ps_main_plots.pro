@@ -1,6 +1,6 @@
 pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
-    type_inc = type_inc, freq_ch_range = freq_ch_range, freq_flags = freq_flags, $
-    freq_flag_name = freq_flag_name, uvf_input = uvf_input, no_evenodd = no_evenodd, $
+    type_inc = type_inc, freq_options = freq_options, $
+    uvf_input = uvf_input, no_evenodd = no_evenodd, $
     rts = rts, norm_rts_with_fhd = norm_rts_with_fhd, casa = casa, sim = sim, $
     fix_sim_input = fix_sim_input, save_path = save_path, $
     savefilebase = savefilebase, cube_power_info = cube_power_info, $
@@ -17,21 +17,18 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
   if keyword_set(rts) then begin
     file_struct_arr = rts_file_setup(datafile, savefilebase = savefilebase, $
       save_path = save_path, use_fhd_norm = norm_rts_with_fhd, $
-      freq_ch_range = freq_ch_range, freq_flags = freq_flags, freq_flag_name = freq_flag_name, $
       refresh_info = refresh_options.refresh_info, uvf_options = uvf_options, $
-      ps_options = ps_options)
+      freq_options = freq_options, ps_options = ps_options)
   endif else if keyword_set(casa) then begin
     file_struct_arr = casa_file_setup(datafile, savefilebase = savefilebase, $
       save_path = save_path, $
-      freq_ch_range = freq_ch_range, freq_flags = freq_flags, freq_flag_name = freq_flag_name, $
       refresh_info = refresh_options.refresh_info, uvf_options = uvf_options, $
-      ps_options = ps_options)
+      freq_options = freq_options, ps_options = ps_options)
   endif else begin
     file_struct_arr = fhd_file_setup(datafile, beamfile = beamfiles, sim = sim, $
       uvf_input = uvf_input, savefilebase = savefilebase, save_path = save_path, $
-      freq_ch_range = freq_ch_range, freq_flags = freq_flags, freq_flag_name = freq_flag_name, $
       refresh_info = refresh_options.refresh_info, uvf_options = uvf_options, $
-      ps_options = ps_options, pol_inc=pol_inc)
+      freq_options = freq_options, ps_options = ps_options, pol_inc=pol_inc)
   endelse
   time1 = systime(1)
   print, 'file setup time: ' + number_formatter(time1-time0)
@@ -136,17 +133,13 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
 
   if tag_exist(file_struct_arr, 'uvf_savefile') then uvf_input = 0 else uvf_input = 1
 
-  n_freq = n_elements(file_struct_arr[0].frequencies)
-  if n_elements(freq_ch_range) ne 0 then begin
-    if max(freq_ch_range) gt n_freq-1 then message, 'invalid freq_ch_range'
-    n_freq = freq_ch_range[1]-freq_ch_range[0]+1
-  endif
-
   if healpix and tag_exist(uvf_options, 'dft_fchunk') then begin
-    if uvf_options.dft_fchunk gt n_freq then begin
+    ;; Use the original frequencies here because we DFT all frequencies
+    n_orig_freqs = n_elements(file_struct_arr[0].frequencies)
+    if uvf_options.dft_fchunk gt n_orig_freqs then begin
       print, 'dft_fchunk is larger than the number of frequency slices, setting ' + $
-        'it to the number of slices -- ' + number_formatter(n_freq)
-      uvf_options.dft_fchunk = n_freq
+        'it to the number of slices -- ' + number_formatter(n_orig_freqs)
+      uvf_options.dft_fchunk = n_orig_freqs
     endif
   endif
 
@@ -250,8 +243,8 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
     power_file = file_struct_arr[i].power_savefile
     test_power_3d = file_valid(power_file)
 
-    if test_power_3d eq 1 and n_elements(freq_flags) ne 0 then begin
-      freq_mask = file_struct_arr[i].freq_mask
+    if test_power_3d eq 1 and tag_exist(freq_options, 'freq_flags') then begin
+      freq_mask = freq_options.freq_mask
       old_freq_mask = getvar_savefile(power_file, 'freq_mask')
       if total(abs(old_freq_mask - freq_mask)) ne 0 then test_power_3d = 0
     endif
@@ -270,7 +263,7 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
 
     if test_power_3d eq 0 or refresh_options.refresh_ps then begin
       ps_power, file_struct_arr[i], sim = sim, fix_sim_input = fix_sim_input, $
-          uvf_input = uvf_input, freq_ch_range = freq_ch_range, freq_flags = freq_flags, $
+          uvf_input = uvf_input, freq_options = freq_options, $
           input_units = input_units, save_slices = save_slices, $
           refresh_options = refresh_options, uvf_options = uvf_options, $
           ps_options = ps_options
@@ -281,12 +274,8 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
 
   ;; setup for saving plots
   power_tag = file_struct_arr[0].power_tag
-  if tag_exist(file_struct_arr[0], 'uvf_tag') then begin
-    uvf_tag = file_struct_arr[0].uvf_tag
-  endif else begin
-    uvf_tag = ''
-  endelse
-
+  uvf_tag = file_struct_arr[0].uvf_tag
+  freq_tag = file_struct_arr[0].freq_tag
 
   ;; need general_filebase for 1D and weight plotfiles, make sure it doesn't have a full path
   general_filebase = file_struct_arr[0].general_filebase
@@ -321,16 +310,16 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
         plotfile_base_wt = general_filebase + '_' + $
           file_struct_arr[uniq(weight_ind, sort(weight_ind))].pol + power_tag
       endif else begin
-        plotfile_base = plot_options.plot_filebase + uvf_tag + $
+        plotfile_base = plot_options.plot_filebase + uvf_tag + freq_tag + $
           file_struct_arr.file_label + power_tag
-        plotfile_base_wt = plot_options.plot_filebase + uvf_tag + $
+        plotfile_base_wt = plot_options.plot_filebase + uvf_tag + freq_tag + $
           '_' + file_struct_arr[uniq(weight_ind, sort(weight_ind))].pol + power_tag
       endelse
     endif else begin
       if not tag_exist(plot_options, 'plot_filebase') then begin
         plotfile_base = general_filebase + power_tag
       endif else begin
-        plotfile_base = plot_options.plot_filebase + uvf_tag + power_tag
+        plotfile_base = plot_options.plot_filebase + uvf_tag + freq_tag + power_tag
       endelse
       plotfile_base_wt = plotfile_base
     endelse
@@ -338,10 +327,28 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
 
   endif
 
+  if ( $
+    tag_exist(freq_options, 'freq_flags') $
+    or tag_exist(freq_options, 'freq_ch_range') $
+    or freq_options.freq_avg_factor gt 1 $
+  ) then begin
+    ps_freq_select_avg, file_struct_arr[0], reform(file_struct_arr[0].n_vis_freq), $
+      refresh_options = refresh_options, freq_options = freq_options, $
+      ps_options = ps_options, /metadata_only
+    frequencies = freq_options.frequencies
+    n_vis_freq = freq_options.n_vis_freq
+    n_vis = total(n_vis_freq, 2)
+  endif else begin
+    frequencies = file_struct_arr[0].frequencies
+    n_vis_freq = file_struct_arr[0].n_vis_freq
+    n_vis = file_struct_arr[0].n_vis[0]
+  endelse
+  n_freq = n_elements(frequencies)
+
   ;; do this here because power slice plots need it.
   if plot_2d_options.plot_wedge_line or tag_exist(binning_1d_options, 'wedge_angles') then begin
     z0_freq = 1420.40 ;; MHz
-    redshifts = z0_freq/file_struct_arr[0].frequencies - 1
+    redshifts = z0_freq/frequencies - 1
     mean_redshift = mean(redshifts)
 
     cosmology_measures, mean_redshift, wedge_factor = wedge_factor, hubble_param = hubble_param
@@ -731,13 +738,7 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
 
   if tag_exist(binning_1d_options, 'coarse_harm_width') then begin
     harm_freq = 1.28
-    if n_elements(freq_ch_range) gt 0 then begin
-      freqs_use = file_struct_arr[0].frequencies[freq_ch_range[0]:freq_ch_range[1]]
-    endif else begin
-      freqs_use = file_struct_arr[0].frequencies
-    endelse
-
-    bandwidth = max(freqs_use) - min(freqs_use) + freqs_use[1] - freqs_use[0]
+    bandwidth = max(frequencies) - min(frequencies) + frequencies[1] - frequencies[0]
     coarse_harm0 = round(bandwidth / harm_freq)
     binning_1d_options = create_binning_1d_options(binning_1d_options = binning_1d_options, $
       coarse_harm0 = coarse_harm0)
@@ -858,7 +859,7 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
       for i=0, n_elements(wedge_1dbin_names)-1 do begin
         for j=0, n_elements(kperp_density_names)-1 do begin
           plotfile_binning_hist[*,j,i] = bin_hist_plot_path + plot_options.plot_filebase + $
-            uvf_tag + file_struct_arr.file_label + power_tag + kperp_density_names[j] + $
+            uvf_tag + freq_tag + file_struct_arr.file_label + power_tag + kperp_density_names[j] + $
             wedge_1dbin_names[i] + binning_tags.fadd_1dbin
         endfor
       endfor
@@ -945,7 +946,7 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
     if plot_types.plot_k0_power then begin
       if test_k0 gt 0 and tag_exist(binning_2d_options, 'kperp_bin') then begin
         kperp_bin_file = fltarr(n_elements(savefile_k0_use))
-        for j=0, n_elements(savefile_k0_use) do begin
+        for j=0, n_elements(savefile_k0_use)-1 do begin
           kperp_bin_file[j] = getvar_savefile(savefile_k0_use[j], 'k_bin')
         endfor
         if max(abs(binning_2d_options.kperp_bin - kperp_bin_file)) gt 0. then test_k0=0
@@ -953,7 +954,7 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
 
       if test_k0_masked gt 0 and tag_exist(binning_2d_options, 'kperp_bin') then begin
         kperp_bin_file = fltarr(n_elements(savefile_k0_masked_use))
-        for j=0, n_elements(savefile_k0_masked_use) do begin
+        for j=0, n_elements(savefile_k0_masked_use)-1 do begin
           kperp_bin_file[j] = getvar_savefile(savefile_k0_masked_use[j], 'k_bin')
         endfor
         if max(abs(binning_2d_options.kperp_bin - kperp_bin_file)) gt 0. then test_k0_masked=0
@@ -974,27 +975,27 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
       if max(abs(binning_1d_options.k_bin - k_bin_file)) gt 0. then test_bin=0
     endif
 
-    if test_2d gt 0 and n_elements(freq_flags) ne 0 then begin
+    if test_2d gt 0 and tag_exist(freq_options, 'freq_flags') then begin
       for j=0, n_elements(savefile_2d_use)-1 do begin
         old_freq_mask = getvar_savefile(savefile_2d_use[j], 'freq_mask')
-        if total(abs(old_freq_mask - file_struct_arr[i].freq_mask)) ne 0 then test_2d = 0
+        if total(abs(old_freq_mask - freq_options.freq_mask)) ne 0 then test_2d = 0
       endfor
 
       for j=0, n_elements(savefiles_bin_use)-1 do begin
         old_freq_mask = getvar_savefile(savefiles_bin_use[j], 'freq_mask')
-        if total(abs(old_freq_mask - file_struct_arr[i].freq_mask)) ne 0 then test_bin = 0
+        if total(abs(old_freq_mask - freq_options.freq_mask)) ne 0 then test_bin = 0
       endfor
 
       for j=0, n_elements(savefiles_mask_use)-1 do begin
         old_freq_mask = getvar_savefile(savefiles_mask_use[j], 'freq_mask')
-        if total(abs(old_freq_mask - file_struct_arr[i].freq_mask)) ne 0 then test_mask = 0
+        if total(abs(old_freq_mask - freq_options.freq_mask)) ne 0 then test_mask = 0
       endfor
     endif
 
-    if test_1d gt 0 and n_elements(freq_flags) ne 0 then begin
+    if test_1d gt 0 and tag_exist(freq_options, 'freq_flags') then begin
       for j=0, n_elements(savefile_1d_use)-1 do begin
         old_freq_mask = getvar_savefile(savefile_1d_use[j], 'freq_mask')
-        if total(abs(old_freq_mask - file_struct_arr[i].freq_mask)) ne 0 then test_1d = 0
+        if total(abs(old_freq_mask - freq_options.freq_mask)) ne 0 then test_1d = 0
       endfor
     endif
 
@@ -1148,7 +1149,7 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
         plotfile_binning_hist_use = reform(plotfile_binning_hist[i,*,*], $
           n_elements(kperp_density_names), n_elements(wedge_1dbin_names))
       endif
-      ps_binning, file_struct_arr[i], sim = sim, freq_flags = freq_flags, $
+      ps_binning, file_struct_arr[i], sim = sim, freq_options = freq_options, $
         ps_options = ps_options, binning_2d_options = binning_2d_options, $
         binning_1d_options = binning_1d_options, plot_options = plot_options, $
         plot_types = plot_types, $
@@ -1226,7 +1227,7 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
     if not tag_exist(plot_options, 'plot_filebase') then begin
       plotfile_1d_base = general_filebase
     endif else begin
-      plotfile_1d_base = plot_options.plot_filebase + uvf_tag
+      plotfile_1d_base = plot_options.plot_filebase + uvf_tag + freq_tag
     endelse
     plotfile_path_1d = plotfile_path + file_struct_arr[0].subfolders.bin_1d
     begin_1d = plotfile_path_1d + plotfile_1d_base + power_tag + wedge_1dbin_names + binning_tags.fadd_1dbin
@@ -1331,7 +1332,6 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
 
   endif
 
-
   ave_power_vals = fltarr(n_cubes)
   wt_ave_power_vals = fltarr(n_cubes)
   ave_weights_vals = fltarr(n_cubes)
@@ -1367,13 +1367,8 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
     if max(strmatch(varnames, 'uv_area', /fold_case)) gt 0 then begin
       uv_area[k] = getvar_savefile(savefiles_1d[k,0,0], 'uv_area')
 
-      nbsl_lambda2[k] = file_struct_arr[0].n_vis[0]/uv_area[k]
-      if n_elements(freq_ch_range) gt 0 then begin
-        nbsl_lambda2_freq[k,*] = file_struct_arr[0].n_vis_freq[0, $
-          freq_ch_range[0]:freq_ch_range[1]]/uv_area[k]
-      endif else begin
-        nbsl_lambda2_freq[k,*] = file_struct_arr[0].n_vis_freq[0,*]/uv_area[k]
-      endelse
+      nbsl_lambda2[k] = n_vis[0]/uv_area[k]
+      nbsl_lambda2_freq[k,*] = n_vis_freq[0,*]/uv_area[k]
     endif else begin
       uv_area[k] = -1
       nbsl_lambda2[k] = -1
