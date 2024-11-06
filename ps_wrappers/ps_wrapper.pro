@@ -244,7 +244,9 @@ pro ps_wrapper, folder_name_in, obs_name, data_subdirs=data_subdirs, $
   if min(snr_range) le 0 then message, "snr_range values must be > 0"
   if min(noise_range) le 0 then message, "noise_range values must be > 0"
   if min(nnr_range) le 0 then message, "nnr_range values must be > 0"
-  if min(slice_range) le 0 then message, "slice_range values must be > 0"
+  if n_elements(slice_range) gt 0 then begin
+    if min(slice_range) le 0 then message, "slice_range values must be > 0"
+  endif
 
   if keyword_set(set_krange_1dave) then begin
 
