@@ -78,7 +78,7 @@ function choose_pix_ft, file_struct, pixel_nums = pixel_nums, data_dims = data_d
   endif else begin
     limits = [min(x_vec), min(y_vec), max(x_vec), max(y_vec)]
   endelse
-  image_len = min([limits[2]-limits[0],limits[3]-limits[1]])
+  image_len = min([abs(limits[2]-limits[0]),abs(limits[3]-limits[1])])
 
   frequencies = file_struct.frequencies
   if n_elements(freq_ch_range) ne 0 then begin
@@ -92,7 +92,11 @@ function choose_pix_ft, file_struct, pixel_nums = pixel_nums, data_dims = data_d
     if strpos(file_struct.instrument, 'hera') ge 0 then begin
       uv_cellsize_m = 10.5 ;calculated by Dara from the beam model at her central frequency
     endif else begin
-      message, "unknown instrument: " + file_struct.instrument + ". Cannot set uv_cellsize_m"
+      if strpos(file_struct.instrument, 'lwa') ge 0 then begin
+         uv_cellsize_m = 1 ;placeholder, need to recalculate
+      endif else begin
+         message, "unknown instrument: " + file_struct.instrument + ". Cannot set uv_cellsize_m"
+      end
     end
     
   end
@@ -154,8 +158,8 @@ function choose_pix_ft, file_struct, pixel_nums = pixel_nums, data_dims = data_d
     y_range = [-1,1]*image_len/2. + mean(y_rot)
   endelse
 
-  wh_close = where(x_rot le x_range[1] and x_rot ge x_range[0] and $
-    y_rot le y_range[1] and y_rot ge y_range[0], count_close, $
+  wh_close = where(x_rot le max(x_range) and x_rot ge min(x_range) and $
+    y_rot le max(y_range) and y_rot ge min(y_range), count_close, $
     ncomplement = count_far)
 
   if count_close eq 0 then message, 'No image pixels included in FoV cut.'
