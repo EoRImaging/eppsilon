@@ -26,6 +26,13 @@ function create_binning_tags, file_struct_arr=file_struct_arr, $
 
     fadd_1dbin = ''
     if binning_1d_options.log_k then fadd_1dbin = fadd_1dbin + '_logk'
+    
+    ; Get hubble_param
+    frequencies = file_struct_arr[0].frequencies
+    z0_freq = 1420.40 ;; MHz
+    redshifts = z0_freq/frequencies - 1
+    mean_redshift = mean(redshifts)
+    cosmology_measures, mean_redshift, hubble_param = hubble_param
 
     fadd_kpar_1d = fadd_1dbin
     fadd_kperp_1d = fadd_1dbin
