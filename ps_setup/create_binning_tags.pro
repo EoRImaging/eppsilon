@@ -1,6 +1,6 @@
 function create_binning_tags, file_struct_arr=file_struct_arr, $
     binning_2d_options = binning_2d_options, binning_1d_options = binning_1d_options, $
-    plot_2d_options = plot_2d_options
+    plot_2d_options = plot_2d_options, plot_options = plot_options
 
     plot_fadd_2d = ''
     plot_fadd_kslice = ''
