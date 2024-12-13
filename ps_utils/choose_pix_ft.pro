@@ -44,36 +44,44 @@ function choose_pix_ft, file_struct, pixel_nums = pixel_nums, data_dims = data_d
 
   ;; get size of a square region that fits in the Healpix image
   if healpix then begin
-    ;; get surrounding pixels
-    dists = sqrt((pix_center_vec[*,0]-vec_mid[0])^2d + (pix_center_vec[*,1]-vec_mid[1])^2d + (pix_center_vec[*,2]-vec_mid[2])^2d)
-    radius = max(dists)*1.1
-    query_disc, file_struct.nside, vec_mid, radius, listpix, nlist, /inc
-    min_pix = min([pixel_nums, listpix])
-    wh2 = where(histogram(listpix, min=min_pix) eq 0 and histogram(pixel_nums, min=min_pix) gt 0, count2)
-    while count2 gt 0 do begin
-      radius = radius*1.1
+    if min(abs([min(x_rot), max(x_rot), min(y_rot), max(y_rot)])) gt 0.95 then begin
+      ;; pixels extend to very near the horizon
+      ;; in this case, getting the surrounding pixels can exceed the horizon limits, in which case plane projection does not work
+      ;; instead, here we define a square region that fits within the horizon
+      limits = [-1/sqrt(2), -1/sqrt(2), 1/sqrt(2), 1/sqrt(2)]
+    endif else begin
+      ;; get surrounding pixels
+      dists = sqrt((pix_center_vec[*,0]-vec_mid[0])^2d + (pix_center_vec[*,1]-vec_mid[1])^2d + (pix_center_vec[*,2]-vec_mid[2])^2d)
+      radius = max(dists)*1.1
       query_disc, file_struct.nside, vec_mid, radius, listpix, nlist, /inc
       min_pix = min([pixel_nums, listpix])
       wh2 = where(histogram(listpix, min=min_pix) eq 0 and histogram(pixel_nums, min=min_pix) gt 0, count2)
-    endwhile
+      while count2 gt 0 do begin
+        radius = radius*1.1
+        query_disc, file_struct.nside, vec_mid, radius, listpix, nlist, /inc
+        min_pix = min([pixel_nums, listpix])
+        wh2 = where(histogram(listpix, min=min_pix) eq 0 and histogram(pixel_nums, min=min_pix) gt 0, count2)
+      endwhile
 
-    ;; remove pixels from listpix that are in my image -- only want nearby pixels not in my image
-    min_pix = min([pixel_nums, listpix])
-    max_pix = max([pixel_nums, listpix])
-    wh = where(histogram(listpix, min = min_pix, max = max_pix) gt 0 and histogram(pixel_nums, min = min_pix, max = max_pix) eq 0, count_out)
-    if count_out gt 0 then outside_pix = wh + min_pix else $
-      message, 'Something has gone wrong with finding excluded Healpix pixels in region of interest'
-    pix2vec_ring, file_struct.nside, outside_pix, out_center_vec
-    new_out_vec = rot_matrix ## out_center_vec
-    x_out_rot = new_out_vec[*,0] * cos(pred_angle) - new_out_vec[*,1] * sin(pred_angle)
-    y_out_rot = new_out_vec[*,0] * sin(pred_angle) + new_out_vec[*,1] * cos(pred_angle)
-    limits = healpix_limits(x_rot, y_rot, x_out_rot, y_out_rot)
+      ;; remove pixels from listpix that are in my image -- only want nearby pixels not in my image
+      min_pix = min([pixel_nums, listpix])
+      max_pix = max([pixel_nums, listpix])
+      wh = where(histogram(listpix, min = min_pix, max = max_pix) gt 0 and histogram(pixel_nums, min = min_pix, max = max_pix) eq 0, count_out)
+      if count_out gt 0 then outside_pix = wh + min_pix else $
+        message, 'Something has gone wrong with finding excluded Healpix pixels in region of interest'
+      pix2vec_ring, file_struct.nside, outside_pix, out_center_vec
+      new_out_vec = rot_matrix ## out_center_vec
+      x_out_rot = new_out_vec[*,0] * cos(pred_angle) - new_out_vec[*,1] * sin(pred_angle)
+      y_out_rot = new_out_vec[*,0] * sin(pred_angle) + new_out_vec[*,1] * cos(pred_angle)
+      limits = healpix_limits(x_rot, y_rot, x_out_rot, y_out_rot)
 
-    ;; limits should not extend beyond horizon (1/sqrt(2))
-    if limits[0] lt -1/sqrt(2) then limits[0] = -1/sqrt(2)
-    if limits[1] lt -1/sqrt(2) then limits[1] = -1/sqrt(2)
-    if limits[2] gt 1/sqrt(2) then limits[2] = 1/sqrt(2)
-    if limits[3] gt 1/sqrt(2) then limits[3] = 1/sqrt(2)
+      ;; limits should not extend beyond horizon (1/sqrt(2))
+      if limits[0] lt -1/sqrt(2) then limits[0] = -1/sqrt(2)
+      if limits[1] lt -1/sqrt(2) then limits[1] = -1/sqrt(2)
+      if limits[2] gt 1/sqrt(2) then limits[2] = 1/sqrt(2)
+      if limits[3] gt 1/sqrt(2) then limits[3] = 1/sqrt(2)
+
+    endelse
 
   endif else begin
     limits = [min(x_vec), min(y_vec), max(x_vec), max(y_vec)]
