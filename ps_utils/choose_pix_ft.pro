@@ -10,14 +10,14 @@ function choose_pix_ft, file_struct, pixel_nums = pixel_nums, data_dims = data_d
     pix2vec_ring, file_struct.nside, pixel_nums, pix_center_vec
     ;; find mid point (work in x/y because of possible jumps in phi)
     vec_mid = [mean(pix_center_vec[*,0]), mean(pix_center_vec[*,1]), mean(pix_center_vec[*,2])]
-    theta0 = acos(vec_mid[2])
-    phi0 = atan(vec_mid[1], vec_mid[0])
 
+    vec2ang, vec_mid, theta_mid, phi_mid
+  
     ;; To go to flat sky, rotate patch to zenith and flatten.
     ;; To get to current location, need to first rotate around z by
     ;; phi, then around y by -theta, then around z by -phi
     ;; use inverse to rotate back to zenith
-    rot_matrix = get_rot_matrix(theta0, phi0, /inverse)
+    rot_matrix = get_rot_matrix(theta_mid, phi_mid, /inverse)
     new_pix_vec = rot_matrix ## pix_center_vec
 
     ;; then rotate to make as rectangular as possible
