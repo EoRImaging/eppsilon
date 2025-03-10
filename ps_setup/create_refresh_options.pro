@@ -1,6 +1,7 @@
 function create_refresh_options, refresh_options = refresh_options, $
     refresh_dft = refresh_dft, refresh_weight_dft = refresh_weight_dft, $
-    refresh_beam = refresh_beam, refresh_kcube = refresh_kcube, refresh_ps = refresh_ps, $
+    refresh_beam = refresh_beam, refresh_freq_select_avg = refresh_freq_select_avg, $
+    refresh_kcube = refresh_kcube, refresh_ps = refresh_ps, $
     refresh_binning = refresh_binning, refresh_info = refresh_info, $
     return_new = return_new
 
@@ -8,7 +9,8 @@ function create_refresh_options, refresh_options = refresh_options, $
   if keyword_set(refresh_dft) then refresh_weight_dft = 1
   if keyword_set(refresh_dft) then refresh_beam = 1
   if keyword_set(refresh_dft) or keyword_set(refresh_weight_dft) or $
-    keyword_set(refresh_beam) then refresh_kcube = 1
+    keyword_set(refresh_beam) then refresh_freq_select_avg = 1
+  if keyword_set(refresh_freq_select_avg) then refresh_kcube = 1
   if keyword_set(refresh_kcube) then refresh_ps = 1
   if keyword_set(refresh_ps) then refresh_binning = 1
 
@@ -17,13 +19,15 @@ function create_refresh_options, refresh_options = refresh_options, $
     if n_elements(refresh_dft) eq 0 then refresh_dft = 0
     if n_elements(refresh_weight_dft) eq 0 then refresh_weight_dft = 0
     if n_elements(refresh_beam) eq 0 then refresh_beam = 0
+    if n_elements(refresh_freq_select_avg) eq 0 then refresh_freq_select_avg = 0
     if n_elements(refresh_kcube) eq 0 then refresh_kcube = 0
     if n_elements(refresh_ps) eq 0 then refresh_ps = 0
     if n_elements(refresh_binning) eq 0 then refresh_binning = 0
     if n_elements(refresh_info) eq 0 then refresh_info = 0
 
     refresh_options = {refresh_dft: refresh_dft, refresh_weight_dft: refresh_weight_dft, $
-      refresh_beam: refresh_beam, refresh_kcube: refresh_kcube, refresh_ps: refresh_ps, $
+      refresh_beam: refresh_beam, refresh_freq_select_avg:refresh_freq_select_avg, $
+      refresh_kcube: refresh_kcube, refresh_ps: refresh_ps, $
       refresh_binning:refresh_binning, refresh_info:refresh_info}
 
     return, refresh_options
@@ -42,6 +46,10 @@ function create_refresh_options, refresh_options = refresh_options, $
     if n_elements(refresh_beam) gt 0 then begin
       update_tags.add, 'refresh_beam'
       update_values.add, refresh_beam
+    endif
+    if n_elements(refresh_freq_select_avg) gt 0 then begin
+      update_tags.add, 'refresh_freq_select_avg'
+      update_values.add, refresh_freq_select_avg
     endif
     if n_elements(refresh_kcube) gt 0 then begin
       update_tags.add, 'refresh_kcube'

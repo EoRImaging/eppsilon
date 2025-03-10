@@ -1,5 +1,6 @@
-function z_mpc, frequencies, hubble_param = hubble_param, f_delta = f_delta, even_freq = even_freq, $
-    redshifts = redshifts, comov_dist_los = comov_dist_los, z_mpc_delta = z_mpc_delta
+function z_mpc, frequencies, hubble_param = hubble_param, f_delta = f_delta, $
+  even_freq = even_freq, redshifts = redshifts, comov_dist_los = comov_dist_los, $
+  z_mpc_delta = z_mpc_delta, z_mpc_length = z_mpc_length
 
   n_freq = n_elements(frequencies)
 
@@ -47,6 +48,7 @@ function z_mpc, frequencies, hubble_param = hubble_param, f_delta = f_delta, eve
 
     z_mpc_delta = mean(nominal_comov_diffs)
     z_mpc_mean = mean(nominal_comov_dist_los)
+    z_mpc_length = max(nominal_comov_dist_los) - min(nominal_comov_dist_los) + z_mpc_delta
 
   endif else begin
     even_freq = 1
@@ -54,7 +56,7 @@ function z_mpc, frequencies, hubble_param = hubble_param, f_delta = f_delta, eve
     f_delta = double(mean(freq_diff)) ;take the mean to reduce precision errors
     z_mpc_delta = double(mean(comov_los_diff))
     z_mpc_mean = double(mean(comov_dist_los))
-    n_kz = n_freq
+    z_mpc_length = max(comov_dist_los) - min(comov_dist_los) + z_mpc_delta
 
   endelse
 

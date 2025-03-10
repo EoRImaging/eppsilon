@@ -1,12 +1,16 @@
 pro make_2d_files, nfiles, savefile_2d, savefile_k0, power_3D, sim_noise_3D, $
     new_noise_3d, noise_expval_3d, weights_3d, kx_mpc, ky_mpc, kz_mpc, $
-    delay_params, hubble_param, hinv, kperp_lambda_conv, freq_mask, vs_name, $
+    delay_params, hubble_param, hinv, kperp_lambda_conv, vs_name, $
     vs_mean, t_sys_meas, window_int, git_hashes, wt_ave_power, ave_power, $
     ave_weights, wt_ave_power_freq, ave_power_freq, wt_ave_power_uvf, $
     ave_power_uvf, uv_pix_area, uv_area, masked_save_items = masked_save_items, $
     noise_3D = noise_3D, sim_noise_diff_3D = sim_noise_diff_3D, $
-    wt_measure = wt_measure, wt_cutoff = wt_cutoff, freq_flags = freq_flags, $
+    wt_measure = wt_measure, wt_cutoff = wt_cutoff, freq_options = freq_options, $
     binning_2d_options = binning_2d_options
+
+  if tag_exist(freq_options, 'freq_flags') then begin
+    freq_mask = freq_options.freq_mask
+  endif
 
   power_rebin = kspace_rebinning_2d(power_3D, kx_mpc, ky_mpc, kz_mpc, $
     kperp_edges_mpc, kpar_edges_mpc, noise_expval = noise_expval_3d, $
@@ -77,7 +81,7 @@ pro make_2d_files, nfiles, savefile_2d, savefile_k0, power_3D, sim_noise_3D, $
       coarse_width = masked_save_items.coarse_width
     endif
 
-    if n_elements(freq_flags) ne 0 then begin
+    if tag_exist(freq_options, 'freq_flags') then begin
       save, file = savefile_2d, power, noise, sim_noise, sim_noise_diff, weights, $
         noise_expval, kperp_edges, kpar_edges, kperp_bin, kpar_bin, $
         kperp_lambda_conv, delay_params, hubble_param, freq_mask, vs_name, vs_mean, $
@@ -96,7 +100,7 @@ pro make_2d_files, nfiles, savefile_2d, savefile_k0, power_3D, sim_noise_3D, $
     endelse
 
   endif else begin
-    if n_elements(freq_flags) ne 0 then begin
+    if tag_exist(freq_options, 'freq_flags') then begin
       save, file = savefile_2d, power, noise, sim_noise, sim_noise_diff, weights, $
         noise_expval, kperp_edges, kpar_edges, kperp_bin, kpar_bin, $
         kperp_lambda_conv, delay_params, hubble_param, freq_mask, vs_name, vs_mean, $
@@ -131,7 +135,7 @@ pro make_2d_files, nfiles, savefile_2d, savefile_k0, power_3D, sim_noise_3D, $
       noise, sim_noise_power = sim_noise, sim_noise_diff = sim_noise_diff, $
       nfiles = nfiles, hinv = hinv
 
-    if n_elements(freq_flags) ne 0 then begin
+    if tag_exist(freq_options, 'freq_flags') then begin
       save, file = savefile_k0, power, noise, sim_noise, sim_noise_diff, weights, $
         noise_expval, k_edges, k_bin, kperp_lambda_conv, delay_params, $
         hubble_param, freq_mask, window_int, wt_ave_power, ave_power, ave_weights, $

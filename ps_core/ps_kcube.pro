@@ -1,6 +1,6 @@
 pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
-    uvf_input = uvf_input, freq_ch_range = freq_ch_range, freq_flags = freq_flags, $
-    input_units = input_units, save_slices = save_slices, $
+    uvf_input = uvf_input, freq_options = freq_options, $
+    input_units = input_units, save_slices = save_slices, save_sum_cube = save_sum_cube, $
     refresh_options = refresh_options, uvf_options = uvf_options, $
     ps_options = ps_options
 
@@ -22,37 +22,103 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
 
   git, repo_path = ps_repository_dir(), result=this_run_git_hash
 
-  frequencies = file_struct.frequencies
+  n_vis_freq = reform(file_struct.n_vis_freq)
 
-  if n_elements(freq_flags) ne 0 then freq_mask = file_struct.freq_mask
+  if healpix or not uvf_input then begin
+    ps_image_to_uvf, file_struct, n_vis_freq, kx_rad_vals, ky_rad_vals, $
+      no_var = no_var, refresh_options = refresh_options, uvf_options = uvf_options
+  endif
 
-  n_freq_orig = n_elements(frequencies) ;Read-in number of frequencies
-  if n_elements(freq_ch_range) ne 0 then frequencies = frequencies[min(freq_ch_range):max(freq_ch_range)]
+  if ( $
+    tag_exist(freq_options, 'freq_flags') $
+    or tag_exist(freq_options, 'freq_ch_range') $
+    or tag_exist(freq_options, "freq_avg_bins") $
+    or freq_options.freq_avg_factor gt 1 $
+  ) then begin
+    ps_freq_select_avg, file_struct, n_vis_freq, refresh_options = refresh_options, $
+      freq_options = freq_options, ps_options = ps_options
+    frequencies = freq_options.frequencies
+    full_n_vis_freq = n_vis_freq
+    if tag_exist(freq_options, 'freq_flags') then begin    
+      full_n_vis_freq = full_n_vis_freq * transpose([[freq_options.freq_mask], [freq_options.freq_mask]])
+    endif 
+    n_vis_freq = freq_options.n_vis_freq
+  endif else begin
+    frequencies = file_struct.frequencies
+  endelse
+
+  if tag_exist(freq_options, 'freq_flags') then begin
+    freq_mask = freq_options.freq_mask
+  endif
+
   n_freq = n_elements(frequencies) ;Selected number of frequencies
+  if tag_exist(freq_options, 'freq_flags') then begin
+    if tag_exist(freq_options, 'new_freq_mask') then begin
+      mask_use = freq_options.new_freq_mask
+    endif else begin
+      mask_use = freq_options.freq_mask
+    endelse
+    wh_unflagged = where(mask_use gt 0, count_unflagged)
+    if count_unflagged eq 0 then message, 'something went wrong with freq flagging'
+    n_freq_unflagged = total(mask_use)
+  endif else begin
+    n_freq_unflagged = n_freq
+  endelse
 
   z_mpc_mean = z_mpc(frequencies, hubble_param = hubble_param, f_delta = f_delta, $
-    redshifts = redshifts, comov_dist_los = comov_dist_los, $
-    z_mpc_delta = z_mpc_delta)
+    redshifts = redshifts, comov_dist_los = comov_dist_los, even_freq = even_freq, $
+    z_mpc_delta = z_mpc_delta, z_mpc_length = z_mpc_length)
 
   kperp_lambda_conv = z_mpc_mean / (2.*!dpi)
   delay_delta = 1e9/(n_freq*f_delta*1e6) ;; equivilent delay bin size for kparallel
   delay_max = delay_delta * n_freq/2.    ;; factor of 2 b/c of neg/positive
   delay_params = [delay_delta, delay_max]
 
-  z_mpc_length = max(comov_dist_los) - min(comov_dist_los) + z_mpc_delta
-  kz_mpc_range =  (2.*!dpi) / (z_mpc_delta)
-  kz_mpc_delta = (2.*!dpi) / z_mpc_length
+  ;; check for uneven frequencies to determine how to calculate kz values
+  freq_diff = frequencies - shift(frequencies, 1)
+  freq_diff = freq_diff[1:*]
+  if max(abs(freq_diff-freq_diff[0])) gt 1e-12 and not tag_exist(ps_options, 'kz_use') then begin
+    message, "frequencies are unevenly spaced. To calculate kz values, " $
+      + "kz_mpc_range and kz_mpc_delta must be sent in with kz_use. See dictionary " $
+      + "and UW thesis by Star for reference."
+  endif
+
+  if tag_exist(ps_options, 'kz_use') then begin
+    kz_mpc_range = double(ps_options.kz_use[0])
+    kz_mpc_delta = double(ps_options.kz_use[1])
+    n_kz = round(kz_mpc_range / kz_mpc_delta)
+    ; force frequency dft if using custom kz array
+    ps_options = create_ps_options(ps_options = ps_options, freq_dft = 1)
+    if n_kz lt 1 then begin
+      message, "n_kz is less than one. Something is wrong with kz_use input."
+    endif 
+  endif else begin
+    kz_mpc_range =  (2.*!dpi) / (z_mpc_delta)
+    kz_mpc_delta = (2.*!dpi) / z_mpc_length
+    n_kz = round(kz_mpc_range / kz_mpc_delta)
+    if n_kz ne n_freq then begin
+      message, "something has gone wrong with kz_mpc calculation, n_kz is " $
+        + "not equal to n_freq. n_kz: " + number_formatter(n_kz) + ", n_freq:" $
+        + number_formatter(n_freq)
+    endif
+  endelse
+
+  ;; for standard EOR high band calculations (averaged evenly by four): 
+  ;; kz_mpc_range = double(2.4628338337796376)
+  ;; kz_mpc_delta = double(0.012827259550935612)
+  ;; for hyperfine, kz_mpc_delta = double(0.00012827259550935612)
 
   ;; need to figure out where the zero bin is (for later computations)
   ;; The location of the zero bin also dictates what the most negative kz bin is (min_kz)
   ;; which we use to construct the kz_mpc_orig array
   ;; The calculation depends a bit on whether we have an odd or even number of frequencies.
   ;; The following calculation is taken directly from the IDL FFT documentation
-  int_arr = findgen((n_freq - 1)/2) + 1
-  is_n_freq_even = (n_freq mod 2) eq 0
-  fft_shift_val = -(n_freq/2 + 1)
-  if (is_n_freq_even) then begin
-    kz_integers = [0.0, int_arr, n_freq/2, -n_freq/2 + int_arr]
+  ;; The calculation was modified Jan 2024 to allow for n_kz not equal to n_freqs
+  int_arr = findgen((n_kz - 1)/2) + 1
+  is_n_kz_even = (n_kz mod 2) eq 0
+  fft_shift_val = -(n_kz/2 + 1)
+  if (is_n_kz_even) then begin
+    kz_integers = [0.0, int_arr, n_kz/2, -n_kz/2 + int_arr]
   endif else begin
     kz_integers = [0.0, int_arr, fft_shift_val + int_arr]
   endelse
@@ -62,10 +128,7 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
   endif
 
   min_kz = min(kz_integers)*kz_mpc_delta
-  kz_mpc_orig = findgen(round(kz_mpc_range / kz_mpc_delta)) * kz_mpc_delta + min_kz
-
-  n_kz = n_elements(kz_mpc_orig)
-  if n_kz ne n_freq then message, 'something has gone wrong with kz_mpc calculation.'
+  kz_mpc_orig = dindgen(n_kz) * kz_mpc_delta + min_kz
 
   if input_units eq 'jansky' then begin
     ;; converting from Jy (in u,v,f) to mK*str (10^-26 * c^2 * 10^3/ (2*f^2*kb))
@@ -101,8 +164,8 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
     if nfiles eq 2 then vis_sigma_ian = total(vis_sigma_ian, 1)/2.
   endif
 
-  if n_elements(freq_ch_range) ne 0 then begin
-    vis_sig_tag = number_formatter(384./n_freq_orig)
+  if tag_exist(freq_options, 'freq_ch_range') then begin
+    vis_sig_tag = number_formatter(384./n_elements(file_struct.frequencies))
   endif else begin
     vis_sig_tag = number_formatter(384./n_freq)
   endelse
@@ -111,22 +174,81 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
   if file_valid(vis_sigma_file) then begin
     vis_sigma_adam = getvar_savefile(vis_sigma_file, 'vis_sigma')
 
-    if n_elements(freq_ch_range) ne 0 then begin
-      if n_elements(vis_sigma_adam) ne n_freq_orig then message, $
+    if tag_exist(freq_options, 'freq_ch_range') then begin
+      if n_elements(vis_sigma_adam) ne n_elements(file_struct.frequencies) then begin
+        message, 'vis_sig file has incorrect number of frequency channels'
+      endif
+      vis_sigma_adam = vis_sigma_adam[min(freq_options.freq_ch_range):max(freq_options.freq_ch_range)]
+    endif
+
+    if freq_options.freq_avg_factor gt 1 then begin
+      new_vis_sigma_adam = reform(vis_sigma_adam, freq_options.freq_avg_factor, n_elements(frequencies))
+      ;; average over the file axis for full_n_vis_freq because we use the same vis_sigma for even & odd
+      full_n_vis_freq_temp = total(full_n_vis_freq, 1)/2.
+      full_n_vis_freq_temp = reform(full_n_vis_freq_temp, freq_options.freq_avg_factor, n_elements(frequencies))
+      new_vis_sigma_adam = sqrt( $
+        total(new_vis_sigma_adam^2 * full_n_vis_freq_temp, 1) / total(full_n_vis_freq_temp, 1))
+      vis_sigma_adam = new_vis_sigma_adam
+    endif
+
+    if tag_exist(freq_options, 'freq_avg_bins') then begin
+    ;; average over the file axis for full_n_vis_freq because we use the same vis_sigma for even & odd
+      full_n_vis_freq_temp = total(full_n_vis_freq, 1)/2.
+      h = histogram(freq_options.freq_avg_bins, reverse_indices=ri)
+      new_nfreq = n_elements(h)
+      new_vis_sigma_adam = dblarr(new_nfreq)
+      for fi = 0, new_nfreq - 1 do begin
+          ; ge t indices for data going into each frequency bin
+          bin_inds = ri[ri[fi] : ri[fi + 1] - 1]
+          wh_unflag = where(full_n_vis_freq_temp[bin_inds] ne 0, count_unflagged)
+          if count_unflagged gt 0 then begin
+            new_vis_sigma_adam[fi] = sqrt(total(vis_sigma_adam[bin_inds]^2 * full_n_vis_freq_temp[bin_inds]) / total(full_n_vis_freq_temp[bin_inds]))
+          endif else begin
+            new_vis_sigma_adam[fi] = 0
+          endelse
+      endfor
+      vis_sigma_adam = new_vis_sigma_adam
+    endif
+
+    if n_elements(vis_sigma_adam) ne n_freq then message, $
         'vis_sig file has incorrect number of frequency channels'
-      vis_sigma_adam = vis_sigma_adam[min(freq_ch_range):max(freq_ch_range)]
-    endif else begin
-      if n_elements(vis_sigma_adam) ne n_freq then message, $
-        'vis_sig file has incorrect number of frequency channels'
-    endelse
 
     wh_nan = where(finite(vis_sigma_adam) eq 0, count_nan)
     if count_nan gt 0 then vis_sigma_adam[wh_nan] = 0
   endif
 
   if n_elements(vis_sigma_ian) gt 0 then begin
-    if n_elements(freq_ch_range) ne 0 then begin
-      vis_sigma_ian = vis_sigma_ian[min(freq_ch_range):max(freq_ch_range)]
+    if tag_exist(freq_options, 'freq_ch_range') ne 0 then begin
+      vis_sigma_ian = vis_sigma_ian[min(freq_options.freq_ch_range):max(freq_options.freq_ch_range)]
+    endif
+    if freq_options.freq_avg_factor gt 1 then begin
+      new_vis_sigma_ian = reform(vis_sigma_ian, freq_options.freq_avg_factor, n_elements(frequencies))
+      ;; average over the file axis for full_n_vis_freq because we use the same vis_sigma for even & odd
+      ;; (we already averaged over that axis earlier)
+      full_n_vis_freq_temp = total(full_n_vis_freq, 1)/2.
+      full_n_vis_freq_temp = reform(full_n_vis_freq_temp, freq_options.freq_avg_factor, n_elements(frequencies))
+      new_vis_sigma_ian = sqrt( $
+        total(new_vis_sigma_ian^2 * full_n_vis_freq_temp, 1) / total(full_n_vis_freq_temp, 1))
+      vis_sigma_ian = new_vis_sigma_ian
+    endif
+    
+    if tag_exist(freq_options, 'freq_avg_bins') then begin
+    ;; average over the file axis for full_n_vis_freq because we use the same vis_sigma for even & odd
+      full_n_vis_freq_temp = total(full_n_vis_freq, 1)/2.
+      h = histogram(freq_options.freq_avg_bins, reverse_indices=ri)
+      new_nfreq = n_elements(h)
+      new_vis_sigma_ian = dblarr(new_nfreq)
+      for fi = 0, new_nfreq - 1 do begin
+          ; ge t indices for data going into each frequency bin
+          bin_inds = ri[ri[fi] : ri[fi + 1] - 1]
+          wh_unflag = where(full_n_vis_freq_temp[bin_inds] ne 0, count_unflagged)
+          if count_unflagged gt 0 then begin
+            new_vis_sigma_ian[fi] = sqrt(total(vis_sigma_ian[bin_inds]^2 * full_n_vis_freq_temp[bin_inds]) / total(full_n_vis_freq_temp[bin_inds]))
+          endif else begin
+            new_vis_sigma_ian[fi] = 0
+          endelse
+      endfor
+      vis_sigma_ian = new_vis_sigma_ian
     endif
     vis_sigma = vis_sigma_ian
     vs_name = 'ian'
@@ -150,18 +272,13 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
   t_sys_meas = (eff_area * sqrt(df * tau) * vis_sigma * sqrt(2)) / $
     ((2. * (1.38065e-23) * 1e26))
 
-  n_vis = reform(file_struct.n_vis)
-  n_vis_freq = reform(file_struct.n_vis_freq)
-  if n_elements(freq_ch_range) ne 0 then begin
-    n_vis = total(n_vis_freq[*, min(freq_ch_range):max(freq_ch_range)], 2)
-    n_vis_freq = n_vis_freq[*, min(freq_ch_range):max(freq_ch_range)]
-  endif
+  if nfiles eq 2 then begin
+    n_vis = total(n_vis_freq, 2)
+  endif else begin
+    n_vis = total(n_vis_freq)
+  endelse
 
   if healpix or not uvf_input then begin
-    ps_image_to_uvf, file_struct, n_vis_freq, kx_rad_vals, ky_rad_vals, $
-      freq_ch_range = freq_ch_range, freq_flags = freq_flags, no_var = no_var, $
-      refresh_options = refresh_options, uvf_options = uvf_options
-
     n_kx = n_elements(kx_rad_vals)
     kx_rad_delta = kx_rad_vals[1] - kx_rad_vals[0]
     kx_mpc = temporary(kx_rad_vals) / z_mpc_mean
@@ -252,57 +369,6 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
 
     pix_area_rad = ((!dpi/180.)*file_struct.degpix)^2.
     pix_area_mpc = pix_area_rad * z_mpc_mean^2.
-
-    ;; get beam sorted out
-    if tag_exist(file_struct, 'beam_savefile') then begin
-      test_beam = file_valid(file_struct.beam_savefile)
-      if min(test_beam) eq 0 then test_beam = check_old_path(file_struct, 'beam_savefile')
-
-      if min(test_beam) eq 0 or refresh_options.refresh_beam then begin
-
-        for i=0, nfiles-1 do begin
-          arr = getvar_savefile(file_struct.beamfile[i], file_struct.beamvar)
-          void = getvar_savefile(file_struct.beamfile[i], names = beam_varnames)
-          wh_obs = where(stregex(strlowcase(beam_varnames), 'obs', /boolean), count_obs)
-          if count_obs gt 0 then obs_struct_name = beam_varnames[wh_obs[0]]
-          obs_beam = getvar_savefile(file_struct.beamfile[i], obs_struct_name)
-          nfvis_beam = obs_beam.nf_vis
-          undefine_fhd, obs_beam
-
-          if n_elements(freq_ch_range) ne 0 then begin
-            nfvis_beam = nfvis_beam[min(freq_ch_range):max(freq_ch_range)]
-            arr = arr[*,*,min(freq_ch_range):max(freq_ch_range)]
-          endif
-          if n_elements(freq_flags) ne 0 then begin
-            nfvis_beam = nfvis_beam*freq_mask
-            flag_arr = rebin(reform(freq_mask, 1, 1, n_freq), $
-              size(arr,/dimension), /sample)
-            arr = arr * flag_arr
-          endif
-
-          if max(arr) le 1.1 then begin
-            ;; beam is peak normalized to 1
-            temp = arr * rebin(reform(nfvis_beam, 1, 1, n_elements(nfvis_beam)), $
-              n_kx, n_ky, n_elements(nfvis_beam), /sample)
-          endif else if max(arr) le file_struct.n_obs[i] then begin
-            ;; beam is peak normalized to 1 for each obs, then summed over obs so peak is ~ n_obs
-            temp = (arr/file_struct.n_obs[i]) * rebin(reform(nfvis_beam, 1, 1, n_freq), $
-              n_kx, n_ky, n_freq, /sample)
-          endif else begin
-            ;; beam is peak normalized to 1 then multiplied by n_vis_freq for each obs & summed
-            temp = arr
-          endelse
-
-          avg_beam = total(temp, 3) / total(nfvis_beam)
-
-          git, repo_path = ps_repository_dir(), result=beam_git_hash
-
-          save, file=file_struct.beam_savefile[i], avg_beam, beam_git_hash
-        endfor
-
-      endif
-
-    endif
 
     if tag_exist(uvf_options, 'uv_avg') then begin
       nkx_new = floor(n_kx / uvf_options.uv_avg)
@@ -475,19 +541,6 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
           file_struct.variancevar, n_freq, file_struct.pol_index)
       endif
 
-      if n_elements(freq_ch_range) ne 0 then begin
-        variance_cube1 = variance_cube1[*, *, min(freq_ch_range):max(freq_ch_range)]
-        if nfiles eq 2 then begin
-          variance_cube2 = variance_cube2[*, *, min(freq_ch_range):max(freq_ch_range)]
-        endif
-      endif
-      if n_elements(freq_flags) ne 0 then begin
-        flag_arr = rebin(reform(freq_mask, 1, 1, n_freq), $
-          size(variance_cube1,/dimension), /sample)
-        variance_cube1 = variance_cube1 * flag_arr
-        if nfiles eq 2 then variance_cube2 = variance_cube2 * flag_arr
-      endif
-
       if max(abs(variance_cube1)) eq 0 then message, 'variance cube is entirely zero.'
       if nfiles eq 2 then if max(abs(variance_cube2)) eq 0 then begin
         message, 'variance cube is entirely zero.'
@@ -583,6 +636,11 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
           endif
         endif else beam_git_hashes = strarr(nfiles)
 
+        ;; TODO: think about whether to use n_freq or n_freq_unflagged in this section.
+        ;; first worry is that the volume calc is wrong if we include flagged freqs.
+        ;; worry with using n_freq_unflagged is that it's not clear if it's correct and
+        ;; that if the flags came through FHD instead of eppsilon they
+        ;; wouldn't be accounted for this way, so would get a different answer.
         if nfiles eq 2 then begin
           window_int_beam = [total(beam1), total(beam2)]*pix_area_mpc*(z_mpc_delta * n_freq)
         endif else begin
@@ -603,36 +661,22 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
   endif
 
   if tag_exist(file_struct, 'beam_int') then begin
-    beam_int = file_struct.beam_int
-    n_vis_freq = file_struct.n_vis_freq 
-
-    if n_elements(freq_ch_range) ne 0 then begin
-      if nfiles eq 2 then begin
-        beam_int = beam_int[*,min(freq_ch_range):max(freq_ch_range)]
-        n_vis_freq = n_vis_freq[*,min(freq_ch_range):max(freq_ch_range)]
-      endif else begin
-        beam_int = beam_int[min(freq_ch_range):max(freq_ch_range)]
-        n_vis_freq = n_vis_freq[min(freq_ch_range):max(freq_ch_range)]
-      endelse
-    endif
-    if n_elements(freq_flags) ne 0 then begin
-      if nfiles eq 2 then begin
-        flag_arr = rebin(reform(freq_mask, 1, n_freq), $
-          size(beam_int,/dimension), /sample)
-        beam_int = beam_int*flag_arr
-        n_vis_freq = n_vis_freq*flag_arr
-      endif else begin
-        beam_int = beam_int*freq_mask
-        n_vis_freq = n_vis_freq*freq_mask
-      endelse
-    endif
-
-    if nfiles eq 2 then begin
-      ave_beam_int = total(beam_int * n_vis_freq, 2) / total(n_vis_freq, 2)
+    if ( $
+      tag_exist(freq_options, 'freq_flags') $
+      or tag_exist(freq_options, 'freq_ch_range') $
+      or freq_options.freq_avg_factor gt 1 $
+      or tag_exist(freq_options, 'freq_avg_bins') $
+    ) then begin
+      ave_beam_int = freq_options.beam_int
     endif else begin
-      ave_beam_numerator = total(beam_int * n_vis_freq)
-      ave_beam_denominator = total(n_vis_freq)
-      ave_beam_int = total(beam_int * n_vis_freq) / total(n_vis_freq)
+      beam_int = file_struct.beam_int
+      n_vis_freq = file_struct.n_vis_freq 
+
+      if nfiles eq 2 then begin
+        ave_beam_int = total(beam_int * n_vis_freq, 2) / total(n_vis_freq, 2)
+      endif else begin
+        ave_beam_int = total(beam_int * n_vis_freq) / total(n_vis_freq)
+      endelse
     endelse
 
     wh_not_finite = where(~finite(ave_beam_int), count_not_finite)
@@ -640,6 +684,11 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
       message, 'some frequency averaged beam integrals are not finite'
     endif
     ;; convert rad -> Mpc^2, multiply by depth in Mpc
+    ;; TODO: think about whether to use n_freq or n_freq_unflagged in this section.
+    ;; first worry is that the volume calc is wrong if we include flagged freqs.
+    ;; worry with using n_freq_unflagged is that it's not clear if it's correct and
+    ;; that if the flags came through FHD instead of eppsilon they
+    ;; wouldn't be accounted for this way, so would get a different answer.
     window_int_beam_obs = ave_beam_int * z_mpc_mean^2. * (z_mpc_delta * n_freq)
   endif
 
@@ -874,9 +923,13 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
     if total(abs(sigma2_cube1)) le 0 then message, 'sigma2 cube is all zero'
   endelse
 
-
-  wt_meas_ave = total(abs(weights_cube1), 3)/n_freq
-  wt_meas_min = min(abs(weights_cube1), dimension=3)
+  ;; need to use n_freq_unflagged here!
+  wt_meas_ave = total(abs(weights_cube1), 3)/n_freq_unflagged
+  if tag_exist(freq_options, 'freq_flags') then begin
+    wt_meas_min = min(abs(weights_cube1[*, *, wh_unflagged]), dimension=3)
+  endif else begin
+    wt_meas_min = min(abs(weights_cube1), dimension=3)
+  endelse
 
   ;; divide data by weights
   data_cube1 = data_cube1 / weights_cube1
@@ -1012,11 +1065,11 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
   endif
 
   ;; make simulated noise cubes
-  sim_noise1 = randomn(seed, n_kx, n_ky, n_kz) * sqrt(sigma2_cube1) + $
-    dcomplex(0,1) * randomn(seed, n_kx, n_ky, n_kz) * sqrt(sigma2_cube1)
+  sim_noise1 = randomn(seed, n_kx, n_ky, n_freq) * sqrt(sigma2_cube1) + $
+    dcomplex(0,1) * randomn(seed, n_kx, n_ky, n_freq) * sqrt(sigma2_cube1)
   if nfiles eq 2 then begin
-    sim_noise2 = randomn(seed, n_kx, n_ky, n_kz) * sqrt(sigma2_cube2) + $
-      dcomplex(0,1) * randomn(seed, n_kx, n_ky, n_kz) * sqrt(sigma2_cube2)
+    sim_noise2 = randomn(seed, n_kx, n_ky, n_freq) * sqrt(sigma2_cube2) + $
+      dcomplex(0,1) * randomn(seed, n_kx, n_ky, n_freq) * sqrt(sigma2_cube2)
   endif
 
   if nfiles eq 2 then begin
@@ -1091,7 +1144,7 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
     sim_noise_sum = temporary(sim_noise1)
   endelse
 
-  mask = intarr(n_kx, n_ky, n_kz) + 1
+  mask = intarr(n_kx, n_ky, n_freq) + 1
   wh_sig0 = where(sum_sigma2 eq 0, count_sig0)
   if count_sig0 gt 0 then mask[wh_sig0] = 0
   n_freq_contrib = total(mask, 3)
@@ -1115,7 +1168,7 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
   endif
 
   if ps_options.save_sum_cube then begin
-    if n_elements(freq_flags) gt 0 then begin
+    if tag_exist(freq_options, 'freq_flags') then begin
       save, file = file_struct.uvf_sum_savefile, data_sum, kx_mpc, ky_mpc, frequencies, kperp_lambda_conv, $
         delay_params, hubble_param, freq_mask
     endif else begin
@@ -1177,7 +1230,9 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
   endif
 
   if ps_options.inverse_covar_weight then begin
-
+    if tag_exist(ps_options, 'kz_use') then begin
+      print, 'caution! Custom kz arrays have not been tested with inverse covariance weighting.'
+    endif
     max_eta_val = max(sum_sigma2)
     eta_var = shift([max_eta_val, fltarr(n_freq-1)], fft_shift_val)
     covar_eta_fg = diag_matrix(eta_var)
@@ -1238,15 +1293,17 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
 
   ;; this should be zero by construction, but add a test just in case
   if kz_mpc_orig[where(n_val eq 0)] ne 0 then begin
-    message, 'something has gone terribly wrong with calculating the kz_mpc_orig values.'
+    message, 'center kz value is not zero. Something has gone terribly wrong ' $
+      + 'with calculating the kz_mpc_orig values.'
   endif
 
   kz_mpc = kz_mpc_orig[where(n_val ge 0)]
 
-  if is_n_freq_even then begin
-    ;; if n_freq is even, there's an extra positive mode (because there's always a zero mode.)
+  if is_n_kz_even then begin
+    ;; if n_kz is even, there's an extra positive mode (because there's always a zero mode.)
     if max(abs(n_val(wh_pos))) le max(abs(n_val(wh_neg))) then begin
-      message, 'something has gone terribly wrong with calculating the kz_integers.'
+      message, 'absolute values of max and min kz_integers do not match. Something has ' $
+        + 'gone terribly wrong with calculating the kz_integers.'
     endif
     ;; remove unmatched max k positive mode:
     trim_max_pos = 1
@@ -1547,16 +1604,16 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
   git_hashes = {uvf:uvf_git_hashes, uvf_wt:uvf_wt_git_hashes, beam:beam_git_hashes, $
     kcube:kcube_git_hash}
 
-  if n_elements(freq_flags) gt 0 then begin
+  if tag_exist(freq_options, 'freq_flags') then begin
     save, file = file_struct.kcube_savefile, data_sum_1, data_sum_2, data_diff_1, $
-      data_diff_2, sigma2_1, sigma2_2, sim_noise_sum_1, sim_noise_sum_2, $
+      data_diff_2, sigma2_1, sigma2_2, sim_noise_sum_1, sim_noise_sum_2, frequencies, $
       sim_noise_diff_1, sim_noise_diff_2, kx_mpc, ky_mpc, kz_mpc, kperp_lambda_conv, $
       delay_params, hubble_param, n_freq_contrib, freq_mask, vs_name, vs_mean, $
       t_sys_meas, window_int, git_hashes, wt_meas_ave, wt_meas_min, ave_weights, $
       wt_ave_power_freq, ave_power_freq, wt_ave_power_uvf, ave_power_uvf
   endif else begin
     save, file = file_struct.kcube_savefile, data_sum_1, data_sum_2, data_diff_1, $
-      data_diff_2, sigma2_1, sigma2_2, sim_noise_sum_1, sim_noise_sum_2, $
+      data_diff_2, sigma2_1, sigma2_2, sim_noise_sum_1, sim_noise_sum_2, frequencies, $
       sim_noise_diff_1, sim_noise_diff_2, kx_mpc, ky_mpc, kz_mpc, kperp_lambda_conv, $
       delay_params, hubble_param, n_freq_contrib, vs_name, vs_mean, t_sys_meas, $
       window_int, git_hashes, wt_meas_ave, wt_meas_min, ave_weights, $
