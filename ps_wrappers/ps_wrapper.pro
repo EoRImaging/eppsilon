@@ -238,12 +238,24 @@ pro ps_wrapper, folder_name_in, obs_name, data_subdirs=data_subdirs, $
   endelse
 
   ; make sure all color bar ranges are > 0
-  if min(data_range) le 0 then message, "data_range values must be > 0"
-  if min(sigma_range) le 0 then message, "sigma_range values must be > 0"
-  if min(nev_range) le 0 then message, "nev_range values must be > 0"
-  if min(snr_range) le 0 then message, "snr_range values must be > 0"
-  if min(noise_range) le 0 then message, "noise_range values must be > 0"
-  if min(nnr_range) le 0 then message, "nnr_range values must be > 0"
+  if n_elements(data_range) gt 0 then begin
+    if min(data_range) le 0 then message, "data_range values must be > 0"
+  endif
+  if n_elements(sigma_range) gt 0 then begin
+    if min(sigma_range) le 0 then message, "sigma_range values must be > 0"
+  endif
+  if n_elements(nev_range) gt 0 then begin
+    if min(nev_range) le 0 then message, "nev_range values must be > 0"
+  endif
+  if n_elements(snr_range) gt 0 then begin
+    if min(snr_range) le 0 then message, "snr_range values must be > 0"
+  endif
+  if n_elements(noise_range) gt 0 then begin
+    if min(noise_range) le 0 then message, "noise_range values must be > 0"
+  endif
+  if n_elements(nnr_range) gt 0 then begin
+    if min(nnr_range) le 0 then message, "nnr_range values must be > 0"
+  endif
   if n_elements(slice_range) gt 0 then begin
     if min(slice_range) le 0 then message, "slice_range values must be > 0"
   endif
