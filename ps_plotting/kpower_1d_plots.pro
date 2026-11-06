@@ -15,7 +15,12 @@ pro kpower_1d_plots, power_savefile, multi_pos = multi_pos, $
     plot_sim_noise = plot_sim_noise, plot_nsigma = plot_nsigma, $
     delay_params = delay_params, delay_axis = delay_axis, $
     cable_length_axis = cable_length_axis, baseline_axis = baseline_axis, $
-    no_text = no_text
+  no_text = no_text, k_linear_axis = k_linear_axis, aspect_ratio = aspect_ratio, $
+  data_linestyles = data_linestyles, data_line_thick = data_line_thick, $
+  legend_margin = legend_margin, limit_data_krange = limit_data_krange, legend_charsize = legend_charsize
+  compile_opt defint32 ; , logical_predicate, strictarr, strictarrsubs
+
+  if n_elements(title) eq 0 then title = ''
 
   if n_elements(plot_options) gt 0 then begin
     if n_elements(hinv) eq 0 then hinv = plot_options.hinv
@@ -111,6 +116,9 @@ pro kpower_1d_plots, power_savefile, multi_pos = multi_pos, $
   nfiles = n_elements(power_savefile)
   if n_elements(names) gt 0 and n_elements(names) ne nfiles then message, 'Number of names does not match number of files'
   if n_elements(colors) gt 0 and n_elements(colors) ne nfiles then message, 'Number of colors does not match number of files'
+  if n_elements(data_linestyles) gt 0 and n_elements(data_linestyles) ne nfiles then message, 'Number of data_linestyles does not match number of files'
+  if n_elements(data_line_thick) gt 0 and n_elements(data_line_thick) ne nfiles then message, 'Number of data_line_thick does not match number of files'
+  if n_elements(limit_data_krange) gt 0 and n_elements(limit_data_krange) ne nfiles then message, 'Number of colors does not match number of files'
   if n_elements(psyms) gt 0 then begin
     if n_elements(psym) eq 1 then psyms = intarr(nfiles) + psyms
     if n_elements(psyms) ne nfiles then message, 'Number of psyms does not match number of files'
@@ -123,10 +131,12 @@ pro kpower_1d_plots, power_savefile, multi_pos = multi_pos, $
   endif else initial_title = title
   plot_pos = [margin[0], margin[1], (1-margin[2]), (1-margin[3])]
 
-  ;; set aspect ratio to 1
-  aspect_ratio=1.
-  x_factor=1.
-  y_factor=1.
+  if n_elements(aspect_ratio) eq 0 then begin
+    ; set aspect ratio to 1
+    aspect_ratio = 1.
+  endif
+  x_factor = 1.
+  y_factor = aspect_ratio
 
   screen_size = get_screen_size()
   max_xsize = screen_size[0]
@@ -296,6 +306,7 @@ pro kpower_1d_plots, power_savefile, multi_pos = multi_pos, $
     openw, lun, text_filename, /get_lun
   endif
 
+  if n_elements(limit_data_krange) eq 0 then limit_data_krange = intarr(nfiles) + 1
 
   for i=0, nfiles-1 do begin
     restore, power_savefile[i]
@@ -367,7 +378,7 @@ pro kpower_1d_plots, power_savefile, multi_pos = multi_pos, $
     endelse
 
     ;; limit to k_range if set
-    if keyword_set(k_range) then begin
+    if keyword_set(k_range) and keyword_set(limit_data_krange[i]) then begin
       wh_k_inrange = where(k_edges ge k_range[0] and k_edges[1:*] le k_range[1], n_k_plot)
 
       if n_k_plot eq 0 then message, 'No data in plot k range'
@@ -454,9 +465,11 @@ pro kpower_1d_plots, power_savefile, multi_pos = multi_pos, $
 
     if count_pos eq 0 and yaxis_type eq 'clipped_log' then message, 'No positive power and yaxis_type is clipped_log'
 
-    wh_sigma_n0 = where(sigma_val gt 0, count_sigma_n0)
-    if count_sigma_n0 eq 0 then message, 'sigma is zero everywhere'
-    sigma_pos_range = minmax(sigma_val[wh_sigma_n0])
+    if plot_nsigma gt 0 then begin
+      wh_sigma_n0 = where(sigma_val gt 0, count_sigma_n0)
+      if count_sigma_n0 eq 0 then message, 'sigma is zero everywhere'
+      sigma_pos_range = minmax(sigma_val[wh_sigma_n0])
+    endif
 
     tag = 'f' + strsplit(string(i),/extract)
     if i eq 0 then begin
@@ -473,7 +486,7 @@ pro kpower_1d_plots, power_savefile, multi_pos = multi_pos, $
       endelse
 
       power_plot = create_struct(tag, power)
-      sigma_plot = create_struct(tag, sigma_val)
+      if plot_nsigma gt 0 then sigma_plot = create_struct(tag, sigma_val)
       if n_elements(sim_noise) gt 0 and keyword_set(plot_sim_noise) then sim_noise_plot = create_struct(tag, abs(sim_noise))
       k_plot = create_struct(tag, k_mid)
 
@@ -501,7 +514,7 @@ pro kpower_1d_plots, power_savefile, multi_pos = multi_pos, $
       endif
 
       power_plot = create_struct(tag, power, power_plot)
-      sigma_plot = create_struct(tag, sigma_val, sigma_plot)
+      if plot_nsigma gt 0 then sigma_plot = create_struct(tag, sigma_val, sigma_plot)
       if n_elements(sim_noise) gt 0 and keyword_set(plot_sim_noise) then sim_noise_plot = create_struct(tag, abs(sim_noise), sim_noise_plot)
       k_plot = create_struct(tag, k_mid, k_plot)
 
@@ -540,21 +553,21 @@ pro kpower_1d_plots, power_savefile, multi_pos = multi_pos, $
       charsize = 1.2d * (mean(multi_size)/10000.)
     endif else charsize = 2
     font = 1
-    if n_elements(multi_pos) gt 0 then begin
-      legend_charsize = charsize
-    endif else begin
-      if nfiles gt 3 then legend_charsize = charsize / (nfiles/3d)  else legend_charsize = charsize
-    endelse
-    DEVICE, /ISOLATIN1
-    perp_char = '!9' + String("136B) + '!X' ;"
-
+    if n_elements(legend_charsize) eq 0 then begin
+      if n_elements(multi_pos) gt 0 then begin
+        legend_charsize = charsize
+      endif else begin
+        if nfiles gt 3 then legend_charsize = charsize / (nfiles / 3d) else legend_charsize = charsize
+      endelse
+    endif
+    device, /isolatin1
+    perp_char = '!9' + string("136b) + '!X' ; "
   endif else if n_elements(multi_pos) eq 0 then begin
     if windowavailable(window_num) then wset, window_num else window, window_num
 
-    perp_char = '!9' + string(120B) + '!X'
+    perp_char = '!9' + string(120b) + '!X'
   endif
 
-  ;;plot, k_plot, power_plot, /ylog, /xlog, xrange = xrange, xstyle=1
   plot_order = reverse(indgen(nfiles))
   if keyword_set(plot_weights) then begin
     ytitle = 'Weights'
@@ -600,29 +613,39 @@ pro kpower_1d_plots, power_savefile, multi_pos = multi_pos, $
 
   endif else style = 1
 
+  if keyword_set(k_linear_axis) then begin
+    xlog = 0
+  endif else begin
+    xlog = 1
+    xtickformat = 'exponent'
+  endelse
+
+  if n_elements(data_linestyles) eq 0 then data_linestyles = intarr(nfiles)
+  if n_elements(data_line_thick) eq 0 then data_line_thick = intarr(nfiles)
+
   case yaxis_type of
     'sym_log': begin
-      cgplot, k_plot.(plot_order[0]), power_plot.(plot_order[0]), position = positive_plot_pos, /ylog, /xlog, xrange = xrange, yrange = yrange, $
-        xstyle=1, ystyle=1, axiscolor = 'black', title = initial_title, psym=psyms[0], xtickformat = '(A1)', /nodata,$
+      cgplot, k_plot.(plot_order[0]), power_plot.(plot_order[0]), position = positive_plot_pos, /ylog, xlog = xlog, xrange = xrange, yrange = yrange, $
+        xstyle = 1, ystyle = 1, axiscolor = 'black', title = initial_title, psym = psyms[0], xtickformat = '(A1)', /nodata, $
         ytickformat = 'exponent', thick = thick, charthick = charthick, xthick = xthick, ythick = ythick, charsize = charsize, $
         font = font, noerase = no_erase
       for i=0, nfiles - 1 do if n_pos[i] gt 0 then begin
         temp_plot = power_plot.(plot_order[i])
         if n_neg[i] gt 0 then temp_plot[wh_neg] = yrange[0]
         if n_zero[i] gt 0 then temp_plot[wh_zero] = yrange[0]
-        cgplot, /overplot, k_plot.(plot_order[i]), temp_plot, psym=psyms[i], color = colors[i], $
-          thick = thick
+        cgplot, /overplot, k_plot.(plot_order[i]), temp_plot, psym = psyms[i], color = colors[i], $
+          linestyle = data_linestyles[i], thick = thick + data_line_thick[i]
       endif
       cgtext, xloc_ytitle, yloc_ytitle, ytitle, /normal, alignment=0.5, orientation = 90, charsize = charsize, font = font
 
       if log_bins gt 0 then bottom = 1 else bottom = 0
       if n_elements(names) ne 0 then $
-        al_legend, names, textcolor = colors, box = 0, /right, bottom = bottom, charsize = legend_charsize, charthick = charthick
+        al_legend, names, textcolor = colors, box = 0, /right, bottom = bottom, $
+        charsize = legend_charsize, charthick = charthick, margin = legend_margin
 
-
-      cgplot, k_plot.(plot_order[0]), -1*(power_plot.(plot_order[0])), position = negative_plot_pos, /ylog, /xlog, xrange = xrange, yrange = reverse(yrange), $
-        xstyle=style, ystyle=1, axiscolor = 'black', psym=psyms[0], xtickformat = 'exponent', /nodata, $
-        ytickformat = 'exponent', thick = thick, charthick = charthick, xthick = xthick, ythick = ythick, charsize = charsize, $
+      cgplot, k_plot.(plot_order[0]), -1 * (power_plot.(plot_order[0])), position = negative_plot_pos, /ylog, xlog = xlog, xrange = xrange, yrange = reverse(yrange), $
+        xstyle = style, ystyle = 1, axiscolor = 'black', psym = psyms[0], xtickformat = xtickformat, /nodata, $
+        ytickformat = 'exponent', charthick = charthick, xthick = xthick, ythick = ythick, charsize = charsize, $
         font = font, /noerase
 
       if keyword_set(baseline_axis) or keyword_set(delay_axis) or keyword_set(cable_length_axis) then begin
@@ -636,14 +659,13 @@ pro kpower_1d_plots, power_savefile, multi_pos = multi_pos, $
         temp_plot = -1*(power_plot.(plot_order[i]))
         if n_pos[i] gt 0 then temp_plot[wh_pos] = yrange[0]
         if n_zero[i] gt 0 then temp_plot[wh_zero] = yrange[0]
-        cgplot, /overplot, k_plot.(plot_order[i]), temp_plot, psym=psyms[i], color = colors[i], $
-          thick = thick
+        cgplot, /overplot, k_plot.(plot_order[i]), temp_plot, psym = psyms[i], color = colors[i], $
+          linestyle = data_linestyles[i], thick = thick + data_line_thick[i]
       endif
     end
     'folded_log': begin
-
-      cgplot, k_plot.(plot_order[0]), power_plot.(plot_order[0]), position = plot_pos, /nodata, /ylog, /xlog, xrange = xrange, yrange = yrange, $
-        xstyle=style, ystyle=1, axiscolor = 'black', xtitle = xtitle, ytitle = ytitle, title = initial_title, psym=psyms[0], xtickformat = 'exponent', $
+      cgplot, k_plot.(plot_order[0]), power_plot.(plot_order[0]), position = plot_pos, /nodata, /ylog, xlog = xlog, xrange = xrange, yrange = yrange, $
+        xstyle = style, ystyle = 1, axiscolor = 'black', xtitle = xtitle, ytitle = ytitle, title = initial_title, psym = psyms[0], xtickformat = xtickformat, $
         ytickformat = 'exponent', thick = thick, charthick = charthick, xthick = xthick, ythick = ythick, charsize = charsize, $
         font = font, noerase = no_erase
 
@@ -659,31 +681,29 @@ pro kpower_1d_plots, power_savefile, multi_pos = multi_pos, $
           temp_plot = power_plot.(plot_order[i])
           if n_neg[i] gt 0 then temp_plot[wh_neg] = yrange[0]
           if n_zero[i] gt 0 then temp_plot[wh_zero] = yrange[0]
-          cgplot, /overplot, k_plot.(plot_order[i]), temp_plot, psym=psyms[i], color = colors[i], $
-            thick = thick
+          cgplot, /overplot, k_plot.(plot_order[i]), temp_plot, psym = psyms[i], color = colors[i], $
+            thick = thick + data_line_thick[i], linestyle = data_linestyles[i]
         endif
 
         if n_neg[i] gt 0 then begin
           temp_plot = -1*(power_plot.(plot_order[i]))
           if n_pos[i] gt 0 then temp_plot[wh_pos] = yrange[0]
           if n_zero[i] gt 0 then temp_plot[wh_zero] = yrange[0]
-          cgplot, /overplot, k_plot.(plot_order[i]), temp_plot, psym=psyms[i], color = colors[i], $
-            thick = thick, linestyle=2
+          cgplot, /overplot, k_plot.(plot_order[i]), temp_plot, psym = psyms[i], color = colors[i], $
+            thick = thick + data_line_thick[i], linestyle = 2
         endif
       endfor
 
       if log_bins gt 0 then bottom = 1 else bottom = 0
       if n_elements(names) ne 0 then $
-        al_legend, names, textcolor = colors, box = 0, /right, bottom = bottom, charsize = legend_charsize, charthick = charthick
-
-
+        al_legend, names, textcolor = colors, box = 0, /right, bottom = bottom, $
+        charsize = legend_charsize, charthick = charthick, margin = legend_margin
     end
     'clipped_log': begin
-
-      cgplot, k_plot.(plot_order[0]), power_plot.(plot_order[0]), position = plot_pos, /ylog, /xlog, xrange = xrange, yrange = yrange, $
-        xstyle=style, ystyle=1, axiscolor = 'black', xtitle = xtitle, ytitle = ytitle, title = initial_title, psym=psyms[0], xtickformat = 'exponent', $
+      cgplot, k_plot.(plot_order[0]), power_plot.(plot_order[0]), position = plot_pos, /ylog, xlog = xlog, xrange = xrange, yrange = yrange, $
+        xstyle = style, ystyle = 1, axiscolor = 'black', xtitle = xtitle, ytitle = ytitle, title = initial_title, psym = psyms[0], xtickformat = xtickformat, $
         ytickformat = 'exponent', thick = thick, charthick = charthick, xthick = xthick, ythick = ythick, charsize = charsize, $
-        font = font, noerase = no_erase
+        font = font, noerase = no_erase, /nodata
 
       if keyword_set(baseline_axis) or keyword_set(delay_axis) or keyword_set(cable_length_axis) then begin
 
@@ -710,20 +730,29 @@ pro kpower_1d_plots, power_savefile, multi_pos = multi_pos, $
               err_yhigh = err_high, err_ylow = err_low, err_thick = thick, err_width=0, /err_clip, err_style = 1
           endif
         endif else begin
-          cgplot, /overplot, k_plot.(plot_order[i]), power_plot.(plot_order[i]), psym=psyms[i], color = colors[i], $
-            thick = thick
-          cgplot, /overplot, k_plot.(plot_order[i]), sigma_plot.(plot_order[i]), psym=psyms[i], color = colors[i], $
-            thick = thick, linestyle=2
+          cgplot, /overplot, k_plot.(plot_order[i]), power_plot.(plot_order[i]), psym = psyms[i], color = colors[i], $
+            thick = thick + data_line_thick[i], linestyle = data_linestyles[i]
+          if plot_nsigma gt 0 then begin
+            cgplot, /overplot, k_plot.(plot_order[i]), sigma_plot.(plot_order[i]), psym = psyms[i], color = colors[i], $
+              thick = thick, linestyle = 2
+          endif
           if n_elements(sim_noise_plot) gt 0 and keyword_set(plot_sim_noise) then cgplot, /overplot, k_plot.(plot_order[i]), sim_noise_plot.(plot_order[i]), $
             psym=psyms[i], color = colors[i], thick = thick, linestyle=1
         endelse
       endfor
 
       if log_bins gt 0 then bottom = 1 else bottom = 0
-      if n_elements(names) ne 0 and not keyword_set(no_text) then $
-        al_legend, [names, 'with ' + number_formatter(plot_nsigma) + ' sigma thermal noise'], textcolor = [colors, 'black'], $
-        box = 0, /right, bottom = bottom, charsize = legend_charsize, charthick = charthick
-
+      if n_elements(names) ne 0 and not keyword_set(no_text) then begin
+        if plot_nsigma gt 0 then begin
+          names_use = [names, 'with ' + number_formatter(plot_nsigma) + ' sigma thermal noise']
+          text_colors = [colors, 'black']
+        endif else begin
+          names_use = names
+          text_colors = colors
+        endelse
+        al_legend, names_use, textcolor = text_colors, box = 0, margin = legend_margin, $
+          /right, bottom = bottom, charsize = legend_charsize, charthick = charthick
+      endif
     end
   endcase
   if n_elements(note) ne 0 and not keyword_set(no_text) then begin

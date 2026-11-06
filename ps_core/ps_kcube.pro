@@ -3,6 +3,7 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
     input_units = input_units, save_slices = save_slices, $
     refresh_options = refresh_options, uvf_options = uvf_options, $
     ps_options = ps_options
+  compile_opt idl2
 
   if tag_exist(file_struct, 'nside') ne 0 then healpix = 1 else healpix = 0
 
@@ -984,6 +985,37 @@ pro ps_kcube, file_struct, sim = sim, fix_sim_input = fix_sim_input, $
 
   endelse
 
+  if strpos(strlowcase(file_struct.datavar), 'model') gt -1 then begin
+    ; build mask for points not affected by coarse band edges or centers
+    mask = dblarr(192) + 1
+    mask[0 : * : 8] = 0
+    mask[4 : * : 8] = 0
+    mask[6 : * : 8] = 0
+    mask[7 : * : 8] = 0
+    good_sigma_vals = vis_sigma[where(mask eq 1)]
+    good_inds = where(mask eq 1)
+
+    ; two linear fits broken at the digital gain jump
+    ; note: good_inds is shorter (length 96), so ind ranges are different
+    fit_lower = linfit(good_inds[0 : 63], good_sigma_vals[0 : 63])
+    fit_upper = linfit(good_inds[64 : *], good_sigma_vals[64 : *])
+    fit_vals_lower = fit_lower[0] + dindgen(128) * fit_lower[1]
+    fit_vals_upper = fit_upper[0] + (dindgen(64) + 128) * fit_upper[1]
+    full_fit = [fit_vals_lower, fit_vals_upper]
+    residuals2 = vis_sigma - full_fit
+
+    if file_struct.pol eq 'xx' then begin
+      scale = 0.2 / mean(good_sigma_vals)
+    endif else begin
+      scale = 0.12 / mean(good_sigma_vals)
+    endelse
+    model_multiplier = residuals2 * scale + 1
+
+    ; data_cube1 = data_cube1 * rebin(reform(model_multiplier, 1, 1, n_freq), n_kx, n_ky, n_freq)
+    ; data_cube2 = data_cube2 * rebin(reform(model_multiplier, 1, 1, n_freq), n_kx, n_ky, n_freq)
+    ; vis_sigma = full_fit
+    vis_sigma = dblarr(n_freq) + mean(good_sigma_vals)
+  endif
 
   ;; get sigma^2 into Jy^2
   sigma2_cube1 = sigma2_cube1 * rebin(reform(vis_sigma, 1, 1, n_freq), n_kx, n_ky, n_freq)^2.

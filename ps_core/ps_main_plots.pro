@@ -10,6 +10,7 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
     binning_1d_options = binning_1d_options, plot_options = plot_options, $
     plot_types = plot_types, plot_2d_options = plot_2d_options, $
     plot_1d_options = plot_1d_options
+  compile_opt idl2
 
   if n_elements(savefilebase) gt 1 then message, 'savefilebase must be a scalar'
 
@@ -1437,6 +1438,12 @@ pro ps_main_plots, datafile, beamfiles = beamfiles, pol_inc = pol_inc, $
 
       eor_file_1d = file_path + 'eor_power_1d.idlsave'
       flat_file_1d = file_path + 'flat_power_1d.idlsave'
+
+      if file_test(eor_file_1d) eq 0 then eor_file_1d = file_path + 'simulation/eor_power_1d.idlsave'
+      if file_test(flat_file_1d) eq 0 then flat_file_1d = file_path + 'simulation/eor_power_1d.idlsave'
+
+      if file_test(eor_file_1d) eq 0 then message, 'Cannot find EoR 1D power file.'
+      if file_test(flat_file_1d) eq 0 then message, 'Cannot find EoR 1D power file.'
 
       flat_power = mean(getvar_savefile(flat_file_1d, 'power'))
       cube_power_info = create_struct(cube_power_info, 'flat_power', flat_power)
